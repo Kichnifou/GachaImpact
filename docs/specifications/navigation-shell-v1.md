@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Modération — navigation candidate étape 22
+
+La destination globale reste unique. ADMIN voit `Système de jeu | Personnages | Codes | Bannières | Événements | Communauté | Giveaway | Journal` ; MODERATOR voit `Communauté | Giveaway` ; TESTER seul voit `Système de jeu` pour lui-même. Les combinaisons de rôles additionnent leurs droits. Seuls les onglets disponibles existent dans la tablist ARIA et dans la navigation par flèches ; les anciens faux onglets Bannières/Événements désactivés sont remplacés par de vraies surfaces ADMIN. Le browser Player partagé choisit la cible Système/possessions sans changer l'identité de l'acteur. Communauté réunit les dossiers MP et Chat global. Le [contrat Administration V1](administration-moderation-v1.md) porte les permissions et opérations ; le Master porte le statut review/public.
+
 ## Entrée Giveaway dans Modération
 
 Le shell privé Modération inclut un onglet Giveaway pour les rôles de modération existants. Il affiche l'état de la session, les compteurs/Top 3 et les annonces, avec Ouvrir et Fermer ; Fermer exige une confirmation. Les contrôles OAuth et activation du bridge sont réservés à ADMIN. Aucune entrée de Menu, route ou écran Giveaway n'est créée pour les joueurs standalone (R948–R949).

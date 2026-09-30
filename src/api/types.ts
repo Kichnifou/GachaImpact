@@ -24,7 +24,7 @@ export type GiveawayStateDto = Readonly<{
     announcements: readonly Readonly<{ id: string; kind: string; state: string; errorCode: string | null; attempts: number }>[];
   }> | null
 }>
-export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
+export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER'; roles?: readonly ('ADMIN' | 'MODERATOR' | 'TESTER')[] }>
 
 export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE'

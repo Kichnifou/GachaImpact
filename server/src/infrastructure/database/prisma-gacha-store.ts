@@ -693,7 +693,7 @@ function toBanner(row: { id: string; startsAt: Date; endsAt: Date; featuredChara
   return { id: row.id, startsAt: row.startsAt, endsAt: row.endsAt, featuredFiveStars: sorted.filter(({ rarity }) => rarity === 5).map(({ character }) => toCharacter(character)), featuredFourStars: sorted.filter(({ rarity }) => rarity === 4).map(({ character }) => toCharacter(character)) };
 }
 
-function validateSelections(selections: readonly FeaturedSelection[]): void {
+export function validateSelections(selections: readonly FeaturedSelection[]): void {
   if (selections.length !== 10 || new Set(selections.map(({ character }) => character.id)).size !== 10 || selections.filter(({ character }) => character.rarity === 5).length !== 4 || selections.filter(({ character }) => character.rarity === 4).length !== 6) {
     throw new Error('Banner selection did not produce exactly four five-stars and six four-stars.');
   }

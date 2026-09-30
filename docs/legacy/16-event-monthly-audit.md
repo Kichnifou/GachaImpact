@@ -1,5 +1,7 @@
 # 16 — Audit Event / monthly
 
+**Complément étape 22 (candidat `review`) :** l'Administration lit les définitions/éditions Event et permet une configuration future validée par le parser métier. Une édition active ou programmée fige sa configuration ; la désactivation/réactivation d'une définition n'efface ni snapshot, ni participant, ni point, ni claim. Aucun reset ou recalcul rétroactif. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). Les décisions legacy ci-dessous conservent leur statut historique.
+
 > Domaine 13 de l'audit GachaImpact.  
 > Statut : **CLÔTURÉ — décisions produit R594 à R607 et R609 à R644 validées ; R608 et R632 traitées comme décisions techniques**.  
 > Ce document est la source spécialisée validée du domaine Event / monthly.  

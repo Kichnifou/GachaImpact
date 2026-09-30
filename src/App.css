@@ -9221,3 +9221,39 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .giveaway-confirm h3 { margin-top: 0; }
 .giveaway-confirm .giveaway-actions { justify-content: flex-end; }
 @media (max-width: 520px) { .giveaway-admin-panel { padding: 12px; } .giveaway-actions .app-button { flex: 1 1 auto; } .giveaway-confirm .giveaway-actions .app-button { flex: 1 1 100%; } }
+
+.admin-domain { position: relative; min-width: 0; min-height: 0; display: grid; align-content: start; gap: 12px; }
+.admin-domain .panel, .admin-list { min-width: 0; }
+.admin-domain h2, .admin-list h2 { margin: 0 0 9px; font-size: 18px; }
+.admin-domain button, .admin-list button { min-height: 34px; padding: 5px 10px; cursor: pointer; color: #deedff; border: 1px solid rgba(105, 157, 220, .34); border-radius: 8px; background: rgba(28, 72, 119, .5); }
+.admin-domain button:disabled, .admin-list button:disabled { cursor: default; opacity: .5; }
+.admin-domain button.danger, .admin-list button.danger { color: #ffb8b8; border-color: rgba(216, 130, 111, .42); background: rgba(75, 34, 42, .78); }
+.admin-domain input, .admin-domain select, .admin-list input { min-width: 0; min-height: 35px; padding: 5px 9px; color: #e8f2ff; border: 1px solid var(--border); border-radius: 8px; background: rgba(4, 10, 22, .7); }
+.admin-domain label, .admin-list label { min-width: 0; display: grid; gap: 5px; color: var(--muted); font-size: 9px; }
+.admin-domain small, .admin-list small { display: block; color: var(--muted); font-size: 8px; overflow-wrap: anywhere; }
+.admin-subtabs, .admin-filters, .admin-pager { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.admin-subtabs button[aria-pressed="true"] { border-color: #5fd7ff; color: #fff; background: rgba(24, 81, 126, .88); }
+.admin-editor, .admin-list { display: grid; gap: 10px; padding: 16px; }
+.admin-editor form { display: flex; flex-wrap: wrap; align-items: end; gap: 9px; }
+.admin-editor form label { flex: 1 1 145px; }
+.admin-editor form label:has(input[type="checkbox"]) { display: flex; align-items: center; flex: 0 1 auto; }
+.admin-editor form input[type="checkbox"] { min-height: 16px; }
+.admin-scroll-list { min-height: 0; max-height: min(48dvh, 510px); overflow-y: auto; display: grid; align-content: start; gap: 6px; }
+.admin-list-row { min-width: 0; display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px solid rgba(105, 157, 220, .17); border-radius: 8px; background: rgba(8, 22, 42, .38); }
+.admin-list-row > div:first-child { min-width: 0; flex: 1 1 auto; }
+.admin-list-row strong { display: block; font-size: 10px; }
+.admin-list-row > button { flex: 0 0 auto; }
+.admin-pager { justify-content: center; padding-top: 8px; border-top: 1px solid rgba(105, 157, 220, .18); }
+.admin-role-list { display: grid; gap: 6px; }
+.admin-role-list > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-banner-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.admin-banner-slots fieldset { min-width: 0; display: grid; gap: 8px; border: 1px solid rgba(105, 157, 220, .25); border-radius: 9px; }
+.admin-domain pre, .admin-audit-detail pre { max-width: 100%; max-height: 260px; overflow: auto; padding: 9px; color: #cce3ff; font-size: 9px; background: rgba(4, 10, 22, .7); }
+.admin-audit-detail > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.admin-domain .moderation-delete-overlay { position: fixed; z-index: 1200; }
+.admin-domain .admin-chat-reports { grid-template-rows: none; align-content: start; gap: 10px; overflow: visible; }
+.moderation-role .moderation-delete-overlay { position: fixed; z-index: 1200; }
+@media (max-width: 700px) { .admin-banner-slots, .admin-audit-detail > div { grid-template-columns: 1fr; }
+  .admin-list-row { flex-wrap: wrap; } .admin-list-row > div:first-child { flex-basis: 100%; }
+  .admin-filters > * { flex: 1 1 125px; } .admin-domain .dm-reports-panel { padding: 10px; }
+}

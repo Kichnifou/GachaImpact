@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Administration / Modération — candidat étape 22
+
+Les routes `/api/v1/moderation/**` ajoutent des services spécialisés `RoleAdminService`, `CharacterAdminService`, `PossessionAdminService`, `BannerAdminService`, `EventAdminService`, `GlobalChatModerationService` et `AdminAuditQueryService`. `AdminOperation` centralise l'identité serveur, la revalidation du rôle dans la transaction sérialisable, l'idempotence `BusinessOperation` et `AdminAuditEntry`. Les rôles prennent un verrou advisory global pour garantir qu'un ADMIN actif subsiste sous concurrence ; la correction de bannière prend le verrou du scheduler/vote `70422401`. Aucune nouvelle table ou migration n'est nécessaire. Les DTO du Journal masquent les champs de secrets côté serveur avant transport. Les mutateurs restent sous authentification et autorisation réelle, jamais sous confiance du frontend. La [spécification Administration V1](../specifications/administration-moderation-v1.md) précise les opérations et limites ; les anciennes descriptions de la seule gestion TESTER sont supersédées par R959–R969.
+
 ## Giveaway / Wish natif — pilote R947 validé publiquement
 
 `GiveawayService` est le core commun aux routes privées Modération et au consumer Twitch spécialisé. Une transaction PostgreSQL `SERIALIZABLE`, verrou advisory global, reçus de commandes et contraintes uniques portent ouverture, `!wish`, comptage et fermeture. La fermeture choisit un gagnant éligible, calcule les rangs de compétition, crée les opérations et crédits économiques, statistiques, preuves de récompense et notifications agrégées, puis fige la session et prépare deux annonces distinctes. Un échec avant commit annule l'ensemble. Les replays ne créditent pas une seconde fois. Le reroll natif est absent.

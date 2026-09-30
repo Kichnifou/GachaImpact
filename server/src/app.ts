@@ -48,6 +48,7 @@ import { registerTeamRoutes } from './api/routes/team.js';
 import { registerBankRoutes } from './api/routes/bank.js';
 import { registerInventoryRoutes } from './api/routes/inventory.js';
 import { registerModerationRoutes } from './api/routes/moderation.js';
+import { registerAdministrationRoutes, type AdministrationServices } from './api/routes/administration.js';
 import { registerShopRoutes } from './api/routes/shop.js';
 import type { ModerationTools } from './application/moderation/moderation-tools.js';
 import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from './application/gacha/gacha-services.js';
@@ -154,6 +155,7 @@ export type AppDependencies = Readonly<{
   purchaseDailyChallenge?: PurchaseDailyChallenge;
   switchDailyChallenge?: SwitchDailyChallenge;
   moderationTools?: ModerationTools;
+  administrationServices?: AdministrationServices;
   getCurrentPlayerShop?: GetCurrentPlayerShop;
   getPlayerShopHistory?: GetPlayerShopHistory;
   purchaseShopItem?: PurchaseShopItem;
@@ -293,6 +295,7 @@ export async function buildApp(
     }
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
+      if (dependencies.administrationServices) await app.register(registerAdministrationRoutes, { authenticate, services: dependencies.administrationServices });
       if (dependencies.giveawayService && dependencies.twitchGiveawayManager && dependencies.tradePlayer)
         await app.register(registerGiveawayRoutes, { authenticate, core: dependencies.giveawayService,
           bridge: dependencies.twitchGiveawayManager, moderation: dependencies.moderationTools, getPlayer: dependencies.tradePlayer });

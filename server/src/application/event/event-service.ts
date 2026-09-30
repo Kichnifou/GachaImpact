@@ -808,7 +808,7 @@ function parseEditionSnapshot(value: unknown): EditionSnapshot {
   };
 }
 
-function parseConfig(value: unknown): FestivalConfig {
+export function parseEventConfig(value: unknown): FestivalConfig {
   const record = readRecord(value);
   const currency = readRecord(record?.currency);
   const collection = readRecord(record?.collection);
@@ -821,6 +821,7 @@ function parseConfig(value: unknown): FestivalConfig {
   ) throw new Error('Invalid Event definition config.');
   return { emoji: record.emoji, currency: { label: currency.label, emoji: currency.emoji }, collection: { key: collection.key, label: collection.label } };
 }
+const parseConfig = parseEventConfig;
 
 function readRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;

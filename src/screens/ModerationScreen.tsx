@@ -16,6 +16,12 @@ import type {
 import AppButton from "../components/AppButton";
 import GiftCodeAdminPanel from "../components/GiftCodeAdminPanel";
 import DirectMessageReportsPanel from "../components/DirectMessageReportsPanel";
+import RoleAdminPanel from "../components/admin/RoleAdminPanel";
+import CharacterAdminPanel from "../components/admin/CharacterAdminPanel";
+import BannerAdminPanel from "../components/admin/BannerAdminPanel";
+import EventAdminPanel from "../components/admin/EventAdminPanel";
+import GlobalChatReportsPanel from "../components/admin/GlobalChatReportsPanel";
+import AdminAuditPanel from "../components/admin/AdminAuditPanel";
 import ModerationPlayerBrowser from "../components/ModerationPlayerBrowser";
 import GiveawayAdminPanel from "../components/GiveawayAdminPanel";
 import PlayerIdentityInline from "../components/PlayerIdentityInline";
@@ -92,7 +98,6 @@ function ModerationScreen({
   onXp,
   onGacha,
   onStella,
-  onTester,
   onApplied,
   onLoadGiftCodes,
   onCreateGiftCode,
@@ -105,6 +110,7 @@ function ModerationScreen({
   const [query, setQuery] = useState("");
   const [players, setPlayers] = useState<readonly ModerationPlayerDto[]>([]);
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [communityType, setCommunityType] = useState<'chat' | 'dm'>('dm');
   const [resourceKey, setResourceKey] = useState("primogems");
   const [amount, setAmount] = useState("160");
   const [xp, setXp] = useState("");
@@ -119,13 +125,17 @@ function ModerationScreen({
     capabilities.superTools;
   const [pending, setPending] = useState(systemAvailable);
   const [message, setMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"system" | "codes" | "community" | "giveaway">(
+  const [activeTab, setActiveTab] = useState<"system" | "characters" | "codes" | "banners" | "events" | "community" | "giveaway" | "audit">(
     () => (systemAvailable ? "system" : "community"),
   );
   const onLoadRef = useRef(onLoad);
   const onAppliedRef = useRef(onApplied);
   const systemTabRef = useRef<HTMLButtonElement>(null);
   const codesTabRef = useRef<HTMLButtonElement>(null);
+  const charactersTabRef = useRef<HTMLButtonElement>(null);
+  const bannersTabRef = useRef<HTMLButtonElement>(null);
+  const eventsTabRef = useRef<HTMLButtonElement>(null);
+  const auditTabRef = useRef<HTMLButtonElement>(null);
   const communityTabRef = useRef<HTMLButtonElement>(null);
   const giveawayTabRef = useRef<HTMLButtonElement>(null);
   const requestRevision = useRef(0);
@@ -141,6 +151,14 @@ function ModerationScreen({
     onUpdateGiftCode &&
     onGiftCodeClaimants,
   );
+  const availableTabs = [
+    ...(systemAvailable ? (['system'] as const) : []),
+    ...(isSuper ? (['characters'] as const) : []),
+    ...(codesAvailable ? (['codes'] as const) : []),
+    ...(isSuper ? (['banners', 'events'] as const) : []),
+    ...(capabilities.communityModeration ? (['community', 'giveaway'] as const) : []),
+    ...(isSuper ? (['audit'] as const) : []),
+  ];
 
   useEffect(() => {
     onLoadRef.current = onLoad;
@@ -265,80 +283,68 @@ function ModerationScreen({
                 if (event.key !== "ArrowLeft" && event.key !== "ArrowRight")
                   return;
                 event.preventDefault();
-                const tabs = [
-                  ...(systemAvailable ? (["system"] as const) : []),
-                  ...(codesAvailable ? (["codes"] as const) : []),
-                  ...(capabilities.communityModeration ? (["community"] as const) : []),
-                  ...(capabilities.communityModeration ? (["giveaway"] as const) : []),
-                ];
+                const tabs = availableTabs;
                 const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1;
                 const next = tabs[(tabs.indexOf(activeTab) + offset) % tabs.length]!;
                 setActiveTab(next);
-                (next === "codes" ? codesTabRef : next === "community" ? communityTabRef : next === "giveaway" ? giveawayTabRef : systemTabRef).current?.focus();
+                ({ system: systemTabRef, characters: charactersTabRef, codes: codesTabRef, banners: bannersTabRef,
+                  events: eventsTabRef, community: communityTabRef, giveaway: giveawayTabRef, audit: auditTabRef }[next]).current?.focus();
               }}
             >
-              <AppButton
+              {systemAvailable && <AppButton
                 ref={systemTabRef}
                 role="tab"
                 aria-selected={activeTab === "system"}
                 tabIndex={activeTab === "system" ? 0 : -1}
                 className={activeTab === "system" ? "active" : ""}
-                disabled={!systemAvailable}
                 onClick={() => setActiveTab("system")}
               >
                 Système de jeu
-              </AppButton>
-              <AppButton
+              </AppButton>}
+              {isSuper && <AppButton ref={charactersTabRef} role="tab" aria-selected={activeTab === "characters"}
+                tabIndex={activeTab === "characters" ? 0 : -1} className={activeTab === "characters" ? "active" : ""}
+                onClick={() => setActiveTab("characters")}>Personnages</AppButton>}
+              {codesAvailable && <AppButton
                 ref={codesTabRef}
                 role="tab"
                 aria-selected={activeTab === "codes"}
                 tabIndex={activeTab === "codes" ? 0 : -1}
                 className={activeTab === "codes" ? "active" : ""}
-                disabled={!codesAvailable}
                 onClick={() => setActiveTab("codes")}
               >
                 Codes
-              </AppButton>
-              <AppButton
-                role="tab"
-                aria-selected={false}
-                tabIndex={-1}
-                disabled
-              >
-                Bannières
-              </AppButton>
-              <AppButton
-                role="tab"
-                aria-selected={false}
-                tabIndex={-1}
-                disabled
-              >
-                Événements
-              </AppButton>
-              <AppButton
+              </AppButton>}
+              {isSuper && <AppButton ref={bannersTabRef} role="tab" aria-selected={activeTab === "banners"}
+                tabIndex={activeTab === "banners" ? 0 : -1} className={activeTab === "banners" ? "active" : ""}
+                onClick={() => setActiveTab("banners")}>Bannières</AppButton>}
+              {isSuper && <AppButton ref={eventsTabRef} role="tab" aria-selected={activeTab === "events"}
+                tabIndex={activeTab === "events" ? 0 : -1} className={activeTab === "events" ? "active" : ""}
+                onClick={() => setActiveTab("events")}>Événements</AppButton>}
+              {capabilities.communityModeration && <AppButton
                 ref={communityTabRef}
                 role="tab"
                 aria-selected={activeTab === "community"}
                 tabIndex={activeTab === "community" ? 0 : -1}
                 className={activeTab === "community" ? "active" : ""}
-                disabled={!capabilities.communityModeration}
                 onClick={() => setActiveTab("community")}
               >
                 Communauté
-              </AppButton>
-              <AppButton
+              </AppButton>}
+              {capabilities.communityModeration && <AppButton
                 ref={giveawayTabRef}
                 role="tab"
                 aria-selected={activeTab === "giveaway"}
                 tabIndex={activeTab === "giveaway" ? 0 : -1}
                 className={activeTab === "giveaway" ? "active" : ""}
-                disabled={!capabilities.communityModeration}
                 onClick={() => setActiveTab("giveaway")}
               >
                 Giveaway
-              </AppButton>
+              </AppButton>}
+              {isSuper && <AppButton ref={auditTabRef} role="tab" aria-selected={activeTab === "audit"}
+                tabIndex={activeTab === "audit" ? 0 : -1} className={activeTab === "audit" ? "active" : ""}
+                onClick={() => setActiveTab("audit")}>Journal</AppButton>}
             </nav>
-            {activeTab === "system" && (
+            {(activeTab === "system" || activeTab === "characters") && (
               <section className="panel moderation-target" aria-busy={pending}>
                 <div className="moderation-target-heading">
                   <div>
@@ -643,29 +649,10 @@ function ModerationScreen({
                   </label>
                   <button disabled={pending}>Définir la quantité</button>
                 </form>
-                {isSuper && !isSelf && (
-                  <section className="panel moderation-tool moderation-role">
-                    <h2>Testeur</h2>
-                    <p>
-                      {state?.player.tester
-                        ? "Ce joueur possède actuellement le rôle Testeur."
-                        : "Ce joueur ne possède pas le rôle Testeur."}
-                    </p>
-                    <button
-                      disabled={pending}
-                      type="button"
-                      onClick={() =>
-                        void execute(() =>
-                          onTester(selectedTargetId, !state?.player.tester),
-                        )
-                      }
-                    >
-                      {state?.player.tester
-                        ? "Retirer Testeur"
-                        : "Attribuer Testeur"}
-                    </button>
-                  </section>
-                )}
+                {isSuper && state && <RoleAdminPanel state={state} onChanged={async () => {
+                  try { accept(await onLoadRef.current(selectedTargetId)); }
+                  catch { window.location.reload(); }
+                }} />}
               </>
             )}
           </div>
@@ -679,12 +666,19 @@ function ModerationScreen({
             onClaimants={onGiftCodeClaimants!}
           />
         )}
+        {activeTab === "characters" && isSuper && state && <CharacterAdminPanel playerId={selectedTargetId} playerName={state.player.displayName} />}
+        {activeTab === "banners" && isSuper && <BannerAdminPanel />}
+        {activeTab === "events" && isSuper && <EventAdminPanel />}
         {activeTab === "community" && capabilities.communityModeration && (
-          <DirectMessageReportsPanel />
+          <div className="admin-domain"><div className="admin-subtabs">
+            <button type="button" aria-pressed={communityType === 'chat'} onClick={() => setCommunityType('chat')}>Chat global</button>
+            <button type="button" aria-pressed={communityType === 'dm'} onClick={() => setCommunityType('dm')}>Messages privés</button>
+          </div>{communityType === 'chat' ? <GlobalChatReportsPanel /> : <DirectMessageReportsPanel />}</div>
         )}
         {activeTab === "giveaway" && capabilities.communityModeration && (
           <GiveawayAdminPanel admin={capabilities.superTools} />
         )}
+        {activeTab === "audit" && isSuper && <AdminAuditPanel />}
       </ScrollableScreenPanel>
       {browserOpen && (
         <ModerationPlayerBrowser

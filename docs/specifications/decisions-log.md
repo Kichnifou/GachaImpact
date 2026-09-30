@@ -2,6 +2,22 @@
 
 Statut : évolutif.
 
+## Administration / Modération complète — décisions validées R959–R969 (2026-09-30)
+
+- `VALIDÉ R959` — ADMIN attribue et révoque TESTER, MODERATOR et ADMIN depuis les rôles persistés. Le dernier ADMIN actif ne peut jamais être retiré, y compris en concurrence. Un ADMIN peut retirer son propre rôle si un autre reste actif. Vérification backend dans la transaction, audit et idempotence obligatoires ; confirmation forte UI pour ADMIN/MODERATOR. Kichnifou n'est pas une identité codée en dur.
+- `VALIDÉ R960` — MODERATOR ne couvre que la communauté : signalements Chat/MP, suppression modération, `!clear`, Concours et Giveaway selon leurs contrats. Ressources, XP, Gacha, possessions, catalogue, bannières, Event, Codes, rôles, Journal et Twitch sensible restent ADMIN. Les droits cumulés forment l'union des rôles réellement attribués.
+- `VALIDÉ R961` — ADMIN administre le catalogue Character en lecture/recherche/filtre/tri, création, correction, désactivation/réactivation. Un Character référencé reste historique, sans DELETE normal ; l'identité `externalKey`, la rareté et l'élément sont protégés après référence. L'upload/stockage d'assets autonome est volontairement différé dans un lot distinct.
+- `VALIDÉ R962` — L'onglet Bannières ADMIN lit composition, vote, snapshot, provenance et diagnostics. Une correction active d'urgence valide 4×5★ et 6×4★, conserve Pulls, pity, garantie et Capture, vide seulement les cibles devenues invalides, conserve la preuve avant/après et requiert confirmation, audit et idempotence. La génération se retente par le moteur propriétaire sans changer le snapshot historique.
+- `VALIDÉ R963` — L'onglet Événements ADMIN lit définitions et éditions. La configuration future/non commencée passe par le parser métier, dans une transaction auditée/idempotente. Une édition active n'est jamais réécrite rétroactivement ; seuls désactivation et éventuelle réactivation sûre de la définition sont permis. Points, récompenses, résultats, participants, classements et claims restent intacts.
+- `VALIDÉ R964` — ADMIN corrige les possessions d'un Player : lecture, ajout valide, retrait sûr et constellation C0–C6. Les dépendances Team/Box/Concours/passifs sont nettoyées atomiquement ou refusées explicitement. Les avatars requis sont débloqués silencieusement, les cosmétiques permanents ne sont pas détruits. Les corrections ne simulent aucun Pull, total Gacha, Mission ou statistique.
+- `VALIDÉ R965` — Communauté couvre aussi les `GlobalChatReport` gelés : liste/détail paginés, modération du message source par `deletionState = MODERATION`, tombstone « Message supprimé par la modération », suppression indépendante du seul dossier. MODERATOR/ADMIN ; pas de free-browse ; actions destructives auditées.
+- `VALIDÉ R966` — Aucun système général de ban, suspension, mute, timeout, avertissement, points de sanction ou strikes dans ce lot. Toute discipline future demande une nouvelle décision produit.
+- `VALIDÉ R967` — Journal ADMIN en lecture seule depuis `AdminAuditEntry`, vingt entrées/page, filtres simples, ordre date/ID stable, avant/après assainis côté serveur. Aucun token, cookie, secret, identifiant Auth privé, export massif ou suppression.
+- `VALIDÉ R968` — TESTER reste strictement self pour Ressources, XP, Gacha et Stella existants. Aucun ciblage Player, gestion de rôles, catalogue, bannière, Event, Journal, Codes ou modération communautaire n'est accordé par TESTER seul.
+- `VALIDÉ R969` — Aucun bouton reset générique Boss, Combat, Daily, Mission, Concours, Event, Banque, Shop ou statistiques. Seules les mutations spécialisées explicitement justifiées et auditées restent possibles.
+
+Le [contrat Administration / Modération V1](administration-moderation-v1.md) détaille la matrice d'accès, les surfaces et les limites physiques du candidat.
+
 ## Notifications transversales — décisions validées R954–R958 (2026-09-30)
 
 - `VALIDÉ R954` — Une Mission permanente terminée qui requiert une notification standalone crée une notification distincte par Mission, sans agrégat. La récompense est créditée automatiquement ; la notification n'est pas un claim.

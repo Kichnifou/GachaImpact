@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Étape 22 — réutilisation du schéma privé
+
+Le candidat Administration/Modération R959–R969 n'ajoute ni migration 057 ni objet physique : `player_role_assignments` (unicité partielle des rôles actifs), `business_operations`, `admin_audit_entries`, `characters`, `player_characters`, `banner_rotations`/`banner_featured_characters`, `event_definitions`/`event_editions` et `global_chat_reports`/`global_chat_messages` suffisent. Les tables privées conservent RLS et absence de grant navigateur. Les corrections sont des opérations backend transactionnelles ; aucun éditeur SQL/JSON générique n'est exposé. Voir [le contrat Administration V1](../specifications/administration-moderation-v1.md).
+
 ## Giveaway natif — migration additive 056, candidat `review`
 
 `20260930120000_056_add_native_giveaway_runtime` ajoute `GiveawaySession.origin` (`LEGACY` par défaut pour conserver les lignes migrées) et l'index partiel global d'une seule session `OPEN`. Les colonnes historiques de reroll et `GiveawayWin` restent pour la provenance legacy ; aucun chemin de paiement reroll natif n'est ajouté.

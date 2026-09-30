@@ -3,7 +3,7 @@ import { CosmeticType, CosmeticVisibility, NotificationState, Prisma } from '../
 /** Grants owned character avatars inside the caller's authoritative transaction. */
 export async function unlockCharacterAvatars(
   transaction: Prisma.TransactionClient,
-  input: { playerId: string; characterIds: readonly string[]; now: Date },
+  input: { playerId: string; characterIds: readonly string[]; now: Date; silent?: boolean; unlockSource?: string },
 ) {
   const characterIds = [...new Set(input.characterIds)];
   if (!characterIds.length) return { newlyUnlocked: 0 };
@@ -51,12 +51,13 @@ export async function unlockCharacterAvatars(
       playerId: input.playerId,
       cosmeticId: byCharacter.get(character.id)!.id,
       unlockedAt: input.now,
-      unlockSource: 'gacha-first-ownership',
+      unlockSource: input.unlockSource ?? 'gacha-first-ownership',
       provenance: { characterId: character.id },
     })),
     skipDuplicates: true,
   });
   if (!inserted.count) return { newlyUnlocked: 0 };
+  if (input.silent) return { newlyUnlocked: inserted.count };
 
   const deduplicationKey = `appearance:character-avatars:${input.playerId}`;
   const existing = await transaction.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true, payload: true } });

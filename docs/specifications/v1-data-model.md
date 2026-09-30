@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Administration / Modération — état physique candidat étape 22
+
+R959–R969 réutilisent `PlayerRoleAssignment`, `AdminAuditEntry`, `BusinessOperation`, `Character`, `PlayerCharacter`, `BannerRotation`/`BannerFeaturedCharacter`, `EventDefinition`/`EventEdition` et `GlobalChatReport`/`GlobalChatMessage`. Aucune migration 057. Les rôles actifs ne sont jamais déduits d'un pseudo. Le dernier ADMIN actif est protégé dans la transaction ; l'audit porte acteur, cible, domaine, action et avant/après. Les corrections de possession ne créent aucun Pull ni statistique ; C6 5★ exige `C6CompetitionProgress`, l'avatar débloqué demeure permanent. Une bannière active corrigée conserve `generationVoteSnapshot` et les Pulls ; sa composition antérieure entre dans l'audit et `legacyProvenance.adminCorrections`. Les éditions Event gardent leur snapshot ; la configuration d'une définition est bloquée dès qu'une édition est en cours ou programmée. Le signalement Chat garde son snapshot privé après modération du message source. Détails dans [Administration / Modération V1](administration-moderation-v1.md).
+
 ## Complément Giveaway natif R946–R952
 
 La session native porte `origin = NATIVE` ; les sessions reprises demeurent `LEGACY`. La preuve durable native ajoute reçus de commande, IDs de messages Twitch comptés/différés, récompenses reliées aux opérations économiques et annonces sortantes avec état indépendant. Les agrégats `GiveawayChatStat` restent la projection des messages éligibles ; `GiveawayWin` garde aussi la provenance des tirages legacy. Aucun reroll n'existe dans le modèle comportemental V1 depuis R950, bien que ses champs historiques demeurent. Voir [le schéma physique 056](../architecture/postgresql-schema-v1.md#giveaway-natif--migration-additive-056-candidat-review).

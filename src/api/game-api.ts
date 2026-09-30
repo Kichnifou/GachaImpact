@@ -1,4 +1,5 @@
 import type { FavorDto, FavorPresenceDto } from './types'
+import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit } from './admin-types'
 import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
@@ -228,6 +229,23 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     applyTwitchSnapshot: (files: Record<string, string>, previewId: string) => request<SnapshotApplyDto>('/api/v1/me/twitch/snapshot/apply', { method: 'POST', body: JSON.stringify({ files, previewId }) }),
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
+    setAdminRole: (playerId: string, role: 'ADMIN' | 'MODERATOR' | 'TESTER', enabled: boolean, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/roles`, { method: 'POST', body: JSON.stringify({ role, enabled, idempotencyKey }) }),
+    getAdminCharacters: (query: Record<string, string | number | boolean | undefined> = {}) => request<AdminPage<AdminCharacter>>(`/api/v1/moderation/characters?${queryString(query)}`),
+    createAdminCharacter: (input: AdminCharacterFields & { externalKey: string; idempotencyKey: string }) => request<AdminMutationDto>('/api/v1/moderation/characters', { method: 'POST', body: JSON.stringify(input) }),
+    updateAdminCharacter: (id: string, input: Partial<AdminCharacterFields> & { idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/characters/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    getAdminPossessions: (playerId: string, page = 1, search = '', rarity?: string, elementKey?: string) => request<AdminPage<AdminPossession>>(`/api/v1/moderation/players/${playerId}/characters?${queryString({ page, search, rarity, elementKey })}`),
+    changeAdminPossession: (playerId: string, characterId: string, input: { action: 'add' | 'remove' | 'constellation'; constellation?: number; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/characters/${characterId}`, { method: 'POST', body: JSON.stringify(input) }),
+    getAdminBanners: () => request<AdminBannerOverview>('/api/v1/moderation/banners'),
+    correctAdminBanner: (rotationId: string, input: { fiveStarIds: string[]; fourStarIds: string[]; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/banners/${rotationId}/correct`, { method: 'POST', body: JSON.stringify(input) }),
+    retryAdminBanner: (idempotencyKey: string) => request<AdminMutationDto>('/api/v1/moderation/banners/retry-generation', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getAdminEvents: () => request<{ entries: AdminEvent[] }>('/api/v1/moderation/events'),
+    updateAdminEvent: (id: string, input: { isActive?: boolean; config?: AdminEventConfig; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/events/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
+    getAdminChatReports: (page = 1) => request<AdminPage<AdminChatReport>>(`/api/v1/moderation/global-chat-reports?page=${page}`),
+    getAdminChatReport: (id: string) => request<AdminChatReport>(`/api/v1/moderation/global-chat-reports/${id}`),
+    moderateAdminChatMessage: (id: string, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/global-chat-reports/${id}/moderate`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    deleteAdminChatReport: (id: string, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/global-chat-reports/${id}/delete`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getAdminAudit: (query: Record<string, string | number | undefined> = {}) => request<AdminPage<AdminAudit>>(`/api/v1/moderation/audit?${queryString(query)}`),
+    getAdminAuditDetail: (id: string) => request<AdminAudit>(`/api/v1/moderation/audit/${id}`),
     getGiveawayState: () => request<GiveawayStateDto>('/api/v1/moderation/giveaway'),
     openGiveaway: (idempotencyKey: string) => request<GiveawayStateDto>('/api/v1/moderation/giveaway/open', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     closeGiveaway: (sessionId: string, idempotencyKey: string) => request<GiveawayStateDto>('/api/v1/moderation/giveaway/close', { method: 'POST', body: JSON.stringify({ sessionId, idempotencyKey }) }),

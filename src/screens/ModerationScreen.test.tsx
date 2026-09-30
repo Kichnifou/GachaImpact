@@ -6,8 +6,10 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ModerationPlayerDto, ModerationStateDto } from '../api/types'
-const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn(), remove: vi.fn() }))
-vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail, deleteDirectMessageReport: moderationReports.remove }) }))
+const moderationReports = vi.hoisted(() => ({ list: vi.fn(), detail: vi.fn(), remove: vi.fn(), setRole: vi.fn(), characters: vi.fn(), possessions: vi.fn() }))
+vi.mock('../api/game-api', () => ({ getGameApiClient: () => ({ getDirectMessageReports: moderationReports.list, getDirectMessageReport: moderationReports.detail,
+  deleteDirectMessageReport: moderationReports.remove, setAdminRole: moderationReports.setRole,
+  getAdminCharacters: moderationReports.characters, getAdminPossessions: moderationReports.possessions }) }))
 import ModerationScreen from './ModerationScreen'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -85,6 +87,15 @@ async function mount(superTools = true) {
     states.set(targetPlayerId, updated)
     return updated
   })
+  moderationReports.setRole.mockImplementation(async (targetPlayerId: string, role: 'ADMIN' | 'MODERATOR' | 'TESTER', enabled: boolean) => {
+    const current = states.get(targetPlayerId)!
+    const roles = current.player.roles ?? []
+    const updated = { ...current, player: { ...current.player, roles: enabled ? [...roles, role] : roles.filter(value => value !== role), tester: role === 'TESTER' ? enabled : current.player.tester } }
+    states.set(targetPlayerId, updated)
+    return { operationId: 'test', alreadyProcessed: false }
+  })
+  moderationReports.characters.mockResolvedValue({ entries: [], page: 1, pageSize: 20, total: 0, totalPages: 1 })
+  moderationReports.possessions.mockResolvedValue({ entries: [], page: 1, pageSize: 20, total: 0, totalPages: 1 })
   const onResource = vi.fn(async (target: string, input: { resourceKey: string; amount: string; direction: 'add' | 'remove' }) => {
     const current = states.get(target)!
     const delta = BigInt(input.amount) * (input.direction === 'add' ? 1n : -1n)
@@ -169,22 +180,22 @@ describe('ModerationScreen', () => {
   it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
     const { container, props } = await mount()
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', false], ['Giveaway', false]])
+    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Personnages', false], ['Codes', false], ['Bannières', false], ['Événements', false], ['Communauté', false], ['Giveaway', false], ['Journal', false]])
     expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
     tabs[0]!.focus()
     await act(async () => { tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await Promise.resolve(); await Promise.resolve() })
     expect(document.activeElement).toBe(tabs[1])
     expect(tabs[1]!.getAttribute('aria-selected')).toBe('true')
-    expect(container.querySelector('.moderation-target')).toBeNull()
-    expect(container.querySelector('.gift-code-admin')).not.toBeNull()
+    expect(container.querySelector('.moderation-target')).not.toBeNull()
+    expect(container.querySelector('.admin-domain')).not.toBeNull()
     expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
     act(() => tabs[1]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
     expect(document.activeElement).toBe(tabs[0])
     expect(container.querySelector('.moderation-target')).not.toBeNull()
 
     const tester = await mount(false)
-    const testerCodes = Array.from(tester.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]')).find((tab) => tab.textContent === 'Codes')!
-    expect(testerCodes.disabled).toBe(true)
+    const testerTabs = Array.from(tester.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
+    expect(testerTabs.map(tab => tab.textContent)).toEqual(['Système de jeu'])
   })
 
   it('opens a moderator-only account directly on Community and renders frozen detail without free browse', async () => {
@@ -199,7 +210,7 @@ describe('ModerationScreen', () => {
     await act(async () => { root.render(<ModerationScreen {...props} capabilities={{ moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false, canManageTesters: false }} onLoad={onLoad} />); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Communauté')
     expect(onLoad).not.toHaveBeenCalled(); expect(container.textContent).toContain('Signalements MP'); expect(container.textContent).toContain('Preuve figée'); expect(container.textContent).toContain('Page 1 / 2')
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système de jeu')?.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système de jeu')).toBeUndefined()
     await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-reports-panel > footer button')).find(button => button.textContent === 'Suivant'))!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(moderationReports.list).toHaveBeenCalledWith(2); expect(container.textContent).toContain('Page 2 / 2')
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-reports-list button')!.click(); await Promise.resolve(); await Promise.resolve() })
@@ -353,18 +364,18 @@ describe('ModerationScreen', () => {
   })
 
   it('grants and revokes Testeur on the selected external player while keeping that target', async () => {
-    const { container, onTester } = await mount()
+    const { container } = await mount()
     await search(container, 'Mynonyme')
     const optionA = Array.from(container.querySelectorAll<HTMLButtonElement>('[role="option"]')).find((button) => button.textContent?.includes('Mynonyme') && !button.textContent.includes('Test1'))!
     await act(async () => { optionA.click(); await Promise.resolve(); await Promise.resolve() })
     const roleButton = () => container.querySelector<HTMLButtonElement>('.moderation-role button')!
-    expect(roleButton().textContent).toBe('Attribuer Testeur')
+    expect(roleButton().textContent).toBe('Attribuer')
     await act(async () => { roleButton().click(); await Promise.resolve(); await Promise.resolve() })
-    expect(onTester).toHaveBeenLastCalledWith('player-a', true)
-    expect(roleButton().textContent).toBe('Retirer Testeur')
+    expect(moderationReports.setRole).toHaveBeenLastCalledWith('player-a', 'TESTER', true, expect.any(String))
+    expect(roleButton().textContent).toBe('Retirer')
     expect(container.querySelector('.moderation-target-heading strong')?.textContent).toBe('Mynonyme')
     await act(async () => { roleButton().click(); await Promise.resolve(); await Promise.resolve() })
-    expect(onTester).toHaveBeenLastCalledWith('player-a', false)
-    expect(roleButton().textContent).toBe('Attribuer Testeur')
+    expect(moderationReports.setRole).toHaveBeenLastCalledWith('player-a', 'TESTER', false, expect.any(String))
+    expect(roleButton().textContent).toBe('Attribuer')
   })
 })

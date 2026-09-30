@@ -1,5 +1,7 @@
 # Audit legacy — Ami / Social
 
+**Complément étape 22 (candidat `review`) :** Communauté joint aux dossiers MP les `GlobalChatReport` figés : liste/détail de modération, tombstone `MODERATION` du message source et suppression indépendante du dossier. Les anciens déblocages d'avatar de personnage restent permanents lors d'une correction de possession ; un ajout ADMIN débloque silencieusement sans notification artificielle. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). L'audit legacy reste la preuve de ses décisions d'origine.
+
 > Domaine 11 de l'audit legacy GachaImpact.  
 > État final : **CLÔTURÉ — décisions R451 à R525**.  
 > Dernière passe : commandes, MP, confidentialité, présence, migration et producteurs/consommateurs finalisés.

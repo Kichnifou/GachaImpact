@@ -39,6 +39,13 @@ import { PrismaBankingStore } from './database/prisma-banking-store.js';
 import { GetCurrentPlayerInventory, GetCurrentPlayerInventoryItemDetail } from '../application/inventory/inventory-services.js';
 import { PrismaInventoryStore } from './database/prisma-inventory-store.js';
 import { PrismaModerationTools } from './database/prisma-moderation-tools.js';
+import { RoleAdminService } from '../application/moderation/role-admin-service.js';
+import { CharacterAdminService } from '../application/moderation/character-admin-service.js';
+import { PossessionAdminService } from '../application/moderation/possession-admin-service.js';
+import { BannerAdminService } from '../application/moderation/banner-admin-service.js';
+import { EventAdminService } from '../application/moderation/event-admin-service.js';
+import { GlobalChatModerationService } from '../application/moderation/global-chat-moderation-service.js';
+import { AdminAuditQueryService } from '../application/moderation/admin-audit-query-service.js';
 import { PrismaShopStore } from './database/prisma-shop-store.js';
 import { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from '../application/shop/shop-services.js';
 import { NavigationPreferencesService } from '../application/navigation/navigation-preferences.js';
@@ -211,6 +218,15 @@ export function createRuntimeDependencies(config: AppConfig) {
     purchaseDailyChallenge: new PurchaseDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
     switchDailyChallenge: new SwitchDailyChallenge(getCurrentPlayer, dailyChallengeStore, clock, random),
     moderationTools: new PrismaModerationTools(database, getCurrentPlayer),
+    administrationServices: {
+      roles: new RoleAdminService(database, getCurrentPlayer),
+      characters: new CharacterAdminService(database, getCurrentPlayer),
+      possessions: new PossessionAdminService(database, getCurrentPlayer),
+      banners: new BannerAdminService(database, getCurrentPlayer, scheduler),
+      events: new EventAdminService(database, getCurrentPlayer),
+      chat: new GlobalChatModerationService(database, getCurrentPlayer),
+      audit: new AdminAuditQueryService(database, getCurrentPlayer),
+    },
     getCurrentPlayerShop: new GetCurrentPlayerShop(getCurrentPlayer, shopStore),
     getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
