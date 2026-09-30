@@ -169,7 +169,7 @@ describe('ModerationScreen', () => {
   it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
     const { container, props } = await mount()
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', false]])
+    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Codes', false], ['Bannières', true], ['Événements', true], ['Communauté', false], ['Giveaway', false]])
     expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
     tabs[0]!.focus()
     await act(async () => { tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await Promise.resolve(); await Promise.resolve() })

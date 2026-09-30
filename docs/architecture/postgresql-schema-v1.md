@@ -1,5 +1,13 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Giveaway natif — migration additive 056, candidat `review`
+
+`20260930120000_056_add_native_giveaway_runtime` ajoute `GiveawaySession.origin` (`LEGACY` par défaut pour conserver les lignes migrées) et l'index partiel global d'une seule session `OPEN`. Les colonnes historiques de reroll et `GiveawayWin` restent pour la provenance legacy ; aucun chemin de paiement reroll natif n'est ajouté.
+
+Nouvelles preuves privées : `twitch_giveaway_credentials` (un Player/identifiant Twitch unique, refresh GCM chiffré, scopes requis, enabled initialement false), `giveaway_counted_messages` (ID Twitch unique), `giveaway_deferred_messages` (ID Twitch pendant une annonce sortante non résolue), `giveaway_rewards` (session/Player/type unique, opération unique, CHECK des montants et rangs), `giveaway_announcements` (milestones uniques, états PENDING/RESERVED/SENT/FAILED/AMBIGUOUS, ID sortant unique), `giveaway_command_receipts` (commande unique). Les six tables ont RLS activée et `REVOKE ALL` pour PUBLIC/anon/authenticated ; le backend direct seul y accède. Aucun texte brut inbound n'est enregistré.
+
+La répétition de migration en schéma privé précède l'application sur DEV ; le statut public et les comptes doivent être vérifiés séparément. Le schéma ne prouve ni subscription Twitch active ni session publique.
+
 ## Credential Gift Suprême 055 — promu techniquement sur main
 
 Migration additive `20260929151500_055_add_twitch_gift_supreme_credential`, table `twitch_gift_supreme_credentials`. Colonnes : player_id UUID PK/FK players RESTRICT, twitch_user_id TEXT unique (1–128 chiffres), encrypted_refresh_token TEXT non vide/envelope v1 GCM bornée, reward_id TEXT nullable (1–128 caractères), scopes JSONB array contenant les trois scopes Gift, revision INTEGER strictement positive (défaut 1), authorized_at/updated_at TIMESTAMPTZ(6). Aucun access token, ID token ou refresh clair ; aucun booléen local ACTIVE. Refresh chiffré uniquement et contexte AAD Player/Twitch/purpose vérifié applicativement.

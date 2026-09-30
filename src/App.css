@@ -4945,7 +4945,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 
 @media (max-width: 390px) {
   .brand-mark { width: 38px; height: 38px; }
-  .brand small { display: none; }
+  .brand > span:last-child { display: none; }
   .game-navigation { grid-template-columns: repeat(2, 1fr); }
   .navigation-tile { flex-direction: row; }
   .home-shortcuts { grid-template-columns: 1fr; }
@@ -9205,3 +9205,19 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 /* Favor reuses the feedback family and fits its overlay padding on mobile. */
 .favor-daily-feedback { width: min(620px, 100%); }
+
+.giveaway-admin-panel { display: grid; gap: 14px; min-width: 0; padding: clamp(14px, 2vw, 22px); }
+.giveaway-admin-panel > header { display: flex; align-items: start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.giveaway-admin-panel h2, .giveaway-admin-panel h3 { margin: 0; }
+.giveaway-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr)); gap: 8px 16px; padding: 12px; border: 1px solid rgba(105, 157, 220, .2); border-radius: 10px; background: rgba(8, 22, 42, .48); }
+.giveaway-summary p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.giveaway-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.giveaway-top, .giveaway-announcements { display: grid; gap: 8px; min-width: 0; }
+.giveaway-top ol, .giveaway-announcements ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+.giveaway-top li, .giveaway-announcements li { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; min-width: 0; padding: 9px 11px; border: 1px solid rgba(105, 157, 220, .17); border-radius: 8px; background: rgba(8, 22, 42, .35); overflow-wrap: anywhere; }
+.giveaway-top p, .giveaway-announcements p { margin: 0; color: #9fb4d2; }
+.giveaway-confirm-backdrop { position: fixed; z-index: 1200; inset: 0; display: grid; place-items: center; padding: 16px; background: rgba(2, 7, 18, .78); }
+.giveaway-confirm { box-sizing: border-box; width: min(480px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 22px; border: 1px solid rgba(180, 209, 245, .38); border-radius: 14px; color: #e8f3ff; background: #10233e; box-shadow: 0 20px 70px rgba(0, 0, 0, .5); }
+.giveaway-confirm h3 { margin-top: 0; }
+.giveaway-confirm .giveaway-actions { justify-content: flex-end; }
+@media (max-width: 520px) { .giveaway-admin-panel { padding: 12px; } .giveaway-actions .app-button { flex: 1 1 auto; } .giveaway-confirm .giveaway-actions .app-button { flex: 1 1 100%; } }

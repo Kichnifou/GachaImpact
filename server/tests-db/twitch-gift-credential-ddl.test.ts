@@ -10,10 +10,11 @@ const folders = readdirSync('prisma/migrations', { withFileTypes: true }).filter
 beforeAll(() => fixture.setup({ prismaMigrations: true }), 180_000);
 afterAll(() => fixture.cleanup(), 60_000);
 describe('055 private Prisma migration and backend-only credential DDL', () => {
-  it('records all 55 migrations, latest 055 finished, unmodified 055 checksum and successful migrate status', async () => {
+  it('records all versioned migrations and preserves the unmodified 055 checksum', async () => {
     const rows = (await admin.query('SELECT migration_name, checksum, finished_at, rolled_back_at FROM _prisma_migrations ORDER BY migration_name')).rows;
-    expect(rows).toHaveLength(55); expect(rows.every(row => row.finished_at && !row.rolled_back_at)).toBe(true); expect(rows.at(-1).migration_name).toContain('_055_');
-    expect(rows.at(-1).checksum).toBe(createHash('sha256').update(readFileSync(path.join('prisma/migrations', folders.at(-1)!, 'migration.sql'))).digest('hex'));
+    expect(rows).toHaveLength(folders.length); expect(rows.every(row => row.finished_at && !row.rolled_back_at)).toBe(true);
+    const giftFolder = folders.find(name => name.includes('_055_'))!;
+    expect(rows.find(row => row.migration_name === giftFolder)?.checksum).toBe(createHash('sha256').update(readFileSync(path.join('prisma/migrations', giftFolder, 'migration.sql'))).digest('hex'));
     expect(fixture.migrationStatus).toContain('Database schema is up to date');
   });
   it('has RLS, no policies or browser privileges, exact minimal columns and PK/unique/FK RESTRICT', async () => {

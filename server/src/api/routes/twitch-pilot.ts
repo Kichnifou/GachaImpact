@@ -44,6 +44,9 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   app.post('/api/v1/me/twitch/gift-supreme/start', authenticated, request => { giftParameters(request); return options.twitch.startGiftSupreme(requireAuthenticatedIdentity(request)); });
   app.post('/api/v1/me/twitch/gift-supreme/ensure', authenticated, request => { giftParameters(request); return options.twitch.ensureGiftSupreme(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch/gift-supreme', authenticated, request => { giftParameters(request); return options.twitch.disableGiftSupreme(requireAuthenticatedIdentity(request)); });
+  app.post('/api/v1/me/twitch/giveaway/start', authenticated, request => { giftParameters(request); return options.twitch.startGiveaway(requireAuthenticatedIdentity(request)); });
+  app.post('/api/v1/me/twitch/giveaway/enable', authenticated, request => { giftParameters(request); return options.twitch.enableGiveaway(requireAuthenticatedIdentity(request)); });
+  app.delete('/api/v1/me/twitch/giveaway', authenticated, request => { giftParameters(request); return options.twitch.disableGiveaway(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
   app.delete('/api/v1/me/twitch/runtime/subscription', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success || Object.keys(request.query as object).length)
@@ -56,18 +59,20 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     let runtime = false;
     let favor = false;
     let gift = false;
+    let giveaway = false;
     try { if (query.success) {
       const purpose = twitchOAuthPurpose(query.data.state);
       runtime = purpose === 'AUTHORIZE_RUNTIME';
       favor = purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
       gift = purpose === 'AUTHORIZE_GIFT_SUPREME';
+      giveaway = purpose === 'AUTHORIZE_GIVEAWAY';
       await options.twitch.callback(query.data);
-      outcome = gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
+      outcome = giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
-    catch (error) { outcome = gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
+    catch (error) { outcome = giveaway ? 'giveaway-error' : gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');
     target.searchParams.set('twitch', outcome);
-    target.hash = 'configuration';
+    target.hash = giveaway ? 'moderation' : 'configuration';
     reply.header('cache-control', 'no-store');
     return reply.redirect(target.toString());
   });

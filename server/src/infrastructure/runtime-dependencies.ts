@@ -78,6 +78,9 @@ import { TwitchEventSubClient } from './twitch/twitch-eventsub-client.js';
 import { SnapshotPilotService } from '../application/migration/snapshot-pilot-service.js';
 import { TwitchGiftSupremeManager } from '../application/twitch/twitch-gift-supreme-manager.js';
 import { TwitchGiftSupremeRuntime } from '../application/twitch/twitch-gift-supreme-runtime.js';
+import { TwitchGiveawayManager } from '../application/twitch/twitch-giveaway-manager.js';
+import { TwitchGiveawayConsumer } from '../application/twitch/twitch-giveaway-consumer.js';
+import { GiveawayService } from '../application/giveaway/giveaway-service.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -94,10 +97,14 @@ export function createRuntimeDependencies(config: AppConfig) {
     ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
       new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
   const twitchGiftSupremeManager = twitchSubscriptions ? new TwitchGiftSupremeManager(database, config, twitchSubscriptions) : undefined;
+  const twitchGiveawayManager = new TwitchGiveawayManager(database, config, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
+  const giveawayService = new GiveawayService(database, twitchGiveawayManager, () => clock.now());
+  twitchGiveawayManager.attachCore(giveawayService);
+  const twitchGiveawayConsumer = new TwitchGiveawayConsumer(database, giveawayService, twitchGiveawayManager);
   const twitchGiftSupreme = twitchGiftSupremeManager?.available ? new TwitchGiftSupremeRuntime(database, clock, twitchGiftSupremeManager) : undefined;
-  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager, twitchGiftSupreme);
+  const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager, twitchGiftSupreme, twitchGiveawayManager);
   const tradeService = new TradeService(database, clock);
   const tradeScheduler = new TradeScheduler(tradeService, clock);
   const random = new NodeRandomSource();
@@ -138,6 +145,9 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchFavorChatPresence: new TwitchFavorChatPresenceConsumer(database, clock),
     twitchSubscriptions,
     twitchGiftSupreme,
+    twitchGiveawayManager,
+    twitchGiveawayConsumer,
+    giveawayService,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,
     directMessageService,

@@ -454,18 +454,17 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!giveaway`
 
-- **Statut audit :** CLÔTURÉ — Domaine Giveaway / Wish après R713
+- **Statut :** implémentation native candidate sur `review` selon R946–R952 ; bridge OFF par défaut, Streamer.bot reste autoritatif
 - **But :** administrer ou consulter le Giveaway Twitch courant
 - **Canal joueur :** Twitch
-- **UI équivalente :** petit panneau Admin standalone pour Open / Close / Reroll ; aucune participation joueur standalone
+- **UI équivalente :** panneau privé Modération pour Open / Close et lifecycle Twitch ; aucune participation joueur standalone
 - **Consultation publique :** `!giveaway stats`
-- **Ouvrir :** `!giveaway open` — Admin
-- **Fermer :** `!giveaway close` — Admin
-- **Reroll :** `!giveaway reroll` — Admin, uniquement après fermeture
+- **Ouvrir :** `!giveaway open` — ADMIN ou MODERATOR lié, bridge Giveaway actif prouvé
+- **Fermer :** `!giveaway close` — ADMIN ou MODERATOR lié
+- **Reroll :** aucune commande native V1 (R950 supersède R708)
 - **Ouverture :** impossible si une session est déjà ouverte
 - **Gagnant :** tiré aléatoirement parmi les participants `!wish` éligibles
 - **Récompense gagnant :** +1 600 Primogemmes
-- **Reroll :** le gagnant précédent conserve son gain ; le nouveau reçoit également +1 600
 - **Classement chat :** messages Twitch normaux pendant la session
 - **Exclusions compteur :** commandes `!xxx`, bot, système
 - **Cooldown Giveaway :** aucun
@@ -475,11 +474,11 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Restitution Twitch :** deux messages séparés à la fermeture, chacun sur une seule ligne : tirage puis classement
 - **Notifications :** informationnelles pour tous les joueurs récompensés
 - **Historique :** aucun écran joueur dédié ; historique serveur/Admin uniquement
-- **Atomicité :** fermeture, tirage, récompenses et rerolls idempotents
+- **Atomicité :** fermeture, tirage et récompenses idempotents ; les annonces sortantes ont leurs propres états et retries sûrs
 
 ## `!wish`
 
-- **Statut audit :** CLÔTURÉ — Domaine Giveaway / Wish après R713
+- **Statut :** consommateur Twitch spécialisé candidat sur `review`, inactif tant que le bridge n'est pas autorisé et activé
 - **But :** s'inscrire au tirage aléatoire du Giveaway Twitch ouvert
 - **Disponible Twitch :** oui
 - **Disponible chat GachaImpact :** non

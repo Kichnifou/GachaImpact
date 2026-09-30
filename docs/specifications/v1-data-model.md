@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Complément Giveaway natif R946–R952
+
+La session native porte `origin = NATIVE` ; les sessions reprises demeurent `LEGACY`. La preuve durable native ajoute reçus de commande, IDs de messages Twitch comptés/différés, récompenses reliées aux opérations économiques et annonces sortantes avec état indépendant. Les agrégats `GiveawayChatStat` restent la projection des messages éligibles ; `GiveawayWin` garde aussi la provenance des tirages legacy. Aucun reroll n'existe dans le modèle comportemental V1 depuis R950, bien que ses champs historiques demeurent. Voir [le schéma physique 056](../architecture/postgresql-schema-v1.md#giveaway-natif--migration-additive-056-candidat-review).
+
 ## Extension migration globale R927–R938 — socle promu, sans cutover
 
 L'alignement physique 052 conserve `PlayerProgression.legacyLastXpDate`, le calendrier Faveur et `GiveawayWin` avec provenance NATIVE/LEGACY. Le schéma physique exact est décrit dans [l'architecture PostgreSQL](../architecture/postgresql-schema-v1.md) ; ces additions ne changent pas les décisions R927–R938.

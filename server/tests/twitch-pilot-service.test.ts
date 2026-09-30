@@ -28,6 +28,8 @@ function setup(id = playerId, runtime = false) {
   const db = {
     twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn().mockResolvedValue({}), deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     twitchLinkState: { create: vi.fn().mockResolvedValue({}) },
+    twitchGiveawayCredential: { findUnique: vi.fn().mockResolvedValue(null), deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    giveawaySession: { findFirst: vi.fn().mockResolvedValue(null) },
     migrationRun: { findFirst: vi.fn().mockResolvedValue(null) },
     $queryRaw: vi.fn().mockResolvedValue([{ player_id: id, nonce_hash: nonceHash }]),
   };
@@ -393,7 +395,7 @@ describe('runtime account status, activation and safe unlink', () => {
     expect(await service.unlink(identity)).toEqual({ linked: false });
     expect(order).toEqual(['disable', 'identity']);
     expect(db.twitchIdentity.deleteMany).toHaveBeenCalledWith({ where: { playerId } });
-    expect(Object.keys(db)).toEqual(['twitchIdentity', 'twitchLinkState', 'migrationRun', '$queryRaw']);
+    expect(Object.keys(db)).toEqual(['twitchIdentity', 'twitchLinkState', 'twitchGiveawayCredential', 'giveawaySession', 'migrationRun', '$queryRaw']);
   });
   it('preserves identity when deletion cannot be guaranteed', async () => {
     const { service, subscriptions, db } = runtimeSetup();

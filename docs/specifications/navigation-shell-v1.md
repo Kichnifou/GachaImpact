@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Entrée Giveaway dans Modération
+
+Le shell privé Modération inclut un onglet Giveaway pour les rôles de modération existants. Il affiche l'état de la session, les compteurs/Top 3 et les annonces, avec Ouvrir et Fermer ; Fermer exige une confirmation. Les contrôles OAuth et activation du bridge sont réservés à ADMIN. Aucune entrée de Menu, route ou écran Giveaway n'est créée pour les joueurs standalone (R948–R949).
+
 Statut : contrat de navigation validé. L'état physique et le statut de review des lots appartiennent au Master.
 
 Ce document est la source de vérité de la navigation principale, du Menu global, de la Configuration du Menu et de l’architecture future du Tutoriel. Les audits métier restent propriétaires de leurs règles ; ce document fixe uniquement leurs points d’entrée dans le shell.

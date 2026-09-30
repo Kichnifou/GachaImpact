@@ -1,9 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : domaine Faveur / Gift Suprême / intégration Twitch pilote clôturé pour l'instant ; Gift Suprême implémenté et validé publiquement de bout en bout, puis bridge GachaImpact désactivé volontairement ; Streamer.bot reste autoritatif jusqu'au cutover ; Twitch avancé reste en pause R942.
+Version : Giveaway / Wish natif spécialisé R946–R952 candidat sur `review` ; Gift Suprême déjà validé publiquement puis désactivé ; Streamer.bot reste autoritatif jusqu'au cutover distinct ; Twitch générique reste en pause R942.
 Date : 2026-09-30
-Statut : Faveur standalone, Lots 7/8/9/10 et correctifs Profil/Event validés publiquement ; QA Faveur Kichnifou conservée active ; daily claim par message Twitch normal techniquement implémenté mais non validé publiquement ; Gift Suprême validé publiquement (+1600 Cryo, FULFILLED, annonce SENT), bridge désactivé après la preuve ; migration 055 appliquée, Railway pre-deploy opérationnel ; aucun cutover Twitch global ; prochain domaine à choisir via roadmap/Pilotage.
+Statut : Faveur standalone, Lots 7/8/9/10 et correctifs Profil/Event validés publiquement ; QA Faveur Kichnifou conservée active ; daily claim Twitch techniquement implémenté mais non validé publiquement ; Gift Suprême validé publiquement (+1600 Cryo, FULFILLED, annonce SENT), bridge désactivé ; Giveaway natif candidat `review`, bridge OFF, aucune validation publique ; migration 056 ajoutée à la suite de 055 ; aucun cutover Twitch global ; prochaine étape : review indépendante ChatGPT du vrai candidat GitHub `origin/review`.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
+
+## Domaine actif — Giveaway / Wish natif spécialisé
+
+**Décision propriétaire :** R946–R952 dans le [journal](../specifications/decisions-log.md). R950 supprime le reroll natif V1 et supersède R708 ; la preuve de reroll legacy reste conservée. R947 réserve le pilote public temporaire à une mission ultérieure, après review, promotion et déploiement. Le présent candidat `review` n'active aucune subscription, OAuth, session ou annonce Twitch réelle ; Streamer.bot reste autoritatif et le bridge Giveaway reste OFF.
+
+**Physiquement implémenté dans le candidat :** migration additive 056, core transactionnel et idempotent, `!wish` et `!giveaway stats/open/close` dans le consumer spécialisé du webhook partagé, comptage humain sans commande ni sortie backend, credential OAuth/refresh chiffré, preuve distante de subscription avant ouverture, envoi Helix avec états/retries indépendants, panneau Modération privé, crédits 1 600 Primogemmes et rangs chat 2 000/1 500/1 000/500 particules, statistiques Economy et notification informationnelle agrégée. Aucun écran joueur, parser Twitch global, XP Twitch, mirroring ou reroll natif. Sources : [audit actualisé](../legacy/21-giveaway-wish-audit.md), [architecture backend](../architecture/backend-architecture-v1.md#giveaway--wish-natif--candidat-review-r946r952), [schéma](../architecture/postgresql-schema-v1.md#giveaway-natif--migration-additive-056-candidat-review) et [commandes](../commands/command-reference.md#giveaway).
+
+**État de publication :** le SHA exact est la tête `origin/review` publiée par cette mission et contrôlée dans son rapport final ; `main` reste au baseline `c39eab507d0561be896d35b01da18c0e89c61973`. Candidat poussé sur `review` ne signifie ni promotion `main`, ni déploiement Railway, ni validation fonctionnelle publique. La prochaine action est une **review indépendante ChatGPT du vrai commit GitHub** ; aucun test public n'est demandé dans ce lot.
 
 ---
 

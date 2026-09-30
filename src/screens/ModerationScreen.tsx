@@ -17,6 +17,7 @@ import AppButton from "../components/AppButton";
 import GiftCodeAdminPanel from "../components/GiftCodeAdminPanel";
 import DirectMessageReportsPanel from "../components/DirectMessageReportsPanel";
 import ModerationPlayerBrowser from "../components/ModerationPlayerBrowser";
+import GiveawayAdminPanel from "../components/GiveawayAdminPanel";
 import PlayerIdentityInline from "../components/PlayerIdentityInline";
 import ScrollableScreenPanel from "../components/ScrollableScreenPanel";
 import type {
@@ -118,7 +119,7 @@ function ModerationScreen({
     capabilities.superTools;
   const [pending, setPending] = useState(systemAvailable);
   const [message, setMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"system" | "codes" | "community">(
+  const [activeTab, setActiveTab] = useState<"system" | "codes" | "community" | "giveaway">(
     () => (systemAvailable ? "system" : "community"),
   );
   const onLoadRef = useRef(onLoad);
@@ -126,6 +127,7 @@ function ModerationScreen({
   const systemTabRef = useRef<HTMLButtonElement>(null);
   const codesTabRef = useRef<HTMLButtonElement>(null);
   const communityTabRef = useRef<HTMLButtonElement>(null);
+  const giveawayTabRef = useRef<HTMLButtonElement>(null);
   const requestRevision = useRef(0);
   const isSuper = capabilities.superTools;
   const isSelf = selectedTargetId === actorPlayerId;
@@ -267,11 +269,12 @@ function ModerationScreen({
                   ...(systemAvailable ? (["system"] as const) : []),
                   ...(codesAvailable ? (["codes"] as const) : []),
                   ...(capabilities.communityModeration ? (["community"] as const) : []),
+                  ...(capabilities.communityModeration ? (["giveaway"] as const) : []),
                 ];
                 const offset = event.key === "ArrowRight" ? 1 : tabs.length - 1;
                 const next = tabs[(tabs.indexOf(activeTab) + offset) % tabs.length]!;
                 setActiveTab(next);
-                (next === "codes" ? codesTabRef : next === "community" ? communityTabRef : systemTabRef).current?.focus();
+                (next === "codes" ? codesTabRef : next === "community" ? communityTabRef : next === "giveaway" ? giveawayTabRef : systemTabRef).current?.focus();
               }}
             >
               <AppButton
@@ -322,6 +325,17 @@ function ModerationScreen({
                 onClick={() => setActiveTab("community")}
               >
                 Communauté
+              </AppButton>
+              <AppButton
+                ref={giveawayTabRef}
+                role="tab"
+                aria-selected={activeTab === "giveaway"}
+                tabIndex={activeTab === "giveaway" ? 0 : -1}
+                className={activeTab === "giveaway" ? "active" : ""}
+                disabled={!capabilities.communityModeration}
+                onClick={() => setActiveTab("giveaway")}
+              >
+                Giveaway
               </AppButton>
             </nav>
             {activeTab === "system" && (
@@ -667,6 +681,9 @@ function ModerationScreen({
         )}
         {activeTab === "community" && capabilities.communityModeration && (
           <DirectMessageReportsPanel />
+        )}
+        {activeTab === "giveaway" && capabilities.communityModeration && (
+          <GiveawayAdminPanel admin={capabilities.superTools} />
         )}
       </ScrollableScreenPanel>
       {browserOpen && (

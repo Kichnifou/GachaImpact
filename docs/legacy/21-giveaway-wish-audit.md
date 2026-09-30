@@ -5,6 +5,8 @@
 > Ce document est la source spécialisée validée du domaine Giveaway / Wish.  
 > L'état global du projet et la prochaine reprise exacte restent la responsabilité du Master.
 
+> **Mise à jour V1 R946–R952 (2026-09-30).** Ce document conserve l'analyse du script et les décisions historiques pour la provenance. R950 **supersède R708** : aucun reroll natif V1, commande, bouton, service, paiement ou critère d'acceptation. Les mentions de reroll ci-dessous décrivent exclusivement le legacy et l'ancien contrat abandonné. Le contrat V1 courant est : `!wish`, `!giveaway stats/open/close`, messages humains Twitch comptés, bridge spécialisé prouvé actif avant ouverture, panneau privé Modération, fermeture atomique et deux annonces indépendantes avec retry seulement après échec certain. R947 réserve le pilote public temporaire à une mission ultérieure ; ce candidat ne vaut ni activation ni validation publique. Aucun écran joueur Giveaway n'est prévu (R948).
+
 ---
 
 # 1. Objectif du domaine
@@ -908,7 +910,7 @@ restent réservées à l'administration.
 
 ---
 
-## R708 — Reroll conservant les gains précédents — ✅ VALIDÉ A
+## R708 — Ancienne décision reroll, supersédée par R950 (provenance uniquement)
 
 `!giveaway reroll` est autorisé uniquement sur une session déjà fermée.
 
@@ -1260,27 +1262,26 @@ Le Domaine Giveaway / Wish est prêt pour la V1 si les tests peuvent prouver not
 23. `totalMainElementParticlesEarned` est maintenu ;
 24. une fermeture sans participant `!wish` peut toujours distribuer le classement chat ;
 25. `!giveaway stats` est public ;
-26. open/close/reroll restent administratifs ;
+26. open/close restent administratifs ;
 27. le panneau Admin appelle le même service que les commandes Twitch ;
-28. un reroll n'est possible qu'après fermeture ;
-29. le gagnant précédent conserve ses +1 600 après reroll ;
-30. le nouveau gagnant reçoit +1 600 ;
-31. une même fermeture retryée ne redistribue rien ;
-32. une même requête de reroll retryée ne paie pas deux fois ;
-33. les récompensés obtiennent une notification informationnelle ;
-34. aucune notification Giveaway ne possède de second claim ;
-35. la fermeture Twitch produit le message résultat puis le message classement ;
-36. aucun faux retour à la ligne n'est requis dans ces messages ;
-37. aucun historique player-facing Giveaway dédié n'est nécessaire ;
-38. aucune récompense legacy n'est rejouée pendant la migration.
+28. aucun reroll natif V1 n'est exposé ;
+29. une même fermeture retryée ne redistribue rien ;
+30. les récompensés obtiennent une notification informationnelle agrégée ;
+31. aucune notification Giveaway ne possède de second claim ;
+32. la fermeture Twitch produit le message résultat puis le message classement, avec états/retries indépendants ;
+33. un échec certain permet un retry ciblé, un envoi ambigu n'est pas renvoyé automatiquement ;
+34. aucun faux retour à la ligne n'est requis dans ces messages ;
+35. aucun historique player-facing Giveaway dédié n'est nécessaire ;
+36. aucune récompense legacy n'est rejouée pendant la migration ;
+37. Ouvrir exige la preuve d'un bridge Twitch réellement actif.
 
 ---
 
 # 39. Conclusion du domaine
 
-**Domaine Giveaway / Wish : CLÔTURÉ après R713.**
+**Domaine Giveaway / Wish : décisions R946–R952 validées ; implémentation native candidate en review, validation publique en attente.**
 
-Le tirage, l'activité chat, les récompenses, les ex æquo, les commandes, le reroll, les notifications, l'administration standalone, l'intégration Twitch, la migration et l'idempotence sont suffisamment définis pour une future implémentation V1 bornée.
+Le tirage, l'activité chat, les récompenses, les ex æquo, les commandes, les notifications, l'administration standalone, l'intégration Twitch, la migration et l'idempotence sont définis pour la V1 sans reroll natif. Les sections anciennes qui décrivent le reroll restent une archive du comportement legacy et de R708 supersédée.
 
 Le domaine ne doit être rouvert que si :
 

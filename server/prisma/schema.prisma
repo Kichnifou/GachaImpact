@@ -370,6 +370,7 @@ model Player {
   webIdentity           WebIdentity?
   twitchIdentity        TwitchIdentity?
   twitchGiftSupremeCredential TwitchGiftSupremeCredential?
+  twitchGiveawayCredential TwitchGiveawayCredential?
   twitchLinkStates      TwitchLinkState[]
   migrationPreviews     MigrationPreview[]
   migrationRuns         MigrationRun[]
@@ -386,6 +387,9 @@ model Player {
   giveawayParticipations GiveawayParticipant[]
   giveawayChatStats     GiveawayChatStat[]
   giveawayWins          GiveawayWin[]
+  giveawayCountedMessages GiveawayCountedMessage[]
+  giveawayDeferredMessages GiveawayDeferredMessage[]
+  giveawayRewards GiveawayReward[]
   businessOperations    BusinessOperation[]
   resourceBalances      PlayerResourceBalance[]
   resourceMovements     ResourceMovement[]
@@ -870,6 +874,20 @@ model TwitchGiftSupremeCredential {
   @@map("twitch_gift_supreme_credentials")
 }
 
+model TwitchGiveawayCredential {
+  playerId String @id @map("player_id") @db.Uuid
+  twitchUserId String @unique(map: "twitch_giveaway_credentials_twitch_user_key") @map("twitch_user_id") @db.Text
+  encryptedRefreshToken String @map("encrypted_refresh_token") @db.Text
+  scopes Json @db.JsonB
+  revision Int @default(1)
+  enabled Boolean @default(false)
+  authorizedAt DateTime @default(now()) @map("authorized_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@map("twitch_giveaway_credentials")
+}
+
 model TwitchLinkState {
   stateHash String   @id @map("state_hash") @db.Text
   nonceHash String   @map("nonce_hash") @db.Text
@@ -1101,6 +1119,7 @@ model FavorDailyClaim {
 
 model GiveawaySession {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  origin String @default("LEGACY") @db.Text
   legacySessionKey String? @unique @map("legacy_session_key") @db.Text
   status String @db.Text
   winnerPlayerId String? @map("winner_player_id") @db.Uuid
@@ -1121,8 +1140,86 @@ model GiveawaySession {
   participants GiveawayParticipant[]
   chatStats GiveawayChatStat[]
   wins GiveawayWin[]
+  countedMessages GiveawayCountedMessage[]
+  deferredMessages GiveawayDeferredMessage[]
+  rewards GiveawayReward[]
+  announcements GiveawayAnnouncement[]
+  commandReceipts GiveawayCommandReceipt[]
 
   @@map("giveaway_sessions")
+}
+
+model GiveawayCountedMessage {
+  twitchMessageId String @id @map("twitch_message_id") @db.Text
+  sessionId String @map("session_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  countedAt DateTime @default(now()) @map("counted_at") @db.Timestamptz(6)
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId, playerId], map: "giveaway_counted_messages_session_player_idx")
+  @@map("giveaway_counted_messages")
+}
+
+model GiveawayDeferredMessage {
+  twitchMessageId String @id @map("twitch_message_id") @db.Text
+  sessionId String @map("session_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  observedAt DateTime @map("observed_at") @db.Timestamptz(6)
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId], map: "giveaway_deferred_messages_session_idx")
+  @@map("giveaway_deferred_messages")
+}
+
+model GiveawayReward {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  kind String @db.Text
+  rank Int?
+  messageCount BigInt? @map("message_count")
+  elementKey String? @map("element_key") @db.Text
+  amount BigInt
+  operationId String @unique(map: "giveaway_rewards_operation_key") @map("operation_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  session GiveawaySession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@unique([sessionId, playerId, kind], map: "giveaway_rewards_session_player_kind_key")
+  @@map("giveaway_rewards")
+}
+
+model GiveawayAnnouncement {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String? @map("session_id") @db.Uuid
+  kind String @db.Text
+  sourceEventId String? @unique(map: "giveaway_announcements_source_event_key") @map("source_event_id") @db.Text
+  text String @db.Text
+  state String @default("PENDING") @db.Text
+  attempts Int @default(0)
+  twitchMessageId String? @unique(map: "giveaway_announcements_twitch_message_key") @map("twitch_message_id") @db.Text
+  errorCode String? @map("error_code") @db.Text
+  reservedAt DateTime? @map("reserved_at") @db.Timestamptz(6)
+  sentAt DateTime? @map("sent_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  session GiveawaySession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId, kind], map: "giveaway_announcements_session_kind_idx")
+  @@map("giveaway_announcements")
+}
+
+model GiveawayCommandReceipt {
+  commandId String @id @map("command_id") @db.Text
+  action String @db.Text
+  sessionId String? @map("session_id") @db.Uuid
+  outcome String @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  session GiveawaySession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@map("giveaway_command_receipts")
 }
 
 model GiveawayParticipant {
@@ -1212,6 +1309,7 @@ model BusinessOperation {
   favorGrants        FavorGrant[]
   favorDailyClaims   FavorDailyClaim[]
   giveawayWin        GiveawayWin?
+  giveawayRewards    GiveawayReward[]
   contestReward      ContestReward?
   itemAcquisitions   ItemAcquisition[]
   eventCollectionAcquisition EventCollectionAcquisition?

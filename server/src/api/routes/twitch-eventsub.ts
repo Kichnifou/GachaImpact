@@ -8,13 +8,16 @@ import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-f
 import { isFavorEligibleTwitchChatMessage, type TwitchFavorChatPresenceConsumer } from '../../application/twitch/twitch-favor-chat-presence-consumer.js';
 import { twitchGiftSupremeRedemption } from '../../application/twitch/twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeRuntime } from '../../application/twitch/twitch-gift-supreme-runtime.js';
+import type { TwitchGiveawayConsumer } from '../../application/twitch/twitch-giveaway-consumer.js';
 import { GiftSupremeIdempotencyConflict, GIFT_SUPREME_EVENT_TYPE } from '../../application/gift-supreme/gift-supreme-service.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
 const header = (value: string | string[] | undefined) => typeof value === 'string' ? value : null;
 const envelope = z.object({ subscription: z.object({ type: z.string(), version: z.string(), status: z.string().optional() }) });
 const challengeEnvelope = envelope.extend({ challenge: z.string().min(1).max(1024) });
-const chatEnvelope = envelope.extend({ event: z.object({ chatter_user_id: z.string().min(1), chatter_user_login: z.string().optional(), chatter_user_name: z.string().optional(), message: z.object({ text: z.string() }) }) });
+const chatEnvelope = envelope.extend({ event: z.object({ chatter_user_id: z.string().min(1), chatter_user_login: z.string().optional(), chatter_user_name: z.string().optional(),
+  broadcaster_user_id: z.string().optional(), message_id: z.string().optional(), message_type: z.string().optional(),
+  badges: z.array(z.object({ set_id: z.string() })).optional(), message: z.object({ text: z.string() }) }) });
 const twitchId = z.string().regex(/^\d+$/).max(128);
 const login = z.string().trim().min(1).max(64);
 const name = z.string().trim().min(1).max(128);
@@ -57,6 +60,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
   favorResubs: TwitchFavorResubConsumer;
   favorChatPresence: TwitchFavorChatPresenceConsumer;
   giftSupreme?: TwitchGiftSupremeRuntime;
+  giveaway?: TwitchGiveawayConsumer;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -145,7 +149,12 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
         contentHash: createHash('sha256').update(parsed.data.event.message.text).digest('hex'),
         transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
       });
-      if (normalMessage) await options.favorChatPresence.consume(observed.receipt.id);
+      const giveawayOutbound = options.giveaway && parsed.data.event.broadcaster_user_id && parsed.data.event.message_id
+        ? await options.giveaway.consume({ broadcasterUserId: parsed.data.event.broadcaster_user_id,
+          chatterUserId: parsed.data.event.chatter_user_id, messageId: parsed.data.event.message_id,
+          text: parsed.data.event.message.text, messageType: parsed.data.event.message_type ?? 'text',
+          observedAt: new Date(timestamp), badges: parsed.data.event.badges }) : false;
+      if (normalMessage && !giveawayOutbound) await options.favorChatPresence.consume(observed.receipt.id);
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();

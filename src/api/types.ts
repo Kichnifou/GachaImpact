@@ -14,6 +14,16 @@ export type ModerationPermissionsDto = Readonly<{
   roles: readonly ('MODERATOR' | 'TESTER' | 'ADMIN')[]
   capabilities: Readonly<{ moderationAccess: boolean; communityModeration: boolean; selfResourceTools: boolean; selfGameplayTools: boolean; superTools: boolean; canSelectPlayers: boolean; canManageTesters: boolean }>
 }>
+
+export type GiveawayStateDto = Readonly<{
+  bridge: Readonly<{ available: boolean; authorized: boolean; active: boolean; pending: boolean; error?: string }>
+  session: Readonly<{
+    id: string; status: string; openedAt: string | null; closedAt: string | null; openedBy: string | null;
+    winner: string | null; participantCount: number; chatterCount: number;
+    top: readonly Readonly<{ playerId: string; displayName: string; messageCount: string; rank: number }>[];
+    announcements: readonly Readonly<{ id: string; kind: string; state: string; errorCode: string | null; attempts: number }>[];
+  }> | null
+}>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER' }>
 
 export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const

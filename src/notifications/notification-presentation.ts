@@ -7,6 +7,8 @@ export type NotificationPresentation = Readonly<{ title: string; message: string
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'giveaway:GIVEAWAY_REWARD': notification => ({ title: text(notification.payload.title, '🎉 Récompense Giveaway'),
+    message: text(notification.payload.message, 'Votre récompense Giveaway a déjà été créditée.'), destination: null }),
   'gift-supreme:GIFT_SUPREME_RECEIVED': notification => ({ title: '🎁 Gift Suprême reçu', message: text(notification.payload.message, 'Un Gift Suprême vous a été offert.'), destination: null }),
   'appearance:CHARACTER_AVATARS_UNLOCKED': notification => {
     const count = typeof notification.payload.count === 'number' && Number.isSafeInteger(notification.payload.count) && notification.payload.count > 0 ? notification.payload.count : 1

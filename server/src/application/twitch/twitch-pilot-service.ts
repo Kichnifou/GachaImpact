@@ -10,17 +10,20 @@ import type { TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscr
 import type { GiftSupremeStatus, TwitchGiftSupremeManager } from './twitch-gift-supreme-manager.js';
 import type { TwitchGiftSupremeRuntime } from './twitch-gift-supreme-runtime.js';
 import { TWITCH_GIFT_SUPREME_SCOPES } from './twitch-gift-supreme-contract.js';
+import { TWITCH_GIVEAWAY_SCOPES } from './twitch-giveaway-contract.js';
+import type { TwitchGiveawayManager } from './twitch-giveaway-manager.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
 const twitchKeys = createRemoteJWKSet(new URL('https://id.twitch.tv/oauth2/keys'));
 export const TWITCH_RUNTIME_SCOPES = ['openid', 'user:read:chat', 'user:bot', 'channel:bot'] as const;
 export const TWITCH_FAVOR_SCOPES = ['openid', 'channel:read:subscriptions'] as const;
-export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' | 'AUTHORIZE_GIFT_SUPREME';
+export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' | 'AUTHORIZE_GIFT_SUPREME' | 'AUTHORIZE_GIVEAWAY';
 export function twitchOAuthPurpose(state: string | undefined): TwitchOAuthPurpose {
   if (state && /^runtime_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_RUNTIME';
   if (state && /^favor_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
   if (state && /^gift_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_GIFT_SUPREME';
+  if (state && /^giveaway_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_GIVEAWAY';
   if (state && /^[A-Za-z0-9_-]{43}$/.test(state)) return 'LINK_IDENTITY';
   throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
 }
@@ -46,7 +49,8 @@ export class TwitchPilotService {
   private readonly eventSubConfigured: boolean;
   constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, config: AppConfig,
     private readonly keys: JWTVerifyGetKey = twitchKeys, private readonly subscriptions?: TwitchEventSubSubscriptionManager,
-    private readonly gift?: TwitchGiftSupremeManager, private readonly giftRuntime?: TwitchGiftSupremeRuntime) {
+    private readonly gift?: TwitchGiftSupremeManager, private readonly giftRuntime?: TwitchGiftSupremeRuntime,
+    private readonly giveaway?: TwitchGiveawayManager) {
     this.settings = config.twitch ?? { pilotPlayerIds: [], pilotLogin: 'kichnifou' };
     this.eventSubConfigured = Boolean(config.twitchEventSub?.enabled || config.twitchEventSub?.callbackUrl || config.twitchEventSub?.secret);
   }
@@ -140,6 +144,27 @@ export class TwitchPilotService {
     if (!this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
     return this.startForPurpose(identity, 'AUTHORIZE_GIFT_SUPREME');
   }
+  private async giveawayAdmin(identity: AuthenticatedIdentity) {
+    const player = await this.pilot(identity);
+    const role = await this.db.playerRoleAssignment.findFirst({ where: { playerId: player.id, role: 'ADMIN', revokedAt: null }, select: { id: true } });
+    if (!role) throw new AppError('Activation Giveaway réservée à l’administration.', 403, 'GIVEAWAY_ADMIN_REQUIRED');
+    return player;
+  }
+  async startGiveaway(identity: AuthenticatedIdentity) {
+    await this.giveawayAdmin(identity);
+    if (!this.giveaway?.available) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
+    return this.startForPurpose(identity, 'AUTHORIZE_GIVEAWAY');
+  }
+  async enableGiveaway(identity: AuthenticatedIdentity) {
+    const player = await this.giveawayAdmin(identity);
+    if (!this.giveaway) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
+    return this.giveaway.enable(player.id);
+  }
+  async disableGiveaway(identity: AuthenticatedIdentity) {
+    const player = await this.giveawayAdmin(identity);
+    if (!this.giveaway) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
+    return this.giveaway.disable(player.id);
+  }
   async ensureGiftSupreme(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
     if (!this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
@@ -158,7 +183,7 @@ export class TwitchPilotService {
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
     if (purpose !== 'LINK_IDENTITY' && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
-    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : '') + randomBytes(32).toString('base64url');
+    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url');
     const nonce = randomBytes(32).toString('base64url');
     await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id, expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const url = new URL('https://id.twitch.tv/oauth2/authorize');
@@ -166,7 +191,7 @@ export class TwitchPilotService {
     url.searchParams.set('client_id', this.settings.clientId!);
     url.searchParams.set('redirect_uri', this.settings.redirectUri!);
     url.searchParams.set('scope', purpose === 'AUTHORIZE_RUNTIME' ? TWITCH_RUNTIME_SCOPES.join(' ')
-      : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? TWITCH_FAVOR_SCOPES.join(' ') : purpose === 'AUTHORIZE_GIFT_SUPREME' ? TWITCH_GIFT_SUPREME_SCOPES.join(' ') : 'openid');
+      : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? TWITCH_FAVOR_SCOPES.join(' ') : purpose === 'AUTHORIZE_GIFT_SUPREME' ? TWITCH_GIFT_SUPREME_SCOPES.join(' ') : purpose === 'AUTHORIZE_GIVEAWAY' ? TWITCH_GIVEAWAY_SCOPES.join(' ') : 'openid');
     url.searchParams.set('state', state);
     url.searchParams.set('nonce', nonce);
     return { url: url.toString() };
@@ -177,14 +202,19 @@ export class TwitchPilotService {
     const purpose = twitchOAuthPurpose(input.state);
     if (expectedPurpose && purpose !== expectedPurpose) throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
     if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
+    if (purpose === 'AUTHORIZE_GIVEAWAY' && !this.giveaway?.available) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
     const consumed = await this.db.$queryRaw<{ player_id: string; nonce_hash: string }[]>`
       DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state!)} AND expires_at > now() RETURNING player_id, nonce_hash`;
     if (consumed.length !== 1) throw new AppError('Ã‰tat OAuth expirÃ© ou dÃ©jÃ  utilisÃ©.', 400, 'TWITCH_STATE_INVALID');
     const playerId = consumed[0]!.player_id;
+    if (purpose === 'AUTHORIZE_GIVEAWAY' && !await this.db.playerRoleAssignment.findFirst({ where: { playerId, role: 'ADMIN', revokedAt: null }, select: { id: true } }))
+      throw new AppError('Activation Giveaway réservée à l’administration.', 403, 'GIVEAWAY_ADMIN_REQUIRED');
     if (!this.settings.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote non autorisÃ©.', 403, 'TWITCH_PILOT_FORBIDDEN');
     if (input.error || !input.code || input.code.length > 512) throw new AppError('Autorisation Twitch annulÃ©e.', 400, 'TWITCH_AUTH_DENIED');
     const giftIdentity = purpose === 'AUTHORIZE_GIFT_SUPREME' ? await this.db.twitchIdentity.findUnique({ where: { playerId } }) : null;
+    const giveawayIdentity = purpose === 'AUTHORIZE_GIVEAWAY' ? await this.db.twitchIdentity.findUnique({ where: { playerId } }) : null;
     if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !giftIdentity) throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
+    if (purpose === 'AUTHORIZE_GIVEAWAY' && !giveawayIdentity) throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     const oauthJson = async (response: Response) => {
       try { return await response.json() as unknown; }
       catch { throw new AppError('Réponse OAuth Twitch invalide.', 502, 'TWITCH_OAUTH_FAILED'); }
@@ -193,7 +223,7 @@ export class TwitchPilotService {
       try { return await fetch(url, { ...options, signal: AbortSignal.timeout(10_000) }); }
       catch { throw new AppError('Autorisation Gift Suprême temporairement indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE'); }
     };
-    const oauthFetch = purpose === 'AUTHORIZE_GIFT_SUPREME' ? giftRequest : fetch;
+    const oauthFetch = purpose === 'AUTHORIZE_GIFT_SUPREME' || purpose === 'AUTHORIZE_GIVEAWAY' ? giftRequest : fetch;
     const tokenResponse = await oauthFetch('https://id.twitch.tv/oauth2/token', {
       method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: this.settings.clientId!, client_secret: this.settings.clientSecret!,
@@ -201,10 +231,10 @@ export class TwitchPilotService {
     });
     if (!tokenResponse.ok) throw new AppError('Ã‰change OAuth Twitch refusÃ©.', 502, 'TWITCH_OAUTH_FAILED');
     const token = await oauthJson(tokenResponse) as { access_token?: unknown; id_token?: unknown; refresh_token?: unknown };
-    if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !z.object({ access_token: z.string().min(1).max(8192),
+    if ((purpose === 'AUTHORIZE_GIFT_SUPREME' || purpose === 'AUTHORIZE_GIVEAWAY') && !z.object({ access_token: z.string().min(1).max(8192),
       refresh_token: z.string().min(1).max(8192), id_token: z.string().min(1).max(16384) }).safeParse(token).success)
       throw new AppError('Réponse OAuth Gift invalide.', 502, 'TWITCH_GIFT_CREDENTIAL_INVALID');
-    if (purpose === 'AUTHORIZE_GIFT_SUPREME' && (typeof token.refresh_token !== 'string' || !token.refresh_token || token.refresh_token.length > 8192))
+    if ((purpose === 'AUTHORIZE_GIFT_SUPREME' || purpose === 'AUTHORIZE_GIVEAWAY') && (typeof token.refresh_token !== 'string' || !token.refresh_token || token.refresh_token.length > 8192))
       throw new AppError('Credential Gift Suprême absent.', 502, 'TWITCH_GIFT_CREDENTIAL_INVALID');
     if (typeof token.id_token !== 'string') throw new AppError('ID token Twitch absent.', 502, 'TWITCH_IDENTITY_INVALID');
     let twitchUserId: string;
@@ -217,7 +247,7 @@ export class TwitchPilotService {
     const validationResponse = await oauthFetch('https://id.twitch.tv/oauth2/validate', { headers: { authorization: `OAuth ${token.access_token}` } });
     if (!validationResponse.ok) throw new AppError('Jeton Twitch invalide.', 502, 'TWITCH_OAUTH_FAILED');
     const validation = await oauthJson(validationResponse) as { client_id?: unknown; user_id?: unknown; login?: unknown; scopes?: unknown; expires_in?: unknown };
-    if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !z.object({ client_id: z.string().min(1), user_id: z.string().regex(/^\d+$/),
+    if ((purpose === 'AUTHORIZE_GIFT_SUPREME' || purpose === 'AUTHORIZE_GIVEAWAY') && !z.object({ client_id: z.string().min(1), user_id: z.string().regex(/^\d+$/),
       login: z.string().min(1).max(128), scopes: z.array(z.string()), expires_in: z.number().int().positive() }).safeParse(validation).success)
       throw new AppError('Validation OAuth Gift invalide.', 502, 'TWITCH_IDENTITY_INVALID');
     if (validation.client_id !== this.settings.clientId || validation.user_id !== twitchUserId
@@ -232,6 +262,9 @@ export class TwitchPilotService {
     if (purpose === 'AUTHORIZE_GIFT_SUPREME' && (!TWITCH_GIFT_SUPREME_SCOPES.every(scope => (validation.scopes as unknown[]).includes(scope))
       || !Number.isSafeInteger(validation.expires_in) || (validation.expires_in as number) <= 0))
       throw new AppError('Permissions ou expiration Gift Suprême invalides.', 403, 'TWITCH_GIFT_SCOPES_MISSING');
+    if (purpose === 'AUTHORIZE_GIVEAWAY' && (!TWITCH_GIVEAWAY_SCOPES.every(scope => (validation.scopes as unknown[]).includes(scope))
+      || !Number.isSafeInteger(validation.expires_in) || (validation.expires_in as number) <= 0))
+      throw new AppError('Permissions Giveaway Twitch incomplètes.', 403, 'TWITCH_GIVEAWAY_SCOPES_MISSING');
     const existing = await this.db.twitchIdentity.findUnique({ where: { playerId } });
     if (purpose !== 'LINK_IDENTITY' && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
       throw new AppError('Ce compte Twitch ne correspond pas à l’identité liée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
@@ -243,7 +276,7 @@ export class TwitchPilotService {
     });
     if (!usersResponse.ok) throw new AppError('Profil Twitch indisponible.', 502, 'TWITCH_PROFILE_FAILED');
     const users = await oauthJson(usersResponse) as { data?: { id?: unknown; login?: unknown; display_name?: unknown }[] };
-    if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !z.object({ data: z.array(z.object({ id: z.string().regex(/^\d+$/),
+    if ((purpose === 'AUTHORIZE_GIFT_SUPREME' || purpose === 'AUTHORIZE_GIVEAWAY') && !z.object({ data: z.array(z.object({ id: z.string().regex(/^\d+$/),
       login: z.string().min(1).max(128), display_name: z.string().max(128) })).length(1) }).safeParse(users).success)
       throw new AppError('Profil OAuth Gift invalide.', 502, 'TWITCH_PROFILE_FAILED');
     const user = users.data?.[0];
@@ -256,12 +289,18 @@ export class TwitchPilotService {
       // Recheck after network calls; authorization must not recreate an unlinked identity.
       const current = await this.db.twitchIdentity.findUnique({ where: { playerId } });
       if (!current || current.twitchUserId !== twitchUserId || normalizeLogin(current.login) !== login
-        || giftIdentity && +giftIdentity.linkedAt !== +current.linkedAt)
+        || giftIdentity && +giftIdentity.linkedAt !== +current.linkedAt
+        || giveawayIdentity && +giveawayIdentity.linkedAt !== +current.linkedAt)
         throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
       if (purpose === 'AUTHORIZE_GIFT_SUPREME') {
         const activation = await this.gift!.authorize({ playerId, twitchUserId, login, refreshToken: token.refresh_token as string,
           accessToken: token.access_token, scopes: validation.scopes as string[], expiresIn: validation.expires_in as number, linkedAt: giftIdentity!.linkedAt });
         return { giftSupremeActivated: activation.giftSupremeActive, giftSupremePending: activation.giftSupremePending };
+      }
+      if (purpose === 'AUTHORIZE_GIVEAWAY') {
+        return this.giveaway!.authorize({ playerId, twitchUserId, login, refreshToken: token.refresh_token as string,
+          accessToken: token.access_token, scopes: validation.scopes as string[], expiresIn: validation.expires_in as number,
+          linkedAt: giveawayIdentity!.linkedAt });
       }
       if (!this.runtimeReady()) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
       // Only validated consent may create its own type. Tokens are never persisted.
@@ -286,8 +325,12 @@ export class TwitchPilotService {
 
   async unlink(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
+    const giveawayCredential = await this.db.twitchGiveawayCredential.findUnique({ where: { playerId: player.id } });
+    if (giveawayCredential?.enabled || await this.db.giveawaySession.findFirst({ where: { origin: 'NATIVE', status: 'OPEN' }, select: { id: true } }))
+      throw new AppError('Fermez le Giveaway et désactivez son bridge avant de dissocier Twitch.', 409, 'GIVEAWAY_UNLINK_BLOCKED');
     const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } });
     const remove = async () => {
+      if (giveawayCredential) await this.db.twitchGiveawayCredential.deleteMany({ where: { playerId: player.id, enabled: false } });
       await this.db.twitchIdentity.deleteMany({ where: { playerId: player.id } });
     };
     if (linked && this.gift) await this.gift.unlink(player.id, remove);

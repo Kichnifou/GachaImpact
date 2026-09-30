@@ -89,6 +89,10 @@ import type { RankingService } from './application/ranking/ranking-service.js';
 import { registerRankingRoutes } from './api/routes/ranking.js';
 import type { HistoryService } from './application/history/history-service.js';
 import { registerHistoryRoutes } from './api/routes/history.js';
+import { registerGiveawayRoutes } from './api/routes/giveaway.js';
+import type { GiveawayService } from './application/giveaway/giveaway-service.js';
+import type { TwitchGiveawayManager } from './application/twitch/twitch-giveaway-manager.js';
+import type { TwitchGiveawayConsumer } from './application/twitch/twitch-giveaway-consumer.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
@@ -104,6 +108,9 @@ export type AppDependencies = Readonly<{
   twitchFavorChatPresence?: TwitchFavorChatPresenceConsumer;
   twitchSubscriptions?: TwitchEventSubSubscriptionManager;
   twitchGiftSupreme?: TwitchGiftSupremeRuntime;
+  twitchGiveawayManager?: TwitchGiveawayManager;
+  twitchGiveawayConsumer?: TwitchGiveawayConsumer;
+  giveawayService?: GiveawayService;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   currentPlayerFavor?: CurrentPlayerFavorService;
@@ -201,7 +208,8 @@ export async function buildApp(
       if (!config.twitchEventSub.secret || !dependencies.twitchEventObserver || !dependencies.twitchFavorSubscriptions || !dependencies.twitchFavorGifts || !dependencies.twitchFavorResubs || !dependencies.twitchFavorChatPresence) throw new Error('Twitch EventSub webhook is enabled without a secret, observer or Favor consumers.');
       await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
         favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts, favorResubs: dependencies.twitchFavorResubs, favorChatPresence: dependencies.twitchFavorChatPresence,
-        giftSupreme: config.twitchGiftSupreme?.enabled && config.twitchGiftSupreme.credentialKey ? dependencies.twitchGiftSupreme : undefined });
+        giftSupreme: config.twitchGiftSupreme?.enabled && config.twitchGiftSupreme.credentialKey ? dependencies.twitchGiftSupreme : undefined,
+        giveaway: dependencies.twitchGiveawayConsumer });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {
@@ -285,6 +293,9 @@ export async function buildApp(
     }
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
+      if (dependencies.giveawayService && dependencies.twitchGiveawayManager && dependencies.tradePlayer)
+        await app.register(registerGiveawayRoutes, { authenticate, core: dependencies.giveawayService,
+          bridge: dependencies.twitchGiveawayManager, moderation: dependencies.moderationTools, getPlayer: dependencies.tradePlayer });
     }
     if (dependencies.getCurrentPlayerShop && dependencies.getPlayerShopHistory && dependencies.purchaseShopItem) {
       await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, getPlayerShopHistory: dependencies.getPlayerShopHistory, purchaseShopItem: dependencies.purchaseShopItem });
