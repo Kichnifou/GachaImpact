@@ -133,6 +133,18 @@ export class TwitchEventSubSubscriptionManager {
     finally { this.pending.delete(key); }
   }
   async ensurePilotChatSubscription(playerId: string, expectedUserId?: string) { return this.ensure(playerId, 'channel.chat.message', expectedUserId); }
+  async ensurePilotChatSubscriptionWithHooks(playerId: string, hooks: {
+    beforeEnsure: () => Promise<string>; afterEnsure: (subscription: TwitchEventSubSubscription) => Promise<void>;
+  }) {
+    // A credential transition must stay beside its remote ensure in the same Player queue.
+    // Do not call the queued ensurePilotChatSubscription from inside this action.
+    return this.serial(playerId, async () => {
+      const expectedUserId = await hooks.beforeEnsure();
+      const subscription = await this.ensureExact(await this.context(playerId, true, expectedUserId), 'channel.chat.message');
+      await hooks.afterEnsure(subscription);
+      return subscription;
+    });
+  }
   async ensurePilotFavorSubscription(playerId: string, expectedUserId?: string, expectedLogin?: string) {
     const key = JSON.stringify([playerId, expectedUserId, expectedLogin]);
     const running = this.favorPending.get(key);

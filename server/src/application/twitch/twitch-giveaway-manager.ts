@@ -59,25 +59,39 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
     if (!this.available) throw unavailable();
     if (!TWITCH_GIVEAWAY_SCOPES.every(scope => input.scopes.includes(scope)))
       throw new AppError('Permissions Giveaway Twitch incomplètes.', 403, 'TWITCH_GIVEAWAY_SCOPES_MISSING');
-    const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: input.playerId } });
-    if (!linked || linked.twitchUserId !== input.twitchUserId || linked.login.trim().toLowerCase() !== input.login.trim().toLowerCase()
-      || +linked.linkedAt !== +input.linkedAt) throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     const encryptedRefreshToken = this.cipher!.encrypt(input.refreshToken, input.playerId, input.twitchUserId);
-    const row = await this.db.twitchGiveawayCredential.upsert({ where: { playerId: input.playerId },
-      create: { playerId: input.playerId, twitchUserId: input.twitchUserId, encryptedRefreshToken, scopes: input.scopes, enabled: true },
-      update: { twitchUserId: input.twitchUserId, encryptedRefreshToken, scopes: input.scopes, enabled: true,
-        authorizedAt: new Date(), revision: { increment: 1 } } });
-    this.tokens!.prime(row, input.accessToken, input.expiresIn);
-    await this.subscriptions!.ensurePilotChatSubscription(input.playerId, input.twitchUserId);
+    await this.subscriptions!.ensurePilotChatSubscriptionWithHooks(input.playerId, {
+      beforeEnsure: async () => {
+        const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: input.playerId } });
+        if (!linked || linked.twitchUserId !== input.twitchUserId || linked.login.trim().toLowerCase() !== input.login.trim().toLowerCase()
+          || +linked.linkedAt !== +input.linkedAt) throw new AppError('Identité Twitch liée modifiée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
+        // A first OAuth grant remains usable for an explicit retry if EventSub creation fails.
+        const row = await this.db.twitchGiveawayCredential.upsert({ where: { playerId: input.playerId },
+          create: { playerId: input.playerId, twitchUserId: input.twitchUserId, encryptedRefreshToken, scopes: input.scopes, enabled: false },
+          update: { twitchUserId: input.twitchUserId, encryptedRefreshToken, scopes: input.scopes,
+            authorizedAt: new Date(), revision: { increment: 1 } } });
+        this.tokens!.prime(row, input.accessToken, input.expiresIn);
+        return input.twitchUserId;
+      },
+      afterEnsure: async () => {
+        await this.db.twitchGiveawayCredential.update({ where: { playerId: input.playerId }, data: { enabled: true } });
+      },
+    });
     return this.status();
   }
   async enable(playerId: string) {
     if (!this.available) throw unavailable();
-    const row = await this.db.twitchGiveawayCredential.findUnique({ where: { playerId } });
-    if (!row) throw new AppError('Autorisez Giveaway avec Twitch.', 409, 'TWITCH_GIVEAWAY_AUTH_REQUIRED');
-    await this.tokens!.getToken(playerId);
-    await this.subscriptions!.ensurePilotChatSubscription(playerId, row.twitchUserId);
-    await this.db.twitchGiveawayCredential.update({ where: { playerId }, data: { enabled: true } });
+    await this.subscriptions!.ensurePilotChatSubscriptionWithHooks(playerId, {
+      beforeEnsure: async () => {
+        const row = await this.db.twitchGiveawayCredential.findUnique({ where: { playerId } });
+        if (!row) throw new AppError('Autorisez Giveaway avec Twitch.', 409, 'TWITCH_GIVEAWAY_AUTH_REQUIRED');
+        await this.tokens!.getToken(playerId);
+        return row.twitchUserId;
+      },
+      afterEnsure: async () => {
+        await this.db.twitchGiveawayCredential.update({ where: { playerId }, data: { enabled: true } });
+      },
+    });
     return this.status();
   }
   async disable(playerId: string) {
