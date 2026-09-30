@@ -16,7 +16,7 @@ export type ModerationPermissionsDto = Readonly<{
 }>
 
 export type GiveawayStateDto = Readonly<{
-  bridge: Readonly<{ available: boolean; authorized: boolean; active: boolean; pending: boolean; error?: string }>
+  bridge: Readonly<{ available: boolean; authorized: boolean; enabled: boolean; active: boolean; pending: boolean; error?: string }>
   session: Readonly<{
     id: string; status: string; openedAt: string | null; closedAt: string | null; openedBy: string | null;
     winner: string | null; participantCount: number; chatterCount: number;

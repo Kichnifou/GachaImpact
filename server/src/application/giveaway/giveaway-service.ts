@@ -15,7 +15,7 @@ const currentLock = async (tx: Transaction) => { await tx.$executeRaw`SELECT pg_
 
 export interface GiveawayBridgeProof {
   assertActive(): Promise<void>;
-  status(): Promise<{ available: boolean; authorized: boolean; active: boolean; pending: boolean; error?: string }>;
+  status(): Promise<{ available: boolean; authorized: boolean; enabled: boolean; active: boolean; pending: boolean; error?: string }>;
 }
 
 /** One authoritative core for Admin and the specialized Twitch command consumer. */

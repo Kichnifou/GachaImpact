@@ -12,7 +12,7 @@ import GiveawayAdminPanel from './GiveawayAdminPanel'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: ReturnType<typeof createRoot>[] = []
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks() })
-const base: GiveawayStateDto = { bridge: { available: true, authorized: true, active: false, pending: false }, session: null }
+const base: GiveawayStateDto = { bridge: { available: true, authorized: true, enabled: false, active: false, pending: false }, session: null }
 const button = (container: HTMLElement, label: string) => Array.from(container.querySelectorAll('button')).find(row => row.textContent === label)!
 async function mount(state: GiveawayStateDto, admin = true) {
   api.getGiveawayState.mockResolvedValue(state)
@@ -35,7 +35,7 @@ describe('Giveaway private moderation panel', () => {
   })
 
   it('opens immediately when active, confirms Close, shows Top 3 and retries only the failed announcement', async () => {
-    const state: GiveawayStateDto = { bridge: { ...base.bridge, active: true }, session: { id: 'session', status: 'OPEN',
+    const state: GiveawayStateDto = { bridge: { ...base.bridge, enabled: true, active: true }, session: { id: 'session', status: 'OPEN',
       openedAt: '2026-09-30T10:00:00Z', closedAt: null, openedBy: 'Admin', winner: null, participantCount: 2,
       chatterCount: 3, top: [{ playerId: '1', displayName: 'Alice', rank: 1, messageCount: '8' }],
       announcements: [{ id: 'failed', kind: 'OPEN', state: 'FAILED', errorCode: 'HTTP_403', attempts: 1 },
@@ -55,5 +55,16 @@ describe('Giveaway private moderation panel', () => {
     await act(async () => button(container, 'Réessayer cet envoi').click())
     expect(api.retryGiveawayAnnouncement).toHaveBeenCalledWith('failed')
     expect(api.retryGiveawayAnnouncement).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows an unknown remote state and offers a disable retry while the credential is enabled', async () => {
+    const state: GiveawayStateDto = { ...base, bridge: { ...base.bridge, enabled: true, error: 'REMOTE_UNAVAILABLE' } }
+    api.disableTwitchGiveaway.mockResolvedValue({})
+    const container = await mount(state)
+    expect(container.textContent).toContain('État Twitch inconnu')
+    expect(container.textContent).not.toContain('Inactif')
+    await act(async () => button(container, 'Désactiver le bridge').click())
+    expect(api.disableTwitchGiveaway).toHaveBeenCalledOnce()
+    expect(api.enableTwitchGiveaway).not.toHaveBeenCalled()
   })
 })

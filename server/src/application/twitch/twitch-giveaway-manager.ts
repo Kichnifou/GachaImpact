@@ -31,20 +31,24 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
   get available() { return Boolean(this.chat && this.config.twitch?.redirectUri && this.subscriptions?.activationAvailable); }
 
   async status() {
-    const empty = { available: this.available, authorized: false, active: false, pending: false };
+    const empty = { available: this.available, authorized: false, enabled: false, active: false, pending: false };
     if (!this.available) return empty;
+    let authorized = false;
+    let enabled = false;
     try {
       const rows = await this.db.twitchGiveawayCredential.findMany({ take: 2 });
       if (rows.length > 1) return { ...empty, error: 'CREDENTIAL_CONFLICT' };
       const row = rows[0];
       if (!row) return empty;
+      authorized = true;
+      enabled = row.enabled;
       if (!row.enabled) return { ...empty, authorized: true };
       const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: row.playerId } });
-      if (!linked || linked.twitchUserId !== row.twitchUserId) return { ...empty, authorized: true, error: 'IDENTITY_CHANGED' };
+      if (!linked || linked.twitchUserId !== row.twitchUserId) return { ...empty, authorized: true, enabled: true, error: 'IDENTITY_CHANGED' };
       await this.tokens!.getToken(row.playerId, AbortSignal.timeout(3_000));
       const subscription = await this.subscriptions!.inspectPilotChatSubscription(row.playerId, AbortSignal.timeout(3_000));
-      return { ...empty, authorized: true, active: subscription === 'ACTIVE', pending: subscription === 'VERIFICATION_PENDING' };
-    } catch { return { ...empty, error: 'REMOTE_UNAVAILABLE' }; }
+      return { ...empty, authorized: true, enabled: true, active: subscription === 'ACTIVE', pending: subscription === 'VERIFICATION_PENDING' };
+    } catch { return { ...empty, authorized, enabled, error: 'REMOTE_UNAVAILABLE' }; }
   }
   async assertActive() {
     const state = await this.status();
@@ -77,9 +81,18 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
     return this.status();
   }
   async disable(playerId: string) {
-    if (await this.db.giveawaySession.findFirst({ where: { status: 'OPEN', origin: 'NATIVE' }, select: { id: true } }))
-      throw new AppError('Fermez le Giveaway avant de désactiver le bridge.', 409, 'GIVEAWAY_SESSION_OPEN');
-    await this.db.twitchGiveawayCredential.updateMany({ where: { playerId }, data: { enabled: false } });
+    if (!this.subscriptions) throw unavailable();
+    await this.subscriptions.disablePilotChatSubscription(playerId, {
+      beforeStop: async () => {
+        if (await this.db.giveawaySession.findFirst({ where: { status: 'OPEN', origin: 'NATIVE' }, select: { id: true } }))
+          throw new AppError('Fermez le Giveaway avant de désactiver le bridge.', 409, 'GIVEAWAY_SESSION_OPEN');
+        if (!await this.db.twitchGiveawayCredential.findUnique({ where: { playerId }, select: { playerId: true } }))
+          throw new AppError('Autorisez Giveaway avec Twitch.', 409, 'TWITCH_GIVEAWAY_AUTH_REQUIRED');
+      },
+      afterStop: async () => {
+        await this.db.twitchGiveawayCredential.updateMany({ where: { playerId }, data: { enabled: false } });
+      },
+    });
     return this.status();
   }
 

@@ -12,7 +12,7 @@ import { giftConfig, giftKey } from '../tests/helpers/twitch-gift-fixture.js';
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 let active = true;
 const bridge = { assertActive: async () => { if (!active) throw new Error('bridge off'); },
-  status: async () => ({ available: true, authorized: true, active, pending: false }) };
+  status: async () => ({ available: true, authorized: true, enabled: true, active, pending: false }) };
 const service = new GiveawayService(db, bridge, () => new Date(), () => 0);
 let adminId: string;
 let adminTwitchId: string;

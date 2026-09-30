@@ -61,7 +61,7 @@ export default function GiveawayAdminPanel({ admin }: { admin: boolean }) {
     {error && <p className="configuration-error" role="alert">{error}</p>}
     {loading ? <p role="status">Chargement du Giveaway…</p> : <>
       <div className="giveaway-summary">
-        <p><strong>Bridge :</strong> {bridge?.active ? '● Actif' : bridge?.pending ? 'Vérification Twitch en cours' : bridge?.available ? 'Inactif' : 'Indisponible'}{bridge?.error ? ` · ${bridge.error}` : ''}</p>
+        <p><strong>Bridge :</strong> {bridge?.active ? '● Actif' : bridge?.pending ? 'Vérification Twitch en cours' : bridge?.error ? 'État Twitch inconnu' : bridge?.available ? 'Inactif' : 'Indisponible'}{bridge?.error ? ` · ${bridge.error}` : ''}</p>
         <p><strong>Session :</strong> {open ? 'Ouverte' : session ? 'Fermée' : 'Aucune session native'}</p>
         {session && <><p><strong>Ouvert par :</strong> {session.openedBy ?? 'Inconnu'}</p><p><strong>Ouvert le :</strong> {session.openedAt ? new Date(session.openedAt).toLocaleString('fr-FR') : 'Inconnu'}</p>
           {open && <p><strong>Durée :</strong> {Math.floor(duration / 60)} min {duration % 60} s</p>}
@@ -71,7 +71,7 @@ export default function GiveawayAdminPanel({ admin }: { admin: boolean }) {
       <div className="giveaway-actions">
         <AppButton variant="primary" disabled={pending || !bridge?.active || open} onClick={() => void run(() => api.openGiveaway(crypto.randomUUID()))}>Ouvrir</AppButton>
         <AppButton variant="danger" disabled={pending || !open} onClick={() => setConfirmClose(true)}>Fermer</AppButton>
-        {admin && <>{bridge?.authorized ? <AppButton disabled={pending || open || Boolean(bridge.pending)} onClick={() => void run(() => bridge.active ? api.disableTwitchGiveaway() : api.enableTwitchGiveaway())}>{bridge.active ? 'Désactiver le bridge' : 'Activer le bridge'}</AppButton>
+        {admin && <>{bridge?.authorized || bridge?.enabled ? <AppButton disabled={pending || open || Boolean(bridge.pending)} onClick={() => void run(() => bridge.enabled ? api.disableTwitchGiveaway() : api.enableTwitchGiveaway())}>{bridge.enabled ? 'Désactiver le bridge' : 'Activer le bridge'}</AppButton>
           : <AppButton disabled={pending || !bridge?.available} onClick={authorize}>Autoriser Twitch</AppButton>}</>}
       </div>
       <section className="giveaway-top"><h3>Top 3 {open ? 'en direct' : 'final'}</h3>{session?.top.length ? <ol>{session.top.map(row => <li key={row.playerId}><strong>{row.rank}e · {row.displayName}</strong><span>{row.messageCount} messages</span></li>)}</ol> : <p>Aucun message éligible compté.</p>}</section>

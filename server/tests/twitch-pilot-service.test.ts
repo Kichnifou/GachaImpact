@@ -403,6 +403,13 @@ describe('runtime account status, activation and safe unlink', () => {
     await expect(service.unlink(identity)).rejects.toThrow();
     expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
   });
+  it('keeps the identity linked while Giveaway shutdown has left its credential enabled for retry', async () => {
+    const { service, subscriptions, db } = runtimeSetup();
+    db.twitchGiveawayCredential.findUnique.mockResolvedValue({ playerId, enabled: true });
+    await expect(service.unlink(identity)).rejects.toMatchObject({ code: 'GIVEAWAY_UNLINK_BLOCKED' });
+    expect(subscriptions.disablePilotChatSubscription).not.toHaveBeenCalled();
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+  });
   it('explicit disable resolves only the authenticated pilot and never unlinks identity', async () => {
     const { service, subscriptions, db } = runtimeSetup();
     expect(await service.disableRuntime(identity)).toEqual({ runtimeChatActive: false, runtimeChatPending: false });

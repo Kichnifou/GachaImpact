@@ -176,7 +176,19 @@ export class TwitchEventSubSubscriptionManager {
     try { return await job; }
     finally { this.disabling.delete(key); }
   }
-  async disablePilotChatSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'channel.chat.message'); }
+  async disablePilotChatSubscription(playerId: string, hooks?: { beforeStop: () => Promise<void>; afterStop: () => Promise<void> }) {
+    if (!hooks) return this.disablePilotSubscription(playerId, 'channel.chat.message');
+    // Keep the Giveaway guard, remote removal and credential update in the same Player lifecycle queue.
+    return this.serial(playerId, async () => {
+      await hooks.beforeStop();
+      const context = await this.context(playerId);
+      await this.disable(playerId, 'channel.chat.message', context);
+      if (this.exact(await this.list('channel.chat.message'), context.userId, context.callback, 'channel.chat.message'))
+        throw conflict('channel.chat.message');
+      await hooks.afterStop();
+      return 'INACTIVE' as const;
+    });
+  }
   async disablePilotFavorSubscription(playerId: string) { return this.disablePilotSubscription(playerId, 'FAVOR'); }
 
   // Gift calls these ONLY while holding lifecycle.run; adding another queue here would deadlock.
