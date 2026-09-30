@@ -485,7 +485,7 @@ export class EventService {
     throw new Error('Event daily bonus claim could not be completed.');
   }
 
-  public async convertShop(identity: AuthenticatedIdentity, target: EventShopTarget, quantity: number, idempotencyKey: string) {
+  public async convertShop(identity: AuthenticatedIdentity, target: EventShopTarget, quantity: number, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const units = eventShopQuantity(quantity);
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
@@ -496,7 +496,7 @@ export class EventService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
             if (previous.playerId !== player.id || previous.operationType !== 'event.shop.convert' || previous.status !== OperationStatus.COMPLETED || original?.editionId !== request.editionId || original.target !== target || original.quantity !== quantity) throw new BusinessError('EVENT_SHOP_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à un autre échange.');
@@ -505,10 +505,10 @@ export class EventService {
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant un échange.');
           await this.debitEventCurrency(tx, player.id, context.definition.id, units, now);
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.convert', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.convert', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           const resourceKey = target === 'PRIMOGEMS' ? 'primogems' : 'moras';
           const playerRecord = await tx.player.findUniqueOrThrow({ where: { id: player.id }, select: { elementKey: true } });
-          await economy.credit(tx, { playerId: player.id, playerElementKey: playerRecord.elementKey && isElementKey(playerRecord.elementKey) ? playerRecord.elementKey : null, resourceKey, amount: units * EVENT_SHOP_RATES[target], causeKey: 'event.shop.convert', domainKey: 'event', operationId: operation.id, sourceChannel: SourceChannel.UI });
+          await economy.credit(tx, { playerId: player.id, playerElementKey: playerRecord.elementKey && isElementKey(playerRecord.elementKey) ? playerRecord.elementKey : null, resourceKey, amount: units * EVENT_SHOP_RATES[target], causeKey: 'event.shop.convert', domainKey: 'event', operationId: operation.id, sourceChannel });
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, amount: (units * EVENT_SHOP_RATES[target]).toString() } } });
           return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, false) };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

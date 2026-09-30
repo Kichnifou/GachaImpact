@@ -317,6 +317,16 @@ describe('Particle trades isolated PostgreSQL', () => {
     await service.all(b, 'refuse', randomUUID()); expect((await notification(b)).state).toBe('RESOLVED');
     expect(await db.notification.count({ where: { playerId: b } })).toBe(1);
   }, 30_000);
+  it('keeps a manually archived aggregate archived when its final request is resolved', async () => {
+    const sender = await player(), recipient = await player('pyro');
+    const first = await request(sender, recipient);
+    const notice = await notification(recipient);
+    await db.notification.update({ where: { id: notice.id }, data: { state: 'ARCHIVED', archivedAt: now } });
+    await service.mutate(recipient, first.requestId, 'refuse', randomUUID());
+    expect(await notification(recipient)).toMatchObject({ id: notice.id, state: 'ARCHIVED', archivedAt: now });
+    await request(sender, recipient);
+    expect(await notification(recipient)).toMatchObject({ id: notice.id, state: 'UNREAD', archivedAt: null });
+  }, 30_000);
   it('expires at Paris midnight offline with startup catchup, releases reservations and is idempotent across DST', async () => {
     for (const instant of ['2026-03-29T00:30:00Z', '2026-10-25T00:30:00Z']) {
       now = new Date(instant); const a = await player(), b = await player('pyro'); const r = await request(a, b);

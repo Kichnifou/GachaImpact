@@ -138,7 +138,8 @@ export class ChatCommandDispatcher {
     const existing = await this.chat.findGameResult(sent.message.id);
     if (existing) return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: existing, results: await this.chat.findGameResults(sent.message.id) };
     const response = await this.resolve(identity, sent.message.content!, sent.message.id);
-    const published = await this.chat.publishGameResult(sent.message.id, oneLine(response));
+    const missions = await this.chat.commandMissionCompletions(sent.message.id);
+    const published = await this.chat.publishGameResult(sent.message.id, oneLine([response, ...missions].join(' ')));
     return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: published.message, results: published.messages };
   }
 
@@ -456,7 +457,7 @@ export class ChatCommandDispatcher {
             if (args.length !== 2 || args[1] !== 'max' && !/^[1-9]\d*$/u.test(args[1]!)) return syntax(definition.syntax);
             const amount = args[1] === 'max' ? await this.chat.rememberCommandQuantity(commandMessageId, BigInt(event.currency.amount)) : BigInt(args[1]!);
             if (amount < 1n || amount > BigInt(Number.MAX_SAFE_INTEGER)) return 'Quantité de monnaie Festival indisponible.';
-            const result = await this.services.eventService.convertShop(identity, action === 'primos' ? 'PRIMOGEMS' : 'MORAS', Number(amount), commandMessageId);
+            const result = await this.services.eventService.convertShop(identity, action === 'primos' ? 'PRIMOGEMS' : 'MORAS', Number(amount), commandMessageId, SourceChannel.INTERNAL_CHAT);
             return `${event.festival.title} : ${amount} ${event.festival.currency.label} converties en ${amount * BigInt(action === 'primos' ? event.shop.rates.primogems : event.shop.rates.moras)} ${action === 'primos' ? 'Primogemmes' : 'Moras'} · solde ${result.currency.amount}.`;
           }
           if (action === 'collection' && args.length === 1) {

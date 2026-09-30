@@ -9,6 +9,9 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('presents a permanent Mission with its structured reward and Missions destination', () => {
+    expect(resolveNotificationPresentation({ ...pending, domainKey: 'missions', typeKey: 'PERMANENT_MISSION_COMPLETED', actionKey: 'OPEN_MISSIONS', payload: { missionExternalKey: 'messages_b', rank: 'B', displayName: 'Bavard du jour', rewardPrimogems: '160' } })).toEqual({ title: 'Mission terminée', message: 'Bavard du jour', rewards: [{ resourceKey: 'primogems', label: 'Primogemmes', amount: '160' }], destination: 'missions' })
+  })
   it('presents an already credited Gift without an economic destination', () => {
     const notification = { ...pending, domainKey: 'gift-supreme', typeKey: 'GIFT_SUPREME_RECEIVED', actionKey: null,
       payload: { message: "Axel t'a offert +1 600 particules Hydro." } }

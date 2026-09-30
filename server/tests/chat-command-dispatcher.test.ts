@@ -12,6 +12,7 @@ function harness() {
     send: vi.fn(async (_identity: unknown, content: string) => ({ message: { id: commandId, messageType: 'COMMAND', content }, xpGranted: 0, replayed: false })),
     findGameResult: vi.fn(async () => null),
     findGameResults: vi.fn(async () => []),
+    commandMissionCompletions: vi.fn(async () => [] as string[]),
     hasConfirmedCommandMutation: vi.fn(async () => false),
     commandRefreshScopes: vi.fn(async () => []),
     rememberCommandRefreshScopes: vi.fn(async () => undefined),
@@ -88,6 +89,12 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('includes current Mission completions in the immediate command response', async () => {
+    const { chat, send } = harness();
+    chat.commandMissionCompletions.mockResolvedValueOnce(['Mission terminée : Bavard du jour (+160 Primogemmes).']);
+    expect(await send('!help')).toContain('Mission terminée : Bavard du jour (+160 Primogemmes).');
+    expect(chat.commandMissionCompletions).toHaveBeenCalledWith(commandId);
+  });
   it('routes !top aliases and personal summary through RankingService', async () => {
     const { services, send } = harness();
     expect(await send('!top xp')).toBe('XP : #1 Autre — 30.');
@@ -301,6 +308,12 @@ describe('Chat command adapters', () => {
     expect(services.eventService[method as keyof typeof services.eventService]).toHaveBeenCalled();
     expect(chat.publishGameResult).toHaveBeenCalledOnce();
     expect((await chat.send.mock.results[0]!.value).xpGranted).toBe(0);
+  });
+
+  it('passes INTERNAL_CHAT through Event Shop conversion', async () => {
+    const { services, send } = harness();
+    await send('!event moras 3');
+    expect(services.eventService.convertShop).toHaveBeenCalledWith(actor, 'MORAS', 3, commandId, 'INTERNAL_CHAT');
   });
 
   it('passes Game C the resolved recipient, exact message and durable command ID, then replays without another send', async () => {

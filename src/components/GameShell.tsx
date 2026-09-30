@@ -60,6 +60,7 @@ import { activityTabs, characterTabs, defaultNavigationPreference, hashForScreen
 import type { ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 import type { ChatRefreshScope } from '../api/types'
 import { runChatRefreshScopes } from '../chat/refresh-scopes'
+import { resolveNotificationNavigation } from '../notifications/notification-navigation'
 
 const getScreenFromHash = (): ScreenId => parseNavigationHash(window.location.hash)
 const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScope[]>> = {
@@ -498,7 +499,23 @@ return <ActivitiesScreen favor={favorPresence.favor} favorError={favorPresence.e
         onArchiveNotification={onArchiveNotification}
         onReadAllNotifications={onReadAllNotifications}
         onArchiveReadNotifications={onArchiveReadNotifications}
-        onOpenNotification={(notification) => { if (notification.actionKey === 'OPEN_PROFILE_PERSONALIZATION') { setProfileId(player.id); setAppearanceRequestToken(value => value + 1); navigate('profile') } else if (notification.actionKey === 'open-expedition-character' && notification.actionTargetId) { setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() }); navigate('characters-box') } else if (notification.actionKey === 'OPEN_MONTHLY_BOSS') { setBossRequestToken((value) => value + 1); navigate('activities-combat') } else if (notification.actionKey === 'OPEN_EVENT_MESSAGES') { setEventDailyIntent(null); setEventShopRequestToken(0); setEventMessagesRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT_SHOP') { setEventDailyIntent(null); setEventMessagesRequestToken(0); setEventShopRequestToken((value) => value + 1); navigate('activities-event') } else if (notification.actionKey === 'OPEN_EVENT') { setEventDailyIntent(null); setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event') } else if (notification.actionKey === 'OPEN_GIFT_CODE') navigate('codes'); else if (notification.actionKey === 'OPEN_SOCIAL_REQUESTS') { void friendship.refresh(true); setSocialTab('requests'); navigate('social') } else if (notification.actionKey === 'OPEN_TRADES_HISTORY' && notification.domainKey === 'trades' && notification.typeKey === 'TRADE_ACCEPTED') { setTradeIntent({ token: crypto.randomUUID(), tab: 'history' }); navigate('trades') } else if (notification.actionKey === 'OPEN_TRADES' && notification.domainKey === 'trades' && notification.typeKey === 'TRADES_PENDING') { setTradeIntent({ token: crypto.randomUUID(), tab: 'received' }); navigate('trades') } else if (notification.actionKey === 'OPEN_SOCIAL_FRIENDS') { void friendship.refresh(true); setSocialTab('friends'); navigate('social') } }}
+        onOpenNotification={(notification) => {
+          const intent = resolveNotificationNavigation(notification)
+          switch (intent.destination) {
+            case 'profile-personalization': setProfileId(player.id); setAppearanceRequestToken(value => value + 1); navigate('profile'); break
+            case 'expedition': if (intent.targetId) { setBoxOpenIntent({ characterId: intent.targetId, token: crypto.randomUUID() }); navigate('characters-box') } break
+            case 'monthly-boss': setBossRequestToken(value => value + 1); navigate('activities-combat'); break
+            case 'event-messages': setEventDailyIntent(null); setEventShopRequestToken(0); setEventMessagesRequestToken(value => value + 1); navigate('activities-event'); break
+            case 'event-shop': setEventDailyIntent(null); setEventMessagesRequestToken(0); setEventShopRequestToken(value => value + 1); navigate('activities-event'); break
+            case 'event': setEventDailyIntent(null); setEventMessagesRequestToken(0); setEventShopRequestToken(0); navigate('activities-event'); break
+            case 'gift-code': navigate('codes'); break
+            case 'social-requests': void friendship.refresh(true); setSocialTab('requests'); navigate('social'); break
+            case 'social-friends': void friendship.refresh(true); setSocialTab('friends'); navigate('social'); break
+            case 'trades-history': setTradeIntent({ token: crypto.randomUUID(), tab: 'history' }); navigate('trades'); break
+            case 'trades': setTradeIntent({ token: crypto.randomUUID(), tab: 'received' }); navigate('trades'); break
+            case 'missions': navigate('activities-missions'); break
+          }
+        }}
       />
 
       <div className="game-layout">

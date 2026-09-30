@@ -5,6 +5,7 @@ import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { PermanentMissionProgressStatus, Prisma, SourceChannel } from '../generated/prisma/client.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { NotificationService } from '../src/application/notification/notification-service.js';
 import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 import { GetPlayerMissions } from '../src/application/missions/get-player-missions.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
@@ -163,6 +164,7 @@ describe('Permanent Mission persistence', () => {
     const rewards = await database.businessOperation.findMany({ where: { playerId, operationType: 'permanent-mission.reward' }, orderBy: { startedAt: 'asc' } });
     expect(rewards).toHaveLength(2);
     expect(rewards.every(item => item.sourceChannel === SourceChannel.SYSTEM && (item.resultSummary as { completionContext?: string }).completionContext === 'STANDALONE_CATCHUP')).toBe(true);
+    expect(await database.notification.count({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
     expect((await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId, definition: { externalKey: 'messages_b' } } })).completionTriggerOperationId).toBe(catchup.id);
 
     expect(await database.$transaction(tx => service.catchUpStandalone(tx, { playerId, now }))).toEqual({ alreadyProcessed: true, completions: [] });
@@ -323,6 +325,37 @@ describe('Permanent Mission persistence', () => {
     expect(retry.completions).toEqual([]);
     expect(await primogems(playerId)).toBe(3_520n);
     expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(4);
+    expect(await database.notification.count({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(4);
+  });
+
+  it('delivers one structured notification per new UI Mission in the reward transaction and no replay', async () => {
+    const playerId = await provision('UiNotifications');
+    await database.playerProgression.update({ where: { playerId }, data: { totalMessages: 250n, countedMessages: 250n } });
+    const operation = await database.businessOperation.create({ data: { playerId, operationType: 'test.ui-missions', sourceChannel: SourceChannel.UI, idempotencyKey: randomUUID() } });
+    const result = await database.$transaction(tx => service.reconcileMetrics(tx, { playerId, sourceChannel: SourceChannel.UI, now, triggerOperationId: operation.id, metrics: ['COUNTED_MESSAGES'] }));
+    expect(result.completions.map(item => item.externalKey)).toEqual(['messages_b', 'messages_a']);
+    expect(await primogems(playerId)).toBe(1_760n);
+    const notifications = await database.notification.findMany({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' }, orderBy: { actionTargetId: 'asc' } });
+    expect(notifications).toHaveLength(2);
+    expect(notifications.map(item => item.actionTargetId)).toEqual(['messages_a', 'messages_b']);
+    expect(notifications[0]).toMatchObject({ domainKey: 'missions', actionKey: 'OPEN_MISSIONS', payload: { missionExternalKey: 'messages_a', rank: 'A', displayName: 'Voix infatigable', rewardPrimogems: '1600' } });
+    expect(notifications[1]).toMatchObject({ payload: { missionExternalKey: 'messages_b', rank: 'B', rewardPrimogems: '160' } });
+    await database.$transaction(tx => service.reconcileMetrics(tx, { playerId, sourceChannel: SourceChannel.UI, now, triggerOperationId: operation.id, metrics: ['COUNTED_MESSAGES'] }));
+    expect(await database.notification.count({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(2);
+    expect(await primogems(playerId)).toBe(1_760n);
+    const notificationService = new NotificationService({ execute: async () => ({ id: playerId }) } as never, database, { now: () => now }, { getState: async () => ({ operationalStatus: 'IDLE' }) } as never);
+    const read = await notificationService.readOne({ subject: `owner-${playerId}` }, notifications[0]!.id);
+    expect(read.notifications.find(item => item.id === notifications[0]!.id)).toMatchObject({ state: 'READ', actionKey: 'OPEN_MISSIONS' });
+    expect(read.notifications).toHaveLength(2);
+  });
+
+  it.each([SourceChannel.SYSTEM, SourceChannel.INTERNAL_CHAT, SourceChannel.TWITCH, SourceChannel.ADMIN, SourceChannel.MIGRATION])('applies Mission notification policy for %s', async sourceChannel => {
+    const playerId = await provision(`Source${sourceChannel}`);
+    await database.playerProgression.update({ where: { playerId }, data: { totalMessages: 50n, countedMessages: 50n } });
+    const result = await database.$transaction(tx => service.reconcileMetrics(tx, { playerId, sourceChannel, now, metrics: ['COUNTED_MESSAGES'] }));
+    expect(result.completions).toHaveLength(1);
+    expect(await primogems(playerId)).toBe(160n);
+    expect(await database.notification.count({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(sourceChannel === SourceChannel.SYSTEM ? 1 : 0);
   });
 
   it('rolls back completion and reward together when the outer transaction fails', async () => {
@@ -334,6 +367,7 @@ describe('Permanent Mission persistence', () => {
     })).rejects.toThrow('forced outer rollback');
     expect(await primogems(playerId)).toBe(0n);
     expect(await database.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
+    expect(await database.notification.count({ where: { playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
     expect((await view(playerId)).ranks.B.find(mission => mission.externalKey === 'messages_b')).toMatchObject({ status: PermanentMissionProgressStatus.ACTIVE, progress: 0n });
   });
 

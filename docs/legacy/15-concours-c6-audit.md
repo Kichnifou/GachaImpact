@@ -1113,6 +1113,8 @@ Le délai reste de 30 secondes pour tous les canaux.
 
 La présentation doit éviter d'envoyer inutilement plusieurs notifications identiques au même joueur.
 
+Précision R956 : « notification visuelle » désigne ici le feedback dans la surface Concours (`selectedForSupport`, zone et temps restant), sans ligne persistante dans la cloche Notifications. Aucune règle métier du Concours ne change.
+
 ---
 
 ## R582 — Sélection du thème quotidien — ✅ VALIDÉ A

@@ -3,6 +3,7 @@ import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { beforeAll, afterAll, afterEach, describe, expect, it } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
+import { SourceChannel } from '../generated/prisma/client.js';
 import { EventService } from '../src/application/event/event-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
@@ -70,6 +71,17 @@ afterEach(async () => {
 afterAll(async () => database.$disconnect());
 
 describe('Event Shop persistence', () => {
+  it('attributes a Chat conversion to INTERNAL_CHAT without a duplicate Mission notification', async () => {
+    const player = await fixture();
+    await join(player);
+    await setCurrency(player.playerId, 3n);
+    const result = await service.convertShop(player.identity, 'MORAS', 3, randomUUID(), SourceChannel.INTERNAL_CHAT);
+    const operation = await database.businessOperation.findUniqueOrThrow({ where: { id: result.operation.id } });
+    expect(operation.sourceChannel).toBe(SourceChannel.INTERNAL_CHAT);
+    expect(await resource(player.playerId, 'moras')).toBe(60_000n);
+    expect(await database.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: player.playerId, definition: { externalKey: 'moras_b' } } })).toMatchObject({ status: 'COMPLETED', completionTriggerOperationId: operation.id });
+    expect(await database.notification.count({ where: { playerId: player.playerId, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
+  });
   it('has a private annual uniqueness guard with indexed foreign keys', async () => {
     const [security] = await database.$queryRaw<Array<{ rls: boolean; anon: boolean; authenticated: boolean }>>`SELECT relrowsecurity AS rls, has_table_privilege('anon', oid, 'SELECT') AS anon, has_table_privilege('authenticated', oid, 'SELECT') AS authenticated FROM pg_class WHERE oid='event_collection_acquisitions'::regclass`;
     expect(security).toEqual({ rls: true, anon: false, authenticated: false });

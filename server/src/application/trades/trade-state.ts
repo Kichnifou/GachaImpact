@@ -11,7 +11,7 @@ export async function refreshTradeNotification(tx: Prisma.TransactionClient, pla
   const count = await tx.tradeRequest.count({ where: { recipientPlayerId: playerId, state: 'PENDING' } });
   const deduplicationKey = `trades:pending:${playerId}`;
   if (!count) {
-    await tx.notification.updateMany({ where: { deduplicationKey }, data: { state: 'RESOLVED', resolvedAt: now, payload: { count: 0 } } });
+    await tx.notification.updateMany({ where: { deduplicationKey, state: { in: ['UNREAD', 'READ'] } }, data: { state: 'RESOLVED', resolvedAt: now, payload: { count: 0 } } });
   } else if (newRequest) {
     await tx.notification.upsert({ where: { deduplicationKey }, create: { playerId, domainKey: 'trades', typeKey: 'TRADES_PENDING', deduplicationKey, payload: { count }, actionKey: 'OPEN_TRADES', state: 'UNREAD', createdAt: now }, update: { payload: { count }, state: 'UNREAD', readAt: null, archivedAt: null, resolvedAt: null, createdAt: now } });
   } else {

@@ -21,6 +21,19 @@ beforeAll(async () => {
 afterAll(() => fixture.cleanup(), 60_000);
 
 describe('Event lifecycle isolated PostgreSQL', () => {
+  it('resolves an active announcement when its definition is deactivated', async () => {
+    const player = await database.player.create({ data: { displayName: 'Disabled edition fixture' } });
+    await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-09-15T12:00:00Z'));
+    const notice = await database.notification.findFirstOrThrow({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_AVAILABLE' } });
+    const edition = await database.eventEdition.findUniqueOrThrow({ where: { id: notice.actionTargetId! } });
+    await database.eventDefinition.update({ where: { id: edition.eventDefinitionId }, data: { isActive: false } });
+    try {
+      await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-09-15T13:00:00Z'));
+      expect((await database.notification.findUniqueOrThrow({ where: { id: notice.id } })).state).toBe('RESOLVED');
+    } finally {
+      await database.eventDefinition.update({ where: { id: edition.eventDefinitionId }, data: { isActive: true } });
+    }
+  });
   it('delivers once per player/edition including midmonth, survives archive and concurrent polling', async () => {
     const player = await database.player.create({ data: { displayName: 'Lifecycle fixture' } });
     await Promise.all([notifications.reconcileNotificationsForPlayer(player.id, now), notifications.reconcileNotificationsForPlayer(player.id, now)]);
@@ -32,7 +45,7 @@ describe('Event lifecycle isolated PostgreSQL', () => {
     expect((await database.notification.findUniqueOrThrow({ where: { id: arrival.id } })).state).toBe('ARCHIVED');
     const other = await database.player.create({ data: { displayName: 'Other fixture' } });
     await notifications.reconcileNotificationsForPlayer(other.id, now);
-    expect(await database.notification.count()).toBe(2);
+    expect(await database.notification.count({ where: { playerId: { in: [player.id, other.id] } } })).toBe(2);
     await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-09-29T21:59:59Z'));
     expect(await database.notification.count({ where: { typeKey: 'EVENT_EDITION_LAST_DAY' } })).toBe(0);
     const lastDay = new Date('2026-09-29T22:00:00Z');
@@ -43,8 +56,16 @@ describe('Event lifecycle isolated PostgreSQL', () => {
     await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-09-30T22:00:00Z'));
     expect(await database.notification.count({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_AVAILABLE' } })).toBe(2);
     expect(await database.notification.count({ where: { typeKey: 'EVENT_EDITION_LAST_DAY' } })).toBe(1);
+    expect((await database.notification.findUniqueOrThrow({ where: { id: arrival.id } })).state).toBe('ARCHIVED');
+    expect((await database.notification.findFirstOrThrow({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_LAST_DAY' } })).state).toBe('RESOLVED');
+    expect(await database.notification.count({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_AVAILABLE', state: 'UNREAD' } })).toBe(1);
     await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-10-31T12:00:00Z'));
     expect(await database.notification.count({ where: { typeKey: 'EVENT_EDITION_LAST_DAY' } })).toBe(2);
+    const october = await database.notification.findFirstOrThrow({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_AVAILABLE', state: 'UNREAD' } });
+    await database.eventEdition.update({ where: { id: october.actionTargetId! }, data: { status: 'FINISHED' } });
+    await notifications.reconcileNotificationsForPlayer(player.id, new Date('2026-10-31T12:00:00Z'));
+    expect((await database.notification.findUniqueOrThrow({ where: { id: october.id } })).state).toBe('RESOLVED');
+    expect(await database.notification.count({ where: { playerId: player.id, typeKey: 'EVENT_EDITION_LAST_DAY', state: 'UNREAD' } })).toBe(0);
   }, 60_000);
 
   it('projects only the system Festival annual code without token or rewards', async () => {

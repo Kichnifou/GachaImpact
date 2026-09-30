@@ -248,6 +248,22 @@ export class GlobalChatService {
           await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: `${player.displayName} atteint ${levels} ! ${rewards}.`, replyToMessageId: message.id, createdAt: new Date(message.createdAt.getTime() + 1), generation } });
         }
       }
+      const missionCompletions = await tx.playerPermanentMissionProgress.findMany({
+        where: { playerId: player.id, completionTriggerOperationId: operation.id, status: 'COMPLETED' },
+        include: { definition: true },
+      });
+      if (missionCompletions.length) {
+        const lines = missionCompletions.map(row => `Mission terminée : ${row.definition.displayName} (+${row.definition.rewardPrimogems} Primogemmes).`);
+        const parts = splitGameResult(lines.join(' '));
+        for (let index = 0; index < parts.length; index += 1) {
+          await tx.globalChatMessage.create({ data: {
+            authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT',
+            content: parts[index]!, replyToMessageId: message.id,
+            createdAt: new Date(message.createdAt.getTime() + 2 + index), generation,
+          } });
+        }
+        refreshScopes.push('resources');
+      }
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted, refreshScopes, dailyChallengeCompleted } } });
       const projected = resolvedMentions.length
@@ -258,6 +274,21 @@ export class GlobalChatService {
   }
 
   /** Backend-only public result. The command message ID is the durable delivery key. */
+  async commandMissionCompletions(commandMessageId: string): Promise<string[]> {
+    const command = await this.database.globalChatMessage.findUnique({
+      where: { id: commandMessageId }, select: { authorPlayerId: true, messageType: true, sourceChannel: true },
+    });
+    if (command?.messageType !== 'COMMAND' || command.sourceChannel !== 'INTERNAL_CHAT' || !command.authorPlayerId) return [];
+    const rows = await this.database.playerPermanentMissionProgress.findMany({
+      where: { playerId: command.authorPlayerId, status: 'COMPLETED', completionTriggerOperation: {
+        sourceChannel: 'INTERNAL_CHAT',
+        OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }],
+      } },
+      include: { definition: true },
+    });
+    return rows.map(row => `Mission terminée : ${row.definition.displayName} (+${row.definition.rewardPrimogems} Primogemmes).`);
+  }
+
   async findGameResult(commandMessageId: string) {
     const row = await this.database.globalChatMessage.findUnique({
       where: { sourceChannel_externalMessageId: { sourceChannel: 'SYSTEM', externalMessageId: `command:${commandMessageId}` } },

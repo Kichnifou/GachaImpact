@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { NotificationDto, NotificationsDto } from '../api/types'
 import { resolveNotificationPresentation } from '../notifications/notification-presentation'
+import { resolveNotificationNavigation } from '../notifications/notification-navigation'
 import AppButton from './AppButton'
 import PlayerAvatar from './PlayerAvatar'
 
@@ -54,16 +55,14 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
     return () => { active = false; refreshNowRef.current = () => undefined; window.clearTimeout(timer); window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', visible) }
   }, [onRefreshNotifications, pollSessionKey, isNotificationsOpen])
   const open = (notification: NotificationDto) => {
-    const presentation = resolveNotificationPresentation(notification)
-    if (presentation.destination === null) {
+    const navigation = resolveNotificationNavigation(notification)
+    if (navigation.destination === null) {
       if (notification.state === 'UNREAD') void onReadNotification(notification.id).catch(() => undefined)
       return
     }
     setIsNotificationsOpen(false)
     onOpenNotification(notification)
-    if ((notification.domainKey === 'social' && notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' && notification.actionKey === 'OPEN_SOCIAL_FRIENDS') ||
-      (notification.domainKey === 'trades' && notification.typeKey === 'TRADE_ACCEPTED' && notification.actionKey === 'OPEN_TRADES_HISTORY') ||
-      (notification.domainKey === 'appearance' && notification.typeKey === 'CHARACTER_AVATARS_UNLOCKED' && notification.actionKey === 'OPEN_PROFILE_PERSONALIZATION')) {
+    if (navigation.archiveOnOpen) {
       void onArchiveNotification(notification.id).catch(() => undefined)
       return
     }
@@ -84,7 +83,7 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
         <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); refreshNowRef.current() }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
         {isNotificationsOpen && <section className="floating-panel notifications-panel" aria-label="Notifications">
           <div className="floating-panel-heading"><div><span className="eyebrow">Activité</span><h2>Notifications</h2></div>{notifications.unreadCount > 0 && <button type="button" className="text-action" onClick={() => void onReadAllNotifications()}>Tout marquer comme lu</button>}</div>
-          <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => { const presentation = resolveNotificationPresentation(notification); const actionable = presentation.destination !== null; const archiving = archivingNotificationId === notification.id; return <div className="notification-row" key={notification.id}><button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}${actionable ? ' actionable' : ''}`} data-actionable={actionable ? 'true' : 'false'} onClick={() => void open(notification)}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{presentation.title}</strong><p>{presentation.message}</p>{presentation.rewards && <span className="notification-rewards">{presentation.rewards.map((reward) => `+${reward.amount} ${reward.label}`).join(' · ')}</span>}<small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button><AppButton variant="icon" className="notification-archive-button" aria-label="Supprimer la notification" aria-busy={archiving} disabled={archiving} onClick={() => void archive(notification.id)}>×</AppButton></div> })}</div>
+          <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => { const presentation = resolveNotificationPresentation(notification); const actionable = presentation.destination !== null; const interactive = actionable || notification.state === 'UNREAD'; const archiving = archivingNotificationId === notification.id; return <div className="notification-row" key={notification.id}><button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}${interactive ? ' actionable' : ''}`} data-actionable={actionable ? 'true' : 'false'} data-interactive={interactive ? 'true' : 'false'} onClick={() => void open(notification)}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{presentation.title}</strong><p>{presentation.message}</p>{presentation.rewards && <span className="notification-rewards">{presentation.rewards.map((reward) => `+${reward.amount} ${reward.label}`).join(' · ')}</span>}<small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button><AppButton variant="icon" className="notification-archive-button" aria-label="Supprimer la notification" aria-busy={archiving} disabled={archiving} onClick={() => void archive(notification.id)}>×</AppButton></div> })}</div>
           {notifications.notifications.some(item => item.state === 'READ') && <div className="floating-panel-footer"><button type="button" onClick={() => void onArchiveReadNotifications()}>Archiver les notifications lues</button></div>}
         </section>}
       </div>

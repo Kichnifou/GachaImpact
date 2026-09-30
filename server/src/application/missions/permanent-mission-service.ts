@@ -218,6 +218,15 @@ export class PermanentMissionService {
       completedAt: input.now, rewardedAt: input.now, completionTriggerOperationId: input.triggerOperationId ?? null,
       rewardOperationId: rewardOperation.id,
     } });
+    if (completionContext === 'CURRENT_ACTION' && (input.sourceChannel === SourceChannel.UI || input.sourceChannel === SourceChannel.SYSTEM)) {
+      await transaction.notification.create({ data: {
+        playerId: input.playerId, domainKey: 'missions', typeKey: 'PERMANENT_MISSION_COMPLETED',
+        actionKey: 'OPEN_MISSIONS', actionTargetId: definition.externalKey,
+        deduplicationKey: `permanent-mission-completed:${input.playerId}:${definition.externalKey}`,
+        payload: { missionExternalKey: definition.externalKey, rank: definition.rank, displayName: definition.displayName, rewardPrimogems: definition.rewardPrimogems.toString() },
+        createdAt: input.now,
+      } });
+    }
     return { externalKey: definition.externalKey, rank: definition.rank, metric: definition.metric, displayName: definition.displayName, rewardPrimogems: definition.rewardPrimogems, rewardOperationId: rewardOperation.id };
   }
 }

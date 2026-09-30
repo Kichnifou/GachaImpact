@@ -215,7 +215,11 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
     expect(revived[0]?.payload).toMatchObject({ count: 1 });
     await database.notification.update({ where: { id: aggregate[0]!.id }, data: { state: 'ARCHIVED', archivedAt: now } });
     await new EventMessageNotificationReconciler(database).reconcileNotificationsForPlayer(recipient.playerId, now);
-    expect(await database.notification.findUnique({ where: { id: aggregate[0]!.id } })).toMatchObject({ state: 'UNREAD', resolvedAt: null, archivedAt: null });
+    expect(await database.notification.findUnique({ where: { id: aggregate[0]!.id } })).toMatchObject({ state: 'ARCHIVED', resolvedAt: null, archivedAt: now });
+    const laterSender = await fixture('Later sender');
+    await join(laterSender);
+    await send(laterSender, recipient);
+    expect(await database.notification.findUnique({ where: { id: aggregate[0]!.id } })).toMatchObject({ state: 'UNREAD', resolvedAt: null, archivedAt: null, payload: { count: 2 } });
     now = new Date(`${year}-09-16T12:00:00.000Z`);
     await new EventMessageNotificationReconciler(database).reconcileNotificationsForPlayer(recipient.playerId, now);
     const afterRollover = await database.notification.findUnique({ where: { id: aggregate[0]!.id } });

@@ -194,14 +194,22 @@ describe('GameHeader moderation capability', () => {
     const items = container.querySelectorAll<HTMLButtonElement>('.notification-item')
     expect(items[0]?.classList.contains('actionable')).toBe(true)
     expect(items[0]?.dataset.actionable).toBe('true')
-    expect(items[1]?.classList.contains('actionable')).toBe(false)
+    expect(items[1]?.classList.contains('actionable')).toBe(true)
     expect(items[1]?.dataset.actionable).toBe('false')
+    expect(items[1]?.dataset.interactive).toBe('true')
     expect(appCss).toMatch(/\.notification-item\.actionable \{ cursor: pointer; \}/)
     expect(appCss).toMatch(/\.notification-item\.actionable:hover,[\s\S]*?border-color: rgba\(92, 217, 255, \.72\)/)
     await act(async () => { items[1]!.click(); await Promise.resolve() })
     expect(onReadNotification).toHaveBeenCalledWith(informational.id)
     expect(onOpenNotification).not.toHaveBeenCalled()
     expect(container.querySelector('.notifications-panel')).not.toBeNull()
+
+    const read = { ...informational, state: 'READ' as const, readAt: '2026-09-12T12:01:00Z' }
+    act(() => roots[0]!.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={{ unreadCount: 0, notifications: [read, { ...navigable, state: 'READ', readAt: read.readAt }] }} />))
+    const readItems = container.querySelectorAll<HTMLButtonElement>('.notification-item')
+    expect(readItems[0]?.dataset.interactive).toBe('false')
+    expect(readItems[1]?.dataset.interactive).toBe('true')
+    expect(container.querySelector<HTMLButtonElement>('.notification-archive-button')).not.toBeNull()
   })
 
   it('presents simultaneous Expedition, Code and Boss notifications distinctly and keeps unknown events honest', async () => {
@@ -234,5 +242,16 @@ describe('GameHeader moderation capability', () => {
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
     expect(container.textContent).toContain('Récompense déjà créditée.')
     expect(container.querySelector('.notification-rewards')).toBeNull()
+  })
+
+  it('reads a Mission on open without auto archiving it', async () => {
+    const mission = { id: 'mission', domainKey: 'missions', typeKey: 'PERMANENT_MISSION_COMPLETED', payload: { missionExternalKey: 'messages_b', rank: 'B', displayName: 'Bavard du jour', rewardPrimogems: '160' }, state: 'UNREAD' as const, actionKey: 'OPEN_MISSIONS', actionTargetId: 'messages_b', createdAt: '2026-09-30T12:00:00Z', readAt: null }
+    const onOpenNotification = vi.fn(), onReadNotification = vi.fn(async () => ({ unreadCount: 0, notifications: [{ ...mission, state: 'READ' as const }] })), onArchiveNotification = vi.fn()
+    const container = mount({ notifications: { unreadCount: 1, notifications: [mission] }, onOpenNotification, onReadNotification, onArchiveNotification })
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+    await act(async () => { container.querySelector<HTMLButtonElement>('.notification-item')!.click(); await Promise.resolve() })
+    expect(onOpenNotification).toHaveBeenCalledWith(mission)
+    expect(onReadNotification).toHaveBeenCalledWith(mission.id)
+    expect(onArchiveNotification).not.toHaveBeenCalled()
   })
 })

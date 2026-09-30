@@ -31,19 +31,23 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(gameShellSource).not.toContain('key={`${player.id}:${boxOpenIntent?.token ?? 0}`}')
     expect(gameShellSource).toContain('onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)}')
     expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() })')
-    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: notification.actionTargetId, token: crypto.randomUUID() })')
+    expect(gameShellSource).toContain('setBoxOpenIntent({ characterId: intent.targetId, token: crypto.randomUUID() })')
     expect(gameShellSource).toContain("else { setBoxOpenIntent(null); navigate('characters-box') }")
   })
 
   it('routes a received friend request notification to the Requests tab', () => {
-    expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_REQUESTS'")
+    expect(gameShellSource).toContain("case 'social-requests':")
     expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('requests'); navigate('social')")
     expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social')")
   })
 
   it('routes an accepted friendship notification to Amis', () => {
-    expect(gameShellSource).toContain("notification.actionKey === 'OPEN_SOCIAL_FRIENDS'")
+    expect(gameShellSource).toContain("case 'social-friends':")
     expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('friends'); navigate('social')")
+  })
+
+  it('routes a Mission intent to the existing Activities Missions screen', () => {
+    expect(gameShellSource).toContain("case 'missions': navigate('activities-missions')")
   })
 
   it('routes Profile messages through the same persistent Community panel intent as Chat', () => {

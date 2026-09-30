@@ -22,7 +22,7 @@ export async function reconcileEventMessageAggregate(database: Database, recipie
   if (!current) {
     await database.notification.create({ data: { playerId: recipientPlayerId, domainKey: 'event', typeKey: TYPE_KEY, deduplicationKey, payload, actionKey: 'OPEN_EVENT_MESSAGES', actionTargetId: editionId, state: NotificationState.UNREAD, createdAt: now } });
   } else {
-    const reactivate = newMessage || current.state === NotificationState.RESOLVED || current.state === NotificationState.ARCHIVED;
+    const reactivate = newMessage;
     await database.notification.update({ where: { id: current.id }, data: { payload, state: reactivate ? NotificationState.UNREAD : current.state, ...(reactivate ? { readAt: null, archivedAt: null, resolvedAt: null, createdAt: now } : {}) } });
   }
 }

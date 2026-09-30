@@ -2,6 +2,16 @@
 
 Statut : évolutif.
 
+## Notifications transversales — décisions validées R954–R958 (2026-09-30)
+
+- `VALIDÉ R954` — Une Mission permanente terminée qui requiert une notification standalone crée une notification distincte par Mission, sans agrégat. La récompense est créditée automatiquement ; la notification n'est pas un claim.
+- `VALIDÉ R955 ; PRÉCISE R312` — Sans modale Mission dédiée, les nouvelles complétions `UI` et `SYSTEM` pour une action courante créent une notification informationnelle. `INTERNAL_CHAT` restitue la complétion dans sa réponse immédiate ; `TWITCH` suit le même principe sans activation du transport générique R942. `ADMIN`, `MIGRATION` et le catch-up historique R301 ne notifient pas ; aucun backfill. Un futur feedback modal explicite devra éviter le doublon avec la cloche.
+- `VALIDÉ R956 ; PRÉCISE R581` — La sélection d'un spectateur Concours pendant les 30 secondes de soutien n'écrit aucune `Notification` persistante. « Notification visuelle » dans R581 signifie mise en évidence/feedback dans la surface Concours ; les retours immédiats des canaux propriétaires restent distincts.
+- `VALIDÉ R957` — Dans Notifications, une ligne avec destination a le curseur `pointer` en `UNREAD` ou `READ` ; une informationnelle sans destination l'a seulement en `UNREAD`, puisque son clic la marque lue. Sans destination et déjà `READ`, curseur normal et aucun effet de clic. Le bouton `×` reste interactif.
+- `VALIDÉ R958` — L'archivage manuel d'une notification actionnable ou agrégée masque la ligne sans supprimer la cause métier. GET, polling et refresh seuls ne la ressuscitent pas ; un nouvel événement pertinent peut la réactiver selon son contrat. `READ`, `RESOLVED` et `ARCHIVED` restent distincts. `EVENT_MESSAGES_PENDING` respecte cette règle.
+
+Le [contrat Notifications V1](notifications-v1.md) porte le catalogue physique, le cycle et les destinations ; les producteurs conservent leurs règles métier spécialisées.
+
 ## Giveaway / Wish — décisions validées R946–R953 (2026-09-30)
 
 - `VALIDÉ R946` — Implémenter complètement le domaine natif spécialisé : core et persistance, `!wish`, `!giveaway stats/open/close`, messages humains Twitch, annonces, économie, notifications, panneau Admin et lifecycle du bridge. Le code candidat sur `review` reste OFF par défaut ; Streamer.bot demeure autoritatif, sans activation publique implicite.

@@ -109,6 +109,8 @@ Modération expose les onglets `Système de jeu | Codes | Bannières | Événeme
 
 La cible du header droit est `Menu | Tutoriel* | Modération* | Déconnexion | Notifications`, où les astérisques indiquent un affichage conditionnel. En 0.80, Menu est toujours visible, Modération dépend des permissions serveur et Tutoriel est absent car aucun moteur réel n’existe.
 
+Étape 21 : `missions / PERMANENT_MISSION_COMPLETED / OPEN_MISSIONS` ouvre `Activités > Missions`, marque la ligne lue et la laisse visible jusqu'au cycle d'archivage général ; aucune modale ni nouvelle route. Les destinations existantes sont validées par le registre de présentation puis transmises par un intent typé au shell. Dans le panneau, une ligne avec destination ou une informationnelle `UNREAD` sans destination a le curseur `pointer` ; une informationnelle `READ` sans destination a le curseur normal. Le bouton `×` garde son contrôle interactif. Voir [Notifications V1](notifications-v1.md).
+
 Le futur Tutoriel sera un overlay/spotlight capable de changer automatiquement de route et de distinguer une étape explicative d’une interaction réellement attendue. Ses contrôles exacts seront `[Quitter] [Interrompre] [Terminer] [Suivant]` : Quitter remet au début, Interrompre garde le `stepId`, Terminer marque `COMPLETED` et masque l’entrée du header, Suivant avance. Un replay volontaire depuis Menu repart du début. La préférence future conserve un statut `NOT_STARTED | IN_PROGRESS | COMPLETED` et un `stepId` stable ; aucune séquence factice n’est créée en 0.80.
 
 ## Responsive et validation

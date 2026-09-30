@@ -117,6 +117,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(completed).toMatchObject({ status: 'COMPLETED', progress: 50n, completionTriggerOperationId: chatOperation.id });
     const reward = await db.businessOperation.findUniqueOrThrow({ where: { id: completed.rewardOperationId! } });
     expect(reward).toMatchObject({ sourceChannel: SourceChannel.INTERNAL_CHAT });
+    expect(await db.notification.count({ where: { playerId: id, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
+    const missionReply = await db.globalChatMessage.findFirstOrThrow({ where: { replyToMessageId: accepted.message.id, messageType: 'GAME_RESULT', content: { contains: 'Mission terminée' } } });
+    expect(missionReply.content).toContain('Bavard du jour (+160 Primogemmes)');
     expect((reward.resultSummary as { completionContext?: string }).completionContext).toBe('CURRENT_ACTION');
     expect((await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: id, definition: { externalKey: 'messages_a' } } }))).toMatchObject({ status: 'ACTIVE', progress: 50n });
 
@@ -128,6 +131,30 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await progress(id)).countedMessages).toBe(50n);
     expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'permanent-mission.reward' } })).toBe(1);
     expect(accepted.xpGranted).toBe(1);
+  });
+
+  it('returns multiple Missions from one Chat message without line breaks or duplicate notifications', async () => {
+    const id = await player(0n);
+    await service.send(as(id), '!help', randomUUID());
+    await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 249n, countedMessages: 249n } });
+    advance(2_000);
+    const accepted = await service.send(as(id), 'deux cent cinquantième message', randomUUID());
+    const replies = await db.globalChatMessage.findMany({ where: { replyToMessageId: accepted.message.id, messageType: 'GAME_RESULT' }, orderBy: { createdAt: 'asc' } });
+    const missionReply = replies.find(row => row.content.includes('Mission terminée'));
+    expect(missionReply?.content).toContain('Bavard du jour (+160 Primogemmes)');
+    expect(missionReply?.content).toContain('Voix infatigable (+1600 Primogemmes)');
+    expect(missionReply?.content).not.toMatch(/[\r\n]/u);
+    expect(await db.notification.count({ where: { playerId: id, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
+  });
+
+  it('finds Mission completions from a prefixed command operation for immediate Chat feedback', async () => {
+    const id = await player(0n);
+    const command = await service.send(as(id), '!help', randomUUID());
+    const operation = await db.businessOperation.create({ data: { playerId: id, operationType: 'test.command-mission', sourceChannel: SourceChannel.INTERNAL_CHAT, idempotencyKey: `test.command:${id}:${command.message.id}` } });
+    await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 50n, countedMessages: 50n } });
+    await db.$transaction(tx => commandMissions.reconcileMetrics(tx, { playerId: id, sourceChannel: SourceChannel.INTERNAL_CHAT, now, triggerOperationId: operation.id, metrics: ['COUNTED_MESSAGES'] }));
+    expect(await service.commandMissionCompletions(command.message.id)).toEqual(['Mission terminée : Bavard du jour (+160 Primogemmes).']);
+    expect(await db.notification.count({ where: { playerId: id, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
   });
 
   it('replays exactly once and rejects a changed payload or another Player on the same key', async () => {
@@ -333,6 +360,8 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const rewards = await db.businessOperation.findMany({ where: { playerId: id, operationType: 'permanent-mission.reward' } });
     expect(rewards).toHaveLength(1);
     expect(rewards[0]).toMatchObject({ sourceChannel: SourceChannel.SYSTEM });
+    expect(await db.notification.count({ where: { playerId: id, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
+    expect(first.result?.content).not.toContain('Mission terminée :');
     const completed = await db.playerPermanentMissionProgress.findFirstOrThrow({ where: { playerId: id, definition: { externalKey: 'messages_b' } } });
     expect(completed.completionTriggerOperationId).toBe(catchUps[0]!.id);
     const chatOperation = await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'chat.send', idempotencyKey: key } });
