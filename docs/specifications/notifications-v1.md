@@ -1,6 +1,6 @@
 # Notifications V1 — contrat transverse
 
-Statut : décisions propriétaire R954–R958 ; candidat technique de l'étape 21 sur `review`, en attente de review indépendante et de validation publique. Ce document est la matrice du domaine Notifications. Les règles métier des producteurs restent dans leurs domaines.
+Statut : décisions propriétaire R954–R958 ; candidat fonctionnel `c11c6f5eeb9a9a9fa96fbc83f504ffcd9a7e3811` approuvé par review indépendante ChatGPT, promu techniquement sur `main` avec le checkpoint documentaire dédié. Aucune migration 057. Le déploiement technique doit être vérifié séparément ; la validation publique contrôlée reste à faire avant l'étape 22. Ce document est la matrice du domaine Notifications. Les règles métier des producteurs restent dans leurs domaines.
 
 ## Catégories et cycle
 
