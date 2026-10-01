@@ -1,6 +1,6 @@
 # Administration et modération V1 — étape 22
 
-Statut : candidat technique sur `review`, à relire indépendamment. Aucune validation publique ni promotion `main` n'est impliquée. Les décisions propriétaire sont [R959–R969](decisions-log.md) ; ce document décrit leur contrat et l'état physique du candidat.
+Statut au checkpoint de review : étape 22 implémentée par `033f98ce7552b7ff47f77d68010a17ed9298cd7e`, correctif de sûreté `bf3722e297fc18067cff2265e83f011ed1bbc734` approuvé par review indépendante ChatGPT, prête à la promotion technique groupée autorisée. La validation publique par le propriétaire reste à faire. Les décisions propriétaire sont [R959–R969](decisions-log.md) ; ce document décrit leur contrat et l'état physique du candidat.
 
 ## Accès et navigation
 

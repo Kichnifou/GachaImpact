@@ -1,6 +1,6 @@
 # Arcade V1 — étape 23
 
-Source canonique du domaine, décisions propriétaire **R970–R990** du 01/10/2026. Candidat technique sur `review` ; statut de promotion et prochaine action dans le [Master](../master/PROJECT_MASTER_PLAN.md). Les anciennes pistes Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
+Source canonique du domaine, décisions propriétaire **R970–R990** du 01/10/2026. Candidat `d2a32fd6ffcc61de49c9789f3bd4a79a6f8309e5` et correctif Event `95beab5d071bef47ccd96546768061403319bd7c` approuvés par review indépendante ChatGPT ; prêts à la promotion technique groupée. La validation publique du gameplay, du ressenti des difficultés et du responsive par le propriétaire reste à faire. Statut de déploiement dans le [Master](../master/PROJECT_MASTER_PLAN.md). Les anciennes pistes Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
 
 ## Surface et navigation
 
@@ -109,7 +109,7 @@ Les objets sont stricts (champs inconnus rejetés). Les mutations renvoient sess
 
 Migration additive **`20261001010000_057_add_arcade`** : `arcade_sessions`, `arcade_receipts`, `arcade_daily_grants`, `arcade_stats`. Session = autorité du résultat ; pas de table miroir. Index partiel d'une ACTIVE/Player/jeu ; PK grant Player/jeu/date ; unicité finale/receipt/opération ; PK stats Player/jeu/difficulté, CHECK et FK ; RLS activée, tous privilèges PUBLIC/anon/authenticated révoqués. Accès uniquement via backend autorisé.
 
-Les 57 migrations sont déployées et contrôlées par **Prisma migrate deploy/status dans un schéma privé isolé**. La base publique reste à 056 : 057 est versionnée et volontairement en attente d'une future promotion/déploiement autorisés. Aucun fixture/gameplay public, registre Prisma modifié manuellement ou déploiement dans ce lot.
+Les 57 migrations ont été déployées et contrôlées par **Prisma migrate deploy/status dans un schéma privé isolé**. Au checkpoint de review préalable à la promotion, la base publique est à 056 ; 057 est versionnée, approuvée et prête pour le `preDeploy` Railway déclenché par la promotion `main`. Seuls les logs Railway puis une lecture PostgreSQL peuvent prouver son application publique. Aucun fixture/gameplay public ni registre Prisma modifié manuellement pendant le développement du candidat.
 
 Les preuves d'idempotence, grants et résultats restent durables. [Rétention V1](data-retention-v1.md) : aucune purge d'ancienneté décidée pour Arcade ; aucun scheduler de purge ajouté. Une future rétention ne devra jamais supprimer les gardes de double crédit.
 
@@ -119,4 +119,4 @@ Garanties anti-automatisation limitées aux règles autoritaires, versions, quot
 
 Tests moteurs/IA/barème, routes strictes, frontend/reprise/Records/overflow et PostgreSQL privé : secrets, snapshots catalogue figés, quotas/pertes/égalités, score libre, minuit, concurrence, replay, rollback après récompenses, XP propriétaire, overflow/Missions, bigint, rangs et confidentialité. Les tests d'intégration utilisent des fixtures privées proches de la fin ; les fins naturelles des moteurs sont aussi testées séparément.
 
-Inspection navigateur locale dans **GameShell avec `index.css` et `App.css` réels**, sans réseau public : 2560×1440, 1920×1080, 1366×768 et 390×844 ; trois plateaux, Records Personnel/Global/Score, pages pleines/partielles/vides, Escape et restitution du focus. Le petit desktop emploie le scroll interne du plateau ; aucun débordement horizontal observé. La collision initiale avec la grille générique du shell a été corrigée dans le CSS Arcade. L'équilibrage ressenti et les tests utilisateur publics attendent review indépendante puis promotion explicitement autorisée.
+Inspection navigateur locale dans **GameShell avec `index.css` et `App.css` réels**, sans réseau public : 2560×1440, 1920×1080, 1366×768 et 390×844 ; trois plateaux, Records Personnel/Global/Score, pages pleines/partielles/vides, Escape et restitution du focus. Le petit desktop emploie le scroll interne du plateau ; aucun débordement horizontal observé. La collision initiale avec la grille générique du shell a été corrigée dans le CSS Arcade. La review indépendante est acquise ; l'équilibrage ressenti et les tests utilisateur publics restent à valider par le propriétaire après promotion technique.
