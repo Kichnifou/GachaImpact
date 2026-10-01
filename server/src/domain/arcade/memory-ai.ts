@@ -1,6 +1,6 @@
 import type { ArcadeDifficulty, ArcadeRandom, Observation } from './types.js';
 
-export const memoryPolicies = { EASY: { capacity: 6, exploitPercent: 50 }, MEDIUM: { capacity: 18, exploitPercent: 85 }, HARD: { capacity: 36, exploitPercent: 100 } } as const;
+export const memoryPolicies = { EASY: { capacity: 4, exploitPercent: 50 }, MEDIUM: { capacity: 12, exploitPercent: 85 }, HARD: { capacity: 36, exploitPercent: 100 } } as const;
 /** Deliberately has no board, catalog, seed, hidden identity or private-engine reference. */
 export type MemoryAiView = Readonly<{ available: readonly number[]; observations: readonly Observation[]; visible: readonly Observation[] }>;
 export function chooseMemoryCard(view: MemoryAiView, difficulty: ArcadeDifficulty, random: ArcadeRandom): number {

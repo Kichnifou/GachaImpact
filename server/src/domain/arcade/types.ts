@@ -7,7 +7,9 @@ export type Outcome = 'WIN' | 'DRAW' | 'LOSS';
 export type Face = { id: string; name: string; elementKey: string; assetPaths: (string | null)[] };
 export type Observation = { position: number; faceId: string };
 export type MemoryState = {
-  kind: 'MEMORY'; cards: Face[]; matched: (Side | null)[]; revealed: number[];
+  kind: 'MEMORY'; cards: (Face | null)[]; matched: (Side | null)[]; revealed: number[];
+  /** Absent on immutable V1 snapshots (36 cards, 18 pairs). */
+  layout?: { columns: number; totalPairs: number };
   observations: Observation[]; turn: Side; phase: 'PICK' | 'REVEAL';
   playerPairs: number; aiPairs: number; outcome: Outcome | null;
 };

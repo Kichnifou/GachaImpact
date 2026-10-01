@@ -4,9 +4,13 @@
 
 `activities-arcade` / `#activities/arcade` ajoute le seul sous-onglet Arcade entre Événement et Concours. La coque commune conserve les trois plateaux et ouvre Records dans une modale ; [Arcade V1](arcade-v1.md) possède ses règles. Aucun démarrage au changement d'onglet, aucune nouvelle entrée Menu principale, préférence persistée, carte Quotidiennes ou modification Accueil/sidebar/DailyTracker. Entraînement dans Combat garde son nom.
 
+R991–R994 : une ACTIVE globale sélectionne automatiquement son jeu et verrouille les trois boutons jusqu'à fin/abandon. Retour à l'écran = reprise automatique ; Pause/Reprendre supprimés, Quitter confirmé sans gain. Règles & gains ouvre une seconde modale accessible, sans déplacement du plateau. Plateau entier, statut, actions et footer sont visibles sans scroll à 1920×1080/2560×1440 ; scroll borné sur petit desktop, flux vertical mobile. Records conserve pagination et confidentialité avec sous-onglets Score plus petits.
+
+R995–R998 : Modération affiche Système, huit onglets ADMIN sur une ligne desktop, Rôles pleine largeur avant les outils ; Festivals remplit le panneau. Journal conserve son aria-label mais supprime son titre interne, affiche dix entrées/page et des libellés humains. Chat global rend Supprimer explicite dans liste/détail. Historique Bannières masque uniquement les détails de présentation définis par R998 ; les autres catégories restent inchangées.
+
 ## Modération — navigation candidate étape 22
 
-La destination globale reste unique. ADMIN voit `Système de jeu | Personnages | Codes | Bannières | Événements | Communauté | Giveaway | Journal` ; MODERATOR voit `Communauté | Giveaway` ; TESTER seul voit `Système de jeu` pour lui-même. Les combinaisons de rôles additionnent leurs droits. Seuls les onglets disponibles existent dans la tablist ARIA et dans la navigation par flèches ; les anciens faux onglets Bannières/Événements désactivés sont remplacés par de vraies surfaces ADMIN. Le browser Player partagé choisit la cible Système/possessions sans changer l'identité de l'acteur. Communauté réunit les dossiers MP et Chat global. Le [contrat Administration V1](administration-moderation-v1.md) porte les permissions et opérations ; le Master porte le statut review/public.
+La destination globale reste unique. ADMIN voit `Système | Personnages | Codes | Bannières | Événements | Communauté | Giveaway | Journal` ; MODERATOR voit `Communauté | Giveaway` ; TESTER seul voit `Système` pour lui-même. Les combinaisons de rôles additionnent leurs droits. Seuls les onglets disponibles existent dans la tablist ARIA et dans la navigation par flèches ; les anciens faux onglets Bannières/Événements désactivés sont remplacés par de vraies surfaces ADMIN. Le browser Player partagé choisit la cible Système/possessions sans changer l'identité de l'acteur. Communauté réunit les dossiers MP et Chat global. Le [contrat Administration V1](administration-moderation-v1.md) porte les permissions et opérations ; le Master porte le statut review/public.
 
 ## Entrée Giveaway dans Modération
 
@@ -111,7 +115,7 @@ Panier utilise la recherche Player partagée avec Modération, dans une surface 
 
 ## Navigation interne de Modération
 
-Modération expose les onglets `Système de jeu | Codes | Bannières | Événements | Communauté`. `Système de jeu` conserve les outils et le sélecteur de Player existants. `Codes` reste ADMIN/Super. `Communauté` devient disponible uniquement avec `communityModeration` et présente les Signalements MP gelés ; un MODERATOR sans outil de test arrive directement sur cet onglet, tandis qu'un TESTER seul ne peut pas y accéder. Bannières et Événements restent des repères désactivés. L’onglet actif est éphémère ; la barre est responsive et les flèches clavier ne parcourent que les onglets activés.
+La composition courante et les permissions sont définies dans « Modération — navigation candidate étape 22 » ci-dessus et dans le contrat Administration V1. Système conserve les outils et le sélecteur de Player existants ; Communauté réunit les Signalements MP et Chat global. L’onglet actif est éphémère ; la barre est responsive et les flèches clavier ne parcourent que les onglets disponibles.
 
 ## Header et Tutoriel futur
 

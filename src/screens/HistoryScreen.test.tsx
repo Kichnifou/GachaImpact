@@ -17,6 +17,25 @@ const props = {
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it.each([[0, 0, 2, 1], [0, 0, 0, 0]])('keeps banner snapshots but presents only positive votes: %j', async (...counts) => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const snapshot: BannerHistoryDto = { ...banners, entries: [{ ...banners.entries[0]!, featured: [{ characterId: 'chosen', name: 'Skirk', rarity: 5, slot: 4, source: 'COMMUNITY_VOTE' }],
+      generationVoteSnapshot: { sourceRotationId: 'source', capturedAt: '2026-09-01T00:00:00Z', selectedCharacterId: 'chosen', selectedCharacterName: 'Skirk', selectionSource: 'COMMUNITY_VOTE',
+        candidates: counts.map((voteCount, i) => ({ characterId: `hero-${i}`, characterName: `Candidat ${i}`, voteCount })) } }] }
+    const before = JSON.stringify(snapshot)
+    try {
+      await act(async () => { root.render(<HistoryScreen {...props} initialCategory="banners" onBannersOrEvent={async () => snapshot} />); await Promise.resolve() })
+      expect(container.textContent).toContain('Skirk · vote communautaire')
+      expect(container.textContent).not.toContain('slot communautaire')
+      const choice = [...container.querySelectorAll('p')].find(row => row.textContent?.startsWith('Choix communauté'))!
+      expect(choice.textContent).toBe('Choix communauté : Skirk')
+      expect(container.querySelectorAll('.history-votes li')).toHaveLength(counts.filter(value => value > 0).length)
+      if (counts.some(Boolean)) { expect(container.textContent).toContain('Candidat 2'); expect(container.textContent).toContain('Candidat 3') }
+      else expect(container.querySelector('.history-votes')).toBeNull()
+      expect(container.textContent).not.toContain('Candidat 0'); expect(container.textContent).not.toContain('Candidat 1')
+      expect(JSON.stringify(snapshot)).toBe(before)
+    } finally { act(() => root.unmount()) }
+  })
   it('uses the shared tabs for five categories and keeps bank filters secondary', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     try {
@@ -47,13 +66,13 @@ describe('HistoryScreen', () => {
     } finally { act(() => root.unmount()); vi.clearAllMocks() }
   })
 
-  it('loads only the selected category and shows unavailable legacy banner votes', async () => {
+  it('loads only the selected category and silently accepts missing old banner snapshots', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     try {
       await act(async () => { root.render(<HistoryScreen {...props} initialCategory="banners" />); await Promise.resolve() })
       expect(props.onBannersOrEvent).toHaveBeenLastCalledWith('banners', 1)
       expect(props.onInvocations).not.toHaveBeenCalled()
-      expect(container.textContent).toContain('Snapshot détaillé des votes indisponible')
+      expect(container.textContent).not.toContain('Snapshot détaillé des votes indisponible')
       await act(async () => { tab(container, 'Banque').click(); await Promise.resolve() })
       expect(props.onBank).toHaveBeenLastCalledWith(1, undefined)
       await act(async () => { [...container.querySelectorAll<HTMLButtonElement>('[aria-label="Filtrer les opérations bancaires"] button')].find(button => button.textContent === 'Dépôts')!.click(); await Promise.resolve() })

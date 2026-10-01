@@ -51,4 +51,13 @@ describe('Arcade strict authenticated protocol', () => {
     expect(result.statusCode).toBe(404); expect(result.body).not.toMatch(/privateState|cards|seed|randomState/);
     expect((await app.inject({ url: '/api/v1/arcade/records?kind=GLOBAL&game=TOTAL', headers })).statusCode).toBe(400);
   });
+  it('accepts only an authenticated, versioned QUIT without client results or position', async () => {
+    const { app, service, identity } = await setup(), id = crypto.randomUUID();
+    const url = `/api/v1/arcade/sessions/${id}/actions`, payload = { kind: 'QUIT', expectedVersion: 2, idempotencyKey: crypto.randomUUID() };
+    expect((await app.inject({ method: 'POST', url, payload })).statusCode).toBe(401);
+    for (const extra of [{ position: 1 }, { xp: 10 }, { result: 'LOSS' }]) expect((await app.inject({ method: 'POST', url, headers, payload: { ...payload, ...extra } })).statusCode).toBe(400);
+    expect(service.act).not.toHaveBeenCalled();
+    expect((await app.inject({ method: 'POST', url, headers, payload })).statusCode).toBe(200);
+    expect(service.act).toHaveBeenCalledWith(identity, id, payload);
+  });
 });

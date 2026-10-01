@@ -279,9 +279,13 @@ describe('administration in a private schema', () => {
     await expect(audit.list(tester.identity, { page: 1 })).rejects.toMatchObject({ code: 'MODERATION_FORBIDDEN' });
     const first = await audit.list(admin.identity, { page: 1, domain: 'audit-review-fixture' });
     const second = await audit.list(admin.identity, { page: 2, domain: 'audit-review-fixture' });
-    expect(first.entries).toHaveLength(20);
-    expect(second.entries).toHaveLength(1);
-    expect([...first.entries, ...second.entries].map(row => row.id)).toEqual(fixtures.map(row => row.id).sort().reverse());
+    const third = await audit.list(admin.identity, { page: 3, domain: 'audit-review-fixture' });
+    expect(first).toMatchObject({ pageSize: 10, totalPages: 3, total: 21 });
+    expect(first.entries).toHaveLength(10);
+    expect(second.entries).toHaveLength(10);
+    expect(third.entries).toHaveLength(1);
+    expect([...first.entries, ...second.entries, ...third.entries].map(row => row.id)).toEqual(fixtures.map(row => row.id).sort().reverse());
+    expect((await audit.list(admin.identity, { page: 99, domain: 'audit-review-fixture' })).page).toBe(3);
     const filtered = await audit.list(admin.identity, { page: 1, domain: 'audit-review-fixture', action: 'inspect', actorId: admin.id, targetId: target.id });
     expect(filtered.total).toBe(11);
     expect(filtered.entries.every(row => row.actorPlayerId === admin.id && row.targetPlayerId === target.id && row.action === 'inspect')).toBe(true);

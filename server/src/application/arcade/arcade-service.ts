@@ -8,7 +8,7 @@ import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-play
 import { businessDateToDatabaseDate, getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import { type ElementKey, elementKeys } from '../../domain/economy/resources.js';
 import { ArcadeRandom, arcadeGames, type ArcadeGame, type ArcadeDifficulty, type ArcadeState } from '../../domain/arcade/types.js';
-import { createMemory, revealMemory, concealMemory, memoryAiView } from '../../domain/arcade/memory.js';
+import { createMemory, revealMemory, concealMemory, memoryAiView, memoryLayout } from '../../domain/arcade/memory.js';
 import { chooseMemoryCard } from '../../domain/arcade/memory-ai.js';
 import { createLineGame, legalLineMoves, playLineMove } from '../../domain/arcade/line-games.js';
 import { chooseLineMove } from '../../domain/arcade/line-ai.js';
@@ -18,7 +18,7 @@ import { personalSummary, projectSession } from './arcade-projection.js';
 import { finalizeArcade } from './arcade-finalization.js';
 
 export type ArcadeStart = { game: ArcadeGame; difficulty: ArcadeDifficulty; expectedVersion: 0; previousSessionId: string | null; idempotencyKey: string };
-export type ArcadeAction = { expectedVersion: number; idempotencyKey: string } & ({ kind: 'MOVE'; position: number } | { kind: 'ADVANCE' });
+export type ArcadeAction = { expectedVersion: number; idempotencyKey: string } & ({ kind: 'MOVE'; position: number } | { kind: 'ADVANCE' | 'QUIT' });
 export type ArcadeMutation = Awaited<ReturnType<typeof personalSummary>> & { session: ReturnType<typeof projectSession>; operationId: string; alreadyProcessed: boolean; award: Awaited<ReturnType<typeof finalizeArcade>>['award'] };
 const json = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 const conflict = (message: string, code = 'ARCADE_CONFLICT') => new AppError(message, 409, code);
@@ -82,7 +82,7 @@ export class ArcadeService {
     const seed = this.seed();
     return this.mutate(identity, input.idempotencyKey, { action: 'START', game: input.game, difficulty: input.difficulty, expectedVersion: input.expectedVersion, previousSessionId: input.previousSessionId }, async (tx, playerId, _element, _operation, now) => {
       const latest = await tx.arcadeSession.findFirst({ where: { playerId, game: input.game }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
-      if (latest?.status === 'ACTIVE') throw conflict('Une partie est déjà en cours. Reprenez-la.', 'ARCADE_ACTIVE_EXISTS');
+      if (await tx.arcadeSession.findFirst({ where: { playerId, status: 'ACTIVE' }, select: { id: true } })) throw conflict('Une partie Arcade est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
       if ((latest?.id ?? null) !== input.previousSessionId || input.expectedVersion !== 0) throw conflict('Actualisez Arcade avant de commencer.', 'ARCADE_STALE_VERSION');
       const random = new ArcadeRandom(seed);
       const first = random.nextInt(2) ? 'AI' : 'PLAYER';
@@ -91,8 +91,9 @@ export class ArcadeService {
         const characters = await tx.character.findMany({ where: { isActive: true, OR: [{ iconPath: { not: null } }, { fullbodyPath: { not: null } }, { wishPath: { not: null } }, { splashPath: { not: null } }] },
           select: { id: true, name: true, elementKey: true, iconPath: true, fullbodyPath: true, wishPath: true, splashPath: true }, orderBy: { id: 'asc' } });
         const faces = characters.map(row => ({ id: row.id, name: row.name, elementKey: row.elementKey, assetPaths: [row.iconPath, row.fullbodyPath, row.wishPath, row.splashPath] }));
-        if (faces.length < 18) throw new AppError('Memory indisponible : dix-huit portraits sont nécessaires.', 503, 'ARCADE_PORTRAITS_UNAVAILABLE');
-        state = createMemory(faces, first, random);
+        const required = memoryLayout(input.difficulty, ARCADE_RULES_VERSION).totalPairs;
+        if (faces.length < required) throw new AppError(`Memory indisponible : ${required} portraits sont nécessaires.`, 503, 'ARCADE_PORTRAITS_UNAVAILABLE');
+        state = createMemory(faces, first, random, input.difficulty, ARCADE_RULES_VERSION);
       } else state = createLineGame(input.game, first);
       const row = await tx.arcadeSession.create({ data: { playerId, game: input.game, difficulty: input.difficulty, firstSide: first,
         privateState: json(state), randomState: BigInt(random.state), rulesVersion: ARCADE_RULES_VERSION, scoringVersion: ARCADE_SCORING_VERSION,
@@ -107,6 +108,11 @@ export class ArcadeService {
       if (!row) throw new AppError('Partie introuvable.', 404, 'ARCADE_NOT_FOUND');
       if (row.version !== input.expectedVersion) throw conflict('Un autre coup a déjà été joué. Actualisez la partie.', 'ARCADE_STALE_VERSION');
       if (row.status !== 'ACTIVE') throw conflict('Cette partie est terminée.', 'ARCADE_FINISHED');
+      // Abandonment is not a natural finish: no finalization, grant or domain side effect.
+      if (input.kind === 'QUIT') {
+        const abandoned = await tx.arcadeSession.update({ where: { id }, data: { status: 'ABANDONED', finishedAt: now, updatedAt: now, version: { increment: 1 } } });
+        return { session: projectSession(abandoned), award: null };
+      }
       if (now < row.nextActionAt) throw conflict('Le coup précédent est encore affiché.', 'ARCADE_TOO_EARLY');
       let state = row.privateState as unknown as ArcadeState;
       const old = state;

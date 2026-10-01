@@ -1,16 +1,20 @@
 # Administration et modération V1 — étape 22
 
-Statut au checkpoint de review : étape 22 implémentée par `033f98ce7552b7ff47f77d68010a17ed9298cd7e`, correctif de sûreté `bf3722e297fc18067cff2265e83f011ed1bbc734` approuvé par review indépendante ChatGPT, prête à la promotion technique groupée autorisée. La validation publique par le propriétaire reste à faire. Les décisions propriétaire sont [R959–R969](decisions-log.md) ; ce document décrit leur contrat et l'état physique du candidat.
+Étape 22 promue avec Arcade sur `81066badca66ac054d7dc515005eda6d10a8b913`. Le premier test public confirme le chargement des huit onglets et le retrait/rétablissement de TESTER sur Kichnifou, audits correspondants présents ; ses rôles ADMIN/MODERATOR/TESTER sont conservés. Les corrections de présentation R995–R998 restent candidates sur `review`, à reviewer puis recetter avant clôture définitive. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
 
 ## Accès et navigation
 
-Une seule destination privée `Modération` dépend des attributions `PlayerRoleAssignment` actives lues côté serveur. Les droits se cumulent : `ADMIN` voit Système de jeu, Personnages, Codes, Bannières, Événements, Communauté, Giveaway et Journal ; `MODERATOR` voit Communauté et Giveaway ; `TESTER` voit Système de jeu pour son propre Player. Le rôle MODERATOR n'accorde aucun outil gameplay. Les flèches du tablist parcourent les seuls onglets disponibles. Les contrôles frontend guident l'usage ; chaque route revérifie l'identité et la permission en base.
+Une seule destination privée `Modération` dépend des attributions `PlayerRoleAssignment` actives lues côté serveur. Les droits se cumulent : `ADMIN` voit Système, Personnages, Codes, Bannières, Événements, Communauté, Giveaway et Journal ; `MODERATOR` voit Communauté et Giveaway ; `TESTER` voit Système pour son propre Player. Le rôle MODERATOR n'accorde aucun outil gameplay. Les flèches du tablist parcourent les seuls onglets disponibles. Les huit onglets tiennent sur une ligne sans troncature à 1920 minimum ; les écrans étroits utilisent un scroll horizontal. Les contrôles frontend guident l'usage ; chaque route revérifie l'identité et la permission en base.
 
 Système conserve Ressources, XP, Gacha et Stella. ADMIN peut choisir un Player actif ; TESTER reste self. `RoleAdminService` est l'unique propriétaire des attributions TESTER/MODERATOR/ADMIN ; l'ancien endpoint `/players/:playerId/tester` et son chemin métier séparé sont supprimés. Les changements ADMIN/MODERATOR demandent confirmation. Un verrou advisory global et la vérification transactionnelle de l'acteur et du nombre d'ADMIN actifs empêchent de retirer le dernier, y compris lors de deux retraits concurrents. L'auto-révocation ADMIN reste possible si un autre ADMIN actif subsiste ; le rejeu exact de sa clé reste lisible, mais une nouvelle mutation est refusée après perte du rôle.
 
+Ordre R995 : Joueur ciblé, Rôles pleine largeur, puis grille des quatre outils gameplay. Testeur, Modérateur et Administrateur sont présentés horizontalement sur desktop, verticalement sur mobile ; protections et confirmations inchangées.
+
 ## Mutations et preuve
 
-Les nouvelles mutations utilisent une clé UUID d'idempotence, une `BusinessOperation` de source `ADMIN` et une `AdminAuditEntry` avant/après dans une transaction sérialisable. Un replay strict retourne l'opération existante ; une même clé portant une autre cible, action ou charge échoue en conflit. Le client garde la clé d'une intention ambiguë pour son retry. L'audit contient des diffs compacts sans secret ; le Journal ADMIN lit vingt entrées/page, triées par date puis ID décroissants, avec filtres domaine/action/acteur/cible. Le DTO est assaini côté serveur, y compris pour les anciens audits. Il n'existe ni export massif ni suppression depuis le Journal.
+Les nouvelles mutations utilisent une clé UUID d'idempotence, une `BusinessOperation` de source `ADMIN` et une `AdminAuditEntry` avant/après dans une transaction sérialisable. Un replay strict retourne l'opération existante ; une même clé portant une autre cible, action ou charge échoue en conflit. Le client garde la clé d'une intention ambiguë pour son retry. L'audit contient des diffs compacts sans secret ; le Journal ADMIN lit **dix entrées/page** sous autorité `AdminAuditQueryService`, triées par date puis ID décroissants, avec filtres domaine/action/acteur/cible. Le DTO est assaini côté serveur, y compris pour les anciens audits. Il n'existe ni export massif ni suppression depuis le Journal.
+
+R996 : filtres Domaine/Action immédiatement en haut, sans titre interne Journal Admin, mais aria-label conservé. `admin-audit-presentation` traduit domaines/actions pour les lignes et le titre du détail (ex. Rôles · Testeur attribué), avec humanisation kebab/snake-case inconnue. Les clés persistées et les données techniques avant/après restent intactes.
 
 Les confirmations sensibles figent à l'ouverture une intention complète : identifiant et nom de la cible, entité métier, action et paramètres, dont une copie des dix IDs de bannière. La confirmation envoie exactement cette intention même si l'écran est réactualisé. Le dialogue modal rend l'arrière-plan inerte, piège le focus, gère Escape et le clic sur fond pour annuler, puis rend le focus au déclencheur. Pendant une mutation en cours, il bloque la fermeture et une double soumission.
 
@@ -34,11 +38,15 @@ Le retry de génération appelle `WeeklyBannerScheduler.catchUp`, propriétaire 
 
 ## Événements
 
+Le panneau **Festivals** occupe la hauteur restante. Sa liste défile dans son propre conteneur flex, sans max-height arbitraire ; l'éditeur Configuration partage cette hauteur lorsqu'il est ouvert. Ajustement visuel uniquement, sans changement du métier ci-dessous.
+
 ADMIN lit les définitions physiques, les deux éditions les plus pertinentes, leurs périodes, statuts, participants et configuration. Les champs structurés futurs passent par le parser métier Event et vérifient l'objet Collection. La définition du mois courant et toute définition avec édition en cours ou déjà programmée refusent un changement de configuration pour protéger les snapshots, même avant la première matérialisation du mois. Désactivation et réactivation modifient la définition, sans éditer points, récompenses, participants, classements ou claims d'une édition active. Une réactivation exige une configuration valide. Les snapshots historiques restent immuables.
 
 ## Communauté
 
 Les signalements MP existants demeurent dans Communauté. Les signalements Chat global ajoutent liste de vingt, détail et contexte gelé : aucune exploration libre des messages voisins. MODERATOR et ADMIN peuvent passer le message source actif en `MODERATION` sans le détruire ; le DTO joueur masque son contenu et affiche « Message supprimé par la modération ». Le dossier gelé reste indépendant jusqu'à sa suppression explicite, qui ne supprime pas le message. Chaque action est auditée et idempotente. `!clear`, Concours et Giveaway conservent leurs autorisations spécialisées. Aucun ban, mute, timeout, avertissement ou score de sanction n'est créé.
+
+R997 : chaque ligne possède Ouvrir et Supprimer séparés ; le détail propose Supprimer le signalement, distinct de Modérer le message source. Confirmation : « Le signalement sera supprimé. Le message source ne sera pas supprimé par cette action. ». Réutilisation de `GlobalChatModerationService.deleteReport` et de la route existante ; après succès, liste rechargée et page ajustée depuis la réponse serveur.
 
 ## Hors périmètre
 

@@ -8749,9 +8749,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .app-button-danger:hover:not(:disabled) { border-color: rgba(255, 152, 162, .8); background: rgba(158, 48, 65, .98); }
 .app-button-icon { width: 36px; min-width: 36px; height: 36px; min-height: 36px; display: inline-grid; place-items: center; padding: 0; border-radius: 9px; }
 
-.moderation-tabs { min-width: 0; display: flex; flex-wrap: wrap; gap: 7px; padding: 8px; border: 1px solid rgba(105, 157, 220, .16); border-radius: 11px; background: rgba(8, 22, 42, .62); }
-.moderation-tabs .app-button { flex: 1 1 130px; min-width: 0; }
+.moderation-tabs { min-width: 0; display: flex; flex-wrap: nowrap; gap: 5px; padding: 8px; border: 1px solid rgba(105, 157, 220, .16); border-radius: 11px; background: rgba(8, 22, 42, .62); }
+.moderation-tabs .app-button { flex: 1 1 0; min-width: 0; padding-inline: 6px; font-size: 12px; white-space: nowrap; }
 .moderation-tabs .app-button.active { color: #f2fbff; border-color: rgba(83, 210, 255, .62); background: rgba(24, 81, 126, .88); box-shadow: inset 0 -2px #5fd7ff; }
+@media (min-width:1101px) and (max-width:1600px) { .moderation-tabs { overflow-x:auto; }.moderation-tabs .app-button { flex:0 0 auto; padding-inline:10px; } }
 
 .gift-code-admin-form-heading > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .gift-code-list-modal { box-sizing: border-box; width: min(1120px, calc(100vw - 28px)); height: min(760px, calc(100dvh - 28px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; padding: 0; overflow: hidden; }
@@ -9244,7 +9245,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-list-row strong { display: block; font-size: 10px; }
 .admin-list-row > button { flex: 0 0 auto; }
 .admin-pager { justify-content: center; padding-top: 8px; border-top: 1px solid rgba(105, 157, 220, .18); }
-.admin-role-list { display: grid; gap: 6px; }
+.moderation-grid > .moderation-role { grid-column: 1 / -1; }
+.admin-role-list { display: grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .admin-role-list > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .admin-banner-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .admin-banner-slots fieldset { min-width: 0; display: grid; gap: 8px; border: 1px solid rgba(105, 157, 220, .25); border-radius: 9px; }
@@ -9252,6 +9254,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-audit-detail > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .admin-confirm-overlay { position: fixed; z-index: 1200; }
 .admin-domain .admin-chat-reports { grid-template-rows: none; align-content: start; gap: 10px; overflow: visible; }
+.admin-events.admin-domain { display:flex; flex-direction:column; height:100%; min-height:0; }
+.admin-events > .admin-list { flex:1 1 0; min-height:160px; display:flex; flex-direction:column; }
+.admin-events .admin-scroll-list { flex:1 1 0; max-height:none; min-height:0; }
+.admin-events > .admin-editor { flex:0 1 auto; min-height:0; overflow:auto; }
+@media(max-width:700px) { .admin-role-list { grid-template-columns:1fr; }.admin-events > .admin-list { min-height:260px; } }
 @media (max-width: 700px) { .admin-banner-slots, .admin-audit-detail > div { grid-template-columns: 1fr; }
   .admin-list-row { flex-wrap: wrap; } .admin-list-row > div:first-child { flex-basis: 100%; }
   .admin-filters > * { flex: 1 1 125px; } .admin-domain .dm-reports-panel { padding: 10px; }

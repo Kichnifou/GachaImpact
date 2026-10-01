@@ -18,7 +18,8 @@ export default function GlobalChatReportsPanel() {
   const [loadError, setLoadError] = useState('')
   const task = useAdminTask(() => setReload(value => value + 1))
   useEffect(() => { let live = true
-    void getGameApiClient().getAdminChatReports(page).then(value => { if (live) setList(value) })
+    setLoadError('')
+    void getGameApiClient().getAdminChatReports(page).then(value => { if (live) { setList(value); if (page !== value.page) setPage(value.page) } })
       .catch(error => { if (live) setLoadError(apiErrorMessage(error)) })
     return () => { live = false }
   }, [page, reload])
@@ -42,14 +43,15 @@ export default function GlobalChatReportsPanel() {
       <div className="dm-moderation-context admin-scroll-list">{context.map((entry, index) => <article key={`${entry.id}-${index}`} className={entry.id === detail.messageId ? 'target' : ''}>
         <p>{entry.content || 'Message supprimé'}</p><small>{entry.deletionState} · {entry.createdAt && new Date(entry.createdAt).toLocaleString('fr-FR')}</small></article>)}</div>
       <div className="dm-report-detail-actions"><button type="button" disabled={task.pending || detail.message.deletionState !== 'ACTIVE'} onClick={() => setConfirm({ kind: 'moderate', reportId: detail.id, reportedName: detail.reported.displayName })}>Modérer le message source</button>
-        <button type="button" className="danger" disabled={task.pending} onClick={() => setConfirm({ kind: 'delete', reportId: detail.id, reportedName: detail.reported.displayName })}>Supprimer le dossier</button></div></>
-      : <><div className="dm-reports-list admin-scroll-list">{list?.entries.map(report => <button type="button" className="dm-report-row" key={report.id} onClick={() => void open(report.id)}>
+        <button type="button" className="danger" disabled={task.pending} onClick={() => setConfirm({ kind: 'delete', reportId: detail.id, reportedName: detail.reported.displayName })}>Supprimer le signalement</button></div></>
+      : <><div className="dm-reports-list admin-scroll-list">{list?.entries.map(report => <article className="dm-report-row" key={report.id}>
         <strong>{report.reported.displayName}</strong><span>Signalé par {report.reporter.displayName}</span><span>{line(report.messageSnapshot).content}</span>
-        <time>{new Date(report.createdAt).toLocaleString('fr-FR')}</time></button>)}
+        <time>{new Date(report.createdAt).toLocaleString('fr-FR')}</time><div className="dm-report-detail-actions"><button type="button" disabled={task.pending} onClick={() => void open(report.id)}>Ouvrir</button>
+          <button type="button" className="danger" disabled={task.pending} onClick={() => setConfirm({ kind: 'delete', reportId: report.id, reportedName: report.reported.displayName })}>Supprimer</button></div></article>)}
         {!list?.entries.length && <p>Aucun signalement Chat.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} pending={task.pending} />}</>}
-    {confirm && <ConfirmAction title={confirm.kind === 'moderate' ? `Modérer le message signalé de ${confirm.reportedName} ?` : `Supprimer le dossier concernant ${confirm.reportedName} ?`}
+    {confirm && <ConfirmAction title={confirm.kind === 'moderate' ? `Modérer le message signalé de ${confirm.reportedName} ?` : `Supprimer le signalement concernant ${confirm.reportedName} ?`}
       pending={task.pending} onCancel={() => setConfirm(null)} onConfirm={() => void apply(confirm)}>
-      {confirm.kind === 'moderate' ? 'Le message conservera sa place mais son contenu sera masqué pour les joueurs. Le snapshot du dossier restera intact.' : 'Seul le dossier gelé sera supprimé ; le message source restera en place.'}
+      {confirm.kind === 'moderate' ? 'Le message conservera sa place mais son contenu sera masqué pour les joueurs. Le snapshot du dossier restera intact.' : 'Le signalement sera supprimé. Le message source ne sera pas supprimé par cette action.'}
     </ConfirmAction>}
   </section>
 }

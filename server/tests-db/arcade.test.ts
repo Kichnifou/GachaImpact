@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
@@ -11,6 +12,8 @@ import { resourceKeys } from '../src/domain/economy/resources.js';
 import { ArcadeService, type ArcadeMutation } from '../src/application/arcade/arcade-service.js';
 import { ArcadeRecords } from '../src/application/arcade/arcade-records.js';
 import { createLineGame } from '../src/domain/arcade/line-games.js';
+import { createMemory } from '../src/domain/arcade/memory.js';
+import { ArcadeRandom } from '../src/domain/arcade/types.js';
 import type { ArcadeGame, ArcadeDifficulty, ArcadeState } from '../src/domain/arcade/types.js';
 import { Prisma } from '../generated/prisma/client.js';
 
@@ -50,11 +53,12 @@ async function terminalFixture(p: Player, game: ArcadeGame = 'TIC_TAC_TOE', diff
     state = row.privateState as unknown as ArcadeState;
     if (state.kind !== 'MEMORY') throw Error('Expected Memory');
     const cards = state.cards;
-    const positions = cards.flatMap((face, index) => face.id === cards[0]!.id ? [index] : []);
-    const playerPairs = outcome === 'WIN' ? 17 : outcome === 'DRAW' ? 8 : 0;
-    const otherIds = [...new Set(cards.filter(face => face.id !== cards[0]!.id).map(face => face.id))];
-    state.matched = cards.map(face => face.id === cards[0]!.id ? null : otherIds.indexOf(face.id) < playerPairs ? 'PLAYER' : 'AI');
-    state.playerPairs = playerPairs; state.aiPairs = 17 - playerPairs; state.revealed = [positions[0]!]; state.turn = 'PLAYER'; state.phase = 'PICK'; position = positions[1]!;
+    const positions = cards.flatMap((face, index) => face?.id === cards[0]!.id ? [index] : []);
+    const total = state.layout?.totalPairs ?? 18;
+    const playerPairs = outcome === 'WIN' ? total - 1 : outcome === 'DRAW' ? total / 2 - 1 : 0;
+    const otherIds = [...new Set(cards.filter(face => face?.id !== cards[0]!.id).map(face => face?.id))];
+    state.matched = cards.map(face => face?.id === cards[0]!.id ? null : otherIds.indexOf(face?.id) < playerPairs ? 'PLAYER' : 'AI');
+    state.playerPairs = playerPairs; state.aiPairs = total - 1 - playerPairs; state.revealed = [positions[0]!]; state.turn = 'PLAYER'; state.phase = 'PICK'; position = positions[1]!;
   } else {
     state = createLineGame(game, 'PLAYER');
     if (game === 'CONNECT_FOUR') { state.cells.splice(35, 3, 'PLAYER', 'PLAYER', 'PLAYER'); state.cells[41] = 'AI'; state.cells[40] = 'AI'; position = 3; }
@@ -80,19 +84,99 @@ async function stateSnapshot(playerId: string) {
   };
 }
 describe('Arcade — fully migrated private PostgreSQL', () => {
-  it('deploys all 57 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
+  it('deploys all 58 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
     expect(isolated.migrationStatus).toContain('up to date');
     const migrations = await isolated.admin.query('SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name');
-    expect(migrations.rows).toHaveLength(57);
-    expect(migrations.rows.at(-1).migration_name).toBe('20261001010000_057_add_arcade');
+    expect(migrations.rows).toHaveLength(58);
+    expect(migrations.rows.at(-1).migration_name).toBe('20261001120000_058_harden_arcade_session_lifecycle');
     const guards = await isolated.admin.query("SELECT relname, relrowsecurity, has_table_privilege('anon', oid, 'SELECT') AS anon_read, has_table_privilege('authenticated', oid, 'SELECT') AS user_read FROM pg_class WHERE relnamespace = $1::regnamespace AND relname = ANY($2::text[])", [isolated.schema, ['arcade_sessions','arcade_receipts','arcade_daily_grants','arcade_stats']]);
     expect(guards.rows).toHaveLength(4); guards.rows.forEach(row => expect(row).toMatchObject({ relrowsecurity: true, anon_read: false, user_read: false }));
     const p = await player(), begun = await start(p);
     const row = await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } });
     const { id: _id, ...copy } = row;
     await expect(db.arcadeSession.create({ data: { ...copy, privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
+    await expect(db.arcadeSession.create({ data: { ...copy, game: 'MEMORY', privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
     await expect(db.arcadeSession.update({ where: { id: row.id }, data: { status: 'FINISHED' } })).rejects.toThrow();
+    await expect(db.arcadeSession.update({ where: { id: row.id }, data: { status: 'ABANDONED' } })).rejects.toThrow();
+    await expect(db.arcadeSession.update({ where: { id: row.id }, data: { rulesVersion: 3 } })).rejects.toThrow();
+    await expect(db.arcadeSession.update({ where: { id: row.id }, data: { rulesVersion: 1, scoringVersion: 2 } })).rejects.toThrow();
   }, 30000);
+  it('abandons exactly once with no rewards, quota or aggregate effects and releases every game', async () => {
+    const p = await player(3029n), outsider = await player(), begun = await start(p, 'MEMORY', 'MEDIUM');
+    const before = await stateSnapshot(p.id), spy = vi.spyOn(xp, 'grant');
+    for (const game of ['CONNECT_FOUR', 'TIC_TAC_TOE'] as const) await expect(start(p, game)).rejects.toMatchObject({ code: 'ARCADE_ACTIVE_EXISTS' });
+    const input = { kind: 'QUIT' as const, expectedVersion: 0, idempotencyKey: randomUUID() };
+    await expect(service.act(outsider.identity, begun.session.id, input)).rejects.toMatchObject({ statusCode: 404 });
+    const quit = await service.act(p.identity, begun.session.id, input);
+    expect(quit.session).toMatchObject({ status: 'ABANDONED', version: 1, result: null }); expect(quit.award).toBeNull();
+    expect(await service.act(p.identity, begun.session.id, input)).toEqual({ ...quit, alreadyProcessed: true });
+    await expect(service.act(p.identity, begun.session.id, { ...input, expectedVersion: 1, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'ARCADE_FINISHED' });
+    await expect(service.act(p.identity, begun.session.id, { kind: 'MOVE', position: 0, expectedVersion: 1, idempotencyKey: randomUUID() })).rejects.toMatchObject({ code: 'ARCADE_FINISHED' });
+    expect(spy).not.toHaveBeenCalled(); spy.mockRestore();
+    expect(await stateSnapshot(p.id)).toEqual(before);
+    expect(await db.arcadeStat.count({ where: { playerId: p.id } })).toBe(0);
+    expect(await db.arcadeDailyGrant.count({ where: { playerId: p.id } })).toBe(0);
+    expect(await db.arcadeReceipt.count({ where: { playerId: p.id } })).toBe(2);
+    const row = await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } });
+    expect(row).toMatchObject({ outcome: null, performancePoints: null, xpAwarded: null, businessDate: null, finishOperationId: null });
+    expect(row.finishedAt).not.toBeNull();
+    for (const data of [{ xpAwarded: 0 }, { performancePoints: 1 }, { outcome: 'LOSS' }, { businessDate: now }, { finishOperationId: quit.operationId }]) {
+      await expect(db.arcadeSession.update({ where: { id: row.id }, data })).rejects.toThrow();
+    }
+    const next = await start(p, 'MEMORY', 'EASY'); expect(next.session.id).not.toBe(row.id);
+    await service.act(p.identity, next.session.id, { ...input, idempotencyKey: randomUUID() });
+    expect((await start(p, 'CONNECT_FOUR')).session.status).toBe('ACTIVE');
+  }, 60000);
+  it('serializes concurrent starts of different games into one global ACTIVE session', async () => {
+    const p = await player();
+    const results = await Promise.allSettled((['MEMORY', 'CONNECT_FOUR'] as const).map(game => service.start(p.identity, { game, difficulty: 'MEDIUM', expectedVersion: 0, previousSessionId: null, idempotencyKey: randomUUID() })));
+    expect(results.filter(value => value.status === 'fulfilled')).toHaveLength(1);
+    expect(results.find(value => value.status === 'rejected')).toMatchObject({ reason: { code: 'ARCADE_ACTIVE_EXISTS' } });
+    expect(await db.arcadeSession.count({ where: { playerId: p.id, status: 'ACTIVE' } })).toBe(1);
+  }, 30000);
+  it('fails the 058 unique-index change without rewriting conflicting historical sessions', async () => {
+    const p = await player(), begun = await start(p);
+    // Simulate the prior physical index inside a transaction confined to this private schema.
+    await isolated.admin.query('BEGIN');
+    try {
+      await isolated.admin.query('DROP INDEX arcade_sessions_one_active_idx');
+      await isolated.admin.query("CREATE UNIQUE INDEX arcade_sessions_one_active_idx ON arcade_sessions(player_id, game) WHERE status = 'ACTIVE'");
+      await isolated.admin.query("INSERT INTO arcade_sessions (player_id, game, difficulty, first_side, private_state, random_state, banter_id, next_action_at) SELECT player_id, 'CONNECT_FOUR', difficulty, first_side, private_state, random_state, banter_id, next_action_at FROM arcade_sessions WHERE id = $1", [begun.session.id]);
+      const sql = readFileSync(new URL('../prisma/migrations/20261001120000_058_harden_arcade_session_lifecycle/migration.sql', import.meta.url), 'utf8').replace(/^BEGIN;|^COMMIT;/gm, '');
+      await expect(isolated.admin.query(sql)).rejects.toMatchObject({ code: '23505' });
+    } finally { await isolated.admin.query('ROLLBACK'); }
+    expect((await service.session(p.identity, begun.session.id))).toEqual(begun.session);
+    expect(await db.arcadeSession.count({ where: { playerId: p.id } })).toBe(1);
+    const definition = await isolated.admin.query('SELECT indexdef FROM pg_indexes WHERE schemaname = $1 AND indexname = $2', [isolated.schema, 'arcade_sessions_one_active_idx']);
+    expect(definition.rows[0].indexdef).toContain('(player_id)');
+  }, 30000);
+  it('projects untouched V1 Memory and ranks V1/V2 ties by points with the best-session denominator', async () => {
+    const old = await player(), modern = await player();
+    const begun = await start(old, 'MEMORY', 'MEDIUM');
+    const catalog = Array.from({ length: 18 }, (_, i) => ({ id: `historical-${i}`, name: `Historical ${i}`, elementKey: 'hydro', assetPaths: ['/historical.png'] }));
+    const state = createMemory(catalog, 'PLAYER', new ArcadeRandom(4), 'MEDIUM', 1);
+    state.playerPairs = 1; state.aiPairs = 16; state.revealed = [0];
+    const pair = state.cards.findIndex((face, i) => i > 0 && face?.id === state.cards[0]!.id);
+    state.matched = state.cards.map((_, i) => i === 0 || i === pair ? null : 'AI');
+    const jsonState = JSON.parse(JSON.stringify(state));
+    await db.arcadeSession.update({ where: { id: begun.session.id }, data: { rulesVersion: 1, scoringVersion: 1, privateState: jsonState } });
+    expect((await service.session(old.identity, begun.session.id)).board).toMatchObject({ columns: 6, totalPairs: 18 });
+    expect((await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } })).privateState).toEqual(jsonState);
+    const historical = await service.act(old.identity, begun.session.id, { kind: 'MOVE', position: pair, expectedVersion: 0, idempotencyKey: randomUUID() });
+    expect(historical.session.result).toMatchObject({ performancePoints: 1, xpAwarded: 1 });
+    expect(historical.records[0]?.best).toMatchObject({ points: 1, pairs: 2, totalPairs: 18 });
+    await finish(modern, 'MEMORY', 'MEDIUM', 'LOSS');
+    const ranking = await records.list(old.id, { kind: 'GLOBAL', game: 'MEMORY', difficulty: 'MEDIUM', page: 1 });
+    const entries = ranking.entries.filter(row => [old.id, modern.id].includes(row.playerId));
+    expect(entries).toHaveLength(2); expect(entries[0]!.rank).toBe(entries[1]!.rank);
+    expect(entries.map(row => row.playerId)).toEqual([old.id, modern.id].sort());
+    expect(entries.find(row => row.playerId === old.id)).toMatchObject({ pairs: 2, totalPairs: 18 });
+    expect(entries.find(row => row.playerId === modern.id)).toMatchObject({ pairs: 1, totalPairs: 12 });
+    const finished = await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } });
+    const samePoints = await finish(old, 'MEMORY', 'MEDIUM', 'LOSS');
+    expect(samePoints.records[0]?.best).toMatchObject({ points: 1, pairs: 2, totalPairs: 18 });
+    expect(await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } })).toEqual(finished);
+  }, 60000);
   it('starts without consuming a quota, resumes exactly, locks difficulty, rejects outsiders and duplicate starts', async () => {
     const p = await player(), other = await player();
     const key = randomUUID(), input = { game: 'MEMORY' as const, difficulty: 'MEDIUM' as const, expectedVersion: 0 as const, previousSessionId: null, idempotencyKey: key };
@@ -109,7 +193,7 @@ describe('Arcade — fully migrated private PostgreSQL', () => {
     const receipt = await db.arcadeReceipt.findFirstOrThrow({ where: { playerId: p.id } });
     expect(JSON.stringify(receipt.response)).not.toMatch(/privateState|observations|randomState|assetPaths|portrait|seed/);
     const privateRow = await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } });
-    expect((privateRow.privateState as unknown as { cards: unknown[] }).cards).toHaveLength(36);
+    expect((privateRow.privateState as unknown as { cards: unknown[] }).cards).toHaveLength(25);
     const frozen = privateRow.privateState as unknown as { cards: { id: string; name: string }[] };
     const original = await db.character.findUniqueOrThrow({ where: { id: frozen.cards[0]!.id } });
     await db.character.update({ where: { id: original.id }, data: { name: 'Private changed catalog', isActive: false } });

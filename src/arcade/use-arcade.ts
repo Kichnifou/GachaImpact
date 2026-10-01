@@ -14,6 +14,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   const [value, setValue] = useState<ArcadeOverview | null>(null)
   const [error, setError] = useState('')
   const [pending, setPending] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [retry, setRetry] = useState<Intent | null>(null)
   const lock = useRef(false), live = useRef(true), sequence = useRef(0)
   const publishRef = useRef(onMutation)
@@ -21,8 +22,10 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   const load = useCallback(async () => {
     if (lock.current) return
     const token = ++sequence.current
+    setRefreshing(true)
     try { const next = await getGameApiClient().getArcade(); if (live.current && token === sequence.current) { setValue(next); setError('') } }
     catch (reason) { if (live.current && token === sequence.current) setError(apiErrorMessage(reason)) }
+    finally { if (live.current && token === sequence.current) setRefreshing(false) }
   }, [])
   useEffect(() => {
     live.current = true; void load()
@@ -32,7 +35,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   }, [load, playerId])
   const execute = useCallback(async (intent: Intent) => {
     if (lock.current) return false
-    lock.current = true; ++sequence.current; setPending(true); setError(''); setRetry(intent)
+    lock.current = true; ++sequence.current; setRefreshing(false); setPending(true); setError(''); setRetry(intent)
     try {
       const api = getGameApiClient()
       const next = intent.kind === 'START' ? await api.startArcade(intent.input) : await api.actArcade(intent.sessionId, intent.input)
@@ -61,5 +64,6 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   const act = useCallback((session: ArcadeSession, position?: number) => execute({ kind: 'ACTION', sessionId: session.id,
     input: position === undefined ? { kind: 'ADVANCE', expectedVersion: session.version, idempotencyKey: crypto.randomUUID() }
       : { kind: 'MOVE', position, expectedVersion: session.version, idempotencyKey: crypto.randomUUID() } }), [execute])
-  return { value, pending, error, load, start, act, retry: retry ? () => execute(retry) : null }
+  const quit = (session: ArcadeSession) => execute({ kind: 'ACTION', sessionId: session.id, input: { kind: 'QUIT', expectedVersion: session.version, idempotencyKey: crypto.randomUUID() } })
+  return { value, pending, refreshing, error, load, start, act, quit, retry: retry ? () => execute(retry) : null }
 }

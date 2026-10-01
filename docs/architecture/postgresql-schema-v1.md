@@ -6,6 +6,12 @@
 
 CHECK sur valeurs jeu/difficulté/statut, compteurs, points, état terminal cohérent ; FK et index de listes/records. Les quatre tables ont RLS activée, aucun accès direct PUBLIC/anon/authenticated (`REVOKE ALL`). L'autorité Player et le verrou SERIALIZABLE protègent les mutations backend. [Arcade V1](../specifications/arcade-v1.md) porte quota, classement, protocole et rétention des preuves.
 
+### Cycle de vie — migration additive candidate 058
+
+`20261001120000_058_harden_arcade_session_lifecycle` remplace l'index partiel précédent par l'unicité `(player_id) WHERE status = 'ACTIVE'` et étend les CHECK à Rules/Scoring 1 ou 2 correspondants et au statut ABANDONED. Celui-ci exige finishedAt, avec outcome/performancePoints/xpAwarded/businessDate/finishOperationId nuls. ACTIVE et FINISHED gardent leurs invariants. L'opération Quitter reste liée par le receipt.
+
+DDL transactionnel : aucune UPDATE/DELETE historique, aucune réconciliation arbitraire de plusieurs ACTIVE. Un doublon fait échouer la création d'index et annule la transaction. Les tables, clés, grants, scores, preuves et protections RLS restent conservés. La chaîne 058 est déployée et vérifiée par Prisma uniquement dans les schémas privés ; public demeure à 057 pendant le correctif `review`.
+
 Validation du lot : chaîne réelle de 57 migrations déployée avec Prisma dans un schéma privé isolé, puis `migrate status` à jour. **Public reste à 056 ; 057 est volontairement en attente.** Aucune application publique, écriture manuelle du registre ou fixture publique dans ce lot.
 
 ## Étape 22 — réutilisation du schéma privé

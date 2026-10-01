@@ -20,6 +20,7 @@ import BannerAdminPanel from './BannerAdminPanel'
 import EventAdminPanel from './EventAdminPanel'
 import GlobalChatReportsPanel from './GlobalChatReportsPanel'
 import AdminAuditPanel from './AdminAuditPanel'
+import { adminAuditTitle } from '../../moderation/admin-audit-presentation'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -178,6 +179,8 @@ describe('Admin panel actions', () => {
       config: { emoji: '⭐', currency: { label: 'Étoile', emoji: '⭐' }, collection: { key: 'star', label: 'Étoile' } }, isActive: true, editions: [] }
     api.getAdminEvents.mockResolvedValue({ entries: [event] })
     const { container } = await mount(<EventAdminPanel />)
+    expect(container.querySelector('.admin-events .admin-list > h2')?.textContent).toBe('Festivals')
+    expect(container.querySelector('.admin-events .admin-list .admin-scroll-list')).not.toBeNull()
     await click(button(container, 'Désactiver'))
     expect(api.updateAdminEvent).not.toHaveBeenCalled()
     await click(button(dialog(), 'Confirmer'))
@@ -190,7 +193,7 @@ describe('Admin panel actions', () => {
       createdAt: '2026-09-01T00:00:00Z', reporter: { displayName: 'Reporter' }, reported: { displayName: 'Auteur' }, message: { deletionState: 'ACTIVE' } }
     api.getAdminChatReports.mockResolvedValue(page([report])); api.getAdminChatReport.mockResolvedValue(report)
     const { container } = await mount(<GlobalChatReportsPanel />)
-    await click(button(container, 'Auteur'))
+    await click(button(container, 'Ouvrir'))
     expect(container.textContent).toContain('Preuve gelée')
     await click(button(container, 'Modérer le message source'))
     await click(button(dialog(), 'Confirmer'))
@@ -203,10 +206,51 @@ describe('Admin panel actions', () => {
       action: 'grant-tester', operationId: 'operation-a', createdAt: '2026-09-01T00:00:00Z', before: { enabled: false }, after: { enabled: true } }
     api.getAdminAudit.mockResolvedValue(page([entry])); api.getAdminAuditDetail.mockResolvedValue(entry)
     const { container } = await mount(<AdminAuditPanel />)
+    expect(container.querySelector('[aria-label="Journal Admin"]')).not.toBeNull()
+    expect(container.querySelector('h2')).toBeNull()
+    expect(container.querySelector('section')?.firstElementChild?.className).toBe('admin-filters')
     inputValue(container.querySelector<HTMLInputElement>('.admin-filters input')!, 'roles')
     expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 1, domain: 'roles', action: undefined })
-    await click(button(container, 'grant-tester'))
+    await click(button(container, 'Testeur attribué'))
     expect(api.getAdminAuditDetail).toHaveBeenCalledWith('audit-a')
     expect(container.textContent).toContain('operation-a')
+    expect(container.querySelector('h3')?.textContent).toBe('Rôles · Testeur attribué')
   })
+  it.each(['list', 'detail'])('deletes a Chat report from %s after confirmation and adjusts the final page', async origin => {
+    const report: AdminChatReport = { id: 'report-delete', messageId: 'source', reporterPlayerId: 'reporter', reportedPlayerId: 'author',
+      messageSnapshot: { content: 'Message intact' }, contextSnapshot: [], createdAt: '2026-09-01T00:00:00Z', reporter: { displayName: 'Reporter' }, reported: { displayName: 'Auteur' }, message: { deletionState: 'ACTIVE' } }
+    let removed = false
+    api.getAdminChatReports.mockImplementation(async (current: number) => removed ? page([]) : { ...page([report]), page: current, total: 21, totalPages: 2 })
+    api.getAdminChatReport.mockResolvedValue(report)
+    api.deleteAdminChatReport.mockImplementation(async () => { removed = true; return {} })
+    const { container } = await mount(<GlobalChatReportsPanel />)
+    await click(button(container, 'Suivant'))
+    expect(container.textContent).toContain('Page 2 / 2')
+    expect(container.querySelector('button button')).toBeNull()
+    if (origin === 'detail') await click(button(container, 'Ouvrir'))
+    await click(button(container, origin === 'detail' ? 'Supprimer le signalement' : 'Supprimer'))
+    expect(dialog().textContent).toContain('Le signalement sera supprimé. Le message source ne sera pas supprimé par cette action.')
+    await click(button(dialog(), 'Annuler')); expect(api.deleteAdminChatReport).not.toHaveBeenCalled()
+    await click(button(container, origin === 'detail' ? 'Supprimer le signalement' : 'Supprimer'))
+    await click(button(dialog(), 'Confirmer'))
+    expect(api.deleteAdminChatReport).toHaveBeenCalledWith(report.id, expect.any(String))
+    expect(api.moderateAdminChatMessage).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Aucun signalement Chat.')
+    expect(container.textContent).toContain('Page 1 / 1')
+    expect(api.getAdminChatReports).toHaveBeenLastCalledWith(1)
+  })
+  it('paginates the Journal using its server response', async () => {
+    api.getAdminAudit.mockImplementation(async ({ page: current }) => ({ page: current, pageSize: 10, total: 11, totalPages: 2, entries: [] }))
+    const { container } = await mount(<AdminAuditPanel />)
+    await click(button(container, 'Suivant'))
+    expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 2, domain: undefined, action: undefined })
+    expect(container.textContent).toContain('Page 2 / 2')
+  })
+  it.each([
+    ['gift-codes', 'disable', 'Codes cadeaux · Désactivation'], ['objects', 'set-stella', 'Objets · Quantité de Stella modifiée'],
+    ['gacha', 'set-state', 'Invocation · État Gacha modifié'], ['resources', 'adjust-resource', 'Ressources · Ajustement'],
+    ['progression', 'prepare-next-level', 'Progression · Préparation du prochain niveau'], ['roles', 'revoke-tester', 'Rôles · Testeur retiré'],
+    ['global-chat', 'moderate-message', 'Chat global · Message modéré'], ['global-chat', 'delete-report', 'Chat global · Signalement supprimé'],
+    ['new-domain', 'some_action', 'New domain · Some action'],
+  ])('presents %s / %s in human language', (domain, action, expected) => { expect(adminAuditTitle(domain, action)).toBe(expected) })
 })

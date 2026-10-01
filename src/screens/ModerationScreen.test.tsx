@@ -171,11 +171,13 @@ describe('ModerationScreen', () => {
     expect(testerRow.lastElementChild?.classList.contains('moderation-tester-badge')).toBe(true)
   })
 
-  it('keeps player targeting inside Système de jeu and mounts Codes only for a Super who selects that tab', async () => {
+  it('keeps player targeting inside Système and mounts Codes only for a Super who selects that tab', async () => {
     const { container, props } = await mount()
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système de jeu', false], ['Personnages', false], ['Codes', false], ['Bannières', false], ['Événements', false], ['Communauté', false], ['Giveaway', false], ['Journal', false]])
+    expect(tabs.map((tab) => [tab.textContent, tab.disabled])).toEqual([['Système', false], ['Personnages', false], ['Codes', false], ['Bannières', false], ['Événements', false], ['Communauté', false], ['Giveaway', false], ['Journal', false]])
     expect(props.onLoadGiftCodes).not.toHaveBeenCalled()
+    expect(container.querySelector('.moderation-grid')?.firstElementChild?.classList.contains('moderation-role')).toBe(true)
+    expect(container.querySelectorAll('.moderation-role .admin-role-list > div')).toHaveLength(3)
     tabs[0]!.focus()
     await act(async () => { tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await Promise.resolve(); await Promise.resolve() })
     expect(document.activeElement).toBe(tabs[1])
@@ -189,7 +191,7 @@ describe('ModerationScreen', () => {
 
     const tester = await mount(false)
     const testerTabs = Array.from(tester.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(testerTabs.map(tab => tab.textContent)).toEqual(['Système de jeu'])
+    expect(testerTabs.map(tab => tab.textContent)).toEqual(['Système'])
   })
 
   it('shows only Community and Giveaway to MODERATOR and combines them with self tools for TESTER plus MODERATOR', async () => {
@@ -207,7 +209,7 @@ describe('ModerationScreen', () => {
     const combined = { ...moderatorCapabilities, selfResourceTools: true, selfGameplayTools: true }
     await act(async () => { seeded.root.render(<ModerationScreen {...seeded.props} capabilities={combined} />); await Promise.resolve() })
     tabs = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map(tab => tab.textContent)).toEqual(['Système de jeu', 'Communauté', 'Giveaway'])
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Système', 'Communauté', 'Giveaway'])
     act(() => tabs[0]!.click())
     tabs[0]!.focus()
     act(() => tabs[0]!.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
@@ -222,7 +224,7 @@ describe('ModerationScreen', () => {
       superTools: false, canSelectPlayers: false }
     await act(async () => { seeded.root.render(<ModerationScreen {...seeded.props} capabilities={testerCapabilities} />); await Promise.resolve() })
     const tabs = Array.from(seeded.container.querySelectorAll<HTMLButtonElement>('.moderation-tabs [role="tab"]'))
-    expect(tabs.map(tab => tab.textContent)).toEqual(['Système de jeu'])
+    expect(tabs.map(tab => tab.textContent)).toEqual(['Système'])
     expect(tabs[0]!.getAttribute('aria-selected')).toBe('true')
   })
 
@@ -238,7 +240,7 @@ describe('ModerationScreen', () => {
     await act(async () => { root.render(<ModerationScreen {...props} capabilities={{ moderationAccess: true, communityModeration: true, selfResourceTools: false, selfGameplayTools: false, superTools: false, canSelectPlayers: false }} onLoad={onLoad} />); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Communauté')
     expect(onLoad).not.toHaveBeenCalled(); expect(container.textContent).toContain('Signalements MP'); expect(container.textContent).toContain('Preuve figée'); expect(container.textContent).toContain('Page 1 / 2')
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système de jeu')).toBeUndefined()
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.moderation-tabs button')).find(button => button.textContent === 'Système')).toBeUndefined()
     await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-reports-panel > footer button')).find(button => button.textContent === 'Suivant'))!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(moderationReports.list).toHaveBeenCalledWith(2); expect(container.textContent).toContain('Page 2 / 2')
     await act(async () => { container.querySelector<HTMLButtonElement>('.dm-reports-list button')!.click(); await Promise.resolve(); await Promise.resolve() })

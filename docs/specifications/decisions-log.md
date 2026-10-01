@@ -2,11 +2,24 @@
 
 Statut : évolutif.
 
+## Retours publics Administration / Arcade — R991–R998 (2026-10-01)
+
+- `VALIDÉ R991` — Memory Rules/Scoring V2 : Facile 4×4/8 paires, Moyen 5×5/12 paires avec centre décoratif non jouable, Difficile 6×6/18 paires. R972 reste l'historique V1. Catalogue minimal 8/12/18 portraits ; mémoire IA observée 4/12/36, exploitation 50/85/100 %. Barèmes bornés inchangés, interpolation adaptée aux paires réelles. V1 reste lisible en 6×6/18 sans réécriture. Global Memory classe uniquement les points, UUID stable entre ex aequo ; paires et dénominateur de la meilleure session restent informatifs. À points égaux, le record déjà enregistré est conservé.
+- `VALIDÉ R992` — Une seule partie ACTIVE par Player dans toute l'Arcade, protégée par verrou serveur et index unique partiel global. Les trois boutons de jeu restent désactivés pendant toute la partie, indépendamment des coups et du réseau ; fin naturelle ou abandon les libère.
+- `VALIDÉ R993` — Reprise automatique de la partie active à l'entrée, au retour navigateur/Records/feedback. Suppression de Pause/Reprendre. Quitter confirmé produit ABANDONED avec date terminale, sans résultat, score, compteurs, quota, XP, ressources, Missions ni notification. Receipt/opération durables et idempotents ; aucune suppression physique. La migration 058 échoue en présence de plusieurs ACTIVE d'un même Player, sans arbitrage automatique.
+- `VALIDÉ R994` — Règles & gains devient une modale accessible Général/Memory/Puissance 4/Morpion. Arcade tient sans scroll interne à 1920×1080 et 2560×1440 dans le GameShell complet ; petit desktop avec scroll borné et mobile en flux naturel. Réplique en italique entre guillemets côté adversaire, formes CSS centrées pour les alignements ; Records allégé, sous-onglets Score plus petits.
+- `VALIDÉ R995` — Modération : Système, Rôles pleine largeur avant les outils gameplay, trois rôles horizontaux sur desktop ; huit onglets sur une ligne sans troncature à 1920 minimum. Festivals occupe la hauteur restante avec scroll propre de la liste et partage utilisable avec l'éditeur. Permissions et métier Event inchangés.
+- `VALIDÉ R996` — Journal ADMIN : dix entrées/page sous autorité serveur, filtres en haut sans titre interne, aria-label conservé. Présentation frontend des domaines/actions en vocabulaire humain avec fallback kebab/snake-case ; codes persistés et détail technique conservés.
+- `VALIDÉ R997` — Signalements Chat global : Ouvrir et Supprimer séparés dans la liste ; Supprimer le signalement dans le détail. Confirmation explicite, route existante, correction de pagination après suppression. Le message source reste indépendant de cette action.
+- `VALIDÉ R998` — Historique Bannières : snapshot absent affiché silencieusement ; retrait des suffixes slot communautaire et source sur Choix communauté ; seuls les candidats avec votes > 0 sont affichés. Snapshot physique R911 intégralement conservé.
+
+Ces décisions sont implémentées dans le candidat correctif `review`, après le premier test public de `81066ba`. Elles n'autorisent aucune mutation publique ni promotion dans ce lot. Contrats : [Arcade](arcade-v1.md), [Administration](administration-moderation-v1.md), [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Arcade — décisions validées R970–R990 (2026-10-01)
 
 - `VALIDÉ R970` — Nom joueur : Arcade. Les anciennes propositions Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
 - `VALIDÉ R971` — Sous-onglet Activités entre Événement et Concours, sans nouvelle rubrique principale.
-- `VALIDÉ R972` — Memory 6×6 : dix-huit paires de portraits du vrai catalogue, contre une IA qui connaît seulement les cartes révélées.
+- `VALIDÉ R972` — Memory V1 6×6 : dix-huit paires de portraits du vrai catalogue, contre une IA qui connaît seulement les cartes révélées. Les nouvelles sessions suivent désormais R991.
 - `VALIDÉ R973` — Puissance 4 7×6 contre un adversaire programmé, gravité et quatre alignés selon les règles normales.
 - `VALIDÉ R974` — Morpion 3×3 contre un adversaire programmé, trois alignés selon les règles normales.
 - `VALIDÉ R975` — Facile / Moyen / Difficile pour chacun des trois jeux ; difficulté agit réellement sur l'IA et reste figée dans la partie.
@@ -1328,6 +1341,8 @@ Preuves de promotion : `0c92e9f` (invariants R913–R915) et `c1b1c1b` (avatars 
 - `VALIDÉ COMME DÉCISION PRODUIT ; IMPLÉMENTATION PROMUE` — Un seul écran Historique, accessible par le Menu et les quatre entrées contextuelles, lit les sources propriétaires des cinq catégories Invocations, Bannières, Banque, Boutique et Event. Pagination serveur de dix et filtre bancaire appliqué avant pagination. Event expose le Top final public et, séparément, le rang, les points, les paliers réclamés et l'acquisition Collection du seul propriétaire. Aucune table globale ni route tierce supplémentaire.
 
 L'observation publique d'un prochain snapshot naturel R911 reste ouverte ; Historique est validé fonctionnellement, la revalidation visuelle spécifique R912 et celle distincte du Menu ne sont pas closes par ce statut de promotion.
+
+**Présentation R998 :** le stockage R911 garde tous les candidats et leur source, y compris zéro vote. L'UI masque les candidats sans vote, le suffixe slot communautaire et la provenance sur la ligne Choix communauté. Un snapshot nul n'affiche plus de phrase d'indisponibilité ; il n'est jamais reconstitué.
 
 ## R916–R926 — Identité Twitch et migration pilote Kichnifou (2026-09-26)
 

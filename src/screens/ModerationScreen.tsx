@@ -299,7 +299,7 @@ function ModerationScreen({
                 className={activeTab === "system" ? "active" : ""}
                 onClick={() => setActiveTab("system")}
               >
-                Système de jeu
+                Système
               </AppButton>}
               {isSuper && <AppButton ref={charactersTabRef} role="tab" aria-selected={activeTab === "characters"}
                 tabIndex={activeTab === "characters" ? 0 : -1} className={activeTab === "characters" ? "active" : ""}
@@ -443,6 +443,10 @@ function ModerationScreen({
       >
         {activeTab === "system" && (
           <div className="moderation-grid">
+            {isSuper && state && <RoleAdminPanel state={state} onChanged={async () => {
+              try { accept(await onLoadRef.current(selectedTargetId)); }
+              catch { window.location.reload(); }
+            }} />}
             <form
               className="panel moderation-tool"
               onSubmit={(event) =>
@@ -649,10 +653,6 @@ function ModerationScreen({
                   </label>
                   <button disabled={pending}>Définir la quantité</button>
                 </form>
-                {isSuper && state && <RoleAdminPanel state={state} onChanged={async () => {
-                  try { accept(await onLoadRef.current(selectedTargetId)); }
-                  catch { window.location.reload(); }
-                }} />}
               </>
             )}
           </div>

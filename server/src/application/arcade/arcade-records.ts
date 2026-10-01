@@ -2,28 +2,30 @@ import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { ArcadeDifficulty, ArcadeGame } from '../../domain/arcade/types.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 import { privacyDefaults } from '../social/privacy-service.js';
+import { memoryLayout } from '../../domain/arcade/memory.js';
 
 export type ArcadeRankingQuery = { kind: 'GLOBAL' | 'SCORE'; game: ArcadeGame | 'TOTAL'; difficulty: ArcadeDifficulty; page?: number };
-/** Records never select sessions, receipts or any Memory private state. */
+/** Only version/difficulty metadata from the best session; never its private state. */
 export class ArcadeRecords {
   constructor(private readonly database: PrismaClient) {}
   async list(playerId: string, query: ArcadeRankingQuery) {
     const stats = await this.database.arcadeStat.findMany({ where: { ...(query.game === 'TOTAL' ? {} : { game: query.game }),
       ...(query.kind === 'GLOBAL' ? { difficulty: query.difficulty } : {}), player: { status: 'ACTIVE', elementKey: { not: null } } },
-      include: { player: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
+      include: { bestSession: { select: { rulesVersion: true, difficulty: true } }, player: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
         privacySettings: { where: { categoryKey: 'GENERAL_STATISTICS' }, select: { level: true } } } } } });
-    const values = new Map<string, { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; value: bigint; pairs: number | null }>();
+    const values = new Map<string, { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; value: bigint; pairs: number | null; totalPairs: number | null }>();
     for (const stat of stats) {
       if ((stat.player.privacySettings[0]?.level ?? privacyDefaults.GENERAL_STATISTICS) !== 'PUBLIC') continue;
       const value = query.kind === 'GLOBAL' ? BigInt(stat.bestPoints) : stat.score;
       const old = values.get(stat.playerId);
       values.set(stat.playerId, { playerId: stat.playerId, displayName: stat.player.displayName, elementKey: stat.player.elementKey!,
-        avatarAssetPath: avatarAssetPath(stat.player), value: (query.kind === 'SCORE' ? old?.value ?? 0n : 0n) + value, pairs: query.kind === 'GLOBAL' ? stat.bestPairs : null });
+        avatarAssetPath: avatarAssetPath(stat.player), value: (query.kind === 'SCORE' ? old?.value ?? 0n : 0n) + value, pairs: query.kind === 'GLOBAL' ? stat.bestPairs : null,
+        totalPairs: query.kind === 'GLOBAL' && stat.game === 'MEMORY' ? memoryLayout(stat.bestSession.difficulty as ArcadeDifficulty, stat.bestSession.rulesVersion).totalPairs : null });
     }
-    const rows = [...values.values()].filter(row => row.value > 0n).sort((a, b) => a.value === b.value ? (b.pairs ?? 0) - (a.pairs ?? 0) || a.playerId.localeCompare(b.playerId) : a.value > b.value ? -1 : 1);
+    const rows = [...values.values()].filter(row => row.value > 0n).sort((a, b) => a.value === b.value ? a.playerId.localeCompare(b.playerId) : a.value > b.value ? -1 : 1);
     let rank = 0;
     const ranked = rows.map((row, index) => {
-      if (!index || row.value !== rows[index - 1]!.value || row.pairs !== rows[index - 1]!.pairs) rank = index + 1;
+      if (!index || row.value !== rows[index - 1]!.value) rank = index + 1;
       return { ...row, value: row.value.toString(), rank, position: index + 1, isSelf: row.playerId === playerId };
     });
     const selfIndex = ranked.findIndex(row => row.isSelf), selfPage = selfIndex < 0 ? null : Math.floor(selfIndex / 10) + 1;

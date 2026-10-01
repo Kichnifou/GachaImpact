@@ -9,7 +9,7 @@ import { arcadeDifficulties, arcadeGames } from '../../domain/arcade/types.js';
 type Options = { authenticate: preHandlerHookHandler; service: ArcadeService; records: ArcadeRecords };
 const mutation = { idempotencyKey: z.uuid(), expectedVersion: z.number().int().min(0).max(100000) };
 const start = z.object({ ...mutation, expectedVersion: z.literal(0), game: z.enum(arcadeGames), difficulty: z.enum(arcadeDifficulties), previousSessionId: z.uuid().nullable() }).strict();
-const action = z.discriminatedUnion('kind', [z.object({ ...mutation, kind: z.literal('MOVE'), position: z.number().int().min(0).max(41) }).strict(), z.object({ ...mutation, kind: z.literal('ADVANCE') }).strict()]);
+const action = z.discriminatedUnion('kind', [z.object({ ...mutation, kind: z.literal('MOVE'), position: z.number().int().min(0).max(41) }).strict(), z.object({ ...mutation, kind: z.literal('ADVANCE') }).strict(), z.object({ ...mutation, kind: z.literal('QUIT') }).strict()]);
 const params = z.object({ sessionId: z.uuid() }).strict();
 const ranking = z.object({ kind: z.enum(['GLOBAL', 'SCORE']), game: z.enum([...arcadeGames, 'TOTAL']), difficulty: z.enum(arcadeDifficulties).default('MEDIUM'), page: z.coerce.number().int().min(1).max(100000).optional() }).strict()
   .refine(value => value.kind !== 'GLOBAL' || value.game !== 'TOTAL');

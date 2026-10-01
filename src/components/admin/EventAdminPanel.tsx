@@ -31,8 +31,8 @@ export default function EventAdminPanel() {
     const success = await task.execute(JSON.stringify(intent), key => getGameApiClient().updateAdminEvent(intent.id, { isActive: intent.isActive, idempotencyKey: key }))
     if (success) setConfirm(null)
   }
-  return <div className="admin-domain" aria-label="Administration des événements"><AdminFeedback error={task.error || loadError} notice={task.notice} />
-    <section className="panel admin-list"><h2>Définitions Festival</h2><div className="admin-scroll-list">{events.map(event => <article key={event.id} className="admin-list-row">
+  return <div className="admin-domain admin-events" aria-label="Administration des événements"><AdminFeedback error={task.error || loadError} notice={task.notice} />
+    <section className="panel admin-list"><h2>Festivals</h2><div className="admin-scroll-list">{events.map(event => <article key={event.id} className="admin-list-row">
       <div><strong>{event.displayName} · mois {event.calendarMonth}</strong><small>{event.externalKey} · {event.currencyKey} · {event.isActive ? 'Actif' : 'Inactif'}</small>
         {event.editions.map(edition => <small key={edition.id}>Édition {edition.year} · {edition.status} · {new Date(edition.startsAt).toLocaleDateString('fr-FR')}–{new Date(edition.endsAt).toLocaleDateString('fr-FR')} · {edition._count.participants} participant(s)</small>)}</div>
       <button type="button" onClick={() => choose(event)}>Configuration</button><button type="button" className={event.isActive ? 'danger' : ''} onClick={() => { const intent = { id: event.id, displayName: event.displayName, isActive: !event.isActive }; if (event.isActive) setConfirm(intent); else void toggle(intent) }}>{event.isActive ? 'Désactiver' : 'Réactiver'}</button>

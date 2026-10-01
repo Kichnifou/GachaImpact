@@ -34,23 +34,22 @@ export default function ArcadeRecords({ records, initialGame, onClose }: { recor
       <header><div><span className="eyebrow">Arcade</span><h2>Records</h2></div><ModalCloseButton onClose={onClose} /></header>
       <div className="arcade-record-controls">
         <nav aria-label="Types de records">{(['PERSONAL', 'GLOBAL', 'SCORE'] as const).map(key => <AppButton key={key} aria-pressed={tab === key} onClick={() => { if (tab === key) return; setTab(key); if (game === 'TOTAL' && key !== 'SCORE') setGame(initialGame); resetCategory() }}>{key === 'PERSONAL' ? 'Personnel' : key === 'GLOBAL' ? 'Global' : 'Score'}</AppButton>)}</nav>
-        {tab === 'SCORE' ? <nav aria-label="Classement de score">{([...arcadeGames, 'TOTAL'] as const).map(key => <AppButton key={key} aria-pressed={game === key} onClick={() => { if (game === key) return; setGame(key); resetCategory() }}>{key === 'TOTAL' ? 'Total' : arcadeLabels[key]}</AppButton>)}</nav>
+        {tab === 'SCORE' ? <nav className="arcade-score-tabs" aria-label="Classement de score">{([...arcadeGames, 'TOTAL'] as const).map(key => <AppButton key={key} aria-pressed={game === key} onClick={() => { if (game === key) return; setGame(key); resetCategory() }}>{key === 'TOTAL' ? 'Total' : arcadeLabels[key]}</AppButton>)}</nav>
           : <div className="arcade-record-filters"><label>Jeu<select value={game} onChange={event => { setGame(event.target.value as ArcadeGame); resetCategory() }}>{arcadeGames.map(key => <option key={key} value={key}>{arcadeLabels[key]}</option>)}</select></label>
             <label>Difficulté<select value={difficulty} onChange={event => { setDifficulty(event.target.value as ArcadeDifficulty); resetCategory() }}>{arcadeDifficulties.map(key => <option key={key} value={key}>{difficultyLabels[key]}</option>)}</select></label></div>}
-        <p className="arcade-record-note">{tab === 'PERSONAL' ? 'Vos performances, séparées par difficulté.' : tab === 'GLOBAL' ? 'Une meilleure partie par joueur et difficulté.' : 'Les scores cumulés reflètent aussi le nombre de parties jouées.'}</p>
       </div>
       <div className="arcade-record-body" aria-busy={pending}>
         {error && <p role="alert">{error}</p>}
         {tab === 'PERSONAL' ? (() => {
           const record = records.find(row => row.game === game && row.difficulty === difficulty)
           return record ? <dl className="arcade-personal"><div><dt>Meilleure partie</dt><dd>{record.best.points} points · {outcomeLabels[record.best.outcome]}</dd></div>
-            {record.best.pairs !== null && <div><dt>Meilleur nombre de paires</dt><dd>{record.best.pairs} / 18</dd></div>}
+            {record.best.pairs !== null && <div><dt>Paires de la meilleure partie</dt><dd>{record.best.pairs} / {record.best.totalPairs} paires</dd></div>}
             <div><dt>Score cumulé · toutes difficultés</dt><dd>{scoreText(records.filter(row => row.game === game).reduce((sum, row) => sum + BigInt(row.score), 0n).toString())}</dd></div>
             <div><dt>Score cumulé · {difficultyLabels[difficulty]}</dt><dd>{scoreText(record.score)}</dd></div><div><dt>Parties terminées</dt><dd>{scoreText(record.played)}</dd></div>
             <div><dt>Victoires / égalités / défaites</dt><dd>{scoreText(record.wins)} / {scoreText(record.draws)} / {scoreText(record.losses)}</dd></div></dl> : <p className="arcade-empty">Aucun record pour ce jeu et cette difficulté.</p>
         })() : <><table className="arcade-ranking"><thead><tr><th scope="col">Rang</th><th scope="col">Joueur</th><th scope="col">{tab === 'SCORE' ? 'Score' : 'Meilleure partie'}</th></tr></thead>
           <tbody>{value?.entries.map(row => <tr key={row.playerId} className={row.isSelf ? 'self' : ''}><td>{row.rank}</td><td>{row.displayName}{row.isSelf && <strong className="arcade-you">Vous</strong>}</td>
-            <td>{scoreText(row.value)}{row.pairs !== null && <small>{row.pairs} paires</small>}</td></tr>)}
+            <td>{scoreText(row.value)}{row.pairs !== null && <small>{row.pairs} / {row.totalPairs} paires</small>}</td></tr>)}
             {Array.from({ length: 10 - (value?.entries.length ?? 0) }, (_, index) => <tr className="arcade-ranking-placeholder" key={`empty-${index}`} aria-hidden="true"><td colSpan={3}>&nbsp;</td></tr>)}
           </tbody></table></>}
       </div>

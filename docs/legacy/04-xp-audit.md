@@ -805,7 +805,7 @@ Ainsi, exécuter une même action via l'interface, le chat interne ou Twitch ne 
 
 GachaImpact standalone disposera d'une **activité ou d'un mode dédié au gain d'XP**, afin qu'un joueur puisse progresser normalement sans être obligé d'écrire dans le chat.
 
-Décision définitive **R970–R990** : [Arcade V1](../specifications/arcade-v1.md), Memory 6×6, Puissance 4 et Morpion, trois difficultés. Première partie naturelle terminée par jeu et jour Europe/Paris : jusqu'à 10 XP, maximum 30 XP Arcade/jour. Les difficultés partagent le quota ; après celui-ci, les parties donnent encore leur score. Le barème détaillé et les règles sont portés par la source Arcade.
+Décision définitive **R970–R990** : [Arcade V1](../specifications/arcade-v1.md), Memory V1 6×6 puis V2 4×4/5×5/6×6 selon R991, Puissance 4 et Morpion, trois difficultés. Première partie naturelle terminée par jeu et jour Europe/Paris : jusqu'à 10 XP, maximum 30 XP Arcade/jour. Les difficultés partagent le quota ; après celui-ci, les parties donnent encore leur score. Le barème détaillé et les règles sont portés par la source Arcade. R993 : Quitter produit ABANDONED sans XP, quota ni effets progression/ressources/Missions/notifications ; les parties V1 et leurs gains restent intacts.
 
 ### Cumul des sources
 
