@@ -19,5 +19,7 @@ export function humanizeAuditKey(value: string) {
   return text.charAt(0).toLocaleUpperCase('fr-FR') + text.slice(1)
 }
 export function adminAuditTitle(domain: string, action: string) {
-  return `${domains[domain] ?? humanizeAuditKey(domain)} · ${actions[action] ?? humanizeAuditKey(action)}`
+  return `${adminAuditDomain(domain)} · ${adminAuditAction(action)}`
 }
+export const adminAuditDomain = (domain: string) => domains[domain] ?? humanizeAuditKey(domain)
+export const adminAuditAction = (action: string) => actions[action] ?? humanizeAuditKey(action)

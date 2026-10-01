@@ -1,6 +1,6 @@
 # Administration et modération V1 — étape 22
 
-Étape 22 promue avec Arcade sur `81066badca66ac054d7dc515005eda6d10a8b913`. Le premier test public confirme le chargement des huit onglets et le retrait/rétablissement de TESTER sur Kichnifou, audits correspondants présents ; ses rôles ADMIN/MODERATOR/TESTER sont conservés. Les corrections de présentation R995–R998 du commit `cb7b2a45679985a867ae6ef29b092a63f512449f` sont approuvées en review indépendante ChatGPT, prêtes à promotion technique ; le public reste au checkpoint 81066ba et la recette propriétaire du correctif précédera la clôture définitive. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
+Étape 22 et correctifs R995–R998 approuvés, promus avec Arcade au checkpoint `f13f90dea5c661015c0c2fac41c660f89716d227` et testés publiquement par le propriétaire. Système, ordre des Rôles, Festivals, Journal dix/page, Historique Bannières et suppression des signalements sont validés dans ce périmètre. Le présent lot affine les groupes Rôles et les filtres du Journal (R1002), candidat review avant dernier smoke visuel ; l'étape 22 reste ouverte. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
 
 ## Accès et navigation
 
@@ -8,13 +8,15 @@ Une seule destination privée `Modération` dépend des attributions `PlayerRole
 
 Système conserve Ressources, XP, Gacha et Stella. ADMIN peut choisir un Player actif ; TESTER reste self. `RoleAdminService` est l'unique propriétaire des attributions TESTER/MODERATOR/ADMIN ; l'ancien endpoint `/players/:playerId/tester` et son chemin métier séparé sont supprimés. Les changements ADMIN/MODERATOR demandent confirmation. Un verrou advisory global et la vérification transactionnelle de l'acteur et du nombre d'ADMIN actifs empêchent de retirer le dernier, y compris lors de deux retraits concurrents. L'auto-révocation ADMIN reste possible si un autre ADMIN actif subsiste ; le rejeu exact de sa clé reste lisible, mais une nouvelle mutation est refusée après perte du rôle.
 
-Ordre R995 : Joueur ciblé, Rôles pleine largeur, puis grille des quatre outils gameplay. Testeur, Modérateur et Administrateur sont présentés horizontalement sur desktop, verticalement sur mobile ; protections et confirmations inchangées.
+Ordre R995 : Joueur ciblé, Rôles pleine largeur, puis grille des quatre outils gameplay. Testeur, Modérateur et Administrateur sont présentés horizontalement sur desktop, verticalement sur mobile ; chaque groupe aligne texte et bouton de largeur automatique au début de sa colonne avec 10 px d'écart. Protections et confirmations inchangées.
 
 ## Mutations et preuve
 
 Les nouvelles mutations utilisent une clé UUID d'idempotence, une `BusinessOperation` de source `ADMIN` et une `AdminAuditEntry` avant/après dans une transaction sérialisable. Un replay strict retourne l'opération existante ; une même clé portant une autre cible, action ou charge échoue en conflit. Le client garde la clé d'une intention ambiguë pour son retry. L'audit contient des diffs compacts sans secret ; le Journal ADMIN lit **dix entrées/page** sous autorité `AdminAuditQueryService`, triées par date puis ID décroissants, avec filtres domaine/action/acteur/cible. Le DTO est assaini côté serveur, y compris pour les anciens audits. Il n'existe ni export massif ni suppression depuis le Journal.
 
 R996 : filtres Domaine/Action immédiatement en haut, sans titre interne Journal Admin, mais aria-label conservé. `admin-audit-presentation` traduit domaines/actions pour les lignes et le titre du détail (ex. Rôles · Testeur attribué), avec humanisation kebab/snake-case inconnue. Les clés persistées et les données techniques avant/après restent intactes.
+
+R1002 : les deux filtres sont des listes déroulantes, avec Tous les domaines/Toutes les actions. La route existante GET audit fournit `facets`, couples distincts domaine/action de tout l'historique sous la même garde ADMIN, indépendamment de la page et des filtres sélectionnés. Ces valeurs techniques sont envoyées telles quelles au serveur, et humanisées par la même couche que les lignes. Action dépend du domaine ; changement de domaine remet page à 1 et efface seulement une action incompatible. Une ancienne option sans entrée conserve un résultat vide propre. Aucune table, migration ni conversion des codes stockés.
 
 Les confirmations sensibles figent à l'ouverture une intention complète : identifiant et nom de la cible, entité métier, action et paramètres, dont une copie des dix IDs de bannière. La confirmation envoie exactement cette intention même si l'écran est réactualisé. Le dialogue modal rend l'arrière-plan inerte, piège le focus, gère Escape et le clic sur fond pour annuler, puis rend le focus au déclencheur. Pendant une mutation en cours, il bloque la fermeture et une double soumission.
 

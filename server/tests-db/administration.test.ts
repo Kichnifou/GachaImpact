@@ -288,6 +288,14 @@ describe('administration in a private schema', () => {
     expect((await audit.list(admin.identity, { page: 99, domain: 'audit-review-fixture' })).page).toBe(3);
     const filtered = await audit.list(admin.identity, { page: 1, domain: 'audit-review-fixture', action: 'inspect', actorId: admin.id, targetId: target.id });
     expect(filtered.total).toBe(11);
+    expect(first.facets.filter(row => row.domain === 'audit-review-fixture')).toEqual([
+      { domain: 'audit-review-fixture', action: 'change' }, { domain: 'audit-review-fixture', action: 'inspect' },
+    ]);
+    expect(filtered.facets).toEqual(first.facets);
+    expect(third.facets).toEqual(first.facets);
+    expect(first.facets.some(row => row.domain !== 'audit-review-fixture')).toBe(true);
+    const empty = await audit.list(admin.identity, { page: 8, domain: 'no-longer-present', action: 'unknown-action' });
+    expect(empty).toMatchObject({ page: 1, total: 0, totalPages: 1, entries: [], facets: first.facets });
     expect(filtered.entries.every(row => row.actorPlayerId === admin.id && row.targetPlayerId === target.id && row.action === 'inspect')).toBe(true);
     const detail = await audit.detail(admin.identity, filtered.entries[0]!.id);
     expect(detail.before).toEqual({ accessToken: '[masqué]', cookie: '[masqué]', note: '[masqué]' });

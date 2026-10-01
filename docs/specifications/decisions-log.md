@@ -13,7 +13,17 @@ Statut : évolutif.
 - `VALIDÉ R997` — Signalements Chat global : Ouvrir et Supprimer séparés dans la liste ; Supprimer le signalement dans le détail. Confirmation explicite, route existante, correction de pagination après suppression. Le message source reste indépendant de cette action.
 - `VALIDÉ R998` — Historique Bannières : snapshot absent affiché silencieusement ; retrait des suffixes slot communautaire et source sur Choix communauté ; seuls les candidats avec votes > 0 sont affichés. Snapshot physique R911 intégralement conservé.
 
-Ces décisions sont implémentées dans le candidat correctif `review`, après le premier test public de `81066ba`. Elles n'autorisent aucune mutation publique ni promotion dans ce lot. Contrats : [Arcade](arcade-v1.md), [Administration](administration-moderation-v1.md), [Master](../master/PROJECT_MASTER_PLAN.md).
+R991–R998 ont été approuvées, promues avec 058 puis validées lors de la deuxième recette propriétaire dans le périmètre du Master.
+
+## Deuxième recette — dernier polish UX R999–R1003 (2026-10-01)
+
+- `VALIDÉ R999` — Arcade compact : header visible retiré, h1 accessible conservé ; Règles/Records dans l'arène en haut à droite, Commencer/Rejouer maintenus en bas. Plateaux adaptés dynamiquement à la hauteur disponible.
+- `VALIDÉ R1000` — Quitter stable et disponible pendant ACTIVE, y compris pendant une requête en vol ; la confirmation cible la session, attend puis relit sa version avant QUIT, sans convertir une fin naturelle. Retry ambigu automatique unique de la même intention/clé, puis GET de réconciliation et erreur discrète si incertain ; aucun bouton de retry technique, gardes serveur inchangées.
+- `VALIDÉ R1001` — Présentation Arcade allégée : textes Général demandés, probabilités IA masquées dans Règles, labels d'alignement et chiffres visuels Puissance 4 retirés, ligne Partie libre supprimée, footer XP obtenue/disponible, citation centrée verticalement. Politiques IA, scores, XP et quotas inchangés. Groupes Rôles conservés horizontalement sur desktop avec bouton proche du libellé ; mobile vertical.
+- `VALIDÉ R1002` — Journal : listes déroulantes Domaine/Action issues des couples distincts de l'historique sous garde ADMIN, noms humanisés et valeurs techniques exactes. Action dépend du domaine, page remise à 1 et action incompatible effacée ; résultat vide accepté. Dix lignes/page, détail avant/après et stockage inchangés ; aucune migration.
+- `VALIDÉ R1003` — Records Score : sous-onglets de style secondaire neutre avec actif subtil, plus petits que Personnel/Global/Score ; onglets principaux et classements inchangés.
+
+R999–R1003 sont implémentées par le dernier polish candidat review ; le smoke visuel final propriétaire reste à faire. Aucune mutation publique ni promotion main dans ce lot. Contrats : [Arcade](arcade-v1.md), [Administration](administration-moderation-v1.md), [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Arcade — décisions validées R970–R990 (2026-10-01)
 

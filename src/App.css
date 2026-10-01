@@ -9229,7 +9229,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-domain button, .admin-list button { min-height: 34px; padding: 5px 10px; cursor: pointer; color: #deedff; border: 1px solid rgba(105, 157, 220, .34); border-radius: 8px; background: rgba(28, 72, 119, .5); }
 .admin-domain button:disabled, .admin-list button:disabled { cursor: default; opacity: .5; }
 .admin-domain button.danger, .admin-list button.danger { color: #ffb8b8; border-color: rgba(216, 130, 111, .42); background: rgba(75, 34, 42, .78); }
-.admin-domain input, .admin-domain select, .admin-list input { min-width: 0; min-height: 35px; padding: 5px 9px; color: #e8f2ff; border: 1px solid var(--border); border-radius: 8px; background: rgba(4, 10, 22, .7); }
+.admin-domain input, .admin-domain select, .admin-list input, .admin-list select { min-width: 0; min-height: 35px; padding: 5px 9px; color: #e8f2ff; border: 1px solid var(--border); border-radius: 8px; background: rgba(4, 10, 22, .7); }
+.admin-filters select { cursor:pointer; max-width:100%; font-size:.8rem; }
 .admin-domain label, .admin-list label { min-width: 0; display: grid; gap: 5px; color: var(--muted); font-size: 9px; }
 .admin-domain small, .admin-list small { display: block; color: var(--muted); font-size: 8px; overflow-wrap: anywhere; }
 .admin-subtabs, .admin-filters, .admin-pager { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
@@ -9247,7 +9248,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-pager { justify-content: center; padding-top: 8px; border-top: 1px solid rgba(105, 157, 220, .18); }
 .moderation-grid > .moderation-role { grid-column: 1 / -1; }
 .admin-role-list { display: grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
-.admin-role-list > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.admin-role-list > div { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
+.admin-role-list > div > button { flex: 0 0 auto; width: auto; }
 .admin-banner-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .admin-banner-slots fieldset { min-width: 0; display: grid; gap: 8px; border: 1px solid rgba(105, 157, 220, .25); border-radius: 9px; }
 .admin-domain pre, .admin-audit-detail pre { max-width: 100%; max-height: 260px; overflow: auto; padding: 9px; color: #cce3ff; font-size: 9px; background: rgba(4, 10, 22, .7); }

@@ -17,7 +17,7 @@ function services() {
     banners: { overview: vi.fn(async () => ({})), correct: vi.fn(async () => ({})), retryGeneration: vi.fn(async () => ({})) },
     events: { list: vi.fn(async () => ({ entries: [] })), update: vi.fn(async () => ({})) },
     chat: { list: vi.fn(async () => ({ entries: [] })), detail: vi.fn(async () => ({})), moderate: vi.fn(async () => ({})), deleteReport: vi.fn(async () => ({})) },
-    audit: { list: vi.fn(async () => ({ entries: [] })), detail: vi.fn(async () => ({})) },
+    audit: { list: vi.fn(async () => ({ entries: [], facets: [{ domain: 'roles', action: 'grant-tester' }] })), detail: vi.fn(async () => ({})) },
   };
 }
 
@@ -60,6 +60,16 @@ describe('private administration routes', () => {
     expect(admin.banners.correct).not.toHaveBeenCalled();
     expect(admin.banners.retryGeneration).not.toHaveBeenCalled();
     expect(admin.audit.list).not.toHaveBeenCalled();
+  });
+
+  it('returns real facets and forwards exact combined audit filters behind authentication', async () => {
+    const { app, admin } = await setup();
+    const response = await app.inject({ url: '/api/v1/moderation/audit?page=2&domain=roles&action=grant-tester', headers });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ entries: [], facets: [{ domain: 'roles', action: 'grant-tester' }] });
+    expect(admin.audit.list).toHaveBeenCalledWith(identity, { page: 2, domain: 'roles', action: 'grant-tester' });
+    admin.audit.list.mockRejectedValueOnce(new AppError('Accès interdit.', 403, 'MODERATION_FORBIDDEN'));
+    expect((await app.inject({ url: '/api/v1/moderation/audit', headers })).statusCode).toBe(403);
   });
 
   it('forwards an authenticated role mutation and lets the service deny access', async () => {

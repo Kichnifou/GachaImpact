@@ -23,11 +23,15 @@ export class AdminAuditQueryService {
     await this.operation.actor(identity, 'ADMIN');
     const where: Prisma.AdminAuditEntryWhereInput = { ...(input.domain ? { domain: input.domain } : {}), ...(input.action ? { action: input.action } : {}),
       ...(input.actorId ? { actorPlayerId: input.actorId } : {}), ...(input.targetId ? { targetPlayerId: input.targetId } : {}) };
-    const total = await this.database.adminAuditEntry.count({ where });
+    const [total, facets] = await Promise.all([
+      this.database.adminAuditEntry.count({ where }),
+      // Distinct pairs from all audit history, independent of pagination and selected filters.
+      this.database.adminAuditEntry.groupBy({ by: ['domain', 'action'], orderBy: [{ domain: 'asc' }, { action: 'asc' }] }),
+    ]);
     const page = Math.min(input.page, Math.max(1, Math.ceil(total / 10)));
     const rows = await this.database.adminAuditEntry.findMany({ where, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * 10, take: 10,
       include: { actor: { select: { displayName: true } }, target: { select: { displayName: true } } } });
-    return { page, pageSize: 10, total, totalPages: Math.max(1, Math.ceil(total / 10)), entries: rows.map(row => ({
+    return { page, pageSize: 10, total, totalPages: Math.max(1, Math.ceil(total / 10)), facets, entries: rows.map(row => ({
       id: row.id, actorPlayerId: row.actorPlayerId, actorName: row.actor.displayName, targetPlayerId: row.targetPlayerId,
       targetName: row.target.displayName, domain: row.domain, action: row.action, operationId: row.operationId, createdAt: row.createdAt,
       before: sanitizeAudit(row.before), after: sanitizeAudit(row.after),

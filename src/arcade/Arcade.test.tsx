@@ -41,6 +41,30 @@ beforeEach(() => { vi.resetAllMocks(); api.getArcade.mockResolvedValue(overview(
 afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } vi.useRealTimers() })
 
 describe('Arcade interface and session lifecycle', () => {
+  it.each(['ACTIVE', 'FINISHED'] as const)('queues Quitter behind an ADVANCE and respects its %s outcome', async status => {
+    vi.useFakeTimers()
+    let row = session('CONNECT_FOUR'); row.board.turn = 'AI'
+    api.getArcade.mockImplementation(async () => overview([row]))
+    let resolve!: (value: ArcadeMutation) => void
+    api.actArcade.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+    const { container } = await mount(<ArcadeScreen playerId="player-a" />)
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    const quit = button(container, 'Quitter')
+    expect(quit.closest('.arcade-top-actions')).not.toBeNull()
+    expect(quit.disabled).toBe(false)
+    await click(quit)
+    await click(button(document.body.querySelector('[role="dialog"]')!, 'Confirmer'))
+    expect(api.actArcade).toHaveBeenCalledTimes(1)
+    row = { ...row, status, version: 1 }
+    if (status === 'FINISHED') row.result = { outcome: 'LOSS', performancePoints: 3, scoreAwarded: 3, xpAwarded: 0, operationId: 'finish', businessDate: '2026-10-01', finishedAt: '2026-10-01T11:00:00Z' }
+    api.actArcade.mockResolvedValue(mutation({ ...row, version: 2, status: 'ABANDONED' }))
+    await act(async () => { resolve(mutation(row)); await Promise.resolve(); await Promise.resolve() })
+    await act(async () => { await vi.advanceTimersByTimeAsync(3000) })
+    expect(api.actArcade).toHaveBeenCalledTimes(status === 'ACTIVE' ? 2 : 1)
+    if (status === 'ACTIVE') expect(api.actArcade.mock.calls[1]).toEqual([row.id, expect.objectContaining({ kind: 'QUIT', expectedVersion: 1 })])
+    else expect(container.textContent).toContain('+3 score · +0 XP')
+    expect(container.textContent).not.toContain('Réessayer la même action')
+  })
   it('places Arcade between Event and Contest without changing other activity destinations', () => {
     expect(activityTabs.map(tab => tab.screen)).toEqual(['activities-dailies', 'activities-missions', 'activities-combat', 'activities-event', 'activities-arcade', 'activities-contest'])
     expect(parseNavigationHash('#activities/arcade')).toBe('activities-arcade'); expect(hashForScreen('activities-arcade')).toBe('activities/arcade')
@@ -52,7 +76,10 @@ describe('Arcade interface and session lifecycle', () => {
     await click(button(container, 'Commencer'))
     expect(api.startArcade).toHaveBeenCalledWith({ game: 'MEMORY', difficulty: 'MEDIUM', expectedVersion: 0, previousSessionId: null, idempotencyKey: expect.any(String) })
     expect(container.querySelectorAll('.arcade-memory-card')).toHaveLength(36)
-    expect(container.querySelectorAll('.arcade-header')).toHaveLength(1)
+    expect(container.querySelector('.arcade-header')).toBeNull()
+    expect(container.querySelector('h1')?.className).toBe('sr-only')
+    expect(button(container, 'Règles & gains').closest('.arcade-arena')).not.toBeNull()
+    expect(button(container, 'Records →').closest('.arcade-arena')).not.toBeNull()
     expect(container.querySelector('select')?.disabled).toBe(true)
   })
   it('automatically resumes the active board, locks games and supports arrow navigation without hidden faces', async () => {
@@ -79,12 +106,12 @@ describe('Arcade interface and session lifecycle', () => {
     expect(api.actArcade).not.toHaveBeenCalled()
     await click(button(container, 'Quitter'))
     api.actArcade.mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Réseau interrompu', null))
+      .mockResolvedValueOnce(mutation({ ...row, version: 1, status: 'ABANDONED' }))
     await click(button(document.body.querySelector('[role="dialog"]')!, 'Confirmer'))
     const sent = api.actArcade.mock.calls[0]!
     expect(sent).toEqual([row.id, { kind: 'QUIT', expectedVersion: 0, idempotencyKey: expect.any(String) }])
-    api.actArcade.mockResolvedValue(mutation({ ...row, version: 1, status: 'ABANDONED' }))
-    await click(button(container, 'Réessayer la même action'))
     expect(api.actArcade.mock.calls[1]).toEqual(sent)
+    expect(container.textContent).not.toContain('Réessayer la même action')
     for (const label of ['Memory', 'Puissance 4', 'Morpion']) expect(button(container, label).disabled).toBe(false)
     expect(container.querySelector('.arcade-connect')).toBeNull()
     api.startArcade.mockResolvedValue(mutation({ ...row, id: 'next' }))
@@ -97,9 +124,9 @@ describe('Arcade interface and session lifecycle', () => {
     await click(button(container, 'Quitter'))
     api.getArcade.mockResolvedValue(overview([session('CONNECT_FOUR')]))
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve() })
-    api.actArcade.mockRejectedValueOnce(new ApiError('ARCADE_STALE_VERSION', 'Partie modifiée', 409))
     await click(button(document.body.querySelector('[role="dialog"]')!, 'Confirmer'))
-    expect(api.actArcade).toHaveBeenCalledWith(original.id, expect.objectContaining({ kind: 'QUIT', expectedVersion: 0 }))
+    expect(api.actArcade).not.toHaveBeenCalled()
+    expect(container.querySelector('.arcade-connect')).not.toBeNull()
   })
   it.each(['MEMORY', 'CONNECT_FOUR'] as const)('automatically resumes %s across turns, Records, visibility, feedback and navigation', async game => {
     vi.useFakeTimers()
@@ -148,10 +175,9 @@ describe('Arcade interface and session lifecycle', () => {
     const card = container.querySelector<HTMLButtonElement>('.arcade-memory-card')!
     act(() => { card.click(); card.click() })
     expect(api.actArcade).toHaveBeenCalledTimes(1); expect(card.disabled).toBe(true)
+    api.actArcade.mockResolvedValue({ ...mutation({ ...row, version: 1 }), alreadyProcessed: true })
     await act(async () => reject(new ApiError('NETWORK_ERROR', 'Réseau interrompu', null)))
     const sent = api.actArcade.mock.calls[0]!
-    api.actArcade.mockResolvedValue({ ...mutation({ ...row, version: 1 }), alreadyProcessed: true })
-    await click(button(container, 'Réessayer la même action'))
     expect(api.actArcade.mock.calls[1]).toEqual(sent); expect(publish).toHaveBeenCalledTimes(1)
   })
   it('publishes a pending result after navigation and ignores an obsolete overview response', async () => {
@@ -168,6 +194,36 @@ describe('Arcade interface and session lifecycle', () => {
     expect(mergeArcadeSession([newer], session('MEMORY'))).toEqual([newer])
     expect(mergeArcadeSession([{ ...newer, id: 'new', createdAt: '2026-10-02T00:00:00Z' }], session('MEMORY'))[0]!.id).toBe('new')
   })
+  it.each([true, false])('reconciles after two ambiguous attempts, advanced=%s, without inventing rewards', async advanced => {
+    vi.useFakeTimers()
+    const row = session('MEMORY')
+    api.getArcade.mockResolvedValueOnce(overview([row])).mockResolvedValue(overview([{ ...row, version: advanced ? 1 : 0 }]))
+    api.actArcade.mockRejectedValue(new ApiError('NETWORK_ERROR', 'Réseau interrompu', null))
+    const publish = vi.fn(), { container } = await mount(<ArcadeScreen playerId="player-a" onMutation={publish} />)
+    await click(container.querySelector<HTMLButtonElement>('.arcade-memory-card')!)
+    expect(api.actArcade).toHaveBeenCalledTimes(2)
+    expect(api.actArcade.mock.calls[1]).toEqual(api.actArcade.mock.calls[0])
+    expect(api.actArcade.mock.calls[0]).toEqual([row.id, { kind: 'MOVE', position: 0, expectedVersion: 0, idempotencyKey: expect.any(String) }])
+    expect(api.getArcade).toHaveBeenCalledTimes(2); expect(publish).not.toHaveBeenCalled()
+    expect(container.querySelector('[role="alert"]') !== null).toBe(!advanced)
+    expect(button(container, 'Quitter').disabled).toBe(false)
+    expect(container.textContent).not.toContain('Réessayer la même action')
+    await act(async () => { await vi.advanceTimersByTimeAsync(10000) })
+    expect(api.actArcade).toHaveBeenCalledTimes(2)
+  })
+  it('suspends ADVANCE while Quitter is open and resumes when cancelled', async () => {
+    vi.useFakeTimers()
+    const row = session('MEMORY'); row.board.turn = 'AI'
+    api.getArcade.mockResolvedValue(overview([row]))
+    api.actArcade.mockResolvedValue(mutation({ ...row, version: 1, board: { ...row.board, turn: 'PLAYER' } }))
+    const { container } = await mount(<ArcadeScreen playerId="player-a" />)
+    await click(button(container, 'Quitter'))
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000) })
+    expect(api.actArcade).not.toHaveBeenCalled()
+    await click(button(document.body.querySelector('[role="dialog"]')!, 'Annuler'))
+    await act(async () => { await vi.advanceTimersByTimeAsync(800) })
+    expect(api.actArcade).toHaveBeenCalledTimes(1)
+  })
   it('shows score-only replay status and does not publish a result merely read on arrival', async () => {
     const row = session('MEMORY', 'FINISHED'); row.result = { outcome: 'WIN', performancePoints: 10, scoreAwarded: 10, xpAwarded: 0, operationId: 'finished', businessDate: '2026-10-01', finishedAt: '2026-10-01T11:00:00Z' }
     const state = overview([row]); state.daily[0]!.used = true; state.daily[0]!.xpAwarded = 3; state.scores.MEMORY = '9007199254740993'; state.totalScore = state.scores.MEMORY
@@ -176,6 +232,9 @@ describe('Arcade interface and session lifecycle', () => {
     expect(container.textContent).toContain('+10 score · +0 XP'); expect(container.textContent).toContain('Résultat enregistré')
     expect(container.textContent).toContain(BigInt(state.totalScore).toLocaleString('fr-FR')); expect(publish).not.toHaveBeenCalled()
     expect(button(container, 'Rejouer')).toBeTruthy()
+    expect(button(container, 'Rejouer').closest('.arcade-actions')).not.toBeNull()
+    expect(container.textContent).toContain('XP du jour : obtenue')
+    expect(container.textContent).not.toMatch(/Partie libre|\/ 10|Cercle cyan|Symbole violet/)
   })
 })
 
@@ -228,6 +287,12 @@ describe('Arcade Records', () => {
 })
 
 describe('Arcade rules and board presentation', () => {
+  it('keeps only arrows in column buttons and numbers in accessible labels', async () => {
+    const { container } = await mount(<ArcadeBoards board={session('CONNECT_FOUR').board} disabled={false} onMove={vi.fn()} />)
+    const columns = container.querySelectorAll<HTMLButtonElement>('.arcade-columns button')
+    expect(columns).toHaveLength(7)
+    columns.forEach((column, index) => { expect(column.textContent).toBe('↓'); expect(column.getAttribute('aria-label')).toBe(`Jouer colonne ${index + 1}`) })
+  })
   it('opens rules in a portal, traps/restores focus and closes through Escape or backdrop', async () => {
     api.getArcade.mockResolvedValue(overview([session('MEMORY')]))
     const { container } = await mount(<ArcadeScreen playerId="player-a" />)
@@ -235,11 +300,14 @@ describe('Arcade rules and board presentation', () => {
     trigger.focus(); await click(trigger)
     const dialog = document.body.querySelector<HTMLElement>('[aria-label="Règles & gains"]')!
     expect(container.contains(dialog)).toBe(false); expect(container.querySelector('.arcade-memory')).toBe(board)
-    expect(dialog.textContent).toContain('30 XP par jour')
+    for (const text of ['XP par jour', 'Jusqu’à 10 XP par jeu', '30 XP maximum', 'Score uniquement. Obtenable à l’infini.', 'Deviens le plus fort de tes amis !', 'La partie se conserve tant qu’elle n’est pas terminée.', 'Impossible de jouer à un autre jeu tant qu’une partie n’est pas finie.']) expect(dialog.textContent).toContain(text)
+    expect(dialog.textContent).not.toMatch(/Première fin du jour|XP \+ score pour chaque jeu|Jouez à la souris|Une seule partie active à la fois/)
     const first = dialog.querySelector<HTMLButtonElement>('button')!, last = button(dialog, 'Morpion')
     first.focus(); act(() => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })))
     expect(document.activeElement).toBe(last)
     await click(button(dialog, 'Memory')); expect(dialog.textContent).toContain('12 paires, centre décoratif')
+    expect(dialog.textContent).not.toMatch(/50 %|85 %|100 %/)
+    expect(dialog.textContent).toContain('Toutes les cartes révélées')
     act(() => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
     expect(document.body.querySelector('[role="dialog"]')).toBeNull(); expect(document.activeElement).toBe(trigger)
     await click(trigger); act(() => document.querySelector('.arcade-records-overlay')!.dispatchEvent(new Event('pointerdown', { bubbles: true })))

@@ -1,6 +1,6 @@
 import type { FavorDto, FavorPresenceDto } from './types'
 import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
-import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit } from './admin-types'
+import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit, AdminAuditPage } from './admin-types'
 import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
 import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '../trades/types'
@@ -250,7 +250,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getAdminChatReport: (id: string) => request<AdminChatReport>(`/api/v1/moderation/global-chat-reports/${id}`),
     moderateAdminChatMessage: (id: string, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/global-chat-reports/${id}/moderate`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     deleteAdminChatReport: (id: string, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/global-chat-reports/${id}/delete`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
-    getAdminAudit: (query: Record<string, string | number | undefined> = {}) => request<AdminPage<AdminAudit>>(`/api/v1/moderation/audit?${queryString(query)}`),
+    getAdminAudit: (query: Record<string, string | number | undefined> = {}) => request<AdminAuditPage>(`/api/v1/moderation/audit?${queryString(query)}`),
     getAdminAuditDetail: (id: string) => request<AdminAudit>(`/api/v1/moderation/audit/${id}`),
     getGiveawayState: () => request<GiveawayStateDto>('/api/v1/moderation/giveaway'),
     openGiveaway: (idempotencyKey: string) => request<GiveawayStateDto>('/api/v1/moderation/giveaway/open', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),

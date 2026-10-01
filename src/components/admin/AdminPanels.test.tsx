@@ -201,15 +201,35 @@ describe('Admin panel actions', () => {
     expect(api.deleteAdminChatReport).not.toHaveBeenCalled()
   })
 
+  it('uses real dependent audit options, raw filters and resets pagination', async () => {
+    const facets = [{ domain: 'roles', action: 'grant-tester' }, { domain: 'roles', action: 'revoke-tester' }, { domain: 'gacha', action: 'set-state' }]
+    api.getAdminAudit.mockImplementation(async ({ page: current }) => ({ ...page([]), page: current, totalPages: 2, facets }))
+    const { container } = await mount(<AdminAuditPanel />)
+    const [domain, action] = container.querySelectorAll<HTMLSelectElement>('.admin-filters select')
+    expect(domain).toBeDefined(); expect(action).toBeDefined()
+    expect(container.querySelector('.admin-filters input')).toBeNull()
+    expect(domain!.textContent).toContain('Tous les domaines'); expect(domain!.textContent).toContain('Rôles'); expect(domain!.textContent).toContain('Invocation')
+    selectValue(action!, 'grant-tester'); await act(async () => { await Promise.resolve() })
+    await click(button(container, 'Suivant'))
+    selectValue(domain!, 'roles'); await act(async () => { await Promise.resolve() })
+    expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 1, domain: 'roles', action: 'grant-tester' })
+    expect(action!.textContent).not.toContain('État Gacha modifié')
+    selectValue(domain!, 'gacha'); await act(async () => { await Promise.resolve() })
+    expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 1, domain: 'gacha', action: undefined })
+    expect(action!.value).toBe(''); expect(action!.textContent).toContain('Toutes les actions')
+    selectValue(action!, 'set-state'); await act(async () => { await Promise.resolve() })
+    expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 1, domain: 'gacha', action: 'set-state' })
+    expect(container.textContent).toContain('Aucune entrée.')
+  })
   it('filters the Journal and opens a read-only detail', async () => {
     const entry = { id: 'audit-a', actorPlayerId: 'admin', actorName: 'Admin', targetPlayerId: 'target', targetName: 'Target', domain: 'roles',
       action: 'grant-tester', operationId: 'operation-a', createdAt: '2026-09-01T00:00:00Z', before: { enabled: false }, after: { enabled: true } }
-    api.getAdminAudit.mockResolvedValue(page([entry])); api.getAdminAuditDetail.mockResolvedValue(entry)
+    api.getAdminAudit.mockResolvedValue({ ...page([entry]), facets: [{ domain: 'roles', action: 'grant-tester' }] }); api.getAdminAuditDetail.mockResolvedValue(entry)
     const { container } = await mount(<AdminAuditPanel />)
     expect(container.querySelector('[aria-label="Journal Admin"]')).not.toBeNull()
     expect(container.querySelector('h2')).toBeNull()
     expect(container.querySelector('section')?.firstElementChild?.className).toBe('admin-filters')
-    inputValue(container.querySelector<HTMLInputElement>('.admin-filters input')!, 'roles')
+    selectValue(container.querySelector<HTMLSelectElement>('.admin-filters select')!, 'roles')
     expect(api.getAdminAudit).toHaveBeenLastCalledWith({ page: 1, domain: 'roles', action: undefined })
     await click(button(container, 'Testeur attribué'))
     expect(api.getAdminAuditDetail).toHaveBeenCalledWith('audit-a')

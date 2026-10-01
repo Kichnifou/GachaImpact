@@ -26,3 +26,4 @@ export type AdminChatReport = Readonly<{ id: string; messageId: string; reporter
   reported: { displayName: string }; message: { deletionState: string } }>
 export type AdminAudit = Readonly<{ id: string; actorPlayerId: string; actorName: string; targetPlayerId: string;
   targetName: string; domain: string; action: string; operationId: string; createdAt: string; before: unknown; after: unknown }>
+export type AdminAuditPage = AdminPage<AdminAudit> & Readonly<{ facets: readonly { domain: string; action: string }[] }>

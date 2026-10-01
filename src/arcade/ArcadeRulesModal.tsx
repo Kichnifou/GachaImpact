@@ -14,18 +14,16 @@ export default function ArcadeRulesModal({ onClose }: { onClose: () => void }) {
       <nav aria-label="Règles Arcade">{tabs.map(value => <AppButton key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{value}</AppButton>)}</nav>
       <div className="arcade-rules-body">
         {tab === 'Général' ? <>
-          <div className="arcade-rule-cards"><article><h3>Première fin du jour</h3><p>XP + score pour chaque jeu.</p><strong>Jusqu’à 10 XP par jeu · 30 XP par jour</strong></article>
-            <article><h3>Parties suivantes</h3><p>Score uniquement. Les difficultés partagent le quota du jeu, renouvelé à minuit en Europe/Paris.</p></article>
-            <article><h3>Interruption</h3><p>La partie se conserve et reprend automatiquement à votre retour.</p></article>
-            <article><h3>Quitter</h3><p>Un abandon ne donne ni score, ni XP, ni récompense. Il libère les trois jeux.</p></article></div>
-          <p>Une seule partie active à la fois. Le premier participant est choisi au hasard. Le score est cumulatif et ne donne aucune récompense de classement.</p>
-          <p>Jouez à la souris, au toucher, ou avec les flèches puis Entrée ou Espace.</p>
+          <div className="arcade-rule-cards"><article><h3>XP par jour</h3><p>Jusqu’à 10 XP par jeu</p><strong>30 XP maximum</strong></article>
+            <article><h3>Parties suivantes</h3><p>Score uniquement. Obtenable à l’infini.</p><em>Deviens le plus fort de tes amis !</em></article>
+            <article><h3>Interruption</h3><p>La partie se conserve tant qu’elle n’est pas terminée.</p><p>Impossible de jouer à un autre jeu tant qu’une partie n’est pas finie.</p></article>
+            <article><h3>Quitter</h3><p>Un abandon ne donne ni score ni XP.</p></article></div>
         </> : <>
           {tab === 'Memory' ? <><p>Retrouvez les paires de portraits. Une paire trouvée permet de rejouer ; sinon, mémorisez les deux cartes avant qu’elles soient masquées. Le plus grand nombre de paires gagne.</p>
-            <table><caption>Plateau et mémoire de l’adversaire</caption><thead><tr><th>Difficulté</th><th>Plateau</th><th>Mémoire observée</th></tr></thead><tbody>
-              <tr><th>Facile</th><td>4 × 4 · 8 paires</td><td>4 cartes · utilisation 50 %</td></tr>
-              <tr><th>Moyen</th><td>5 × 5 · 12 paires, centre décoratif</td><td>12 cartes · utilisation 85 %</td></tr>
-              <tr><th>Difficile</th><td>6 × 6 · 18 paires</td><td>36 cartes · utilisation 100 %</td></tr>
+            <table><caption>Plateau et mémoire de l’adversaire</caption><thead><tr><th>Difficulté</th><th>Plateau</th><th>Mémoire de l’adversaire</th></tr></thead><tbody>
+              <tr><th>Facile</th><td>4 × 4 · 8 paires</td><td>4 cartes</td></tr>
+              <tr><th>Moyen</th><td>5 × 5 · 12 paires, centre décoratif</td><td>12 cartes</td></tr>
+              <tr><th>Difficile</th><td>6 × 6 · 18 paires</td><td>Toutes les cartes révélées</td></tr>
             </tbody></table><p>L’adversaire ne connaît que les cartes déjà révélées. Plus de paires améliore vos points ; une victoire rapporte toujours plus qu’une égalité, puis qu’une défaite.</p></>
             : <><p>{tab === 'Puissance 4' ? 'Alignez quatre jetons horizontalement, verticalement ou en diagonale. Choisissez une colonne : la gravité place le jeton sur sa case libre la plus basse.' : 'Alignez trois symboles horizontalement, verticalement ou en diagonale. Vous jouez le cercle cyan, l’adversaire la croix violette.'}</p>
               <p>En Facile, l’adversaire anticipe peu et fait davantage d’erreurs. En Moyen, il prépare plusieurs coups. En Difficile, il explore plus loin et fait moins d’erreurs.</p></>}

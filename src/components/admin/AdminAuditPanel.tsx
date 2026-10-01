@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { getGameApiClient } from '../../api/game-api'
-import type { AdminAudit, AdminPage } from '../../api/admin-types'
+import type { AdminAudit, AdminAuditPage } from '../../api/admin-types'
 import { apiErrorMessage } from '../../utils/formatters'
 import { AdminFeedback, AdminPager } from './AdminUi'
-import { adminAuditTitle } from '../../moderation/admin-audit-presentation'
+import { adminAuditTitle, adminAuditDomain, adminAuditAction } from '../../moderation/admin-audit-presentation'
 
 export default function AdminAuditPanel() {
   const [page, setPage] = useState(1)
   const [domain, setDomain] = useState('')
   const [action, setAction] = useState('')
-  const [list, setList] = useState<AdminPage<AdminAudit> | null>(null)
+  const [list, setList] = useState<AdminAuditPage | null>(null)
   const [detail, setDetail] = useState<AdminAudit | null>(null)
   const [error, setError] = useState('')
+  const facets = list?.facets ?? []
+  const domains = [...new Set([...facets.map(entry => entry.domain), ...(domain ? [domain] : [])])].sort()
+  const actions = [...new Set([...facets.filter(entry => !domain || entry.domain === domain).map(entry => entry.action), ...(action ? [action] : [])])].sort()
   useEffect(() => { let live = true; setError('')
     void getGameApiClient().getAdminAudit({ page, domain: domain || undefined, action: action || undefined })
       .then(value => { if (live) setList(value) }).catch(reason => { if (live) setError(apiErrorMessage(reason)) })
@@ -20,8 +23,12 @@ export default function AdminAuditPanel() {
   const open = async (id: string) => { try { setDetail(await getGameApiClient().getAdminAuditDetail(id)) }
     catch (reason) { setError(apiErrorMessage(reason)) } }
   return <section className="panel admin-list" aria-label="Journal Admin"><AdminFeedback error={error} />
-    <div className="admin-filters"><label>Domaine<input value={domain} onChange={event => { setDomain(event.target.value); setPage(1) }} /></label>
-      <label>Action<input value={action} onChange={event => { setAction(event.target.value); setPage(1) }} /></label></div>
+    <div className="admin-filters"><label>Domaine<select aria-label="Domaine" value={domain} onChange={event => {
+      const next = event.target.value; setDomain(next); setPage(1)
+      if (action && !facets.some(entry => (!next || entry.domain === next) && entry.action === action)) setAction('')
+    }}><option value="">Tous les domaines</option>{domains.map(value => <option key={value} value={value}>{adminAuditDomain(value)}</option>)}</select></label>
+      <label>Action<select aria-label="Action" value={action} onChange={event => { setAction(event.target.value); setPage(1) }}><option value="">Toutes les actions</option>
+        {actions.map(value => <option key={value} value={value}>{adminAuditAction(value)}</option>)}</select></label></div>
     {detail ? <div className="admin-audit-detail"><button type="button" onClick={() => setDetail(null)}>Retour</button><h3>{adminAuditTitle(detail.domain, detail.action)}</h3>
       <p>{new Date(detail.createdAt).toLocaleString('fr-FR')} · {detail.actorName} → {detail.targetName}</p><small>Opération {detail.operationId}</small>
       <div><section><h4>Avant</h4><pre>{JSON.stringify(detail.before, null, 2)}</pre></section><section><h4>Après</h4><pre>{JSON.stringify(detail.after, null, 2)}</pre></section></div></div>

@@ -33,7 +33,7 @@ export default function ArcadeBoards({ board, disabled, onMove }: Props) {
   </div>
   return <div className="arcade-connect" role="group" aria-label="Puissance 4, 7 colonnes et 6 lignes">
     <div className="arcade-columns" onKeyDown={event => navigate(event, 7)}>{Array.from({ length: 7 }, (_, column) => <AppButton key={column} disabled={disabled || board.cells[column] !== null}
-      onClick={() => onMove(column)} aria-label={`Jouer colonne ${column + 1}`}>↓<span>{column + 1}</span></AppButton>)}</div>
+      onClick={() => onMove(column)} aria-label={`Jouer colonne ${column + 1}`}>↓</AppButton>)}</div>
     <div className="arcade-connect-grid">{board.cells.map((side, index) => <span key={index} className={`arcade-disc ${side?.toLowerCase() ?? ''}${board.winningCells.includes(index) ? ' winning' : ''}${board.lastMove === index ? ' last' : ''}`}
       aria-label={`Ligne ${Math.floor(index / 7) + 1}, colonne ${index % 7 + 1} : ${side === 'PLAYER' ? 'vous' : side === 'AI' ? 'adversaire' : 'vide'}`}>{side && <span className={`arcade-token ${side.toLowerCase()}`} aria-hidden="true" />}</span>)}</div>
   </div>
