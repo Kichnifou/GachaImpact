@@ -7,6 +7,8 @@ But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de compren
 
 ## Étape 23 — Arcade, candidat `review`
 
+Candidat Arcade publié : `d2a32fd6ffcc61de49c9789f3bd4a79a6f8309e5`, parent `bf3722e297fc18067cff2265e83f011ed1bbc734`. Son complément Event masque uniquement `.event-game-b-attempts` quand `solvedToday` vaut true, quel que soit le découvreur ; retour au jour suivant couvert. Badge, nom, combinaison, grille, feedback et règles restent conservés. Tests ciblés finaux Arcade/Event **72/72**, dont **63 Event**, et contrôle navigateur Event avant/après découverte à 1920×1080 et 390×844. Ce complément ne change pas la prochaine action : review indépendante ChatGPT, sans promotion ni test public.
+
 [Arcade V1](../specifications/arcade-v1.md) implémente Memory 6×6 à portraits réels et IA sans plateau caché, Puissance 4 et Morpion, trois difficultés, reprise persistée et serveur autoritaire. Scores à chaque fin naturelle, XP seulement à la première fin par jeu/jour Paris, maximum 30/jour, parties libres à score seul. Records Personnel/Global/Score, rangs compétition, pagination dix lignes/page propre et confidentialité GENERAL_STATISTICS. Le pipeline XP/économie/Missions et la modale Level-up existants sont réutilisés, overflow compris ; aucun nouveau producteur Notification. Navigation Activités uniquement entre Événement et Concours.
 
 Migration `20261001010000_057_add_arcade` : quatre tables privées RLS, contraintes d'unicité/état et receipts immuables. Chaîne réelle des 57 migrations déployée et suivie par Prisma dans un schéma isolé ; `migrate status` privé à jour. Le contrôle public en lecture seule annonce exactement 057 en attente, comme prévu ; aucun gameplay/fixture public, aucune promotion ni déploiement volontaire.

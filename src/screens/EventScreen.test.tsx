@@ -448,9 +448,9 @@ describe('EventScreen presentation', () => {
     expect(container.querySelector('.event-game-b-feedback')?.textContent).toBe('Code incorrect : un essai consommé.')
   })
 
-  it('shows the discoverer and removes the action after collective resolution', () => {
-    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: 'discoverer', displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
-    const { container } = mount({ value }); selectGames(container)
+  it.each(['player-1', 'discoverer'])('hides attempts after resolution by %s and restores them on the next unresolved day', (discovererId) => {
+    const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: discovererId, displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
+    const { container, root, props } = mount({ value }); selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
     expect(container.querySelector('.event-game-b')?.textContent).toContain('Découvert par Kyo')
     const winningCode = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).find(({ textContent }) => textContent?.includes('11111'))
@@ -459,7 +459,10 @@ describe('EventScreen presentation', () => {
     expect(winningCode?.classList.contains('tested')).toBe(false)
     expect(container.querySelector('.event-game-b-feedback.success')?.textContent).toContain('Combinaison découverte')
     expect(container.querySelector('.event-game-b-action button')).toBeNull()
+    expect(container.querySelector('.event-game-b-attempts')).toBeNull()
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).every(({ disabled }) => disabled)).toBe(true)
+    act(() => root.render(<EventScreen {...props} value={{ ...afterJoin, businessDate: '2026-09-16' }} />))
+    expect(container.querySelector('.event-game-b-attempts')?.textContent).toContain('3 essais personnels restants')
   })
 
   it('replays an ambiguous Game B response with the same key after the snapshot exhausts attempts', async () => {

@@ -782,6 +782,8 @@ Chat interne / Twitch peuvent fournir une présentation textuelle compacte adapt
 
 La solution correcte reste évidemment secrète tant qu'elle n'a pas été trouvée.
 
+Précision d'affichage du 01/10/2026 : dans le composant commun à tous les mois, la ligne des essais personnels et combinaisons disponibles existe seulement si l'état serveur `gameB.solvedToday === false`. Elle disparaît après découverte, quel que soit le découvreur, puis revient au nouveau jour non résolu. Badge, nom du découvreur, combinaison, grille et feedback sont conservés ; aucun changement de règle, quota ou récompense.
+
 ---
 
 ## R606 — Rattrapage après découverte — ✅ VALIDÉ A
