@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { ApiError, getGameApiClient } from './api/game-api'
+import type { ArcadeMutation } from './api/arcade-types'
 import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
@@ -57,6 +58,8 @@ function AppBootstrap() {
   const [fatalError, setFatalError] = useState<{ userId: string; message: string } | null>(null)
   const [levelUpFeedbacks, setLevelUpFeedbacks] = useState<readonly LevelUpFeedbackEvent[]>([])
   const progressionRef = useRef<PlayerProgressionDto | null>(null)
+  const arcadeAwardIds = useRef(new Set<string>())
+  useEffect(() => { arcadeAwardIds.current.clear() }, [sessionUserId])
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
     () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
   )
@@ -262,6 +265,22 @@ function AppBootstrap() {
     setProgression(published.progression)
     if (published.feedback) setLevelUpFeedbacks((current) => [...current, published.feedback!])
   }, [])
+
+  const publishArcadeMutation = useCallback((result: ArcadeMutation, ownerPlayerId: string) => {
+    const award = result.award
+    if (!award || ownerPlayerId !== player?.id || notificationSessionRef.current !== sessionUserId || arcadeAwardIds.current.has(award.operationId)) return
+    arcadeAwardIds.current.add(award.operationId)
+    if (result.alreadyProcessed || progressionRef.current && BigInt(progressionRef.current.totalXp) > BigInt(award.progression.totalXp)) {
+      // A receipt is immutable; refresh current balances instead of restoring its older snapshot.
+      void Promise.all([getGameApiClient().getResources(), getGameApiClient().getProgression()]).then(([nextResources, nextProgression]) => {
+        if (notificationSessionRef.current !== sessionUserId) return
+        setResources(nextResources); publishProgression(nextProgression, { id: `arcade:${award.operationId}`, emitLevelUpFeedback: false })
+      }).catch(() => { arcadeAwardIds.current.delete(award.operationId) })
+      return
+    }
+    setResources(award.resources)
+    publishProgression(award.progression, { id: `arcade:${award.operationId}`, rewards: award.rewards })
+  }, [player?.id, publishProgression, sessionUserId])
 
   const refreshChatScopes = useCallback(async (scopes: readonly ChatRefreshScope[]) => {
     const api = getGameApiClient()
@@ -559,6 +578,7 @@ function AppBootstrap() {
       onModerationStella={moderateStella}
       onModerationApplied={handleModerationApplied}
       levelUpFeedbacks={levelUpFeedbacks}
+      onArcadeMutation={publishArcadeMutation}
       onLevelUpFeedbackFinished={dismissLevelUpFeedback}
       onLoadTeams={loadTeams}
       onActivateTeam={async (teamId) => { const next = await getGameApiClient().activateTeam(teamId); setTeams(next); return next }}

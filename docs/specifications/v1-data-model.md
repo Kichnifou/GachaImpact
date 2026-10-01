@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Arcade — étape 23
+
+`ArcadeSession` conserve jeu/difficulté/versions, premier participant, état moteur privé et RNG, version de concurrence, cadence et résultat terminal unique (points, XP, date métier, opération). `ArcadeReceipt` lie Player, session, clé, intent et réponse publique immuable. `ArcadeDailyGrant` protège la première fin par Player/jeu/jour Paris, toutes difficultés confondues. `ArcadeStat` conserve score BigInt, compteurs et meilleur résultat par Player/jeu/difficulté. Scores par jeu et total sont dérivés des mêmes agrégats, sans second total autoritatif.
+
+Le snapshot Memory reste privé et indépendant des modifications du catalogue. Aucun modèle de Notification Arcade, monnaie ou historique UI supplémentaire. XP, ressources et Missions restent la propriété de leurs services existants. [Contrat Arcade](arcade-v1.md), [schéma 057](../architecture/postgresql-schema-v1.md#arcade--migration-additive-057) ; statut public dans le Master.
+
 ## Administration / Modération — état physique candidat étape 22
 
 R959–R969 réutilisent `PlayerRoleAssignment`, `AdminAuditEntry`, `BusinessOperation`, `Character`, `PlayerCharacter`, `BannerRotation`/`BannerFeaturedCharacter`, `EventDefinition`/`EventEdition` et `GlobalChatReport`/`GlobalChatMessage`. Aucune migration 057. Les rôles actifs ne sont jamais déduits d'un pseudo. Le dernier ADMIN actif est protégé dans la transaction ; l'audit porte acteur, cible, domaine, action et avant/après. Les corrections de possession ne créent aucun Pull ni statistique ; C6 5★ exige `C6CompetitionProgress`, l'avatar débloqué demeure permanent. Une bannière active corrigée conserve `generationVoteSnapshot` et les Pulls ; sa composition antérieure entre dans l'audit et `legacyProvenance.adminCorrections`. Les éditions Event gardent leur snapshot ; la configuration d'une définition est bloquée dès qu'une édition est en cours ou programmée. Le signalement Chat garde son snapshot privé après modération du message source. Détails dans [Administration / Modération V1](administration-moderation-v1.md).

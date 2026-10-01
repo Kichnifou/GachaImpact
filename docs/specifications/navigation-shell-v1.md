@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Arcade — étape 23
+
+`activities-arcade` / `#activities/arcade` ajoute le seul sous-onglet Arcade entre Événement et Concours. La coque commune conserve les trois plateaux et ouvre Records dans une modale ; [Arcade V1](arcade-v1.md) possède ses règles. Aucun démarrage au changement d'onglet, aucune nouvelle entrée Menu principale, préférence persistée, carte Quotidiennes ou modification Accueil/sidebar/DailyTracker. Entraînement dans Combat garde son nom.
+
 ## Modération — navigation candidate étape 22
 
 La destination globale reste unique. ADMIN voit `Système de jeu | Personnages | Codes | Bannières | Événements | Communauté | Giveaway | Journal` ; MODERATOR voit `Communauté | Giveaway` ; TESTER seul voit `Système de jeu` pour lui-même. Les combinaisons de rôles additionnent leurs droits. Seuls les onglets disponibles existent dans la tablist ARIA et dans la navigation par flèches ; les anciens faux onglets Bannières/Événements désactivés sont remplacés par de vraies surfaces ADMIN. Le browser Player partagé choisit la cible Système/possessions sans changer l'identité de l'acteur. Communauté réunit les dossiers MP et Chat global. Le [contrat Administration V1](administration-moderation-v1.md) porte les permissions et opérations ; le Master porte le statut review/public.
@@ -26,7 +30,7 @@ La barre principale contient exactement sept tuiles, dans cet ordre :
 
 Dans `Profil > Statistiques`, le raccourci `Classements` à côté de `Joueurs` ouvre `#rankings`, pour le profil personnel comme pour celui d'autrui. Il ne présélectionne ni joueur ni métrique.
 
-`Personnages` regroupe, dans cet ordre, `Box | Équipe | Catalogue`. Une nouvelle session ouvre Box par défaut. `Activités` regroupe `Quotidiennes | Missions | Combat | Événement | Concours` et ouvre Quotidiennes par défaut. Le dernier sous-onglet consulté dans chacun de ces deux groupes est retenu seulement en mémoire pour la session courante ; il n’est écrit ni en base ni dans `localStorage`. Un deep link explicite reste prioritaire au chargement.
+`Personnages` regroupe, dans cet ordre, `Box | Équipe | Catalogue`. Une nouvelle session ouvre Box par défaut. `Activités` regroupe `Quotidiennes | Missions | Combat | Événement | Arcade | Concours` et ouvre Quotidiennes par défaut. Le dernier sous-onglet consulté dans chacun de ces deux groupes est retenu seulement en mémoire pour la session courante ; il n’est écrit ni en base ni dans `localStorage`. Un deep link explicite reste prioritaire au chargement.
 
 Les anciennes routes restent compatibles : `#box`, `#team`, `#characters`, `#inventory`, `#shop`, `#bank` et `#moderation`. Les formes canoniques groupées utilisent notamment `#characters/box`, `#characters/team`, `#characters/catalog` et `#activities/dailies`.
 
@@ -36,7 +40,7 @@ Le standard des écrans longs est un grand cadre fermé jusqu’au bord inférie
 
 ## Activités et Quotidiennes
 
-Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | Événement | Concours`.
+Les sous-onglets Activités sont exactement `Quotidiennes | Missions | Combat | Événement | Arcade | Concours`.
 
 - Missions expose depuis le Lot 4 validé publiquement son écran réel `B | A | S | Z`, chargé à la demande. Le candidat Lot 5 ouvre à chaque nouvelle entrée le premier rang incomplet B→A→S, sinon Z, puis respecte les choix manuels du montage ; dans chaque rang, une partition stable place les missions non terminées avant les terminées. B/A/S montrent les progressions serveur ; Z reste accessible au clavier mais ne révèle qu’un message générique tant que le serveur le déclare verrouillé. L’ancienne quotidienne payante est appelée `Défi` et n’est pas assimilée à cet écran.
 - Combat réserve les entrées internes `Entraînement | Boss`.

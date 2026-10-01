@@ -2,6 +2,32 @@
 
 Statut : évolutif.
 
+## Arcade — décisions validées R970–R990 (2026-10-01)
+
+- `VALIDÉ R970` — Nom joueur : Arcade. Les anciennes propositions Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
+- `VALIDÉ R971` — Sous-onglet Activités entre Événement et Concours, sans nouvelle rubrique principale.
+- `VALIDÉ R972` — Memory 6×6 : dix-huit paires de portraits du vrai catalogue, contre une IA qui connaît seulement les cartes révélées.
+- `VALIDÉ R973` — Puissance 4 7×6 contre un adversaire programmé, gravité et quatre alignés selon les règles normales.
+- `VALIDÉ R974` — Morpion 3×3 contre un adversaire programmé, trois alignés selon les règles normales.
+- `VALIDÉ R975` — Facile / Moyen / Difficile pour chacun des trois jeux ; difficulté agit réellement sur l'IA et reste figée dans la partie.
+- `VALIDÉ R976` — Première partie naturelle terminée récompensée en XP par jeu/Player/jour ; quota partagé entre difficultés, y compris défaite et égalité. Pas de consommation à l'ouverture ou interruption.
+- `VALIDÉ R977` — Jusqu'à 10 XP par jeu récompensé, plafond Arcade 30 XP/jour ; barème exact et versionné dans [Arcade V1](arcade-v1.md#points-score-et-xp).
+- `VALIDÉ R978` — Parties supplémentaires libres : score disponible, XP du jour déjà obtenue. `scoreAwarded = performancePoints` à chaque fin ; `xpAwarded = 0` après quota, sans grant XP nul.
+- `VALIDÉ R979` — Trois jeux disponibles quotidiennement dans l'ordre choisi.
+- `VALIDÉ R980` — Scores cumulés par jeu, total égal à leur somme, records personnels et classements globaux.
+- `VALIDÉ R981` — Rejouabilité sans plafond quotidien de score, sans saison/reset, achat, dépense, conversion ou récompense de classement. Le cumul reflète aussi le volume de jeu.
+- `VALIDÉ R982` — Réutiliser la publication et la modale Level-up existantes ; résultat Arcade inline.
+- `VALIDÉ R983` — Présenter les vrais gains de niveaux multiples et d'overflow via les résultats du propriétaire XP, sans recalcul monétaire client.
+- `VALIDÉ R984` — Aucun nouveau producteur Notification Arcade/level-up/tutoriel ; Missions normales conservées sur vraie complétion. Découverte/tutoriel reportée à son étape.
+- `VALIDÉ R985` — Journée Europe/Paris, reset à minuit ; date de fin autoritaire, replay fixé à sa date d'origine.
+- `VALIDÉ R986` — Souris, tactile, clavier ; portraits partagés, cartes cachées sans nom accessible, animations courtes et reduced-motion.
+- `VALIDÉ R987` — Serveur autoritaire sur sessions, coups, IA, RNG, résultats, score et XP ; authentification, propriété, versions, idempotence et transaction atomique obligatoires.
+- `VALIDÉ R988` — Aucune récompense monétaire directe Arcade ; récompenses normales de level-up inchangées.
+- `VALIDÉ R989` — Aucun historique détaillé player-facing ; modale Records Personnel / Global / Score suffisante. Preuves internes durables conservées.
+- `VALIDÉ R990` — Aucune carte Arcade dans Quotidiennes, aucune modification Accueil/sidebar/DailyTracker.
+
+Le [contrat Arcade V1](arcade-v1.md) précise moteurs, politiques IA bornées, reprise, barème, confidentialité GENERAL_STATISTICS, rangs/page personnelle et migration additive 057 autorisée pour ce domaine. L'interdiction de 057 propre au lot Admin ne s'applique pas à Arcade.
+
 ## Administration / Modération complète — décisions validées R959–R969 (2026-09-30)
 
 - `VALIDÉ R959` — ADMIN attribue et révoque TESTER, MODERATOR et ADMIN depuis les rôles persistés. Le dernier ADMIN actif ne peut jamais être retiré, y compris en concurrence. Un ADMIN peut retirer son propre rôle si un autre reste actif. Vérification backend dans la transaction, audit et idempotence obligatoires ; confirmation forte UI pour ADMIN/MODERATOR. Kichnifou n'est pas une identité codée en dur.

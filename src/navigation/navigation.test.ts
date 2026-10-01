@@ -5,7 +5,7 @@ describe('navigation shell registry', () => {
   it('keeps exactly seven ordered main destinations and grouped secondary tabs', () => {
     expect(mainNavigation.map(({ label }) => label)).toEqual(['Accueil', 'Invocation', 'Personnages', 'Activités', 'Sac', 'Boutique', 'Configuration'])
     expect(characterTabs.map(({ label }) => label)).toEqual(['Box', 'Équipe', 'Catalogue'])
-    expect(activityTabs.map(({ label }) => label)).toEqual(['Quotidiennes', 'Missions', 'Combat', 'Événement', 'Concours'])
+    expect(activityTabs.map(({ label }) => label)).toEqual(['Quotidiennes', 'Missions', 'Combat', 'Événement', 'Arcade', 'Concours'])
   })
   it.each([
     ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#rankings', 'rankings'], ['#history', 'history'], ['#moderation', 'moderation'],

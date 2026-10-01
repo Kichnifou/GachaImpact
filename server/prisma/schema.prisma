@@ -351,6 +351,10 @@ model ResourceDefinition {
 }
 
 model Player {
+  arcadeSessions ArcadeSession[]
+  arcadeReceipts ArcadeReceipt[]
+  arcadeDailyGrants ArcadeDailyGrant[]
+  arcadeStats ArcadeStat[]
   tradesSent TradeRequest[] @relation("TradeSender")
   tradesReceived TradeRequest[] @relation("TradeRecipient")
   id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -1284,6 +1288,9 @@ model TwitchEventReceipt {
 }
 
 model BusinessOperation {
+  arcadeReceipt ArcadeReceipt?
+  arcadeFinalization ArcadeSession? @relation("ArcadeFinalization")
+  arcadeDailyGrant ArcadeDailyGrant?
   tradeRequest TradeRequest?
   tradeExecution TradeExecution?
   id                 String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -2722,4 +2729,87 @@ model BossReward {
   @@index([playerId, awardedAt(sort: Desc)], map: "boss_rewards_player_idx")
   @@index([operationId], map: "boss_rewards_operation_idx")
   @@map("boss_rewards")
+}
+
+model ArcadeSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  game String @db.Text
+  difficulty String @db.Text
+  status String @default("ACTIVE") @db.Text
+  rulesVersion Int @default(1) @map("rules_version")
+  scoringVersion Int @default(1) @map("scoring_version")
+  version Int @default(0)
+  firstSide String @map("first_side") @db.Text
+  privateState Json @map("private_state") @db.JsonB
+  randomState BigInt @map("random_state")
+  banterId String @map("banter_id") @db.Text
+  nextActionAt DateTime @map("next_action_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(6)
+  outcome String? @db.Text
+  performancePoints Int? @map("performance_points")
+  xpAwarded Int? @map("xp_awarded")
+  businessDate DateTime? @map("business_date") @db.Date
+  finishOperationId String? @unique @map("finish_operation_id") @db.Uuid
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  finishOperation BusinessOperation? @relation("ArcadeFinalization", fields: [finishOperationId], references: [id], onDelete: Restrict)
+  receipts ArcadeReceipt[]
+  dailyGrant ArcadeDailyGrant?
+  records ArcadeStat[]
+  @@index([playerId, game, createdAt(sort: Desc)], map: "arcade_sessions_player_game_created_idx")
+  @@map("arcade_sessions")
+}
+
+model ArcadeReceipt {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  idempotencyKey String @map("idempotency_key") @db.Uuid
+  fingerprint String @db.Text
+  operationId String @unique @map("operation_id") @db.Uuid
+  response Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  session ArcadeSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  @@unique([playerId, idempotencyKey])
+  @@index([sessionId], map: "arcade_receipts_session_idx")
+  @@map("arcade_receipts")
+}
+
+model ArcadeDailyGrant {
+  playerId String @map("player_id") @db.Uuid
+  game String @db.Text
+  businessDate DateTime @map("business_date") @db.Date
+  sessionId String @unique @map("session_id") @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  xpAwarded Int @map("xp_awarded")
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  session ArcadeSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  @@id([playerId, game, businessDate])
+  @@map("arcade_daily_grants")
+}
+
+model ArcadeStat {
+  playerId String @map("player_id") @db.Uuid
+  game String @db.Text
+  difficulty String @db.Text
+  score BigInt @default(0)
+  played BigInt @default(0)
+  wins BigInt @default(0)
+  draws BigInt @default(0)
+  losses BigInt @default(0)
+  bestPoints Int @map("best_points")
+  bestPairs Int? @map("best_pairs")
+  bestOutcome String @map("best_outcome") @db.Text
+  bestSessionId String @map("best_session_id") @db.Uuid
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  bestSession ArcadeSession @relation(fields: [bestSessionId], references: [id], onDelete: Restrict)
+  @@id([playerId, game, difficulty])
+  @@index([game, difficulty, bestPoints(sort: Desc), bestPairs(sort: Desc), playerId], map: "arcade_stats_record_idx")
+  @@index([game, score(sort: Desc), playerId], map: "arcade_stats_score_idx")
+  @@map("arcade_stats")
 }

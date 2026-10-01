@@ -6,6 +6,7 @@ export type LevelUpReward = Readonly<{ resourceKey: string; amount: string }>
 export type LevelUpFeedbackEvent = Readonly<{
   id: string
   levelsGained: number
+  overflowRewardsGranted?: number
   rewards: readonly LevelUpReward[]
 }>
 
@@ -15,7 +16,9 @@ export function buildLevelUpFeedback(
   rewards: readonly LevelUpReward[],
   id: string,
 ): LevelUpFeedbackEvent | null {
-  if (!previous || next.level <= previous.level) return null
+  if (!previous) return null
+  const overflowRewardsGranted = Math.max(0, next.level100OverflowRewardsClaimed - previous.level100OverflowRewardsClaimed)
+  if (next.level <= previous.level && !overflowRewardsGranted) return null
   const totals = new Map<string, bigint>()
   for (const reward of rewards) {
     const amount = BigInt(reward.amount)
@@ -24,6 +27,7 @@ export function buildLevelUpFeedback(
   return {
     id,
     levelsGained: next.level - previous.level,
+    ...(overflowRewardsGranted ? { overflowRewardsGranted } : {}),
     rewards: [...totals].map(([resourceKey, amount]) => ({ resourceKey, amount: amount.toString() })),
   }
 }
@@ -34,7 +38,8 @@ export function gachaLevelRewards(pull: GachaPullDto): readonly LevelUpReward[] 
     .map(({ resourceKey, amount }) => ({ resourceKey, amount })))
 }
 
-export function levelUpTitle(levelsGained: number): string {
+export function levelUpTitle(levelsGained: number, overflowRewardsGranted = 0): string {
+  if (overflowRewardsGranted) return `${levelsGained ? `${levelsGained} niveau${levelsGained > 1 ? 'x' : ''} gagné${levelsGained > 1 ? 's' : ''} · ` : ''}${overflowRewardsGranted} palier${overflowRewardsGranted > 1 ? 's' : ''} au niveau 100`;
   return levelsGained === 1 ? 'Niveau supérieur !' : `${levelsGained} niveaux gagnés !`
 }
 

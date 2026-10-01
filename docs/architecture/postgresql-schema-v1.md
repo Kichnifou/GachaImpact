@@ -1,5 +1,13 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Arcade — migration additive 057
+
+`20261001010000_057_add_arcade` ajoute quatre tables privées : `arcade_sessions`, `arcade_receipts`, `arcade_daily_grants`, `arcade_stats`. L'état JSONB moteur/RNG appartient uniquement à la session ; sa projection masque les cartes Memory cachées. Le résultat terminal est stocké dans la session, avec opération finale unique. Index partiel `(player_id, game) WHERE status = 'ACTIVE'`, unicité receipt `(player_id, idempotency_key)` et opération, grant PK `(player_id, game, business_date)` et session/opération uniques, stats PK `(player_id, game, difficulty)` avec référence du meilleur résultat. Score et compteurs sont BIGINT, sérialisés en décimal ; pas de total Arcade stocké séparément.
+
+CHECK sur valeurs jeu/difficulté/statut, compteurs, points, état terminal cohérent ; FK et index de listes/records. Les quatre tables ont RLS activée, aucun accès direct PUBLIC/anon/authenticated (`REVOKE ALL`). L'autorité Player et le verrou SERIALIZABLE protègent les mutations backend. [Arcade V1](../specifications/arcade-v1.md) porte quota, classement, protocole et rétention des preuves.
+
+Validation du lot : chaîne réelle de 57 migrations déployée avec Prisma dans un schéma privé isolé, puis `migrate status` à jour. **Public reste à 056 ; 057 est volontairement en attente.** Aucune application publique, écriture manuelle du registre ou fixture publique dans ce lot.
+
 ## Étape 22 — réutilisation du schéma privé
 
 Le candidat Administration/Modération R959–R969 n'ajoute ni migration 057 ni objet physique : `player_role_assignments` (unicité partielle des rôles actifs), `business_operations`, `admin_audit_entries`, `characters`, `player_characters`, `banner_rotations`/`banner_featured_characters`, `event_definitions`/`event_editions` et `global_chat_reports`/`global_chat_messages` suffisent. Les tables privées conservent RLS et absence de grant navigateur. Les corrections sont des opérations backend transactionnelles ; aucun éditeur SQL/JSON générique n'est exposé. Voir [le contrat Administration V1](../specifications/administration-moderation-v1.md).

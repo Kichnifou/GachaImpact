@@ -17,10 +17,13 @@ import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '.
 import { eventCurrencyLabel, eventHasActionableContentToday, eventNextDailyDestination, type EventDailyDestination, type EventDailyOpenIntent } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
 import EventScreen from './EventScreen'
+import ArcadeScreen, { type ArcadeScreenProps } from './ArcadeScreen'
 import MissionsScreen from './MissionsScreen'
 import type { EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
 
 type ActivitiesScreenProps = {
+  onArcadeMutation?: ArcadeScreenProps['onMutation']
+  arcadeFeedbackPending?: boolean
   favor?: FavorDto | null
   favorError?: boolean
   friendship?: { earnedPrimogemsToday?: string; activeFriends: number; available: number; alreadySent: number }
@@ -102,6 +105,7 @@ function ActivitiesScreen(props: ActivitiesScreenProps) {
   if (screen === 'activities-dailies') return <DailiesScreen {...props} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} expedition={expedition} onOpenBoss={onOpenBoss} />
   if (screen === 'activities-missions' && props.onLoadMissions) return <MissionsScreen onLoad={props.onLoadMissions} />
   if (screen === 'activities-combat') return <DailyCombatScreen value={dailyCombat} box={dailyCombatBox} onSetSlot={onSetDailyCombatSlot} onRemoveSlot={onRemoveDailyCombatSlot} onCopyActive={onCopyActiveTeamToDailyCombat} onAuto={onAutoSelectDailyCombat} onClear={onClearDailyCombatLoadout} onFight={onFightDailyCombat} monthlyBoss={monthlyBoss} bossRequestToken={bossRequestToken} onSetBossSlot={onSetMonthlyBossSlot} onRemoveBossSlot={onRemoveMonthlyBossSlot} onCopyActiveToBoss={onCopyActiveTeamToMonthlyBoss} onClearBoss={onClearMonthlyBossLoadout} onAttackBoss={onAttackMonthlyBoss} onLoadBossHistory={onLoadMonthlyBossHistory} />
+  if (screen === 'activities-arcade') return <ArcadeScreen key={props.sessionUserId} playerId={props.sessionUserId} onMutation={props.onArcadeMutation} feedbackPending={props.arcadeFeedbackPending} />
   if (screen === 'activities-contest') {
     const unchanged = async () => contest
     const emptyHistory = async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] as const })

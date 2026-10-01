@@ -33,9 +33,9 @@ function LevelUpFeedback({ event, onFinished, title, rewardLabel }: { event: Lev
   }, [dismissible, finish])
 
   return <div className={`level-up-feedback-overlay${dismissible ? ' dismissible' : ''}`} onClick={() => { if (dismissible) finish() }}>
-    <section className="level-up-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label={title ?? levelUpTitle(event.levelsGained)}>
+    <section className="level-up-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label={title ?? levelUpTitle(event.levelsGained, event.overflowRewardsGranted)}>
       <span className="level-up-feedback-kicker">{title ? 'Événement' : 'Progression'}</span>
-      <strong>{title ?? levelUpTitle(event.levelsGained)}</strong>
+      <strong>{title ?? levelUpTitle(event.levelsGained, event.overflowRewardsGranted)}</strong>
       {rewardLabel ? <small>{rewardLabel}</small> : event.rewards.length > 0 && <small>{event.rewards.map(levelUpRewardLabel).join(' · ')}</small>}
     </section>
   </div>

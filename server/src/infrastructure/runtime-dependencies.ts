@@ -6,6 +6,8 @@ import { HistoryService } from '../application/history/history-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
+import { ArcadeService } from '../application/arcade/arcade-service.js';
+import { ArcadeRecords } from '../application/arcade/arcade-records.js';
 import { CurrentPlayerFavorService } from '../application/favor/current-player-favor-service.js';
 import { FavorService } from '../application/favor/favor-service.js';
 import { GetCurrentPlayerResources } from '../application/player/get-current-player-resources.js';
@@ -240,6 +242,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     socialService: new SocialService(getCurrentPlayer, database, clock),
     appearanceService: new AppearanceService(database, getCurrentPlayer),
     rankingService: new RankingService(database),
+    arcadeService: new ArcadeService(database, getCurrentPlayer, clock),
+    arcadeRecords: new ArcadeRecords(database),
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService)),

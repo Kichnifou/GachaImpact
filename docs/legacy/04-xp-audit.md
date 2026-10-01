@@ -244,10 +244,7 @@ Si la montée de niveau est provoquée par de l'XP gagnée via un message :
 - Twitch peut présenter les commandes adaptées à Twitch ;
 - le chat interne GachaImpact peut présenter les commandes ou accès adaptés au jeu.
 
-Si la montée de niveau est provoquée par l'XP du futur mode dédié de l'interface :
-- ne pas envoyer artificiellement un message de chat ;
-- créer une notification dans la zone **Notifications** en haut à droite de l'interface ;
-- la notification indique la fonctionnalité à découvrir et oriente le joueur vers l'écran correspondant.
+Pour l'XP interface, la décision ultérieure **Arcade R982–R984** précise : aucun message Chat artificiel, aucune nouvelle notification de level-up ou découverte. La modale Level-up partagée présente les gains ; découverte et tutoriels attendent leur étape dédiée.
 
 La progression tutorielle reste donc commune, tandis que son rendu dépend du contexte ayant déclenché la montée de niveau.
 
@@ -292,13 +289,10 @@ Un gain d'XP important, notamment via le futur mode XP de l'interface, peut fair
 Dans ce cas :
 - toutes les récompenses intermédiaires doivent être attribuées ;
 - aucune récompense de niveau traversé ne doit être perdue ;
-- toutes les découvertes/tutoriels concernés restent déclenchés ;
+- les découvertes/tutoriels restent une cible du lot Tutoriel ; Arcade R984 ne les déclenche pas ;
 - l'interface doit rendre clairement visible le nombre de niveaux gagnés et les récompenses correspondantes.
 
-Pour une montée via le futur mode XP interface :
-- une notification peut être ajoutée à la liste Notifications pour chaque niveau franchi ;
-- plusieurs niveaux gagnés peuvent donc produire plusieurs notifications successives ;
-- ces notifications utilisent le système de notifications déjà prévu dans la coque frontend.
+Pour une montée via Arcade, **R982–R984 remplace l'ancienne intention de notifications par niveau** : une synthèse dans la modale Level-up existante présente les gains réels, y compris niveaux multiples et overflow. Aucune nouvelle notification persistante ; les notifications Missions normales restent possibles sur vraie complétion.
 
 L'attribution XP, le calcul des niveaux, les récompenses et l'état de progression associé devront être traités de manière atomique côté serveur afin d'éviter les doubles gains lors d'un retry ou d'une requête répétée.
 
@@ -340,7 +334,7 @@ Cette information est indispensable pour éviter de redonner des récompenses hi
 - conserver exactement la valeur legacy de `level100OverflowRewardsClaimed` lors de la migration ;
 - le futur modèle peut renommer ou représenter différemment cette information, mais doit préserver un état métier équivalent ;
 - si plusieurs paliers d'overflow sont franchis en une seule attribution d'XP, toutes les récompenses correspondantes sont données ;
-- l'interface doit indiquer clairement qu'il y a eu plusieurs récompenses de niveau maximum, par exemple via une multiplicité explicite ou plusieurs entrées adaptées dans le système de notifications ;
+- l'interface doit indiquer clairement la multiplicité des récompenses de niveau maximum ; Arcade R983 utilise la modale Level-up existante, sans nouvelle notification ;
 - le niveau reste plafonné à 100 pour la V1 actuelle.
 
 Idée future uniquement :
@@ -811,11 +805,7 @@ Ainsi, exécuter une même action via l'interface, le chat interne ou Twitch ne 
 
 GachaImpact standalone disposera d'une **activité ou d'un mode dédié au gain d'XP**, afin qu'un joueur puisse progresser normalement sans être obligé d'écrire dans le chat.
 
-Direction retenue :
-- activité accessible depuis l'interface ;
-- probablement composée de petits mini-jeux / épreuves rapides ;
-- quantité maximale d'XP gagnable par ce mode chaque jour ;
-- le nom du mode, les mini-jeux exacts, le plafond quotidien et l'équilibrage restent à concevoir plus tard.
+Décision définitive **R970–R990** : [Arcade V1](../specifications/arcade-v1.md), Memory 6×6, Puissance 4 et Morpion, trois difficultés. Première partie naturelle terminée par jeu et jour Europe/Paris : jusqu'à 10 XP, maximum 30 XP Arcade/jour. Les difficultés partagent le quota ; après celui-ci, les parties donnent encore leur score. Le barème détaillé et les règles sont portés par la source Arcade.
 
 ### Cumul des sources
 
@@ -860,10 +850,7 @@ Si le niveau est gagné grâce à l'XP provenant d'un message Twitch ou du chat 
 
 ### Montée de niveau via le mode XP de l'interface
 
-Si le niveau est gagné grâce au futur mode XP dédié à l'interface :
-- une notification est créée dans la zone Notifications en haut à droite ;
-- elle présente la fonctionnalité à découvrir ;
-- elle indique/oriente vers l'écran concerné.
+Si le niveau est gagné grâce à Arcade, la modale Level-up existante présente les gains. **R984** reporte découverte/tutoriel à son étape : aucune notification ni redirection de découverte créée dans ce lot. Cette décision remplace l'ancienne intention de notification du mode XP interface.
 
 Les niveaux historiques 1 à 10 servent de base à cette progression tutorielle.
 
@@ -979,17 +966,10 @@ Conserver l'état historique `level100OverflowRewardsClaimed` ou un équivalent 
 
 Si une attribution d'XP franchit plusieurs niveaux :
 - toutes les récompenses intermédiaires sont accordées ;
-- tous les tutoriels/découvertes concernés sont traités ;
+- les tutoriels/découvertes sont réservés à leur lot dédié, sans producteur Arcade R984 ;
 - le retour visuel doit montrer clairement les multiples niveaux gagnés.
 
-Le futur mode XP interface peut donc par exemple donner 100 XP et faire franchir plusieurs niveaux d'un coup.
-
-Dans l'interface actuelle, une liste de notifications existe déjà dans la cloche du header. Elle utilise encore des données `mockData` et n'est pas encore reliée à un vrai backend.
-
-Direction future :
-- les montées de niveau provoquées par le mode XP pourront alimenter cette vraie liste de notifications ;
-- plusieurs niveaux gagnés peuvent produire plusieurs notifications ;
-- les données factices actuelles seront remplacées ultérieurement par les notifications réelles du serveur.
+Le propriétaire XP et le feedback partagé supportent des gains multiples ; Arcade V1 attribue toutefois au plus 10 XP par partie récompensée. La cloche est désormais reliée au backend, mais **R982–R984** n'y ajoute aucun producteur Arcade/level-up/tutoriel. La présentation des récompenses réelles passe par la modale Level-up partagée. Les découvertes attendent le lot Tutoriel.
 
 Au niveau 100, plusieurs paliers d'overflow gagnés simultanément doivent eux aussi être présentés clairement au joueur.
 
@@ -997,7 +977,7 @@ Au niveau 100, plusieurs paliers d'overflow gagnés simultanément doivent eux a
 
 Les actions ordinaires donnent exactement 0 XP direct : Pull, Combat quotidien, Boss mensuel, Expedition, Banque, Boutique, Quotidiennes et actions comparables. Cette règle est identique en UI, chat interne et futur canal Twitch ; invoquer une logique métier depuis un autre canal ne transforme jamais cette action en source XP.
 
-La future source XP standalone sera une activité expressément dédiée, composée de vrais mini-jeux ou épreuves autonomes et de tentatives quotidiennes limitées. Le nombre de tentatives et le gain exact `X` restent à décider. La cible d’équilibrage est qu’une bonne performance fournisse environ 30 XP par jour, soit approximativement un niveau au barème actuel. Cette XP se cumule avec l’XP éligible du chat interne et de Twitch.
+Cette source est désormais spécifiée et implémentée dans le candidat [Arcade V1](../specifications/arcade-v1.md) R970–R990 : première partie terminée par jeu/jour Paris, maximum 30 XP/jour pour les trois jeux, tentatives supplémentaires à score seul. Le statut public appartient au Master. L'XP se cumule avec les autres sources éligibles, sans activer Twitch.
 
 Cette clarification est documentaire uniquement : le candidat 0.91 n’ajoute aucun code, route, table, migration ou producteur XP.
 

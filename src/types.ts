@@ -8,6 +8,7 @@ export type ScreenId =
   | 'activities-missions'
   | 'activities-combat'
   | 'activities-event'
+  | 'activities-arcade'
   | 'activities-contest'
   | 'bank'
   | 'inventory'

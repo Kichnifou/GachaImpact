@@ -1,4 +1,5 @@
 import type { FavorDto, FavorPresenceDto } from './types'
+import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
 import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit } from './admin-types'
 import type { SocialActions, Access, DirectoryPage, Profile, ConnectedPlayers, PrivacySettings, FriendsSnapshot, HeartResult, FriendSort } from '../social/types'
 import { loadFrontendConfig } from '../config/environment'
@@ -235,6 +236,11 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     updateAdminCharacter: (id: string, input: Partial<AdminCharacterFields> & { idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/characters/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     getAdminPossessions: (playerId: string, page = 1, search = '', rarity?: string, elementKey?: string) => request<AdminPage<AdminPossession>>(`/api/v1/moderation/players/${playerId}/characters?${queryString({ page, search, rarity, elementKey })}`),
     changeAdminPossession: (playerId: string, characterId: string, input: { action: 'add' | 'remove' | 'constellation'; constellation?: number; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/characters/${characterId}`, { method: 'POST', body: JSON.stringify(input) }),
+    getArcade: () => request<ArcadeOverview>('/api/v1/arcade'),
+    getArcadeSession: (id: string) => request<ArcadeSession>(`/api/v1/arcade/sessions/${id}`),
+    startArcade: (input: ArcadeStart) => request<ArcadeMutation>('/api/v1/arcade/sessions', { method: 'POST', body: JSON.stringify(input) }),
+    actArcade: (id: string, input: ArcadeAction) => request<ArcadeMutation>(`/api/v1/arcade/sessions/${id}/actions`, { method: 'POST', body: JSON.stringify(input) }),
+    getArcadeRecords: (query: ArcadeRankingQuery) => request<ArcadeRanking>(`/api/v1/arcade/records?${new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined).map(([key, value]) => [key, String(value)]))}`),
     getAdminBanners: () => request<AdminBannerOverview>('/api/v1/moderation/banners'),
     correctAdminBanner: (rotationId: string, input: { fiveStarIds: string[]; fourStarIds: string[]; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/banners/${rotationId}/correct`, { method: 'POST', body: JSON.stringify(input) }),
     retryAdminBanner: (idempotencyKey: string, expectedWeekStartsAt: string) => request<AdminMutationDto>('/api/v1/moderation/banners/retry-generation', { method: 'POST', body: JSON.stringify({ idempotencyKey, expectedWeekStartsAt }) }),
