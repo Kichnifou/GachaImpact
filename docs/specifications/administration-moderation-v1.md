@@ -1,6 +1,6 @@
 # Administration et modération V1 — étape 22
 
-Étape 22 promue avec Arcade sur `81066badca66ac054d7dc515005eda6d10a8b913`. Le premier test public confirme le chargement des huit onglets et le retrait/rétablissement de TESTER sur Kichnifou, audits correspondants présents ; ses rôles ADMIN/MODERATOR/TESTER sont conservés. Les corrections de présentation R995–R998 restent candidates sur `review`, à reviewer puis recetter avant clôture définitive. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
+Étape 22 promue avec Arcade sur `81066badca66ac054d7dc515005eda6d10a8b913`. Le premier test public confirme le chargement des huit onglets et le retrait/rétablissement de TESTER sur Kichnifou, audits correspondants présents ; ses rôles ADMIN/MODERATOR/TESTER sont conservés. Les corrections de présentation R995–R998 du commit `cb7b2a45679985a867ae6ef29b092a63f512449f` sont approuvées en review indépendante ChatGPT, prêtes à promotion technique ; le public reste au checkpoint 81066ba et la recette propriétaire du correctif précédera la clôture définitive. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
 
 ## Accès et navigation
 

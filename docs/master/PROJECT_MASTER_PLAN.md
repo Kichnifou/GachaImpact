@@ -1,13 +1,13 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : premier test public Administration/Arcade acquis sur 81066ba ; correctif R991–R998 candidat review, sans promotion ; Twitch générique en pause R942.
+Version : premier test public Administration/Arcade acquis sur 81066ba ; correctif R991–R998 approuvé en review indépendante, promotion technique autorisée ; Twitch générique en pause R942.
 Date : 2026-10-01
-Statut : étape **21 Notifications clôturée** dans le périmètre du smoke test documenté ; étapes **22 Administration et 23 Arcade promues publiquement sur `81066badca66ac054d7dc515005eda6d10a8b913`**, Railway SUCCESS sur ce SHA selon la preuve propriétaire. Premier test public effectué, cœur métier Arcade confirmé par les preuves ci-dessous. Les corrections UX/cycle de vie/Memory sont candidates sur `review` ; **22 et 23 ne sont pas définitivement clôturées avant recette du correctif**. Prochaine action : **review indépendante ChatGPT du commit correctif**, sans promotion `main` et sans commencer l'étape 24. Public reste à **057**, 058 testée uniquement en privé. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif.
+Statut : étape **21 Notifications clôturée** dans le périmètre du smoke test documenté ; étapes **22 Administration et 23 Arcade promues publiquement sur `81066badca66ac054d7dc515005eda6d10a8b913`**, Railway SUCCESS sur ce SHA selon la preuve propriétaire. Premier test public effectué, cœur métier Arcade confirmé par les preuves ci-dessous. Le correctif `cb7b2a45679985a867ae6ef29b092a63f512449f` et les décisions R991–R998 sont **approuvés en review indépendante ChatGPT** ; sa migration 058 est prête à promotion. **22 et 23 ne sont pas définitivement clôturées avant recette du correctif**. Au présent checkpoint documentaire, le public reste à **057**, 058 testée uniquement en privé. Prochaine action : **promotion technique stricte, puis recette propriétaire**, sans commencer l'étape 24. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
 ## Étapes 22/23 — premier test public et correctif candidat
 
-**Gate initial exécuté :** fetch, branche locale `review`, worktree propre, HEAD/origin/main/origin/review tous à `81066badca66ac054d7dc515005eda6d10a8b913`, divergence 0/0. Ce correctif ajoute un commit dédié sur `review` ; `main` reste sur ce SHA. La review indépendante des implémentations précédentes demeure acquise : Administration `033f98ce7552b7ff47f77d68010a17ed9298cd7e` puis `bf3722e297fc18067cff2265e83f011ed1bbc734`, Arcade `d2a32fd6ffcc61de49c9789f3bd4a79a6f8309e5`, correction Event `95beab5d071bef47ccd96546768061403319bd7c`. Elle ne couvre pas automatiquement ce nouveau correctif.
+**Chaîne approuvée :** `81066badca66ac054d7dc515005eda6d10a8b913` → `cb7b2a45679985a867ae6ef29b092a63f512449f` → présent checkpoint documentaire. La review indépendante ChatGPT du vrai correctif GitHub est acquise ; les validations antérieures Administration `033f98ce7552b7ff47f77d68010a17ed9298cd7e` puis `bf3722e297fc18067cff2265e83f011ed1bbc734`, Arcade `d2a32fd6ffcc61de49c9789f3bd4a79a6f8309e5` et Event `95beab5d071bef47ccd96546768061403319bd7c` restent acquises dans leurs périmètres. Lecture publique préalable : aucun Player avec plusieurs sessions ACTIVE ; aucune correction de données effectuée.
 
 ### Preuves publiques conservées
 
@@ -41,7 +41,7 @@ Inspection Chromium locale avec GameShell complet, sidebar/chat et CSS de produc
 
 Inspection complémentaire à 1920×1080 et 390×844 : Journal dix lignes et détail, signalements Chat liste/détail/confirmation annulée, Historique Bannières avec snapshot absent et votes 2/1/0. Aucun vote zéro affiché, aucune exception de page après correction du mock MP du harness ; aucune requête externe autorisée.
 
-Les documents source Arcade, Administration, navigation, décisions, Gacha/XP, architecture backend/PostgreSQL et modèle V1 sont actualisés dans le même lot. Roadmap et ordre macro restent inchangés : aucune étape 24, aucun nouveau domaine. Import autonome Personnages + Assets reste une dette volontaire. Prochaine étape : **review indépendante ChatGPT sur le vrai commit `review` et son diff**, puis mission explicite de promotion/recette si approuvée.
+Les documents source Arcade, Administration, navigation, décisions, Gacha/XP, architecture backend/PostgreSQL et modèle V1 sont actualisés dans le même lot. Roadmap et ordre macro restent inchangés : aucune étape 24, aucun nouveau domaine. Import autonome Personnages + Assets reste une dette volontaire. La review indépendante du correctif est acquise ; prochaine étape : **promotion technique du checkpoint, puis test public du correctif par le propriétaire**.
 
 
 ## Étape 21 — Compléments Notifications transversaux, validés publiquement sur les surfaces
