@@ -1,6 +1,6 @@
 # Tutoriel interactif V1 — source canonique
 
-Statut au checkpoint du 02/10/2026 : **25A publique sur 9aef02c, déploiement vérifié par ChatGPT et recette propriétaire partielle ; correctif de contrôles candidat review non public et non validé par Axel**. Pause/reprise/persistance, Terminer/replay, responsive et ordre fonctionnel validés sur la base publique ; validation complète différée après recette du correctif. Décisions [R1015–R1020](decisions-log.md), R1017 révisée ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
+Statut au checkpoint du 02/10/2026 : **25A publique sur 9aef02c, déploiement vérifié par ChatGPT et recette propriétaire partielle ; correctif 342aab1 approuvé indépendamment sans correction supplémentaire, promu sur main par ce checkpoint ; déploiement Railway/Cloudflare/healthcheck à vérifier et validation publique Axel du correctif non acquise**. Pause/reprise/persistance, Terminer/replay, responsive et ordre fonctionnel validés sur la base publique. Recette future limitée aux corrections Précédent/ordre des contrôles et pending sans « Enregistrement… » ; validations déjà acquises conservées. Décisions [R1015–R1020](decisions-log.md), R1017 révisée ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Phase 25A — prototype manuel
 
@@ -79,7 +79,7 @@ Une mission ultérieure pourra étendre la séquence et les domaines, décider p
 
 **Help textuel/commandes, Tutoriel interactif et Aide/Guide standalone sont des présentations distinctes.** Les décisions R728–R731 de l’[audit Help](../legacy/23-help-command-coherence-audit.md) restent acquises. Le Help final de l’étape 25 est différé après validation du prototype ; il n’est pas implémenté par 25A.
 
-## État physique 25A public et correctif candidat review
+## État physique 25A et correctif 342aab1 approuvé et promu sur main
 
 Le registre `src/navigation/navigation.ts` contient `tutorial`, `screen: null`, `available: true` et une action dédiée ; GlobalMenu la déclenche sans ScreenId ni route écran. Toujours ordonnable/masquable par Configuration > Menu, disponible avant/après complétion. Aucun bouton Tutoriel au header.
 

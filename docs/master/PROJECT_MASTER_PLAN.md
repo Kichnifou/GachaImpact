@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correctif de recette publique partielle 25A + Sidebar/Home, candidat review uniquement ; base publique 9aef02c conservée, correctif non public et non validé par Axel.
+Version : checkpoint de promotion du correctif 342aab1, approuvé indépendamment ; état post-fast-forward sur main, déploiement à vérifier et validation publique du correctif non acquise.
 Date : 2026-10-02
-Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **correctif 25A + Sidebar/Home après recette publique partielle**, révisions R1017/R1021/R1022 sans nouvel ID. Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale validés sur 9aef02c ; contrôle des corrections et review indépendante à acquérir. Help final, autostart et extension du Tutoriel différés. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **vérification du déploiement puis recette limitée au correctif 25A + Sidebar/Home**, review indépendante favorable sur 342aab1 et promotion stricte autorisée, révisions R1017/R1021/R1022 sans nouvel ID. Pause/reprise/persistance, Terminer/replay, responsive Tutoriel et Invocation normale restent validés sur 9aef02c ; validation publique du correctif non acquise. Help final, autostart et extension du Tutoriel différés. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — correctif de recette partielle 25A + Sidebar/Home du 02/10/2026
+## Point courant — checkpoint de promotion du correctif 25A + Sidebar/Home du 02/10/2026
+
+**Approbation indépendante acquise :** review ChatGPT favorable du vrai commit GitHub **342aab1297a2592479d4b14b2de878b30207e03f**, parent exact **9aef02c13b3357cdc871fac975f0707e49cf749c** ; les 17 fichiers du correctif ont été contrôlés, aucun correctif supplémentaire requis. Mission dédiée de promotion explicitement autorisée, sans changement du code approuvé ni nouvelle décision produit.
+
+**Gate initial exécuté :** fetch réussi, branche `review`, index/worktree propres ; HEAD = origin/review = **342aab1297a2592479d4b14b2de878b30207e03f**, origin/main = **9aef02c13b3357cdc871fac975f0707e49cf749c**, ahead 1 / behind 0. Chaîne exacte 9aef02c → 342aab1, aucun commit distant inattendu.
+
+**État post-fast-forward porté par ce checkpoint :** correctif 342aab1 approuvé, présent sur `main` après promotion stricte de la chaîne et de ce seul checkpoint documentaire. origin/main = origin/review = SHA du présent checkpoint, divergence 0/0 ; SHA exact contrôlé après push et donné au rapport. Aucun merge commit, rebase, squash ou force-push ; retour local sur `review` propre.
+
+**Contrôles de cette mission :** diff exclusivement documentaire, code inchangé depuis 342aab1 et diff-check réussi. Prisma validate et migrate status réussis en lecture seule : 58 migrations à jour, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059. Tests et inspections locales du correctif conservés ci-dessous, non relancés ; aucun test DB mutatif ni mutation publique.
+
+**Base publique précédente et validation conservée :** 9aef02c, dont le déploiement avait été vérifié par ChatGPT. Pause/reprise/persistance, Terminer/replay, responsive Tutoriel et Invocation normale restent validés publiquement sur cette base ; ils ne sont pas remis en attente. La promotion Git du correctif ne prouve ni Railway, ni Cloudflare Pages, ni healthcheck, ni validation publique Axel : ces preuves restent à acquérir après push.
+
+**Recette future limitée aux corrections :** Précédent et ordre des contrôles ; Suivant stable pendant pending sans « Enregistrement… » ; carte sidebar entière cliquable sans collision ; titre Home simple ; hauteur Quotidiennes réduite et BannerHero plus haut ; splash Home recentré. Validation publique Axel du correctif toujours **NON acquise**.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE LE SHA PUBLIC, RAILWAY, CLOUDFLARE PAGES ET LE HEALTHCHECK, PUIS FOURNIT UNE RECETTE PUBLIQUE COURTE LIMITÉE AUX CORRECTIONS 342aab1.** Help final/autostart/extension restent différés ; aucune action Twitch/Gift/Giveaway/Faveur. STOP après promotion contrôlée et rapport.
+
+## Historique — correctif de recette partielle 25A + Sidebar/Home du 02/10/2026
 
 **Gate initial exécuté :** fetch réussi, branche `review`, worktree propre ; HEAD = origin/main = origin/review = **9aef02c13b3357cdc871fac975f0707e49cf749c**, divergence 0/0. Parent exact a30e7e9, candidat fonctionnel précédemment approuvé ; aucun changement distant inattendu.
 
