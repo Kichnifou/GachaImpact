@@ -1,12 +1,12 @@
 .tutorial-layer.modal-layer { position:fixed; inset:0; z-index:10000; display:block; padding:0; background:transparent; backdrop-filter:none; isolation:isolate; }
 .tutorial-shade { position:absolute; inset:0; background:#020815cc; }
 .tutorial-spotlight { position:absolute; border:2px solid #a0e6ff; border-radius:12px; box-shadow:0 0 0 200vmax #020815cc; pointer-events:none; }
-.tutorial-bubble { position:absolute; box-sizing:border-box; width:min(350px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow-y:auto; padding:20px; border:1px solid #668fb9; border-radius:14px; background:#12233b; color:#edf5ff; box-shadow:0 16px 48px #0009; }
+.tutorial-bubble { position:absolute; box-sizing:border-box; width:min(420px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow-y:auto; padding:20px; border:1px solid #668fb9; border-radius:14px; background:#12233b; color:#edf5ff; box-shadow:0 16px 48px #0009; }
 .tutorial-bubble h2 { margin:8px 0; font-size:20px; }
 .tutorial-bubble p { font-size:14px; line-height:1.5; margin:8px 0; }
 .tutorial-bubble .tutorial-error { min-height:21px; color:#ffb6bb; font-size:12px; }
 .tutorial-bubble footer { display:flex; gap:8px; flex-wrap:wrap; }
-.tutorial-bubble .app-button { flex:1; padding-inline:10px; min-width:0; font-size:12px; }
+.tutorial-bubble .app-button { flex:1 0 auto; padding-inline:10px; font-size:12px; }
 @media(max-width:760px) {
   .tutorial-sidebar .game-layout { grid-template-areas:'player-priority' 'player-secondary' 'main' 'chat'; }
 }

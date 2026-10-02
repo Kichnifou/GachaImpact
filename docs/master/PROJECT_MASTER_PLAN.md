@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : checkpoint de promotion dédié de 25A + retouches UX A–E approuvés ; état post-fast-forward main/review commun, déploiement technique à vérifier et validation publique Axel non acquise.
+Version : correctif de recette publique partielle 25A + Sidebar/Home, candidat review uniquement ; base publique 9aef02c conservée, correctif non public et non validé par Axel.
 Date : 2026-10-02
-Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **25A — prototype Tutoriel interactif approuvé et promu**, R1015–R1020, avec retouches A–E R1021/R1022. Review indépendante ChatGPT acquise ; vérification du déploiement et recette publique propriétaire à faire. Help final, autostart et extension du Tutoriel différés. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **correctif 25A + Sidebar/Home après recette publique partielle**, révisions R1017/R1021/R1022 sans nouvel ID. Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale validés sur 9aef02c ; contrôle des corrections et review indépendante à acquérir. Help final, autostart et extension du Tutoriel différés. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — checkpoint de promotion 25A + UX A–E du 02/10/2026
+## Point courant — correctif de recette partielle 25A + Sidebar/Home du 02/10/2026
+
+**Gate initial exécuté :** fetch réussi, branche `review`, worktree propre ; HEAD = origin/main = origin/review = **9aef02c13b3357cdc871fac975f0707e49cf749c**, divergence 0/0. Parent exact a30e7e9, candidat fonctionnel précédemment approuvé ; aucun changement distant inattendu.
+
+**Déploiement public de référence :** contrôles transmis par ChatGPT dans la mission, non réexécutés ici : GitHub main/review sur 9aef02c, Railway production SUCCESS sur ce SHA exact, healthcheck public `{"status":"ok"}`, Cloudflare Pages servant le frontend avec tutorial_v1 et `/api/v1/me/tutorial` ; 58 migrations, dernière 058, aucune 059.
+
+**Recette publique propriétaire PARTIELLE sur 9aef02c :** lancement et séquence fonctionnels ; Pause/reprise/persistance, Terminer puis replay, responsive Tutoriel et Invocation normale inchangée validés. Le prototype n'est pas intégralement validé publiquement. Corrections demandées : Précédent et ordre des contrôles, Suivant stable pendant pending, collision Accéder/Tout voir sidebar, suppression de la plage Home, réserve verticale sous Expédition et splash trop à droite.
+
+**Correctif candidat réellement produit :** ordre Précédent / Suivant / Pause / Terminer ; retour arrière persisté puis affiché après confirmation, sans boucle avant profile. Pending désactive les trois mutations avec libellé Suivant constant ; retry typé et déclenché uniquement par le contrôle correspondant à l'intention échouée, démarrage/replay via Suivant. Overlay/inert/géométrie/ancres/API/store et sémantique Pause préservés. Sidebar : bouton couvrant la carte réutilisant run(), sans action centrale visible ni boutons imbriqués ; cinq contrôles indépendants, compteur sidebar conservé. Home : titre Quotidiennes simple, cartes toujours gelées pendant claim, footer seulement utile, hauteur rendue à BannerHero et artwork compact recentré. R1017/R1021/R1022 révisées dans leurs sources, aucun nouvel ID ni changement métier.
+
+**Contrôles locaux du correctif :** ciblés frontend PASS 155/155 ; dernier verify:full PASS 8/8, frontend 1192/1192 et backend hors DB 1099/1099, typechecks/builds/lint et diff-check ; verify:quick PASS 5/5. Inspections Chromium aux quatre formats ; preuves détaillées dans [Tutoriel](../specifications/tutorial-v1.md) et [Accueil/Quotidiennes](../specifications/home-daily-tracker-v1.md). Messages localhost:3000 ECONNREFUSED et warning de bundle > 500 kB déjà présents, aucun test final en échec. Prisma validate et migrate status en lecture seule réussis : 58 migrations à jour, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059. Aucun test DB mutatif nécessaire, backend fonctionnel inchangé et aucune mutation publique.
+
+**Git et prochaine action :** main reste **9aef02c13b3357cdc871fac975f0707e49cf749c** ; review = HEAD du présent commit de correction, SHA distant à contrôler après push normal, ahead 1 / behind 0 attendu. Un seul lot cohérent, correctif review non public et non validé par Axel. **REVIEW INDÉPENDANTE CHATGPT DU VRAI COMMIT GITHUB.** Aucune promotion main ni activation Twitch/Gift/Giveaway/Faveur ; Help final, autostart et extension restent différés. STOP après publication et rapport.
+
+## Historique — checkpoint de promotion 25A + UX A–E du 02/10/2026
 
 **Approbation indépendante acquise :** review ChatGPT du vrai commit GitHub **a30e7e9b22cbc7305229c7d574e417f144f658fc**, parent exact **e941c9ade841ad3ca73f87c29566cf4b7f1a344e**, favorable ; aucun correctif code requis. Cette mission est le checkpoint de promotion dédié explicitement autorisé, sans nouvelle décision produit ni modification du code approuvé.
 

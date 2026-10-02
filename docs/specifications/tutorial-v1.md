@@ -1,6 +1,6 @@
 # Tutoriel interactif V1 — source canonique
 
-Statut au checkpoint du 02/10/2026 : **25A implémentée, testée localement et approuvée indépendamment ; état post-fast-forward : promue sur main, déploiement technique à vérifier et validation publique Axel non acquise**. Décisions [R1015–R1020](decisions-log.md) ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
+Statut au checkpoint du 02/10/2026 : **25A publique sur 9aef02c, déploiement vérifié par ChatGPT et recette propriétaire partielle ; correctif de contrôles candidat review non public et non validé par Axel**. Pause/reprise/persistance, Terminer/replay, responsive et ordre fonctionnel validés sur la base publique ; validation complète différée après recette du correctif. Décisions [R1015–R1020](decisions-log.md), R1017 révisée ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Phase 25A — prototype manuel
 
@@ -13,15 +13,18 @@ Le prototype valide d’abord le moteur overlay/spotlight, la progression, le pl
 
 ### Contrôles et progression — R1017
 
+Preuves locales du correctif : ciblés frontend PASS 155/155, incluant retour arrière confirmé, absence de boucle, ordre des contrôles, Suivant stable pendant pending et retry de l'intention exacte (Précédent, Suivant, Terminer, démarrage/replay). Dernier verify:full PASS 8/8 : frontend 1192/1192, backend hors DB 1099/1099, typechecks/builds/lint et diff-check ; verify:quick PASS 5/5. Chromium local GameShell/CSS production aux quatre formats 2560×1440, 1920×1080, 1366×768 et 390×844 : contrôles, pending, retry arrière sans déclenchement par l'overlay, retry Terminer, replay, Escape et nettoyage inert contrôlés. Aucun changement API/store ni mutation publique ; Prisma validate/status réussis en lecture seule, 58 migrations à jour, dernière 058, aucune 059. La validation publique du correctif reste à acquérir.
+
 | Contrôle | Effet |
 | --- | --- |
+| `Précédent` | Désactivé à profile ; sinon persiste l'étape précédente et l'affiche après confirmation, sans boucle. |
 | `Suivant` | Étape suivante ; à la fin de la séquence, clôture normale en `COMPLETED`. |
 | Clic ailleurs sur l’overlay | Même effet que Suivant, sans action métier sous-jacente. |
 | `Pause` | Ferme l’overlay en conservant l’étape courante. |
 | `Escape` | Même effet que Pause. |
 | `Terminer` | Saute le reste, ferme l’overlay et marque `COMPLETED`. |
 
-Les clics des contrôles sont interceptés : Pause/Terminer ne déclenchent jamais un Suivant supplémentaire. Les trois contrôles remplacent le détail ancien à quatre contrôles de R822.
+Ordre courant : **Précédent / Suivant / Pause / Terminer**. Le libellé Suivant reste constant pendant pending ; les trois mutations sont désactivées, Pause conserve sa fermeture différée lorsqu'une écriture est déjà partie. Les quatre contrôles arrêtent leur propagation ; aucun Suivant supplémentaire. R1017 est révisée par le retour propriétaire : le premier prototype public 9aef02c utilisait historiquement Pause / Terminer / Suivant. Desktop privilégie une ligne, petit viewport autorise un wrap sans troncature.
 
 ### Persistance et Menu — R1018/R1019
 
@@ -76,14 +79,14 @@ Une mission ultérieure pourra étendre la séquence et les domaines, décider p
 
 **Help textuel/commandes, Tutoriel interactif et Aide/Guide standalone sont des présentations distinctes.** Les décisions R728–R731 de l’[audit Help](../legacy/23-help-command-coherence-audit.md) restent acquises. Le Help final de l’étape 25 est différé après validation du prototype ; il n’est pas implémenté par 25A.
 
-## État physique 25A approuvé et promu sur main
+## État physique 25A public et correctif candidat review
 
 Le registre `src/navigation/navigation.ts` contient `tutorial`, `screen: null`, `available: true` et une action dédiée ; GlobalMenu la déclenche sans ScreenId ni route écran. Toujours ordonnable/masquable par Configuration > Menu, disponible avant/après complétion. Aucun bouton Tutoriel au header.
 
-`src/tutorial/tutorial-controller.ts` porte la progression confirmée et une garde synchrone : lecture à chaque lancement manuel, IN_PROGRESS repris sans nouvelle écriture, démarrage/replay écrit profile, transitions écrites avant présentation, dernière étape/Terminer écrivent COMPLETED/null. Une panne conserve l'étape et l'intention exacte ; Suivant réessaie cette intention, Terminer est neutralisé jusqu'à résolution ou Pause. Pause/Escape n'écrivent rien ; pendant une écriture déjà partie, leur fermeture est différée jusqu'à son résultat afin de conserver la dernière étape confirmée. Aucun beforeunload/pagehide. Le contrôleur est propre au Player, sans autostart ni lecture quotidienne supplémentaire.
+`src/tutorial/tutorial-controller.ts` porte la progression confirmée et une garde synchrone : lecture à chaque lancement manuel, IN_PROGRESS repris sans nouvelle écriture, démarrage/replay écrit profile, transitions écrites avant présentation, dernière étape/Terminer écrivent COMPLETED/null. Le correctif ajoute Précédent dans le même contrat. Une panne conserve l'étape et une intention typée launch/previous/next/finish ; seul le contrôle correspondant réessaie, launch via Suivant. Un clic overlay reste Suivant et ne peut donc pas rejouer Previous ou Finish ; feedback nommé honnêtement, autres mutations neutralisées jusqu'à résolution ou Pause. Pause/Escape n'écrivent rien ; pendant une écriture déjà partie, leur fermeture est différée jusqu'à son résultat afin de conserver la dernière étape confirmée. Aucun beforeunload/pagehide. Le contrôleur est propre au Player, sans autostart ni lecture quotidienne supplémentaire.
 
 `TutorialOverlay.tsx` utilise un portal document.body hors du root inert ; capture des interactions extérieures, focus initial Pause, Tab borné et événements clavier du dialogue arrêtés avant les raccourcis sous-jacents. Les nouveaux portals ordinaires sont neutralisés ; inert/aria-hidden préexistants et focus sont restaurés au cleanup. Le spotlight n'a aucun filtre floutant : la vraie cible reste nette et non interactive. ResizeObserver, événements resize/scroll et mutations de layout déclenchent une mesure coalescée par requestAnimationFrame ; aucun polling. `tutorial-geometry.ts` unionne les rectangles et choisit le placement borné avec le moindre recouvrement. Sur mobile, les cartes réelles de sidebar se regroupent temporairement pour les étapes 1–5 ; la Communauté repliée est révélée seulement pour community, puis son état précédent revient. Pause/Terminer laissent Accueil. Si la cible Home est plus haute que le viewport mobile, la région réelle est découpée aux limites visibles ; le défilement reste possible et la bulle reste accessible.
 
 Backend : routes `server/src/api/routes/tutorial.ts` GET/PUT `/api/v1/me/tutorial` → `TutorialPreferencesService` → `PrismaTutorialPreferenceStore`, lookup/upsert sur la PK composée existante avec la seule clé `tutorial_v1`. Le schéma Prisma reste inchangé ; dernière migration 058, aucune 059.
 
-Tests contrôleur, overlay, géométrie, raccordement shell, validation API et isolation PostgreSQL privée ajoutés, dont le retrait d'une ancre d'un spotlight composé. Ciblés frontend Tutoriel/Quotidiennes/BannerHero/Menu/navigation PASS 138/138 ; backend Tutoriel/navigation PASS 31/31 ; DB privé PASS 1/1. Suites finales frontend 1175/1175 et backend hors DB 1099/1099, verify:quick 5/5 et verify:full 8/8. Chromium réel avec GameShell et CSS production : huit étapes aux quatre formats 2560×1440, 1920×1080, 1366×768 et 390×844 ; focus, clic extérieur/boutons, Escape, double clic/tactile, retry, reprise après reload, replay, resize et Communauté repliée/restaurée contrôlés. Captures et logs d'inspection restent locaux, hors Git ; ces preuves techniques ne remplacent pas la validation propriétaire. La phase suivante et Help final restent hors périmètre.
+Preuves locales du premier candidat a30e7e9, acquises avant promotion et conservées : tests contrôleur, overlay, géométrie, raccordement shell, validation API et isolation PostgreSQL privée ajoutés, dont le retrait d'une ancre d'un spotlight composé. Ciblés frontend Tutoriel/Quotidiennes/BannerHero/Menu/navigation PASS 138/138 ; backend Tutoriel/navigation PASS 31/31 ; DB privé PASS 1/1. Suites finales frontend 1175/1175 et backend hors DB 1099/1099, verify:quick 5/5 et verify:full 8/8. Chromium réel avec GameShell et CSS production : huit étapes aux quatre formats 2560×1440, 1920×1080, 1366×768 et 390×844 ; focus, clic extérieur/boutons, Escape, double clic/tactile, retry, reprise après reload, replay, resize et Communauté repliée/restaurée contrôlés. Captures et logs d'inspection restent locaux, hors Git ; ces preuves techniques ne remplacent pas la validation propriétaire. La phase suivante et Help final restent hors périmètre.

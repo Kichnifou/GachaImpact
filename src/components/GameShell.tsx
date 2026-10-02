@@ -620,7 +620,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         />
       )}
 
-      {tutorialState.active && <TutorialOverlay key={player.id} {...tutorialState} onNext={() => { void tutorial.next() }} onPause={tutorial.pause} onFinish={() => { void tutorial.finish() }} />}
+      {tutorialState.active && <TutorialOverlay key={player.id} {...tutorialState} onPrevious={() => { void tutorial.previous() }} onNext={() => { void tutorial.next() }} onPause={tutorial.pause} onFinish={() => { void tutorial.finish() }} />}
       {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
       {isMenuOpen && <GlobalMenu onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
       {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}

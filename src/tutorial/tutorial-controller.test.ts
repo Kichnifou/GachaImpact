@@ -48,7 +48,8 @@ describe('tutorial confirmed progression', () => {
   })
   it('retries a failed completion instead of advancing to another step', async () => {
     const { api, controller } = harness(progress('profile')); await controller.launch(); api.put.mockRejectedValueOnce(Error())
-    await controller.finish(); await controller.next(); expect(api.put.mock.calls.map(([value]) => value)).toEqual([complete, complete])
+    await controller.finish(); await controller.next(); await controller.previous(); expect(api.put).toHaveBeenCalledOnce()
+    await controller.finish(); expect(api.put.mock.calls.map(([value]) => value)).toEqual([complete, complete])
   })
   it('allows Pause/Escape during a write, closing once its outcome is confirmed', async () => {
     const { api, controller } = harness(progress('profile')); await controller.launch()
@@ -65,5 +66,30 @@ describe('tutorial confirmed progression', () => {
     const { api, controller } = harness(); api.get.mockRejectedValueOnce(Error('offline'))
     await controller.launch(); expect(controller.getSnapshot()).toMatchObject({ active: true, stepId: null, pending: false })
     expect(api.put).not.toHaveBeenCalled(); await controller.next(); expect(controller.getSnapshot().stepId).toBe('profile')
+  })
+  it('does not wrap before profile and waits for confirmation when returning from resources', async () => {
+    const { api, controller } = harness(progress('resources')); await controller.launch()
+    let resolve!: (value: TutorialPreferenceDto) => void
+    api.put.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+    const request = controller.previous(); controller.previous(); controller.next()
+    expect(api.put).toHaveBeenCalledWith(progress('profile')); expect(controller.getSnapshot().stepId).toBe('resources')
+    resolve(progress('profile')); await request; await controller.previous()
+    expect(controller.getSnapshot().stepId).toBe('profile'); expect(api.put).toHaveBeenCalledOnce()
+  })
+  it('returns from community to home without changing step identifiers', async () => {
+    const { api, controller } = harness(progress('community')); await controller.launch(); await controller.previous()
+    expect(api.put).toHaveBeenCalledWith({ version: 1, status: 'IN_PROGRESS', stepId: 'home' }); expect(controller.getSnapshot().stepId).toBe('home')
+  })
+  it('retries only Previous after a backward failure, never via Next or Finish', async () => {
+    const { api, controller } = harness(progress('resources')); await controller.launch(); api.put.mockRejectedValueOnce(Error('offline'))
+    await controller.previous(); expect(controller.getSnapshot()).toMatchObject({ stepId: 'resources', retryAction: 'previous' })
+    expect(controller.getSnapshot().error).toContain('Précédent'); await controller.next(); await controller.finish(); expect(api.put).toHaveBeenCalledOnce()
+    await controller.previous(); expect(api.put.mock.calls.map(([value]) => value)).toEqual([progress('profile'), progress('profile')]); expect(controller.getSnapshot().stepId).toBe('profile')
+  })
+  it.each([initial, complete])('retries a failed start/replay write from %j using its launch intention', async saved => {
+    const { api, controller } = harness(saved); api.put.mockRejectedValueOnce(Error('offline'))
+    await controller.launch(); expect(controller.getSnapshot()).toMatchObject({ stepId: null, retryAction: 'launch' })
+    await controller.previous(); await controller.finish(); expect(api.put).toHaveBeenCalledOnce()
+    await controller.next(); expect(api.put.mock.calls.map(([value]) => value)).toEqual([progress('profile'), progress('profile')]); expect(controller.getSnapshot().stepId).toBe('profile')
   })
 })

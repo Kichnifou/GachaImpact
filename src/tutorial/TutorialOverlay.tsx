@@ -2,12 +2,12 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import AppButton from '../components/AppButton'
 import type { TutorialStepId } from '../api/types'
-import { tutorialSteps } from './tutorial-controller'
+import { tutorialSteps, type TutorialAction } from './tutorial-controller'
 import { spotlightRect, tutorialBubblePosition, unionTutorialRects, type TutorialRect } from './tutorial-geometry'
 import './tutorial.css'
 
-type Props = { stepId: TutorialStepId | null; pending: boolean; error: string; onNext: () => void; onPause: () => void; onFinish: () => void }
-export default function TutorialOverlay({ stepId, pending, error, onNext, onPause, onFinish }: Props) {
+type Props = { stepId: TutorialStepId | null; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
+export default function TutorialOverlay({ stepId, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
   const layer = useRef<HTMLDivElement>(null), bubble = useRef<HTMLElement>(null), pause = useRef<HTMLButtonElement>(null)
   const actions = useRef({ onNext, onPause }); actions.current = { onNext, onPause }
   const [geometry, setGeometry] = useState<{ target: TutorialRect | null; left: number; top: number }>({ target: null, left: 12, top: 12 })
@@ -99,9 +99,12 @@ export default function TutorialOverlay({ stepId, pending, error, onNext, onPaus
       <h2 id="tutorial-title">{step?.title ?? 'Tutoriel'}</h2>
       <p id="tutorial-text" aria-live="polite">{step?.text ?? (pending ? 'Chargement…' : 'Reprenez avec Suivant.')}</p>
       <p className="tutorial-error" role={error ? 'alert' : undefined}>{error}</p>
-      <footer><AppButton ref={pause} onClick={event => { event.stopPropagation(); onPause() }}>Pause</AppButton>
-        <AppButton disabled={pending || Boolean(error) || !target} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onFinish() }}>Terminer</AppButton>
-        <AppButton variant="primary" disabled={pending || (!target && !error)} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onNext() }}>{pending ? 'Enregistrement…' : 'Suivant'}</AppButton></footer>
+      <footer>
+        <AppButton disabled={pending || index <= 0 || !target || (retryAction !== null && retryAction !== 'previous')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onPrevious() }}>Précédent</AppButton>
+        <AppButton variant="primary" disabled={pending || (!target && !error) || (retryAction !== null && retryAction !== 'next' && retryAction !== 'launch')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onNext() }}>Suivant</AppButton>
+        <AppButton ref={pause} onClick={event => { event.stopPropagation(); onPause() }}>Pause</AppButton>
+        <AppButton disabled={pending || !target || (retryAction !== null && retryAction !== 'finish')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onFinish() }}>Terminer</AppButton>
+      </footer>
     </section>
   </div>, document.body)
 }
