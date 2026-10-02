@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : validation publique 22/23 acquise dans le périmètre R1004 ; étape 24 et micro-polish approuvés indépendamment, checkpoint de promotion technique R1004–R1010 ; Twitch générique en pause R942.
+Version : premier smoke métier étape 24 acquis ; micro-polish 22/23 validé ; finition UX Home/Sidebar candidate review R1011–R1013 ; Twitch générique en pause R942.
 Date : 2026-10-02
-Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans le périmètre réel du dernier smoke propriétaire**, au checkpoint **2aa086edddcde8de8325f4e999c1e41d7d9e3976**. **24 Accueil dynamique / résumé Quotidiennes / suivi sidebar et micro-polish : review indépendante acquise, promotion technique explicitement autorisée dans cette mission**. Étape 24 **NON validée publiquement** ; les ajustements résiduels Admin/Arcade restent à recetter. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans leur périmètre documenté**, derniers micro-ajustements Administration/Journal/Arcade également validés au premier smoke sur **51e0710087a7b807cea5557f5e9db4edd2315892**. **24 : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition validés publiquement dans ce premier smoke**. Densité Home/Sidebar à corriger : présent lot **candidat final UX sur review seulement**, nouvelle review indépendante et recette de finition restantes ; aucune promotion main dans cette mission, étape 25 non ouverte. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — checkpoint de promotion du 02/10/2026
+## Point courant — polish UX étape 24 du 02/10/2026
+
+**Gate initial exécuté :** fetch, branche locale review, worktree propre ; HEAD = origin/main = origin/review = **51e0710087a7b807cea5557f5e9db4edd2315892**, divergence 0/0, aucun commit inattendu. Un seul commit cohérent de correction, parent exact 51e0710, publication normale review uniquement puis STOP.
+
+**Retour public propriétaire reçu :** projection commune, masquage/reload, principe Accueil dynamique, séparation actions/états, navigation quotidienne, Expédition, micro-polish Administration/Journal/Arcade validés. Le défaut restant porte sur la densité, notamment 1920×1080 avec équipe complète. Cette validation du fonctionnement ne clôture pas la finition visuelle de l'étape 24.
+
+**Livraison UX R1011–R1013 :** tracker sans icône/fallback/statut générique, restauration accessible dans une cellule réservée d'en-tête, action dans le centre flexible et chevrons/Tout voir au bas. Accueil sans cinq raccourcis redondants ; BannerHero compact sans DOM Invocation-footer, mode normal conservé. Panneau Quotidiennes avec trois cartes-boutons maximum, micro-libellés et lien Aperçu ; deux lignes secondaires maximum, Expédition non-actionnable prioritaire et état terminé confirmé présentable. Masques communs, séparation logique, priorités, claim partagé, revalidation, dates et sources métier inchangés. [Contrat et contrôles](../specifications/home-daily-tracker-v1.md), [décisions](../specifications/decisions-log.md).
+
+**Contrôles de ce candidat :** défauts reproduits (13 échecs avant correction), ciblés 96/96 sur sept fichiers ; frontend complet **1 137/1 137 sur 109 fichiers**, backend hors DB **1 073/1 073 sur 101 fichiers**. Typechecks/builds frontend/backend, lint sans erreur, `verify:full` 8/8, `verify:quick` 5/5, diff-check réussis. Prisma validate/statut : codes 0, **58 migrations, base à jour**, lecture seule. Aucun test DB mutatif, backend, migration, dépendance ou domaine Admin/Arcade modifié ; warnings React/bundle antérieurs conservés.
+
+**Inspection locale réelle :** Chromium, GameShell et CSS de production, équipe 4/4, objectif, Chat ouvert, sept activités disponibles et Expédition RUNNING. Quatre formats 2560×1440, 1920×1080, 1366×768, 390×844 ; onze états par format, cadres tracker/supérieurs comparés avant/après, écart maximal **0 px** sur desktop et largeur/hauteur mobile. L'apparition de Réafficher seule ne déplace aucun descendant (0 px). Aucun chevauchement, scroll tracker ou overflow horizontal ; cartes/actions/navigation lisibles, masques/reload/restauration vérifiés. Mobile en flux naturel : sa position verticale peut évoluer avec le contenu Accueil. Preuves synthétiques locales, sans recette publique de ce polish.
+
+**Prochaine étape :** review indépendante ChatGPT du commit effectivement poussé sur review, puis éventuelle mission dédiée de promotion/recette propriétaire de finition. **Aucune promotion main ici ; STOP, étape 25 non commencée.** Zéro mutation publique/gameplay/Twitch par Codex, données historiques et Faveur QA conservées.
+
+## Historique — checkpoint de promotion du 02/10/2026
 
 **Approbation indépendante transmise par ChatGPT :** acquise sur **2df4fa154e40fbc4bf6d040f126069e98c9a1901** et **52e7a2bbe9ff00e44cb109c1f423f6d8775b05e8**, parent exact du correctif : 2df4fa1. R1004–R1010 acquises techniquement, y compris la séparation Accueil **À faire maintenant** (trois actions maximum) / **En cours** (deux états maximum), masques communs et absence de duplication. La validation publique 22/23 reste limitée aux parcours déjà acquis ; aucune nouvelle décision produit.
 

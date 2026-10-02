@@ -2890,71 +2890,6 @@
   background: rgba(7, 16, 35, 0.58);
 }
 
-.home-shortcuts {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.shortcut-card {
-  min-width: 0;
-  min-height: 105px;
-  display: grid;
-  grid-template-columns: 42px 1fr auto;
-  align-items: center;
-  gap: 10px;
-  padding: 15px;
-  cursor: pointer;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: linear-gradient(150deg, rgba(17, 34, 64, 0.92), rgba(7, 14, 29, 0.92));
-  transition: transform 150ms ease, border-color 150ms ease;
-}
-
-.shortcut-card:hover {
-  border-color: var(--border-bright);
-  transform: translateY(-2px);
-}
-
-.shortcut-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  color: var(--shortcut-color, var(--cyan));
-  font-size: 22px;
-  border-radius: 12px;
-  background: color-mix(in srgb, var(--shortcut-color, var(--cyan)) 13%, transparent);
-  box-shadow: 0 0 18px color-mix(in srgb, var(--shortcut-color, var(--cyan)) 12%, transparent);
-}
-
-.shortcut-card.cyan { --shortcut-color: #69d9ff; }
-.shortcut-card.violet { --shortcut-color: #a588ff; }
-.shortcut-card.gold { --shortcut-color: #f7cb6b; }
-.shortcut-card.blue { --shortcut-color: #77adff; }
-.shortcut-card.pink { --shortcut-color: #d386ff; }
-
-.shortcut-card strong,
-.shortcut-card small {
-  display: block;
-}
-
-.shortcut-card strong { font-size: 12px; }
-
-.shortcut-card small {
-  margin-top: 4px;
-  color: var(--muted);
-  font-size: 8px;
-  line-height: 1.35;
-}
-
-.shortcut-card > i {
-  color: #7183a4;
-  font-size: 18px;
-  font-style: normal;
-}
-
 .banner-tabs {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -4769,7 +4704,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 
 @media (max-width: 1500px) {
   .game-navigation { grid-template-columns: repeat(7, minmax(68px, 1fr)); }
-  .home-shortcuts { grid-template-columns: repeat(3, 1fr); }
   .character-grid { grid-template-columns: repeat(4, minmax(110px, 1fr)); }
   .shop-grid { grid-template-columns: repeat(2, 1fr); }
   .large-team-grid { grid-template-columns: repeat(2, 1fr); }
@@ -4787,7 +4721,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 @media (max-width: 1120px) {
   .header-actions { grid-column: 2; grid-row: 1; }
   .header-status { display: flex; }
-  .home-shortcuts { grid-template-columns: repeat(2, 1fr); }
   .character-grid { grid-template-columns: repeat(4, minmax(105px, 1fr)); }
   .inventory-layout { grid-template-columns: 165px 1fr; }
 }
@@ -4864,9 +4797,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   }
 
   .screen-meta { align-self: flex-start; }
-  .home-shortcuts { grid-template-columns: 1fr 1fr; }
-  .shortcut-card { min-height: 82px; }
-
   .pity-summary {
     grid-template-columns: 1fr 1fr;
   }
@@ -4913,7 +4843,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .navigation-tile { min-height: 62px; flex-direction: column; }
   .navigation-tile strong { font-size: 8px; }
 
-  .home-shortcuts,
   .large-team-grid,
   .shop-grid { grid-template-columns: 1fr; }
 
@@ -4948,7 +4877,6 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .brand > span:last-child { display: none; }
   .game-navigation { grid-template-columns: repeat(2, 1fr); }
   .navigation-tile { flex-direction: row; }
-  .home-shortcuts { grid-template-columns: 1fr; }
   .screen-header h1 { font-size: 29px; }
   .shop-featured-symbol { display: none; }
 }

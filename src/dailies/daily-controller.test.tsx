@@ -91,7 +91,7 @@ describe('Shared daily consultation and claim', () => {
     await render({ claim })
     await act(async () => {
       container.querySelector<HTMLButtonElement>('.daily-tracker-primary button')!.click()
-      container.querySelector<HTMLButtonElement>('.home-daily-suggestion[data-daily-id="reward"] button')!.click()
+      container.querySelector<HTMLButtonElement>('.home-daily-suggestion[data-daily-id="reward"]')!.click()
       container.querySelector<HTMLButtonElement>('.daily-reward-overview-card button')!.click()
     })
     expect(claim).toHaveBeenCalledOnce(); expect(claimControl.pending).toBe(true)
@@ -115,7 +115,7 @@ describe('Shared daily consultation and claim', () => {
     await click('.daily-tracker-primary button')
     expect(control.selected?.id).toBe('reward'); expect(claimControl.pending).toBe(false)
     expect(container.querySelector('.daily-tracker-feedback')?.textContent).toBe('Une erreur inattendue est survenue.')
-    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Disponible.')
+    expect(container.querySelector('.daily-tracker-status')).toBeNull()
   })
   it('keeps completion, waiting, hidden and unknown empty states honest, with explicit Overview access', async () => {
     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false }))
@@ -129,7 +129,7 @@ describe('Shared daily consultation and claim', () => {
     await act(async () => control.restore()); await render({ items: projectDailies({}) })
     expect(control.message).toBe('État du jour incomplet')
   })
-  it.each([0, 1, 3])('limits Home to %s suggestions and retains its compact banner and five destinations', async count => {
+  it.each([0, 1, 3])('limits Home to %s suggestions with a compact banner and no redundant shortcuts', async count => {
     const items = projectDailies(dailySources()).map((item, index) => ({ ...item, state: index < count ? 'available' as const : 'completed' as const, actionable: index < count }))
     function HomeHarness() {
       const tracker = useDailyTracker(items, 'home', day, 'test'), claim = useDailyClaim(async () => claimed, 'home')
@@ -138,17 +138,18 @@ describe('Shared daily consultation and claim', () => {
     }
     await act(async () => root.render(<HomeHarness />))
     expect(container.querySelectorAll('.home-daily-suggestion')).toHaveLength(count)
-    expect(container.querySelectorAll('.shortcut-card')).toHaveLength(5)
+    expect(container.querySelector('.home-shortcuts')).toBeNull()
+    expect(container.querySelectorAll('.shortcut-card')).toHaveLength(0)
     expect(container.querySelector('.home-banner-preview')).not.toBeNull()
-    for (const selector of ['.shortcut-card.violet', '.shortcut-card.cyan', '.shortcut-card.gold', '.shortcut-card.blue', '.shortcut-card.pink']) await click(selector)
-    expect(opening.mock.calls.map(call => call[0])).toEqual(['characters-box', 'characters-catalog', 'characters-team', 'inventory', 'shop'])
+    await click('.home-banner-hit-area')
+    expect(opening).toHaveBeenCalledWith('invocation')
     expect(container.querySelector('[data-daily-id="arcade"]')).toBeNull()
   })
 })
 
 describe('Home daily actions and ongoing information', () => {
   const homeItems = (actions: readonly string[], ongoing: Partial<Record<DailyItem['id'], 'waiting' | 'in_progress'>> = {}) => projectDailies(dailySources()).map(item => ({
-    ...item, state: ongoing[item.id] ?? (actions.includes(item.id) ? 'available' : 'completed'), actionable: actions.includes(item.id),
+    ...item, state: ongoing[item.id] ?? (actions.includes(item.id) ? 'available' : item.id === 'expedition' ? 'unavailable' : 'completed'), actionable: actions.includes(item.id),
   } as DailyItem))
   const home = () => container.querySelector('.home-daily-summary')!
   const cards = () => Array.from(home().querySelectorAll('.home-daily-suggestion')).map(card => card.getAttribute('data-daily-id'))
@@ -186,16 +187,74 @@ describe('Home daily actions and ongoing information', () => {
   it('retains the existing empty state when there is no action or ongoing activity', async () => {
     await render({ items: homeItems([]) })
     expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
-    expect(home().querySelector('.home-daily-empty')?.textContent).toBe('Tout est bon, tu es à jour. L’Aperçu reste disponible pour consulter les détails.')
+    expect(home().querySelector('.home-daily-empty')?.textContent).toBe('Aucune activité disponible pour le moment. L’Aperçu reste disponible pour consulter les détails.')
   })
   it('limits ongoing information to two unmasked activities and keeps an actionable progress item in actions only', async () => {
     const items = homeItems(['challenge'], { favor: 'waiting', challenge: 'in_progress', expedition: 'in_progress', event: 'waiting' })
     await render({ items })
-    expect(cards()).toEqual(['challenge']); expect(ongoing()).toEqual(['favor', 'expedition'])
+    expect(cards()).toEqual(['challenge']); expect(ongoing()).toEqual(['expedition', 'favor'])
     await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition', 'event'])
     for (const id of ['expedition', 'event', 'challenge'] as const) await act(async () => control.hide(id))
     expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
     expect(home().textContent).toContain('Aucune activité affichée')
+  })
+})
+
+describe('Compact daily presentation', () => {
+  it('removes the icon, generic status and fallback, with a reserved restore control in the header', async () => {
+    const items = projectDailies(dailySources()).map(item => ({ ...item, detail: undefined }))
+    await render({ items })
+    const tracker = container.querySelector('.daily-tracker')!
+    expect(tracker.querySelector('.daily-tracker-icon')).toBeNull()
+    expect(tracker.querySelector('.daily-tracker-status')).toBeNull()
+    expect(tracker.querySelector('.daily-tracker-detail')).toBeNull()
+    expect(tracker.textContent).not.toContain('Consultez le détail de cette activité')
+    const restore = tracker.querySelector<HTMLButtonElement>('header [aria-label="Réafficher les activités masquées"]')!
+    expect(restore).not.toBeNull(); expect(restore.disabled).toBe(true)
+    await click('.daily-tracker-hide')
+    expect(tracker.querySelector('header [aria-label="Réafficher les activités masquées"]')).toBe(restore)
+    expect(restore.disabled).toBe(false)
+    await act(async () => restore.click())
+    expect(control.hidden).toEqual([])
+    expect(tracker.querySelector('footer .daily-tracker-restore')).toBeNull()
+  })
+  it('makes the whole Home card the only control and keeps overview as a micro action', async () => {
+    await render()
+    const home = container.querySelector('.home-daily-summary')!
+    expect(home.querySelector('h2')?.textContent).toBe('Quotidiennes')
+    expect(home.querySelector('.home-daily-actions > h3')).toBeNull()
+    expect(home.querySelector('.home-daily-ongoing > h3')).toBeNull()
+    const wheel = home.querySelector<HTMLButtonElement>('[data-daily-id="wheel"]')!
+    expect(wheel.tagName).toBe('BUTTON'); expect(wheel.querySelector('button,a')).toBeNull()
+    expect(wheel.querySelector('.home-daily-action-label')?.textContent).toBe('Accéder →')
+    await act(async () => wheel.click())
+    expect(opening).toHaveBeenCalledWith(expect.objectContaining({ id: 'wheel' }))
+    const link = home.querySelector<HTMLButtonElement>('.home-daily-overview')!
+    expect(link.classList.contains('app-button')).toBe(false)
+    await act(async () => link.click()); expect(overview).toHaveBeenCalledOnce()
+  })
+  it('claims through the Home card, marks it busy and disables every duplicate entry', async () => {
+    const claim = vi.fn(() => new Promise<DailyRewardClaimDto>(() => undefined))
+    await render({ claim })
+    const card = container.querySelector<HTMLButtonElement>('.home-daily-suggestion[data-daily-id="reward"]')!
+    expect(card.querySelector('.home-daily-action-label')?.textContent).toBe('Récupérer →')
+    await act(async () => card.click())
+    expect(card.disabled).toBe(true); expect(card.getAttribute('aria-busy')).toBe('true')
+    await click('.daily-tracker-primary button'); await click('.daily-reward-overview-card button')
+    expect(claim).toHaveBeenCalledOnce(); expect(opening).not.toHaveBeenCalled()
+  })
+  it.each(['in_progress', 'waiting', 'completed', 'unknown', 'error'] as const)('presents Expedition %s honestly, without inventing a character', async state => {
+    const items = projectDailies(dailySources()).map(item => ({ ...item, state: item.id === 'expedition' ? state : 'completed', actionable: false, detail: item.id === 'expedition' ? 'Skirk · 16:22:19' : undefined } as DailyItem))
+    await render({ items })
+    const home = container.querySelector('.home-daily-summary')!
+    const line = home.querySelector('.home-daily-ongoing [data-daily-id="expedition"]')
+    if (state === 'unknown' || state === 'error') expect(line).toBeNull()
+    else {
+      expect(line?.textContent).toContain(state === 'completed' ? 'Terminé' : items.find(item => item.id === 'expedition')!.status)
+      expect(line?.textContent).toContain('Skirk · 16:22:19')
+      await act(async () => control.hide('expedition')); expect(home.textContent).not.toContain('Expédition')
+      await act(async () => control.restore()); expect(home.querySelector('[data-daily-id="expedition"]')).not.toBeNull()
+    }
   })
 })
 

@@ -24,19 +24,19 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id))?.deadline
   return <section className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending}>
     <header className="daily-tracker-heading"><div><h2 ref={heading} tabIndex={-1}>Quotidiennes</h2><small>{tracker.message}</small></div>
-      {selected && <AppButton variant="icon" className="daily-tracker-hide" disabled={!tracker.canHide || claim.locked} aria-label={`Masquer ${selected.title} pour aujourd’hui`} onClick={hide}>×</AppButton>}</header>
+      <AppButton variant="icon" className="daily-tracker-hide" disabled={!selected || !tracker.canHide || claim.locked} aria-label={selected ? `Masquer ${selected.title} pour aujourd’hui` : 'Masquer une activité'} onClick={hide}>×</AppButton>
+      <div className="daily-tracker-restore"><button type="button" disabled={!tracker.hidden.length || claim.locked} style={{ visibility: tracker.hidden.length ? 'visible' : 'hidden' }} onClick={restore} aria-label="Réafficher les activités masquées">↺</button></div></header>
     <div className="daily-tracker-content">
-      {selected ? <><span className="daily-tracker-icon" aria-hidden="true">{selected.icon}</span><h3>{selected.title}</h3><p className={`daily-tracker-status ${selected.state}`}>{selected.status}</p>
-        <p className="daily-tracker-detail">{selected.detail || 'Consultez le détail de cette activité dans son écran.'}</p></>
-        : <><span className="daily-tracker-icon" aria-hidden="true">{items.every(item => item.state === 'completed') && !tracker.hidden.length ? '✓' : '◇'}</span><h3>{tracker.message}</h3>
+      {selected ? <><h3>{selected.title}</h3>{selected.status !== 'Disponible.' && <p className={`daily-tracker-status ${selected.state}`}>{selected.status}</p>}
+        {selected.detail && <p className="daily-tracker-detail">{selected.detail}</p>}</>
+        : <><h3>{tracker.message}</h3>
           <p className="daily-tracker-detail">{nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : 'L’Aperçu conserve toutes les activités du jour.'}</p></>}
       <p className={`daily-tracker-feedback${claim.error ? ' error' : ''}`} aria-live="polite">{currentMessage}</p>
+      <div className="daily-tracker-primary">{selected?.destination && <AppButton disabled={claim.locked || selected.state === 'unknown' || selected.state === 'error'} onClick={run}>{claim.pending && isClaim ? 'Récupération…' : isClaim ? 'Récupérer' : 'Accéder'}</AppButton>}</div>
     </div>
     <footer className="daily-tracker-footer">
-      <div className="daily-tracker-primary">{selected?.destination && <AppButton disabled={claim.locked || selected.state === 'unknown' || selected.state === 'error'} onClick={run}>{claim.pending && isClaim ? 'Récupération…' : isClaim ? 'Récupérer' : 'Accéder'}</AppButton>}</div>
       <div className="daily-tracker-navigation"><AppButton variant="icon" disabled={claim.locked || tracker.suggestions.length < 2} aria-label="Activité précédente" onClick={() => tracker.move(-1)}>‹</AppButton>
         <button type="button" className="daily-tracker-all" onClick={onOverview}>Tout voir →</button><AppButton variant="icon" disabled={claim.locked || tracker.suggestions.length < 2} aria-label="Activité suivante" onClick={() => tracker.move(1)}>›</AppButton></div>
-      <div className="daily-tracker-restore">{tracker.hidden.length > 0 && <button type="button" disabled={claim.locked} onClick={restore} aria-label="Réafficher les activités masquées">Réafficher</button>}</div>
     </footer>
   </section>
 }

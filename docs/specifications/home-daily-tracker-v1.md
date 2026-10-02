@@ -1,8 +1,8 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
-Lot du 02/10/2026 approuvé en review indépendante, checkpoint de promotion technique. Demande propriétaire : neuf activités inchangées, projection commune, suivi manuel dans le cadre existant de sidebar, synthèse Accueil ; aucune nouvelle récompense. Les détails de présentation et de coordination sont arbitrés sous sa délégation. Validation publique de l'étape 24 **NON acquise**.
+Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité Home/Sidebar du 02/10/2026 est un **candidat final UX sur review uniquement**, à review indépendante puis recette propriétaire de finition. Aucun changement des neuf activités ni nouvelle récompense.
 
-## Review indépendante et checkpoint de promotion — 02/10/2026
+## Historique — review indépendante et checkpoint de promotion du 02/10/2026
 
 Approbation ChatGPT transmise par la mission propriétaire sur **`2df4fa154e40fbc4bf6d040f126069e98c9a1901`** et **`52e7a2bbe9ff00e44cb109c1f423f6d8775b05e8`**, parent exact du second : 2df4fa1. R1004–R1010 acquises techniquement ; séparation Actions / En cours, limites trois/deux, masques partagés et absence de duplication acquises. Les étapes 22/23 restent publiquement validées dans leur seul périmètre documenté ; leurs derniers micro-ajustements et l'étape 24 restent à recetter.
 
@@ -28,7 +28,9 @@ Une source absente, d'une autre journée ou en erreur reste inconnue/incomplète
 
 ## Trois surfaces
 
-L'Aperçu conserve ses neuf cartes dans l'ordre ci-dessus et ses actions spécialisées. Accueil conserve BannerHero compact, bannière réelle et cinq raccourcis, puis affiche Aujourd'hui avec **jusqu'à trois actions immédiates** dans « À faire maintenant » et **jusqu'à deux états distincts** dans « En cours ». Sidebar affiche une seule activité avec chevrons manuels, Tout voir et masquage ; aucune rotation automatique.
+L'Aperçu conserve ses neuf cartes dans l'ordre ci-dessus et ses actions spécialisées. Accueil présente la bannière réelle compacte (titre/art/contexte/date et clic global Invocation, aucun footer Pity/Garantie/Capture/x1/x10), puis **Quotidiennes**. Ses cinq raccourcis redondants sont supprimés, destinations globales conservées. **Trois cartes actionnables maximum**, boutons uniques avec hover/focus et micro-libellé Accéder/Récupérer bas-droite ; micro-action clavier Voir l'Aperçu. Aucun heading visuel Actions/En cours, mais séparation logique conservée. Reward appelle toujours le claim partagé, avec disabled/aria-busy et gel des cartes pendant pending/feedback.
+
+**Deux lignes secondaires maximum** : `home-daily-presentation.ts` réutilise `dailyOngoingItems` sans modifier la projection. Expédition non-actionnable prioritaire, y compris COMPLETED confirmé ; RUNNING/WAITING reprennent statut et détail existants, avec countdown du snapshot. Aucun personnage inventé, aucun faux terminé unknown/error, aucune duplication READY/départ actionnable, masque respecté. Un état terminé peut afficher « Expédition · Terminé · Expédition effectuée. » quand c'est le seul détail réellement disponible. Les autres attentes/progressions restent des lignes compactes. Sidebar affiche une seule activité avec chevrons manuels, Tout voir et masquage ; aucune rotation automatique. [R1011–R1013](decisions-log.md) amendent la présentation initiale.
 
 Suivi sidebar : priorité initiale récompense quotidienne, expédition prête, autres activités actionnables dans l'ordre canonique, puis attentes utiles. La sélection consultée reste stable tant qu'elle est pertinente. Après une complétion confirmée, la suggestion suivante devient disponible après un court feedback dans une région réservée. Une action en vol fige son activité et son intention ; pending du claim partagé avec Aperçu/Accueil. Les autres actions naviguent uniquement.
 
@@ -38,7 +40,7 @@ Correctif de conformité de R1007–R1010 au-dessus de `2df4fa154e40fbc4bf6d040f
 
 Masquage local, versionné par environnement, Player et date métier Paris confirmée par les DTO serveur. Aucun snapshot métier ni secret stocké. Le masquage survit au refresh du navigateur, expire le jour suivant et peut être annulé ; il n'est pas synchronisé entre appareils et n'affecte jamais l'Aperçu. Storage indisponible : mémoire locale.
 
-Le cadre inférieur de sidebar conserve l'enveloppe attribuée par le shell et trois régions bornées : header, centre flexible, footer stable. Sa bounding box ne dépend pas de l'activité, du texte, d'une erreur ou du chargement. Contrôles explicites dans une section, aucun bouton imbriqué. Les cartes supérieures et le responsive du shell restent propriétaires de leur layout ; à 390 px, le shell courant place les cartes secondaires dans le flux avant le Chat. Aucun nouveau drawer n'est introduit.
+Le cadre inférieur de sidebar conserve l'enveloppe attribuée par le shell et trois régions bornées : header, centre flexible avec action, footer stable de navigation ancré en bas. Aucune icône centrale, aucun fallback de détail ; « Disponible. » reste dans la projection mais sa ligne n'est pas rendue dans le tracker. Les statuts significatifs restent affichés ; les petites hauteurs retirent d'abord le détail secondaire. Réafficher est une micro-action ↺ accessible, cellule d'en-tête toujours réservée via visibility:hidden sans masques ; fermeture et restauration séparées, aucune ligne footer dynamique. Sa bounding box ne dépend pas de l'activité, du texte, d'une erreur ou du chargement. Aucun bouton imbriqué. Les cartes supérieures et le responsive du shell restent propriétaires de leur layout ; à 390 px, les cartes secondaires restent dans le flux avant le Chat. Aucun nouveau drawer ; Accueil mobile en flux naturel.
 
 Tout terminé : état calme ; seulement des attentes : Rien à faire pour le moment avec échéance connue ; tout masqué : Aucune activité affichée et Réafficher ; sources inconnues/erreurs : état incomplet. Un masquage ou une erreur ne devient jamais une complétion.
 
@@ -58,7 +60,7 @@ Exemple synthétique contrôlé : huit activités disponibles, Récompense séle
 - Suite frontend **1 119/1 119 sur 109 fichiers** ; backend hors DB **1 073/1 073 sur 101 fichiers**. `verify:full` **8/8**, typechecks/builds frontend et backend, lint sans erreur. Les premiers passages ont révélé des fixtures/assertions obsolètes et une monnaie Événement perdue dans l'état attente ; corrigés avant l'exécution finale. Les tests privés DB n'ont pas été exécutés pour ce lot frontend.
 - Prisma validate et `prisma migrate status` en lecture seule : codes retour 0, schéma valide, **58 migrations, base à jour**, aucune migration candidate. Les warnings lint React existants demeurent, avec la synchronisation du reset quotidien à la session ; warning Vite de bundle >500 kB également conservé. Aucun upgrade de dépendance.
 
-`verify:quick` **5/5** également réussi lors de l'implémentation. Review indépendante désormais acquise selon le checkpoint ci-dessus ; validation publique propriétaire non acquise.
+`verify:quick` **5/5** également réussi lors de l'implémentation. Review indépendante acquise selon le checkpoint historique ; premier smoke propriétaire désormais acquis dans le périmètre indiqué en tête, finition visuelle encore à recetter.
 
 ## Inspection locale et stabilité géométrique
 
@@ -86,6 +88,27 @@ Défaut reproduit avant correction : sept nouveaux cas échouent dans les tests 
 Suite frontend complète **1 129/1 129 sur 109 fichiers**, backend hors DB **1 073/1 073 sur 101 fichiers** ; typechecks/builds/lint, `verify:quick` **5/5**, `verify:full` **8/8**, diff-check réussis. Prisma validate et migrate status : codes retour 0, schéma valide et **58 migrations à jour**, lecture seule. Backend et schéma inchangés ; aucun test DB mutatif exécuté. Warnings React/bundle antérieurs conservés, aucune dépendance ajoutée.
 
 Inspection Chromium locale, GameShell/CSS réels et équipe complète : **32 cas sur les quatre formats** (une/trois actions et Expédition RUNNING + Event WAITING, attente seule, READY, terminé, unknown, erreur, Expédition masquée). Aucun doublon, carte d'attente, masque ignoré ou overflow horizontal ; cinq destinations et accès Aperçu conservés. Deux lignes En cours au maximum, scroll local accessible sur 1366/mobile, captures inspectées. Ces preuves sont locales et synthétiques ; ni mutation publique ni validation publique du correctif. L'implémentation avait été publiée sur review uniquement ; sa review indépendante est désormais acquise et la promotion relève du checkpoint dédié ci-dessus.
+
+## Contrôles du polish de densité — 02/10/2026
+
+Treize échecs reproduits avant correction sur les attentes de présentation. Huit nouveaux cas de contrôleur UI et assertions existantes adaptées : **96/96 ciblés sur sept fichiers** (contrôleur quotidien, projection, navigation, HomeScreen, BannerHero, GameShell et deep-link Expédition). Carte entière, claim concurrent/pending/feedback, micro-actions, restauration réservée, statuts significatifs, absence raccourcis/footer compact, footer normal et target picker, RUNNING/WAITING/COMPLETED/unknown/error, READY sans duplication et masques couverts.
+
+Frontend **1 137/1 137 sur 109 fichiers**, backend hors DB **1 073/1 073 sur 101 fichiers** ; typechecks/builds/lint, `verify:quick` **5/5**, `verify:full` **8/8**, diff-check réussis. Prisma validate et migrate status : codes 0, **58 migrations à jour**, lecture seule, aucune 059 ni migration ajoutée. Warnings React et bundle Vite >500 kB antérieurs conservés. Aucun test DB mutatif ni changement backend/dépendance.
+
+Un passage complet intermédiaire avec Chromium en parallèle a échoué sur le test MP existant « replaces the receipt… after TTL » : fixture horodatée `Date.now() + 120 ms`, cas exécuté en 167 ms, statut déjà expiré à l'assertion. Relecture du test et du calcul Date.now, puis exécution isolée : PASS (1, 80 exclus). Aucun code/test MP modifié ; suite complète relancée sans inspection parallèle pour le bilan final ci-dessus.
+
+Chromium local avec GameShell/CSS réels, équipe complète, objectif et Chat ouvert, réseau externe bloqué : **44 états sur les quatre formats**. Reward/Roue/Défi, Expédition RUNNING, Event WAITING, terminé, tout masqué, unknown, erreur, feedback claim et revalidation. Scénario principal : sept activités disponibles, trois cartes, Expédition RUNNING en ligne unique. Captures Accueil/sidebar inspectées ; aucun chevauchement, débordement horizontal ni scroll tracker. Le panneau Home tient sans scroll aux trois desktops dans ce scénario ; mobile en flux naturel. Cadres tracker/supérieurs comparés à la baseline : desktop x/y/largeur/hauteur et mobile largeur/hauteur **écart maximal 0 px**. Réafficher visible/invisible : tous les descendants inchangés (**0 px**), masques conservés au reload puis restauration effective.
+
+| Format | Tracker largeur × hauteur | Home scrollHeight / clientHeight, scénario principal |
+| --- | ---: | ---: |
+| 2560×1440 | 290 × 646,516 px | 925 / 925 px |
+| 1920×1080 | 290 × 359,734 px | 584 / 584 px |
+| 1366×768 | 290 × 153,313 px | 353 / 353 px |
+| 390×844 | 372 × 110,578 px | 485 / 485 px |
+
+Parcours clavier Chromium également exécuté : Enter sur la carte Reward lance le stub partagé et rend la carte disabled/aria-busy, puis Enter sur Roue ouvre son écran ; Space sur la micro-action Aperçu ouvre l'Aperçu avec ses neuf activités. Aucune erreur JavaScript, réseau externe bloqué, aucune opération publique.
+
+Ces preuves sont locales/synthétiques, sans validation publique du polish. Le métier validé au premier smoke reste intact. Publication d'un seul commit review, parent 51e0710, puis **STOP pour review indépendante ChatGPT, sans promotion main** ; étape 25 non commencée.
 
 ## Périmètre exclu
 

@@ -1,8 +1,8 @@
 # Navigation et shell V1
 
-## Accueil et suivi Quotidiennes — étape 24 approuvée, checkpoint de promotion technique
+## Accueil et suivi Quotidiennes — étape 24, polish UX candidat review
 
-Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar remplace seulement le contenu de sa carte basse par une section avec contrôles indépendants ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil conserve BannerHero compact et Box/Catalogue/Équipe/Sac/Boutique, puis ajoute Aujourd'hui, au plus trois suggestions et le même masquage local. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques.
+Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar conserve sa carte basse avec contrôles indépendants, restauration réservée dans l'en-tête et navigation au bas ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil présente BannerHero compact sans footer Invocation, puis Quotidiennes : au plus trois cartes entièrement cliquables et deux lignes secondaires, sans headings supplémentaires. Ses cinq anciens raccourcis sont supprimés ; leurs destinations restent dans la navigation globale. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques. [R1011–R1013](decisions-log.md) amendent seulement la présentation.
 
 Roue et Défi utilisent une intention de sous-onglet identifiée par un token ; Combat ouvre Entraînement, Boss force sa section existante, Expédition réutilise l'intention Box du personnage actif, Amitié force Social > Amis. Événement réutilise `EventDailyOpenIntent` et l'ordre propriétaire Général→A→B→C. Ces raccourcis ne déclenchent aucune opération métier. Seule la Récompense quotidienne disponible utilise directement son callback de claim existant, partagé avec Aperçu/Accueil, verrou et feedback compris. Aucun Arcade ou Mission permanente ajouté aux Quotidiennes.
 

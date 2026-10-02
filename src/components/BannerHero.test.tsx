@@ -81,7 +81,10 @@ describe('BannerHero real Gacha state', () => {
     expect(html).toContain('Ouvrir l’écran Invocation')
     expect(html).not.toContain('banner-change-button')
     expect(html).not.toContain('>Changer<')
-    expect((html.match(/disabled=""/g) ?? [])).toHaveLength(2)
+    expect(html).not.toContain('invocation-footer')
+    expect(html).not.toContain('Invocation x1')
+    expect(html).not.toContain('primary-pity')
+    expect(html).not.toContain('banner-status')
   })
 
   it('freezes pull and target controls while a request survives an Invocation remount', () => {

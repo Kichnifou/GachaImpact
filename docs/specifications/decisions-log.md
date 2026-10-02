@@ -2,6 +2,14 @@
 
 Statut : évolutif.
 
+## Premier smoke étape 24 et polish de densité — R1011–R1013 (2026-10-02)
+
+- `VALIDÉ R1011 — demande propriétaire` : tracker compact sans icône centrale, sans fallback générique ni statut « Disponible. » ; les statuts significatifs et au plus un détail utile restent présentables. Enveloppe/position/largeur propriétaires du shell conservées ; en-tête avec fermeture et restauration accessible dans une cellule toujours réservée, centre flexible avec action, footer de navigation ancré en bas. Les petites hauteurs compactent d'abord les détails secondaires, sans couper action, chevrons ou Tout voir. Amendement de présentation à R1008 uniquement ; masques, priorités, claim partagé et revalidation inchangés.
+- `VALIDÉ R1012 — demande propriétaire` : supprimer les cinq raccourcis redondants de l'Accueil, sans supprimer leurs destinations globales. BannerHero compact devient un aperçu navigable avec titre/art/contexte/date, sans produire le footer Invocation (Pity/Garantie/Capture/x1/x10). Le mode Invocation normal et le target picker restent inchangés. Accueil desktop : bannière compacte puis panneau Quotidiennes dans l'espace restant ; mobile en flux naturel. Cette présentation remplace celle de R1009, sans modifier le métier.
+- `VALIDÉ R1013 — demande propriétaire` : titre Accueil « Quotidiennes », sans headings visuels « À faire maintenant » / « En cours ». Trois cartes actionnables maximum, chacune un bouton unique avec micro-libellé bas-droite Accéder/Récupérer ; le claim Reward reste partagé et la carte disabled/aria-busy pendant le vol. Aperçu accessible par micro-action. Deux lignes secondaires maximum, avec Expédition non-actionnable prioritaire : RUNNING/WAITING via données déjà projetées, COMPLETED confirmé avec détail réel, aucun nom inventé ni faux terminé unknown/error. Expédition actionnable jamais dupliquée et masques respectés partout ; séparation logique des helpers conservée.
+
+Retour propriétaire : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition, micro-polish Administration/Journal/Arcade validés au premier smoke. La finition visuelle ci-dessus reste un candidat review à recetter ; [Master](../master/PROJECT_MASTER_PLAN.md) et [contrat Accueil/Quotidiennes](home-daily-tracker-v1.md) portent les preuves et l'état courant.
+
 ## Validation 22/23, micro-polish et étape 24 — R1004–R1010 (2026-10-02)
 
 - `VALIDÉ R1004 — demande propriétaire` : dernier smoke public de 22/23 acquis sur Rôles, filtres/détail Journal, layout Arcade, Quitter, Règles, Puissance 4 et Records. Cette validation permet l'étape 24 ; elle ne certifie pas chaque mutation Administration. Derniers ajustements visuels ci-dessous intégrés au même lot candidat.
@@ -12,7 +20,7 @@ Statut : évolutif.
 - `VALIDÉ R1009 — demande propriétaire` : Accueil garde bannière compacte réelle et cinq destinations, ajoute Aujourd'hui avec zéro à trois suggestions, disponibilité et information en cours. Les raccourcis ouvrent leurs propriétaires précis sans spin, achat, combat, participation ou envoi automatique. L'Aperçu garde toutes ses cartes même masquées ailleurs.
 - `VALIDÉ R1010 — demande propriétaire et coordination déléguée` : réponses métier confirmées propagées et lectures antérieures invalidées ; revalidation commune au focus/retour visible, minuit Paris et échéances réelles. Date de masquage issue des DTO serveur, échéance Expédition basée sur temps monotone, passage à zéro relit sans attribuer. Déduplication par domaine/génération joueur ; pas de polling quotidien ajouté ni neuf lectures par composant. Faveur conserve son lifecycle autonome et les files Faveur/Level-up/Invocation restent propriétaires de leur présentation. Aucun schéma, migration ou service ajouté.
 
-Contrat détaillé et preuves : [Accueil et suivi Quotidiennes](home-daily-tracker-v1.md), [Master](../master/PROJECT_MASTER_PLAN.md). Étape 24 candidate `review` seulement ; review indépendante et validation publique de ce candidat restent à acquérir. La validation R1004 n'étend pas le périmètre public aux nouveautés du présent lot.
+Contrat détaillé et preuves : [Accueil et suivi Quotidiennes](home-daily-tracker-v1.md), [Master](../master/PROJECT_MASTER_PLAN.md). La présentation initiale R1008/R1009 est amendée par R1011–R1013 ; l'état vivant de validation appartient au Master.
 
 ## Retours publics Administration / Arcade — R991–R998 (2026-10-01)
 
