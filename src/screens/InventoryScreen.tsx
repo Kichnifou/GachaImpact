@@ -1,3 +1,4 @@
+import { useTutorialView, useTutorialPanel } from '../tutorial/tutorial-presentation'
 import InventoryObjectCard from '../components/InventoryObjectCard'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, DailyChallengeMutationDto, DailyCombatDto, ElementKey, InventoryItemDetailDto, InventoryItemDto, InventoryResourceDto, PlayerBoxDto, PlayerInventoryDto, PlayerResourcesDto, PlayerTeamsDto, StellaUseDto } from '../api/types'
@@ -41,7 +42,10 @@ const categories: readonly { id: InventoryCategory; label: string; icon: string 
 
 function InventoryScreen({ initialInventory, refreshToken = 0, resources, elementKey, dailyCombat, onLoad, onLoadItemDetail, onConvertParticles, onNavigateShop, onNavigateBank, onNavigateTrades, onLoadBox, onSetBoxFavorite, onUseStella, stellaRetryCharacterId, onLoadTeams }: InventoryScreenProps) {
   const [inventory, setInventory] = useState(initialInventory)
-  const [activeCategory, setActiveCategory] = useState<InventoryCategory>('all')
+  const guidedDetail = useTutorialPanel("inventory-detail")
+  const [guidedResult, setGuidedResult] = useState<{ id: string; detail: InventoryItemDetailDto | null; error: string | null } | null>(null)
+  const [normalactiveCategory, setActiveCategory] = useState<InventoryCategory>('all')
+  const activeCategory = useTutorialView('inventory', normalactiveCategory, ['all', 'resources', 'objects', 'collection'])
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<InventoryItemDto | null>(null)
@@ -96,6 +100,18 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
     return () => window.clearTimeout(timer)
   }, [stellaFeedback])
 
+  const guidedItem = guidedDetail ? inventory?.items.filter(item => item.externalKey !== MASTERLESS_STELLA_FORTUNA_KEY && BigInt(item.quantity) > 0n).slice().sort((a, b) => a.id.localeCompare(b.id))[0] ?? null : null
+  const guidedItemId = guidedItem?.id ?? null
+  const guidedItemDetail = guidedResult?.id === guidedItemId ? guidedResult.detail : null
+  const guidedDetailError = guidedResult?.id === guidedItemId ? guidedResult.error : null
+  useEffect(() => {
+    if (!guidedItemId) return
+    let active = true
+    void loadItemDetailRef.current(guidedItemId, 1)
+      .then(detail => { if (active) setGuidedResult({ id: guidedItemId, detail, error: null }) })
+      .catch(reason => { if (active) setGuidedResult({ id: guidedItemId, detail: null, error: apiErrorMessage(reason) }) })
+    return () => { active = false }
+  }, [guidedItemId, loadItemDetailRef])
   const entries = useMemo(() => inventory ? presentInventory(inventory.resources, inventory.items, resources, activeCategory, query) : [], [activeCategory, inventory, query, resources])
   const groups = useMemo(() => groupInventoryEntries(entries, activeCategory), [activeCategory, entries])
   const completion = inventory ? collectionCompletion(inventory.items) : { owned: 0, total: 0 }
@@ -163,20 +179,20 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   if (!inventory && !error) return <InventoryStatus title="Ouverture de votre Sac…" detail="Synchronisation de vos ressources et objets." />
   if (!inventory) return <InventoryStatus title="Impossible de charger votre Sac" detail={error ?? 'Erreur inconnue'} onRetry={() => void load()} />
 
-  return <div className="screen-content inventory-screen">
+  return <div data-business-pending={Boolean(stellaPendingId || favoritePendingId || stellaFeedback?.visual)} className="screen-content inventory-screen">
     <div className="inventory-layout">
-      <nav className="inventory-categories panel" aria-label="Catégories du Sac">
+      <nav data-tutorial-anchor="inventory-tabs" className="inventory-categories panel" aria-label="Catégories du Sac">
         {categories.map((category) => <button type="button" className={activeCategory === category.id ? 'active' : ''} onClick={() => setActiveCategory(category.id)} key={category.id}>
           <span aria-hidden="true">{category.icon}</span><strong>{category.label}</strong><small>{inventoryCategoryCount(inventory, category.id)}</small>
         </button>)}
       </nav>
 
       <section className={`inventory-content inventory-${activeCategory} panel`}>
-        <div className="inventory-heading">
+        <div data-tutorial-anchor="screen-entry" className="inventory-heading">
           <div><span className="eyebrow">Sac personnel</span><h2>{categories.find(({ id }) => id === activeCategory)?.label}</h2></div>
           <label className="search-field compact-search"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher dans le Sac</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Rechercher…" /></label>
         </div>
-        <div className="inventory-scroll-body">
+        <div data-tutorial-anchor="inventory-entries" className="inventory-scroll-body">
           {activeCategory === 'collection' && <div className="inventory-collection-summary"><span>Collection connue</span><strong>{completion.owned} / {completion.total}</strong></div>}
           {error && <p className="inventory-inline-error" role="alert">{error}</p>}
           {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
@@ -187,7 +203,8 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
         </div>
       </section>
     </div>
-    {selectedItem && <ItemDetailModal item={itemDetail?.item ?? selectedItem} detail={itemDetail} error={itemDetailError} loading={itemDetailLoading} onPage={(page) => void openItemDetail(selectedItem, page)} onClose={() => { itemDetailRevision.current += 1; setSelectedItem(null); setItemDetail(null); setItemDetailError(null); setItemDetailLoading(false) }} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
+    {guidedItem && <ItemDetailModal item={guidedItem} detail={guidedItemDetail} error={guidedDetailError} loading={!guidedItemDetail && !guidedDetailError} onPage={() => undefined} onClose={() => undefined} />}
+    {!guidedDetail && selectedItem && <ItemDetailModal item={itemDetail?.item ?? selectedItem} detail={itemDetail} error={itemDetailError} loading={itemDetailLoading} onPage={(page) => void openItemDetail(selectedItem, page)} onClose={() => { itemDetailRevision.current += 1; setSelectedItem(null); setItemDetail(null); setItemDetailError(null); setItemDetailLoading(false) }} onUseStella={selectedItem.externalKey === MASTERLESS_STELLA_FORTUNA_KEY ? () => void openStellaPicker() : undefined} />}
     {stellaPickerOpen && <StellaPicker box={box} error={boxError} stellaQuantity={stella?.quantity ?? '0'} favoritePendingId={favoritePendingId} onClose={() => { setStellaPickerOpen(false); setSelectedCharacterId(null); setBoxError(null); setStellaFeedback(null) }} onSelect={setSelectedCharacterId} onRetry={() => void openStellaPicker()} onToggleFavorite={toggleFavorite} />}
     {selectedCharacter && <BoxCharacterDetailModal character={selectedCharacter} combatState={combatStateFor(dailyCombat, selectedCharacter.id)} stellaQuantity={stella?.quantity ?? '0'} stellaRetryAvailable={stellaRetryId === selectedCharacter.id} favoritePending={favoritePendingId === selectedCharacter.id} stellaPending={stellaPendingId === selectedCharacter.id} stellaFeedback={stellaFeedback} actionError={boxError} onToggleFavorite={() => void toggleFavorite(selectedCharacter)} onUseStella={() => void submitStella(selectedCharacter)} onClose={() => { setSelectedCharacterId(null); setStellaFeedback(null); setBoxError(null) }} />}
     {conversionOpen && <ParticleConversionModal elementKey={elementKey} stock={inventory.resources.find(({ key }) => key === `particles_${elementKey}`)?.amount ?? '0'} onClose={() => setConversionOpen(false)} onOpenTrades={onNavigateTrades} onConvert={async (amount, idempotencyKey) => {
@@ -258,7 +275,7 @@ function StellaPicker({ box, error, stellaQuantity, favoritePendingId, onClose, 
 }
 
 function ItemDetailModal({ item, detail, error, loading, onPage, onClose, onUseStella }: { item: InventoryItemDto; detail: InventoryItemDetailDto | null; error: string | null; loading: boolean; onPage: (page: number) => void; onClose: () => void; onUseStella?: () => void }) {
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel inventory-item-detail" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title" onMouseDown={(event) => event.stopPropagation()}>
+  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section data-tutorial-anchor="inventory-detail" data-tutorial-state={loading ? "loading" : undefined} className="floating-panel inventory-item-detail" role="dialog" aria-modal="true" aria-labelledby="inventory-item-title" onMouseDown={(event) => event.stopPropagation()}>
     <header className="floating-panel-heading"><span className="eyebrow">{item.section === 'collection' ? 'Collection' : 'Objet'}</span><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer la fiche"><span className="icon-glyph">×</span></button></header>
     <span className="item-icon violet" aria-hidden="true">{BigInt(item.quantity) > 0n ? '✦' : '?'}</span><h2 id="inventory-item-title">{item.displayName}</h2><strong>× {formatResourceAmount(item.quantity)}</strong><p>{item.description ?? 'Aucune description disponible.'}</p>
     {item.originFestival && <p><b>Origine :</b> {item.originFestival}{item.originMonth ? ` · ${item.originMonth}` : ''}</p>}
@@ -270,7 +287,7 @@ function ItemDetailModal({ item, detail, error, loading, onPage, onClose, onUseS
 }
 
 function InventoryStatus({ title, detail, onRetry }: { title: string; detail: string; onRetry?: () => void }) {
-  return <section className="panel inventory-status" role={onRetry ? 'alert' : 'status'}><span aria-hidden="true">◇</span><h2>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
+  return <section className="panel inventory-status" role={onRetry ? 'alert' : 'status'}><span aria-hidden="true">◇</span><h2 data-tutorial-anchor="screen-entry" data-tutorial-state={onRetry ? undefined : "loading"}>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
 }
 
 function applyStellaToInventory(inventory: PlayerInventoryDto, result: StellaUseDto): PlayerInventoryDto {

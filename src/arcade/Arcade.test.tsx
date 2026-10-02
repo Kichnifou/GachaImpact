@@ -1,3 +1,5 @@
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -338,4 +340,20 @@ describe('shared Level-up overflow', () => {
     expect(container.textContent).toContain('1 palier au niveau 100'); expect(container.textContent).toContain('800')
     expect(publishProgressionUpdate(next, next, { id: 'arcade:finish' }).feedback).toBeNull()
   })
+})
+
+it.each(['AI', 'REVEAL'] as const)('suspends %s advancement in the tour and resumes the actual session afterwards', async mode => {
+  vi.useFakeTimers()
+  const row = session(mode === 'AI' ? 'CONNECT_FOUR' : 'MEMORY')
+  row.board.turn = mode === 'AI' ? 'AI' : 'PLAYER'
+  if (row.board.kind === 'MEMORY') row.board.phase = 'REVEAL'
+  api.getArcade.mockResolvedValue(overview([row])); api.actArcade.mockResolvedValue(mutation(row))
+  const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('arcade-tic-tac-toe') }}><ArcadeScreen playerId="player-a" /></TutorialPresentationContext.Provider>
+  const { root, container } = await mount(render(true))
+  await act(async () => { await vi.advanceTimersByTimeAsync(6_000) })
+  expect(api.actArcade).not.toHaveBeenCalled(); expect(api.startArcade).not.toHaveBeenCalled()
+  expect(container.querySelector('[aria-pressed="true"]')?.textContent).toBe(mode === 'AI' ? 'Puissance 4' : 'Memory')
+  await act(async () => root.render(render(false)))
+  await act(async () => { await vi.advanceTimersByTimeAsync(900) })
+  expect(api.actArcade).toHaveBeenCalledOnce()
 })

@@ -1,3 +1,4 @@
+import { useTutorialView } from '../tutorial/tutorial-presentation'
 import type { FavorDto } from '../api/types'
 import { projectDailies, type DailyItem } from '../dailies/daily-summary'
 import type { DailyClaimController } from '../dailies/use-daily-claim'
@@ -167,8 +168,9 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
 function DailiesScreen(props: Omit<ActivitiesScreenProps, 'screen'>) {
   const { wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate, onOpenDailyEvent, onOpenFriends, dailyClaim, dailiesOverviewRequestToken = 0, dailiesRequestedTab = 'overview' } = props
   const [selection, setSelection] = useState<{ tab: 'overview' | 'wheel' | 'challenge'; requestToken: number }>({ tab: dailiesRequestedTab, requestToken: dailiesOverviewRequestToken })
-  const tab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : dailiesRequestedTab
+  const normalTab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : dailiesRequestedTab
   const selectTab = (next: typeof tab) => setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })
+  const tab = useTutorialView('activities-dailies', normalTab, ['overview', 'wheel', 'challenge'])
   const tabs = <nav className="activity-inner-tabs" aria-label="Sections Quotidiennes"><button className={tab === 'overview' ? 'active' : ''} onClick={() => selectTab('overview')}>Aperçu</button><button className={tab === 'wheel' ? 'active' : ''} onClick={() => selectTab('wheel')}>Roue</button><button className={tab === 'challenge' ? 'active' : ''} onClick={() => selectTab('challenge')}>Défi</button></nav>
   const items = props.dailyItems ?? projectDailies({ elementKey, favor: props.favor, reward: dailyRewardToday, wheel: wheelToday, challenge: dailyChallenge, combat: props.dailyCombat, boss: props.monthlyBoss, expedition: props.expedition, monotonicNow: props.expeditionMonotonicNow, event: props.event, friendship: props.friendship, friendshipDate: props.friendshipDate ?? dailyRewardToday.businessDate, errors: { favor: props.favorError, friendship: Boolean(props.friendshipError) } })
   const access = (item: DailyItem) => {
@@ -182,7 +184,7 @@ function DailiesScreen(props: Omit<ActivitiesScreenProps, 'screen'>) {
       case 'event': if (onOpenDailyEvent) onOpenDailyEvent(item.destination.destination); else onNavigate('activities-event'); break
     }
   }
-  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div className="dailies-overview">
+  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div data-tutorial-anchor="dailies-overview" className="dailies-overview">
     {items.map(item => item.id === 'reward' ? <div key={item.id} className="daily-overview-item" data-daily-activity={item.title}><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} controller={dailyClaim} summary={item} /></div> : <DailyOverviewCard key={item.id} title={item.title} status={item.status} completed={item.state === 'completed'} detail={item.id === 'expedition' && item.state === 'in_progress' && props.expedition ? <>{props.expedition.value.activeCharacter?.name ?? 'Personnage'} · <ExpeditionCountdown snapshot={props.expedition} monotonicNow={props.expeditionMonotonicNow ?? 0} /></> : item.detail} obtained={item.obtained} damage={item.damage} hideAction={item.id === 'favor' || item.id === 'expedition' && item.state === 'in_progress' || item.state === 'completed' || item.id === 'friendship' && !item.actionable || item.id === 'event' && !item.destination} onAccess={item.destination && !(item.id === 'expedition' && item.state === 'in_progress') ? () => access(item) : undefined} actionText={item.id === 'expedition' && item.status === 'À récupérer' ? 'Récupérer' : 'Accéder'} />)}
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
@@ -200,7 +202,7 @@ export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticle
     catch (reason) { if (!isAmbiguousMutationError(reason)) setIntent(null); setError(dailyChallengeErrorMessage(reason, action)) }
     finally { setPending(null) }
   }
-  if (!value.assigned || !value.challenge) return <section className="panel daily-challenge-card available" data-challenge-state="available">
+  if (!value.assigned || !value.challenge) return <section data-business-pending={Boolean(pending)} data-tutorial-anchor="dailies-challenge" className="panel daily-challenge-card available" data-challenge-state="available">
     <header className="daily-challenge-header"><div><span className="eyebrow">Défi du jour</span><small>{value.businessDate}</small></div><strong>Disponible</strong></header>
     <div className="daily-challenge-content"><h2>Un objectif à révéler</h2><p>Obtenez un objectif aléatoire à accomplir avant le reset journalier. Il sera révélé après l’achat.</p><dl><div><dt>Prix</dt><dd>{formatResourceAmount(value.purchaseCost)} Moras</dd></div><div><dt>Récompense</dt><dd>800 Primogemmes</dd></div></dl></div>
     <div className="daily-challenge-progress-zone available"><span>Objectif révélé après attribution.</span><p className={`daily-challenge-feedback${error ? ' error' : ''}`} role={error ? 'alert' : undefined}>{error ?? ''}</p></div>
@@ -215,7 +217,7 @@ export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticle
     : challenge.type === 'pulls'
       ? { label: 'Aller à l’Invocation', run: () => onNavigate('invocation') }
       : null
-  return <section className={`panel daily-challenge-card ${value.status.toLowerCase()}`} data-challenge-state={value.status.toLowerCase()}>
+  return <section data-business-pending={Boolean(pending)} data-tutorial-anchor="dailies-challenge" className={`panel daily-challenge-card ${value.status.toLowerCase()}`} data-challenge-state={value.status.toLowerCase()}>
     <header className="daily-challenge-header"><div><span className="eyebrow">Défi du jour</span><small>{value.businessDate}</small></div><strong className={completed ? 'complete' : undefined}>{completed ? '✅ Terminé' : 'Actif'}</strong></header>
     <div className="daily-challenge-content"><h2>{challenge.displayName}</h2><p>{challenge.description}</p><span className="daily-challenge-reward">{completed ? '+' : ''}{challenge.rewardPrimogems} Primogemmes</span></div>
     <div className="daily-challenge-progress-zone"><div className="daily-challenge-progress" aria-label={`${challenge.progress} sur ${challenge.target}`}><span style={{ width: `${progressPercent}%` }} /></div><p>{dailyChallengeProgressSentence(challenge)}</p><p className={`daily-challenge-feedback${error ? ' error' : ''}`} role={error ? 'alert' : undefined}>{error ?? ''}</p></div>

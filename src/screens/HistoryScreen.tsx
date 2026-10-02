@@ -1,3 +1,4 @@
+import { useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState } from 'react'
 import type { BankHistoryDto, BannerHistoryDto, EventHistoryDto, GachaHistoryDto, ShopEffectDto, ShopHistoryDto } from '../api/types'
 import AppButton from '../components/AppButton'
@@ -31,7 +32,8 @@ const effectLabel = (effect: ShopEffectDto) => effect.type === 'resource_bundle'
     : effect.type === 'ticket_other_element_particles' || effect.type === 'ticket_main_element_particles' ? `+${formatResourceAmount(effect.amount)} particules ${effect.elementKey}` : effect.label
 
 export default function HistoryScreen({ initialCategory = 'invocations', onInvocations, onBannersOrEvent, onBank, onShop }: Props) {
-  const [category, setCategory] = useState<HistoryCategory>(initialCategory)
+  const [normalcategory, setCategory] = useState<HistoryCategory>(initialCategory)
+  const category = useTutorialView('history', normalcategory, ['invocations', 'banners', 'bank', 'shop', 'event'])
   const [page, setPage] = useState(1)
   const [bankFilter, setBankFilter] = useState<BankFilter>('ALL')
   const [loaded, setLoaded] = useState<{ category: HistoryCategory; page: number; filter: BankFilter; value: Page } | null>(null)
@@ -55,9 +57,9 @@ export default function HistoryScreen({ initialCategory = 'invocations', onInvoc
   const choose = (next: HistoryCategory) => { if (next === category) return; setLoading(true); setError(null); setCategory(next); setPage(1) }
   const changeFilter = (next: BankFilter) => { if (next === bankFilter) return; setLoading(true); setError(null); setBankFilter(next); setPage(1) }
   const turnPage = (next: number) => { setLoading(true); setError(null); setPage(next) }
-  return <div className="screen-content history-screen long-screen-layout">
+  return <div data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content history-screen long-screen-layout">
     <ScreenHeader eyebrow="ARCHIVES" title="Historique" />
-    <ScrollableScreenPanel className="history-frame" bodyClassName="history-body" fixed={<div className="history-controls">
+    <ScrollableScreenPanel className="history-frame" bodyTutorialAnchor="history-content" bodyClassName="history-body" fixed={<div data-tutorial-anchor="history-controls" className="history-controls">
       <nav className="activity-inner-tabs" role="tablist" aria-label="Catégories de l’historique">{categories.map(item => <button type="button" key={item.id} role="tab" aria-selected={category === item.id} className={category === item.id ? 'active' : ''} onClick={() => choose(item.id)}>{item.label}</button>)}</nav>
       {category === 'bank' && <div className="history-filters" role="group" aria-label="Filtrer les opérations bancaires">{bankFilters.map(item => <AppButton key={item.id} aria-pressed={bankFilter === item.id} className={bankFilter === item.id ? 'active' : ''} onClick={() => changeFilter(item.id)}>{item.label}</AppButton>)}</div>}
     </div>} footer={value && <div className="history-pagination"><AppButton disabled={page <= 1} onClick={() => turnPage(page - 1)}>Précédent</AppButton><span>Page {page} / {totalPages}</span><AppButton disabled={page >= totalPages} onClick={() => turnPage(page + 1)}>Suivant</AppButton></div>}>

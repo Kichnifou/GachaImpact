@@ -31,12 +31,12 @@ function CharactersScreen({ characters, voteCache, refreshToken = 0, ...voteActi
   const filtering = normalizeCharacterSearch(query).length > 0 || rarity !== 'all' || element !== null
   const reset = () => { setQuery(''); setRarity('all'); setElement(null); setSortKey('name'); setDirection('asc') }
 
-  return <div className="screen-content collection-screen catalog-screen long-screen-layout">
+  return <div data-business-pending={votes.pending} className="screen-content collection-screen catalog-screen long-screen-layout">
     <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>} fixed={<>
-      <CollectionFilters allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+      <CollectionFilters tutorialAnchor="catalog-filters" allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
     </>}>
     <div className="catalog-vote-feedback" role="alert">{votes.error}</div>
-    {filtered.length ? <section className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => {
+    {filtered.length ? <section data-tutorial-anchor="catalog-votes" className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => {
       const candidate = votes.value?.candidates.find(entry => entry.characterId === character.id)
       return <CharacterCard character={character} key={character.id} footer={<div className="catalog-vote-slot">{candidate && <div className="catalog-character-vote"><span>{candidate.voteCount} vote{candidate.voteCount <= 1 ? '' : 's'}</span>{votes.value?.ownVote?.characterId === character.id ? <strong>Voté ✓</strong> : votes.value?.canVote && <AppButton variant="primary" aria-label={`Voter pour ${character.name} — choix définitif pour cette semaine`} disabled={votes.pending} onClick={() => void votes.vote(character.id)}>Voter</AppButton>}</div>}</div>} />
     })}</section>

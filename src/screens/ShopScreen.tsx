@@ -38,14 +38,14 @@ function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onOp
     finally { setPendingItemId(null) }
   }
 
-  if (!shop) return <div className="screen-content shop-screen"><section className="panel shop-status" role={error ? 'alert' : 'status'}><strong>{error ?? 'Ouverture de la Boutique…'}</strong>{error && <button type="button" onClick={() => void load()}>Réessayer</button>}</section></div>
+  if (!shop) return <div className="screen-content shop-screen"><section data-tutorial-state={!error ? "loading" : undefined} data-tutorial-anchor={error ? "screen-entry" : undefined} className="panel shop-status" role={error ? 'alert' : 'status'}><strong>{error ?? 'Ouverture de la Boutique…'}</strong>{error && <button type="button" onClick={() => void load()}>Réessayer</button>}</section></div>
 
-  return <div className="screen-content shop-screen long-screen-layout">
+  return <div data-business-pending={Boolean(pendingItemId)} className="screen-content shop-screen long-screen-layout">
     <ScrollableScreenPanel className="shop-screen-panel" bodyClassName="shop-scroll-body" fixed={<>
-      <header className="shop-hero"><div><span className="eyebrow">Échanges astraux</span><h1>Boutique</h1><p>Le catalogue et chaque transaction sont validés par le serveur.</p></div><button type="button" className="shop-wallet" onClick={onNavigateBank} aria-label={`Ouvrir la Banque — portefeuille ${formatResourceAmount(shop.resources.moras)} Moras`}><GameAssetIcon className="shop-wallet-icon" src={currencyAssetPaths.mora} fallback="●" /><span>Portefeuille</span><strong>{formatResourceAmount(shop.resources.moras)} Moras</strong></button></header>
+      <header className="shop-hero"><div><span className="eyebrow">Échanges astraux</span><h1 data-tutorial-anchor="screen-entry">Boutique</h1><p>Le catalogue et chaque transaction sont validés par le serveur.</p></div><button type="button" data-tutorial-anchor="shop-wallet" className="shop-wallet" onClick={onNavigateBank} aria-label={`Ouvrir la Banque — portefeuille ${formatResourceAmount(shop.resources.moras)} Moras`}><GameAssetIcon className="shop-wallet-icon" src={currencyAssetPaths.mora} fallback="●" /><span>Portefeuille</span><strong>{formatResourceAmount(shop.resources.moras)} Moras</strong></button></header>
       <div className="shop-feedback-slot" aria-live="polite">{error ? <span className="error" role="alert">{error}</span> : feedback ? <span>{feedback}</span> : <span aria-hidden="true">&nbsp;</span>}</div>
     </>}>
-      <section className="shop-grid" aria-label="Catalogue Boutique">{shop.items.map((item) => <ShopItemCard key={item.id} item={item} walletMoras={shop.resources.moras} quantity={quantities[item.id] ?? '1'} pending={pendingItemId === item.id} anyPending={pendingItemId !== null} onQuantity={(value) => setQuantities((current) => ({ ...current, [item.id]: value.replace(/[^0-9]/g, '') }))} onMax={() => setQuantities((current) => ({ ...current, [item.id]: (BigInt(shop.resources.moras) / BigInt(item.priceAmount)).toString() }))} onPurchase={() => void purchase(item)} />)}</section>
+      <section data-tutorial-anchor="shop-catalog" className="shop-grid" aria-label="Catalogue Boutique">{shop.items.map((item) => <ShopItemCard key={item.id} item={item} walletMoras={shop.resources.moras} quantity={quantities[item.id] ?? '1'} pending={pendingItemId === item.id} anyPending={pendingItemId !== null} onQuantity={(value) => setQuantities((current) => ({ ...current, [item.id]: value.replace(/[^0-9]/g, '') }))} onMax={() => setQuantities((current) => ({ ...current, [item.id]: (BigInt(shop.resources.moras) / BigInt(item.priceAmount)).toString() }))} onPurchase={() => void purchase(item)} />)}</section>
       <RecentPurchase purchase={shop.recentPurchases[0] ?? null} onOpenHistory={onOpenGlobalHistory ?? (() => setHistoryOpen(true))} />
     </ScrollableScreenPanel>
     {ticketResult && <TicketResultModal effect={ticketResult} onClose={() => setTicketResult(null)} />}
@@ -62,7 +62,7 @@ function ShopItemCard({ item, walletMoras, quantity, pending, anyPending, onQuan
     <div className="shop-item-heading"><span className="shop-item-symbol" aria-hidden="true">{item.visualKey === 'mission' ? '▤' : item.visualKey === 'ticket' ? '✦' : '◆'}</span><div><span className="shop-tag">{item.effectType === 'random_ticket' ? 'Récompense immédiate' : item.effectType === 'daily_mission' ? 'Quotidien' : 'Ressources'}</span><h2>{item.displayName}</h2></div></div>
     <p className="shop-description">{item.description}</p>
     <div className="shop-card-options">
-      {item.ticketRewards.length > 0 && <ul className="shop-ticket-odds">{item.ticketRewards.map((rewardOption) => <li key={rewardOption.id}><span>{rewardOption.label}</span><strong>{formatProbability(rewardOption.probabilityBasisPoints)}</strong></li>)}</ul>}
+      {item.ticketRewards.length > 0 && <ul data-tutorial-anchor="shop-tickets" className="shop-ticket-odds">{item.ticketRewards.map((rewardOption) => <li key={rewardOption.id}><span>{rewardOption.label}</span><strong>{formatProbability(rewardOption.probabilityBasisPoints)}</strong></li>)}</ul>}
       {item.quantityMode === 'multiple' && <div className="shop-quantity"><label><span>Quantité</span><input inputMode="numeric" value={quantity} disabled={anyPending} onChange={(event) => onQuantity(event.target.value)} /></label><button type="button" disabled={anyPending || BigInt(walletMoras) < BigInt(item.priceAmount)} onClick={onMax}>MAX</button></div>}
     </div>
     <div className="shop-card-controls">

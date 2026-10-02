@@ -1,3 +1,4 @@
+import { useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 
 import type { GiftCodeClaimDto, GiftCodeDto, PlayerGiftCodesDto } from '../api/types'
@@ -10,7 +11,8 @@ import { useLatestRef } from '../hooks/use-latest-ref'
 type Props = Readonly<{ refreshToken?: number; onLoad: () => Promise<PlayerGiftCodesDto>; onClaim: (editionId: string, idempotencyKey: string) => Promise<GiftCodeClaimDto> }>
 
 export default function GiftCodesScreen({ refreshToken = 0, onLoad, onClaim }: Props) {
-  const [tab, setTab] = useState<'available' | 'claimed'>('available')
+  const [normaltab, setTab] = useState<'available' | 'claimed'>('available')
+  const tab = useTutorialView('codes', normaltab, ['available', 'claimed'])
   const [value, setValue] = useState<PlayerGiftCodesDto | null>(null)
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -32,9 +34,9 @@ export default function GiftCodesScreen({ refreshToken = 0, onLoad, onClaim }: P
     <ScreenHeader eyebrow="Récompenses" title="Codes cadeaux" description="Récupérez les cadeaux actuellement proposés par GachaImpact." />
     <ScrollableScreenPanel className="gift-codes-frame" bodyClassName="gift-codes-body" fixed={<div className="gift-codes-tabs" role="tablist" aria-label="Codes cadeaux"><button type="button" role="tab" aria-selected={tab === 'available'} className={tab === 'available' ? 'active' : ''} onClick={() => setTab('available')}>Disponibles <span>{value?.available.length ?? 0}</span></button><button type="button" role="tab" aria-selected={tab === 'claimed'} className={tab === 'claimed' ? 'active' : ''} onClick={() => setTab('claimed')}>Récupérés <span>{value?.claimed.length ?? 0}</span></button></div>}>
       {error && <p className="gift-codes-feedback error" role="alert">{error}</p>}
-      {!value && !error && <p className="gift-codes-empty" role="status">Chargement des codes cadeaux…</p>}
+      {!value && !error && <p data-tutorial-state="loading" className="gift-codes-empty" role="status">Chargement des codes cadeaux…</p>}
       {value && entries.length === 0 && <p className="gift-codes-empty">{tab === 'available' ? 'Aucun code cadeau disponible pour le moment.' : 'Vous n’avez encore récupéré aucun code cadeau.'}</p>}
-      <div className="gift-codes-list">{entries.map((code) => <GiftCodeCard key={code.editionId} code={code} pending={pending === code.editionId} disabled={Boolean(pending)} onClaim={() => void claim(code.editionId)} />)}</div>
+      <div data-tutorial-anchor="codes-list" className="gift-codes-list">{entries.map((code) => <GiftCodeCard key={code.editionId} code={code} pending={pending === code.editionId} disabled={Boolean(pending)} onClaim={() => void claim(code.editionId)} />)}</div>
     </ScrollableScreenPanel>
   </div>
 }

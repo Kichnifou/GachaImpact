@@ -1,3 +1,4 @@
+import { useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, BoxSortPreferenceDto, DailyCombatDto, ElementKey, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxRarityTab, BoxSortKey } from '../box/box-presentation'
@@ -34,10 +35,13 @@ type BoxScreenProps = {
 }
 
 function BoxScreen({ initialBox, refreshToken = 0, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, openCharacterIntent = null, onOpenCharacterIntentConsumed = () => undefined, onLoadExpedition = async () => idleExpedition, onStartExpedition = async () => { throw new Error('Expédition indisponible.') }, onClaimExpedition = async () => { throw new Error('Expédition indisponible.') }, onNotificationsChanged = async () => undefined, onLoadBox, onSetFavorite, onSetSortPreference, onUseStella, stellaRetryCharacterId }: BoxScreenProps) {
+  const presentationMode = useTutorialPresentation().active
+  const guidedDetail = useTutorialPanel('box-detail')
   const [filters, setFilters] = useState<BoxFilters>(() => initialBoxFiltersWithPreference(initialBox?.preference))
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const consumedOpenIntentToken = useRef<string | null>(null)
   const { box, error, setError, load, favoritePendingId, stellaPendingId, stellaFeedback, setStellaFeedback, stellaRetryId, toggleFavorite, useStella } = useBoxCollection({ initialBox, refreshToken, onLoadBox, onSetFavorite, onUseStella, stellaRetryCharacterId })
+  const [sortSaving, setSortSaving] = useState(false)
   const preferenceInteractionRevision = useRef(0)
   const preferenceSaveQueue = useRef(Promise.resolve())
   const [expeditionPending, setExpeditionPending] = useState(false)
@@ -49,11 +53,11 @@ function BoxScreen({ initialBox, refreshToken = 0, dailyCombat, expedition = idl
     setFilters((current) => ({ ...current, sort: box.preference.sortKey, direction: box.preference.direction }))
   }, [box])
   useEffect(() => {
-    if (!openCharacterIntent || consumedOpenIntentToken.current === openCharacterIntent.token) return
+    if (presentationMode || !openCharacterIntent || consumedOpenIntentToken.current === openCharacterIntent.token) return
     consumedOpenIntentToken.current = openCharacterIntent.token
     setSelectedId(openCharacterIntent.characterId)
     onOpenCharacterIntentConsumed(openCharacterIntent.token)
-  }, [onOpenCharacterIntentConsumed, openCharacterIntent])
+  }, [onOpenCharacterIntentConsumed, openCharacterIntent, presentationMode])
   useEffect(() => {
     if (expedition.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
     const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
@@ -78,7 +82,8 @@ function BoxScreen({ initialBox, refreshToken = 0, dailyCombat, expedition = idl
     const sortChanged = next.sort !== filters.sort || next.direction !== filters.direction
     setFilters(next)
     if (!sortChanged) return
-    preferenceInteractionRevision.current += 1
+    const sortRevision = ++preferenceInteractionRevision.current
+    setSortSaving(true)
     const preference = { sortKey: next.sort, direction: next.direction } as const
     preferenceSaveQueue.current = preferenceSaveQueue.current
       .catch(() => undefined)
@@ -88,19 +93,21 @@ function BoxScreen({ initialBox, refreshToken = 0, dailyCombat, expedition = idl
           setError(null)
         } catch (reason) {
           setError(`Tri appliqué, mais non sauvegardé : ${apiErrorMessage(reason)}`)
-        }
+        } finally { if (sortRevision === preferenceInteractionRevision.current) setSortSaving(false) }
       })
   }
 
+  const boxBusy = Boolean(favoritePendingId || stellaPendingId || expeditionPending || sortSaving || stellaFeedback?.visual)
   if (!box && !error) return <BoxStatus kind="loading" title="Ouverture de votre Box…" detail="Synchronisation de vos personnages possédés." />
   if (!box && error) return <BoxStatus kind="error" title="Impossible de charger votre Box" detail={error} onRetry={() => void load()} />
   if (!box) return null
 
-  const selected = box.characters.find(({ id }) => id === selectedId) ?? null
-  return <BoxView box={box} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionPendingAction={expeditionPending ? expeditionIntent?.action : undefined} expeditionFeedback={expeditionFeedback} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onExpedition={runExpedition} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null); setExpeditionFeedback(null) }} />
+  const selected = guidedDetail ? box.characters.slice().sort((a, b) => b.rarity - a.rarity || a.id.localeCompare(b.id))[0] ?? null : box.characters.find(({ id }) => id === selectedId) ?? null
+  return <BoxView businessPending={boxBusy} box={box} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} expeditionPending={expeditionPending} expeditionPendingAction={expeditionPending ? expeditionIntent?.action : undefined} expeditionFeedback={expeditionFeedback} filters={filters} error={error} favoritePendingId={favoritePendingId} stellaPendingId={stellaPendingId} stellaRetryId={stellaRetryId} stellaFeedback={stellaFeedback} selected={selected} onFilters={changeFilters} onSelect={setSelectedId} onToggleFavorite={toggleFavorite} onUseStella={useStella} onExpedition={runExpedition} onCloseDetail={() => { setSelectedId(null); setStellaFeedback(null); setExpeditionFeedback(null) }} />
 }
 
-export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionPendingAction, expeditionFeedback = null, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onExpedition = () => undefined, onCloseDetail }: {
+export function BoxView({ businessPending = false, box, dailyCombat, expedition = idleExpeditionSnapshot, expeditionMonotonicNow = 0, expeditionPending = false, expeditionPendingAction, expeditionFeedback = null, filters, error, favoritePendingId, stellaPendingId, stellaRetryId, stellaFeedback, selected, onFilters, onSelect, onToggleFavorite, onUseStella, onExpedition = () => undefined, onCloseDetail }: {
+  businessPending?: boolean
   box: PlayerBoxDto
   dailyCombat?: DailyCombatDto
   expedition?: ExpeditionClientSnapshot
@@ -124,14 +131,14 @@ export function BoxView({ box, dailyCombat, expedition = idleExpeditionSnapshot,
 }) {
   const value = expedition.value
   const visibleCharacters = useMemo(() => prioritizeReady(presentBoxCharacters(box.characters, filters), value), [box.characters, filters, value])
-  return <div className="screen-content collection-screen box-screen long-screen-layout">
+  return <div data-business-pending={businessPending} className="screen-content collection-screen box-screen long-screen-layout">
     <ScrollableScreenPanel className="collection-screen-panel box-collection-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<BoxSummary summary={box.summary} />} fixed={<>
       <BoxFiltersBar filters={filters} onChange={onFilters} />
       {error && <p className="box-inline-error" role="alert">{error}</p>}
     </>}>
     {box.characters.length === 0 ? <BoxStatus kind="empty" title="Votre Box est encore vide" detail="Vos prochains personnages obtenus apparaîtront ici." />
       : visibleCharacters.length === 0 ? <BoxStatus kind="empty" title="Aucun personnage trouvé" detail="Modifiez votre recherche ou vos filtres pour retrouver vos personnages." />
-      : <section className="character-grid" aria-label="Personnages possédés">
+      : <section data-tutorial-anchor="box-possessions" className="character-grid" aria-label="Personnages possédés">
         {visibleCharacters.map((character) => <BoxCharacterCard character={character} statusLabel={value.activeCharacter?.id === character.id ? value.operationalStatus === 'READY' ? '✅ À récupérer' : value.operationalStatus === 'RUNNING' ? '🧭 En expédition' : undefined : undefined} favoritePending={favoritePendingId === character.id} onOpen={() => onSelect(character.id)} onToggleFavorite={() => onToggleFavorite(character)} key={character.id} />)}
       </section>}
     </ScrollableScreenPanel>
@@ -145,7 +152,7 @@ function BoxSummary({ summary }: { summary: PlayerBoxDto['summary'] }) {
 
 function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (filters: BoxFilters) => void }) {
   const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
-  return <div className="box-filter-stack panel">
+  return <div data-tutorial-anchor="box-filters" className="box-filter-stack panel">
     <div className="box-filter-primary">
       <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={(event) => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
       <div className="filter-group box-tabs" role="tablist" aria-label="Rareté des personnages">{([['all', 'Tous'], [5, '5★'], [4, '4★']] as const).map(([value, label]) => <button type="button" role="tab" aria-selected={filters.tab === value} className={`filter-chip${filters.tab === value ? ' active' : ''}`} onClick={() => update('tab', value as BoxRarityTab)} key={label}>{label}</button>)}</div>
@@ -160,7 +167,7 @@ function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (
 }
 
 export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 'error' | 'empty'; title: string; detail: string; onRetry?: () => void }) {
-  return <section className={`panel box-status ${kind}`} role={kind === 'error' ? 'alert' : 'status'}><span aria-hidden="true">{kind === 'loading' ? '✦' : kind === 'error' ? '!' : '◇'}</span><h2>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
+  return <section className={`panel box-status ${kind}`} role={kind === 'error' ? 'alert' : 'status'}><span aria-hidden="true">{kind === 'loading' ? '✦' : kind === 'error' ? '!' : '◇'}</span><h2 data-tutorial-anchor="screen-entry" data-tutorial-state={kind === "loading" ? "loading" : undefined}>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
 }
 
 function elementLabel(element: ElementKey) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }

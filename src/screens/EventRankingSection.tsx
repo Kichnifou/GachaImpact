@@ -42,8 +42,8 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
 
   const current = ranking?.editionId === editionId ? ranking : null
 
-  return <section className="panel event-ranking" aria-label="Classement du Festival">
-    <header><div><span className="eyebrow">Édition en cours</span><h2>Classement du Festival</h2></div><span className="event-ranking-honor">Classement honorifique</span></header>
+  return <section data-tutorial-anchor="event-ranking" data-tutorial-state={!current && !error && loadAvailable ? "loading" : undefined} className="panel event-ranking" aria-label="Classement du Festival">
+    <header><div><span className="eyebrow">Édition en cours</span><h2>Classement du Festival</h2></div><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
     <p>Les dix premiers participants, classés selon leurs points. Aucune récompense n’est associée au rang.</p>
     {error && <p role="alert">{error}</p>}
     {!current && !error && <p>Chargement du classement…</p>}

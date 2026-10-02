@@ -7,7 +7,7 @@ type ScreenHeaderProps = {
 
 function ScreenHeader({ eyebrow, title, description, meta }: ScreenHeaderProps) {
   return (
-    <header className="screen-header panel">
+    <header data-tutorial-anchor="screen-entry" className="screen-header panel">
       <div>
         <span className="eyebrow">{eyebrow}</span>
         <h1>{title}</h1>

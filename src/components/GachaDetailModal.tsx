@@ -56,7 +56,7 @@ function GachaDetailModal({ teams, onClose, onGetHistory }: { teams: PlayerTeams
           <Tab id="probabilities" active={tab} onSelect={setTab}>Probabilités</Tab>
           <Tab id="passives" active={tab} onSelect={setTab}>Passifs</Tab>
         </div>
-        <div className="gacha-detail-content">
+        <div data-tutorial-anchor="invocation-detail" data-tutorial-state={tab === "history" && !history && !error ? "loading" : undefined} className="gacha-detail-content">
           {tab === 'history' && <HistoryPanel history={history} loading={loading} error={error} onPage={setPage} />}
           {tab === 'probabilities' && <ProbabilityPanel />}
           {tab === 'passives' && <PassivesPanel teams={teams} />}

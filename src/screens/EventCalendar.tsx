@@ -13,7 +13,7 @@ export default function EventCalendar({ value, action, enabled }: Readonly<{ val
     <h2 id="event-calendar-title">Calendrier de Noël</h2>
     <p>{calendar.recap ? 'Votre calendrier du mois : les cases manquées ne peuvent plus être ouvertes.' : 'Une case chaque jour du 1er au 25 décembre. Aucun rattrapage des jours manqués.'}</p>
     {!value.participation.joined && !calendar.recap && <p>Rejoignez le Festival pour ouvrir la case du jour.</p>}
-    <div className="event-calendar-grid">{calendar.days.map((cell) => {
+    <div data-tutorial-anchor="event-calendar" className="event-calendar-grid">{calendar.days.map((cell) => {
       const content = <><strong>{cell.day}</strong><span>{states[cell.state]}</span><small>{cell.reward !== null ? `${cell.reward} ${eventCurrencyLabel(cell.reward, value.festival.currency)}` : '—'}</small></>
       const className = `event-calendar-cell${calendar.currentDay === cell.day ? ' current' : ''} ${cell.state.toLowerCase()}`
       return cell.state === 'AVAILABLE' && calendar.canClaimToday

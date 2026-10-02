@@ -32,7 +32,7 @@ export default function ArcadeRecords({ records, initialGame, onClose }: { recor
   return createPortal(<div className="arcade-records-overlay" onPointerDown={event => { if (event.target === event.currentTarget) onClose() }}>
     <section ref={dialog} tabIndex={-1} className="arcade-records panel" role="dialog" aria-modal="true" aria-label="Records Arcade">
       <header><div><span className="eyebrow">Arcade</span><h2>Records</h2></div><ModalCloseButton onClose={onClose} /></header>
-      <div className="arcade-record-controls">
+      <div data-tutorial-anchor="arcade-records" className="arcade-record-controls">
         <nav aria-label="Types de records">{(['PERSONAL', 'GLOBAL', 'SCORE'] as const).map(key => <AppButton key={key} aria-pressed={tab === key} onClick={() => { if (tab === key) return; setTab(key); if (game === 'TOTAL' && key !== 'SCORE') setGame(initialGame); resetCategory() }}>{key === 'PERSONAL' ? 'Personnel' : key === 'GLOBAL' ? 'Global' : 'Score'}</AppButton>)}</nav>
         {tab === 'SCORE' ? <nav className="arcade-score-tabs" aria-label="Classement de score">{([...arcadeGames, 'TOTAL'] as const).map(key => <AppButton key={key} aria-pressed={game === key} onClick={() => { if (game === key) return; setGame(key); resetCategory() }}>{key === 'TOTAL' ? 'Total' : arcadeLabels[key]}</AppButton>)}</nav>
           : <div className="arcade-record-filters"><label>Jeu<select value={game} onChange={event => { setGame(event.target.value as ArcadeGame); resetCategory() }}>{arcadeGames.map(key => <option key={key} value={key}>{arcadeLabels[key]}</option>)}</select></label>

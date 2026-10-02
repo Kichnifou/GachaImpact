@@ -3,15 +3,18 @@ import { createPortal } from 'react-dom'
 import AppButton from '../components/AppButton'
 import type { TutorialStepId } from '../api/types'
 import { tutorialSteps, type TutorialAction } from './tutorial-controller'
+import { getTutorialStep } from './tutorial-catalog'
+import { visibleTutorialAnchors } from './tutorial-target'
 import { spotlightRect, tutorialBubblePosition, unionTutorialRects, type TutorialRect } from './tutorial-geometry'
 import './tutorial.css'
 
-type Props = { stepId: TutorialStepId | null; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
-export default function TutorialOverlay({ stepId, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
+type Props = { stepId: TutorialStepId | null; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
+export default function TutorialOverlay({ stepId, anchor, fallback = false, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
   const layer = useRef<HTMLDivElement>(null), bubble = useRef<HTMLElement>(null), pause = useRef<HTMLButtonElement>(null)
   const actions = useRef({ onNext, onPause }); actions.current = { onNext, onPause }
   const [geometry, setGeometry] = useState<{ target: TutorialRect | null; left: number; top: number }>({ target: null, left: 12, top: 12 })
-  const index = tutorialSteps.findIndex(step => step.id === stepId), step = tutorialSteps[index]
+  const index = tutorialSteps.findIndex(step => step.id === stepId), step = stepId ? getTutorialStep(stepId) : null
+  const targetAnchor = anchor ?? step?.anchor
 
   useLayoutEffect(() => {
     const portal = layer.current!, previousFocus = document.activeElement
@@ -62,11 +65,12 @@ export default function TutorialOverlay({ stepId, pending, error, retryAction = 
     let frame = 0, targets: HTMLElement[] = [], scrolled = false
     const measure = () => {
       frame = 0
-      const found = stepId ? Array.from(document.querySelectorAll<HTMLElement>(`[data-tutorial-anchor="${stepId}"]`)).filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }) : []
+      const found = stepId && targetAnchor ? visibleTutorialAnchors(targetAnchor) : []
       if (found.length !== targets.length || found.some(el => !targets.includes(el))) { targets.forEach(el => resize.unobserve(el)); targets = found; targets.forEach(el => resize.observe(el)); scrolled = false }
       let rect = unionTutorialRects(targets.map(el => el.getBoundingClientRect()))
       if (rect && !scrolled) {
         scrolled = true
+        targets.forEach(el => el.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'instant' }))
         const delta = rect.height > window.innerHeight - 24 ? rect.top - 12 : rect.top < 12 ? rect.top - 12 : rect.bottom > window.innerHeight - 12 ? rect.bottom - window.innerHeight + 12 : 0
         if (delta) window.scrollBy({ top: delta, behavior: 'instant' })
         // Local scroll owners, when present, scroll only enough to expose the target.
@@ -89,18 +93,18 @@ export default function TutorialOverlay({ stepId, pending, error, retryAction = 
     window.addEventListener('resize', resized); window.addEventListener('scroll', schedule, true)
     measure()
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutations.disconnect(); window.removeEventListener('resize', resized); window.removeEventListener('scroll', schedule, true) }
-  }, [stepId])
+  }, [stepId, targetAnchor])
 
   const target = geometry.target
-  return createPortal(<div ref={layer} className="tutorial-layer modal-layer" onPointerDown={event => { if (!(event.target instanceof Element) || !event.target.closest('button:not(:disabled)')) event.preventDefault() }} onKeyDown={event => event.stopPropagation()} onKeyUp={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); if (event.detail <= 1 && target) onNext() }}>
+  return createPortal(<div ref={layer} data-tutorial-step={stepId ?? undefined} data-tutorial-target={targetAnchor} className="tutorial-layer modal-layer" onPointerDown={event => { if (!(event.target instanceof Element) || !event.target.closest('button:not(:disabled)')) event.preventDefault() }} onKeyDown={event => event.stopPropagation()} onKeyUp={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); if (event.detail <= 1 && target) onNext() }}>
     {target ? <div className="tutorial-spotlight" aria-hidden="true" style={{ left: target.left, top: target.top, width: target.width, height: target.height }} /> : <div className="tutorial-shade" />}
     <section ref={bubble} className="tutorial-bubble" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-text" aria-busy={pending} style={{ left: geometry.left, top: geometry.top }} onClick={event => event.stopPropagation()}>
       <span className="eyebrow">Tutoriel{step ? ` · ${index + 1}/${tutorialSteps.length}` : ''}</span>
       <h2 id="tutorial-title">{step?.title ?? 'Tutoriel'}</h2>
-      <p id="tutorial-text" aria-live="polite">{step?.text ?? (pending ? 'Chargement…' : 'Reprenez avec Suivant.')}</p>
+      <p id="tutorial-text" aria-live="polite">{step ? fallback ? `${step.text} ${step.fallback}` : step.text : pending ? 'Préparation de la vue…' : 'Réessayez avec le contrôle indiqué, ou mettez la visite en pause.'}</p>
       <p className="tutorial-error" role={error ? 'alert' : undefined}>{error}</p>
       <footer>
-        <AppButton disabled={pending || index <= 0 || !target || (retryAction !== null && retryAction !== 'previous')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onPrevious() }}>Précédent</AppButton>
+        <AppButton disabled={pending || (retryAction !== 'previous' && (index <= 0 || !target)) || (retryAction !== null && retryAction !== 'previous')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onPrevious() }}>Précédent</AppButton>
         <AppButton variant="primary" disabled={pending || (!target && !error) || (retryAction !== null && retryAction !== 'next' && retryAction !== 'launch')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onNext() }}>Suivant</AppButton>
         <AppButton ref={pause} onClick={event => { event.stopPropagation(); onPause() }}>Pause</AppButton>
         <AppButton disabled={pending || !target || (retryAction !== null && retryAction !== 'finish')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onFinish() }}>Terminer</AppButton>

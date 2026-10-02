@@ -12,7 +12,7 @@ export default function ArcadeRulesModal({ onClose }: { onClose: () => void }) {
     <section ref={dialog} tabIndex={-1} className="arcade-rules panel" role="dialog" aria-modal="true" aria-label="Règles & gains">
       <header><h2>Règles & gains</h2><ModalCloseButton onClose={onClose} /></header>
       <nav aria-label="Règles Arcade">{tabs.map(value => <AppButton key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>{value}</AppButton>)}</nav>
-      <div className="arcade-rules-body">
+      <div data-tutorial-anchor="arcade-rules" className="arcade-rules-body">
         {tab === 'Général' ? <>
           <div className="arcade-rule-cards"><article><h3>XP par jour</h3><p>Jusqu’à 10 XP par jeu</p><strong>30 XP maximum</strong></article>
             <article><h3>Parties suivantes</h3><p>Score uniquement. Obtenable à l’infini.</p><em>Deviens le plus fort de tes amis !</em></article>

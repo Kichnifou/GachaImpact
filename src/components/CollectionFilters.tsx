@@ -7,6 +7,7 @@ export type CharacterSortKey = 'name' | 'rarity' | 'element' | 'votes'
 export type CharacterSortDirection = 'asc' | 'desc'
 
 type CollectionFiltersProps = {
+  tutorialAnchor?: string
   allowVotes?: boolean
   placeholder: string
   query: string
@@ -32,7 +33,7 @@ const elementFilters: readonly { label: string; element: ElementKey | null; fall
 
 function CollectionFilters(props: CollectionFiltersProps) {
   const { placeholder, query, rarity, element, sortKey, direction, onQueryChange, onRarityChange, onElementChange, onSortKeyChange, onDirectionChange } = props
-  return <div className="collection-filters panel">
+  return <div data-tutorial-anchor={props.tutorialAnchor} className="collection-filters panel">
     <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={placeholder} /></label>
     <div className="filter-group" aria-label="Filtrer par rareté">
       {([['all', 'Toutes raretés'], [5, '5★'], [4, '4★']] as const).map(([value, label]) => <button type="button" className={`filter-chip${rarity === value ? ' active' : ''}`} aria-pressed={rarity === value} onClick={() => onRarityChange(value)} key={value}>{label}</button>)}

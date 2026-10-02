@@ -1,3 +1,4 @@
+import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useState } from 'react'
 import type { AppearanceDto } from '../api/types'
 import AppButton from '../components/AppButton'
@@ -7,7 +8,9 @@ import { apiErrorMessage } from '../utils/formatters'
 
 export default function AppearancePanel({ actions, displayName, elementKey, onChanged }: { actions: SocialActions; displayName: string; elementKey: string | null; onChanged: () => Promise<void> }) {
   const [value, setValue] = useState<AppearanceDto | null>(null)
-  const [tab, setTab] = useState<'AVATAR' | 'TITLE'>('AVATAR')
+  const [normalTab, setTab] = useState<'AVATAR' | 'TITLE'>('AVATAR')
+  const presentation = useTutorialPresentation()
+  const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
   const [query, setQuery] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -29,7 +32,7 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
     const equipped = (item.type === 'AVATAR' ? value?.equippedAvatarCosmeticId : value?.equippedTitleCosmeticId) === item.id
     return <article className={`appearance-card${item.sourceCharacterId ? ' appearance-character-card' : ''}`} key={item.id}>{item.type === 'AVATAR' && (item.visibility === 'MYSTERY' && !item.owned ? <span className="appearance-mystery" aria-hidden="true">?</span> : <PlayerAvatar displayName={item.displayName} elementKey={item.sourceCharacterId ? elementKey : null} avatarAssetPath={item.assetPath} />)}<div><strong>{item.displayName}</strong>{!item.owned && item.condition && <small>{item.condition}</small>}</div><span>{equipped ? 'Équipé' : !item.isActive ? 'Indisponible' : item.owned ? 'Possédé' : 'Verrouillé'}</span>{item.owned && item.isActive && !equipped && <AppButton disabled={pending} onClick={() => void equip(item.type, item.id)}>Équiper</AppButton>}</article>
   }
-  return <section className="appearance-panel" aria-label="Personnalisation du profil">
+  return <section data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} className="appearance-panel" aria-label="Personnalisation du profil">
     <nav className="activity-inner-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setTab('AVATAR'); setQuery('') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setTab('TITLE'); setQuery('') }}>Titres</button></nav>
     {error && <p role="alert">{error}</p>}
     {!value ? <p role="status">Chargement de la personnalisation…</p> : <>

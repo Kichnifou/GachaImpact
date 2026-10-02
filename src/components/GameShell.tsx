@@ -2,6 +2,10 @@ import type { EventDailyOpenIntent } from '../event/event-presentation'
 import { getGameApiClient } from '../api/game-api'
 import { useFavorPresence } from '../favor/use-favor-presence'
 import FavorDailyFeedback from './FavorDailyFeedback'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { waitForTutorialTarget } from '../tutorial/tutorial-target'
+import type { TutorialStepId } from '../api/types'
 import TutorialOverlay from '../tutorial/TutorialOverlay'
 import { TutorialController, type TutorialApi } from '../tutorial/tutorial-controller'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
@@ -226,16 +230,6 @@ type GameShellProps = {
 }
 
 function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
-  const tutorial = useMemo(() => new TutorialController(tutorialApi), [player.id, tutorialApi])
-  const tutorialState = useSyncExternalStore(tutorial.subscribe, tutorial.getSnapshot)
-  const tutorialSidebar = tutorialState.active && ['profile', 'resources', 'active-team', 'objective', 'daily-tracker'].includes(tutorialState.stepId ?? '')
-  useEffect(() => { tutorial.activate(); return tutorial.dispose }, [tutorial])
-  const sidebarBeforeTutorial = useRef(false)
-  const wasTutorialActive = useRef(false)
-  useEffect(() => {
-    if (wasTutorialActive.current && !tutorialState.active) setIsSidebarOpen(sidebarBeforeTutorial.current)
-    wasTutorialActive.current = tutorialState.active
-  }, [tutorialState.active])
   const [socialTab, setSocialTab] = useState<SocialTab>('friends')
   const [historyIntent, setHistoryIntent] = useState<{ category: HistoryCategory; token: string } | null>(null)
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
@@ -250,13 +244,34 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const [directMessageIntent, setDirectMessageIntent] = useState<DirectMessageOpenIntent | null>(null)
-  const [chatOwnerRevision, setChatOwnerRevision] = useState(0)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [presentationStepId, setPresentationStepId] = useState<TutorialStepId | null>(null)
+  const prepareTutorial = useCallback(async (id: TutorialStepId, signal: AbortSignal) => {
+    if (signal.aborted) throw new DOMException('Annulé', 'AbortError')
+    const step = getTutorialStep(id)
+    setPresentationStepId(id)
+    activeScreenRef.current = step.screen
+    setActiveScreen(step.screen)
+    window.history.replaceState(null, '', '#' + hashForScreen(step.screen))
+    return waitForTutorialTarget(step, signal)
+  }, [])
+  const tutorial = useMemo(() => new TutorialController(tutorialApi, prepareTutorial), [player.id, tutorialApi, prepareTutorial])
+  const tutorialState = useSyncExternalStore(tutorial.subscribe, tutorial.getSnapshot)
+  const tutorialSidebar = tutorialState.active && ['profile', 'resources', 'active-team', 'objective', 'daily-tracker'].includes(presentationStepId ?? '')
+  useEffect(() => { tutorial.activate(); return tutorial.dispose }, [tutorial])
+  const sidebarBeforeTutorial = useRef(false)
+  const wasTutorialActive = useRef(false)
+  useEffect(() => {
+    if (wasTutorialActive.current && !tutorialState.active) setIsSidebarOpen(sidebarBeforeTutorial.current)
+    wasTutorialActive.current = tutorialState.active
+  }, [tutorialState.active])
+  const [chatOwnerRevision, setChatOwnerRevision] = useState(0)
   const [isPlayersOpen, setIsPlayersOpen] = useState(false)
   const openDirectMessage = (target: DirectMessageOpenIntent['player']) => { if (!target) return; setIsChatCollapsed(false); setDirectMessageIntent({ playerId: target.id, player: target, token: crypto.randomUUID() }) }
   const friendship = useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || activeScreen === 'activities-dailies' || isPlayersOpen)
   const clearFriendshipFeedback = friendship.clearFeedback
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [tutorialUnavailable, setTutorialUnavailable] = useState('')
   const [isParticleConversionOpen, setIsParticleConversionOpen] = useState(false)
   const previousDailyChallengeStatus = useRef(dailyChallenge.status)
   const [completedChallengeFeedback, setCompletedChallengeFeedback] = useState<NonNullable<DailyChallengeDto['challenge']> | null>(null)
@@ -440,7 +455,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   }, [clearFriendshipFeedback, onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken, setEventDailyIntent, setTradeIntent])
 
   useEffect(() => {
-    const syncScreenWithHash = () => { if (tutorial.getSnapshot().active) { window.history.replaceState(null, '', '#home'); return } changeScreen(getScreenFromHash()) }
+    const syncScreenWithHash = () => { if (tutorial.getSnapshot().active) { window.history.replaceState(null, '', '#' + hashForScreen(activeScreenRef.current)); return } changeScreen(getScreenFromHash()) }
     window.addEventListener('hashchange', syncScreenWithHash)
     return () => window.removeEventListener('hashchange', syncScreenWithHash)
   }, [changeScreen, tutorial])
@@ -456,9 +471,12 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
 
   const launchTutorial = () => {
     if (tutorial.getSnapshot().active) return
+    if (pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || document.querySelector('.invocation-sequence-panel, [data-business-pending="true"]')) {
+      setIsMenuOpen(true); setTutorialUnavailable('Terminez l’action ou la présentation en cours avant de lancer le Tutoriel.'); return
+    }
+    setTutorialUnavailable('')
     sidebarBeforeTutorial.current = isSidebarOpen
-    setIsMenuOpen(false); setIsPlayersOpen(false); setIsParticleConversionOpen(false)
-    changeScreen('home'); window.history.replaceState(null, '', '#home')
+    setIsMenuOpen(false)
     void tutorial.launch()
   }
 
@@ -525,7 +543,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={`${profileId}:${appearanceRequestToken}`} initialTab={appearanceRequestToken ? 'Personnalisation' : 'Aperçu'} playerId={profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onRankings={() => navigate('rankings')} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} onAppearanceChanged={onRefreshPlayer} /> : null
+        return socialActions ? <ProfileScreen key={`${tutorialState.active ? player.id : profileId}:${appearanceRequestToken}`} initialTab={appearanceRequestToken ? 'Personnalisation' : 'Aperçu'} playerId={tutorialState.active ? player.id : profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onRankings={() => navigate('rankings')} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} onAppearanceChanged={onRefreshPlayer} /> : null
       case 'rankings':
         return <RankingsScreen onLoad={onLoadRanking} onProfile={openProfile} />
       case 'history':
@@ -537,8 +555,11 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
     }
   }
 
+  const presentationStep = tutorialState.active && presentationStepId ? getTutorialStep(presentationStepId) : null
+  const revealCommunity = tutorialState.active && (presentationStep?.chapter === 'Communauté' || presentationStep?.id === 'community')
   return (
-    <div className={`game-shell${isChatCollapsed && !(tutorialState.active && tutorialState.stepId === 'community') ? ' chat-is-collapsed' : ''}${tutorialSidebar ? ' tutorial-sidebar' : ''}`}>
+    <TutorialPresentationContext.Provider value={{ active: tutorialState.active, step: presentationStep }}>
+    <div className={`game-shell${isChatCollapsed && !revealCommunity ? ' chat-is-collapsed' : ''}${tutorialSidebar ? ' tutorial-sidebar' : ''}`}>
       <GameHeader
         elementKey={player.elementKey}
         avatarAssetPath={player.avatarAssetPath}
@@ -597,11 +618,11 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
           <Navigation activeScreen={activeScreen} onNavigateMain={navigateMain} />
           {activeScreen.startsWith('characters-') && <SecondaryNavigation label="Sections Personnages" tabs={characterTabs} activeScreen={activeScreen} onNavigate={navigate} />}
           {activeScreen.startsWith('activities-') && <SecondaryNavigation label="Sections Activités" tabs={activityTabs} activeScreen={activeScreen} onNavigate={navigate} />}
-          <div className="screen-stage" key={activeScreen}>{renderScreen()}</div>
+          <div className="screen-stage" data-tutorial-screen={activeScreen} data-tutorial-step={presentationStep?.id} key={activeScreen}>{renderScreen()}</div>
         </main>
 
         <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} playerAvatarAssetPath={player.avatarAssetPath} connectedCount={presence.value?.total ?? null}
-          isCollapsed={tutorialState.active && tutorialState.stepId === 'community' ? false : isChatCollapsed}
+          isCollapsed={revealCommunity ? false : isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
           onOpenPlayers={() => setIsPlayersOpen(true)}
           onOpenProfile={openProfile}
@@ -621,13 +642,14 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
       )}
 
       {tutorialState.active && <TutorialOverlay key={player.id} {...tutorialState} onPrevious={() => { void tutorial.previous() }} onNext={() => { void tutorial.next() }} onPause={tutorial.pause} onFinish={() => { void tutorial.finish() }} />}
-      {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
-      {isMenuOpen && <GlobalMenu onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
-      {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}
-      {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
-      {completedChallengeFeedback && !externalFeedbackPending && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}
-      {favorPresence.feedbacks[0] && !externalFeedbackPending && !activeLevelUpFeedback && !completedChallengeFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <FavorDailyFeedback key={favorPresence.feedbacks[0].id} id={favorPresence.feedbacks[0].id} onFinished={favorPresence.finish} />}
+      {(isPlayersOpen || presentationStep?.panel === 'players') && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
+      {(isMenuOpen || presentationStep?.panel === 'menu') && <GlobalMenu notice={tutorialUnavailable} onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
+      {(isParticleConversionOpen || presentationStep?.panel === 'conversion') && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}
+      {!tutorialState.active && activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
+      {!tutorialState.active && completedChallengeFeedback && !externalFeedbackPending && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}
+      {!tutorialState.active && favorPresence.feedbacks[0] && !externalFeedbackPending && !activeLevelUpFeedback && !completedChallengeFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <FavorDailyFeedback key={favorPresence.feedbacks[0].id} id={favorPresence.feedbacks[0].id} onFinished={favorPresence.finish} />}
     </div>
+    </TutorialPresentationContext.Provider>
   )
 }
 

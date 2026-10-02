@@ -1,3 +1,4 @@
+import { useTutorialView, useTutorialPanel } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
@@ -35,7 +36,9 @@ export type DailyCombatScreenProps = Readonly<{
 
 export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, onSetBossSlot = async () => unavailableMonthlyBoss, onRemoveBossSlot = async () => unavailableMonthlyBoss, onCopyActiveToBoss = async () => unavailableMonthlyBoss, onClearBoss = async () => unavailableMonthlyBoss, onAttackBoss = async () => { throw new Error('Boss indisponible.') }, onLoadBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }) }: DailyCombatScreenProps) {
   const [tabSelection, setTabSelection] = useState<{ tab: 'training' | 'boss'; requestToken: number }>({ tab: bossRequestToken > 0 ? 'boss' : 'training', requestToken: bossRequestToken })
-  const tab = tabSelection.requestToken === bossRequestToken ? tabSelection.tab : 'boss'
+  const normalTab = tabSelection.requestToken === bossRequestToken ? tabSelection.tab : 'boss'
+  const tab = useTutorialView('activities-combat', normalTab, ['training', 'boss'])
+  const guidedCalculation = useTutorialPanel('combat-calculation')
   const setTab = (next: 'training' | 'boss') => setTabSelection({ tab: next, requestToken: bossRequestToken })
   const [pickerPosition, setPickerPosition] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
@@ -64,20 +67,20 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
 
   const tabs = <nav className="activity-inner-tabs combat-tabs" aria-label="Sections Combat"><button type="button" className={tab === 'training' ? 'active' : ''} onClick={() => setTab('training')}>Entraînement</button><button type="button" className={tab === 'boss' ? 'active' : ''} onClick={() => setTab('boss')}>Boss</button></nav>
   const feedback = combatFeedback(value, lastResult, error)
-  return <div className="screen-content activity-shell combat-shell long-screen-layout">
+  return <div data-business-pending={Boolean(pending)} className="screen-content activity-shell combat-shell long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Combat" />
     <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
       {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} dailyCombat={value} box={box} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
-        <section className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
+        <section data-tutorial-anchor="combat-enemies" className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
 
-        <section className="panel combat-command-bar" aria-labelledby="combat-command-title">
+        <section data-tutorial-anchor="combat-action" className="panel combat-command-bar" aria-labelledby="combat-command-title">
           <div className="combat-command-title"><strong id="combat-command-title">Rencontre du jour</strong></div>
           <button type="button" className="small-primary-button combat-fight-button" disabled={!value.canFight || Boolean(pending)} onClick={() => void fight()}>{pending === 'fight' ? 'Combat…' : fightIntent ? 'Réessayer' : 'Combattre'}</button>
-          <div className="combat-command-chance"><span className="sr-only">Chance de victoire</span><strong aria-label={value.preview ? `Chance de victoire : ${halfPoint(value.preview.finalHalfPoints)} pour cent` : 'Chance de victoire indisponible'}>{value.preview ? `${halfPoint(value.preview.finalHalfPoints)} %` : '— %'}</strong><button type="button" disabled={!value.preview} onClick={() => setCalculationOpen(true)}>Détails du calcul →</button><small>{value.loadout.nextAttemptMode === 'AUTO' ? 'Mode : Auto' : 'Mode : Manuel'}</small></div>
+          <div data-tutorial-anchor={guidedCalculation && value.preview ? undefined : "combat-preview"} data-tutorial-fallback={guidedCalculation && !value.preview ? "true" : undefined} className="combat-command-chance"><span className="sr-only">Chance de victoire</span><strong aria-label={value.preview ? `Chance de victoire : ${halfPoint(value.preview.finalHalfPoints)} pour cent` : 'Chance de victoire indisponible'}>{value.preview ? `${halfPoint(value.preview.finalHalfPoints)} %` : '— %'}</strong><button type="button" disabled={!value.preview} onClick={() => setCalculationOpen(true)}>Détails du calcul →</button><small>{value.loadout.nextAttemptMode === 'AUTO' ? 'Mode : Auto' : 'Mode : Manuel'}</small></div>
           <div className={`combat-feedback-slot${error ? ' error' : lastResult?.won || value.status === 'COMPLETED' ? ' victory' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite"><span>{feedback ?? '\u00a0'}</span></div>
         </section>
 
-        <section className="combat-loadout-section"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || value.availableCharacterCount < 4} onClick={() => void mutate('auto', onAuto)}>Équipe automatique</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header>
+        <section data-tutorial-anchor="combat-formation" className="combat-loadout-section"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || value.availableCharacterCount < 4} onClick={() => void mutate('auto', onAuto)}>Équipe automatique</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header>
           <div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character, ko }) => character
             ? <PlayerCombatCard character={character} position={position} ko={ko} pending={Boolean(pending)} canOpenDetail={Boolean(box)} onOpenDetail={() => setDetailId(character.id)} onChange={() => setPickerPosition(position)} onRemove={() => void mutate(`remove-${position}`, () => onRemoveSlot(position))} key={position} />
             : <button type="button" className="combat-character-card combat-empty-slot" disabled={Boolean(pending)} onClick={() => setPickerPosition(position)} key={position}><span>{String(position).padStart(2, '0')}</span><strong>Ajouter</strong><small>Choisir un personnage</small></button>)}</div>
@@ -85,7 +88,7 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
       </>}
     </ScrollableScreenPanel>
     {pickerPosition !== null && <CombatPicker value={value} selectedIds={selectedIds} position={pickerPosition} pending={Boolean(pending)} onClose={() => setPickerPosition(null)} onSelect={(characterId) => void mutate(`slot-${pickerPosition}`, async () => { await onSetSlot(pickerPosition, characterId); setPickerPosition(null) })} />}
-    {calculationOpen && value.preview && <CombatCalculationModal preview={value.preview} onClose={() => setCalculationOpen(false)} />}
+    {(calculationOpen || guidedCalculation) && value.preview && <CombatCalculationModal preview={value.preview} onClose={() => setCalculationOpen(false)} />}
     {detailId && box && <CombatBoxCharacterDetail characterId={detailId} combat={value} bindings={box} onClose={() => setDetailId(null)} />}
   </div>
 }
@@ -113,7 +116,7 @@ function MatchupIcons({ label, elements }: { label: string; elements: readonly E
 
 function CombatCalculationModal({ preview, onClose }: { preview: NonNullable<DailyCombatDto['preview']>; onClose: () => void }) {
   useEffect(() => { const close = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose() }; document.addEventListener('keydown', close); return () => document.removeEventListener('keydown', close) }, [onClose])
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-calculation-modal" role="dialog" aria-modal="true" aria-labelledby="combat-calculation-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Chance de victoire</span><h2 id="combat-calculation-title">Détails du calcul</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les détails"><span className="icon-glyph">×</span></button></header><div className="combat-calculation-body">
+  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-calculation-modal" role="dialog" aria-modal="true" aria-labelledby="combat-calculation-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Chance de victoire</span><h2 id="combat-calculation-title">Détails du calcul</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer les détails"><span className="icon-glyph">×</span></button></header><div data-tutorial-anchor="combat-preview" className="combat-calculation-body">
     <section className="combat-calculation-base" aria-label="Chance de base"><span>Base</span><strong>{halfPoint(preview.baseHalfPoints)} %</strong></section>
     <section className="combat-calculation-group bonus" aria-label="Bonus"><h3>Bonus</h3><dl><CalculationStat label="Rareté" value={`+${halfPoint(preview.rarityBonusHalfPoints)} %`} /><CalculationStat label="Constellations" value={`+${halfPoint(preview.constellationBonusHalfPoints)} %`} /><CalculationStat label={`Avantages (${preview.favorableMatchups})`} value={`+${halfPoint(preview.favorableBonusHalfPoints)} %`} /></dl></section>
     <section className="combat-calculation-group malus" aria-label="Malus"><h3>Malus</h3><dl><CalculationStat label={`Désavantages (${preview.unfavorableMatchups})`} value={`−${halfPoint(preview.unfavorableMalusHalfPoints)} %`} /></dl></section>

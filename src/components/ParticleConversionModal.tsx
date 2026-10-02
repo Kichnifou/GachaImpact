@@ -37,7 +37,7 @@ function ParticleConversionModal({ elementKey, stock, onClose, onConvert, onOpen
     }
   }
 
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel particle-conversion-modal" role="dialog" aria-modal="true" aria-labelledby="particle-conversion-title" onMouseDown={(event) => event.stopPropagation()}>
+  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section data-tutorial-anchor="conversion" className="floating-panel particle-conversion-modal" role="dialog" aria-modal="true" aria-labelledby="particle-conversion-title" onMouseDown={(event) => event.stopPropagation()}>
     <header className="floating-panel-heading"><div><span className="eyebrow">Conversion 1:1</span><h2 id="particle-conversion-title">Convertir vos particules {elementLabels[elementKey]}</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer la conversion"><span className="icon-glyph">×</span></button></header>
     <p>Disponible : <strong>{formatResourceAmount(stock)}</strong></p>
     <label>Quantité<input type="text" inputMode="numeric" value={amount} onChange={(event) => { setAmount(event.target.value.replace(/\D/g, '')); setIntent(null) }} /></label>

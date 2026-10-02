@@ -30,7 +30,7 @@ function WheelCard({ today, onSpin }: WheelCardProps) {
   }
 
   return (
-    <section className="wheel-card panel" aria-labelledby="wheel-title">
+    <section data-business-pending={isSpinning} data-tutorial-anchor="dailies-wheel" className="wheel-card panel" aria-labelledby="wheel-title">
       <div className="wheel-symbol" aria-hidden="true">✦</div>
       <div className="wheel-copy">
         <span className="eyebrow">Activité quotidienne</span>

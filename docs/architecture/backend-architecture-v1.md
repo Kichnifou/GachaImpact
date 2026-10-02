@@ -1,8 +1,10 @@
 # GachaImpact — Architecture backend V1
 
-## Tutoriel — 25A approuvé et promu sur main
+## Tutoriel — 25A validée, extension 25B candidate review
 
-UI `TutorialController` → client API authentifié → GET/PUT `/api/v1/me/tutorial` (`api/routes/tutorial.ts`) → `TutorialPreferencesService` → `PrismaTutorialPreferenceStore` → JSONB existant `PlayerPreference/tutorial_v1`. `GetCurrentPlayer` résout le Player depuis l'identité vérifiée ; aucun playerId client, aucune route générique de préférences et aucune donnée gameplay. Validation stricte des trois propriétés version/status/stepId et des huit étapes ; absence/corruption en lecture retourne NOT_STARTED/null sans écriture. PUT effectue un upsert idempotent sur la seule PK composée Player/clé. Aucune table/colonne/migration supplémentaire. [Contrat canonique et limites](../specifications/tutorial-v1.md) ; implémentation testée localement et approuvée indépendamment ; état post-fast-forward : promue sur main, déploiement technique à vérifier et validation publique Axel non acquise.
+UI TutorialController → client authentifié → GET/PUT /api/v1/me/tutorial (api/routes/tutorial.ts) → TutorialPreferencesService → PrismaTutorialPreferenceStore → JSONB existant PlayerPreference/tutorial_v1. GetCurrentPlayer résout le Player vérifié ; aucun playerId arbitraire ni route JSON générique. Validation stricte des trois propriétés version/status/stepId, version 1 et whitelist étendue de huit à **118 IDs** ; NOT_STARTED/COMPLETED imposent null. Absence/corruption se lit NOT_STARTED/null sans écriture. PUT conserve son upsert idempotent borné à Player/clé, sans reset des anciens IDs, changement de route/store/transaction, table/colonne ni migration.
+
+L'adaptateur frontend dérive écran/vue/panneau/ancre depuis le seul ID : PUT confirmé puis préparation DOM bornée/annulable, réponse tardive ignorée au changement de Player ; aucun écran ou ID d'entité stocké. Le mode de présentation temporaire neutralise interactions, read/seen/typing Chat/MP, consultation Panier et avance IA/REVEAL Arcade, sans modifier leurs services, permissions ou règles métier. Lectures autorisées habituelles et données réelles réutilisées. [Contrat/matrice Tutoriel](../specifications/tutorial-v1.md) ; prototype 25A clôturé selon recette publique a23a423, **25B candidat review non public et non validé par Axel**.
 
 ## Arcade — étape 23
 

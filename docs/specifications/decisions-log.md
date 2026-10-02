@@ -2,16 +2,23 @@
 
 Statut : évolutif.
 
+## Extension Tutoriel joueurs 25B — R1023 (2026-10-02)
+
+- `VALIDÉ R1023 — mission propriétaire après recette finale 25A sur a23a423` : conserver le lancement manuel Menu, les huit IDs d'introduction, le mode visuel et Précédent / Suivant / Pause / Terminer ; étendre le parcours aux 21 écrans joueurs et panneaux utiles, hors Modération/opérateur même ADMIN. Livrer 118 étapes courtes et une conclusion Home dans le candidat consolidé.
+- Navigation entre propriétaires et adaptation temporaire des sous-vues, jamais via handlers métier. Transition PUT confirmé → préparation annulable → ancre primaire ou entrée réelle avec repli honnête. Pause/Terminer anticipé laissent l'écran courant ; reprise remonte la sous-vue persistée indirectement par le seul stepId. Garde synchrone, retry exact et rejet des réponses tardives propres au Player.
+- Même PlayerPreference/tutorial_v1/version 1 : whitelist étendue, forme et statuts inchangés, compatibilité sans reset des huit IDs. Aucun état de vue/entité persisté ni migration. Interactions neutralisées et gardes explicites contre read/seen/typing Chat/MP, consultation Panier et avance Arcade ; brouillons, confidentialité, choix normaux et parties réelles conservés.
+- Les fonctions distinctes restent identifiées dans la [matrice canonique](tutorial-v1.md). Réutiliser les vrais composants/données autorisées ; aucune possession, conversation, formation ou disponibilité fictive. Aucun autostart, Help/Aide final, récompense, action imposée ou changement gameplay/économie. 25A clôturée dans son périmètre réel, **25B candidate review, non publique et non validée par Axel** ; état/prochain contrôle au Master.
+
 ## Retouches UX Quotidiennes/Home — R1021/R1022 (2026-10-02)
 
 - `RÉVISÉ R1021 — retour public propriétaire sur 9aef02c` : sidebar conserve `Quotidiennes [position/total]` sur tracker.suggestions, index 1-based de la sélection, masques/LIFO inchangés ; Home abandonne la plage et affiche toujours Quotidiennes sans seconde ligne. Trois cartes actionnables maximum et gel des cartes conservés, aucun ratio de complétion. Bouton central Accéder/Récupérer supprimé : hit-target couvrant la carte, destination/claim partagé existant, cinq contrôles indépendants sans boutons imbriqués ; pas d'action ni faux hover en unknown/error/sans destination/lock. Centre sidebar toujours dynamique. La première plage Home reste historique dans la [source propriétaire](home-daily-tracker-v1.md).
 - `PRÉCISÉ R1022 — retour public propriétaire sur 9aef02c` : Quotidiennes Home desktop intrinsèques et basses, sans réserve footer vide permanente ; footer compact seulement pour feedback/erreur/restauration utile. La hauteur récupérée revient automatiquement au BannerHero flexible. Splash compact plus imposant conservé mais davantage recentré, sans déformation ni perte de lisibilité. Mobile en flux naturel, Invocation normale et métier Gacha inchangés, aucun footer Invocation/Pull/Changer sur Home. [Contrat propriétaire](home-daily-tracker-v1.md).
 
-Première implémentation groupée avec 25A approuvée sur a30e7e9 et promue via 9aef02c ; déploiement vérifié par ChatGPT et recette publique partielle. Révisions de recette approuvées indépendamment sur 342aab1 sans correction supplémentaire et promues sur main par ce checkpoint ; déploiement Railway/Cloudflare/healthcheck à vérifier, validation publique Axel du correctif non acquise. Validations publiques de 9aef02c conservées ; aucun nouvel ID.
+Première implémentation groupée avec 25A approuvée sur a30e7e9 et promue via 9aef02c ; déploiement vérifié par ChatGPT et recette publique partielle. Révisions de recette approuvées indépendamment sur 342aab1 et promues via a23a423 ; recette publique finale propriétaire acquise selon la mission 25B, dans le périmètre Précédent/contrôles/Sidebar/Home. Validations publiques de 9aef02c conservées ; aucun nouvel ID.
 
 ## Prototype Tutoriel 25A — R1015–R1020 (2026-10-02)
 
-Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Prototype public sur 9aef02c, recette partielle acquise ; R1017 révisée selon le retour propriétaire, correctif 342aab1 approuvé indépendamment et promu sur main, déploiement à vérifier et validation publique du correctif non acquise.
+Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Prototype public sur 9aef02c, correctif 342aab1 promu via a23a423 ; recette publique finale acquise selon la mission 25B. 25A clôturée dans son périmètre, extension distincte R1023 candidate review.
 
 - `VALIDÉ R1015` — Prototype manuel uniquement via Menu > Tutoriel ; activation future de la destination, aucun autostart ni bouton Tutoriel supplémentaire au header. Première arrivée à étudier après validation du prototype.
 - `VALIDÉ R1016` — Overlay assombrissant, une seule zone réelle montée en spotlight et courte bulle proche, sans copie d’interface. Intercepter toutes les interactions métier sous-jacentes, y compris sur la cible.

@@ -1,3 +1,4 @@
+import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
@@ -74,16 +75,26 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
 }
 
 export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
+  const presentationMode = useTutorialPresentation()
+  const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
-  const [section, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
+  const [normalSection, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
+  const consumedShopToken = useRef<string | null>(null)
+  const consumedMessagesToken = useRef<string | null>(null)
   useEffect(() => {
+    const key = `${sessionUserId}:${openShopToken}`
+    if (presentationMode.active || !openShopToken || consumedShopToken.current === key) return
+    consumedShopToken.current = key
     // oxlint-disable-next-line react/set-state-in-effect -- Explicit notification navigation intent.
-    if (openShopToken > 0) setSection('shop')
-  }, [openShopToken])
-  const [gameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : dailyIntent?.section === 'games' ? dailyIntent.game : 0)
+    setSection('shop')
+  }, [sessionUserId, openShopToken, presentationMode.active])
+  const [normalGameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : dailyIntent?.section === 'games' ? dailyIntent.game : 0)
+  const guidedSection = useTutorialView('activities-event', normalSection, ['registration', 'games', 'shop', 'ranking'])
+  const section = guidedView?.startsWith('games-') ? 'games' : guidedSection
+  const gameTab = guidedView === 'games-a' ? 0 : guidedView === 'games-b' ? 1 : guidedView === 'games-c' ? 2 : normalGameTab
   const consumedDailyToken = useRef<string | null>(null)
   useLayoutEffect(() => {
-    if (!dailyIntent || consumedDailyToken.current === dailyIntent.token) return
+    if (presentationMode.active || !dailyIntent || consumedDailyToken.current === dailyIntent.token) return
     consumedDailyToken.current = dailyIntent.token
     // Notification intents take precedence if incompatible callers supply both.
     if (!openMessagesToken && !openShopToken) {
@@ -92,7 +103,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       setGameTab(dailyIntent.section === 'games' ? dailyIntent.game : 0)
     }
     onDailyIntentConsumed?.(dailyIntent.token)
-  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken])
+  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken, presentationMode.active])
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
@@ -160,20 +171,23 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   }, [onLoad, openMessagesToken])
 
   useEffect(() => {
-    if (openMessagesToken === 0) return
+    const key = `${sessionUserId}:${openMessagesToken}`
+    if (presentationMode.active || openMessagesToken === 0 || consumedMessagesToken.current === key) return
+    consumedMessagesToken.current = key
     let active = true
     // oxlint-disable-next-line react/set-state-in-effect -- Notification intent selects the inbox before its fresh snapshot arrives.
     setSection('games')
     setGameTab(2)
     void onLoad().then((latest) => { if (active && !latest.gameC.available) { setSection('registration'); setGameTab(0) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
-  }, [openMessagesToken, onLoad])
+  }, [sessionUserId, openMessagesToken, onLoad, presentationMode.active])
 
   useEffect(() => {
+    if (presentationMode.active) return
     // oxlint-disable-next-line react/set-state-in-effect -- A server snapshot can invalidate the selected Event section.
     if (!value.participation.joined && !value.gameC.available && !openMessagesToken && section === 'games') setSection('registration')
     if (!value.participation.joined && section === 'games' && gameTab !== 2) setGameTab(2)
-  }, [section, gameTab, value.participation.joined, value.gameC.available, openMessagesToken])
+  }, [section, gameTab, value.participation.joined, value.gameC.available, openMessagesToken, presentationMode.active])
 
   const listRecipients = useCallback(async (query: PlayerBrowserQuery) => {
     const result = await onSearchRecipients({ query: query.query, elementKey: query.elementKey, sort: query.sort, direction: query.direction, page: query.page })
@@ -181,9 +195,9 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   }, [onSearchRecipients])
 
   useEffect(() => {
-    if (section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
+    if (presentationMode.active || section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
     void onConsultMessages().catch((reason) => setError(apiErrorMessage(reason)))
-  }, [section, gameTab, value.gameC.unviewedCount, onConsultMessages])
+  }, [section, gameTab, value.gameC.unviewedCount, onConsultMessages, presentationMode.active])
 
   useEffect(() => {
     if (section !== 'games' || !value.participation.joined || value.gameB.solvedToday) return
@@ -345,7 +359,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
 
   const presentation = eventPresentation(value.festival.key)
   const expiredToday = eventGameAExpiredToday(value)
-  const milestonesCollapsed = milestonePreference.playerId === sessionUserId ? milestonePreference.collapsed : readMilestonePreference(sessionUserId)
+  const milestonesCollapsed = presentationMode.active && presentationMode.step?.id === "event-milestones" ? false : milestonePreference.playerId === sessionUserId ? milestonePreference.collapsed : readMilestonePreference(sessionUserId)
   const toggleMilestones = () => {
     const next = !milestonesCollapsed
     setMilestonePreference({ playerId: sessionUserId, collapsed: next })
@@ -353,7 +367,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   }
   const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   const tabs = <>
-    <section className={`event-milestone-progress${milestonesCollapsed ? ' collapsed' : ''}`} aria-label="Progression du Festival">
+    <section data-tutorial-anchor="event-milestones" className={`event-milestone-progress${milestonesCollapsed ? ' collapsed' : ''}`} aria-label="Progression du Festival">
       {milestonesCollapsed && <button type="button" className="event-milestone-hit-area" aria-label="Afficher les paliers depuis le bandeau" aria-expanded="false" aria-controls="event-milestone-track" onClick={toggleMilestones} />}
       <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span><button type="button" aria-expanded={!milestonesCollapsed} aria-controls="event-milestone-track" onClick={toggleMilestones}>{milestonesCollapsed ? 'Afficher les paliers' : 'Rétracter les paliers'}</button></div>
       <div id="event-milestone-track" className="event-milestone-track-scroll" hidden={milestonesCollapsed}><div className="event-milestone-track">
@@ -367,17 +381,17 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
       <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
     </nav>
-    {section === 'games' && <nav className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
+    {section === 'games' && <nav data-tutorial-anchor={guidedView?.startsWith("games-") && ((gameTab < 2 && !value.participation.joined) || (gameTab === 2 && !value.gameC.available)) ? `event-game-${["a", "b", "c"][gameTab]}` : undefined} data-tutorial-fallback="true" className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}
   </>
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
-  return <div className="screen-content activity-shell event-screen long-screen-layout">
+  return <div data-business-pending={pending || shopPending} className="screen-content activity-shell event-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités · Événement" title={value.festival.title} description={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
-      {section === 'registration' && <><section className="event-hero panel" data-event-key={value.festival.key}>
+      {section === 'registration' && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
         <div className="event-hero-symbol" aria-hidden="true">{value.festival.emoji}</div>
         <div className="event-hero-copy">
           <span className="eyebrow">Festival du mois</span>
@@ -388,13 +402,13 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         {onOpenHistory && <button type="button" className="event-hero-history" onClick={onOpenHistory}>Voir l’historique →</button>}
       </section>
 
-      <div className="event-stat-grid">
+      <div data-tutorial-anchor="event-bonuses" className="event-stat-grid">
         <section className="panel event-stat"><span>Points de l’édition</span><strong>{formatResourceAmount(String(value.participation.points))}</strong></section>
         <section className="panel event-stat"><span>{value.festival.currency.label}</span><strong>{value.festival.currency.emoji} {formatResourceAmount(value.currency.amount)}</strong></section>
         <section className="panel event-stat"><span>Collection de l’édition</span><strong>{value.festival.collection.label}</strong></section>
       </div>
 
-      {value.participation.joined && <section className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {value.festival.currency.unit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}
+      {value.participation.joined && <section data-tutorial-anchor="event-daily-bonus" className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {value.festival.currency.unit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}
       <section className="panel event-foundation-card">
         <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.unit}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
         {value.participation.joined
@@ -406,7 +420,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </>}
       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}
-      {section === 'games' && gameTab === 0 && value.participation.joined && <section className="panel event-game-a" data-theme={value.gameA.theme.key}>
+      {section === 'games' && gameTab === 0 && value.participation.joined && <section data-tutorial-anchor="event-game-a" className="panel event-game-a" data-theme={value.gameA.theme.key}>
         <div className="event-game-a-heading"><span className="eyebrow">Jeu du Festival</span><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">
           {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${value.gameA.completedToday ? 'completed' : window.state.toLowerCase()}`} key={window.startAt} data-window-state={value.gameA.completedToday ? 'COMPLETED' : window.state}>
@@ -418,7 +432,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         </div>
         <p className={`event-game-a-feedback${attemptFeedback ? ` ${attemptFeedback.kind}` : ''}`} role="status" aria-live="polite">{attemptFeedback?.message ?? ''}</p>
       </section>}
-      {section === 'games' && gameTab === 1 && value.participation.joined && <section className="panel event-game-b">
+      {section === 'games' && gameTab === 1 && value.participation.joined && <section data-tutorial-anchor="event-game-b" className="panel event-game-b">
         <div className="event-game-b-heading"><span className="eyebrow">Énigme collective du Festival</span><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
         <p>{value.gameB.solvedToday ? `Découvert par ${value.gameB.discoveredBy?.displayName ?? 'un participant'}.` : 'Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.'}</p>
         {value.gameB.solvedToday === false && <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>}
@@ -431,7 +445,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
         <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
       </section>}
-      {section === 'games' && gameTab === 2 && value.gameC.available && <section className="panel event-game-c">
+      {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" className="panel event-game-c">
         <header><span className="eyebrow">Message du Festival</span></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
           <PlayerQuickSearch value={recipientSearchText} onValueChange={(text) => { setRecipientSearchText(text); setSelectedRecipient(null) }} onListPlayers={listRecipients} onSelect={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName) }} action={(closeSuggestions) => <button type="button" className="small-primary-button" onClick={() => { closeSuggestions(); setRecipientBrowserOpen(true) }}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>} />

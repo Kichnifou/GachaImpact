@@ -64,7 +64,7 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
           />
         </div>
         <div className="box-detail-copy">
-          <div className="box-detail-heading">
+          <div data-tutorial-anchor="box-character" className="box-detail-heading">
             <div className="box-detail-name-row">
               <div className="box-detail-name-and-favorite">
                 <h2 className="box-detail-character-name">{character.name}</h2>
@@ -87,11 +87,11 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
             <div><dt>Région</dt><dd>{character.region ?? '—'}</dd></div>
             <div><dt>Première obtention</dt><dd>{formatObtainedAt(character.firstObtainedAt)}</dd></div>
           </dl>
-          <section className={`box-expedition-zone ${isExpeditionCharacter ? expeditionValue.operationalStatus.toLowerCase() : 'idle'}`} aria-label="Expédition">
+          <section data-tutorial-anchor="box-expedition" className={`box-expedition-zone ${isExpeditionCharacter ? expeditionValue.operationalStatus.toLowerCase() : 'idle'}`} aria-label="Expédition">
             <div><strong>Expédition</strong>{isExpeditionCharacter && expeditionValue.operationalStatus === 'RUNNING' ? <small>🧭 En expédition · <ExpeditionCountdown snapshot={expedition} monotonicNow={expeditionMonotonicNow} /></small> : isExpeditionCharacter && expeditionValue.operationalStatus === 'READY' ? <small>✅ À récupérer · {character.name} est revenu.</small> : <small>{expeditionValue.canStartToday ? 'Disponible aujourd’hui · durée 20 h' : expeditionValue.departureUsedToday ? 'Expédition effectuée aujourd’hui.' : 'Une autre expédition est active.'}</small>}<p role="status">{expeditionFeedback ?? '\u00a0'}</p></div>
             {expeditionPending && expeditionPendingAction ? <button type="button" disabled>{expeditionPendingAction === 'claim' ? 'Récupération…' : 'Départ…'}</button> : isExpeditionCharacter && expeditionValue.operationalStatus === 'READY' ? <button type="button" disabled={expeditionPending} onClick={onClaimExpedition}>{expeditionPending ? 'Récupération…' : 'Récupérer l’expédition'}</button> : !isExpeditionCharacter && expeditionValue.canStartToday ? <button type="button" disabled={expeditionPending} onClick={onStartExpedition}>{expeditionPending ? 'Départ…' : 'Envoyer en expédition'}</button> : null}
           </section>
-          {showStella && character.rarity === 5 && <section className="box-stella-zone" aria-label="Masterless Stella Fortuna">
+          {showStella && character.rarity === 5 && <section data-tutorial-anchor="box-stella" className="box-stella-zone" aria-label="Masterless Stella Fortuna">
             <div className="box-stella-copy"><strong>Masterless Stella Fortuna × {stellaQuantity}</strong><small>Renforce ce personnage</small><p className="box-stella-feedback" role="status" aria-live="polite">{stellaFeedback?.message ?? (stellaRetryAvailable ? 'Résultat à vérifier · la nouvelle tentative reprendra la même opération.' : '\u00a0')}</p></div>
             <button type="button" disabled={(!hasStella && !stellaRetryAvailable) || stellaPending} onClick={() => { stellaSubmitted.current = false; setConfirmingStella(true) }}>{stellaPending ? 'Utilisation…' : stellaRetryAvailable ? 'Reprendre l’utilisation' : 'Utiliser une Stella'}</button>
           </section>}
@@ -119,7 +119,7 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
         </section>
       </div>}
     </section>
-  </div>{showCombatDetails && combatState && <div className="modal-layer box-combat-modal-layer" role="presentation" onMouseDown={() => setShowCombatDetails(false)}><section className="floating-panel box-combat-modal" role="dialog" aria-modal="true" aria-labelledby="box-combat-modal-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Combat quotidien</span><h2 id="box-combat-modal-title">Statistiques de {character.name}</h2></div><button type="button" className="icon-button" onClick={() => setShowCombatDetails(false)} aria-label="Fermer les statistiques Combat"><span className="icon-glyph">×</span></button></header><p className={`box-combat-status${combatState.ko ? ' ko' : ''}`}>Statut : {combatState.ko ? '💀 KO' : 'OK'}</p><dl><div><dt>Combats</dt><dd>{combatState.stats.fights}</dd></div><div><dt>Victoires</dt><dd>{combatState.stats.wins}</dd></div><div><dt>Défaites</dt><dd>{combatState.stats.losses}</dd></div><div><dt>Taux de victoire</dt><dd>{combatState.stats.winRatePercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</dd></div></dl></section></div>}</>
+  </div>{showCombatDetails && combatState && <div className="modal-layer box-combat-modal-layer" role="presentation" onMouseDown={() => setShowCombatDetails(false)}><section className="floating-panel box-combat-modal" role="dialog" aria-modal="true" aria-labelledby="box-combat-modal-title" onMouseDown={(event) => event.stopPropagation()}><header data-tutorial-anchor="box-character" className="floating-panel-heading"><div><span className="eyebrow">Combat quotidien</span><h2 id="box-combat-modal-title">Statistiques de {character.name}</h2></div><button type="button" className="icon-button" onClick={() => setShowCombatDetails(false)} aria-label="Fermer les statistiques Combat"><span className="icon-glyph">×</span></button></header><p className={`box-combat-status${combatState.ko ? ' ko' : ''}`}>Statut : {combatState.ko ? '💀 KO' : 'OK'}</p><dl><div><dt>Combats</dt><dd>{combatState.stats.fights}</dd></div><div><dt>Victoires</dt><dd>{combatState.stats.wins}</dd></div><div><dt>Défaites</dt><dd>{combatState.stats.losses}</dd></div><div><dt>Taux de victoire</dt><dd>{combatState.stats.winRatePercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</dd></div></dl></section></div>}</>
 }
 
 function stellaTransition(character: BoxCharacterDto) {

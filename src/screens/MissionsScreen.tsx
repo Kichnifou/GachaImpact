@@ -31,7 +31,7 @@ function MissionsScreen({ onLoad }: MissionsScreenProps) {
     setRequestToken((current) => current + 1)
   }, [])
   let content
-  if (loading && !value) content = <div className="missions-state" role="status">Chargement des Missions…</div>
+  if (loading && !value) content = <div data-tutorial-state="loading" className="missions-state" role="status">Chargement des Missions…</div>
   else if (error) content = <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{error}</p><button type="button" className="small-primary-button" onClick={retry}>Réessayer</button></div>
   else content = value ? <MissionProjectionView value={value} /> : null
 

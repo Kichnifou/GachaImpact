@@ -1,3 +1,5 @@
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -1275,4 +1277,20 @@ describe('ChatPanel réel', () => {
     await act(async () => { resolve({ messages: [{ ...message, content: 'Snapshot récent' }], nextCursor: null, generation: 0 }); await Promise.resolve() })
     expect(list.scrollTop).toBe(900)
   })
+})
+
+it('preserves the draft and suppresses all automatic Chat read acknowledgements during guided views', async () => {
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  const render = (active: boolean, stepId: 'chat-thread' | 'dm-new' = 'chat-thread') => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep(stepId) }}><ChatPanel playerId={ownId} isCollapsed={false} onToggle={vi.fn()} onOpenPlayers={vi.fn()} onOpenProfile={openProfile} onRefreshScopes={refresh} /></TutorialPresentationContext.Provider>
+  await act(async () => root.render(render(false)))
+  act(() => type(container, 'Brouillon conservé'))
+  chat.read.mockClear()
+  await act(async () => root.render(render(true)))
+  const list = container.querySelector('.message-list')!; act(() => list.dispatchEvent(new Event('scroll')))
+  await act(async () => root.render(render(true, 'dm-new')))
+  await act(async () => root.render(render(true, 'chat-thread')))
+  expect(chat.read).not.toHaveBeenCalled(); expect(chat.send).not.toHaveBeenCalled()
+  expect(container.querySelector<HTMLTextAreaElement>('#chat-message')!.value).toBe('Brouillon conservé')
+  await act(async () => root.render(render(false)))
+  expect(container.querySelector<HTMLTextAreaElement>('#chat-message')!.value).toBe('Brouillon conservé')
 })

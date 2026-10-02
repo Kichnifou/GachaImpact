@@ -1,3 +1,4 @@
+import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import AppButton from '../components/AppButton'
@@ -23,6 +24,7 @@ const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.giftSupr
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
   const [account, setAccount] = useState<TwitchAccountDto | null>(null)
+  const presentationMode = useTutorialPresentation().active
   const [files, setFiles] = useState<Record<string, string> | null>(null)
   const [preview, setPreview] = useState<SnapshotPreviewDto | null>(null)
   const [result, setResult] = useState<SnapshotApplyDto | null>(null)
@@ -45,7 +47,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const controller = new AbortController()
     const deadline = setTimeout(() => controller.abort(), 8_000)
     const url = new URL(location.href)
-    const outcome = url.searchParams.get('twitch')
+    const outcome = presentationMode ? null : url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
       if (outcome !== 'connected' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
@@ -60,7 +62,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         setAccount(value)
         checkingFavor = Boolean(value.favorSubscriptionPending)
         checkingGift = Boolean(value.giftSupremePending)
-        if (awaitingSubscription(value)) {
+        if (!presentationMode && awaitingSubscription(value)) {
           setRuntimeChecking(true)
           for (let attempt = 0; attempt < 4 && active && awaitingSubscription(value); attempt++) {
             await new Promise<void>(resolve => { cancelWait = resolve; timer = setTimeout(resolve, 1_000) })
@@ -73,12 +75,12 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
           }
           if (active && awaitingSubscription(value)) setError(value.giftSupremePending ? 'L’activation Gift Suprême n’a pas pu être confirmée. Réessayez plus tard.' : value.favorSubscriptionPending ? 'La réception des abonnements Twitch n’a pas pu être confirmée. Réessayez plus tard.' : 'La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
         }
-        if (active && (value.runtimeChatError || value.favorSubscriptionError)) setError([value.runtimeChatError && runtimeStatusError(value.runtimeChatError), value.favorSubscriptionError && favorStatusError(value.favorSubscriptionError)].filter(Boolean).join(' '))
+        if (active && !presentationMode && (value.runtimeChatError || value.favorSubscriptionError)) setError([value.runtimeChatError && runtimeStatusError(value.runtimeChatError), value.favorSubscriptionError && favorStatusError(value.favorSubscriptionError)].filter(Boolean).join(' '))
       } catch (reason) { if (active) setError(controller.signal.aborted ? checkingGift ? 'Le statut Gift Suprême n’a pas pu être confirmé. Réessayez plus tard.' : checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
       finally { clearTimeout(deadline); if (active) setRuntimeChecking(false) }
     })()
     return () => { active = false; controller.abort(); clearTimeout(deadline); clearTimeout(timer); cancelWait?.() }
-  }, [api])
+  }, [api, presentationMode])
   useEffect(() => {
     if (!confirm) return
     confirmRef.current?.focus()
@@ -189,11 +191,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     })()
   }
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
-    <div className="account-settings">
+    <div data-business-pending={pending} className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
-      {!account ? <p>Chargement du compte…</p> : <section className="account-section"><h3>Compte Twitch</h3>
+      {!account ? <p data-tutorial-state={!error ? "loading" : undefined}>Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
         {account.linked ? <><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
-          {account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
+          {!presentationMode && account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
             <h4>Réception du chat Twitch</h4>
             <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking && account.runtimeChatPending ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>
             <p className="account-twitch-description">{account.runtimeChatActive ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.'}</p>
@@ -217,7 +219,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
           <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
           : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}
       </section>}
-      {account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
+      {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
         <div className="account-actions"><label>Choisir le dossier Data<input ref={folderRef} type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label><label>Ou choisir 17 fichiers JSON<input type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label></div>
         {files && <><p>17 fichiers sélectionnés.</p><button type="button" disabled={pending} onClick={() => void run(async () => { setPreview(await api.previewTwitchSnapshot(files)); setResult(null) })}>Prévisualiser le snapshot</button></>}
         {preview && <div className="account-preview"><p>Snapshot : <code>{preview.snapshotHash}</code></p><p>Viewer Kichnifou trouvé · {preview.files} fichiers reconnus</p><div className="account-domain-list">{preview.domains.map(domain => <article key={domain.name}><strong>{domain.name}</strong><span>{domain.action}</span><small>Catégorie : {domain.category}</small><small>Actuel : {domain.current}</small><small>Snapshot : {domain.snapshot}</small>{domain.reason && <small>Raison : {domain.reason}</small>}{domain.anomalies.map(message => <small key={message}>{message}</small>)}</article>)}</div><p className="account-warning">{preview.warning}</p><button type="button" disabled={pending || preview.domains.some(domain => domain.category === 'BLOCKED_AMBIGUOUS' || (domain.category === 'PLAYER_LOCAL_PHYSICAL' && domain.action === 'PENDING_MAPPING'))} onClick={event => { openerRef.current = event.currentTarget; setConfirm('apply') }}>{account.lastImport ? 'Confirmer le rafraîchissement' : 'Confirmer l’import'}</button></div>}

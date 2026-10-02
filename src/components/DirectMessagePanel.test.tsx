@@ -1,3 +1,5 @@
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -1662,4 +1664,32 @@ describe('DirectMessagePanel', () => {
     await act(async () => { (Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-conversation-menu button')).find(button => button.textContent === 'Archiver'))!.click(); await Promise.resolve() })
     expect(directMessages.archive).toHaveBeenCalledWith(conversationId, true)
   })
+})
+
+it('presents a genuine conversation and history without read/seen or draft-reset navigation', async () => {
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  const render = (active: boolean, stepId: 'dm-thread' | 'dm-history' | 'dm-new') => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep(stepId) }}><DirectMessagePanel playerId={ownId} isActive={true} intent={null} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} /></TutorialPresentationContext.Provider>
+  await act(async () => root.render(render(true, 'dm-thread'))); await settle()
+  expect(container.textContent).toContain('Bonjour')
+  await act(async () => { container.querySelector('.dm-message-list')?.dispatchEvent(new Event('scroll')); root.render(render(true, 'dm-history')) }); await settle()
+  expect(directMessages.history).toHaveBeenCalledWith(conversationId, expect.anything())
+  expect(container.querySelector('.dm-history')?.getAttribute('data-tutorial-anchor')).toBe('dm-content')
+  expect(container.querySelector('.dm-history')?.hasAttribute('data-tutorial-state')).toBe(false)
+  expect(directMessages.read).not.toHaveBeenCalled(); expect(directMessages.typing).not.toHaveBeenCalled(); expect(directMessages.initiate).not.toHaveBeenCalled(); expect(directMessages.send).not.toHaveBeenCalled()
+  await act(async () => root.render(render(false, 'dm-new')))
+  expect(container.querySelector('.dm-conversation-list')).not.toBeNull()
+})
+it('restores the private draft and route without replaying a previously consumed reset token', async () => {
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('dm-history') }}><DirectMessagePanel playerId={ownId} isActive={true} intent={null} resetToken="already-consumed" onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} /></TutorialPresentationContext.Provider>
+  await act(async () => root.render(render(false))); await settle()
+  await act(async () => container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click()); await settle()
+  const input = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+  await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(input, 'Brouillon privé conservé'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+  directMessages.read.mockClear(); directMessages.typing.mockClear()
+  await act(async () => root.render(render(true))); await settle()
+  expect(directMessages.read).not.toHaveBeenCalled(); expect(directMessages.typing).not.toHaveBeenCalled()
+  await act(async () => root.render(render(false))); await settle()
+  expect(container.querySelector<HTMLTextAreaElement>('#dm-message')?.value).toBe('Brouillon privé conservé')
+  expect(container.querySelector('.dm-thread-header')).not.toBeNull()
 })

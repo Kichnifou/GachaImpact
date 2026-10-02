@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
+import { useEffect, useMemo, useState } from 'react'
 import type { BoxCharacterDto, DailyCombatDto, MonthlyBossAttackDto, MonthlyBossCharacterDto, MonthlyBossDto, MonthlyBossHistoryDto, MonthlyBossHistoryEntryDto, MonthlyBossRecordsDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
@@ -22,6 +23,8 @@ type Props = Readonly<{
 }>
 
 export default function MonthlyBossScreen({ value, dailyCombat, box, onSetSlot, onRemoveSlot, onCopyActive, onClear, onAttack, onLoadHistory }: Props) {
+  const presentation = useTutorialPresentation()
+  const guidedBilan = presentation.active && ["boss-bilan", "boss-stats", "boss-history"].includes(presentation.step?.panel ?? "")
   const [picker, setPicker] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [calculationOpen, setCalculationOpen] = useState(false)
@@ -43,39 +46,43 @@ export default function MonthlyBossScreen({ value, dailyCombat, box, onSetSlot, 
   const status = value.status === 'DEFEATED' ? '✅ Vaincu' : 'Boss actif'
   const attackStatus = result ? `✅ Utilisée aujourd’hui · ${formatResourceAmount(result.damage)} dégâts infligés.` : value.attackState === 'USED' ? '✅ Utilisée aujourd’hui.' : value.attackState === 'DEFEATED' ? '✅ Boss vaincu ce mois-ci.' : 'Disponible'
 
-  return <div className="monthly-boss-shell compact">
+  return <div data-business-pending={Boolean(pending)} className="monthly-boss-shell compact">
     <section className={`panel boss-identity-panel ${value.status.toLowerCase()}`}>
       <div className="boss-compact-kicker"><span>{formatMonth(value.boss.monthStart).toUpperCase()}</span><button type="button" onClick={() => setBilanOpen(true)}>Bilan →</button></div>
-      <div className="boss-compact-title"><h2>{value.boss.name}</h2><div className="boss-identity-status"><strong className="boss-state-badge">{status}</strong><span className="boss-resistance"><span className="boss-resistance-label">Res :</span><span className="boss-resistance-accessible" role="img" aria-label={`Résistance ${elementLabels[value.boss.resistanceElementKey]} — dégâts ×0,5`} title={`Résistance ${elementLabels[value.boss.resistanceElementKey]} — dégâts ×0,5`}><GameAssetIcon className="boss-element-icon" src={getElementAssetPath(value.boss.resistanceElementKey)} fallback="✦" /></span></span></div></div>
+      <div data-tutorial-anchor="boss-identity" className="boss-compact-title"><h2>{value.boss.name}</h2><div className="boss-identity-status"><strong className="boss-state-badge">{status}</strong><span className="boss-resistance"><span className="boss-resistance-label">Res :</span><span className="boss-resistance-accessible" role="img" aria-label={`Résistance ${elementLabels[value.boss.resistanceElementKey]} — dégâts ×0,5`} title={`Résistance ${elementLabels[value.boss.resistanceElementKey]} — dégâts ×0,5`}><GameAssetIcon className="boss-element-icon" src={getElementAssetPath(value.boss.resistanceElementKey)} fallback="✦" /></span></span></div></div>
       <div className="boss-hp" aria-label={`${hpPercent.toLocaleString('fr-FR')} pour cent de points de vie`}><div><span>PV</span><strong>{formatResourceAmount(value.boss.currentHp)} / {formatResourceAmount(value.boss.maxHp)}</strong><b>{hpPercent.toLocaleString('fr-FR', { maximumFractionDigits: 2 })} %</b></div><div className="boss-hp-track"><span style={{ width: `${hpPercent}%` }} /></div></div>
     </section>
 
-    <section className="panel boss-command-panel compact" aria-label="Attaque du jour">
+    <section data-tutorial-anchor="boss-action" className="panel boss-command-panel compact" aria-label="Attaque du jour">
       <div className="boss-command-status"><strong>Attaque du jour</strong><span>{attackStatus}</span></div>
       <button type="button" className="small-primary-button boss-attack-button" disabled={!value.canAttack || Boolean(pending)} onClick={() => void attack()}>{pending === 'attack' ? 'Attaque…' : intent ? 'Réessayer' : 'Attaquer'}</button>
       <div className="boss-preview"><div><small>Dégâts prévus</small><strong>{value.preview ? formatResourceAmount(value.preview.totalDamage) : '—'}</strong></div><button type="button" disabled={!value.preview} onClick={() => setCalculationOpen(true)}>Détails →</button></div>
       {error && <p className="boss-feedback error" role="alert">{error}</p>}
     </section>
 
-    {value.status === 'ALIVE' && <section className="combat-loadout-section boss-shared-loadout"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header><div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character }) => character
+    {value.status === 'ALIVE' && <section data-tutorial-anchor="boss-formation" className="combat-loadout-section boss-shared-loadout"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header><div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character }) => character
       ? <PlayerCombatCard character={character} position={position} pending={Boolean(pending)} canOpenDetail={Boolean(box)} onOpenDetail={() => setDetailId(character.id)} onChange={() => setPicker(position)} onRemove={() => void mutate(`remove-${position}`, () => onRemoveSlot(position))} key={position} />
       : <button type="button" className="combat-character-card combat-empty-slot" disabled={Boolean(pending)} onClick={() => setPicker(position)} key={position}><span>{String(position).padStart(2, '0')}</span><strong>Ajouter</strong><small>Choisir un personnage</small></button>)}</div></section>}
 
     {picker !== null && <BossPicker value={value} position={picker} selectedIds={selectedIds} pending={Boolean(pending)} onClose={() => setPicker(null)} onSelect={(characterId) => void mutate(`slot-${picker}`, async () => { await onSetSlot(picker, characterId); setPicker(null) })} />}
     {detailId && box && <CombatBoxCharacterDetail characterId={detailId} combat={dailyCombat} bindings={box} onClose={() => setDetailId(null)} />}
     {calculationOpen && value.preview && <BossDetails value={value} onClose={() => setCalculationOpen(false)} />}
-    {bilanOpen && <BossBilanModal value={value} onLoadHistory={onLoadHistory} onClose={() => setBilanOpen(false)} />}
+    {(bilanOpen || guidedBilan) && <BossBilanModal value={value} onLoadHistory={onLoadHistory} onClose={() => setBilanOpen(false)} />}
   </div>
 }
 
 function BossBilanModal({ value, onLoadHistory, onClose }: { value: MonthlyBossDto; onLoadHistory: (page: number) => Promise<MonthlyBossHistoryDto>; onClose: () => void }) {
   const dialogRef = useModalDialog<HTMLElement>(onClose)
-  const [tab, setTab] = useState<'contribution' | 'stats' | 'history'>('contribution')
+  const guidedHistory = useTutorialPanel("boss-history")
+  const [normalTab, setTab] = useState<'contribution' | 'stats' | 'history'>('contribution')
+  const presentation = useTutorialPresentation()
+  const tab = guidedHistory ? 'history' : presentation.active && presentation.step?.panel === 'boss-bilan' ? 'contribution' : presentation.active && presentation.step?.panel === 'boss-stats' ? 'stats' : normalTab
   const [history, setHistory] = useState<MonthlyBossHistoryDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
   const loadPage = async (page: number) => { setPending(true); setError(null); try { setHistory(await onLoadHistory(page)) } catch (reason) { setError(apiErrorMessage(reason)) } finally { setPending(false) } }
-  return <div className="history-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section ref={dialogRef} tabIndex={-1} className="panel history-modal boss-bilan-modal" role="dialog" aria-modal="true" aria-label="Bilan Boss"><header><div><span className="eyebrow">{formatMonth(value.boss.monthStart)}</span><h2>Bilan Boss</h2></div><ModalCloseButton onClose={onClose} /></header><nav className="boss-bilan-tabs" aria-label="Sections du bilan"><button type="button" className={tab === 'contribution' ? 'active' : ''} onClick={() => setTab('contribution')}>Contribution</button><button type="button" className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}>Vos statistiques Boss</button><button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => { setTab('history'); if (!history && !pending) void loadPage(1) }}>Historique</button></nav><div className="history-modal-body boss-bilan-body">
+  useEffect(() => { if (!guidedHistory) return; let active = true; void onLoadHistory(1).then(value => { if (active) setHistory(value) }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [guidedHistory, onLoadHistory])
+  return <div className="history-modal-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><section ref={dialogRef} tabIndex={-1} className="panel history-modal boss-bilan-modal" role="dialog" aria-modal="true" aria-label="Bilan Boss"><header><div><span className="eyebrow">{formatMonth(value.boss.monthStart)}</span><h2>Bilan Boss</h2></div><ModalCloseButton onClose={onClose} /></header><nav className="boss-bilan-tabs" aria-label="Sections du bilan"><button type="button" className={tab === 'contribution' ? 'active' : ''} onClick={() => setTab('contribution')}>Contribution</button><button type="button" className={tab === 'stats' ? 'active' : ''} onClick={() => setTab('stats')}>Vos statistiques Boss</button><button type="button" className={tab === 'history' ? 'active' : ''} onClick={() => { setTab('history'); if (!history && !pending) void loadPage(1) }}>Historique</button></nav><div data-tutorial-anchor={tab === "contribution" ? "boss-bilan" : tab === "stats" ? "boss-stats" : "boss-history"} data-tutorial-state={guidedHistory && !history && !error ? "loading" : undefined} className="history-modal-body boss-bilan-body">
     {tab === 'contribution' && (value.status === 'DEFEATED' && value.defeatedSummary ? <DefeatedSummary value={value} /> : <LiveContribution value={value} />)}
     {tab === 'stats' && <section className="panel boss-lifetime"><h2>Vos statistiques Boss</h2><dl><Stat label="Dégâts" value={value.playerStats.totalDamage} /><Stat label="Attaques" value={value.playerStats.totalAttacks} /><Stat label="Boss participés" value={value.playerStats.totalParticipated} /><Stat label="Récompenses" value={value.playerStats.totalRewarded} /><Stat label="Coups finaux" value={value.playerStats.finalBlows} /><Stat label="Meilleur coup" value={value.playerStats.bestHit} /></dl></section>}
     {tab === 'history' && <>{error && <p role="alert">{error}</p>}<BossHistory value={history} pending={pending} onPage={loadPage} /></>}

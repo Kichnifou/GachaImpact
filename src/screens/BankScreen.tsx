@@ -89,31 +89,31 @@ function BankScreen({ initialBank, refreshToken = 0, onLoad, onLoadHistory, onOp
     }
   }
 
-  if (!bank) return <div className="screen-content bank-screen"><section className="panel bank-loading" role={error ? 'alert' : 'status'}>{error ?? 'Ouverture de votre Banque…'}</section></div>
+  if (!bank) return <div className="screen-content bank-screen"><section data-tutorial-state={!error ? "loading" : undefined} data-tutorial-anchor={error ? "screen-entry" : undefined} className="panel bank-loading" role={error ? 'alert' : 'status'}>{error ?? 'Ouverture de votre Banque…'}</section></div>
 
   return (
-    <div className={`screen-content bank-screen${transferPulse ? ` transfer-${transferPulse}` : ''}`}>
+    <div data-business-pending={Boolean(pending)} className={`screen-content bank-screen${transferPulse ? ` transfer-${transferPulse}` : ''}`}>
       <header className="bank-hero panel">
-        <div><span className="eyebrow">Trésorerie astrale</span><h1>Banque</h1><p>Placez vos Moras à l’abri et faites fructifier votre épargne chaque jour.</p></div>
+        <div><span className="eyebrow">Trésorerie astrale</span><h1 data-tutorial-anchor="screen-entry">Banque</h1><p>Placez vos Moras à l’abri et faites fructifier votre épargne chaque jour.</p></div>
         <div className="bank-rate"><strong>{bank.interestRatePercent} %</strong><span>par jour</span></div>
       </header>
 
-      <section className="bank-balances" aria-label="Soldes Banque">
+      <section data-tutorial-anchor="bank-balances" className="bank-balances" aria-label="Soldes Banque">
         <BalanceCard label="Portefeuille" value={bank.walletMoras} detail="Disponible pour vos dépenses" className="wallet" />
         <BalanceCard label="Banque" value={bank.bankMoras} detail={`Prochain gain estimé : +${formatResourceAmount(bank.estimatedInterest)}`} className="vault" />
         <BalanceCard label="Patrimoine" value={bank.totalWealth} detail="Portefeuille + Banque" className="wealth" />
       </section>
 
       <div className="bank-main-grid">
-        <section className="panel bank-transfer-panel">
-          <div className="bank-section-heading"><div><span className="eyebrow">Transferts</span><h2>Gérer mes Moras</h2></div><span className="bank-countdown">Prochain intérêt dans <strong>{formatBankCountdown(remainingMs)}</strong></span></div>
+        <section data-tutorial-anchor="bank-transfer" className="panel bank-transfer-panel">
+          <div className="bank-section-heading"><div><span className="eyebrow">Transferts</span><h2>Gérer mes Moras</h2></div><span data-tutorial-anchor="bank-interest" className="bank-countdown">Prochain intérêt dans <strong>{formatBankCountdown(remainingMs)}</strong></span></div>
           <TransferForm direction="deposit" label="Déposer" available={bank.walletMoras} value={amounts.deposit} disabled={pending !== null} pending={pending === 'deposit'} onChange={(value) => setAmounts((current) => ({ ...current, deposit: value }))} onSubmit={submit} onMax={() => setAmounts((current) => ({ ...current, deposit: bank.walletMoras }))} />
           <TransferForm direction="withdraw" label="Retirer" available={bank.bankMoras} value={amounts.withdraw} disabled={pending !== null} pending={pending === 'withdraw'} onChange={(value) => setAmounts((current) => ({ ...current, withdraw: value }))} onSubmit={submit} onMax={() => setAmounts((current) => ({ ...current, withdraw: bank.bankMoras }))} />
           {error && <p className="bank-error" role="alert">{error}</p>}
           <p className="bank-transfer-note">Les transferts sont gratuits et n’affectent pas vos statistiques de gains ou de dépenses.</p>
         </section>
 
-        <section className="panel bank-history-panel">
+        <section data-tutorial-anchor="bank-history" className="panel bank-history-panel">
           <div className="bank-section-heading"><div><span className="eyebrow">Activité</span><h2>Opérations récentes</h2></div></div>
           {bank.recentOperations.length ? <OperationList operations={bank.recentOperations.slice(0, 5)} /> : <div className="bank-empty-history"><span aria-hidden="true">◇</span><strong>Aucune opération</strong><p>Votre premier dépôt apparaîtra ici.</p></div>}
           <footer className="bank-history-footer"><button type="button" onClick={onOpenGlobalHistory ?? (() => setHistoryOpen(true))}>Voir l’historique</button></footer>

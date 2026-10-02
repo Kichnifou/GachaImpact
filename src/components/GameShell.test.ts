@@ -8,7 +8,7 @@ describe('GameShell shared particle conversion overlay', () => {
   it('owns one conversion modal and exposes its opener to Activities', () => {
     expect(gameShellSource.match(/<ParticleConversionModal/g)).toHaveLength(1)
     expect(gameShellSource).toContain('onOpenParticleConversion={() => setIsParticleConversionOpen(true)}')
-    expect(gameShellSource).toContain('{isParticleConversionOpen && player.elementKey && <ParticleConversionModal')
+    expect(gameShellSource).toContain("{(isParticleConversionOpen || presentationStep?.panel === 'conversion') && player.elementKey && <ParticleConversionModal")
   })
 
   it('reuses the shared Box cache and mutations for Combat character details', () => {

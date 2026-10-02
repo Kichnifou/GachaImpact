@@ -21,9 +21,9 @@ export default function RankingsScreen({ onLoad, onProfile }: Props) {
   const visibleData = !error && data?.metric.id === metric && data.page === page ? data : null
   const choose = (next: string) => { setLoading(true); setError(null); setMetric(next); setPage(1) }
   const turnPage = (next: number) => { setLoading(true); setError(null); setPage(next) }
-  return <div className="screen-content rankings-screen long-screen-layout">
+  return <div data-tutorial-state={loading ? "loading" : undefined} className="screen-content rankings-screen long-screen-layout">
     <ScreenHeader eyebrow="Communauté" title="Classements" />
-    <ScrollableScreenPanel className="rankings-frame" bodyClassName="rankings-body" fixed={<div className="rankings-controls">
+    <ScrollableScreenPanel className="rankings-frame" bodyTutorialAnchor="rankings-list" bodyClassName="rankings-body" fixed={<div data-tutorial-anchor="rankings-controls" className="rankings-controls">
       <nav className="activity-inner-tabs" role="tablist" aria-label="Catégories des classements">{data?.categories.map(item => <button type="button" key={item} role="tab" aria-selected={category === item} className={category === item ? 'active' : ''} onClick={() => choose(data.metrics.find(metric => metric.category === item)?.id ?? 'xp')}>{categoryLabels[item]}</button>)}</nav>
       <label>Métrique <select value={metric} onChange={event => choose(event.target.value)}>{data?.metrics.filter(item => item.category === category).map(item => <option key={item.id} value={item.id}>{item.label}</option>) ?? <option value="xp">XP</option>}</select></label>
     </div>}>

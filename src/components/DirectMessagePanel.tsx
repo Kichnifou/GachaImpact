@@ -1,3 +1,5 @@
+import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
+import { useLatestRef } from '../hooks/use-latest-ref'
 import {
   useEffect,
   useLayoutEffect,
@@ -162,9 +164,16 @@ export default function DirectMessagePanel({
   onUnreadChange: (count: number) => void;
   onOpenProfile: (id: string) => void;
 }) {
-  const [view, setView] = useState<View>("list"),
-    [selectedId, setSelectedId] = useState<string | null>(null),
+  const presentation = useTutorialPresentation();
+  const presentationActive = useLatestRef(presentation.active);
+  const guidedView = presentation.active && presentation.step?.view?.startsWith("dm-") ? presentation.step.view.slice(3) as View : null;
+  const [guidedId, setGuidedId] = useState<string | null>(null);
+  const consumedReset = useRef<string | null>(null);
+  const [normalView, setView] = useState<View>("list"),
+    [normalSelectedId, setSelectedId] = useState<string | null>(null),
     [target, setTarget] = useState<DirectMessagePlayerDto | null>(null);
+  const selectedId = guidedView === "conversation" || guidedView === "history" ? guidedId : normalSelectedId;
+  const view = guidedView && ((guidedView !== "conversation" && guidedView !== "history") || guidedId) ? guidedView : guidedView ? "list" : normalView;
   const [draft, setDraft] = useState(""),
     [search, setSearch] = useState(""),
     [candidates, setCandidates] = useState<DirectMessagePlayerDto[]>([]);
@@ -249,9 +258,10 @@ export default function DirectMessagePanel({
     playerId,
     isActive && view !== "history",
     selectedId,
-    view === "archives",
+    view === "archives" || guidedView === "conversation" || guidedView === "history",
     onUnreadChange,
   );
+  useEffect(() => { if (!guidedView || guidedId) return; const first = [...model.normal, ...model.archived].sort((a, b) => Number(a.archived) - Number(b.archived) || a.id.localeCompare(b.id))[0]; if (first) setGuidedId(first.id) }, [guidedView, guidedId, model.normal, model.archived]);
   const history = useDirectMessageHistory(
     playerId,
     selectedId,
@@ -308,6 +318,7 @@ export default function DirectMessagePanel({
     : null;
 
   const stopTyping = () => {
+    if (presentationActive.current) return;
     const id = typingConversation.current;
     typingConversation.current = null;
     lastTypingHeartbeatAt.current = 0;
@@ -315,7 +326,7 @@ export default function DirectMessagePanel({
   };
   const signalTyping = (value: string) => {
     if (!value.trim()) { stopTyping(); return }
-    if (!selectedId || !selected?.canSend || view !== "conversation" || !isActive || document.hidden || document.activeElement !== composer.current) return;
+    if (presentationActive.current || !selectedId || !selected?.canSend || view !== "conversation" || !isActive || document.hidden || document.activeElement !== composer.current) return;
     if (typingConversation.current && typingConversation.current !== selectedId) stopTyping();
     const at = Date.now();
     if (typingConversation.current === selectedId && at - lastTypingHeartbeatAt.current < 2_000) return;
@@ -461,14 +472,16 @@ export default function DirectMessagePanel({
   };
   // oxlint-disable react/set-state-in-effect -- navigation intents and search boundaries deliberately reset owned UI state
   useEffect(() => {
-    if (!intent) return;
+    if (presentationActive.current || !intent) return;
     void openTarget(intent.playerId, intent.player).finally(() =>
       onIntentConsumed(intent.token),
     );
-  }, [intent?.token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [intent?.token, presentation.active]); // eslint-disable-line react-hooks/exhaustive-deps
   // oxlint-disable-next-line react/set-state-in-effect -- an explicit click on the already mounted MP tab resets its internal route
   useLayoutEffect(() => {
-    if (!resetToken) return;
+    const key = `${playerId}:${resetToken}`;
+    if (presentationActive.current || !resetToken || consumedReset.current === key) return;
+    consumedReset.current = key;
     leaveComposerSession();
     setView("list");
     setProvisional(null);
@@ -483,7 +496,7 @@ export default function DirectMessagePanel({
     setHistoryDate("");
     setHistoryHighlight(null);
     clearReply();
-  }, [resetToken]);
+  }, [resetToken, playerId, presentation.active]);
   const activityBoundary = useRef({ isActive, playerId });
   useLayoutEffect(() => {
     if (activityBoundary.current.isActive !== isActive || activityBoundary.current.playerId !== playerId) {
@@ -515,7 +528,7 @@ export default function DirectMessagePanel({
     return () => window.clearInterval(timer);
   }, []);
   useEffect(() => {
-    if (typingConversation.current && (typingConversation.current !== selectedId || view !== "conversation" || !isActive || !selected?.canSend)) stopTyping();
+    if (!presentationActive.current && typingConversation.current && (typingConversation.current !== selectedId || view !== "conversation" || !isActive || !selected?.canSend)) stopTyping();
   }, [selectedId, view, isActive, selected?.canSend, playerId]);
   useEffect(() => {
     if (!model.otherTypingUntil) return;
@@ -662,7 +675,7 @@ export default function DirectMessagePanel({
       window.clearTimeout(reportFeedbackTimer.current);
     reportFeedbackTimer.current = null;
     setReportFeedback("");
-  }, [selectedId]);
+  }, [normalSelectedId]);
   useLayoutEffect(() => {
     const listElement = list.current;
     if (!listElement || view !== "conversation") return;
@@ -745,13 +758,14 @@ export default function DirectMessagePanel({
   }, [view]);
 
   function markConversationRead(conversationId: string, messageId: string) {
+    if (presentationActive.current) return;
     if (readId.current === messageId) return;
     readId.current = messageId;
     queuedRead.current = { conversationId, messageId };
     if (readBusy.current) return;
     readBusy.current = true;
     void (async () => {
-      while (queuedRead.current) {
+      while (queuedRead.current && !presentationActive.current) {
         const current = queuedRead.current;
         queuedRead.current = null;
         try {
@@ -1475,10 +1489,11 @@ export default function DirectMessagePanel({
     </div>
   );
 
+  const guidedLoading = !model.error && (!model.listLoaded || ((guidedView === "conversation" || guidedView === "history") && (model.normal.length > 0 || model.archived.length > 0) && !guidedId) || (view === "conversation" && !model.messagesLoaded) || (view === "history" && !history.loaded && !history.error));
   if (view === "list" || view === "archives") {
     const rows = view === "archives" ? model.archived : model.normal;
     return (
-      <section className="dm-panel" aria-label="Messages privés">
+      <section data-business-pending={sendPending || Boolean(queuedSend) || model.pending} data-tutorial-anchor="dm-content" data-tutorial-fallback={(guidedView === "conversation" || guidedView === "history") && !guidedId ? "true" : undefined} data-tutorial-state={guidedLoading ? "loading" : undefined} className="dm-panel" aria-label="Messages privés">
         <div className="dm-toolbar">
           <button
             type="button"
@@ -1607,7 +1622,7 @@ export default function DirectMessagePanel({
 
   if (view === "new")
     return (
-      <section className="dm-panel" aria-label="Nouveau message privé">
+      <section data-business-pending={sendPending || Boolean(queuedSend) || model.pending} data-tutorial-anchor="dm-content" data-tutorial-fallback={(guidedView === "conversation" || guidedView === "history") && !guidedId ? "true" : undefined} data-tutorial-state={guidedLoading ? "loading" : undefined} className="dm-panel" aria-label="Nouveau message privé">
         <header className="dm-thread-header">
           <button
             type="button"
@@ -1696,6 +1711,9 @@ export default function DirectMessagePanel({
   if (view === "history" && selected && other)
     return (
       <section
+        data-business-pending={sendPending || Boolean(queuedSend) || model.pending}
+        data-tutorial-anchor="dm-content"
+        data-tutorial-state={guidedLoading ? "loading" : undefined}
         className="dm-panel dm-history"
         aria-label={`Historique complet avec ${other.displayName}`}
       >
@@ -1837,7 +1855,7 @@ export default function DirectMessagePanel({
     );
   return (
     <section
-      className="dm-panel"
+      data-business-pending={sendPending || Boolean(queuedSend) || model.pending} data-tutorial-anchor="dm-content" data-tutorial-fallback={(guidedView === "conversation" || guidedView === "history") && !guidedId ? "true" : undefined} data-tutorial-state={guidedLoading ? "loading" : undefined} className="dm-panel"
       aria-label={
         other ? `Conversation avec ${other.displayName}` : "Conversation privée"
       }

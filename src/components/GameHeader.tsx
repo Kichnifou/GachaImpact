@@ -1,3 +1,4 @@
+import { useTutorialPanel } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import type { NotificationDto, NotificationsDto } from '../api/types'
 import { resolveNotificationPresentation } from '../notifications/notification-presentation'
@@ -27,7 +28,9 @@ type GameHeaderProps = {
 
 const emptyNotifications: NotificationsDto = { unreadCount: 0, notifications: [] }
 function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const guidedNotifications = useTutorialPanel('notifications')
+  const [normalNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const isNotificationsOpen = normalNotificationsOpen || guidedNotifications
   const [archivingNotificationId, setArchivingNotificationId] = useState<string | null>(null)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
   const refreshNowRef = useRef<() => void>(() => undefined)
@@ -76,12 +79,12 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
     <button type="button" className="brand" onClick={onNavigateHome} aria-label="GachaImpact — accueil"><span className="brand-mark" aria-hidden="true">✦</span><span><strong>Gacha<span>Impact</span></strong><small>Chroniques astrales</small></span></button>
     <div className="header-actions">
       <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={avatarAssetPath} className="mobile-player-art" /><strong>{displayName}</strong></button>
-      <button type="button" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>
+      <button type="button" data-tutorial-anchor="menu-entry" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
       <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>
-      <div className="notification-anchor" ref={notificationAnchorRef}>
+      <div data-tutorial-anchor="notifications-entry" className="notification-anchor" ref={notificationAnchorRef}>
         <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); refreshNowRef.current() }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
-        {isNotificationsOpen && <section className="floating-panel notifications-panel" aria-label="Notifications">
+        {isNotificationsOpen && <section data-tutorial-anchor="notifications-panel" className="floating-panel notifications-panel" aria-label="Notifications">
           <div className="floating-panel-heading"><div><span className="eyebrow">Activité</span><h2>Notifications</h2></div>{notifications.unreadCount > 0 && <button type="button" className="text-action" onClick={() => void onReadAllNotifications()}>Tout marquer comme lu</button>}</div>
           <div className="notification-list">{notifications.notifications.length === 0 ? <p className="notification-empty">Aucune notification.</p> : notifications.notifications.map(notification => { const presentation = resolveNotificationPresentation(notification); const actionable = presentation.destination !== null; const interactive = actionable || notification.state === 'UNREAD'; const archiving = archivingNotificationId === notification.id; return <div className="notification-row" key={notification.id}><button type="button" className={`notification-item${notification.state === 'UNREAD' ? ' unread' : ''}${interactive ? ' actionable' : ''}`} data-actionable={actionable ? 'true' : 'false'} data-interactive={interactive ? 'true' : 'false'} onClick={() => void open(notification)}><span className="notification-symbol" aria-hidden="true">✦</span><span><strong>{presentation.title}</strong><p>{presentation.message}</p>{presentation.rewards && <span className="notification-rewards">{presentation.rewards.map((reward) => `+${reward.amount} ${reward.label}`).join(' · ')}</span>}<small>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}</small></span>{notification.state === 'UNREAD' && <span className="notification-dot" aria-label="Non lue" />}</button><AppButton variant="icon" className="notification-archive-button" aria-label="Supprimer la notification" aria-busy={archiving} disabled={archiving} onClick={() => void archive(notification.id)}>×</AppButton></div> })}</div>
           {notifications.notifications.some(item => item.state === 'READ') && <div className="floating-panel-footer"><button type="button" onClick={() => void onArchiveReadNotifications()}>Archiver les notifications lues</button></div>}

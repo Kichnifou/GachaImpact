@@ -1,3 +1,4 @@
+import { useTutorialView } from '../tutorial/tutorial-presentation'
 import PrivacySettingsPanel from './PrivacySettingsPanel'
 import AccountSettingsPanel from './AccountSettingsPanel'
 import type { SocialActions } from '../social/types'
@@ -9,7 +10,8 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage } from '../utils/formatters'
 
 function ConfigurationScreen({ preference, onSave, onReset, onRefreshPlayerState, socialActions, initialTab = 'menu' }: { socialActions?: SocialActions; initialTab?: 'menu' | 'privacy' | 'account'; preference: NavigationMenuPreferenceDto; onSave: (value: NavigationMenuPreferenceDto) => Promise<void>; onReset: () => Promise<void>; onRefreshPlayerState?: () => Promise<void> }) {
-  const [tab, setTab] = useState<'menu' | 'privacy' | 'account'>(initialTab)
+  const [normaltab, setTab] = useState<'menu' | 'privacy' | 'account'>(initialTab)
+  const tab = useTutorialView('configuration', normaltab, ['menu', 'privacy', 'account'])
   const [draft, setDraft] = useState(preference)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -29,7 +31,7 @@ function ConfigurationScreen({ preference, onSave, onReset, onRefreshPlayerState
   const move = (id: NavigationMenuDestinationId, delta: -1 | 1) => { const order = [...draft.order]; const index = order.indexOf(id); const target = index + delta; if (index < 0 || target < 0 || target >= order.length) return; [order[index], order[target]] = [order[target]!, order[index]!]; void persist({ ...draft, order }) }
   const toggle = (id: NavigationMenuDestinationId) => { if (id === 'configuration') return; const hidden = draft.hidden.includes(id) ? draft.hidden.filter((value) => value !== id) : [...draft.hidden, id]; void persist({ ...draft, hidden }) }
 
-  return <div className="screen-content configuration-screen long-screen-layout">
+  return <div data-tutorial-anchor="configuration-content" data-business-pending={pending} className="screen-content configuration-screen long-screen-layout">
     <ScreenHeader eyebrow="Préférences" title="Configuration" description="Personnalisez le Menu global. Ces choix suivent votre compte." />
     <nav className="configuration-tabs" aria-label="Sections Configuration"><button type="button" className={tab === 'menu' ? 'active' : ''} aria-current={tab === 'menu' ? 'page' : undefined} onClick={() => setTab('menu')}>Menu</button><button type="button" className={tab === 'privacy' ? 'active' : ''} aria-current={tab === 'privacy' ? 'page' : undefined} disabled={!socialActions} onClick={() => setTab('privacy')}>Confidentialité</button><button type="button" className={tab === 'account' ? 'active' : ''} aria-current={tab === 'account' ? 'page' : undefined} onClick={() => setTab('account')}>Compte</button><button type="button" disabled>Apparence</button></nav>
     {tab === 'account' ? <AccountSettingsPanel onRefreshPlayerState={onRefreshPlayerState} /> : tab === 'privacy' && socialActions ? <PrivacySettingsPanel actions={socialActions} /> : <ScrollableScreenPanel className="configuration-frame" bodyClassName="scroll-content-frame menu-scroll-frame" fixed={<header className="menu-configuration-heading"><div><h2>Menu</h2></div><button type="button" disabled={pending} onClick={() => { setPending(true); setError(null); void onReset().catch((reason) => setError(apiErrorMessage(reason))).finally(() => setPending(false)) }}>Réinitialiser</button></header>}>
