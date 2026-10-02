@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : premier candidat 25A + retouches UX A–E implémenté sur review ; étape 24 antérieure validée publiquement sur 268c687, nouveau candidat non public et non validé par Axel.
+Version : checkpoint de promotion dédié de 25A + retouches UX A–E approuvés ; état post-fast-forward main/review commun, déploiement technique à vérifier et validation publique Axel non acquise.
 Date : 2026-10-02
-Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **25A — prototype Tutoriel interactif candidat**, R1015–R1020, avec retouches A–E R1021/R1022 dans le même lot. Review indépendante et validation propriétaire du nouveau candidat à acquérir ; Help final différé. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **25A — prototype Tutoriel interactif approuvé et promu**, R1015–R1020, avec retouches A–E R1021/R1022. Review indépendante ChatGPT acquise ; vérification du déploiement et recette publique propriétaire à faire. Help final, autostart et extension du Tutoriel différés. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — candidat 25A + UX A–E du 02/10/2026
+## Point courant — checkpoint de promotion 25A + UX A–E du 02/10/2026
+
+**Approbation indépendante acquise :** review ChatGPT du vrai commit GitHub **a30e7e9b22cbc7305229c7d574e417f144f658fc**, parent exact **e941c9ade841ad3ca73f87c29566cf4b7f1a344e**, favorable ; aucun correctif code requis. Cette mission est le checkpoint de promotion dédié explicitement autorisé, sans nouvelle décision produit ni modification du code approuvé.
+
+**Gate initial exécuté :** fetch réussi, branche `review`, worktree propre ; HEAD = origin/review = **a30e7e9b22cbc7305229c7d574e417f144f658fc**, origin/main = **268c68750f5fcb939e6d17b94b18699eb262577b**, ahead 2 / behind 0. Chaîne stricte vérifiée : 268c687 → e941c9a → a30e7e9 ; aucun commit distant inattendu.
+
+**État post-fast-forward porté par ce checkpoint :** code 25A et retouches A–E approuvés, présents sur `main` après promotion stricte de toute la chaîne et de ce seul checkpoint documentaire. `origin/main == origin/review == HEAD du présent checkpoint de promotion`, divergence 0/0 ; SHA exact contrôlé après push et donné au rapport. Aucun merge commit, rebase, squash ou force-push ; retour local `review` propre.
+
+**Contrôles de cette mission :** diff exclusivement documentaire et code inchangé depuis a30e7e9 ; diff-check réussi. Prisma validate et migrate status en lecture seule réussis, 58 migrations à jour, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059. Les suites et inspections locales du candidat ci-dessous restent des preuves acquises, non relancées ici ; aucun test DB mutatif ni mutation publique.
+
+**Validation restant à acquérir :** la promotion Git ne prouve ni Railway, ni Cloudflare Pages, ni le healthcheck, ni la validation publique Axel. Ces contrôles n'ont pas été exécutés dans cette mission. Le smoke antérieur sur 268c687 conserve uniquement son périmètre ; Tutoriel 25A et A–E attendent leur recette publique. Help final, autostart et extension Tutoriel restent différés ; aucune nouvelle table/migration, aucune activation Twitch/Gift/Giveaway, Faveur QA conservée.
+
+**Prochaine action exacte :** vérification technique du déploiement par ChatGPT, puis recette publique propriétaire du Tutoriel 25A et des retouches A–E. **CHATGPT VÉRIFIE LE SHA PUBLIC, RAILWAY, CLOUDFLARE PAGES ET LE HEALTHCHECK, PUIS FOURNIT LA CHECKLIST « À TESTER EN PUBLIC ».** STOP après fast-forward contrôlé et rapport.
+
+## Historique — candidat 25A + UX A–E du 02/10/2026
 
 **Gate exécuté avant modification :** fetch réussi, branche `review`, worktree propre ; HEAD = origin/review = **e941c9ade841ad3ca73f87c29566cf4b7f1a344e**, parent exact et origin/main = **268c68750f5fcb939e6d17b94b18699eb262577b**, ahead 1 / behind 0. Aucun commit distant supplémentaire ni changement inattendu.
 

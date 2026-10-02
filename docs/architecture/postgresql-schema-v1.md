@@ -412,7 +412,7 @@ Usage initial :
 - ordre de tri
 - préférences d'affichage futures explicitement validées
 - préférence physique 0.80 `navigation_menu_v1` dans le JSONB existant : `{ version: 1, order: string[], hidden: string[] }`, isolée par la PK `(player_id, preference_key)` ; aucune nouvelle table ni colonne
-- usage physique **candidat 25A review, non public** `tutorial_v1` dans le même JSONB : version/status/stepId validés par le service dédié, [contrat Tutoriel](../specifications/tutorial-v1.md). Lookup et upsert bornés à la PK `(player_id, preference_key)` ; coexistence avec navigation_menu_v1 et isolation entre deux Players prouvées en schéma privé. Aucune migration, table ou colonne nouvelle ; la dernière migration demeure 058.
+- usage physique **25A approuvé ; état post-fast-forward : promu sur main, déploiement technique à vérifier et validation publique Axel non acquise** `tutorial_v1` dans le même JSONB : version/status/stepId validés par le service dédié, [contrat Tutoriel](../specifications/tutorial-v1.md). Lookup et upsert bornés à la PK `(player_id, preference_key)` ; coexistence avec navigation_menu_v1 et isolation entre deux Players prouvées en schéma privé. Aucune migration, table ou colonne nouvelle ; la dernière migration demeure 058.
 
 État physique 0.80 : la migration additive `011_reposition_daily_challenge` conserve la ligne `shop_item_definitions.external_key = 'daily-mission'`, la renomme player-facing `Défi` et impose `is_visible = false`, `is_enabled = false` tant que le service métier complet n’existe pas. La migration 010 reste immuable et aucun `ShopPurchase` ni aucune donnée Player ne sont créés.
 

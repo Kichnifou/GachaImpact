@@ -7,11 +7,11 @@ Statut : évolutif.
 - `VALIDÉ R1021 — demande propriétaire` : sidebar `Quotidiennes [position/total]` sur tracker.suggestions, index 1-based de la vraie sélection ; Home plage visible des cartes actionnables après masques, au plus trois, par exemple `[1–3/6]`. Aucun ratio de complétion ni inclusion des lignes secondaires ; sans suggestion, pas de `[0/0]`. Suppression des secondes lignes permanentes ; centre sidebar réparti dynamiquement selon l'espace disponible. Le titre Home reste gelé avec les cartes pendant claim/pending/feedback. [Contrat propriétaire A–C](home-daily-tracker-v1.md).
 - `VALIDÉ R1022 — demande propriétaire` : Quotidiennes Home desktop intrinsèques et aussi basses que possible ; BannerHero absorbe l'espace libre, splash compact plus imposant et cadré sans déformation ni perte de lisibilité. Mobile conserve le flux naturel ; Invocation normale et métier Gacha inchangés, aucun footer Invocation/Pull/Changer ajouté sur Home. [Contrat propriétaire D–E](home-daily-tracker-v1.md).
 
-Implémentation candidate groupée avec 25A sur review ; validation publique non acquise. R1015–R1020 conservent leurs décisions et ne sont pas recréées.
+Implémentation groupée avec 25A, approuvée indépendamment sur a30e7e9 ; état post-fast-forward : promue sur main, déploiement technique à vérifier et validation publique Axel non acquise. R1015–R1020 conservent leurs décisions et ne sont pas recréées.
 
 ## Prototype Tutoriel 25A — R1015–R1020 (2026-10-02)
 
-Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Cible initialement documentaire, désormais implémentée dans le candidat 25A review, non public et non validé par Axel.
+Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Cible initialement documentaire, désormais implémentée et approuvée indépendamment ; état post-fast-forward : promue sur main, déploiement technique à vérifier et validation publique Axel non acquise.
 
 - `VALIDÉ R1015` — Prototype manuel uniquement via Menu > Tutoriel ; activation future de la destination, aucun autostart ni bouton Tutoriel supplémentaire au header. Première arrivée à étudier après validation du prototype.
 - `VALIDÉ R1016` — Overlay assombrissant, une seule zone réelle montée en spotlight et courte bulle proche, sans copie d’interface. Intercepter toutes les interactions métier sous-jacentes, y compris sur la cible.

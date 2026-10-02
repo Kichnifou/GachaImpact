@@ -1,6 +1,6 @@
 # Tutoriel interactif V1 — source canonique
 
-Statut au checkpoint du 02/10/2026 : **25A implémentée et testée localement, candidate review uniquement, non publique et non validée par Axel**. Décisions [R1015–R1020](decisions-log.md) ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
+Statut au checkpoint du 02/10/2026 : **25A implémentée, testée localement et approuvée indépendamment ; état post-fast-forward : promue sur main, déploiement technique à vérifier et validation publique Axel non acquise**. Décisions [R1015–R1020](decisions-log.md) ; reprise globale et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Phase 25A — prototype manuel
 
@@ -37,7 +37,7 @@ Réutiliser le modèle physique `PlayerPreference`, **sans nouvelle table ni mig
 
 `IN_PROGRESS` conserve un identifiant connu de l’étape affichée ; `NOT_STARTED` et `COMPLETED` utilisent `stepId: null`. Enregistrer l’étape courante pour que Pause, reload, sortie puis reconnexion reprennent exactement cette étape, sans dépendre d’une écriture à la fermeture du navigateur.
 
-Le service/API Tutoriel candidat est dédié et authentifié : Player dérivé de la session, aucun PlayerId arbitraire client ni route JSON générique de préférences. Le serveur valide strictement version, statut et identifiants connus. Une valeur absente/invalide ou une étape disparue se lit comme `{ version: 1, status: "NOT_STARTED", stepId: null }`, sans écriture de réparation implicite. PUT refuse un stepId non nul pour NOT_STARTED/COMPLETED, un IN_PROGRESS sans étape connue et toute propriété supplémentaire.
+Le service/API Tutoriel est dédié et authentifié : Player dérivé de la session, aucun PlayerId arbitraire client ni route JSON générique de préférences. Le serveur valide strictement version, statut et identifiants connus. Une valeur absente/invalide ou une étape disparue se lit comme `{ version: 1, status: "NOT_STARTED", stepId: null }`, sans écriture de réparation implicite. PUT refuse un stepId non nul pour NOT_STARTED/COMPLETED, un IN_PROGRESS sans étape connue et toute propriété supplémentaire.
 
 | État enregistré | `Menu > Tutoriel` |
 | --- | --- |
@@ -76,7 +76,7 @@ Une mission ultérieure pourra étendre la séquence et les domaines, décider p
 
 **Help textuel/commandes, Tutoriel interactif et Aide/Guide standalone sont des présentations distinctes.** Les décisions R728–R731 de l’[audit Help](../legacy/23-help-command-coherence-audit.md) restent acquises. Le Help final de l’étape 25 est différé après validation du prototype ; il n’est pas implémenté par 25A.
 
-## État physique candidat 25A
+## État physique 25A approuvé et promu sur main
 
 Le registre `src/navigation/navigation.ts` contient `tutorial`, `screen: null`, `available: true` et une action dédiée ; GlobalMenu la déclenche sans ScreenId ni route écran. Toujours ordonnable/masquable par Configuration > Menu, disponible avant/après complétion. Aucun bouton Tutoriel au header.
 
