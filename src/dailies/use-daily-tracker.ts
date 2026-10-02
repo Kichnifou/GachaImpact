@@ -10,7 +10,7 @@ export function dailyTrackerEnvironment() {
 export function readDailyMasks(key: string): DailyId[] {
   try {
     const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]')
-    return Array.isArray(value) ? dailyIds.filter(id => value.includes(id)) : []
+    return Array.isArray(value) ? [...new Set(value.filter((id): id is DailyId => dailyIds.includes(id)))] : []
   } catch { return [] }
 }
 
@@ -33,6 +33,12 @@ export function useDailyTracker(items: readonly DailyItem[], playerId: string, d
     setSelection({ key, id: suggestions[(index + direction + suggestions.length) % suggestions.length]!.id })
   }
   const hide = (id: DailyId) => { if (day && !hidden.includes(id)) save([...hidden, id]) }
-  return { selected, suggestions, hidden, message: dailySummaryMessage(items, hidden), move, hide, restore: () => save([]), canHide: Boolean(day) }
+  const restoreLast = () => {
+    const id = hidden.at(-1)
+    if (!id) return
+    save(hidden.slice(0, -1))
+    setSelection({ key, id })
+  }
+  return { selected, suggestions, hidden, message: dailySummaryMessage(items, hidden), move, hide, restoreLast, restoreAll: () => save([]), canHide: Boolean(day) }
 }
 export type DailyTracker = ReturnType<typeof useDailyTracker>

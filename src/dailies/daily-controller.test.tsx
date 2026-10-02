@@ -20,12 +20,12 @@ let root: Root, container: HTMLDivElement
 const opening = vi.fn(), overview = vi.fn()
 const reward = dailySources().reward!
 const claimed: DailyRewardClaimDto = { ...reward, alreadyClaimed: false }
-type HarnessProps = { items?: readonly DailyItem[]; player?: string; date?: string; claim?: () => Promise<DailyRewardClaimDto> }
+type HarnessProps = { items?: readonly DailyItem[]; player?: string; date?: string; claim?: () => Promise<DailyRewardClaimDto>; refreshing?: boolean }
 let control: ReturnType<typeof useDailyTracker>, claimControl: ReturnType<typeof useDailyClaim>
-function Harness({ items = projectDailies(dailySources()), player = 'player-A', date = day, claim = async () => claimed }: HarnessProps) {
+function Harness({ items = projectDailies(dailySources()), player = 'player-A', date = day, claim = async () => claimed, refreshing = false }: HarnessProps) {
   const tracker = useDailyTracker(items, player, date, 'test'), controller = useDailyClaim(claim, player)
   useEffect(() => { control = tracker; claimControl = controller })
-  const props = { items, tracker, claim: controller, onOpen: opening, onOverview: overview }
+  const props = { items, tracker, claim: controller, onOpen: opening, onOverview: overview, refreshing }
   return <><DailyTrackerCard {...props} /><HomeDailySummary {...props} /><DailyRewardCard variant="overview" today={reward} elementKey="electro" onClaim={controller.run} controller={controller} summary={items.find(item => item.id === 'reward')} /></>
 }
 beforeEach(() => { localStorage.clear(); opening.mockClear(); overview.mockClear(); container = document.createElement('div'); document.body.append(container); root = createRoot(container); vi.useFakeTimers() })
@@ -55,7 +55,7 @@ describe('Shared daily consultation and claim', () => {
     await render({ player: 'player-B' }); expect(control.hidden).toEqual([])
     await render({ player: 'player-A' }); expect(control.hidden).toEqual(['reward', 'wheel'])
     await render({ date: '2026-10-03' }); expect(control.hidden).toEqual([])
-    await render(); await act(async () => control.restore()); expect(control.hidden).toEqual([])
+    await render(); await act(async () => control.restoreAll()); expect(control.hidden).toEqual([])
     expect(readDailyMasks(dailyMaskKey('other-env', 'player-A', day))).toEqual([])
   })
   it('continues in memory when localStorage is blocked and does not hide before a server date', async () => {
@@ -102,7 +102,7 @@ describe('Shared daily consultation and claim', () => {
     const homeCards = () => Array.from(container.querySelectorAll('.home-daily-suggestion')).map(card => card.getAttribute('data-daily-id'))
     expect(homeCards()).toEqual(['reward', 'wheel', 'challenge'])
     await act(async () => resolve(claimed))
-    expect(container.querySelector('.daily-tracker-feedback')?.textContent).toBe('Récompense récupérée.')
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Récompense récupérée.')
     expect(homeCards()).toEqual(['reward', 'wheel', 'challenge'])
     await act(async () => { await claimControl.run() }); expect(claim).toHaveBeenCalledOnce()
     await act(async () => vi.advanceTimersByTime(901))
@@ -114,8 +114,8 @@ describe('Shared daily consultation and claim', () => {
     await render({ claim: async () => { throw new Error('Réseau indisponible') } })
     await click('.daily-tracker-primary button')
     expect(control.selected?.id).toBe('reward'); expect(claimControl.pending).toBe(false)
-    expect(container.querySelector('.daily-tracker-feedback')?.textContent).toBe('Une erreur inattendue est survenue.')
-    expect(container.querySelector('.daily-tracker-status')).toBeNull()
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Une erreur inattendue est survenue.')
+    expect(container.querySelectorAll('.daily-tracker-status')).toHaveLength(1)
   })
   it('keeps completion, waiting, hidden and unknown empty states honest, with explicit Overview access', async () => {
     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false }))
@@ -126,7 +126,7 @@ describe('Shared daily consultation and claim', () => {
     for (const id of dailyIds) await act(async () => control.hide(id))
     expect(control.message).toBe('Aucune activité affichée')
     expect(container.querySelector('.daily-tracker-restore button')).not.toBeNull()
-    await act(async () => control.restore()); await render({ items: projectDailies({}) })
+    await act(async () => control.restoreAll()); await render({ items: projectDailies({}) })
     expect(control.message).toBe('État du jour incomplet')
   })
   it.each([0, 1, 3])('limits Home to %s suggestions with a compact banner and no redundant shortcuts', async count => {
@@ -167,7 +167,7 @@ describe('Home daily actions and ongoing information', () => {
     expect(cards()).toEqual(['reward']); expect(ongoing()).toEqual([])
     expect(home().textContent).not.toContain('Expédition')
     expect(home().querySelector('footer button')?.textContent).toContain('Réafficher')
-    await act(async () => control.restore()); expect(ongoing()).toEqual(['expedition'])
+    await act(async () => control.restoreAll()); expect(ongoing()).toEqual(['expedition'])
   })
   it('retains exactly three real actions while RUNNING Expedition appears only in En cours', async () => {
     await render({ items: homeItems(['reward', 'wheel', 'challenge', 'combat'], { expedition: 'in_progress' }) })
@@ -201,6 +201,56 @@ describe('Home daily actions and ongoing information', () => {
 })
 
 describe('Compact daily presentation', () => {
+  it('keeps revalidation silent and suppresses sidebar details without losing Home details', async () => {
+    const items = projectDailies(dailySources()).map(item => item.id === 'reward' ? { ...item, detail: 'Objectif révélé après achat.' } : item)
+    await render({ items, refreshing: true })
+    const tracker = container.querySelector('.daily-tracker')!, home = container.querySelector('.home-daily-summary')!
+    expect(tracker.getAttribute('aria-busy')).toBe('true'); expect(home.getAttribute('aria-busy')).toBe('true')
+    expect(tracker.textContent).not.toContain('Actualisation…'); expect(home.textContent).not.toContain('Actualisation…')
+    expect(tracker.textContent).not.toContain('Objectif révélé après achat.')
+    expect(home.textContent).toContain('Objectif révélé après achat.')
+    expect(tracker.querySelector('.daily-tracker-feedback')).toBeNull()
+    expect(tracker.querySelector('.daily-tracker-status')).toBeNull()
+  })
+  it('undoes masks in persisted LIFO order after reload and focuses the restored title', async () => {
+    await render()
+    for (const id of ['combat', 'wheel', 'challenge'] as const) await act(async () => control.hide(id))
+    expect(readDailyMasks(dailyMaskKey('test', 'player-A', day))).toEqual(['combat', 'wheel', 'challenge'])
+    await act(async () => root.render(null)); await render()
+    for (const [id, title, remaining] of [['challenge', 'Défi', ['combat', 'wheel']], ['wheel', 'Roue', ['combat']], ['combat', 'Combat', []]] as const) {
+      expect(container.querySelector('.daily-tracker-restore button')?.getAttribute('aria-label')).toBe(`Réafficher ${title}`)
+      await click('.daily-tracker-restore button')
+      expect(control.selected?.id).toBe(id); expect(control.hidden).toEqual(remaining)
+      expect(readDailyMasks(dailyMaskKey('test', 'player-A', day))).toEqual(remaining)
+      expect(document.activeElement).toBe(container.querySelector('.daily-tracker h3'))
+    }
+    expect(container.querySelector<HTMLButtonElement>('.daily-tracker-restore button')!.disabled).toBe(true)
+  })
+  it('restores every mask through the plural Home action and filters invalid stored IDs without sorting', async () => {
+    localStorage.setItem(dailyMaskKey('test', 'player-A', day), '["wheel","bad",null,"challenge","wheel"]')
+    await render(); expect(control.hidden).toEqual(['wheel', 'challenge'])
+    await click('.home-daily-summary footer button'); expect(control.hidden).toEqual([])
+    expect(container.querySelector('.home-daily-suggestion[data-daily-id="wheel"]')).not.toBeNull()
+    expect(container.querySelector('.home-daily-suggestion[data-daily-id="challenge"]')).not.toBeNull()
+  })
+  it('presents the real RUNNING expedition in one compact status on both surfaces', async () => {
+    const items = projectDailies(dailySources()).map(item => ({ ...item, state: item.id === 'expedition' ? 'in_progress' : 'completed', actionable: false, status: item.id === 'expedition' ? 'En cours' : item.status, detail: item.id === 'expedition' ? 'Skirk · 14:29:56' : undefined } as DailyItem))
+    await render({ items })
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Skirk · 14:29:56')
+    expect(container.querySelector('.home-daily-ongoing li')?.textContent).toBe('Expédition · Skirk · 14:29:56')
+    expect(container.querySelector('.daily-tracker')?.textContent).not.toContain('En cours')
+    expect(container.querySelectorAll('.daily-tracker-status')).toHaveLength(1)
+  })
+  it('replaces status with pending, success or error without a separate feedback row', async () => {
+    let resolve!: (value: DailyRewardClaimDto) => void
+    await render({ claim: () => new Promise(done => { resolve = done }) })
+    await click('.daily-tracker-primary button')
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Récupération…')
+    await act(async () => resolve(claimed))
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Récompense récupérée.')
+    expect(container.querySelectorAll('.daily-tracker-status')).toHaveLength(1)
+    expect(container.querySelector('.daily-tracker-feedback')).toBeNull()
+  })
   it('removes the icon, generic status and fallback, with a reserved restore control in the header', async () => {
     const items = projectDailies(dailySources()).map(item => ({ ...item, detail: undefined }))
     await render({ items })
@@ -209,10 +259,10 @@ describe('Compact daily presentation', () => {
     expect(tracker.querySelector('.daily-tracker-status')).toBeNull()
     expect(tracker.querySelector('.daily-tracker-detail')).toBeNull()
     expect(tracker.textContent).not.toContain('Consultez le détail de cette activité')
-    const restore = tracker.querySelector<HTMLButtonElement>('header [aria-label="Réafficher les activités masquées"]')!
+    const restore = tracker.querySelector<HTMLButtonElement>('header .daily-tracker-restore button')!
     expect(restore).not.toBeNull(); expect(restore.disabled).toBe(true)
     await click('.daily-tracker-hide')
-    expect(tracker.querySelector('header [aria-label="Réafficher les activités masquées"]')).toBe(restore)
+    expect(tracker.querySelector('header .daily-tracker-restore button')).toBe(restore)
     expect(restore.disabled).toBe(false)
     await act(async () => restore.click())
     expect(control.hidden).toEqual([])
@@ -250,10 +300,10 @@ describe('Compact daily presentation', () => {
     const line = home.querySelector('.home-daily-ongoing [data-daily-id="expedition"]')
     if (state === 'unknown' || state === 'error') expect(line).toBeNull()
     else {
-      expect(line?.textContent).toContain(state === 'completed' ? 'Terminé' : items.find(item => item.id === 'expedition')!.status)
+      if (state !== 'in_progress') expect(line?.textContent).toContain(state === 'completed' ? 'Terminé' : items.find(item => item.id === 'expedition')!.status)
       expect(line?.textContent).toContain('Skirk · 16:22:19')
       await act(async () => control.hide('expedition')); expect(home.textContent).not.toContain('Expédition')
-      await act(async () => control.restore()); expect(home.querySelector('[data-daily-id="expedition"]')).not.toBeNull()
+      await act(async () => control.restoreAll()); expect(home.querySelector('[data-daily-id="expedition"]')).not.toBeNull()
     }
   })
 })

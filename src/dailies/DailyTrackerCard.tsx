@@ -3,6 +3,7 @@ import AppButton from '../components/AppButton'
 import type { DailyItem } from './daily-summary'
 import type { DailyTracker } from './use-daily-tracker'
 import type { DailyClaimController } from './use-daily-claim'
+import { dailyTrackerStatus } from './daily-compact-presentation'
 import './dailies.css'
 
 export type DailyCompactProps = { items: readonly DailyItem[]; tracker: DailyTracker; claim: DailyClaimController; onOpen: (item: DailyItem) => void; onOverview: () => void; refreshing?: boolean }
@@ -12,26 +13,26 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
   if (!claim.locked && previous !== tracker.selected) setPrevious(tracker.selected)
   const selected = claim.locked ? previous : tracker.selected
   const heading = useRef<HTMLHeadingElement>(null)
+  const activityHeading = useRef<HTMLHeadingElement>(null)
   const hide = () => { if (!selected || claim.locked) return; tracker.hide(selected.id); heading.current?.focus() }
-  const restore = () => { tracker.restore(); heading.current?.focus() }
+  const restore = () => { tracker.restoreLast(); activityHeading.current?.focus() }
   const isClaim = selected?.id === 'reward' && selected.actionable
   const run = () => {
     if (!selected || claim.locked) return
     if (isClaim) void claim.run().catch(() => undefined)
     else onOpen(selected)
   }
-  const currentMessage = claim.feedback || claim.error || (refreshing ? 'Actualisation…' : '')
+  const currentMessage = claim.pending ? 'Récupération…' : claim.error || claim.feedback
   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id))?.deadline
-  return <section className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending}>
+  const status = currentMessage || (selected ? dailyTrackerStatus(selected) : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
+  const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
+  return <section className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
     <header className="daily-tracker-heading"><div><h2 ref={heading} tabIndex={-1}>Quotidiennes</h2><small>{tracker.message}</small></div>
       <AppButton variant="icon" className="daily-tracker-hide" disabled={!selected || !tracker.canHide || claim.locked} aria-label={selected ? `Masquer ${selected.title} pour aujourd’hui` : 'Masquer une activité'} onClick={hide}>×</AppButton>
-      <div className="daily-tracker-restore"><button type="button" disabled={!tracker.hidden.length || claim.locked} style={{ visibility: tracker.hidden.length ? 'visible' : 'hidden' }} onClick={restore} aria-label="Réafficher les activités masquées">↺</button></div></header>
+      <div className="daily-tracker-restore"><button type="button" disabled={!tracker.hidden.length || claim.locked} style={{ visibility: tracker.hidden.length ? 'visible' : 'hidden' }} onClick={restore} aria-label={lastHidden ? `Réafficher ${lastHidden.title}` : 'Réafficher la dernière activité masquée'}>↺</button></div></header>
     <div className="daily-tracker-content">
-      {selected ? <><h3>{selected.title}</h3>{selected.status !== 'Disponible.' && <p className={`daily-tracker-status ${selected.state}`}>{selected.status}</p>}
-        {selected.detail && <p className="daily-tracker-detail">{selected.detail}</p>}</>
-        : <><h3>{tracker.message}</h3>
-          <p className="daily-tracker-detail">{nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : 'L’Aperçu conserve toutes les activités du jour.'}</p></>}
-      <p className={`daily-tracker-feedback${claim.error ? ' error' : ''}`} aria-live="polite">{currentMessage}</p>
+      <h3 ref={activityHeading} tabIndex={-1}>{selected?.title ?? tracker.message}</h3>
+      {status && <p className={`daily-tracker-status ${claim.error ? 'error' : selected?.state ?? ''}`} aria-live="polite">{status}</p>}
       <div className="daily-tracker-primary">{selected?.destination && <AppButton disabled={claim.locked || selected.state === 'unknown' || selected.state === 'error'} onClick={run}>{claim.pending && isClaim ? 'Récupération…' : isClaim ? 'Récupérer' : 'Accéder'}</AppButton>}</div>
     </div>
     <footer className="daily-tracker-footer">

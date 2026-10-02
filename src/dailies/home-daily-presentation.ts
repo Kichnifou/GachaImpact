@@ -1,4 +1,5 @@
 import { dailyOngoingItems, type DailyId, type DailyItem } from './daily-summary'
+import { compactExpeditionDetail } from './daily-compact-presentation'
 
 /** Home-only presentation: prioritize the non-actionable Expedition, including a confirmed completion. */
 export function homeDailySecondaryItems(items: readonly DailyItem[], hidden: readonly DailyId[], actionIds: readonly DailyId[]) {
@@ -9,8 +10,7 @@ export function homeDailySecondaryItems(items: readonly DailyItem[], hidden: rea
 }
 
 export function homeDailySecondaryText(item: DailyItem) {
-  const status = item.state === 'completed' ? 'Terminé' : item.status
-  // The projection's generic placeholder is not a character identity.
-  const detail = item.id === 'expedition' ? item.detail?.replace(/^Personnage · /, '') : item.detail
+  const status = item.id === 'expedition' && item.state === 'in_progress' ? '' : item.state === 'completed' ? 'Terminé' : item.status
+  const detail = item.id === 'expedition' ? compactExpeditionDetail(item) : item.detail
   return [item.title, status, detail].filter(Boolean).join(' · ')
 }
