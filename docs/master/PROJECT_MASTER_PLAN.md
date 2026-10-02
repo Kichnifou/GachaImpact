@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : métier étape 24 validé publiquement sur e848ea6 ; dernier micro-polish UX candidat review R1011–R1014 ; Twitch générique en pause R942.
+Version : métier étape 24 validé publiquement sur e848ea6 ; dernier micro-polish UX approuvé indépendamment, checkpoint de promotion technique R1011–R1014 ; Twitch générique en pause R942.
 Date : 2026-10-02
-Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans leur périmètre documenté**, derniers micro-ajustements Administration/Journal/Arcade également validés au premier smoke sur **51e0710087a7b807cea5557f5e9db4edd2315892**. **24 : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition validés publiquement dans ce premier smoke**. Le smoke propriétaire sur **e848ea6** valide le fonctionnement métier étape 24, le tracker/masquage/reload, les cartes Accueil, BannerHero compact, claim/navigation, séparation Expédition et 2560×1440. **Quatre derniers ajustements UX restent candidats review**, dont la séparation action/navigation à 1920×1080 ; étape 25 non ouverte. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans leur périmètre documenté**, derniers micro-ajustements Administration/Journal/Arcade également validés au premier smoke sur **51e0710087a7b807cea5557f5e9db4edd2315892**. **24 : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition validés publiquement dans ce premier smoke**. Le smoke propriétaire sur **e848ea6** valide le fonctionnement métier étape 24, le tracker/masquage/reload, les cartes Accueil, BannerHero compact, claim/navigation, séparation Expédition et 2560×1440. **Dernier micro-polish UX approuvé en review indépendante sur b35f988**, R1014 acquise techniquement ; checkpoint de promotion strictement autorisé, **dernier smoke propriétaire encore à faire**, étape 25 non ouverte. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — dernier micro-polish UX étape 24 du 02/10/2026
+## Point courant — promotion du dernier micro-polish étape 24 du 02/10/2026
+
+**Approbation indépendante ChatGPT transmise par le propriétaire :** acquise sur **b35f98819e9402f8f8fe3b333ceab30e1807db38**, parent exact **e848ea6f0eaaab021b6baba2400d1ddea84c565b**. R1014 approuvée techniquement ; dernier micro-polish prêt à la promotion dédiée explicitement autorisée. Aucun correctif code supplémentaire ni nouvelle décision produit.
+
+**Gate initial exécuté :** fetch, review propre ; HEAD = origin/review = b35f988, origin/main = e848ea6, ahead 1 / behind 0, aucun commit inconnu. Avant promotion, registre public en lecture seule reconfirmé : **58 migrations terminées, 0 inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059**. Prisma migrate status : code 0, 58 migrations à jour. Aucun code/backend/migration ajouté après le candidat ; un seul checkpoint documentaire sur review.
+
+**État post-fast-forward visé par ce checkpoint :** chaîne stricte e848ea6 → b35f988 → ce checkpoint docs-only sur main/review, divergence 0/0, retour local review propre. Les contrôles du SHA final Railway, du registre Supabase et du bundle public suivent le push main ; aucun résultat de déploiement n'est anticipé ici. Les suites et 60 inspections du candidat ci-dessous restent des preuves antérieures, non relancées dans cette mission documentaire.
+
+**Prochaine étape après vérifications techniques :** dernier smoke propriétaire Sidebar / Accueil / Aperçu, notamment densité à 1920×1080, ↺ après reload, Expédition compacte et allocation Bannières/Quotidiennes. Le métier étape 24 et les validations 22/23 restent acquis dans leur périmètre ; la finition nouvellement promue attend cette recette. Zéro gameplay, masque réel, mutation publique ou action Twitch par Codex. **STOP ; étape 25 non commencée.**
+
+## Historique — dernier micro-polish UX étape 24 du 02/10/2026
 
 **Gate initial exécuté :** fetch réussi, branche locale review et worktree propres ; HEAD = origin/main = origin/review = **e848ea6f0eaaab021b6baba2400d1ddea84c565b**, divergence 0/0, aucun commit inconnu. Ce checkpoint public a reçu le dernier smoke propriétaire ; le métier de l'étape 24 est validé. Le défaut restant signalé à 1920×1080 équipe 4/4 est le chevauchement action/navigation, accompagné de demandes de densité et d'allocation verticale.
 

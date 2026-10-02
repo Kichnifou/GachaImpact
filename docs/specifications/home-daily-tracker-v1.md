@@ -1,8 +1,16 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
-Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité a été approuvé sur 865c303 puis promu dans **e848ea6**. Le dernier smoke propriétaire valide le métier étape 24, les cartes Accueil, BannerHero compact, claim/navigation, tracker/masques/reload, séparation Expédition et 2560×1440. Quatre derniers ajustements UX restent candidats review, dont le défaut action/navigation signalé à 1920×1080. Aucun changement des neuf activités ni nouvelle récompense.
+Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité a été approuvé sur 865c303 puis promu dans **e848ea6**. Le dernier smoke propriétaire valide le métier étape 24, les cartes Accueil, BannerHero compact, claim/navigation, tracker/masques/reload, séparation Expédition et 2560×1440. Les quatre derniers ajustements UX de **b35f988** sont **approuvés en review indépendante ChatGPT**, R1014 acquise techniquement ; checkpoint de promotion dédié, **dernier smoke propriétaire encore à faire**. Aucun changement des neuf activités ni nouvelle récompense.
 
-## Dernier micro-polish UX candidat — 02/10/2026
+## Approbation et checkpoint de promotion du dernier micro-polish — 02/10/2026
+
+Approbation indépendante ChatGPT acquise sur **`b35f98819e9402f8f8fe3b333ceab30e1807db38`**, parent exact **`e848ea6f0eaaab021b6baba2400d1ddea84c565b`**. R1014 approuvée techniquement, présentation R1011–R1013 précisée ; aucun correctif code ni nouvelle décision demandé. Un seul checkpoint docs-only sur review, puis fast-forward strict de toute la chaîne autorisée vers main. État post-fast-forward visé : main/review égales, divergence 0/0, retour review propre ; aucun déploiement réussi anticipé.
+
+Avant promotion, registre PostgreSQL public en lecture seule : **58 terminées, 0 inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059**. Prisma migrate status : code 0, 58 migrations à jour. Aucun code/migration après b35f988 ; grandes suites et inspection du candidat ci-dessous non relancées pour cette mission. Les contrôles Railway/Supabase/bundle public sont dédiés au SHA final après push main.
+
+Prochaine étape après ces vérifications techniques : **dernier smoke propriétaire Sidebar / Accueil / Aperçu**. Métier étape 24 et étapes 22/23 validés dans leurs périmètres acquis ; finition de b35f988 encore à recetter publiquement. Aucun gameplay, masque réel, claim, mutation publique ou action Twitch par Codex. **STOP ; étape 25 non commencée.**
+
+## Historique — dernier micro-polish UX candidat — 02/10/2026
 
 Base vérifiée par fetch : HEAD/origin/review/origin/main = **e848ea6f0eaaab021b6baba2400d1ddea84c565b**, divergence 0/0, branche review propre, aucun commit inconnu. Un seul commit de micro-polish au-dessus de cette base, review uniquement. Métier publiquement validé ; contrôle technique local du nouveau candidat distinct de sa future recette publique. Prochaine étape : **review indépendante ChatGPT du commit poussé, sans promotion main** ; STOP, étape 25 non commencée.
 

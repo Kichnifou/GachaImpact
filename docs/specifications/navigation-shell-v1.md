@@ -1,6 +1,8 @@
 # Navigation et shell V1
 
-## Accueil et suivi Quotidiennes — étape 24, métier validé et dernier micro-polish candidat review
+## Accueil et suivi Quotidiennes — étape 24, métier validé et dernier micro-polish approuvé, checkpoint de promotion technique
+
+Review indépendante ChatGPT acquise sur `b35f98819e9402f8f8fe3b333ceab30e1807db38`, R1014 approuvée techniquement. Ce checkpoint documentaire accompagne la promotion strictement autorisée ; la prochaine étape reste le dernier smoke propriétaire, après contrôles du déploiement exact. Aucun correctif code ni nouvelle décision, validations 22/23 conservées ; étape 25 non commencée.
 
 Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar conserve sa carte basse avec contrôles indépendants, annulation du dernier masque (restoreLast/LIFO) réservée dans l'en-tête, sélection/focus du titre restauré et navigation au bas ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil desktop présente BannerHero flexible sans footer Invocation au-dessus des Quotidiennes intrinsèques ancrées en bas : au plus trois cartes entièrement cliquables et deux lignes secondaires, sans headings supplémentaires. Ses cinq anciens raccourcis sont supprimés ; leurs destinations restent dans la navigation globale. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques. [R1011–R1014](decisions-log.md) précisent la présentation et la restauration locale ; l'action plurielle Accueil réaffiche toujours toutes les activités via restoreAll. Tracker titre/état/action sans détail secondaire ni refresh visuel, feedback claim dans la même zone d'état ; Expédition RUNNING compacte sans « En cours ». Les données, priorités et destinations restent celles du contrat. Le dernier smoke propriétaire sur e848ea6 valide le métier ; le candidat corrige notamment l'overlap action/navigation signalé à 1920×1080.
 
