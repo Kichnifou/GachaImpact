@@ -129,6 +129,16 @@ export function dailySuggestions(items: readonly DailyItem[], hidden: readonly D
     ...visible.filter(item => item.state === 'unknown' || item.state === 'error')]
 }
 
+/** Home action cards retain the tracker's priority, but never advertise waiting or failed reads as actions. */
+export function dailyActionableSuggestions(items: readonly DailyItem[], hidden: readonly DailyId[] = []) {
+  return dailySuggestions(items, hidden).filter(item => item.actionable && item.state !== 'unknown' && item.state !== 'error')
+}
+
+/** Compact progress information shares the masks and stays separate from the confirmed action cards. */
+export function dailyOngoingItems(items: readonly DailyItem[], hidden: readonly DailyId[] = [], actionIds: readonly DailyId[] = []) {
+  return items.filter(item => !hidden.includes(item.id) && !actionIds.includes(item.id) && (item.state === 'in_progress' || item.state === 'waiting'))
+}
+
 export function dailySummaryMessage(items: readonly DailyItem[], hidden: readonly DailyId[] = []) {
   const visible = items.filter(item => !hidden.includes(item.id))
   const available = visible.filter(item => item.actionable).length

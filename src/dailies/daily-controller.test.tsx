@@ -99,11 +99,15 @@ describe('Shared daily consultation and claim', () => {
     const after = projectDailies({ ...dailySources(), reward: { ...reward, claimed: true } })
     await render({ claim, items: after })
     expect(container.querySelector('.daily-tracker h3')?.textContent).toBe('Récompense quotidienne')
+    const homeCards = () => Array.from(container.querySelectorAll('.home-daily-suggestion')).map(card => card.getAttribute('data-daily-id'))
+    expect(homeCards()).toEqual(['reward', 'wheel', 'challenge'])
     await act(async () => resolve(claimed))
     expect(container.querySelector('.daily-tracker-feedback')?.textContent).toBe('Récompense récupérée.')
+    expect(homeCards()).toEqual(['reward', 'wheel', 'challenge'])
     await act(async () => { await claimControl.run() }); expect(claim).toHaveBeenCalledOnce()
     await act(async () => vi.advanceTimersByTime(901))
     expect(container.querySelector('.daily-tracker h3')?.textContent).toBe('Roue')
+    expect(homeCards()).toEqual(['wheel', 'challenge', 'combat'])
     expect(opening).not.toHaveBeenCalled()
   })
   it('keeps a failed claim on the same activity, exposes the error, and never fabricates completion', async () => {
@@ -139,6 +143,59 @@ describe('Shared daily consultation and claim', () => {
     for (const selector of ['.shortcut-card.violet', '.shortcut-card.cyan', '.shortcut-card.gold', '.shortcut-card.blue', '.shortcut-card.pink']) await click(selector)
     expect(opening.mock.calls.map(call => call[0])).toEqual(['characters-box', 'characters-catalog', 'characters-team', 'inventory', 'shop'])
     expect(container.querySelector('[data-daily-id="arcade"]')).toBeNull()
+  })
+})
+
+describe('Home daily actions and ongoing information', () => {
+  const homeItems = (actions: readonly string[], ongoing: Partial<Record<DailyItem['id'], 'waiting' | 'in_progress'>> = {}) => projectDailies(dailySources()).map(item => ({
+    ...item, state: ongoing[item.id] ?? (actions.includes(item.id) ? 'available' : 'completed'), actionable: actions.includes(item.id),
+  } as DailyItem))
+  const home = () => container.querySelector('.home-daily-summary')!
+  const cards = () => Array.from(home().querySelectorAll('.home-daily-suggestion')).map(card => card.getAttribute('data-daily-id'))
+  const ongoing = () => Array.from(home().querySelectorAll('.home-daily-ongoing [data-daily-id]')).map(row => row.getAttribute('data-daily-id'))
+  it.each([0, 1, 2])('keeps RUNNING Expedition out of %s action cards and shows it once in En cours', async count => {
+    await render({ items: homeItems(['reward', 'wheel'].slice(0, count), { expedition: 'in_progress' }) })
+    expect(cards()).toHaveLength(count); expect(cards()).not.toContain('expedition')
+    expect(ongoing()).toEqual(['expedition'])
+    expect(home().textContent?.match(/Expédition/g)).toHaveLength(1)
+    if (!count) expect(home().textContent).toContain('Rien à faire pour le moment')
+  })
+  it('applies the shared Expedition mask to both compact Home areas and retains restoration', async () => {
+    await render({ items: homeItems(['reward'], { expedition: 'in_progress' }) })
+    await act(async () => control.hide('expedition'))
+    expect(cards()).toEqual(['reward']); expect(ongoing()).toEqual([])
+    expect(home().textContent).not.toContain('Expédition')
+    expect(home().querySelector('footer button')?.textContent).toContain('Réafficher')
+    await act(async () => control.restore()); expect(ongoing()).toEqual(['expedition'])
+  })
+  it('retains exactly three real actions while RUNNING Expedition appears only in En cours', async () => {
+    await render({ items: homeItems(['reward', 'wheel', 'challenge', 'combat'], { expedition: 'in_progress' }) })
+    expect(cards()).toEqual(['reward', 'wheel', 'challenge']); expect(ongoing()).toEqual(['expedition'])
+  })
+  it('shows WAITING Event only in En cours, and keeps unknown/error out of action cards', async () => {
+    const items = homeItems([], { event: 'waiting' }).map(item => item.id === 'reward' ? { ...item, state: 'unknown' as const } : item.id === 'wheel' ? { ...item, state: 'error' as const } : item)
+    await render({ items })
+    expect(cards()).toEqual([]); expect(ongoing()).toEqual(['event'])
+    expect(home().textContent).toContain('État du jour incomplet')
+  })
+  it('prioritizes READY Expedition as an action after reward, without an ongoing duplicate', async () => {
+    const items = homeItems(['reward', 'wheel', 'challenge', 'expedition']).map(item => item.id === 'expedition' ? { ...item, status: 'À récupérer' } : item)
+    await render({ items })
+    expect(cards()).toEqual(['reward', 'expedition', 'wheel']); expect(ongoing()).toEqual([])
+  })
+  it('retains the existing empty state when there is no action or ongoing activity', async () => {
+    await render({ items: homeItems([]) })
+    expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
+    expect(home().querySelector('.home-daily-empty')?.textContent).toBe('Tout est bon, tu es à jour. L’Aperçu reste disponible pour consulter les détails.')
+  })
+  it('limits ongoing information to two unmasked activities and keeps an actionable progress item in actions only', async () => {
+    const items = homeItems(['challenge'], { favor: 'waiting', challenge: 'in_progress', expedition: 'in_progress', event: 'waiting' })
+    await render({ items })
+    expect(cards()).toEqual(['challenge']); expect(ongoing()).toEqual(['favor', 'expedition'])
+    await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition', 'event'])
+    for (const id of ['expedition', 'event', 'challenge'] as const) await act(async () => control.hide(id))
+    expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
+    expect(home().textContent).toContain('Aucune activité affichée')
   })
 })
 

@@ -20,9 +20,11 @@ Une source absente, d'une autre journée ou en erreur reste inconnue/incomplète
 
 ## Trois surfaces
 
-L'Aperçu conserve ses neuf cartes dans l'ordre ci-dessus et ses actions spécialisées. Accueil conserve BannerHero compact, bannière réelle et cinq raccourcis, puis affiche Aujourd'hui avec jusqu'à trois suggestions et une information en cours. Sidebar affiche une seule activité avec chevrons manuels, Tout voir et masquage ; aucune rotation automatique.
+L'Aperçu conserve ses neuf cartes dans l'ordre ci-dessus et ses actions spécialisées. Accueil conserve BannerHero compact, bannière réelle et cinq raccourcis, puis affiche Aujourd'hui avec **jusqu'à trois actions immédiates** dans « À faire maintenant » et **jusqu'à deux états distincts** dans « En cours ». Sidebar affiche une seule activité avec chevrons manuels, Tout voir et masquage ; aucune rotation automatique.
 
-Priorité initiale : récompense quotidienne, expédition prête, autres activités actionnables dans l'ordre canonique, puis attentes utiles. La sélection consultée reste stable tant qu'elle est pertinente. Après une complétion confirmée, la suggestion suivante devient disponible après un court feedback dans une région réservée. Une action en vol fige son activité et son intention ; pending du claim partagé avec Aperçu/Accueil. Les autres actions naviguent uniquement.
+Suivi sidebar : priorité initiale récompense quotidienne, expédition prête, autres activités actionnables dans l'ordre canonique, puis attentes utiles. La sélection consultée reste stable tant qu'elle est pertinente. Après une complétion confirmée, la suggestion suivante devient disponible après un court feedback dans une région réservée. Une action en vol fige son activité et son intention ; pending du claim partagé avec Aperçu/Accueil. Les autres actions naviguent uniquement.
+
+Correctif de conformité de R1007–R1010 au-dessus de `2df4fa154e40fbc4bf6d040f126069e98c9a1901` : la review indépendante a identifié que la liste mixte de sidebar produisait des cartes d'attente sur l'Accueil, doublonnait l'Expédition RUNNING et la laissait visible dans le footer après masquage. `dailyActionableSuggestions` réutilise la priorité existante mais garde uniquement `actionable === true`, hors unknown/error. `dailyOngoingItems` sélectionne les états waiting/in_progress visibles et exclut les IDs des cartes confirmées, y compris pendant leur feedback verrouillé. Les mêmes masques s'appliquent aux deux zones. Expédition READY reste une action prioritaire ; RUNNING apparaît une seule fois dans En cours. Sans action mais avec attente, aucune fausse carte ; sans action ni attente, état vide existant. Le tracker garde sa liste mixte, l'Aperçu reste complet. Aucun nouvel ID R, règle métier, callback, requête ou architecture modifié.
 
 ## Préférences, géométrie et limites
 
@@ -52,6 +54,8 @@ Exemple synthétique contrôlé : huit activités disponibles, Récompense séle
 
 ## Inspection locale et stabilité géométrique
 
+Les mesures de cette section concernent le candidat initial `2df4fa1`. Les contrôles du correctif de séparation Accueil figurent dans la section suivante.
+
 Chromium avec GameShell complet, `index.css`/`App.css`/CSS métier réellement chargés, DTO synthétiques et réseau externe bloqué : **2560×1440, 1920×1080, 1366×768, 390×844**. Pour chaque format : disponible multiple/unique, tout terminé, attente, inconnu, erreur, refresh, tout masqué, pending et feedback. Deux fixtures indépendantes, équipe vide puis quatre personnages avec vraie cible de bannière sélectionnée. Comparaison avec le bouton Quotidiennes antérieur dans la même enveloppe : **écart maximal x/y/largeur/hauteur = 0 px sur les 80 mesures** ; aucun débordement des footers ni du centre sur l'équipe complète, aucun bouton imbriqué ou overflow horizontal du document. Les cartes supérieures et l'alignement inférieur avec le shell sont conservés.
 
 | Format | Carte basse, équipe vide (largeur × hauteur) | Carte basse, équipe complète (largeur × hauteur) |
@@ -66,6 +70,14 @@ La hauteur dépend normalement des cartes supérieures et du viewport, jamais de
 Micro-polish Administration : titre ciblé long sans overflow, groupes desktop début/centre/fin et mobile verticaux ; actions Progression/Objets à **17 px du bas de leur carte** dans les quatre formats. Journal : dix lignes, aucun JSON en liste, trois colonnes égales, titres humains et acteurs longs ; les lignes prennent leur hauteur intrinsèque dans la liste bornée, sans chevauchement. Détail Retour/titre/métadonnées/UUID/Avant/Après inspecté. Micro-polish Arcade : trois jeux Moyen finis avec répliques courtes et longues sur quatre formats ; **largeur/hauteur des plateaux inchangées**, hover relatif des onglets **0 px**, focus conservé dans le cadre. Sur desktop, aucun chevauchement citation/plateau, gouttière minimale **6 px** ; body sans scroll aux deux grands formats, scroll borné **75 px** en 1366. Mobile conserve son flux : la réplique longue déplace verticalement le plateau sans changer sa taille.
 
 Captures Accueil, suivi, Aperçu, Administration/Journal/détail et les trois plateaux inspectées localement. Ces preuves sont des contrôles techniques et visuels synthétiques ; elles ne constituent pas une recette publique gameplay ni une validation esthétique finale d'Axel. Les masques restent locaux, non synchronisés entre appareils. Aucun domaine privé DB touché, aucun test DB mutatif requis pour ce lot frontend.
+
+## Contrôles du correctif Accueil — 02/10/2026
+
+Défaut reproduit avant correction : sept nouveaux cas échouent dans les tests directs de l'Accueil. Après correction : dix tests ajoutés (neuf cas UI et un test des helpers), plus renforcement du test existant de gel des cartes pendant pending/feedback. RUNNING avec zéro/une/deux actions, masque et restauration, trois actions avec RUNNING, Event WAITING, priorité READY, vide inchangé, unknown/error exclus, limite de deux états visibles et absence de duplication d'une progression actionnable couverts. Les 68 tests quotidiens et les régressions HomeScreen/GameShell impactées passent : **85/85 sur sept fichiers**.
+
+Suite frontend complète **1 129/1 129 sur 109 fichiers**, backend hors DB **1 073/1 073 sur 101 fichiers** ; typechecks/builds/lint, `verify:quick` **5/5**, `verify:full` **8/8**, diff-check réussis. Prisma validate et migrate status : codes retour 0, schéma valide et **58 migrations à jour**, lecture seule. Backend et schéma inchangés ; aucun test DB mutatif exécuté. Warnings React/bundle antérieurs conservés, aucune dépendance ajoutée.
+
+Inspection Chromium locale, GameShell/CSS réels et équipe complète : **32 cas sur les quatre formats** (une/trois actions et Expédition RUNNING + Event WAITING, attente seule, READY, terminé, unknown, erreur, Expédition masquée). Aucun doublon, carte d'attente, masque ignoré ou overflow horizontal ; cinq destinations et accès Aperçu conservés. Deux lignes En cours au maximum, scroll local accessible sur 1366/mobile, captures inspectées. Ces preuves sont locales et synthétiques ; ni mutation publique ni validation publique du correctif. Publication review seulement, puis STOP pour nouvelle review indépendante ChatGPT, sans promotion main.
 
 ## Périmètre exclu
 

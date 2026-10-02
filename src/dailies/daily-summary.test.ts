@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { confirmedDailyDate, dailyIds, dailySuggestions, dailySummaryMessage, projectDailies, type DailyId, type DailySources } from './daily-summary'
+import { confirmedDailyDate, dailyIds, dailySuggestions, dailyActionableSuggestions, dailyOngoingItems, dailySummaryMessage, projectDailies, type DailyId, type DailySources } from './daily-summary'
 import { dailySources, character, day, event, expedition } from './daily-test-fixtures'
 import { createExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 const item = (id: DailyId, sources: DailySources = dailySources()) => projectDailies(sources).find(row => row.id === id)!
@@ -99,5 +99,20 @@ describe('Shared daily business projection', () => {
     expect(dailySummaryMessage(rows)).toBe('Tout est bon, tu es à jour')
     expect(dailySummaryMessage(rows.map(row => row.id === 'boss' ? { ...row, state: 'ineligible' } : row))).toBe('Aucune activité disponible pour le moment')
     expect(dailySummaryMessage(rows.map(row => row.id === 'favor' ? { ...row, state: 'unavailable' } : row))).toBe('Aucune activité disponible pour le moment')
+  })
+  it('separates masked Home actions from ongoing information while leaving sidebar suggestions mixed', () => {
+    const source = dailySources(), running = createExpeditionClientSnapshot({ ...expedition, operationalStatus: 'RUNNING', canStartToday: false, activeCharacter: character, remainingSeconds: 13338 }, 0)
+    const items = projectDailies({ ...source, expedition: running, event: { ...event, canJoin: false, participation: { ...event.participation, joined: true } } })
+    expect(dailyActionableSuggestions(items).slice(0, 3).map(row => row.id)).toEqual(['reward', 'wheel', 'challenge'])
+    expect(dailyOngoingItems(items).map(row => row.id)).toEqual(['expedition', 'event'])
+    expect(dailyOngoingItems(items, ['expedition']).map(row => row.id)).toEqual(['event'])
+    expect(dailyOngoingItems(items, [], ['expedition']).map(row => row.id)).toEqual(['event'])
+    expect(dailySuggestions(items).map(row => row.id)).toContain('expedition')
+    const progressing = items.map(row => row.id === 'combat' ? { ...row, state: 'in_progress' as const } : row)
+    expect(dailyOngoingItems(progressing).map(row => row.id)).toContain('combat')
+    expect(dailyOngoingItems(progressing, [], ['combat']).map(row => row.id)).not.toContain('combat')
+    const invalid = items.map(row => row.id === 'reward' ? { ...row, state: 'unknown' as const, actionable: true } : row.id === 'wheel' ? { ...row, state: 'error' as const, actionable: true } : row)
+    expect(dailyActionableSuggestions(invalid).map(row => row.id)).not.toContain('reward')
+    expect(dailyActionableSuggestions(invalid).map(row => row.id)).not.toContain('wheel')
   })
 })

@@ -29,6 +29,11 @@
 .home-daily-summary h2 { margin:0; color:#ddecfd; font-size:20px; }
 .home-daily-summary header p { color:#9cb5d1; margin:5px 0 0; font-size:12px; }
 .home-daily-suggestions { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.home-daily-actions,.home-daily-ongoing { min-width:0; display:grid; gap:8px; flex:0 0 auto; }
+.home-daily-actions > h3,.home-daily-ongoing > h3 { margin:0; color:#b9cfe6; font-size:12px; }
+.home-daily-ongoing ul { margin:0; padding:0; list-style:none; display:grid; gap:5px; }
+.home-daily-ongoing li { min-width:0; color:#a0b4cf; font-size:11px; line-height:1.45; overflow-wrap:anywhere; }
+.home-daily-ongoing strong { color:#c6daed; font-weight:500; }
 .home-daily-suggestion { min-width:0; padding:13px; background:#14233a99; border:1px solid #3b537d66; border-radius:12px; display:grid; grid-template-rows:30px minmax(0,1fr) auto; gap:10px; }
 .home-daily-suggestion > span { color:#85d6f1; font-size:25px; }
 .home-daily-suggestion h3 { margin:0; color:#d7eaff; font-size:14px; overflow-wrap:anywhere; }
