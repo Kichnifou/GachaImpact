@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../utils/formatters'
 /** Shared by Social and Quotidiennes; old polls cannot replace a mutation result. */
 export function useFriendships(actions?: SocialActions, active = false) {
   const [value, setValue] = useState<FriendsSnapshot | null>(null)
+  const [readError, setReadError] = useState('')
   const [error, setError] = useState(''), [feedback, setFeedback] = useState(''), [feedbackScope, setFeedbackScope] = useState(''), [pending, setPending] = useState(false), [refreshingState, setRefreshingState] = useState(false)
   const alive = useRef(false), busy = useRef(false), refreshing = useRef<Promise<void> | null>(null), authoritativeDrain = useRef<Promise<void> | null>(null), authoritativeRequested = useRef(0), authoritativeCompleted = useRef(0), revision = useRef(0), intent = useRef<{ signature: string; key: string } | null>(null)
   const hasSnapshot = useRef(false)
@@ -19,9 +20,9 @@ export function useFriendships(actions?: SocialActions, active = false) {
       const version = ++revision.current
       if (alive.current) setRefreshingState(true)
       const request = (async () => {
-        try { const next = await actions.friends(); if (alive.current && version === revision.current) { hasSnapshot.current = true; setValue(next); setError('') } }
+        try { const next = await actions.friends(); if (alive.current && version === revision.current) { hasSnapshot.current = true; setValue(next); setError(''); setReadError('') } }
         // A failed background read keeps the confirmed projection; the next poll retries it.
-        catch (reason) { if (alive.current && version === revision.current && !hasSnapshot.current) setError(apiErrorMessage(reason)) }
+        catch (reason) { if (alive.current && version === revision.current) { setReadError(apiErrorMessage(reason)); if (!hasSnapshot.current) setError(apiErrorMessage(reason)) } }
       })()
       refreshing.current = request
       void request.finally(() => { if (refreshing.current === request) { refreshing.current = null; if (alive.current) setRefreshingState(false) } })
@@ -79,6 +80,6 @@ export function useFriendships(actions?: SocialActions, active = false) {
     catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
     finally { busy.current = false; if (alive.current) setPending(false) }
   }
-  return { value, error, feedback, feedbackScope, pending, refreshing: refreshingState, refresh, mutate, saveSort, clearFeedback }
+  return { value, error, readError, feedback, feedbackScope, pending, refreshing: refreshingState, refresh, mutate, saveSort, clearFeedback }
 }
 export type FriendshipController = ReturnType<typeof useFriendships>

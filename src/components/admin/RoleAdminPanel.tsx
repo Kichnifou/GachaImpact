@@ -21,12 +21,12 @@ export default function RoleAdminPanel({ state, onChanged }: { state: Moderation
     if (success) setConfirmation(null)
   }
   return <section className="panel moderation-tool moderation-role" aria-label="Rôles du joueur ciblé" aria-busy={task.pending}>
-    <h2>Rôles</h2><p>Rôles actifs de {state.player.displayName}</p>
+    <h2 className="admin-role-title">Rôles · {state.player.displayName}</h2>
     <AdminFeedback error={task.error} notice={task.notice} />
     <div className="admin-role-list">{roles.map(role => {
       const active = assigned.includes(role)
-      return <div key={role}><span>{labels[role]} · {active ? 'actif' : 'absent'}</span>
-        <button type="button" disabled={task.pending} onClick={() => change(role, !active)}>{active ? 'Retirer' : 'Attribuer'}</button></div>
+      return <div key={role}><span>{labels[role]} <span className={`admin-role-status${active ? ' active' : ''}`} role="img" aria-label={active ? 'Actif' : 'Inactif'}>{active ? '✓' : '○'}</span></span>
+        <button type="button" aria-label={`${active ? 'Retirer' : 'Attribuer'} le rôle ${labels[role]}`} disabled={task.pending} onClick={() => change(role, !active)}>{active ? 'Retirer' : 'Attribuer'}</button></div>
     })}</div>
     {confirmation && <ConfirmAction title={`${confirmation.enabled ? 'Attribuer' : 'Retirer'} le rôle ${labels[confirmation.role]} à ${confirmation.playerDisplayName} ?`}
       pending={task.pending} onCancel={() => setConfirmation(null)} onConfirm={() => void apply(confirmation)}>

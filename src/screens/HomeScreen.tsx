@@ -1,8 +1,10 @@
 import BannerHero from '../components/BannerHero'
+import type { ReactNode } from 'react'
 import type { CurrentGachaDto } from '../api/types'
 import type { ScreenId } from '../types'
 
 type HomeScreenProps = {
+  dailySummary?: ReactNode
   onNavigate: (screen: ScreenId) => void
   gacha: CurrentGachaDto
   onSetGachaTarget: (id: string) => Promise<void>
@@ -16,7 +18,7 @@ const shortcuts: Array<{ screen: ScreenId; label: string; description: string; i
   { screen: 'shop', label: 'Boutique', description: 'Parcourir les échanges', icon: '♢', tone: 'pink' },
 ]
 
-function HomeScreen({ onNavigate, gacha, onSetGachaTarget }: HomeScreenProps) {
+function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary }: HomeScreenProps) {
   return (
     <div className="screen-content home-screen">
       <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
@@ -35,6 +37,7 @@ function HomeScreen({ onNavigate, gacha, onSetGachaTarget }: HomeScreenProps) {
           </button>
         ))}
       </section>
+      {dailySummary}
     </div>
   )
 }

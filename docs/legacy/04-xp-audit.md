@@ -434,6 +434,8 @@ Lors d'une réclamation :
 
 ### Rafraîchissement temps réel
 
+**Implémentation étape 24 candidate review (R1007–R1010)** : [Accueil et suivi Quotidiennes](../specifications/home-daily-tracker-v1.md) raccorde Sidebar/Accueil/Aperçu au même `DailyRewardTodayDto` et au callback `claimDailyRewardAndRefresh` existant. Les montants affichés viennent du DTO physique courant ; les chiffres legacy ci-dessus restent historiques, sans rééquilibrage dans ce lot. Une seule réclamation frontend en vol et un feedback réservé de 900 ms sont communs aux trois entrées ; les ressources sont republiées par le pipeline existant. Aucun claim-all ni attribution à une lecture/changement de date. Le serveur confirme le jour avant de réactiver une disponibilité et d'expirer un masque local ; revalidation minuit Paris sensible au DST, focus/retour visible, sans polling quotidien supplémentaire.
+
 Objectif UX :
 - si le joueur reste connecté pendant le passage de 23:59 à 00:00, l'interface doit pouvoir détecter le nouveau jour et rafraîchir automatiquement l'état des quotidiennes ;
 - le même principe pourra servir aux autres états temporels du jeu, par exemple un changement de bannière ;

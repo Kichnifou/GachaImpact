@@ -1,13 +1,13 @@
 const domains: Record<string, string> = {
   roles: 'Rôles', resources: 'Ressources', progression: 'Progression', gacha: 'Invocation', objects: 'Objets',
   characters: 'Personnages', possessions: 'Possessions', banners: 'Bannières', event: 'Événements', events: 'Événements',
-  'global-chat': 'Chat global', 'gift-codes': 'Codes cadeaux', giveaway: 'Giveaway',
+  'global-chat': 'Chat global', 'gift-codes': 'Codes cadeaux', giveaway: 'Giveaway', community: 'Messages privés',
 }
 const actions: Record<string, string> = {
   'grant-tester': 'Testeur attribué', 'revoke-tester': 'Testeur retiré', 'grant-moderator': 'Modérateur attribué',
   'revoke-moderator': 'Modérateur retiré', 'grant-admin': 'Administrateur attribué', 'revoke-admin': 'Administrateur retiré',
   'adjust-resource': 'Ajustement', 'prepare-next-level': 'Préparation du prochain niveau', 'set-state': 'État Gacha modifié',
-  'set-xp': 'XP modifiée',
+  'set-xp': 'XP modifiée', 'delete-direct-message-report': 'Signalement supprimé',
   'set-stella': 'Quantité de Stella modifiée', 'moderate-message': 'Message modéré', 'delete-report': 'Signalement supprimé',
   create: 'Création', update: 'Modification', disable: 'Désactivation', enable: 'Activation', publish: 'Publication',
   add: 'Personnage ajouté', remove: 'Personnage retiré', constellation: 'Constellation modifiée',

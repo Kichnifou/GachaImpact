@@ -62,6 +62,13 @@ import type { ExpeditionClientSnapshot } from '../expedition/expedition-client-s
 import type { ChatRefreshScope } from '../api/types'
 import { runChatRefreshScopes } from '../chat/refresh-scopes'
 import { resolveNotificationNavigation } from '../notifications/notification-navigation'
+import { confirmedDailyDate, projectDailies, type DailyId, type DailyItem } from '../dailies/daily-summary'
+import { dailyTrackerEnvironment, useDailyTracker } from '../dailies/use-daily-tracker'
+import { useDailyClaim } from '../dailies/use-daily-claim'
+import { useDailyRevalidation } from '../dailies/use-daily-revalidation'
+import DailyTrackerCard from '../dailies/DailyTrackerCard'
+import HomeDailySummary from '../dailies/HomeDailySummary'
+import type { FavorDto } from '../api/types'
 
 const getScreenFromHash = (): ScreenId => parseNavigationHash(window.location.hash)
 const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScope[]>> = {
@@ -77,6 +84,7 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
 }
 
 type GameShellProps = {
+  dailyRefresh?: { refresh: () => Promise<unknown>; refreshing: boolean; errors: Partial<Record<DailyId, boolean>>; favor: FavorDto | null }
   onRefreshResources?: () => Promise<unknown>
   externalFeedbackPending?: boolean
   onArcadeMutation?: (value: ArcadeMutation, playerId: string) => void
@@ -212,7 +220,7 @@ type GameShellProps = {
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
+function GameShell({ dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
   const [socialTab, setSocialTab] = useState<SocialTab>('friends')
   const [historyIntent, setHistoryIntent] = useState<{ category: HistoryCategory; token: string } | null>(null)
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
@@ -241,6 +249,7 @@ function GameShell({ onArcadeMutation, onRefreshResources, externalFeedbackPendi
   const [menuPreference, setMenuPreference] = useState<NavigationMenuPreferenceDto>(defaultNavigationPreference)
   const [lastCharacterScreen, setLastCharacterScreen] = useState<ScreenId>(() => activeScreen.startsWith('characters-') ? activeScreen : 'characters-box')
   const [lastActivityScreen, setLastActivityScreen] = useState<ScreenId>(() => activeScreen.startsWith('activities-') ? activeScreen : 'activities-dailies')
+  const [dailiesRequestedTab, setDailiesRequestedTab] = useState<'overview' | 'wheel' | 'challenge'>('overview')
   const [dailiesOverviewRequestToken, setDailiesOverviewRequestToken] = useState(0)
   const [bossRequestToken, setBossRequestToken] = useState(0)
   const [eventMessagesRequestToken, setEventMessagesRequestToken] = useState(0)
@@ -433,6 +442,33 @@ function GameShell({ onArcadeMutation, onRefreshResources, externalFeedbackPendi
   const navigateMain = (id: MainNavigationId) => { if (id === 'configuration') setConfigurationTab('menu'); navigate(id === 'characters' ? lastCharacterScreen : id === 'activities' ? lastActivityScreen : id) }
   const saveMenuPreference = async (value: NavigationMenuPreferenceDto) => { const saved = await onSaveNavigationPreferences(value); setMenuPreference(saved) }
 
+  const presenceFavor = favorPresence.favor
+  const readFavor = dailyRefresh?.favor
+  const favor = readFavor && (!presenceFavor || readFavor.businessDate > presenceFavor.businessDate || readFavor.businessDate === presenceFavor.businessDate && readFavor.claimedToday && !presenceFavor.claimedToday) ? readFavor : presenceFavor
+  const dailySources = { elementKey: player.elementKey ?? undefined, favor, reward: dailyRewardToday, wheel: wheelToday, challenge: dailyChallenge,
+    combat: dailyCombat, boss: monthlyBoss, expedition, monotonicNow: expeditionMonotonicNow, event,
+    friendship: friendship.value?.summary, friendshipDate: friendship.value?.businessDate,
+    errors: { ...dailyRefresh?.errors, favor: Boolean(favorPresence.error || dailyRefresh?.errors.favor), friendship: Boolean(friendship.readError || friendship.error || dailyRefresh?.errors.friendship) } }
+  const dailyItems = projectDailies(dailySources)
+  const dailyTracker = useDailyTracker(dailyItems, player.id, confirmedDailyDate(dailySources), dailyTrackerEnvironment())
+  const dailyClaim = useDailyClaim(onClaimDailyReward, player.id)
+  useDailyRevalidation(player.id, dailyRefresh?.refresh ?? (() => Promise.resolve()), () => friendship.refresh())
+  const openDailies = (tab: 'overview' | 'wheel' | 'challenge') => { setDailiesRequestedTab(tab); setDailiesOverviewRequestToken(value => value + 1); navigate('activities-dailies') }
+  const openDailiesOverview = () => openDailies('overview')
+  const openDaily = (item: DailyItem) => {
+    if (!item.destination) return
+    switch (item.destination.kind) {
+      case 'overview': openDailiesOverview(); break
+      case 'wheel': case 'challenge': openDailies(item.destination.kind); break
+      case 'combat': setBossRequestToken(0); navigate('activities-combat'); break
+      case 'boss': setBossRequestToken(value => value + 1); navigate('activities-combat'); break
+      case 'expedition': setBoxOpenIntent(expedition.value.activeCharacter && expedition.value.operationalStatus !== 'IDLE' ? { characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() } : null); navigate('characters-box'); break
+      case 'friends': setSocialTab('friends'); navigate('social'); break
+      case 'event': setEventMessagesRequestToken(0); setEventShopRequestToken(0); setEventDailyIntent({ ...item.destination.destination, token: crypto.randomUUID() }); navigate('activities-event'); break
+    }
+  }
+  const compactDailyProps = { items: dailyItems, tracker: dailyTracker, claim: dailyClaim, onOpen: openDaily, onOverview: openDailiesOverview, refreshing: dailyRefresh?.refreshing }
+
   const renderScreen = () => {
     if (activeScreen === 'activities-missions') return <MissionsScreen onLoad={onLoadMissions} />
     switch (activeScreen) {
@@ -449,7 +485,7 @@ function GameShell({ onArcadeMutation, onRefreshResources, externalFeedbackPendi
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} refreshToken={chatOwnerRevision} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onOpenGlobalHistory={() => openHistory('bank')} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
       case 'codes':
         return <GiftCodesScreen refreshToken={chatOwnerRevision} onLoad={onLoadGiftCodes} onClaim={onClaimGiftCode} />
       case 'shop':
@@ -459,7 +495,7 @@ function GameShell({ onArcadeMutation, onRefreshResources, externalFeedbackPendi
       case 'activities-event':
       case 'activities-arcade':
       case 'activities-contest':
-return <ActivitiesScreen onArcadeMutation={onArcadeMutation} arcadeFeedbackPending={Boolean(activeLevelUpFeedback || externalFeedbackPending || favorPresence.feedbacks[0] || completedChallengeFeedback)} favor={favorPresence.favor} favorError={favorPresence.error} friendship={friendship.value?.summary} friendshipError={friendship.error} onOpenFriends={() => { setSocialTab('friends'); navigate('social') }} sessionUserId={player.id} screen={activeScreen} event={event} onLoadEvent={onLoadEvent} onLoadEventRanking={onLoadEventRanking} onJoinEvent={onJoinEvent} onClaimEventCalendar={onClaimEventCalendar} onClaimEventDailyBonus={onClaimEventDailyBonus} onConvertEventShop={onConvertEventShop} onPurchaseEventCollection={purchaseEventCollection} onAttemptEventGameA={onAttemptEventGameA} onAttemptEventGameB={onAttemptEventGameB} onSearchEventGameCRecipients={onSearchEventGameCRecipients} onSendEventGameC={onSendEventGameC} onConsultEventGameCMessages={onConsultEventGameCMessages} eventDailyIntent={eventDailyIntent} onEventDailyIntentConsumed={token => setEventDailyIntent(current => current?.token === token ? null : current)} onOpenDailyEvent={destination => { setEventMessagesRequestToken(0); setEventShopRequestToken(0); setEventDailyIntent({ ...destination, token: crypto.randomUUID() }); navigate('activities-event') }} eventMessagesRequestToken={eventMessagesRequestToken} eventShopRequestToken={eventShopRequestToken} dailiesOverviewRequestToken={dailiesOverviewRequestToken} bossRequestToken={bossRequestToken} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} contest={contest} onRefreshContest={onRefreshContest} onLoadContestHistory={onLoadContestHistory} onLoadContestHistoryDetail={onLoadContestHistoryDetail} onOpenContest={onOpenContest} onJoinContest={onJoinContest} onSelectContestLegend={onSelectContestLegend} onSetContestReady={onSetContestReady} onStartContest={onStartContest} onSpectateContest={onSpectateContest} onLeaveContest={onLeaveContest} onCancelContest={onCancelContest} onPlayContest={onPlayContest} onSupportContest={onSupportContest} onRemoveContestParticipant={onRemoveContestParticipant} onRemoveContestSpectator={onRemoveContestSpectator} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} dailyCombatBox={{ initialBox: boxCache.read(player.id), refreshToken: chatOwnerRevision, onLoadBox: loadBox, onSetFavorite: setBoxFavorite, onUseStella: useStella, stellaRetryCharacterId: stellaIntents.getIntent(player.id)?.characterId ?? null, onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()]) }} elementKey={player.elementKey!} onClaimDailyReward={onClaimDailyReward} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onSetMonthlyBossSlot={onSetMonthlyBossSlot} onRemoveMonthlyBossSlot={onRemoveMonthlyBossSlot} onCopyActiveTeamToMonthlyBoss={onCopyActiveTeamToMonthlyBoss} onClearMonthlyBossLoadout={onClearMonthlyBossLoadout} onAttackMonthlyBoss={onAttackMonthlyBoss} onLoadMonthlyBossHistory={onLoadMonthlyBossHistory} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onOpenBoss={() => { setBossRequestToken((value) => value + 1); navigate('activities-combat') }} onOpenExpedition={() => { if (expedition.value.activeCharacter && expedition.value.operationalStatus !== 'IDLE') { setBoxOpenIntent({ characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() }); navigate('characters-box') } else { setBoxOpenIntent(null); navigate('characters-box') } }} onOpenEventHistory={() => openHistory('event')} onNavigate={navigate} />
+return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailiesRequestedTab={dailiesRequestedTab} onArcadeMutation={onArcadeMutation} arcadeFeedbackPending={Boolean(activeLevelUpFeedback || externalFeedbackPending || favorPresence.feedbacks[0] || completedChallengeFeedback)} favor={favorPresence.favor} favorError={favorPresence.error} friendship={friendship.value?.summary} friendshipError={friendship.error} onOpenFriends={() => { setSocialTab('friends'); navigate('social') }} sessionUserId={player.id} screen={activeScreen} event={event} onLoadEvent={onLoadEvent} onLoadEventRanking={onLoadEventRanking} onJoinEvent={onJoinEvent} onClaimEventCalendar={onClaimEventCalendar} onClaimEventDailyBonus={onClaimEventDailyBonus} onConvertEventShop={onConvertEventShop} onPurchaseEventCollection={purchaseEventCollection} onAttemptEventGameA={onAttemptEventGameA} onAttemptEventGameB={onAttemptEventGameB} onSearchEventGameCRecipients={onSearchEventGameCRecipients} onSendEventGameC={onSendEventGameC} onConsultEventGameCMessages={onConsultEventGameCMessages} eventDailyIntent={eventDailyIntent} onEventDailyIntentConsumed={token => setEventDailyIntent(current => current?.token === token ? null : current)} onOpenDailyEvent={destination => { setEventMessagesRequestToken(0); setEventShopRequestToken(0); setEventDailyIntent({ ...destination, token: crypto.randomUUID() }); navigate('activities-event') }} eventMessagesRequestToken={eventMessagesRequestToken} eventShopRequestToken={eventShopRequestToken} dailiesOverviewRequestToken={dailiesOverviewRequestToken} bossRequestToken={bossRequestToken} wheelToday={wheelToday} onSpinWheel={onSpinWheel} dailyRewardToday={dailyRewardToday} dailyChallenge={dailyChallenge} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} contest={contest} onRefreshContest={onRefreshContest} onLoadContestHistory={onLoadContestHistory} onLoadContestHistoryDetail={onLoadContestHistoryDetail} onOpenContest={onOpenContest} onJoinContest={onJoinContest} onSelectContestLegend={onSelectContestLegend} onSetContestReady={onSetContestReady} onStartContest={onStartContest} onSpectateContest={onSpectateContest} onLeaveContest={onLeaveContest} onCancelContest={onCancelContest} onPlayContest={onPlayContest} onSupportContest={onSupportContest} onRemoveContestParticipant={onRemoveContestParticipant} onRemoveContestSpectator={onRemoveContestSpectator} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} dailyCombatBox={{ initialBox: boxCache.read(player.id), refreshToken: chatOwnerRevision, onLoadBox: loadBox, onSetFavorite: setBoxFavorite, onUseStella: useStella, stellaRetryCharacterId: stellaIntents.getIntent(player.id)?.characterId ?? null, onCharacterProgressed: () => Promise.all([onLoadTeams(), onLoadDailyCombat()]) }} elementKey={player.elementKey!} onClaimDailyReward={dailyClaim.run} onPurchaseDailyChallenge={onPurchaseDailyChallenge} onSwitchDailyChallenge={onSwitchDailyChallenge} onSetDailyCombatSlot={onSetDailyCombatSlot} onRemoveDailyCombatSlot={onRemoveDailyCombatSlot} onCopyActiveTeamToDailyCombat={onCopyActiveTeamToDailyCombat} onAutoSelectDailyCombat={onAutoSelectDailyCombat} onClearDailyCombatLoadout={onClearDailyCombatLoadout} onFightDailyCombat={onFightDailyCombat} onSetMonthlyBossSlot={onSetMonthlyBossSlot} onRemoveMonthlyBossSlot={onRemoveMonthlyBossSlot} onCopyActiveTeamToMonthlyBoss={onCopyActiveTeamToMonthlyBoss} onClearMonthlyBossLoadout={onClearMonthlyBossLoadout} onAttackMonthlyBoss={onAttackMonthlyBoss} onLoadMonthlyBossHistory={onLoadMonthlyBossHistory} onOpenParticleConversion={() => setIsParticleConversionOpen(true)} onOpenBoss={() => { setBossRequestToken((value) => value + 1); navigate('activities-combat') }} onOpenExpedition={() => { if (expedition.value.activeCharacter && expedition.value.operationalStatus !== 'IDLE') { setBoxOpenIntent({ characterId: expedition.value.activeCharacter.id, token: crypto.randomUUID() }); navigate('characters-box') } else { setBoxOpenIntent(null); navigate('characters-box') } }} onOpenEventHistory={() => openHistory('event')} onNavigate={navigate} />
       case 'trades':
         return tradeActions ? <TradesScreen key={player.id} intent={tradeIntent} refreshToken={chatOwnerRevision} actions={tradeActions} playerId={player.id} onSnapshot={value => { inventoryCache.applyTradeStocks(player.id, value.stocks); onTradeSnapshot?.(value) }} /> : null
       case 'social':
@@ -473,7 +509,7 @@ return <ActivitiesScreen onArcadeMutation={onArcadeMutation} arcadeFeedbackPendi
       case 'configuration':
         return <ConfigurationScreen onRefreshPlayerState={refreshAfterSnapshotImport} socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
-        return <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} />
+        return <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
     }
   }
 
@@ -517,6 +553,7 @@ return <ActivitiesScreen onArcadeMutation={onArcadeMutation} arcadeFeedbackPendi
 
       <div className="game-layout">
         <PlayerSidebar
+          dailyTracker={<DailyTrackerCard {...compactDailyProps} />}
           onOpenProfile={() => openProfile(player.id)}
           playerData={player}
           resources={resources}
@@ -528,7 +565,7 @@ return <ActivitiesScreen onArcadeMutation={onArcadeMutation} arcadeFeedbackPendi
           isOpen={isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onNavigate={navigate}
-          onOpenDailiesOverview={() => { setDailiesOverviewRequestToken((value) => value + 1); navigate('activities-dailies') }}
+          onOpenDailiesOverview={openDailiesOverview}
           onOpenParticleConversion={() => { setIsSidebarOpen(false); setIsParticleConversionOpen(true) }}
         />
 

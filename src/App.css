@@ -9250,6 +9250,26 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-role-list { display: grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
 .admin-role-list > div { display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
 .admin-role-list > div > button { flex: 0 0 auto; width: auto; }
+.admin-role-title { min-width:0; overflow-wrap:anywhere; }
+.admin-role-list > div { min-width:0; }
+.admin-role-list > div:nth-child(2) { justify-content:center; }
+.admin-role-list > div:nth-child(3) { justify-content:flex-end; }
+.admin-role-list > div > span { min-width:0; overflow-wrap:anywhere; }
+.admin-role-list > div > button { padding-left:10px; padding-right:10px; }
+.admin-role-status { display:inline-block; color:#8eabc2; margin-right:5px; }
+.admin-role-status.active { color:#89e1ac; }
+.moderation-tool.moderation-tool-footer-layout { display:flex; flex-direction:column; }
+.moderation-tool-footer-layout > .moderation-actions,.moderation-tool-footer-layout > button:last-child { margin-top:auto; }
+.admin-list[aria-label="Journal Admin"] .admin-list-row { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; gap:12px; text-align:left; }
+.admin-list[aria-label="Journal Admin"] .admin-scroll-list { grid-auto-rows:max-content; }
+.admin-list[aria-label="Journal Admin"] .admin-list-row time { display:grid; gap:3px; color:var(--muted); font-size:9px; }
+.admin-list[aria-label="Journal Admin"] .admin-list-row strong { text-align:center; overflow-wrap:anywhere; font-size:11px; }
+.admin-audit-participants { min-width:0; text-align:right; overflow-wrap:anywhere; color:#b4cde8; font-size:10px; }
+.admin-audit-heading { display:grid; gap:8px; min-width:0; }
+.admin-audit-heading h3,.admin-audit-heading p { margin:0; overflow-wrap:anywhere; }
+.admin-audit-heading p { color:var(--muted); font-size:11px; }
+.admin-audit-heading small { color:#7187a3; font-size:9px; overflow-wrap:anywhere; }
+.admin-audit-values > section { min-width:0; }
 .admin-banner-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .admin-banner-slots fieldset { min-width: 0; display: grid; gap: 8px; border: 1px solid rgba(105, 157, 220, .25); border-radius: 9px; }
 .admin-domain pre, .admin-audit-detail pre { max-width: 100%; max-height: 260px; overflow: auto; padding: 9px; color: #cce3ff; font-size: 9px; background: rgba(4, 10, 22, .7); }
@@ -9260,7 +9280,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .admin-events > .admin-list { flex:1 1 0; min-height:160px; display:flex; flex-direction:column; }
 .admin-events .admin-scroll-list { flex:1 1 0; max-height:none; min-height:0; }
 .admin-events > .admin-editor { flex:0 1 auto; min-height:0; overflow:auto; }
-@media(max-width:700px) { .admin-role-list { grid-template-columns:1fr; }.admin-events > .admin-list { min-height:260px; } }
+@media(max-width:700px) { .admin-role-list { grid-template-columns:1fr; }.admin-role-list > div:nth-child(n) { justify-content:flex-start; }.admin-events > .admin-list { min-height:260px; } }
 @media (max-width: 700px) { .admin-banner-slots, .admin-audit-detail > div { grid-template-columns: 1fr; }
   .admin-list-row { flex-wrap: wrap; } .admin-list-row > div:first-child { flex-basis: 100%; }
   .admin-filters > * { flex: 1 1 125px; } .admin-domain .dm-reports-panel { padding: 10px; }

@@ -7,11 +7,12 @@
 .arcade-screen select:disabled { opacity:.65; cursor:not-allowed; }
 .arcade-screen :focus-visible,.arcade-records :focus-visible { outline:2px solid #78def6; outline-offset:-3px; }
 .arcade-controls [aria-pressed=true],.arcade-record-controls [aria-pressed=true] { background:#183148; border-color:#5cbad4; color:#c7f8ff; }
+.arcade-controls nav .app-button:hover:not(:disabled) { transform:none; }
 .arcade-body { min-height:0; overflow-y:auto; border-radius:15px; }
 .arcade-arena.panel { display:grid; justify-items:center; grid-template-columns:minmax(0,1fr) minmax(0,min(62%,640px)) minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto auto auto; gap:8px; height:100%; min-height:480px; padding:12px 18px 8px; background:radial-gradient(ellipse at 50% 10%,#20305488,transparent 65%),#111a2c; }
 .arcade-arena > :not(.arcade-play-area):not(.arcade-banter) { grid-column:1 / -1; }
 .arcade-arena .arcade-play-area { grid-column:2; grid-row:3; }
-.arcade-arena .arcade-banter { grid-column:3; grid-row:3; align-self:center; margin:0; padding-left:10px; font-style:italic; font-size:.8rem; line-height:1.6; color:#b7c8df; overflow-wrap:anywhere; }
+.arcade-arena .arcade-banter { grid-column:3; grid-row:3; align-self:center; justify-self:stretch; margin:0; margin-left:-12px; padding-left:0; font-style:italic; font-size:.8rem; line-height:1.6; color:#b7c8df; overflow-wrap:anywhere; }
 .arcade-top-actions { display:flex; justify-content:space-between; align-items:center; width:100%; min-height:30px; gap:8px; }
 .arcade-top-actions > div { display:flex; gap:7px; }
 .arcade-top-actions .app-button { min-height:30px; padding:5px 10px; font-size:.75rem; }

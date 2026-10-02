@@ -1,5 +1,13 @@
 # Navigation et shell V1
 
+## Accueil et suivi Quotidiennes — étape 24 candidate review
+
+Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar remplace seulement le contenu de sa carte basse par une section avec contrôles indépendants ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil conserve BannerHero compact et Box/Catalogue/Équipe/Sac/Boutique, puis ajoute Aujourd'hui, au plus trois suggestions et le même masquage local. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques.
+
+Roue et Défi utilisent une intention de sous-onglet identifiée par un token ; Combat ouvre Entraînement, Boss force sa section existante, Expédition réutilise l'intention Box du personnage actif, Amitié force Social > Amis. Événement réutilise `EventDailyOpenIntent` et l'ordre propriétaire Général→A→B→C. Ces raccourcis ne déclenchent aucune opération métier. Seule la Récompense quotidienne disponible utilise directement son callback de claim existant, partagé avec Aperçu/Accueil, verrou et feedback compris. Aucun Arcade ou Mission permanente ajouté aux Quotidiennes.
+
+Micro-polish R1005/R1006 : rôles début/centre/fin sans suffixes visuels, Journal en trois colonnes sans JSON en liste et détail hiérarchisé ; onglets Arcade sans translation verticale, réplique élargie dans l'espace libre. Permissions, facettes, classes de route, plateaux et actions validées conservés.
+
 ## Arcade — étape 23
 
 `activities-arcade` / `#activities/arcade` ajoute le seul sous-onglet Arcade entre Événement et Concours. La coque commune conserve les trois plateaux et ouvre Records dans une modale ; [Arcade V1](arcade-v1.md) possède ses règles. Aucun démarrage au changement d'onglet, aucune nouvelle entrée Menu principale, préférence persistée, carte Quotidiennes ou modification Accueil/sidebar/DailyTracker. Entraînement dans Combat garde son nom.

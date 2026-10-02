@@ -29,12 +29,12 @@ export default function AdminAuditPanel() {
     }}><option value="">Tous les domaines</option>{domains.map(value => <option key={value} value={value}>{adminAuditDomain(value)}</option>)}</select></label>
       <label>Action<select aria-label="Action" value={action} onChange={event => { setAction(event.target.value); setPage(1) }}><option value="">Toutes les actions</option>
         {actions.map(value => <option key={value} value={value}>{adminAuditAction(value)}</option>)}</select></label></div>
-    {detail ? <div className="admin-audit-detail"><button type="button" onClick={() => setDetail(null)}>Retour</button><h3>{adminAuditTitle(detail.domain, detail.action)}</h3>
-      <p>{new Date(detail.createdAt).toLocaleString('fr-FR')} · {detail.actorName} → {detail.targetName}</p><small>Opération {detail.operationId}</small>
-      <div><section><h4>Avant</h4><pre>{JSON.stringify(detail.before, null, 2)}</pre></section><section><h4>Après</h4><pre>{JSON.stringify(detail.after, null, 2)}</pre></section></div></div>
+    {detail ? <div className="admin-audit-detail"><header className="admin-audit-heading"><div><button type="button" onClick={() => setDetail(null)}>Retour</button></div><h3>{adminAuditTitle(detail.domain, detail.action)}</h3>
+      <p>{new Date(detail.createdAt).toLocaleString('fr-FR')} · {detail.actorName} → {detail.targetName}</p><small>Opération {detail.operationId}</small></header>
+      <div className="admin-audit-values"><section><h4>Avant</h4><pre>{JSON.stringify(detail.before, null, 2)}</pre></section><section><h4>Après</h4><pre>{JSON.stringify(detail.after, null, 2)}</pre></section></div></div>
       : <><div className="admin-scroll-list">{list?.entries.map(entry => <button type="button" key={entry.id} className="admin-list-row" onClick={() => void open(entry.id)}>
-        <time>{new Date(entry.createdAt).toLocaleString('fr-FR')}</time><strong>{adminAuditTitle(entry.domain, entry.action)}</strong>
-        <span>{entry.actorName} → {entry.targetName}</span><small>{JSON.stringify(entry.after).slice(0, 160)}</small></button>)}
+        <time dateTime={entry.createdAt}><span>{new Date(entry.createdAt).toLocaleDateString('fr-FR')}</span><span>{new Date(entry.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span></time><strong>{adminAuditTitle(entry.domain, entry.action)}</strong>
+        <span className="admin-audit-participants">{entry.actorName} → {entry.targetName}</span></button>)}
         {!list?.entries.length && <p>Aucune entrée.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} />}</>}
   </section>
 }

@@ -2,12 +2,16 @@ import { useState } from 'react'
 import type { DailyRewardClaimDto, DailyRewardTodayDto, ElementKey } from '../api/types'
 import { apiErrorMessage } from '../utils/formatters'
 import { formatDailyRewardDetails } from '../daily-reward/presentation'
+import type { DailyClaimController } from '../dailies/use-daily-claim'
+import type { DailyItem } from '../dailies/daily-summary'
 
 type DailyRewardCardProps = {
   variant: 'overview'
   today: DailyRewardTodayDto
   elementKey: ElementKey
   onClaim: () => Promise<DailyRewardClaimDto>
+  controller?: DailyClaimController
+  summary?: DailyItem
 } | {
   variant?: 'sidebar'
   onOpenOverview?: () => void
@@ -18,16 +22,16 @@ function DailyRewardCard(props: DailyRewardCardProps) {
     <span className="daily-navigation-copy"><span className="daily-navigation-top"><small>ACTIVITÉS</small><strong>Quotidiennes</strong></span><span className="daily-navigation-center"><b>Aperçu du jour</b><small>Consultez vos activités et leur état.</small></span><em>Ouvrir l’aperçu →</em></span>
   </button>
 
-  return <DailyRewardOverviewCard variant="overview" today={props.today} elementKey={props.elementKey} onClaim={props.onClaim} />
+  return <DailyRewardOverviewCard {...props} />
 }
 
-function DailyRewardOverviewCard({ today, elementKey, onClaim }: Extract<DailyRewardCardProps, { variant: 'overview' }>) {
+function DailyRewardOverviewCard({ today, elementKey, onClaim, controller, summary }: Extract<DailyRewardCardProps, { variant: 'overview' }>) {
   const [isClaiming, setIsClaiming] = useState(false)
   const [freshClaim, setFreshClaim] = useState<DailyRewardClaimDto | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const claim = async () => {
-    if (today.claimed || isClaiming) return
+    if (today.claimed || isClaiming || controller?.locked || summary && !summary.actionable) return
     setIsClaiming(true)
     setErrorMessage(null)
     try {
@@ -40,17 +44,18 @@ function DailyRewardOverviewCard({ today, elementKey, onClaim }: Extract<DailyRe
     }
   }
 
-  const claimed = today.claimed || freshClaim !== null
+  const currentClaim = freshClaim?.businessDate === today.businessDate ? freshClaim : null
+  const claimed = today.claimed || currentClaim !== null
   return (
     <section className="panel daily-overview-card daily-reward-overview-card">
       <div>
         <h2>Récompense quotidienne</h2>
-        <p className={claimed ? 'daily-overview-complete' : undefined}>{claimed ? '✅ Terminé' : 'Disponible.'}</p>
+        <p className={claimed ? 'daily-overview-complete' : undefined}>{summary?.status ?? (claimed ? '✅ Terminé' : 'Disponible.')}</p>
         {claimed && <p className="daily-overview-detail">Récompense récupérée.</p>}
-        {claimed && <p className="daily-overview-obtained">Obtenu : {formatDailyRewardDetails(freshClaim ?? today, elementKey)}</p>}
+        {claimed && <p className="daily-overview-obtained">Obtenu : {formatDailyRewardDetails(currentClaim ?? today, elementKey)}</p>}
         {!claimed && <p className={`daily-overview-feedback${errorMessage ? ' error' : ''}`} role={errorMessage ? 'alert' : undefined}>{errorMessage ?? ''}</p>}
       </div>
-      {!claimed && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming}>{isClaiming ? 'Récupération…' : 'Récupérer'}</button></div>}
+      {!claimed && <div className="daily-overview-action-slot"><button type="button" className="small-primary-button" onClick={claim} disabled={isClaiming || controller?.locked || summary && !summary.actionable}>{isClaiming || controller?.pending ? 'Récupération…' : 'Récupérer'}</button></div>}
     </section>
   )
 }

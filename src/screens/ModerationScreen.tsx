@@ -510,7 +510,7 @@ function ModerationScreen({
             {canUseGameplayTools && (
               <>
                 <form
-                  className="panel moderation-tool"
+                  className="panel moderation-tool moderation-tool-footer-layout"
                   onSubmit={(event) =>
                     submit(event, () => onXp(selectedTargetId, { totalXp: xp }))
                   }
@@ -626,7 +626,7 @@ function ModerationScreen({
                   <button disabled={pending}>Appliquer</button>
                 </form>
                 <form
-                  className="panel moderation-tool"
+                  className="panel moderation-tool moderation-tool-footer-layout"
                   onSubmit={(event) =>
                     submit(event, () => onStella(selectedTargetId, stella))
                   }

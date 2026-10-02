@@ -28,6 +28,9 @@ import type { ChatRefreshScope } from './api/types'
 import { runChatRefreshScopes } from './chat/refresh-scopes'
 import { loadBootstrapGameState, retryBootstrapRead } from './bootstrap/load-game-state'
 import { createMissionLoader } from './missions/load-missions'
+import { createDailyReadCoordinator } from './dailies/daily-read-coordinator'
+import type { DailyId } from './dailies/daily-summary'
+import type { FavorDto } from './api/types'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -42,6 +45,17 @@ function AppBootstrap() {
   const [dailyChallenge, setDailyChallenge] = useState<DailyChallengeDto | null>(null)
   const [dailyCombat, setDailyCombat] = useState<DailyCombatDto | null>(null)
   const [monthlyBoss, setMonthlyBoss] = useState<MonthlyBossDto | null>(null)
+  const [dailyReads] = useState(createDailyReadCoordinator)
+  const [dailyErrors, setDailyErrors] = useState<Partial<Record<DailyId, boolean>>>({})
+  const [dailyRefreshing, setDailyRefreshing] = useState(false)
+  const [dailyFavor, setDailyFavor] = useState<FavorDto | null>(null)
+  useLayoutEffect(() => { dailyReads.reset(); setDailyErrors({}); setDailyFavor(null); setDailyRefreshing(false) }, [dailyReads, sessionUserId])
+  const readDaily = useCallback(<T,>(key: DailyId, load: () => Promise<T>, publish: (value: T) => void) => dailyReads.read(key, load, value => {
+    publish(value); setDailyErrors(current => ({ ...current, [key]: false }))
+  }, () => setDailyErrors(current => ({ ...current, [key]: true }))), [dailyReads])
+  const acceptDaily = useCallback(<T,>(key: DailyId, value: T, publish: (value: T) => void) => dailyReads.accept(key, value, next => {
+    publish(next); setDailyErrors(current => ({ ...current, [key]: false }))
+  }), [dailyReads])
   const [contest, setContest] = useState<ContestDto | null>(null)
   const [event, setEvent] = useState<EventDto | null>(null)
   const rankingFlightRef = useRef<{ userId: string | undefined; promise: Promise<EventRankingDto> } | null>(null)
@@ -64,7 +78,7 @@ function AppBootstrap() {
     () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
   )
   const [milestoneFeedbacks, setMilestoneFeedbacks] = useState<EventMilestoneFeedback[]>([])
-  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { setEvent(value); if (value.resources) setResources(value.resources) }, values => setMilestoneFeedbacks(current => [...current, ...values.filter(value => !current.some(item => item.id === value.id))])))
+  const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { acceptDaily('event', value, setEvent); if (value.resources) setResources(value.resources) }, values => setMilestoneFeedbacks(current => [...current, ...values.filter(value => !current.some(item => item.id === value.id))])))
   const finishMilestoneFeedback = useCallback((id: string) => setMilestoneFeedbacks(current => current.filter(value => value.id !== id)), [])
   const dismissLevelUpFeedback = useCallback((id: string) => {
     setLevelUpFeedbacks((current) => current.filter((event) => event.id !== id))
@@ -112,12 +126,12 @@ function AppBootstrap() {
     setTeams(nextTeams)
     return nextTeams
   }, [])
-  const loadDailyCombat = useCallback(async () => {
-    const nextDailyCombat = await getGameApiClient().getDailyCombat()
-    setDailyCombat(nextDailyCombat)
-    return nextDailyCombat
-  }, [])
-  const loadMonthlyBoss = useCallback(async () => { const next = await getGameApiClient().getMonthlyBoss(); setMonthlyBoss(next); return next }, [])
+  const loadDailyCombat = useCallback(() => readDaily('combat', () => getGameApiClient().getDailyCombat(), setDailyCombat), [readDaily])
+  const loadMonthlyBoss = useCallback(() => readDaily('boss', () => getGameApiClient().getMonthlyBoss(), setMonthlyBoss), [readDaily])
+  const loadDailyReward = useCallback(() => readDaily('reward', () => getGameApiClient().getDailyRewardToday(), setDailyRewardToday), [readDaily])
+  const loadDailyChallenge = useCallback(() => readDaily('challenge', () => getGameApiClient().getDailyChallenge(), setDailyChallenge), [readDaily])
+  const loadWheel = useCallback(() => readDaily('wheel', () => getGameApiClient().getWheelToday(), setWheelToday), [readDaily])
+  const loadFavor = useCallback(() => readDaily('favor', () => getGameApiClient().getFavor(), setDailyFavor), [readDaily])
   const publishContest = useCallback(async (request: () => Promise<ContestDto>) => {
     const next = await contestRequests.mutate(request)
     if (!next.active && next.lastResult) void loadResources().catch(() => undefined)
@@ -125,7 +139,7 @@ function AppBootstrap() {
   }, [contestRequests, loadResources])
   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
-  const loadEvent = useCallback(() => eventRequests.refresh(() => getGameApiClient().getEvent()), [eventRequests])
+  const loadEvent = useCallback(() => readDaily('event', () => eventRequests.read(() => getGameApiClient().getEvent()), () => undefined), [eventRequests, readDaily])
   const loadEventRanking = useCallback(() => {
     const current = rankingFlightRef.current
     if (current && current.userId === sessionUserId) return current.promise
@@ -157,22 +171,36 @@ function AppBootstrap() {
     setExpeditionMonotonicNow(observedAt)
     return next
   }, [])
-  const loadExpedition = useCallback(async () => publishExpedition(await getGameApiClient().getExpedition()), [publishExpedition])
+  const loadExpedition = useCallback(() => readDaily('expedition', () => getGameApiClient().getExpedition(), publishExpedition), [publishExpedition, readDaily])
+  const refreshDailyFlight = useRef<Promise<void> | null>(null)
+  const refreshDailies = useCallback(() => {
+    if (refreshDailyFlight.current) return refreshDailyFlight.current
+    const owner = notificationSessionRef.current
+    setDailyRefreshing(true)
+    const request = Promise.allSettled([loadDailyReward(), loadWheel(), loadDailyChallenge(), loadDailyCombat(), loadMonthlyBoss(), loadExpedition(), loadEvent(), loadFavor()]).then(() => undefined)
+      .finally(() => { if (refreshDailyFlight.current === request) refreshDailyFlight.current = null; if (owner === notificationSessionRef.current) setDailyRefreshing(false) })
+    refreshDailyFlight.current = request
+    return request
+  }, [loadDailyReward, loadWheel, loadDailyChallenge, loadDailyCombat, loadMonthlyBoss, loadExpedition, loadEvent, loadFavor])
+  useLayoutEffect(() => { refreshDailyFlight.current = null }, [sessionUserId])
   const notificationFlight = useRef<{ userId: string | undefined; promise: Promise<NotificationsDto> } | null>(null)
   const loadNotifications = useCallback(() => {
     if (notificationFlight.current && notificationFlight.current.userId === sessionUserId) return notificationFlight.current.promise
     const requestedFor = sessionUserId
-    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) { setNotifications(next); if (next.expedition) publishExpedition(next.expedition) } return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
+    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) { setNotifications(next); if (next.expedition) acceptDaily('expedition', next.expedition, publishExpedition) } return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
     notificationFlight.current = { userId: sessionUserId, promise }
     return promise
-  }, [publishExpedition, sessionUserId])
+  }, [acceptDaily, publishExpedition, sessionUserId])
   const consultEventGameCMessages = useCallback(async () => { const result = await eventRequests.mutate(() => getGameApiClient().consultEventGameCMessages()); await loadNotifications(); return result }, [eventRequests, loadNotifications])
+  const expeditionDeadlineRead = useRef<string | null>(null)
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING' || !expedition.value.readyAt) return
-    const delay = Math.max(0, Date.parse(expedition.value.readyAt) - Date.now()) + 100
-    const timer = window.setTimeout(() => { void loadNotifications().catch(() => undefined) }, delay)
+    const deadlineKey = `${sessionUserId}:${expedition.value.readyAt}`
+    if (expeditionDeadlineRead.current === deadlineKey) return
+    const delay = Math.max(0, expedition.value.remainingSeconds * 1000 - (performance.now() - expedition.observedAt)) + 100
+    const timer = window.setTimeout(() => { expeditionDeadlineRead.current = deadlineKey; void Promise.allSettled([loadExpedition(), loadNotifications()]) }, delay)
     return () => window.clearTimeout(timer)
-  }, [expedition?.value.operationalStatus, expedition?.value.readyAt, loadNotifications])
+  }, [expedition, sessionUserId, loadExpedition, loadNotifications])
   useEffect(() => {
     if (expedition?.value.operationalStatus !== 'RUNNING') return
     const timer = window.setInterval(() => setExpeditionMonotonicNow(performance.now()), 1_000)
@@ -238,11 +266,11 @@ function AppBootstrap() {
     setResources(next.resources)
     progressionRef.current = next.progression
     setProgression(next.progression)
-    setWheelToday(next.wheel)
-    setDailyRewardToday(next.dailyReward)
-    setDailyChallenge(next.dailyChallenge)
-    setDailyCombat(next.dailyCombat)
-    setMonthlyBoss(next.monthlyBoss)
+    acceptDaily('wheel', next.wheel, setWheelToday)
+    acceptDaily('reward', next.dailyReward, setDailyRewardToday)
+    acceptDaily('challenge', next.dailyChallenge, setDailyChallenge)
+    acceptDaily('combat', next.dailyCombat, setDailyCombat)
+    acceptDaily('boss', next.monthlyBoss, setMonthlyBoss)
     setContest(next.contest)
     setEvent(next.event)
     publishExpedition(next.expedition)
@@ -251,7 +279,7 @@ function AppBootstrap() {
     setCharacters(next.catalog.characters)
     setTeams(next.teams)
     setPermissions(next.permissions)
-  }, [eventRequests, loadContest, publishExpedition])
+  }, [acceptDaily, eventRequests, loadContest, publishExpedition])
 
   const refreshPlayerState = useCallback(async () => {
     const nextPlayer = await getGameApiClient().getCurrentPlayer()
@@ -290,8 +318,8 @@ function AppBootstrap() {
       progression: () => api.getProgression().then(next => { progressionRef.current = next; setProgression(next) }),
       gacha: () => api.getCurrentGacha().then(setGacha),
       teams: loadTeams,
-      dailyChallenge: () => api.getDailyChallenge().then(setDailyChallenge),
-      wheel: () => api.getWheelToday().then(setWheelToday),
+      dailyChallenge: loadDailyChallenge,
+      wheel: loadWheel,
       dailyCombat: loadDailyCombat,
       monthlyBoss: loadMonthlyBoss,
       contest: refreshContest,
@@ -299,7 +327,7 @@ function AppBootstrap() {
       event: loadEvent,
       notifications: loadNotifications,
     })
-  }, [loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources, loadTeams, refreshContest])
+  }, [loadDailyChallenge, loadWheel, loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources, loadTeams, refreshContest])
 
   const applyModerationState = useCallback((next: ModerationStateDto) => {
     setPermissions(next.permissions)
@@ -336,7 +364,7 @@ function AppBootstrap() {
       execute: async (count, idempotencyKey, onPullSucceeded) => {
         const result = await performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded)
         const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss(), refreshContest()])
-        setDailyChallenge(nextDailyChallenge)
+        acceptDaily('challenge', nextDailyChallenge, setDailyChallenge)
         return result
       },
       publish: publishGachaUpdate,
@@ -353,7 +381,7 @@ function AppBootstrap() {
       },
     })
     gachaPresentation.current.setSession(sessionUserId ?? null)
-  }, [loadMonthlyBoss, publishGachaUpdate, refreshContest, sessionUserId])
+  }, [acceptDaily, loadMonthlyBoss, publishGachaUpdate, refreshContest, sessionUserId])
 
   const pendingGachaPullCount = pendingGachaPull && pendingGachaPull.sessionId === sessionUserId
     ? pendingGachaPull.count
@@ -473,6 +501,7 @@ function AppBootstrap() {
 
   return (
     <><GameShell
+      dailyRefresh={{ refresh: refreshDailies, refreshing: dailyRefreshing, errors: dailyErrors, favor: dailyFavor }}
       onRefreshResources={refreshFavorResources}
       externalFeedbackPending={milestoneFeedbacks.length > 0}
       onRefreshChatScopes={refreshChatScopes}
@@ -534,37 +563,31 @@ function AppBootstrap() {
       expeditionMonotonicNow={expeditionMonotonicNow}
       notifications={notifications}
       onLoadExpedition={loadExpedition}
-      onStartExpedition={async (characterId, idempotencyKey) => { const result = await getGameApiClient().startExpedition(characterId, idempotencyKey); publishExpedition(result.view); return result }}
-      onClaimExpedition={async (idempotencyKey) => { const result = await getGameApiClient().claimExpedition(idempotencyKey); publishExpedition(result.view); setResources(result.resources); await loadNotifications(); return result }}
+      onStartExpedition={async (characterId, idempotencyKey) => { return dailyReads.mutate('expedition', () => getGameApiClient().startExpedition(characterId, idempotencyKey), result => { acceptDaily('expedition', result.view, publishExpedition); }) }}
+      onClaimExpedition={async (idempotencyKey) => { return dailyReads.mutate('expedition', () => getGameApiClient().claimExpedition(idempotencyKey), result => { acceptDaily('expedition', result.view, publishExpedition); setResources(result.resources); void loadNotifications().catch(() => undefined); }) }}
       onLoadNotifications={loadNotifications}
       onReadNotification={async (id) => { const next = await getGameApiClient().readNotification(id); setNotifications(next); return next }}
       onArchiveNotification={async (id) => { const next = await getGameApiClient().archiveNotification(id); setNotifications(next); return next }}
       onReadAllNotifications={async () => { const next = await getGameApiClient().readAllNotifications(); setNotifications(next); return next }}
       onArchiveReadNotifications={async () => { const next = await getGameApiClient().archiveReadNotifications(); setNotifications(next); return next }}
       onLoadDailyCombat={loadDailyCombat}
-      onSetDailyCombatSlot={async (position, characterId) => { const next = await getGameApiClient().setDailyCombatSlot(position, characterId); setDailyCombat(next); return next }}
-      onRemoveDailyCombatSlot={async (position) => { const next = await getGameApiClient().removeDailyCombatSlot(position); setDailyCombat(next); return next }}
-      onCopyActiveTeamToDailyCombat={async () => { const next = await getGameApiClient().copyActiveTeamToDailyCombat(); setDailyCombat(next); return next }}
-      onAutoSelectDailyCombat={async () => { const next = await getGameApiClient().autoSelectDailyCombat(); setDailyCombat(next); return next }}
-      onClearDailyCombatLoadout={async () => { const next = await getGameApiClient().clearDailyCombatLoadout(); setDailyCombat(next); return next }}
-      onFightDailyCombat={async (idempotencyKey) => { const result = await getGameApiClient().fightDailyCombat(idempotencyKey); setDailyCombat(result.view); setResources(result.resources); return result }}
-      onSetMonthlyBossSlot={async (position, characterId) => { const next = await getGameApiClient().setMonthlyBossSlot(position, characterId); setMonthlyBoss(next); return next }}
-      onRemoveMonthlyBossSlot={async (position) => { const next = await getGameApiClient().removeMonthlyBossSlot(position); setMonthlyBoss(next); return next }}
-      onCopyActiveTeamToMonthlyBoss={async () => { const next = await getGameApiClient().copyActiveTeamToMonthlyBoss(); setMonthlyBoss(next); return next }}
-      onClearMonthlyBossLoadout={async () => { const next = await getGameApiClient().clearMonthlyBossLoadout(); setMonthlyBoss(next); return next }}
-      onAttackMonthlyBoss={async (bossId, idempotencyKey) => { const result = await getGameApiClient().attackMonthlyBoss(bossId, idempotencyKey); setMonthlyBoss(result.view); setResources(result.resources); await loadNotifications(); return result }}
+      onSetDailyCombatSlot={async (position, characterId) => { return dailyReads.mutate('combat', () => getGameApiClient().setDailyCombatSlot(position, characterId), next => acceptDaily('combat', next, setDailyCombat)) }}
+      onRemoveDailyCombatSlot={async (position) => { return dailyReads.mutate('combat', () => getGameApiClient().removeDailyCombatSlot(position), next => acceptDaily('combat', next, setDailyCombat)) }}
+      onCopyActiveTeamToDailyCombat={async () => { return dailyReads.mutate('combat', () => getGameApiClient().copyActiveTeamToDailyCombat(), next => acceptDaily('combat', next, setDailyCombat)) }}
+      onAutoSelectDailyCombat={async () => { return dailyReads.mutate('combat', () => getGameApiClient().autoSelectDailyCombat(), next => acceptDaily('combat', next, setDailyCombat)) }}
+      onClearDailyCombatLoadout={async () => { return dailyReads.mutate('combat', () => getGameApiClient().clearDailyCombatLoadout(), next => acceptDaily('combat', next, setDailyCombat)) }}
+      onFightDailyCombat={async (idempotencyKey) => { return dailyReads.mutate('combat', () => getGameApiClient().fightDailyCombat(idempotencyKey), result => { acceptDaily('combat', result.view, setDailyCombat); setResources(result.resources); }) }}
+      onSetMonthlyBossSlot={async (position, characterId) => { return dailyReads.mutate('boss', () => getGameApiClient().setMonthlyBossSlot(position, characterId), next => acceptDaily('boss', next, setMonthlyBoss)) }}
+      onRemoveMonthlyBossSlot={async (position) => { return dailyReads.mutate('boss', () => getGameApiClient().removeMonthlyBossSlot(position), next => acceptDaily('boss', next, setMonthlyBoss)) }}
+      onCopyActiveTeamToMonthlyBoss={async () => { return dailyReads.mutate('boss', () => getGameApiClient().copyActiveTeamToMonthlyBoss(), next => acceptDaily('boss', next, setMonthlyBoss)) }}
+      onClearMonthlyBossLoadout={async () => { return dailyReads.mutate('boss', () => getGameApiClient().clearMonthlyBossLoadout(), next => acceptDaily('boss', next, setMonthlyBoss)) }}
+      onAttackMonthlyBoss={async (bossId, idempotencyKey) => { return dailyReads.mutate('boss', () => getGameApiClient().attackMonthlyBoss(bossId, idempotencyKey), result => { acceptDaily('boss', result.view, setMonthlyBoss); setResources(result.resources); void loadNotifications().catch(() => undefined); }) }}
       onLoadMonthlyBossHistory={loadMonthlyBossHistory}
       onPurchaseDailyChallenge={async (idempotencyKey) => {
-        const result = await getGameApiClient().purchaseDailyChallenge(idempotencyKey)
-        setDailyChallenge(result)
-        setResources(result.resources)
-        return result
+        return dailyReads.mutate('challenge', () => getGameApiClient().purchaseDailyChallenge(idempotencyKey), result => { acceptDaily('challenge', result, setDailyChallenge); setResources(result.resources) })
       }}
       onSwitchDailyChallenge={async (idempotencyKey) => {
-        const result = await getGameApiClient().switchDailyChallenge(idempotencyKey)
-        setDailyChallenge(result)
-        setResources(result.resources)
-        return result
+        return dailyReads.mutate('challenge', () => getGameApiClient().switchDailyChallenge(idempotencyKey), result => { acceptDaily('challenge', result, setDailyChallenge); setResources(result.resources) })
       }}
       gacha={gacha}
       characters={characters}
@@ -607,10 +630,7 @@ function AppBootstrap() {
       onLoadInventory={loadInventory}
       onLoadInventoryItemDetail={loadInventoryItemDetail}
       onConvertParticles={async (amount, idempotencyKey): Promise<DailyChallengeMutationDto> => {
-        const result = await getGameApiClient().convertPersonalParticles(amount, idempotencyKey)
-        setResources(result.resources)
-        setDailyChallenge(result)
-        return result
+        return dailyReads.mutate('challenge', () => getGameApiClient().convertPersonalParticles(amount, idempotencyKey), result => { acceptDaily('challenge', result, setDailyChallenge); setResources(result.resources) })
       }}
       onLoadBankHistory={loadBankHistory}
       onDepositBank={depositBank}
@@ -630,15 +650,16 @@ function AppBootstrap() {
       onLoadHistory={loadHistory}
       onSaveNavigationPreferences={saveNavigationPreferences}
       onClaimDailyReward={async () => {
-        const { result, resources: nextResources } = await claimDailyRewardAndRefresh(getGameApiClient())
-        setResources(nextResources)
-        setDailyRewardToday({ claimed: true, businessDate: result.businessDate, rewards: result.rewards })
-        return result
+        const response = await dailyReads.mutate('reward', () => claimDailyRewardAndRefresh(getGameApiClient()), ({ result, resources: nextResources }) => {
+          setResources(nextResources)
+          acceptDaily('reward', { claimed: true, businessDate: result.businessDate, rewards: result.rewards }, setDailyRewardToday)
+        })
+        return response.result
       }}
       onSpinWheel={async () => {
-        const result = await getGameApiClient().spinWheel()
-        setWheelToday(wheelTodayFromSpin(result))
-        await loadResources()
+        const owner = notificationSessionRef.current
+        const result = await dailyReads.mutate('wheel', () => getGameApiClient().spinWheel(), value => acceptDaily('wheel', wheelTodayFromSpin(value), setWheelToday))
+        if (owner === notificationSessionRef.current) await refreshFavorResources()
         return result
       }}
       onSignOut={async () => {

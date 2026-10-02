@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLAttributes } from 'react'
+import type { CSSProperties, HTMLAttributes, ReactNode } from 'react'
 import type { CurrentGachaDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto } from '../api/types'
 import { getProgressionPercent } from '../progression/presentation'
 import type { ScreenId } from '../types'
@@ -12,6 +12,7 @@ import DailyRewardCard from './DailyRewardCard'
 import { elementThemes } from '../utils/elementTheme'
 
 type PlayerSidebarProps = {
+  dailyTracker?: ReactNode
   isOpen: boolean
   onOpenProfile?: () => void
   onClose: () => void
@@ -29,7 +30,7 @@ type PlayerSidebarProps = {
 
 const particleElements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'] as const
 
-function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParticleConversion, onOpenDailiesOverview, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, gacha, teams }: PlayerSidebarProps) {
+function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigate, onOpenParticleConversion, onOpenDailiesOverview, playerData, resources, progression, levelUpDelta = null, profileLevelUpActive = false, gacha, teams }: PlayerSidebarProps) {
   const featuredCharacter = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const progressionPercent = getProgressionPercent(progression)
   const elementTheme = playerData.elementKey ? elementThemes[playerData.elementKey] : null
@@ -166,7 +167,7 @@ function PlayerSidebar({ isOpen, onClose, onOpenProfile, onNavigate, onOpenParti
         </div> : <button type="button" className="objective-empty" onClick={() => onNavigate('invocation')}><strong>Aucune cible sélectionnée</strong><span>Choisir parmi les quatre 5★ →</span></button>}
         </section>
 
-        {playerData.elementKey && <DailyRewardCard onOpenOverview={onOpenDailiesOverview} />}
+        {playerData.elementKey && (dailyTracker ?? <DailyRewardCard onOpenOverview={onOpenDailiesOverview} />)}
       </div>
     </aside>
   )

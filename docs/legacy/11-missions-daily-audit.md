@@ -1113,6 +1113,8 @@ Migration Z :
 
 ## R339 — Clôture du Domaine Missions / Daily
 
+**Raccordement physique étape 24 candidate review** : le [contrat Accueil/suivi Quotidiennes](../specifications/home-daily-tracker-v1.md) porte désormais la projection commune des neuf activités du hub, sans ajouter Arcade, Missions permanentes, Banque, Codes ou Concours. Défi conserve achat/switch/progression/complétion et secret avant paiement. Une formation à préparer n'est pas un combat terminé ; RUNNING, READY et départ Expédition déjà consommé sont distincts, avec les aides du propriétaire Expédition. Le masque local du suivi/Accueil n'affecte jamais l'Aperçu. Les nouvelles décisions R1007–R1010 ne réattribuent aucune responsabilité métier et ne changent pas les récompenses.
+
 Le Domaine Missions / Daily est considéré comme clôturé après R339.
 
 Les dépendances suivantes sont volontairement reportées et devront recroiser ce document lors de leurs audits :

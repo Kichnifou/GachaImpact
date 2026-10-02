@@ -72,6 +72,16 @@ beforeEach(() => {
 afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } })
 
 describe('Admin confirmations', () => {
+  it('names the selected player once and exposes role states without visual suffixes', async () => {
+    const base = state('player-a'); const alice = { ...base, player: { ...base.player, roles: ['TESTER'] as const } }
+    const { root, container } = await mount(<RoleAdminPanel state={alice} onChanged={vi.fn()} />)
+    expect(container.querySelector('h2')?.textContent).toBe('Rôles · Alice')
+    expect(container.textContent).not.toMatch(/Rôles actifs|· actif|· absent/)
+    expect(container.querySelectorAll('.admin-role-status[aria-label="Actif"]')).toHaveLength(1)
+    expect(container.querySelectorAll('.admin-role-status[aria-label="Inactif"]')).toHaveLength(2)
+    await act(async () => root.render(<RoleAdminPanel state={state('player-b')} onChanged={vi.fn()} />))
+    expect(container.querySelector('h2')?.textContent).toBe('Rôles · Bob')
+  })
   it('keeps keyboard focus inside and ignores Escape or backdrop while pending', async () => {
     function Harness() { const [open, setOpen] = useState(false); const [pending, setPending] = useState(false)
       return <><button onClick={() => setOpen(true)}>Ouvrir</button><button>Arrière</button>
