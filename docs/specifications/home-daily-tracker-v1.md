@@ -1,6 +1,14 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
-Lot candidat review du 02/10/2026. Demande propriétaire : neuf activités inchangées, projection commune, suivi manuel dans le cadre existant de sidebar, synthèse Accueil ; aucune nouvelle récompense. Les détails de présentation et de coordination sont arbitrés sous sa délégation. Validation publique de l'étape 24 non acquise.
+Lot du 02/10/2026 approuvé en review indépendante, checkpoint de promotion technique. Demande propriétaire : neuf activités inchangées, projection commune, suivi manuel dans le cadre existant de sidebar, synthèse Accueil ; aucune nouvelle récompense. Les détails de présentation et de coordination sont arbitrés sous sa délégation. Validation publique de l'étape 24 **NON acquise**.
+
+## Review indépendante et checkpoint de promotion — 02/10/2026
+
+Approbation ChatGPT transmise par la mission propriétaire sur **`2df4fa154e40fbc4bf6d040f126069e98c9a1901`** et **`52e7a2bbe9ff00e44cb109c1f423f6d8775b05e8`**, parent exact du second : 2df4fa1. R1004–R1010 acquises techniquement ; séparation Actions / En cours, limites trois/deux, masques partagés et absence de duplication acquises. Les étapes 22/23 restent publiquement validées dans leur seul périmètre documenté ; leurs derniers micro-ajustements et l'étape 24 restent à recetter.
+
+Un seul checkpoint docs-only suit 52e7a2b, puis toute la chaîne depuis **`2aa086edddcde8de8325f4e999c1e41d7d9e3976`** est destinée au fast-forward strict main/review autorisé par cette mission. Aucun code ni migration ajouté. Lecture Prisma avant promotion : code 0, 58 migrations à jour ; registre public : 58 terminées, 0 inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059. Les suites et inspections ci-dessous n'ont pas été relancées pour ce checkpoint documentaire.
+
+Après les contrôles techniques dédiés Railway/Supabase/bundle public, prochaine action : **recette publique propriétaire Sidebar / Accueil / Aperçu et micro-polish Admin/Arcade**, puis arbitrage des retours. Aucun déploiement réussi ni test public anticipé par ce document ; aucune recette gameplay Codex, mutation publique ou action Twitch. STOP, étape 25 non ouverte.
 
 ## Matrice des autorités et raccordements
 
@@ -50,7 +58,7 @@ Exemple synthétique contrôlé : huit activités disponibles, Récompense séle
 - Suite frontend **1 119/1 119 sur 109 fichiers** ; backend hors DB **1 073/1 073 sur 101 fichiers**. `verify:full` **8/8**, typechecks/builds frontend et backend, lint sans erreur. Les premiers passages ont révélé des fixtures/assertions obsolètes et une monnaie Événement perdue dans l'état attente ; corrigés avant l'exécution finale. Les tests privés DB n'ont pas été exécutés pour ce lot frontend.
 - Prisma validate et `prisma migrate status` en lecture seule : codes retour 0, schéma valide, **58 migrations, base à jour**, aucune migration candidate. Les warnings lint React existants demeurent, avec la synchronisation du reset quotidien à la session ; warning Vite de bundle >500 kB également conservé. Aucun upgrade de dépendance.
 
-`verify:quick` **5/5** également réussi. Validation publique propriétaire et review indépendante de ce candidat non acquises.
+`verify:quick` **5/5** également réussi lors de l'implémentation. Review indépendante désormais acquise selon le checkpoint ci-dessus ; validation publique propriétaire non acquise.
 
 ## Inspection locale et stabilité géométrique
 
@@ -77,8 +85,8 @@ Défaut reproduit avant correction : sept nouveaux cas échouent dans les tests 
 
 Suite frontend complète **1 129/1 129 sur 109 fichiers**, backend hors DB **1 073/1 073 sur 101 fichiers** ; typechecks/builds/lint, `verify:quick` **5/5**, `verify:full` **8/8**, diff-check réussis. Prisma validate et migrate status : codes retour 0, schéma valide et **58 migrations à jour**, lecture seule. Backend et schéma inchangés ; aucun test DB mutatif exécuté. Warnings React/bundle antérieurs conservés, aucune dépendance ajoutée.
 
-Inspection Chromium locale, GameShell/CSS réels et équipe complète : **32 cas sur les quatre formats** (une/trois actions et Expédition RUNNING + Event WAITING, attente seule, READY, terminé, unknown, erreur, Expédition masquée). Aucun doublon, carte d'attente, masque ignoré ou overflow horizontal ; cinq destinations et accès Aperçu conservés. Deux lignes En cours au maximum, scroll local accessible sur 1366/mobile, captures inspectées. Ces preuves sont locales et synthétiques ; ni mutation publique ni validation publique du correctif. Publication review seulement, puis STOP pour nouvelle review indépendante ChatGPT, sans promotion main.
+Inspection Chromium locale, GameShell/CSS réels et équipe complète : **32 cas sur les quatre formats** (une/trois actions et Expédition RUNNING + Event WAITING, attente seule, READY, terminé, unknown, erreur, Expédition masquée). Aucun doublon, carte d'attente, masque ignoré ou overflow horizontal ; cinq destinations et accès Aperçu conservés. Deux lignes En cours au maximum, scroll local accessible sur 1366/mobile, captures inspectées. Ces preuves sont locales et synthétiques ; ni mutation publique ni validation publique du correctif. L'implémentation avait été publiée sur review uniquement ; sa review indépendante est désormais acquise et la promotion relève du checkpoint dédié ci-dessus.
 
 ## Périmètre exclu
 
-Aucun Arcade, Mission permanente, Banque, Code, Concours, claim-all, tutoriel, préférence permanente, table, migration ou dépendance ajoutée au catalogue quotidien. Aucun changement des barèmes, moteurs/IA Arcade, présences autonomes Faveur, files de présentation Faveur/Level-up/Invocation, Story, OAuth, Twitch/Streamer.bot, Gift/Giveaway. Aucune mutation publique ni promotion main dans ce lot.
+Aucun Arcade, Mission permanente, Banque, Code, Concours, claim-all, tutoriel, préférence permanente, table, migration ou dépendance ajoutée au catalogue quotidien. Aucun changement des barèmes, moteurs/IA Arcade, présences autonomes Faveur, files de présentation Faveur/Level-up/Invocation, Story, OAuth, Twitch/Streamer.bot, Gift/Giveaway. Aucune mutation publique ; promotion main uniquement dans la mission dédiée explicitement autorisée.

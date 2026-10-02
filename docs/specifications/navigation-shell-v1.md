@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-## Accueil et suivi Quotidiennes — étape 24 candidate review
+## Accueil et suivi Quotidiennes — étape 24 approuvée, checkpoint de promotion technique
 
 Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar remplace seulement le contenu de sa carte basse par une section avec contrôles indépendants ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil conserve BannerHero compact et Box/Catalogue/Équipe/Sac/Boutique, puis ajoute Aujourd'hui, au plus trois suggestions et le même masquage local. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques.
 
