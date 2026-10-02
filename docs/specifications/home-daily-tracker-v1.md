@@ -1,6 +1,14 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
-Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité Home/Sidebar du 02/10/2026 est un **candidat final UX sur review uniquement**, à review indépendante puis recette propriétaire de finition. Aucun changement des neuf activités ni nouvelle récompense.
+Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité Home/Sidebar du 02/10/2026 est **approuvé en review indépendante sur 865c303**, checkpoint de promotion technique ; **smoke UX final propriétaire encore à faire**. Aucun changement des neuf activités ni nouvelle récompense.
+
+## Approbation UX finale et checkpoint de promotion — 02/10/2026
+
+Review indépendante ChatGPT acquise sur **`865c303a9931acb4cdfba4cebd5dcf80b554e6ff`**, parent exact **`51e0710087a7b807cea5557f5e9db4edd2315892`**. R1011–R1013 acquises techniquement ; étape 24 prête à la promotion strictement autorisée dans cette mission. Un seul checkpoint docs-only suit le candidat, puis toute la chaîne rejoint main/review par fast-forward strict. Aucun correctif code ni nouvelle décision ; suites/inspections ci-dessous non relancées ici.
+
+Avant promotion, Prisma migrate status : code 0, 58 migrations à jour ; registre public en lecture seule : **58 terminées, 0 inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059**. Aucune migration dans le candidat. Les preuves du déploiement exact Railway et du bundle public seront contrôlées après le push main, sans résultat anticipé ici.
+
+Prochaine action après ces contrôles techniques : **smoke UX final propriétaire Sidebar / Accueil / Aperçu**. Premier smoke métier et validation 22/23 conservés dans leur périmètre déjà acquis ; finition UX finale non encore validée publiquement. Aucun gameplay, masque utilisateur, mutation publique ni action Twitch par Codex ; STOP, étape 25 non commencée.
 
 ## Historique — review indépendante et checkpoint de promotion du 02/10/2026
 
@@ -108,7 +116,7 @@ Chromium local avec GameShell/CSS réels, équipe complète, objectif et Chat ou
 
 Parcours clavier Chromium également exécuté : Enter sur la carte Reward lance le stub partagé et rend la carte disabled/aria-busy, puis Enter sur Roue ouvre son écran ; Space sur la micro-action Aperçu ouvre l'Aperçu avec ses neuf activités. Aucune erreur JavaScript, réseau externe bloqué, aucune opération publique.
 
-Ces preuves sont locales/synthétiques, sans validation publique du polish. Le métier validé au premier smoke reste intact. Publication d'un seul commit review, parent 51e0710, puis **STOP pour review indépendante ChatGPT, sans promotion main** ; étape 25 non commencée.
+Ces preuves sont locales/synthétiques, sans validation publique du polish. Le métier validé au premier smoke reste intact. L'implémentation 865c303 avait été publiée uniquement sur review, parent 51e0710 ; sa review indépendante est désormais acquise et la promotion relève du checkpoint dédié ci-dessus. Étape 25 non commencée.
 
 ## Périmètre exclu
 

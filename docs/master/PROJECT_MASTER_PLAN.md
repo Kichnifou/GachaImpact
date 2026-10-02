@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : premier smoke métier étape 24 acquis ; micro-polish 22/23 validé ; finition UX Home/Sidebar candidate review R1011–R1013 ; Twitch générique en pause R942.
+Version : premier smoke métier étape 24 acquis ; micro-polish 22/23 validé ; finition UX approuvée indépendamment, checkpoint de promotion technique R1011–R1013 ; Twitch générique en pause R942.
 Date : 2026-10-02
-Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans leur périmètre documenté**, derniers micro-ajustements Administration/Journal/Arcade également validés au premier smoke sur **51e0710087a7b807cea5557f5e9db4edd2315892**. **24 : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition validés publiquement dans ce premier smoke**. Densité Home/Sidebar à corriger : présent lot **candidat final UX sur review seulement**, nouvelle review indépendante et recette de finition restantes ; aucune promotion main dans cette mission, étape 25 non ouverte. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : étape **21 Notifications clôturée** dans son smoke documenté. Étapes **22 Administration et 23 Arcade validées publiquement dans leur périmètre documenté**, derniers micro-ajustements Administration/Journal/Arcade également validés au premier smoke sur **51e0710087a7b807cea5557f5e9db4edd2315892**. **24 : projection commune, navigation/masques/reload, principe Accueil et séparation actions/états, Expédition validés publiquement dans ce premier smoke**. Finition UX Home/Sidebar **approuvée en review indépendante sur 865c303**, promotion technique explicitement autorisée par cette mission ; **validation publique UX finale encore à faire**, étape 25 non ouverte. Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — polish UX étape 24 du 02/10/2026
+## Point courant — promotion du polish UX étape 24 du 02/10/2026
+
+**Approbation indépendante transmise par ChatGPT :** acquise sur **865c303a9931acb4cdfba4cebd5dcf80b554e6ff**, parent exact **51e0710087a7b807cea5557f5e9db4edd2315892**. R1011–R1013 acquises techniquement ; étape 24 prête pour la promotion strictement autorisée ici, aucun correctif code supplémentaire ni nouvelle décision produit.
+
+**Gate initial de promotion exécuté :** fetch, branche review propre ; HEAD = origin/review = 865c303, origin/main = 51e0710, ahead 1 / behind 0. Chaîne autorisée : 51e0710 → 865c303 → un seul checkpoint docs-only. Prisma migrate status en lecture seule : code 0, 58 migrations à jour ; registre public reconfirmé : **58 terminées, 0 inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059**. Aucune migration dans le candidat approuvé.
+
+**État post-fast-forward visé :** toute cette chaîne sur main/review, divergence 0/0, retour local review propre. Les vérifications dédiées du SHA final Railway, Supabase et du bundle public suivent le push main ; aucun déploiement réussi n'est anticipé par ce checkpoint. Les suites/inspections du polish ci-dessous sont des preuves antérieures, non relancées pour cette mission documentaire.
+
+**Prochaine action après contrôles techniques :** smoke UX final propriétaire de Sidebar / Accueil / Aperçu. Les validations métier du premier smoke et celles de 22/23 restent acquises dans leur périmètre réel ; la finition UX n'est pas encore publiquement validée. Zéro gameplay, masque utilisateur, mutation publique ou action Twitch par Codex. **STOP ; étape 25 non commencée.**
+
+## Historique — polish UX étape 24 du 02/10/2026
 
 **Gate initial exécuté :** fetch, branche locale review, worktree propre ; HEAD = origin/main = origin/review = **51e0710087a7b807cea5557f5e9db4edd2315892**, divergence 0/0, aucun commit inattendu. Un seul commit cohérent de correction, parent exact 51e0710, publication normale review uniquement puis STOP.
 

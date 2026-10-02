@@ -1,6 +1,6 @@
 # Navigation et shell V1
 
-## Accueil et suivi Quotidiennes — étape 24, polish UX candidat review
+## Accueil et suivi Quotidiennes — étape 24, polish UX approuvé, checkpoint de promotion technique
 
 Les trois surfaces partagent le [contrat de suivi](home-daily-tracker-v1.md), sans nouvel écran ni nouvelle route. Sidebar conserve sa carte basse avec contrôles indépendants, restauration réservée dans l'en-tête et navigation au bas ; Tout voir force **Quotidiennes > Aperçu**, même depuis Roue ou Défi. Accueil présente BannerHero compact sans footer Invocation, puis Quotidiennes : au plus trois cartes entièrement cliquables et deux lignes secondaires, sans headings supplémentaires. Ses cinq anciens raccourcis sont supprimés ; leurs destinations restent dans la navigation globale. L'Aperçu conserve ses neuf cartes et ne tient pas compte des masques. [R1011–R1013](decisions-log.md) amendent seulement la présentation.
 
