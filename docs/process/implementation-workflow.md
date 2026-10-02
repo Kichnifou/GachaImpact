@@ -24,11 +24,13 @@ Pour un lot visible ou produit :
 2. ChatGPT inspecte les captures, les remarques, le vrai code concerné et les documents utiles.
 3. ChatGPT relève aussi les défauts évidents liés au sujet qui n’ont pas été mentionnés et propose les améliorations utiles.
    Si une amélioration non demandée modifierait visiblement un écran existant (bouton, barre, section, navigation, disposition, hiérarchie ou espacement), ChatGPT la propose au propriétaire et attend son accord avant de l’inclure dans un prompt Codex. Codex n’ajoute pas spontanément de contrôle ni de changement visible à un écran existant. Cette règle ne retarde pas un changement explicitement demandé, une correction purement technique sans effet visible pour le joueur ou la restauration d’un rendu déjà validé.
-4. ChatGPT pose uniquement les questions nécessaires pour verrouiller le résultat attendu.
+4. Après vérification des docs et du code pour retrouver les décisions acquises, ChatGPT regroupe toutes les questions connues en une seule salve autant que possible. Il pose uniquement celles nécessaires au résultat attendu ; aucune clarification artificielle si rien ne manque ou si les petits arbitrages sont explicitement délégués. Une vraie dépendance découverte peut nécessiter une question complémentaire.
 5. Plusieurs échanges peuvent accumuler les choix et décisions.
 6. ChatGPT produit une synthèse consolidée avant l’implémentation.
 
 Tant que le propriétaire demande encore de l’analyse ou des questions, ChatGPT ne rédige pas prématurément un prompt Codex. Le prompt est produit lorsque les choix sont suffisamment mûrs ou lorsque le propriétaire le demande explicitement. Cette phase évite les itérations inutiles et les interprétations visuelles non souhaitées.
+
+Préférer un lot et un prompt cohérents aussi complets que raisonnablement possible. Un test propriétaire, un gate irréversible, une migration dangereuse, un cutover ou une vraie dépendance peuvent justifier une coupure ; conserver ces frontières de risque.
 
 ## 2. Démarrer un lot Codex
 

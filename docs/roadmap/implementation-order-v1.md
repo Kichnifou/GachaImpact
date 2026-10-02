@@ -37,7 +37,7 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
 
 8. **Boucle Quotidiennes plus complète**
    - Récompense quotidienne, Roue, missions quotidiennes, Combat, Expédition et écran Quotidiennes.
-   - Le choix UX du raccourci/carrousel de quotidiennes sur l’Accueil reste reporté à une décision du propriétaire.
+   - La présentation Accueil/sidebar des Quotidiennes suit le contrat canonique [home-daily-tracker-v1.md](../specifications/home-daily-tracker-v1.md).
 
 ## Gates transverses avant une étape suivante
 
@@ -71,7 +71,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 22. **Administration / Modération complète** — achever les outils privés nécessaires aux domaines physiques.
 23. **Mini-jeux XP interface** — concevoir les vrais mini-jeux cadrés dans [04-xp-audit.md](../legacy/04-xp-audit.md), sans transformer les activités ordinaires en source XP.
 24. **Accueil dynamique et résumé Quotidiennes/sidebar final** — consolider [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md) et [navigation-shell-v1.md](../specifications/navigation-shell-v1.md).
-25. **Tutoriel interactif et Help final** — suivre [23-help-command-coherence-audit.md](../legacy/23-help-command-coherence-audit.md) et la navigation propriétaire.
+25. **25A — prototype Tutoriel interactif manuel** — suivre la source canonique [tutorial-v1.md](../specifications/tutorial-v1.md), R1015–R1020 : moteur sur Accueil/sidebar/chat, pause/reprise et replay. **Help final différé après validation propriétaire du prototype** ; conserver R728–R731 et la distinction Help textuel / Tutoriel interactif / Aide standalone de [23-help-command-coherence-audit.md](../legacy/23-help-command-coherence-audit.md). Les retouches UX étape 24 ouvertes sont transmises au premier lot suivant, selon [home-daily-tracker-v1.md](../specifications/home-daily-tracker-v1.md).
 26. **Recette fonctionnelle complète et équilibrage économie/progression** — vérifier ensemble les domaines physiques et leurs interactions.
 27. **Finition technique et visuelle / rétention / maintenance** — responsive/mobile, accessibilité, sécurité, concurrence, performances et cohérence avec [ui-layout-contract-v1.md](../specifications/ui-layout-contract-v1.md). Implémenter la [politique canonique de rétention](../specifications/data-retention-v1.md) après vérification domaine par domaine (statistiques, FK, états, claims, idempotence, audit/provenance) et prévoir la maintenance DB ; les autres purges ne sont pas déjà codées. Passe finale Twitch : recette de charge/performance, cible messages ordinaires en mémoire sans historique inutile, XP/parser, parité `.txt` des réponses, tests standalone Kichnifou et validation propriétaire avant éventuel outbound. La conservation définitive de Twitch reste conditionnée à cette recette et à la décision propriétaire.
 28. **Migration foundation / rehearsal** — bâtir les modèles et mappings globaux, couvrir les 17 sources, résoudre les identités Twitch, produire un plan de purge et répéter le snapshot complet en schéma privé selon [le contrat canonique](../architecture/legacy-migration-v1.md). Le premier import public du seul pilote Kichnifou a réussi ; il ne constitue pas le cutover global.

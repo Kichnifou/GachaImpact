@@ -433,7 +433,7 @@ Si un nouveau fichier de documentation doit être créé, générer un fichier t
 
 ## Boucle de conception et d’implémentation
 
-Avant de produire un prompt Codex, ChatGPT analyse le feedback du propriétaire, inspecte les captures et le vrai code concerné, pose les questions utiles puis consolide les décisions. Le prompt n’est généré que lorsque les choix sont suffisamment mûrs ou que le propriétaire le demande explicitement.
+Avant de produire un prompt Codex, ChatGPT analyse le feedback du propriétaire, inspecte les captures et le vrai code concerné, vérifie les décisions dans les docs et le code, regroupe toutes les questions connues en une seule salve autant que possible, puis consolide les décisions. Aucune clarification artificielle si aucune question n’est nécessaire ou si les petits arbitrages sont explicitement délégués. Une vraie dépendance découverte peut justifier une question complémentaire. Préférer un prompt cohérent aussi complet que raisonnablement possible ; les coupures doivent répondre à un test propriétaire, un gate irréversible, une migration risquée ou une vraie dépendance, selon le [workflow](../docs/process/implementation-workflow.md). Le prompt n’est généré que lorsque les choix sont suffisamment mûrs ou que le propriétaire le demande explicitement.
 
 Le cycle reste : Codex implémente et teste → committe et pousse le candidat sur `review` dans la même intervention → ChatGPT et le propriétaire inspectent le vrai diff GitHub → chaque correction est elle aussi testée, committée séparément et poussée sur `review` → `main` n'est mise à jour qu'après approbation → déploiements et test public. Le détail, les responsabilités, la validation publique et le rollback sont définis dans [implementation-workflow.md](../docs/process/implementation-workflow.md).
 
@@ -443,7 +443,7 @@ Le cycle reste : Codex implémente et teste → committe et pousse le candidat s
 - Toute intervention Codex qui modifie un fichier se termine, après tests et contrôle du périmètre, par un commit propre puis un push normal sur `review` dans la même intervention.
 - ChatGPT inspecte le vrai commit et le vrai diff GitHub avant de valider ou de demander une correction technique ; le résumé d’un worktree local non publié ne constitue jamais une review de référence.
 - Toute correction demandée suit à nouveau `modification → tests → commit séparé → push review`, puis ChatGPT re-review le nouveau commit réel.
-- Aucune promotion de `main` n’a lieu avant approbation indépendante explicite. Quand la review indépendante du vrai `review` GitHub est favorable, ChatGPT fournit directement le modèle et niveau de réflexion Codex recommandés, puis un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire vaut autorisation explicite de cette mission : aucune confirmation conversationnelle supplémentaire de type « go » n'est requise. ChatGPT ne promeut jamais silencieusement un candidat ; aucun force-push n’appartient au workflow normal.
+- Aucune promotion de `main` n’a lieu avant approbation indépendante explicite. Quand la review indépendante du vrai `review` GitHub est favorable **et qu’une promotion est justifiée selon le workflow**, ChatGPT fournit directement le modèle et niveau de réflexion Codex recommandés, puis un prompt dédié de promotion copiable. L'exécution volontaire de ce prompt par le propriétaire vaut autorisation explicite de cette mission : aucune confirmation conversationnelle supplémentaire de type « go » n'est requise. ChatGPT ne promeut jamais silencieusement un candidat ; aucun force-push n’appartient au workflow normal.
 - Une mission de promotion finalise aussi la documentation dans le même mouvement : après approbation, son prompt évalue le Master et les documents de statut concernés, puis les place avant le fast-forward dans un état qui restera exact après celui-ci. Le commit documentaire final est poussé sur `review`, le gate Git est exécuté, puis toute `review` est promue par fast-forward strict. Il ne présente pas comme prochaine étape une promotion qu’il accomplit ; aucun micro-commit ultérieur ne sert seulement à remplacer « promotion à faire » par « promotion faite ». Un nouveau document après promotion requiert un changement d’état réel. Les déploiements, le healthcheck et la validation publique ne sont jamais anticipés : ChatGPT les vérifie après le push `main`.
 - Les seules exceptions au commit/push sont une intervention strictement read-only ou une instruction explicite du propriétaire demandant de conserver le travail local uniquement.
 - Les commits parallèles qui touchent exclusivement `docs/Story/**` sont légitimes : ils sont conservés dans l’historique et ne sont jamais modifiés, réécrits, squashés ou revertés par les lots GachaImpact.
@@ -471,7 +471,7 @@ Après chaque lot de code Codex :
 3. Le candidat devient ainsi visible pour la review de référence sur son vrai commit GitHub.
 4. ChatGPT vérifie le commit et le diff `review` par rapport à `main` ; le propriétaire complète la review.
 5. Les corrections éventuelles sont testées et poussées sur `review`.
-6. Après une review favorable, ChatGPT fournit immédiatement le modèle/niveau Codex recommandés et un prompt dédié de promotion. L'exécution volontaire de ce prompt par le propriétaire est l'autorisation explicite de promouvoir ; `main` n’est jamais mise à jour silencieusement.
+6. Après une review favorable, **si une promotion est justifiée selon le workflow**, ChatGPT fournit le modèle/niveau Codex recommandés et un prompt dédié de promotion. L'exécution volontaire de ce prompt par le propriétaire est l'autorisation explicite de promouvoir ; `main` n’est jamais mise à jour silencieusement.
 7. Le passage sur `main` déclenche Railway et Cloudflare Pages.
 8. Dès que ChatGPT a vérifié `main == review`, Cloudflare, Railway et le healthcheck, il fournit de lui-même **À tester en public**, sans attendre une demande. Cette checklist concise est fondée sur le diff réellement promu, regroupée par parcours et limitée aux ajouts/modifications et interactions à risque ; elle ne recopie ni tests techniques ni liste générique de tout le jeu. Le propriétaire réalise ensuite ce test public.
 9. Le Master ne marque la validation publique qu’après ce test réussi.
@@ -507,7 +507,7 @@ Pour une même tâche ou ses corrections, conserver la session Codex et CONTINUI
 
 Ce mode ne réduit jamais le checkpoint Git : dans tous les cas, vérifier la branche locale, `origin/main`, `origin/review`, leur divergence, le baseline attendu et un worktree propre avant de modifier.
 
-Avant chaque prompt Codex, ChatGPT indique au propriétaire, **hors du bloc de prompt à copier**, `Codex recommandé : <modèle> — <niveau de réflexion>`. Préférence actuelle révisable : **GPT-6 Sol**. **Medium** est le défaut pour une feature ou un bug ordinaire ; **Low ou Medium** convient à la documentation, au CSS et aux microfix évidents ; **High** se justifie pour DB/migration, économie, concurrence ou async complexe, sécurité/confidentialité, architecture transverse ou bug mystérieux ; **XHigh** reste exceptionnel. Choisir toujours le niveau et, si nécessaire, un autre modèle selon la difficulté réelle et l'offre du moment ; ne pas inventer de multiplicateurs ou promesses de coût.
+Avant chaque prompt Codex, ChatGPT indique au propriétaire, **hors du bloc de prompt à copier**, `Codex recommandé : <modèle> — <niveau de réflexion>`. Préférence actuelle révisable : **GPT-6.1 Sol**. **Medium** est le défaut pour une feature ou un bug ordinaire ; **Low ou Medium** convient à la documentation, au CSS et aux microfix évidents ; **High** se justifie pour DB/migration, économie, concurrence ou async complexe, sécurité/confidentialité, architecture transverse ou bug mystérieux ; **XHigh** reste exceptionnel. Choisir toujours le niveau et, si nécessaire, un autre modèle selon la difficulté réelle et l'offre du moment ; ne pas inventer de multiplicateurs ou promesses de coût.
 
 ## Économie de contexte et preuves
 
@@ -680,7 +680,7 @@ Le socle réellement retenu et utilisé est PostgreSQL/Supabase avec Prisma côt
 
 # 14. Où trouver le détail métier
 
-Cet index route vers les fichiers réellement présents sous `docs/legacy/`. Il ne remplace pas leurs règles. Identifier d’abord le domaine actif dans le Master, puis ouvrir uniquement les propriétaires utiles.
+Cet index route vers les audits sous `docs/legacy/` et les spécifications canoniques indiquées. Il ne remplace pas leurs règles. Identifier d’abord le domaine actif dans le Master, puis ouvrir uniquement les propriétaires utiles.
 
 | Domaine / preuve | Audit propriétaire |
 |---|---|
@@ -706,6 +706,7 @@ Cet index route vers les fichiers réellement présents sous `docs/legacy/`. Il 
 | Gift Suprême / Twitch | [20-gift-twitch-audit.md](../docs/legacy/20-gift-twitch-audit.md) |
 | Giveaway / Wish | [21-giveaway-wish-audit.md](../docs/legacy/21-giveaway-wish-audit.md) |
 | Top / classements | [22-top-classements-audit.md](../docs/legacy/22-top-classements-audit.md) |
+| Tutoriel interactif | [tutorial-v1.md](../docs/specifications/tutorial-v1.md) |
 | Help / cohérence des commandes | [23-help-command-coherence-audit.md](../docs/legacy/23-help-command-coherence-audit.md) |
 | Sweep final des scripts | [24-final-script-sweep.md](../docs/legacy/24-final-script-sweep.md) |
 | Sweep final des JSON | [25-final-json-sweep.md](../docs/legacy/25-final-json-sweep.md) |

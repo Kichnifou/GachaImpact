@@ -298,7 +298,9 @@ Peut notamment accueillir les préférences V1 réellement conservées comme :
 - ordre de tri ;
 - autres préférences d'affichage explicitement utiles.
 - configuration du Menu global sous la clé stable `navigation_menu_v1`, avec uniquement `{ version, order, hidden }` et des identifiants de destinations ; aucune route, icône, étiquette ou donnée d’autorisation n’est persistée.
-- futur état Tutoriel sous une préférence distincte, avec statut `NOT_STARTED` / `IN_PROGRESS` / `COMPLETED` et `stepId` stable seulement lorsqu’un vrai moteur existera.
+- état Tutoriel **prévu, non implémenté** dans `PlayerPreference` existant : clé stable `tutorial_v1`, `{ version: 1, status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED", stepId: string | null }`. Contrat canonique [Tutoriel V1, R1018/R1019](tutorial-v1.md), sans nouvelle table ni migration.
+
+Le futur service/API Tutoriel sera dédié et authentifié, sans route JSON générique de préférences : Player issu de la session, aucun PlayerId arbitraire client, validation serveur de version/statut/stepId connus. Valeur invalide ou étape disparue : retour sûr au début du prototype. Aucune préférence Tutoriel n’est produite par le code courant.
 
 Une préférence ne peut jamais devenir une source de vérité pour :
 

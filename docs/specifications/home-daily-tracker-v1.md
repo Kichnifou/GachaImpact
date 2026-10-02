@@ -1,8 +1,22 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
-Premier smoke propriétaire sur **51e0710087a7b807cea5557f5e9db4edd2315892** : projection commune, masquage/reload, navigation, principe Accueil et séparation actions/états, Expédition et micro-polish Administration/Journal/Arcade validés. Le polish de densité a été approuvé sur 865c303 puis promu dans **e848ea6**. Le dernier smoke propriétaire valide le métier étape 24, les cartes Accueil, BannerHero compact, claim/navigation, tracker/masques/reload, séparation Expédition et 2560×1440. Les quatre derniers ajustements UX de **b35f988** sont **approuvés en review indépendante ChatGPT**, R1014 acquise techniquement ; checkpoint de promotion dédié, **dernier smoke propriétaire encore à faire**. Aucun changement des neuf activités ni nouvelle récompense.
+## Smoke public acquis et retouches UX ouvertes — passation du 02/10/2026
 
-## Approbation et checkpoint de promotion du dernier micro-polish — 02/10/2026
+Le dernier micro-polish **b35f988**, approuvé indépendamment, a été promu via **268c68750f5fcb939e6d17b94b18699eb262577b**. Le propriétaire a effectué le smoke public : projection commune, navigation, masques/reload, restoreLast/LIFO, Accueil dynamique/cartes cliquables, BannerHero et Expédition compacts, claim partagé, Sidebar/Home et 2560×1440 validés dans le périmètre des recettes documentées. Validations Administration/Journal/Arcade antérieures conservées ; **aucun défaut métier restant signalé**.
+
+Les cinq retouches suivantes sont **demandées, ouvertes, non bloquantes et NON implémentées**. Elles sont transmises au premier lot de la prochaine conversation ; leur présence ici n’autorise pas leur réalisation dans la mission documentaire.
+
+| Point | Cible du prochain correctif |
+| --- | --- |
+| A — titre sidebar | Supprimer la ligne permanente « 6 activités disponibles ». Titre `Quotidiennes [1/6]` : position actuelle sélectionnée dans les suggestions visibles parcourables / total de cette même liste ; suit masques, restauration et vraie sélection. Indicateur de navigation, jamais progression métier. Sans suggestion, `Quotidiennes` ou état compact cohérent, sans `[0/0]` obligatoire. |
+| B — titre Accueil | Supprimer également la deuxième ligne « 6 activités disponibles » et utiliser `Quotidiennes [1/6]` lorsque pertinent. La définition précise de la position et du total doit être cohérente avec la présentation Home et reste à préciser avant implémentation. Aucun taux de complétion quotidienne. |
+| C — espacement sidebar | Répartir dynamiquement titre / état / action dans le centre selon la hauteur disponible ; petite hauteur compacte, grande hauteur plus aérée. Header/footer restent en place, sans valeurs figées pour 1440p. |
+| D — Quotidiennes Accueil plus basses | Desktop : section aussi basse que possible dans la même structure shell, uniquement sa hauteur intrinsèque nécessaire ; toute hauteur libre restante revient à BannerHero. |
+| E — splash Home plus imposant | Exploiter davantage la carte comme sur Invocation : personnage plus grand, cadrage propre, sans déformation/crop catastrophique, texte lisible. Conserver bannière compacte, clic global vers Invocation, aucun footer Invocation, Pity ou bouton Pull. |
+
+Le contrat métier et la présentation **actuellement implémentée** restent décrits ci-dessous ; les cibles A–E ne doivent pas être annoncées comme livrées. Reprise globale au [Master](../master/PROJECT_MASTER_PLAN.md). Le prochain domaine cadré est [25A — prototype Tutoriel](tutorial-v1.md), R1015–R1020 ; Help final différé après validation du prototype.
+
+## Historique — approbation et checkpoint de promotion du dernier micro-polish — 02/10/2026
 
 Approbation indépendante ChatGPT acquise sur **`b35f98819e9402f8f8fe3b333ceab30e1807db38`**, parent exact **`e848ea6f0eaaab021b6baba2400d1ddea84c565b`**. R1014 approuvée techniquement, présentation R1011–R1013 précisée ; aucun correctif code ni nouvelle décision demandé. Un seul checkpoint docs-only sur review, puis fast-forward strict de toute la chaîne autorisée vers main. État post-fast-forward visé : main/review égales, divergence 0/0, retour review propre ; aucun déploiement réussi anticipé.
 
