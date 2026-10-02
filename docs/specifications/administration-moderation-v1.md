@@ -1,6 +1,6 @@
 # Administration et modération V1 — étape 22
 
-Étape 22 et correctifs R995–R998 approuvés, promus avec Arcade au checkpoint `f13f90dea5c661015c0c2fac41c660f89716d227` et testés publiquement par le propriétaire. Système, ordre des Rôles, Festivals, Journal dix/page, Historique Bannières et suppression des signalements sont validés dans ce périmètre. Le présent lot affine les groupes Rôles et les filtres du Journal (R1002), candidat review avant dernier smoke visuel ; l'étape 22 reste ouverte. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
+Étape 22 et correctifs R995–R998 approuvés, promus avec Arcade au checkpoint `f13f90dea5c661015c0c2fac41c660f89716d227` et testés publiquement par le propriétaire. Système, ordre des Rôles, Festivals, Journal dix/page, Historique Bannières et suppression des signalements sont validés dans ce périmètre. Le dernier polish des groupes Rôles et filtres Journal (R1002), commit `b373aa2aa058ddf6095a1ec442b30dc7549765af`, est approuvé en review indépendante ChatGPT le 02/10/2026, avec R999–R1003. Son checkpoint documentaire accompagne la promotion technique autorisée ; dernier smoke visuel propriétaire ensuite, avant clôture de l'étape 22. Aucun changement DB/migration, public sur 058. Les décisions métier [R959–R969](decisions-log.md) restent inchangées.
 
 ## Accès et navigation
 
