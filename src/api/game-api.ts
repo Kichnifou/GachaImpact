@@ -1,3 +1,4 @@
+import type { TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
 import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
 import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit, AdminAuditPage } from './admin-types'
@@ -215,6 +216,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       mutate: (id, action, idempotencyKey) => request<TradeResult>(`/api/v1/me/trades/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
       all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     } satisfies TradeActions,
+    getTutorial: () => request<TutorialPreferenceDto>('/api/v1/me/tutorial'),
+    putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
     startTwitchLink: () => request<{ url: string }>('/api/v1/me/twitch/start', { method: 'POST' }),

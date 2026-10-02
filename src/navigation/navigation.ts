@@ -2,7 +2,7 @@ import type { NavigationMenuDestinationId, NavigationMenuPreferenceDto } from '.
 import type { ScreenId } from '../types'
 
 export type MainNavigationId = 'home' | 'invocation' | 'characters' | 'activities' | 'inventory' | 'shop' | 'configuration'
-export type NavigationDestination = Readonly<{ id: NavigationMenuDestinationId; label: string; icon: string; screen: ScreenId | null; available: boolean }>
+export type NavigationDestination = Readonly<{ id: NavigationMenuDestinationId; label: string; icon: string; screen: ScreenId | null; available: boolean; action?: 'tutorial' }>
 export const mainNavigation = [{ id: 'home', label: 'Accueil', icon: '⌂' }, { id: 'invocation', label: 'Invocation', icon: '✦' }, { id: 'characters', label: 'Personnages', icon: '♙' }, { id: 'activities', label: 'Activités', icon: '◫' }, { id: 'inventory', label: 'Sac', icon: '◇' }, { id: 'shop', label: 'Boutique', icon: '♢' }, { id: 'configuration', label: 'Configuration', icon: '⚙' }] as const
 export const characterTabs = [{ screen: 'characters-box', label: 'Box' }, { screen: 'characters-team', label: 'Équipe' }, { screen: 'characters-catalog', label: 'Catalogue' }] as const
 export const activityTabs = [{ screen: 'activities-dailies', label: 'Quotidiennes' }, { screen: 'activities-missions', label: 'Missions' }, { screen: 'activities-combat', label: 'Combat' }, { screen: 'activities-event', label: 'Événement' }, { screen: 'activities-arcade', label: 'Arcade' }, { screen: 'activities-contest', label: 'Concours' }] as const
@@ -15,7 +15,7 @@ export const navigationDestinations: readonly NavigationDestination[] = [
   { id: 'friends', label: 'Amis', icon: '♥', screen: 'social', available: true },
   { id: 'trades', label: 'Échanges', icon: '⇄', screen: 'trades', available: true },
   { id: 'rankings', label: 'Classements', icon: '♛', screen: 'rankings', available: true },
-  { id: 'history', label: 'Historique', icon: '◷', screen: 'history', available: true }, { id: 'tutorial', label: 'Tutoriel', icon: '?', screen: null, available: false }, { id: 'configuration', label: 'Configuration', icon: '⚙', screen: 'configuration', available: true },
+  { id: 'history', label: 'Historique', icon: '◷', screen: 'history', available: true }, { id: 'tutorial', label: 'Tutoriel', icon: '?', screen: null, available: true, action: 'tutorial' }, { id: 'configuration', label: 'Configuration', icon: '⚙', screen: 'configuration', available: true },
 ]
 export const defaultNavigationPreference: NavigationMenuPreferenceDto = { version: 1, order: navigationDestinations.map(({ id }) => id), hidden: [] }
 export function mainIdForScreen(screen: ScreenId): MainNavigationId | null { if (screen.startsWith('characters-')) return 'characters'; if (screen.startsWith('activities-')) return 'activities'; if (screen === 'trades' || screen === 'bank' || screen === 'codes' || screen === 'moderation' || screen === 'social' || screen === 'profile' || screen === 'rankings' || screen === 'history') return null; return screen as MainNavigationId }

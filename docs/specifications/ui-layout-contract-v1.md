@@ -85,6 +85,8 @@ Aucune requête n’est envoyée pendant le mouvement. Un drop valide produit ex
 
 ## Interactions, modales et régions dynamiques
 
+Un overlay d'explication sur la vraie interface utilise une région réelle mesurée, jamais une copie de composant. Son spotlight reste net et visuel uniquement : toutes les interactions métier sont neutralisées, y compris au clavier. Le dialogue viewport fixe est au-dessus des modales ordinaires, hors des sous-arbres inert ; focus initial sûr, Tab borné, Escape et nettoyage exact de l'état précédent sont requis. La géométrie réagit aux resize/scroll/layout sans polling rapide ; bulle bornée au viewport, position évitant la cible lorsque possible, cible réelle rendue visible sur mobile et reduced-motion respecté. Le contrat produit et les étapes appartiennent exclusivement au [Tutoriel V1](tutorial-v1.md), candidat 25A review.
+
 Avant de créer une nouvelle interaction ou un nouveau composant UI, rechercher les patterns existants et les réutiliser ou en extraire une primitive commune. Une UX distincte ne se justifie que si les interactions existantes ne répondent pas au besoin. Les spécialisations d’une primitive commune conservent leurs permissions et données propres à chaque domaine.
 
 - Les boutons d’action réutilisent une primitive partagée dont la variante secondaire sombre, primaire, danger ou iconique définit elle-même fond, couleur, bordure, rayon, dimensions et états hover, `focus-visible`, disabled et pending. Le type par défaut est `button`. Aucun contrôle de ces familles ne dépend du fond natif clair du navigateur ou d’un héritage de couleur isolé ; les variantes métier déjà établies hors de la surface touchée ne sont pas repeintes implicitement.

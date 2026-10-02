@@ -298,9 +298,9 @@ Peut notamment accueillir les préférences V1 réellement conservées comme :
 - ordre de tri ;
 - autres préférences d'affichage explicitement utiles.
 - configuration du Menu global sous la clé stable `navigation_menu_v1`, avec uniquement `{ version, order, hidden }` et des identifiants de destinations ; aucune route, icône, étiquette ou donnée d’autorisation n’est persistée.
-- état Tutoriel **prévu, non implémenté** dans `PlayerPreference` existant : clé stable `tutorial_v1`, `{ version: 1, status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED", stepId: string | null }`. Contrat canonique [Tutoriel V1, R1018/R1019](tutorial-v1.md), sans nouvelle table ni migration.
+- état Tutoriel **physique dans le candidat 25A review, non public** dans `PlayerPreference` existant : clé stable `tutorial_v1`, `{ version: 1, status: "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED", stepId: string | null }`. Contrat canonique [Tutoriel V1, R1018/R1019](tutorial-v1.md), sans nouvelle table ni migration.
 
-Le futur service/API Tutoriel sera dédié et authentifié, sans route JSON générique de préférences : Player issu de la session, aucun PlayerId arbitraire client, validation serveur de version/statut/stepId connus. Valeur invalide ou étape disparue : retour sûr au début du prototype. Aucune préférence Tutoriel n’est produite par le code courant.
+Le candidat expose GET/PUT `/api/v1/me/tutorial` via un service dédié authentifié, sans route JSON générique de préférences : Player issu de la session, aucun PlayerId arbitraire client, validation stricte de version/statut/stepId connus. NOT_STARTED/COMPLETED imposent null ; IN_PROGRESS impose l'une des huit étapes. Valeur absente/invalide en lecture : NOT_STARTED/null, sans mutation implicite. La progression de présentation est confirmée par PUT avant affichage et n'est jamais autoritative pour le gameplay.
 
 Une préférence ne peut jamais devenir une source de vérité pour :
 

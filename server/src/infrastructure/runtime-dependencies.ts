@@ -50,6 +50,8 @@ import { GlobalChatModerationService } from '../application/moderation/global-ch
 import { AdminAuditQueryService } from '../application/moderation/admin-audit-query-service.js';
 import { PrismaShopStore } from './database/prisma-shop-store.js';
 import { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from '../application/shop/shop-services.js';
+import { TutorialPreferencesService } from '../application/tutorial/tutorial-preferences.js';
+import { PrismaTutorialPreferenceStore } from './database/prisma-tutorial-preference-store.js';
 import { NavigationPreferencesService } from '../application/navigation/navigation-preferences.js';
 import { PrismaNavigationPreferenceStore } from './database/prisma-navigation-preference-store.js';
 import { PrismaDailyChallengeStore } from './database/prisma-daily-challenge-store.js';
@@ -233,6 +235,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     getPlayerShopHistory: new GetPlayerShopHistory(getCurrentPlayer, shopStore),
     purchaseShopItem: new PurchaseShopItem(getCurrentPlayer, shopStore, clock),
     purchaseShopItemChat: new PurchaseShopItem(getCurrentPlayer, shopStore, clock, SourceChannel.INTERNAL_CHAT),
+    tutorialPreferences: new TutorialPreferencesService(getCurrentPlayer, new PrismaTutorialPreferenceStore(database)),
     navigationPreferences: new NavigationPreferencesService(getCurrentPlayer, new PrismaNavigationPreferenceStore(database)),
     dailyCombatService: new CombatService(getCurrentPlayer, dailyCombatStore, clock),
     monthlyBossService,

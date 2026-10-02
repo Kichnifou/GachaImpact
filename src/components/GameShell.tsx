@@ -2,7 +2,9 @@ import type { EventDailyOpenIntent } from '../event/event-presentation'
 import { getGameApiClient } from '../api/game-api'
 import { useFavorPresence } from '../favor/use-favor-presence'
 import FavorDailyFeedback from './FavorDailyFeedback'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import TutorialOverlay from '../tutorial/TutorialOverlay'
+import { TutorialController, type TutorialApi } from '../tutorial/tutorial-controller'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { BannerVoteCache } from '../characters/banner-vote-cache'
 import { useFriendships } from '../social/use-friendships'
 import type { SocialTab } from '../screens/SocialScreen'
@@ -83,7 +85,10 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
   codes: ['giftCodes'],
 }
 
+const defaultTutorialApi: TutorialApi = { get: () => getGameApiClient().getTutorial(), put: value => getGameApiClient().putTutorial(value) }
+
 type GameShellProps = {
+  tutorialApi?: TutorialApi
   dailyRefresh?: { refresh: () => Promise<unknown>; refreshing: boolean; errors: Partial<Record<DailyId, boolean>>; favor: FavorDto | null }
   onRefreshResources?: () => Promise<unknown>
   externalFeedbackPending?: boolean
@@ -220,7 +225,17 @@ type GameShellProps = {
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
+function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
+  const tutorial = useMemo(() => new TutorialController(tutorialApi), [player.id, tutorialApi])
+  const tutorialState = useSyncExternalStore(tutorial.subscribe, tutorial.getSnapshot)
+  const tutorialSidebar = tutorialState.active && ['profile', 'resources', 'active-team', 'objective', 'daily-tracker'].includes(tutorialState.stepId ?? '')
+  useEffect(() => { tutorial.activate(); return tutorial.dispose }, [tutorial])
+  const sidebarBeforeTutorial = useRef(false)
+  const wasTutorialActive = useRef(false)
+  useEffect(() => {
+    if (wasTutorialActive.current && !tutorialState.active) setIsSidebarOpen(sidebarBeforeTutorial.current)
+    wasTutorialActive.current = tutorialState.active
+  }, [tutorialState.active])
   const [socialTab, setSocialTab] = useState<SocialTab>('friends')
   const [historyIntent, setHistoryIntent] = useState<{ category: HistoryCategory; token: string } | null>(null)
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
@@ -425,17 +440,26 @@ function GameShell({ dailyRefresh, onArcadeMutation, onRefreshResources, externa
   }, [clearFriendshipFeedback, onGachaPresentationAbandoned, setConfigurationTab, setBossRequestToken, setEventMessagesRequestToken, setEventShopRequestToken, setEventDailyIntent, setTradeIntent])
 
   useEffect(() => {
-    const syncScreenWithHash = () => changeScreen(getScreenFromHash())
+    const syncScreenWithHash = () => { if (tutorial.getSnapshot().active) { window.history.replaceState(null, '', '#home'); return } changeScreen(getScreenFromHash()) }
     window.addEventListener('hashchange', syncScreenWithHash)
     return () => window.removeEventListener('hashchange', syncScreenWithHash)
-  }, [changeScreen])
+  }, [changeScreen, tutorial])
 
   const navigate = (screen: ScreenId) => {
+    if (tutorial.getSnapshot().active) return
     if (screen === 'moderation' && !permissions.capabilities.moderationAccess) return
     changeScreen(screen)
     window.location.hash = hashForScreen(screen)
     setIsSidebarOpen(false)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const launchTutorial = () => {
+    if (tutorial.getSnapshot().active) return
+    sidebarBeforeTutorial.current = isSidebarOpen
+    setIsMenuOpen(false); setIsPlayersOpen(false); setIsParticleConversionOpen(false)
+    changeScreen('home'); window.history.replaceState(null, '', '#home')
+    void tutorial.launch()
   }
 
   const openHistory = (category: HistoryCategory) => { setHistoryIntent({ category, token: crypto.randomUUID() }); navigate('history') }
@@ -514,7 +538,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
   }
 
   return (
-    <div className={`game-shell${isChatCollapsed ? ' chat-is-collapsed' : ''}`}>
+    <div className={`game-shell${isChatCollapsed && !(tutorialState.active && tutorialState.stepId === 'community') ? ' chat-is-collapsed' : ''}${tutorialSidebar ? ' tutorial-sidebar' : ''}`}>
       <GameHeader
         elementKey={player.elementKey}
         avatarAssetPath={player.avatarAssetPath}
@@ -562,7 +586,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
           profileLevelUpActive={profileLevelUp.visible}
           gacha={gacha}
           teams={teams}
-          isOpen={isSidebarOpen}
+          isOpen={tutorialState.active ? tutorialSidebar : isSidebarOpen}
           onClose={() => setIsSidebarOpen(false)}
           onNavigate={navigate}
           onOpenDailiesOverview={openDailiesOverview}
@@ -577,7 +601,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         </main>
 
         <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} playerAvatarAssetPath={player.avatarAssetPath} connectedCount={presence.value?.total ?? null}
-          isCollapsed={isChatCollapsed}
+          isCollapsed={tutorialState.active && tutorialState.stepId === 'community' ? false : isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
           onOpenPlayers={() => setIsPlayersOpen(true)}
           onOpenProfile={openProfile}
@@ -587,7 +611,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         />
       </div>
 
-      {isSidebarOpen && (
+      {isSidebarOpen && !tutorialState.active && (
         <button
           type="button"
           className="sidebar-backdrop"
@@ -596,8 +620,9 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         />
       )}
 
+      {tutorialState.active && <TutorialOverlay key={player.id} {...tutorialState} onNext={() => { void tutorial.next() }} onPause={tutorial.pause} onFinish={() => { void tutorial.finish() }} />}
       {isPlayersOpen && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
-      {isMenuOpen && <GlobalMenu preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
+      {isMenuOpen && <GlobalMenu onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onActivities={() => navigateMain('activities')} onClose={() => setIsMenuOpen(false)} />}
       {isParticleConversionOpen && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}
       {activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
       {completedChallengeFeedback && !externalFeedbackPending && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}

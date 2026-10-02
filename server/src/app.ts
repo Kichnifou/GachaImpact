@@ -62,6 +62,8 @@ import type { AppConfig } from './config/environment.js';
 import type { GetCurrentPlayerShop, GetPlayerShopHistory, PurchaseShopItem } from './application/shop/shop-services.js';
 import { loadConfig } from './config/environment.js';
 import type { NavigationPreferencesService } from './application/navigation/navigation-preferences.js';
+import { registerTutorialRoutes } from './api/routes/tutorial.js';
+import type { TutorialPreferencesService } from './application/tutorial/tutorial-preferences.js';
 import { registerNavigationPreferenceRoutes } from './api/routes/navigation-preferences.js';
 import { registerDailyChallengeRoutes } from './api/routes/daily-challenge.js';
 import type { ConvertPersonalParticles, GetDailyChallenge, PurchaseDailyChallenge, SwitchDailyChallenge } from './application/daily-challenge/daily-challenge-services.js';
@@ -164,6 +166,7 @@ export type AppDependencies = Readonly<{
   getCurrentPlayerShop?: GetCurrentPlayerShop;
   getPlayerShopHistory?: GetPlayerShopHistory;
   purchaseShopItem?: PurchaseShopItem;
+  tutorialPreferences?: TutorialPreferencesService;
   navigationPreferences?: NavigationPreferencesService;
   dailyCombatService?: CombatService;
   expeditionService?: ExpeditionService;
@@ -309,6 +312,7 @@ export async function buildApp(
     if (dependencies.getCurrentPlayerShop && dependencies.getPlayerShopHistory && dependencies.purchaseShopItem) {
       await app.register(registerShopRoutes, { authenticate, getCurrentPlayerShop: dependencies.getCurrentPlayerShop, getPlayerShopHistory: dependencies.getPlayerShopHistory, purchaseShopItem: dependencies.purchaseShopItem });
     }
+    if (dependencies.tutorialPreferences) await app.register(registerTutorialRoutes, { authenticate, service: dependencies.tutorialPreferences });
     if (dependencies.navigationPreferences) {
       await app.register(registerNavigationPreferenceRoutes, { authenticate, service: dependencies.navigationPreferences });
     }

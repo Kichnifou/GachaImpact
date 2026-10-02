@@ -76,7 +76,7 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
     <button type="button" className="brand" onClick={onNavigateHome} aria-label="GachaImpact — accueil"><span className="brand-mark" aria-hidden="true">✦</span><span><strong>Gacha<span>Impact</span></strong><small>Chroniques astrales</small></span></button>
     <div className="header-actions">
       <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={avatarAssetPath} className="mobile-player-art" /><strong>{displayName}</strong></button>
-      <button type="button" className="menu-header-button" onClick={onOpenMenu}>Menu</button>
+      <button type="button" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
       <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>
       <div className="notification-anchor" ref={notificationAnchorRef}>

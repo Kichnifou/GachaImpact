@@ -5,13 +5,16 @@ import type { DailyCompactProps } from './DailyTrackerCard'
 import './dailies.css'
 
 export default function HomeDailySummary({ items, tracker, claim, onOpen, onOverview, refreshing }: DailyCompactProps) {
-  const suggestions = dailyActionableSuggestions(items, tracker.hidden).slice(0, 3)
-  const [confirmed, setConfirmed] = useState<readonly DailyItem[]>(suggestions)
-  if (!claim.locked && (confirmed.length !== suggestions.length || confirmed.some((item, index) => item !== suggestions[index]))) setConfirmed(suggestions)
-  const shown = claim.locked ? confirmed : suggestions
+  const actionable = dailyActionableSuggestions(items, tracker.hidden)
+  const suggestions = actionable.slice(0, 3)
+  const [confirmed, setConfirmed] = useState<{ items: readonly DailyItem[]; total: number }>({ items: suggestions, total: actionable.length })
+  if (!claim.locked && (confirmed.total !== actionable.length || confirmed.items.length !== suggestions.length || confirmed.items.some((item, index) => item !== suggestions[index]))) setConfirmed({ items: suggestions, total: actionable.length })
+  const shown = claim.locked ? confirmed.items : suggestions
+  const total = claim.locked ? confirmed.total : actionable.length
+  const title = shown.length ? `Quotidiennes [${shown.length === 1 ? '1' : `1–${shown.length}`}/${total}]` : 'Quotidiennes'
   const ongoing = homeDailySecondaryItems(items, tracker.hidden, shown.map(item => item.id))
   return <section className="panel home-daily-summary" aria-label="Quotidiennes" aria-busy={claim.pending || refreshing}>
-    <header><div><h2>Quotidiennes</h2><p>{tracker.message}</p></div><button type="button" className="daily-tracker-all home-daily-overview" onClick={onOverview}>Voir l’Aperçu →</button></header>
+    <header><div><h2>{title}</h2></div><button type="button" className="daily-tracker-all home-daily-overview" onClick={onOverview}>Voir l’Aperçu →</button></header>
     {shown.length > 0 && <div className="home-daily-actions"><div className="home-daily-suggestions">{shown.map(item => <button type="button" className="home-daily-suggestion" key={item.id} data-daily-id={item.id}
       disabled={claim.locked || !item.destination || item.state === 'unknown' || item.state === 'error'} aria-busy={item.id === 'reward' && claim.pending} onClick={() => {
         if (claim.locked) return
@@ -22,7 +25,7 @@ export default function HomeDailySummary({ items, tracker, claim, onOpen, onOver
       <span className="home-daily-action-label">{item.id === 'reward' && item.actionable ? claim.pending ? 'Récupération…' : 'Récupérer →' : 'Accéder →'}</span>
     </button>)}</div></div>}
     {ongoing.length > 0 && <div className="home-daily-ongoing"><ul>{ongoing.map(item => <li key={item.id} data-daily-id={item.id}>{homeDailySecondaryText(item)}</li>)}</ul></div>}
-    {!shown.length && !ongoing.length && <p className="home-daily-empty">{tracker.message}. L’Aperçu reste disponible pour consulter les détails.</p>}
+    {!shown.length && <p className="home-daily-empty">{tracker.message}{!ongoing.length && '. L’Aperçu reste disponible pour consulter les détails.'}</p>}
     <footer><p className={claim.error ? 'error' : ''} aria-live="polite">{claim.error || claim.feedback}</p>
       {tracker.hidden.length > 0 && <button type="button" className="daily-tracker-all" disabled={claim.locked} onClick={tracker.restoreAll}>Réafficher les activités masquées</button>}</footer>
   </section>

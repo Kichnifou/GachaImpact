@@ -33,6 +33,37 @@ afterEach(() => { act(() => root.unmount()); container.remove(); vi.useRealTimer
 const render = async (props: HarnessProps = {}) => act(async () => { root.render(<Harness {...props} />) })
 const click = async (selector: string) => act(async () => { container.querySelector<HTMLButtonElement>(selector)!.click() })
 
+describe('daily navigation titles A/B', () => {
+  const six = () => projectDailies(dailySources()).filter(item => ['reward', 'wheel', 'challenge', 'combat', 'boss', 'event'].includes(item.id))
+  const sidebarTitle = () => container.querySelector('.daily-tracker h2')?.textContent
+  const homeTitle = () => container.querySelector('.home-daily-summary h2')?.textContent
+  it('tracks selection, mask totals and LIFO restoration without permanent second lines', async () => {
+    await render({ items: six() }); expect(sidebarTitle()).toBe('Quotidiennes [1/6]'); expect(homeTitle()).toBe('Quotidiennes [1–3/6]')
+    expect(container.querySelector('.daily-tracker-heading small')).toBeNull(); expect(container.querySelector('.home-daily-summary header p')).toBeNull()
+    await click('[aria-label="Activité suivante"]'); expect(sidebarTitle()).toBe('Quotidiennes [2/6]')
+    await click('.daily-tracker-hide'); expect(sidebarTitle()).toBe('Quotidiennes [1/5]'); expect(homeTitle()).toBe('Quotidiennes [1–3/5]')
+    await click('.daily-tracker-restore button'); expect(sidebarTitle()).toBe('Quotidiennes [2/6]'); expect(homeTitle()).toBe('Quotidiennes [1–3/6]')
+  })
+  it.each([0, 1, 2, 6])('displays the actionable range for %s cards and excludes ongoing from Home total', async count => {
+    const items: DailyItem[] = six().map((item, index) => ({ ...item, actionable: index < count, state: index < count ? 'available' as const : 'completed' as const }))
+    items.push({ ...projectDailies(dailySources()).find(item => item.id === 'expedition')!, actionable: false, state: 'in_progress' })
+    await render({ items })
+    expect(homeTitle()).toBe(count === 0 ? 'Quotidiennes' : count === 1 ? 'Quotidiennes [1/1]' : count === 2 ? 'Quotidiennes [1–2/2]' : 'Quotidiennes [1–3/6]')
+  })
+  it('has no zero ratio when suggestions are empty', async () => {
+    await render({ items: [] }); expect(sidebarTitle()).toBe('Quotidiennes'); expect(homeTitle()).toBe('Quotidiennes'); expect(container.textContent).not.toContain('[0/0]')
+  })
+  it('freezes Home range alongside cards during pending and success feedback', async () => {
+    let resolve!: (value: DailyRewardClaimDto) => void
+    const items = six(), claim = () => new Promise<DailyRewardClaimDto>(done => { resolve = done })
+    await render({ items, claim }); await click('.home-daily-suggestion[data-daily-id="reward"]')
+    const after = items.map(item => item.id === 'reward' ? { ...item, actionable: false, state: 'completed' as const } : item)
+    await render({ items: after, claim }); expect(homeTitle()).toBe('Quotidiennes [1–3/6]')
+    await act(async () => resolve(claimed)); expect(homeTitle()).toBe('Quotidiennes [1–3/6]')
+    await act(async () => vi.advanceTimersByTime(901)); expect(homeTitle()).toBe('Quotidiennes [1–3/5]')
+  })
+})
+
 describe('Shared daily consultation and claim', () => {
   it('retains a pertinent selection across rereads, rotates manually and ignores hidden items', async () => {
     await render()
@@ -271,7 +302,7 @@ describe('Compact daily presentation', () => {
   it('makes the whole Home card the only control and keeps overview as a micro action', async () => {
     await render()
     const home = container.querySelector('.home-daily-summary')!
-    expect(home.querySelector('h2')?.textContent).toBe('Quotidiennes')
+    expect(home.querySelector('h2')?.textContent).toBe('Quotidiennes [1–3/8]')
     expect(home.querySelector('.home-daily-actions > h3')).toBeNull()
     expect(home.querySelector('.home-daily-ongoing > h3')).toBeNull()
     const wheel = home.querySelector<HTMLButtonElement>('[data-daily-id="wheel"]')!

@@ -12,7 +12,7 @@ type HomeScreenProps = {
 
 function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary }: HomeScreenProps) {
   return (
-    <div className="screen-content home-screen">
+    <div data-tutorial-anchor="home" className="screen-content home-screen">
       <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
 
       {dailySummary}

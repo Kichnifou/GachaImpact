@@ -64,7 +64,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
       </div>
 
       <div className="player-priority">
-        <section className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''} sidebar-clickable`} style={profileStyle} {...cardAction("Ouvrir mon profil", () => onOpenProfile?.())}>
+        <section data-tutorial-anchor="profile" className={`panel profile-card${profileLevelUpActive ? ' level-up-active' : ''} sidebar-clickable`} style={profileStyle} {...cardAction("Ouvrir mon profil", () => onOpenProfile?.())}>
           {playerData.elementKey && <GameAssetIcon className="profile-element-watermark" src={getElementAssetPath(playerData.elementKey)} fallback="" />}
           <button type="button" onClick={onOpenProfile} className="avatar-placeholder" aria-label={`Avatar de ${playerData.displayName}`}>
             <PlayerAvatar {...playerData} className="sidebar-avatar-art" />
@@ -81,7 +81,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
           </div>
         </section>
 
-        <section className="panel resource-card currency-summary-card sidebar-clickable">
+        <section data-tutorial-anchor="resources" className="panel resource-card currency-summary-card sidebar-clickable">
           <button type="button" className="sidebar-card-link" aria-label="Ouvrir le Sac" onClick={() => onNavigate('inventory')} />
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
             <span>Ressources principales</span>
@@ -100,7 +100,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
       </div>
 
       <div className="player-secondary">
-        <section className="panel resource-card particles-card sidebar-clickable">
+        <section data-tutorial-anchor="resources" className="panel resource-card particles-card sidebar-clickable">
           <button type="button" className="sidebar-card-link" aria-label="Voir mes particules dans le Sac" onClick={() => onNavigate('inventory')} />
           <button type="button" className="section-heading section-link" onClick={() => onNavigate('inventory')}>
             <span>Particules</span>
@@ -116,7 +116,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
           {playerData.elementKey && <button type="button" className="sidebar-particle-convert" onClick={onOpenParticleConversion}>Convertir →</button>}
         </section>
 
-        <section className="panel team-card team-card-navigable">
+        <section data-tutorial-anchor="active-team" className="panel team-card team-card-navigable">
         <button type="button" className="team-card-navigation" onClick={() => onNavigate('characters-team')} aria-label={`Ouvrir l’Équipe active${activeTeam ? `, Team ${activeTeam.position}` : ''}`} />
         <div className="section-heading">
           <span>Équipe active</span><small>{activeTeam ? `Team ${activeTeam.position}${activeTeam.name ? ` · ${activeTeam.name}` : ''} · ` : ''}{activeMembers} / 4</small>
@@ -137,7 +137,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
         </div>
         </section>
 
-        <section className="panel objective-card sidebar-clickable" style={objectiveStyle} {...cardAction("Ouvrir mon objectif d’invocation", () => onNavigate('invocation'))}>
+        <section data-tutorial-anchor="objective" className="panel objective-card sidebar-clickable" style={objectiveStyle} {...cardAction("Ouvrir mon objectif d’invocation", () => onNavigate('invocation'))}>
         {featuredCharacter && <GameAssetIcon className="objective-element-watermark" src={getElementAssetPath(featuredCharacter.elementKey)} fallback="" />}
         <button type="button" className="section-heading section-link" onClick={() => onNavigate('invocation')}>
           <span>Objectif actuel</span>

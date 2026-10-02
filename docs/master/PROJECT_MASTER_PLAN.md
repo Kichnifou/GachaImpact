@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : checkpoint documentaire de passation ; étape 24 métier et interactions validés publiquement sur 268c687, cinq retouches UX ouvertes ; 25A prototype Tutoriel cadré, non implémenté.
+Version : premier candidat 25A + retouches UX A–E implémenté sur review ; étape 24 antérieure validée publiquement sur 268c687, nouveau candidat non public et non validé par Axel.
 Date : 2026-10-02
-Statut : étapes 21 Notifications, 22 Administration et 23 Arcade validées dans leurs périmètres documentés ; validations Administration/Journal/Arcade antérieures conservées. Dernier micro-polish b35f988 promu via 268c687, dernier smoke propriétaire effectué. Domaine actif : **25A — prototype Tutoriel interactif**, décisions R1015–R1020 ; Help final différé après validation du prototype. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : validations publiques antérieures conservées dans leurs périmètres documentés. Domaine actif : **25A — prototype Tutoriel interactif candidat**, R1015–R1020, avec retouches A–E R1021/R1022 dans le même lot. Review indépendante et validation propriétaire du nouveau candidat à acquérir ; Help final différé. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : permettre à n'importe quel ChatGPT/Codex/agent ou développeur de comprendre rapidement l'état du projet, les décisions déjà prises, les contraintes, les sources legacy, et la feuille de route.
 
-## Point courant — checkpoint de passation documentaire du 02/10/2026
+## Point courant — candidat 25A + UX A–E du 02/10/2026
+
+**Gate exécuté avant modification :** fetch réussi, branche `review`, worktree propre ; HEAD = origin/review = **e941c9ade841ad3ca73f87c29566cf4b7f1a344e**, parent exact et origin/main = **268c68750f5fcb939e6d17b94b18699eb262577b**, ahead 1 / behind 0. Aucun commit distant supplémentaire ni changement inattendu.
+
+**Candidat réellement implémenté :** lancement uniquement Menu > Tutoriel, retour Accueil et huit étapes figées ; contrôleur à écritures confirmées, overlay portal hors de l'interface inert, ancres réelles dont union Ressources/Particules, focus/resize/scroll et présentation mobile temporaire. API dédiée authentifiée GET/PUT `/api/v1/me/tutorial`, service et store `PlayerPreference/tutorial_v1` ; aucune migration. [Architecture et progression](../specifications/tutorial-v1.md).
+
+**Retouches A–E candidates :** titres sidebar position/total et Home plage des cartes actionnables, suppression des secondes lignes, centre sidebar distribué selon l'espace disponible, Quotidiennes intrinsèques en bas et splash compact plus présent/cadré. [Contrat, mesures et preuves locales](../specifications/home-daily-tracker-v1.md). Aucun changement métier quotidien ou Invocation.
+
+**Validation technique locale :** PASS ciblés frontend 138/138 et backend Tutoriel/navigation 31/31 ; DB Tutoriel 1/1 en schéma privé créé puis supprimé. Dernier verify:full PASS 8/8 : frontend 1175/1175, backend hors DB 1099/1099, typechecks/builds/lint et diff-check ; verify:quick PASS 5/5. Un passage intermédiaire a échoué sur le test MP inchangé dont le TTL de saisie de 120 ms avait expiré avant assertion ; fichier isolé PASS 81/81, puis suites complètes réussies. Les messages localhost:3000 ECONNREFUSED et le warning de taille du bundle étaient déjà présents dans les logs antérieurs ; aucun test final en échec. Chromium réel GameShell/CSS production aux quatre formats 2560×1440, 1920×1080, 1366×768 et 390×844 : 32 états UX et 32 étapes Tutoriel, interactions/focus, reprise/replay/retry, double clic/tactile, resize et restauration Communauté contrôlés. Cette validation locale ne constitue ni une review indépendante ni une validation publique Axel.
+
+**DB reconfirmée en lecture seule :** Prisma validate et migrate status réussis ; 58 dossiers et 58 migrations enregistrées terminées, zéro inachevée, dernière `20261001120000_058_harden_arcade_session_lifecycle`, aucune 059. Le test mutatif utilise exclusivement son schéma privé ; aucune mutation publique, aucun déploiement volontaire, aucune activation Twitch/Gift/Giveaway.
+
+**Git du candidat :** main demeure **268c68750f5fcb939e6d17b94b18699eb262577b** ; review = HEAD du présent commit candidat, SHA à vérifier sur GitHub après publication, ahead 2 / behind 0 attendu. Le commit ne contient pas son propre SHA. Un seul lot au-dessus du checkpoint e941c9a ; aucune promotion autorisée.
+
+**État exact et prochaine action :** 25A et A–E implémentés/testés localement, candidats review uniquement, **non publics et non validés par Axel**. **REVIEW INDÉPENDANTE CHATGPT DU VRAI COMMIT GITHUB SUR review.** Aucune préparation de promotion ; Help final, autostart et extension du Tutoriel restent différés. STOP après publication review et rapport.
+
+## Historique — checkpoint de passation documentaire du 02/10/2026
 
 **Gate initial exécuté :** fetch réussi, branche locale `review`, worktree propre ; HEAD = origin/main = origin/review = **268c68750f5fcb939e6d17b94b18699eb262577b**, divergence 0/0, aucun commit inattendu. Un seul commit documentaire, parent exact 268c687 ; aucune promotion main autorisée dans cette mission.
 

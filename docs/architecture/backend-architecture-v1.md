@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Tutoriel — candidat 25A review
+
+UI `TutorialController` → client API authentifié → GET/PUT `/api/v1/me/tutorial` (`api/routes/tutorial.ts`) → `TutorialPreferencesService` → `PrismaTutorialPreferenceStore` → JSONB existant `PlayerPreference/tutorial_v1`. `GetCurrentPlayer` résout le Player depuis l'identité vérifiée ; aucun playerId client, aucune route générique de préférences et aucune donnée gameplay. Validation stricte des trois propriétés version/status/stepId et des huit étapes ; absence/corruption en lecture retourne NOT_STARTED/null sans écriture. PUT effectue un upsert idempotent sur la seule PK composée Player/clé. Aucune table/colonne/migration supplémentaire. [Contrat canonique et limites](../specifications/tutorial-v1.md) ; candidat local/testé sur review, non public.
+
 ## Arcade — étape 23
 
 `domain/arcade/` sépare moteurs Memory/alignements, IA bornées, RNG reproductible, répliques et barème pur versionné. `application/arcade/` porte orchestration, projections sûres, finalisation atomique et records ; `api/routes/arcade.ts` expose cinq routes authentifiées à corps strict. `ArcadeService` verrouille Player, compare version/intent, applique un seul coup puis finalise naturellement sous SERIALIZABLE, avec retry borné et receipt immuable. `PrismaPlayerXpService` reste seul propriétaire XP/récompenses/Missions ; aucun appel pour une partie libre, aucun compteur Chat changé. [Contrat API et règles](../specifications/arcade-v1.md).

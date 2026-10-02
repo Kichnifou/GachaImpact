@@ -6,7 +6,7 @@
 .daily-tracker .daily-tracker-hide { grid-column:2; grid-row:1; min-height:24px; width:24px; padding:0; font-size:17px; }
 .daily-tracker-restore { grid-column:2; grid-row:2; width:24px; height:16px; }
 .daily-tracker-restore button { display:block; width:24px; height:16px; padding:0; background:transparent; border:0; color:#86cced; font-size:14px; cursor:pointer; }
-.daily-tracker-content { min-width:0; min-height:0; display:flex; flex-direction:column; justify-content:center; text-align:center; gap:8px; }
+.daily-tracker-content { min-width:0; min-height:0; display:flex; flex-direction:column; justify-content:space-evenly; text-align:center; gap:8px; }
 .daily-tracker-content h3 { margin:0; color:#d5e8fa; font-size:13px; overflow-wrap:anywhere; }
 .daily-tracker .daily-tracker-status { margin:0; color:#9cdef5; font-size:10px; overflow-wrap:anywhere; }
 .daily-tracker .error,.home-daily-summary .error { color:#ffb6bb; }
@@ -41,6 +41,7 @@
 .home-daily-summary > footer { color:#a0b4cf; font-size:11px; min-height:18px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; }
 .home-daily-summary > footer p { margin:0; }
 .home-daily-empty { color:#a9bfd8; font-size:13px; }
+.home-banner-preview .banner-character-asset { --banner-art-scale:1.22; transform-origin:right center; }
 @media(min-width:1121px) {
   .screen-content.home-screen { display:grid; height:100%; min-height:0; grid-template-rows:minmax(0,1fr) auto; }
   .screen-content.home-screen .home-banner { min-height:0; height:100%; grid-template-rows:minmax(0,1fr); }
@@ -49,8 +50,8 @@
   .screen-content.home-screen .celestial-placeholder { min-height:0; height:100%; grid-template-rows:minmax(0,1fr); }
   .screen-content.home-screen .celestial-placeholder > .banner-character-asset,
   .screen-content.home-screen .celestial-placeholder > .celestial-star { grid-area:1 / 1; }
-  .screen-content.home-screen .banner-character-asset { min-height:0; object-fit:contain; object-position:right center; --banner-art-scale:1; }
-  .home-daily-summary { max-height:65vh; overflow-y:auto; }
+  .screen-content.home-screen .banner-character-asset { min-height:0; object-fit:contain; object-position:right center; --banner-art-scale:1.22; }
+  .home-daily-summary { align-self:end; flex:0 0 auto; max-height:65vh; overflow-y:auto; }
 }
 @media(min-width:1121px) and (max-height:850px) {
   .player-sidebar .daily-card.daily-tracker { gap:4px; }
@@ -72,6 +73,7 @@
   .screen-content.home-screen .banner-content p { font-size:10px; line-height:1.5; margin-block:8px; }
 }
 @media(max-width:1120px) {
+  .home-banner-preview .banner-character-asset { height:70%; object-fit:contain; object-position:right bottom; transform-origin:right bottom; }
   .player-sidebar .daily-card.daily-tracker { height:110.578125px; min-height:110.578125px; grid-template-rows:30px minmax(0,1fr) 20px; gap:3px; padding:8px 10px; }
   .daily-tracker-heading { grid-template-rows:18px 12px; }
   .daily-tracker-heading h2 { font-size:13px; }

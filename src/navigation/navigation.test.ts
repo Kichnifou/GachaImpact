@@ -11,10 +11,10 @@ describe('navigation shell registry', () => {
     ['#box', 'characters-box'], ['#team', 'characters-team'], ['#characters', 'characters-catalog'], ['#inventory', 'inventory'], ['#shop', 'shop'], ['#bank', 'bank'], ['#codes', 'codes'], ['#rankings', 'rankings'], ['#history', 'history'], ['#moderation', 'moderation'],
     ['#characters/box', 'characters-box'], ['#activities/dailies', 'activities-dailies'], ['#social', 'social'],
   ] as const)('maps %s to %s', (hash, screen) => expect(parseNavigationHash(hash)).toBe(screen))
-  it('emits canonical deep links and marks future destinations unavailable', () => {
+  it('emits canonical deep links and enables Tutorial as an action without a screen', () => {
     expect(hashForScreen('characters-team')).toBe('characters/team')
     expect(hashForScreen('activities-event')).toBe('activities/event')
-    expect(navigationDestinations.filter(({ available }) => !available).map(({ id }) => id)).toEqual(['tutorial'])
+    expect(navigationDestinations.find(({ id }) => id === 'tutorial')).toMatchObject({ available: true, screen: null, action: 'tutorial' })
   })
   it('adds Rankings to the global menu without changing the seven main tiles', () => {
     expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])

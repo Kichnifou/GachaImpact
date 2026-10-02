@@ -31,6 +31,9 @@ export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTI
 export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly string[]; eligibility: string }>
 export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; avatarAssetPath?: string | null; rank: number; value: string; isSelf: boolean }>
 export type RankingPageDto = Readonly<{ metric: RankingMetricDto; categories: readonly RankingCategory[]; metrics: readonly RankingMetricDto[]; page: number; pageSize: number; total: number; totalPages: number; entries: readonly RankingEntryDto[]; self: RankingEntryDto | null; selfStatus: 'RANKED' | 'NOT_PUBLIC' | 'NOT_ELIGIBLE' }>
+export type TutorialStepId = 'profile' | 'resources' | 'active-team' | 'objective' | 'daily-tracker' | 'main-navigation' | 'home' | 'community'
+export type TutorialPreferenceDto = Readonly<{ version: 1; status: 'NOT_STARTED' | 'COMPLETED'; stepId: null } | { version: 1; status: 'IN_PROGRESS'; stepId: TutorialStepId }>
+
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 export type ModerationPlayerListQuery = Readonly<{

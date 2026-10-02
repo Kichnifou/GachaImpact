@@ -12,6 +12,8 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
   const [previous, setPrevious] = useState<DailyItem | null>(tracker.selected)
   if (!claim.locked && previous !== tracker.selected) setPrevious(tracker.selected)
   const selected = claim.locked ? previous : tracker.selected
+  const position = tracker.suggestions.findIndex(item => item.id === selected?.id) + 1
+  const title = position > 0 ? `Quotidiennes [${position}/${tracker.suggestions.length}]` : 'Quotidiennes'
   const heading = useRef<HTMLHeadingElement>(null)
   const activityHeading = useRef<HTMLHeadingElement>(null)
   const hide = () => { if (!selected || claim.locked) return; tracker.hide(selected.id); heading.current?.focus() }
@@ -26,8 +28,8 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id))?.deadline
   const status = currentMessage || (selected ? dailyTrackerStatus(selected) : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
   const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
-  return <section className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
-    <header className="daily-tracker-heading"><div><h2 ref={heading} tabIndex={-1}>Quotidiennes</h2><small>{tracker.message}</small></div>
+  return <section data-tutorial-anchor="daily-tracker" className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
+    <header className="daily-tracker-heading"><div><h2 ref={heading} tabIndex={-1}>{title}</h2></div>
       <AppButton variant="icon" className="daily-tracker-hide" disabled={!selected || !tracker.canHide || claim.locked} aria-label={selected ? `Masquer ${selected.title} pour aujourd’hui` : 'Masquer une activité'} onClick={hide}>×</AppButton>
       <div className="daily-tracker-restore"><button type="button" disabled={!tracker.hidden.length || claim.locked} style={{ visibility: tracker.hidden.length ? 'visible' : 'hidden' }} onClick={restore} aria-label={lastHidden ? `Réafficher ${lastHidden.title}` : 'Réafficher la dernière activité masquée'}>↺</button></div></header>
     <div className="daily-tracker-content">
