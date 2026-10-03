@@ -1,10 +1,10 @@
 # GachaImpact — Architecture backend V1
 
-## Tutoriel — 25A validée, extension 25B candidate review
+## Tutoriel — 25A validée, extension 25B approuvée et promue sur main
 
 UI TutorialController → client authentifié → GET/PUT /api/v1/me/tutorial (api/routes/tutorial.ts) → TutorialPreferencesService → PrismaTutorialPreferenceStore → JSONB existant PlayerPreference/tutorial_v1. GetCurrentPlayer résout le Player vérifié ; aucun playerId arbitraire ni route JSON générique. Validation stricte des trois propriétés version/status/stepId, version 1 et whitelist étendue de huit à **118 IDs** ; NOT_STARTED/COMPLETED imposent null. Absence/corruption se lit NOT_STARTED/null sans écriture. PUT conserve son upsert idempotent borné à Player/clé, sans reset des anciens IDs, changement de route/store/transaction, table/colonne ni migration.
 
-L'adaptateur frontend dérive écran/vue/panneau/ancre depuis le seul ID : PUT confirmé puis préparation DOM bornée/annulable, réponse tardive ignorée au changement de Player ; aucun écran ou ID d'entité stocké. Le mode de présentation temporaire neutralise interactions, read/seen/typing Chat/MP, consultation Panier et avance IA/REVEAL Arcade, sans modifier leurs services, permissions ou règles métier. Lectures autorisées habituelles et données réelles réutilisées. [Contrat/matrice Tutoriel](../specifications/tutorial-v1.md) ; prototype 25A clôturé selon recette publique a23a423, **25B candidat review non public et non validé par Axel**.
+L'adaptateur frontend dérive écran/vue/panneau/ancre depuis le seul ID : PUT confirmé puis préparation DOM bornée/annulable, réponse tardive ignorée au changement de Player ; aucun écran ou ID d'entité stocké. Le mode de présentation temporaire neutralise interactions, read/seen/typing Chat/MP, consultation Panier et avance IA/REVEAL Arcade, sans modifier leurs services, permissions ou règles métier. Lectures autorisées habituelles et données réelles réutilisées. [Contrat/matrice Tutoriel](../specifications/tutorial-v1.md) ; prototype 25A clôturé selon recette publique a23a423, **25B approuvée indépendamment et promue sur main par le présent checkpoint ; déploiement technique et validation publique 25B encore à acquérir**.
 
 ## Arcade — étape 23
 
