@@ -1,5 +1,5 @@
 import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
-import type { TutorialPreferenceDto } from './types'
+import type { TutorialAutostartDto, TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
 import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
 import type { AdminMutationDto, AdminPage, AdminCharacter, AdminCharacterFields, AdminPossession, AdminBannerOverview, AdminEvent, AdminEventConfig, AdminChatReport, AdminAudit, AdminAuditPage } from './admin-types'
@@ -217,6 +217,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       mutate: (id, action, idempotencyKey) => request<TradeResult>(`/api/v1/me/trades/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
       all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     } satisfies TradeActions,
+    claimTutorialAutostart: () => request<TutorialAutostartDto>('/api/v1/me/tutorial/autostart', { method: 'POST' }),
     getTutorial: () => request<TutorialPreferenceDto>('/api/v1/me/tutorial'),
     putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),

@@ -118,7 +118,7 @@ export class ArcadeService {
       }
       const final = state.outcome ? await finalizeArcade(tx, row, state, operationId, element, now, random, this.xp) : null;
       const updated = await tx.arcadeSession.update({ where: { id }, data: { privateState: json(state), randomState: BigInt(random.state),
-        version: { increment: 1 }, updatedAt: now, nextActionAt: new Date(now.getTime() + (state.kind === 'MEMORY' && (state.phase === 'REVEAL' || (!multiplayer && state.turn === 'AI')) ? 700 : !multiplayer && state.turn === 'AI' ? 350 : 120)),
+        version: { increment: 1 }, updatedAt: now, nextActionAt: new Date(now.getTime() + (state.kind === 'MEMORY' && (state.phase === 'REVEAL' || (!multiplayer && state.turn === 'AI')) ? multiplayer ? 500 : 700 : !multiplayer && state.turn === 'AI' ? 350 : 120)),
         banterId: !multiplayer && event ? banterId(event, row.version + 1, row.banterId) : row.banterId, ...final?.terminal }, include: arcadeParticipants });
       return { session: projectSession(updated, playerId), award: final?.award ?? null };
     }, candidate ? [candidate.playerId, ...(candidate.opponentPlayerId ? [candidate.opponentPlayerId] : [])] : []);

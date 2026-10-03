@@ -113,7 +113,7 @@ describe('Shared daily business projection', () => {
   })
   it('distinguishes native ineligibility from completion and temporary unavailability', () => {
     const rows = projectDailies(dailySources()).map(row => ({ ...row, state: 'completed' as const, actionable: false }))
-    expect(dailySummaryMessage(rows)).toBe('Tout est bon, tu es à jour')
+    expect(dailySummaryMessage(rows)).toBe('Terminé ✅')
     expect(dailySummaryMessage(rows.map(row => row.id === 'boss' ? { ...row, state: 'ineligible' } : row))).toBe('Aucune activité disponible pour le moment')
     expect(dailySummaryMessage(rows.map(row => row.id === 'favor' ? { ...row, state: 'unavailable' } : row))).toBe('Aucune activité disponible pour le moment')
   })

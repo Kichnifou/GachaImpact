@@ -16,11 +16,35 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   const [opponents, setOpponents] = useState<ArcadeParticipant[]>([])
   const [friendsOnly, setFriendsOnly] = useState(false)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState('')
+  const [opponentsRefreshing, setOpponentsRefreshing] = useState(false), [opponentsError, setOpponentsError] = useState('')
+  const opponentsFlight = useRef<Promise<void> | null>(null), opponentsSequence = useRef(0), opponentsFailures = useRef(0)
+  const pollWake = useRef<() => void>(() => undefined)
   const [pending, setPending] = useState(false), [refreshing, setRefreshing] = useState(false), [quitting, setQuitting] = useState(false)
   const inFlight = useRef<Promise<boolean> | null>(null), readFlight = useRef<Promise<ArcadeOverview | null> | null>(null), quitLock = useRef(false)
   const live = useRef(true), sequence = useRef(0), owner = useRef(0), failures = useRef(0)
   const snapshot = useRef(value), friendsFilter = useRef(friendsOnly), publishRef = useRef(onMutation)
   useEffect(() => { snapshot.current = value; friendsFilter.current = friendsOnly; publishRef.current = onMutation }, [value, friendsOnly, onMutation])
+  const readOpponents = useCallback((): Promise<void> => {
+    const idle = () => snapshot.current && !snapshot.current.invitation && !snapshot.current.sessions.some(row => row.status === 'ACTIVE')
+    if (!live.current || document.visibilityState === 'hidden' || !idle()) return Promise.resolve()
+    if (opponentsFlight.current) return opponentsFlight.current
+    const generation = owner.current, token = opponentsSequence.current, filter = friendsFilter.current
+    setOpponentsRefreshing(true)
+    const request = (async () => {
+      try {
+        const next = await getGameApiClient().getArcadeOpponents(filter)
+        if (live.current && generation === owner.current && token === opponentsSequence.current && filter === friendsFilter.current && idle()) {
+          setOpponents(next.opponents); setOpponentsError(''); opponentsFailures.current = 0
+        }
+      } catch (reason) {
+        if (live.current && generation === owner.current && token === opponentsSequence.current && idle()) {
+          setOpponentsError(apiErrorMessage(reason)); opponentsFailures.current++
+        }
+      } finally { if (live.current && generation === owner.current) setOpponentsRefreshing(false) }
+    })().finally(() => { if (opponentsFlight.current === request) opponentsFlight.current = null })
+    opponentsFlight.current = request
+    return request
+  }, [])
   const read = useCallback((fresh = false): Promise<ArcadeOverview | null> => {
     if (!live.current) return Promise.resolve(null)
     if (readFlight.current) {
@@ -32,18 +56,15 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
     const request = (async () => {
       try {
         const api = getGameApiClient(), next = await api.getArcade()
-        const idle = !next.invitation && !next.sessions.some(row => row.status === 'ACTIVE')
-        let candidates: { opponents: ArcadeParticipant[] } = { opponents: [] }, candidateError = ''
-        // Opponent discovery must not prevent the authoritative overview or solo play.
-        if (idle) try { candidates = await api.getArcadeOpponents(friendsFilter.current) } catch (reason) { candidateError = apiErrorMessage(reason) }
         if (live.current && generation === owner.current && token === sequence.current) {
-          failures.current = candidateError ? failures.current + 1 : 0
-          snapshot.current = next; setValue(next); setOpponents(candidates.opponents); setError('')
-          if (candidateError) setFeedback(candidateError)
+          failures.current = 0
+          snapshot.current = next; setValue(next); setError('')
+          if (next.invitation || next.sessions.some(row => row.status === 'ACTIVE')) setOpponents([])
+
           return next
         }
       } catch (reason) {
-        failures.current++
+        if (live.current && generation === owner.current && token === sequence.current) failures.current++
         if (live.current && generation === owner.current && token === sequence.current) setError(apiErrorMessage(reason))
       } finally { if (live.current && generation === owner.current && token === sequence.current) setRefreshing(false) }
       return null
@@ -53,25 +74,45 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   }, [])
   const load = useCallback(() => inFlight.current || quitLock.current || document.visibilityState === 'hidden' ? Promise.resolve(null) : read(), [read])
   useEffect(() => {
-    live.current = true; owner.current++; snapshot.current = null; setValue(null); setOpponents([])
-    let timer: number | undefined, stopped = false
-    const tick = async () => {
-      const solo = snapshot.current?.sessions.some(row => row.status === 'ACTIVE' && row.mode !== 'MULTIPLAYER')
-      if (!solo) await load()
-      if (!stopped) timer = window.setTimeout(tick, Math.min(16000, 2000 * 2 ** Math.min(failures.current, 3)))
+    live.current = true; owner.current++; snapshot.current = null; readFlight.current = null; opponentsFlight.current = null; inFlight.current = null
+    failures.current = 0; opponentsFailures.current = 0; quitLock.current = false
+    setValue(null); setOpponents([]); setPending(false); setQuitting(false); setOpponentsError(''); setFeedback(''); setError('')
+    let timer: number | undefined, opponentTimer: number | undefined, stopped = false
+    const schedule = () => {
+      window.clearTimeout(timer)
+      if (stopped || document.visibilityState === 'hidden') return
+      const active = snapshot.current?.sessions.find(row => row.status === 'ACTIVE')
+      if (active && active.mode !== 'MULTIPLAYER') return
+      const nominal = active ? 600 : snapshot.current?.invitation ? 900 : 2500
+      timer = window.setTimeout(tick, Math.min(16000, nominal * 2 ** Math.min(failures.current, 5)))
     }
-    void tick()
-    const focus = () => { if (document.visibilityState !== 'hidden') void load() }
+    const tick = async () => { await load(); schedule() }
+    const opponentsTick = async () => {
+      await readOpponents()
+      window.clearTimeout(opponentTimer)
+      if (!stopped && document.visibilityState !== 'hidden') opponentTimer = window.setTimeout(opponentsTick, Math.min(16000, 2500 * 2 ** Math.min(opponentsFailures.current, 3)))
+    }
+    pollWake.current = schedule
+    void tick().then(() => { if (!stopped) void opponentsTick() })
+    const focus = () => {
+      window.clearTimeout(timer); window.clearTimeout(opponentTimer)
+      if (document.visibilityState !== 'hidden') { void tick(); void opponentsTick() }
+    }
     window.addEventListener('focus', focus); document.addEventListener('visibilitychange', focus); window.addEventListener('arcade:refresh', focus)
-    return () => { stopped = true; live.current = false; sequence.current++; owner.current++; window.clearTimeout(timer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus); window.removeEventListener('arcade:refresh', focus) }
-  }, [load, playerId])
-  useEffect(() => { if (snapshot.current) void load() }, [friendsOnly, load])
+    return () => { stopped = true; live.current = false; sequence.current++; opponentsSequence.current++; owner.current++; window.clearTimeout(timer); window.clearTimeout(opponentTimer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus); window.removeEventListener('arcade:refresh', focus) }
+  }, [load, readOpponents, playerId])
+  useEffect(() => {
+    friendsFilter.current = friendsOnly; opponentsSequence.current++; setOpponents([])
+    const waiting = opponentsFlight.current
+    const generation = owner.current
+    if (waiting) void waiting.then(() => { if (live.current && generation === owner.current) void readOpponents() })
+    else void readOpponents()
+  }, [friendsOnly, readOpponents])
   const execute = useCallback((intent: Intent, fromQuit = false): Promise<boolean> => {
     if (inFlight.current || quitLock.current && !fromQuit) return Promise.resolve(false)
     const generation = owner.current
-    ++sequence.current; setRefreshing(false); setPending(true); setError(''); setFeedback('')
+    ++sequence.current; ++opponentsSequence.current; setRefreshing(false); setPending(true); setError(''); setFeedback('')
     const request = async () => {
-      if (readFlight.current) await readFlight.current
       const api = getGameApiClient()
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -79,7 +120,15 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
             const next = intent.kind === 'INVITE' ? await api.inviteArcade(intent.input) : await api.actArcadeInvitation(intent.invitationId, intent.input)
             if (live.current && generation === owner.current) {
               if (next.unavailable) setFeedback('Cette invitation est indisponible. Choisissez un autre adversaire.')
-              await read(true)
+              const previous = snapshot.current
+              if (previous) {
+                const invitation = next.invitation.status === 'PENDING' ? next.invitation : null
+                const sessions = next.session ? mergeArcadeSession(previous.sessions, next.session) : previous.sessions
+                const updated = { ...previous, invitation, sessions }
+                snapshot.current = updated; setValue(updated)
+                if (invitation || next.session) setOpponents([])
+              }
+              void read(true).then(() => { if (live.current && generation === owner.current) void readOpponents() })
             }
           } else {
             const next = intent.kind === 'START' ? await api.startArcade(intent.input) : await api.actArcade(intent.sessionId, intent.input)
@@ -90,7 +139,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
               const result = previous && (next.alreadyProcessed || sessions === previous.sessions) ? { ...previous, sessions } : { ...next, invitation: null, serverNow: new Date().toISOString(), sessions }
               snapshot.current = result; return result
             })
-            if (next.alreadyProcessed && live.current && generation === owner.current) await read(true)
+            if (next.alreadyProcessed && live.current && generation === owner.current) void read(true)
           }
           return true
         } catch (reason) {
@@ -115,11 +164,11 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
     }
     const pendingRequest = request().finally(() => {
       if (inFlight.current === pendingRequest) inFlight.current = null
-      if (live.current && generation === owner.current) setPending(false)
+      if (live.current && generation === owner.current) { setPending(false); pollWake.current() }
     })
     inFlight.current = pendingRequest
     return pendingRequest
-  }, [read, playerId])
+  }, [read, readOpponents, playerId])
   const start = (game: ArcadeGame, difficulty: ArcadeStart['difficulty']) => execute({ kind: 'START', input: { game, difficulty, previousSessionId: value?.sessions.find(row => row.game === game)?.id ?? null, expectedVersion: 0, idempotencyKey: crypto.randomUUID() } })
   const invite = (input: Omit<ArcadeInvite, 'idempotencyKey' | 'friendsOnly'>) => execute({ kind: 'INVITE', input: { ...input, friendsOnly, idempotencyKey: crypto.randomUUID() } })
   const actInvitation = (invitationId: string, kind: ArcadeInviteAction['kind']) => execute({ kind: 'INVITATION_ACTION', invitationId, input: { kind, idempotencyKey: crypto.randomUUID() } })
@@ -139,5 +188,5 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
       return await execute({ kind: 'ACTION', sessionId, input: { kind: 'QUIT', expectedVersion: current.version, idempotencyKey: crypto.randomUUID() } }, true)
     } finally { quitLock.current = false; if (live.current) setQuitting(false) }
   }
-  return { value, opponents, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, invite, actInvitation, act, quit }
+  return { value, opponents, opponentsRefreshing, opponentsError, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, invite, actInvitation, act, quit }
 }

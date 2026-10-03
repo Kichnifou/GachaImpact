@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js'
-import { defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
+import { autostartPreference, defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
 
 const players = ['first', 'second'].map(name => ({ id: crypto.randomUUID(), displayName: name, elementKey: 'hydro' as const, status: 'ACTIVE' as const }))
 const headers = { authorization: 'Bearer first' }
@@ -10,7 +10,8 @@ const apps: Awaited<ReturnType<typeof buildApp>>[] = []
 afterEach(async () => { await Promise.all(apps.splice(0).map(app => app.close())) })
 async function harness() {
   const values = new Map<string, unknown>()
-  const store = { read: vi.fn(async (id: string) => values.get(id) ?? null), write: vi.fn(async (id: string, value: TutorialPreferenceDto) => { values.set(id, value) }) }
+  const claimed = new Set<string>()
+  const store = { claimAutostart: vi.fn(async (id: string) => { if (claimed.has(id)) return { shouldLaunch: false as const }; claimed.add(id); const preference = autostartPreference(values.get(id)); values.set(id, preference); return { shouldLaunch: true as const, preference } }), read: vi.fn(async (id: string) => values.get(id) ?? null), write: vi.fn(async (id: string, value: TutorialPreferenceDto) => { values.set(id, value) }) }
   const playerStore = { findByIdentity: async (_provider: string, subject: string) => players[subject === 'first' ? 0 : 1]!, provision: vi.fn() }
   const service = new TutorialPreferencesService(new GetCurrentPlayer(playerStore), store)
   const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async token => ({ subject: token }) }, getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(playerStore), tutorialPreferences: service })
@@ -64,4 +65,15 @@ describe('dedicated authenticated tutorial preference', () => {
     const { app } = await harness(), value = { version: 1, status, stepId: null }
     expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial', headers, payload: value })).json()).toEqual(value)
   })
+})
+
+it('authenticates autostart, rejects client identity, and claims only for the authenticated Player', async () => {
+  const { app, store } = await harness()
+  const url = '/api/v1/me/tutorial/autostart'
+  expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401)
+  for (const payload of [{ playerId: players[1]!.id }, [], 'invalid']) expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400)
+  expect(store.claimAutostart).not.toHaveBeenCalled()
+  expect((await app.inject({ method: 'POST', url, headers })).json()).toEqual({ shouldLaunch: true, preference: { version: 1, status: 'IN_PROGRESS', stepId: 'profile' } })
+  expect(store.claimAutostart).toHaveBeenCalledWith(players[0]!.id)
+  expect((await app.inject({ method: 'POST', url, headers })).json()).toEqual({ shouldLaunch: false })
 })

@@ -8,6 +8,7 @@ import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
 import { waitForTutorialTarget } from '../tutorial/tutorial-target'
 import type { TutorialStepId } from '../api/types'
 import TutorialOverlay from '../tutorial/TutorialOverlay'
+import { useTutorialAutostart, tutorialLaunchBlockedReason } from '../tutorial/use-tutorial-autostart'
 import { TutorialController, type TutorialApi } from '../tutorial/tutorial-controller'
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { BannerVoteCache } from '../characters/banner-vote-cache'
@@ -90,7 +91,7 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
   codes: ['giftCodes'],
 }
 
-const defaultTutorialApi: TutorialApi = { get: () => getGameApiClient().getTutorial(), put: value => getGameApiClient().putTutorial(value) }
+const defaultTutorialApi: TutorialApi = { claimAutostart: () => getGameApiClient().claimTutorialAutostart(), get: () => getGameApiClient().getTutorial(), put: value => getGameApiClient().putTutorial(value) }
 
 type GameShellProps = {
   tutorialApi?: TutorialApi
@@ -471,9 +472,14 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+
+  const beforeTutorialLaunch = () => {
+    setTutorialUnavailable(''); sidebarBeforeTutorial.current = isSidebarOpen; setIsMenuOpen(false); setIsHelpOpen(false)
+  }
+
   const launchTutorial = () => {
     if (tutorial.getSnapshot().active) return
-    if (pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || document.querySelector('.invocation-sequence-panel, [data-business-pending="true"]')) {
+    if (tutorialLaunchBlockedReason(tutorialBusy)) {
       if (!isHelpOpen) setIsMenuOpen(true); setTutorialUnavailable('Terminez l’action ou la présentation en cours avant de lancer le Tutoriel.'); return
     }
     setTutorialUnavailable('')
@@ -497,6 +503,8 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const dailyItems = projectDailies(dailySources)
   const dailyTracker = useDailyTracker(dailyItems, player.id, confirmedDailyDate(dailySources), dailyTrackerEnvironment())
   const dailyClaim = useDailyClaim(onClaimDailyReward, player.id)
+  const tutorialBusy = Boolean(pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || isParticleConversionOpen)
+  useTutorialAutostart(player.id, Boolean(player.elementKey), tutorialApi, tutorial, tutorialBusy, beforeTutorialLaunch)
   useDailyRevalidation(player.id, dailyRefresh?.refresh ?? (() => Promise.resolve()), () => friendship.refresh())
   const openDailies = (tab: 'overview' | 'wheel' | 'challenge') => { setDailiesRequestedTab(tab); setDailiesOverviewRequestToken(value => value + 1); navigate('activities-dailies') }
   const openDailiesOverview = () => openDailies('overview')

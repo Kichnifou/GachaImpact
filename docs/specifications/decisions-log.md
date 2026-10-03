@@ -2,7 +2,11 @@
 
 Statut : évolutif.
 
-État de livraison : R1025/R1026 promues via 9ec8c98 ; validation publique Menu/Aide/tracker/cinq titres et 059 appliquée reçues dans la mission propriétaire. Les retouches R1027 et l’extension Arcade R1028–R1031, chaîne 177f242 + a5fd8c2, sont approuvées indépendamment et promues sur main par fast-forward strict avec le checkpoint documentaire. Étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; recette publique PvP et retouches du lot encore NON acquise. Avant déploiement : 59 migrations publiques appliquées, 060 seule pending ; application automatique par Railway à vérifier. Aucune nouvelle décision produit ni nouvel ID dans cette promotion. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+État de livraison : R1025/R1026 et R1027–R1031 promues via 8fedb6c ; déploiement Railway SUCCESS et 060 publique/60 migrations acquis selon la mission reçue. Recette propriétaire partielle de 28 acquise (self mention, présence, invitation, start hors écran, score/0 XP, Quitter, PvP opérationnel). Titres, synthèse Quotidiennes, latence Arcade et autostart R1033 restent candidats review ; Rejouer non encore validé publiquement. Étape 26 validée ; 28 active. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+
+## Autostart Tutoriel unique — R1033 (2026-10-03)
+
+- **VALIDÉ R1033 — décision propriétaire post-recette 28** : chaque Player, nouveau ou existant, reçoit un seul lancement automatique rétroactif du même Tutoriel version 1/116 étapes. Marqueur distinct PlayerPreference tutorial_v1_autostart = { version: 1, claimed: true }. Claim authentifié atomique sur player_id + preference_key, sans PlayerId client ; marqueur et état tutorial_v1 confirmés dans la même transaction. IN_PROGRESS reprend l’étape canonique (anciens aliases inclus) ; NOT_STARTED, COMPLETED ou état invalide démarre IN_PROGRESS/profile pour cet unique autostart. Après claim, jamais de nouvel autostart au refresh/relogin/jour/appareil, même après Pause, Terminer ou fermeture du navigateur ; Menu/Aide conservent reprise et replay manuels. Attendre un GameShell prêt avec élément choisi et le gate métier partagé ; ne pas claim pendant une présentation/mutation. Préférence confirmée présentée sans GET/PUT supplémentaire. Aucune migration, aucun reset global. **R1033 supersède uniquement la clause de lancement exclusivement manuel / aucun autostart de R1015 et R1023**, conservées historiquement. [Contrat canonique](tutorial-v1.md).
 
 ## Correctifs post-recette — R1027 (2026-10-03)
 

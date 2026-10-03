@@ -195,6 +195,8 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     const input={kind:'READY' as const,idempotencyKey:randomUUID()};
     const [r1,r2]=await Promise.all([service.actInvitation(b.identity,first.invitation.id,input),service.actInvitation(b.identity,first.invitation.id,input)]);
     expect(r1.invitation.sessionId).toBe(r2.invitation.sessionId);
+    expect(r1.session).toMatchObject({ id: r1.invitation.sessionId, mode: 'MULTIPLAYER', viewerSide: 'AI', participants: { PLAYER: { id: a.id }, AI: { id: b.id } } });
+    expect(r2.session).toEqual(r1.session);
     const aa=(await service.overview(a.identity)).sessions[0]!,bb=await service.session(b.identity,aa.id);
     expect(aa).toMatchObject({mode:'MULTIPLAYER',viewerSide:'PLAYER',game:'MEMORY',difficulty:'EASY',banter:{text:''}});
     expect(bb).toMatchObject({id:aa.id,viewerSide:'AI',firstSide:aa.firstSide,participants:aa.participants,board:aa.board});
@@ -227,6 +229,7 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     const mover=s.board.turn==='PLAYER'?a:b,other=mover===a?b:a;
     await act(mover,s.id,'MOVE',p1);const revealed=await act(mover,s.id,'MOVE',p2);
     expect(revealed.session.board).toMatchObject({phase:'REVEAL',turn:s.board.turn});
+    expect(Date.parse(revealed.session.nextActionAt) - now.getTime()).toBe(500);
     const early={kind:'ADVANCE' as const,expectedVersion:revealed.session.version,idempotencyKey:randomUUID()};
     await expect(service.act(other.identity,s.id,early)).rejects.toMatchObject({code:'ARCADE_TOO_EARLY'});
     tick(); const results=await Promise.allSettled([service.act(mover.identity,s.id,early),service.act(other.identity,s.id,{...early,idempotencyKey:randomUUID()})]);

@@ -8,6 +8,7 @@ import { activeFriendOf, privacyAllowedWhere } from '../social/privacy-service.j
 import { AppError } from '../../api/errors.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { arcadeTransaction, lockArcadePlayers, arcadeConflict } from './arcade-transaction.js';
+import { projectSession } from './arcade-projection.js';
 import { createArcadeSession } from './arcade-session-factory.js';
 
 export const arcadeGameNames = { MEMORY: 'Memory', CONNECT_FOUR: 'Puissance 4', TIC_TAC_TOE: 'Morpion' } as const;
@@ -21,7 +22,7 @@ export function projectInvitation(row: InvitationRow, viewer: string) {
     status: row.status as 'PENDING' | 'STARTED' | 'REFUSED' | 'CANCELLED' | 'EXPIRED' | 'INVALIDATED', hostReady: row.hostReady, guestReady: row.guestReady,
     expiresAt: row.expiresAt.toISOString(), sessionId: row.sessionId };
 }
-export type ArcadeInvitationMutation = { invitation: ReturnType<typeof projectInvitation>; operationId: string; alreadyProcessed: boolean; unavailable?: boolean };
+export type ArcadeInvitationMutation = { invitation: ReturnType<typeof projectInvitation>; operationId: string; alreadyProcessed: boolean; unavailable?: boolean; session?: ReturnType<typeof projectSession> | null };
 export const participantWhere = (id: string) => ({ OR: [{ playerId: id }, { opponentPlayerId: id }] });
 export const invitationParticipantWhere = (id: string) => ({ OR: [{ hostPlayerId: id }, { guestPlayerId: id }] });
 export async function arcadeBusy(tx: Prisma.TransactionClient, id: string, exceptInvitation?: string) {
@@ -131,9 +132,11 @@ export class ArcadeInvitations {
           row = { ...row, status, resolvedAt: now };
           return { response: { invitation: projectInvitation(row, playerId), operationId, alreadyProcessed: false, unavailable: true }, invitationId: id };
         }
+        let startedSession: ReturnType<typeof projectSession> | null = null;
         if (input.kind === 'READY') {
           if (await arcadeBusy(tx, row.hostPlayerId, id) || await arcadeBusy(tx, row.guestPlayerId, id)) throw arcadeConflict('Une partie est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
           const session = await createArcadeSession(tx, row.hostPlayerId, row.game as ArcadeGame, row.difficulty as ArcadeDifficulty, seed, now, row.guestPlayerId);
+          startedSession = projectSession({ ...session, player: row.host, opponent: row.guest }, playerId);
           row = await tx.arcadeInvitation.update({ where: { id }, data: { status: 'STARTED', guestReady: true, resolvedAt: now, sessionId: session.id }, include: invitationIdentities });
         } else {
           const status = input.kind === 'CANCEL' ? 'CANCELLED' : 'REFUSED';
@@ -143,7 +146,7 @@ export class ArcadeInvitations {
             payload: { invitationId: id, message: `${row.guest.displayName} a refusé votre invitation à ${arcadeGameNames[row.game as ArcadeGame]}.` }, createdAt: now } });
         }
         await resolveArcadeInviteNotification(tx, id, now);
-        return { response: { invitation: projectInvitation(row, playerId), operationId, alreadyProcessed: false }, invitationId: id, sessionId: row.sessionId ?? undefined };
+        return { response: { invitation: projectInvitation(row, playerId), operationId, alreadyProcessed: false, session: startedSession }, invitationId: id, sessionId: row.sessionId ?? undefined };
       });
   }
 }

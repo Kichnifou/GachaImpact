@@ -35,7 +35,7 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
       <AppButton variant="icon" className="daily-tracker-hide" disabled={!selected || !tracker.canHide || claim.locked} aria-label={selected ? `Masquer ${selected.title} pour aujourd’hui` : 'Masquer une activité'} onClick={hide}>×</AppButton>
       <div className="daily-tracker-restore"><button type="button" disabled={!tracker.hidden.length || claim.locked} style={{ visibility: tracker.hidden.length ? 'visible' : 'hidden' }} onClick={restore} aria-label={lastHidden ? `Réafficher ${lastHidden.title}` : 'Réafficher la dernière activité masquée'}>↺</button></div></header>
     <div className="daily-tracker-content">
-      <h3 ref={activityHeading} tabIndex={-1}>{selected?.title ?? tracker.message}</h3>
+      <h3 ref={activityHeading} className={selected ? undefined : 'daily-tracker-summary'} tabIndex={-1}>{selected?.title ?? tracker.message}</h3>
       {status && <p className={`daily-tracker-status ${claim.error ? 'error' : selected?.state ?? ''}`} aria-live="polite">{status}</p>}
     </div>
     <footer className="daily-tracker-footer">

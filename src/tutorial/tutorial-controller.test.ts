@@ -101,3 +101,14 @@ describe('tutorial confirmed progression', () => {
     await controller.next(); expect(api.put.mock.calls.map(([value]) => value)).toEqual([progress('profile'), progress('profile')]); expect(controller.getSnapshot().stepId).toBe('profile')
   })
 })
+
+it('presents confirmed autostart without GET/PUT and retries preparation without rewriting state', async () => {
+  const api = { get: vi.fn(), put: vi.fn() }, prepare = vi.fn().mockRejectedValueOnce(new Error('DOM')).mockResolvedValue({})
+  const controller = new TutorialController(api, prepare)
+  await controller.startConfirmed({ version: 1, status: 'IN_PROGRESS', stepId: 'arcade-memory' })
+  expect(controller.getSnapshot().retryAction).toBe('launch')
+  await controller.next()
+  expect(controller.getSnapshot().stepId).toBe('arcade-memory')
+  expect(api.get).not.toHaveBeenCalled(); expect(api.put).not.toHaveBeenCalled()
+  controller.pause(); expect(controller.getSnapshot().active).toBe(false)
+})

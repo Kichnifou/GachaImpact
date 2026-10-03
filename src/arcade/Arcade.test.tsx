@@ -1,3 +1,4 @@
+import { useArcade } from './use-arcade'
 import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
 import { getTutorialStep } from '../tutorial/tutorial-catalog'
 // @vitest-environment happy-dom
@@ -472,4 +473,80 @@ describe('Multiplayer Arcade interface and polling', () => {
     expect(container.querySelector('.arcade-error')?.textContent).toContain('indisponible')
     expect(button(container,'Commencer').disabled).toBe(false)
   })
+})
+
+let arcadeControl: ReturnType<typeof useArcade>
+function ArcadeControl() { arcadeControl = useArcade('player-a'); return <span>{arcadeControl.pending ? 'pending' : 'ready'}</span> }
+describe('Arcade response latency and adaptive reads', () => {
+  it('publishes overview while opponent discovery is still blocked', async () => {
+    api.getArcadeOpponents.mockImplementation(() => new Promise(() => undefined))
+    const { container } = await mount(<ArcadeScreen playerId="player-a" />)
+    expect(button(container, 'Commencer').disabled).toBe(false)
+    expect(api.getArcadeOpponents).toHaveBeenCalledOnce()
+  })
+  it.each(['INVITE', 'CANCEL', 'REFUSE', 'READY'] as const)('applies %s response before blocked overview/opponents and releases pending', async kind => {
+    vi.useFakeTimers()
+    api.getArcade.mockResolvedValue({ ...overview(), invitation: kind === 'INVITE' ? null : challenge })
+    api.getArcadeOpponents.mockImplementation(() => new Promise(() => undefined))
+    await mount(<ArcadeControl />)
+    api.getArcade.mockImplementation(() => new Promise(() => undefined))
+    const invited = { ...challenge, direction: 'OUTGOING' as const }
+    const next = { invitation: { ...invited, status: kind === 'INVITE' ? 'PENDING' as const : kind === 'READY' ? 'STARTED' as const : kind === 'CANCEL' ? 'CANCELLED' as const : 'REFUSED' as const }, operationId: 'op', alreadyProcessed: false, session: kind === 'READY' ? multiplayer() : null }
+    api.inviteArcade.mockResolvedValue(next); api.actArcadeInvitation.mockResolvedValue(next)
+    await act(async () => { if (kind === 'INVITE') await arcadeControl.invite({ game: 'MEMORY', difficulty: 'MEDIUM', opponentPlayerId: participantB.id }); else await arcadeControl.actInvitation(challenge.id, kind) })
+    expect(arcadeControl.pending).toBe(false)
+    expect(arcadeControl.value?.invitation?.status ?? null).toBe(kind === 'INVITE' ? 'PENDING' : null)
+    if (kind === 'READY') expect(arcadeControl.value?.sessions[0]).toEqual(next.session)
+    await act(async () => { await vi.advanceTimersByTimeAsync(2000) })
+    expect(arcadeControl.pending).toBe(false)
+  })
+  it.each(['PVP', 'INVITATION', 'IDLE', 'SOLO'] as const)('uses the %s cadence without overlapping reads and suspends hidden', async state => {
+    vi.useFakeTimers()
+    const nominal = state === 'PVP' ? 600 : state === 'INVITATION' ? 900 : 2500
+    api.getArcade.mockResolvedValue({ ...overview(state === 'PVP' ? [multiplayer()] : state === 'SOLO' ? [session('MEMORY')] : []), invitation: state === 'INVITATION' ? challenge : null })
+    await mount(<ArcadeControl />)
+    expect(api.getArcade).toHaveBeenCalledOnce()
+    await act(async () => { await vi.advanceTimersByTimeAsync(nominal - 1) }); expect(api.getArcade).toHaveBeenCalledOnce()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) }); expect(api.getArcade).toHaveBeenCalledTimes(state === 'SOLO' ? 1 : 2)
+    api.getArcade.mockImplementation(() => new Promise(() => undefined))
+    await act(async () => window.dispatchEvent(new Event('focus')))
+    const calls = api.getArcade.mock.calls.length
+    await act(async () => { window.dispatchEvent(new Event('focus')); await vi.advanceTimersByTimeAsync(5000) })
+    expect(api.getArcade).toHaveBeenCalledTimes(calls)
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(5000) })
+    expect(api.getArcade).toHaveBeenCalledTimes(calls)
+  })
+  it('advances PvP Memory near the authoritative 500 ms deadline without a 750 ms floor', async () => {
+    vi.useFakeTimers()
+    const row = multiplayer('MEMORY'); if (row.board.kind !== 'MEMORY') throw Error('Memory')
+    row.board.phase = 'REVEAL'; row.nextActionAt = new Date(Date.now() + 500).toISOString()
+    api.getArcade.mockResolvedValue(overview([row])); api.actArcade.mockImplementation(() => new Promise(() => undefined))
+    await mount(<ArcadeScreen playerId="player-a" />)
+    await act(async () => { await vi.advanceTimersByTimeAsync(579) }); expect(api.actArcade).not.toHaveBeenCalled()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1) }); expect(api.actArcade).toHaveBeenCalledOnce()
+  })
+})
+
+it('coalesces opponents focus reads and rejects a response for a previous friends filter', async () => {
+  let resolve!: (value: { opponents: typeof participantB[] }) => void
+  api.getArcadeOpponents.mockImplementationOnce(() => new Promise(done => { resolve = done }))
+  await mount(<ArcadeControl />)
+  await act(async () => { window.dispatchEvent(new Event('focus')); window.dispatchEvent(new Event('focus')); arcadeControl.setFriendsOnly(true) })
+  expect(api.getArcadeOpponents).toHaveBeenCalledOnce()
+  api.getArcadeOpponents.mockResolvedValue({ opponents: [] })
+  await act(async () => { resolve({ opponents: [participantB] }); await Promise.resolve(); await Promise.resolve() })
+  expect(arcadeControl.opponents).toEqual([])
+  expect(api.getArcadeOpponents).toHaveBeenLastCalledWith(true)
+})
+it('backs off failed overview reads, recovers the PvP cadence and refreshes immediately on visibility return', async () => {
+  vi.useFakeTimers(); api.getArcade.mockRejectedValueOnce(new Error('offline')).mockResolvedValue(overview([multiplayer()]))
+  await mount(<ArcadeControl />)
+  await act(async () => { await vi.advanceTimersByTimeAsync(4999) }); expect(api.getArcade).toHaveBeenCalledOnce()
+  await act(async () => { await vi.advanceTimersByTimeAsync(1) }); expect(api.getArcade).toHaveBeenCalledTimes(2)
+  await act(async () => { await vi.advanceTimersByTimeAsync(600) }); expect(api.getArcade).toHaveBeenCalledTimes(3)
+  const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
+  await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(3000) }); expect(api.getArcade).toHaveBeenCalledTimes(3)
+  visibility.mockReturnValue('visible')
+  await act(async () => document.dispatchEvent(new Event('visibilitychange'))); expect(api.getArcade).toHaveBeenCalledTimes(4)
 })

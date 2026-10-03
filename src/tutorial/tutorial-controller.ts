@@ -1,9 +1,9 @@
-import type { TutorialPreferenceDto, TutorialStepId } from '../api/types'
+import type { TutorialAutostartDto, TutorialPreferenceDto, TutorialStepId } from '../api/types'
 import { tutorialSteps } from './tutorial-catalog'
 export { tutorialSteps } from './tutorial-catalog'
 export type PreparedTutorialTarget = Readonly<{ anchor?: string; fallback?: boolean }>
 export type PrepareTutorial = (id: TutorialStepId, signal: AbortSignal) => Promise<PreparedTutorialTarget>
-export type TutorialApi = { get: () => Promise<TutorialPreferenceDto>; put: (value: TutorialPreferenceDto) => Promise<TutorialPreferenceDto> }
+export type TutorialApi = { claimAutostart?: () => Promise<TutorialAutostartDto>; get: () => Promise<TutorialPreferenceDto>; put: (value: TutorialPreferenceDto) => Promise<TutorialPreferenceDto> }
 export type TutorialAction = 'launch' | 'previous' | 'next' | 'finish'
 type Snapshot = Readonly<{ active: boolean; stepId: TutorialStepId | null; confirmedStepId: TutorialStepId | null; phase: 'idle' | 'writing' | 'preparing'; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction: TutorialAction | null }>
 
@@ -41,6 +41,11 @@ export class TutorialController {
         if (this.pauseRequested) { this.pauseRequested = false; this.pause() }
       }
     }
+  }
+  startConfirmed = (preference: TutorialPreferenceDto & { status: 'IN_PROGRESS' }) => {
+    if (this.snapshot.active || this.disposed) return
+    this.update({ active: true, stepId: null })
+    return this.run('launch', () => this.present(preference.stepId))
   }
   launch = () => {
     if (this.snapshot.active || this.disposed) return

@@ -65,8 +65,8 @@ export class AppearanceService {
         const isOwned = owned.has(item.id);
         if (item.sourceCharacterId && (!isOwned || !ownedCharacters.has(item.sourceCharacterId))) return [];
         if (!isOwned && item.visibility === CosmeticVisibility.SECRET) return [];
-        const rule = item.unlockRule as { type?: string; level?: number } | null;
-        const levelRequirement = item.type === 'TITLE' && (isOwned || item.visibility === 'VISIBLE') && rule?.type === 'PLAYER_LEVEL' && Number.isInteger(rule.level) ? rule.level! : null;
+        const rule = item.unlockRule as { kind?: string; level?: number } | null;
+        const levelRequirement = item.type === 'TITLE' && (isOwned || item.visibility === 'VISIBLE') && rule?.kind === 'PLAYER_LEVEL' && Number.isInteger(rule.level) ? rule.level! : null;
         return [{ id: item.id, type: item.type, sourceCharacterId: item.sourceCharacterId, displayName: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? item.sourceCharacter?.name ?? item.displayName : 'Cosmétique mystérieux',
           assetPath: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? officialAsset(item.sourceCharacterId ? item.sourceCharacter?.iconPath ?? null : item.assetPath) : null,
           condition: !isOwned && item.visibility === CosmeticVisibility.VISIBLE ? item.conditionText : null,

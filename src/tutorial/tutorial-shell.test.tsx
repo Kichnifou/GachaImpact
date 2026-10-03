@@ -73,3 +73,18 @@ it('keeps the Menu available with a concrete notice when a business operation is
   expect(document.querySelector('.tutorial-bubble')).toBeNull()
   expect(api.get).not.toHaveBeenCalled(); expect(api.put).not.toHaveBeenCalled()
 })
+
+it('autostarts the real GameShell overlay from a confirmed preference and preserves manual launch', async () => {
+  const props = gameShellProps(), preference = { version: 1, status: 'IN_PROGRESS', stepId: 'profile' } as const
+  const api = { get: vi.fn(async () => preference), put: vi.fn(async (value: TutorialPreferenceDto) => value), claimAutostart: vi.fn(async () => ({ shouldLaunch: true as const, preference })) }
+  await act(async () => root.render(<GameShell {...props} externalFeedbackPending tutorialApi={api} />))
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 130)) })
+  expect(api.claimAutostart).not.toHaveBeenCalled()
+  await act(async () => root.render(<GameShell {...props} tutorialApi={api} />))
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 180)) })
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 40)) })
+  expect(api.claimAutostart).toHaveBeenCalledOnce(); expect(document.querySelector('.tutorial-bubble')).not.toBeNull()
+  expect(api.get).not.toHaveBeenCalled(); expect(api.put).not.toHaveBeenCalled()
+  await act(async () => Array.from(document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble button')).find(el => el.textContent === 'Pause')!.click())
+  expect(document.querySelector('.tutorial-bubble')).toBeNull()
+})

@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Autostart Tutoriel R1033 — candidat post-recette
+
+GameShell prêt/gate métier partagé → POST /api/v1/me/tutorial/autostart authentifié sans PlayerId client → TutorialPreferencesService → PrismaTutorialPreferenceStore. Un seul INSERT ON CONFLICT DO NOTHING du marqueur tutorial_v1_autostart gagne ; la même transaction lit/canonicalise/upsert tutorial_v1. Concurrent perdant retourne false sans mutation de l’état Tutoriel. Controller.startConfirmed prépare la préférence reçue sans GET/PUT additionnel ; isolation Player, blocages, reprise/replay manuel et 116 étapes conservés. Aucun schéma ni migration nouveau. [Source](../specifications/tutorial-v1.md).
+
 ## Tutoriel — 25A validée, 25B promue via 81d7234, correctif propriétaire approuvé et promu sur main
 
 UI TutorialController → client authentifié → GET/PUT /api/v1/me/tutorial (api/routes/tutorial.ts) → TutorialPreferencesService → PrismaTutorialPreferenceStore → JSONB existant PlayerPreference/tutorial_v1. GetCurrentPlayer résout le Player vérifié ; aucun playerId arbitraire ni route JSON générique. Validation stricte des trois propriétés version/status/stepId, version 1 et whitelist de **116 IDs actifs** et deux aliases legacy (menu-pagination → notifications-entry, event-calendar → arcade-memory), GET sans réparation et PUT canonicalisé ; NOT_STARTED/COMPLETED imposent null. Absence/corruption se lit NOT_STARTED/null sans écriture. PUT conserve son upsert idempotent borné à Player/clé, sans reset des anciens IDs, changement de route/store/transaction, table/colonne ni migration.

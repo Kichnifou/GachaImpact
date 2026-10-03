@@ -286,6 +286,8 @@ Le détail technique exact pourra être soit un petit état du Player, soit une 
 
 ## 4.5 `PlayerPreference`
 
+R1033, candidat post-recette : clé supplémentaire tutorial_v1_autostart, JSON { version: 1, claimed: true }, même unicité playerId + preferenceKey. Claim et canonicalisation de tutorial_v1 atomiques, sans nouveau schéma. Nouveaux/anciens Players éligibles une fois ; [contrat Tutoriel](tutorial-v1.md).
+
 Préférences personnelles non autoritatives de présentation.
 
 Clé conceptuelle :
@@ -2177,4 +2179,4 @@ Les cinq définitions sont TITLE/VISIBLE/actives, assetPath NULL, unlockRule PLA
 
 Selon [Arcade R1028–R1031](arcade-v1.md#multijoueur-arcade--étape-28), ArcadeSession ajoute mode SOLO par défaut ou MULTIPLAYER et opponentPlayerId nullable, participants canoniques hôte PLAYER/invité AI. Invitation persistée = hostPlayerId/guestPlayerId/game/difficulty/status/hostReady/guestReady/createdAt/expiresAt/resolvedAt/sessionId nullable. Receipt peut cibler une invitation sans session, pour replay durable de tout lifecycle. Session partagée et résultat canonique versionné dérivent les résultats propres, paires et scores des deux dans les ArcadeStat/Records existants ; XP/grants/quota/progression/économie absents en MULTIPLAYER. Aucun nouvel agrégat PvP. Source autoritative et DTO masquent RNG/observations/faces cachées et données de présence.
 
-Apparence R1027 : levelRequirement est une projection de unlockRule PLAYER_LEVEL du catalogue TITLE autorisé, aucune nouvelle colonne. Elle groupe Titres de niveaux et trie numériquement descendant ; autre famille séparée. Niveau joueur, noms/seuils/possessions/équipements et migration 059 inchangés. [Contrat UI](ui-layout-contract-v1.md#retouches-post-recette-et-arcade-multijoueur--r1027r1031).
+Apparence R1027 : levelRequirement est une projection du JSON physique canonique unlockRule { kind: "PLAYER_LEVEL", level } (059) ; le défaut kind/type est corrigé en lecture seulement. Elle dérive les seuils du catalogue TITLE autorisé, aucune nouvelle colonne. Elle groupe Titres de niveaux et trie numériquement descendant ; autre famille séparée. Niveau joueur, noms/seuils/possessions/équipements et migration 059 inchangés. [Contrat UI](ui-layout-contract-v1.md#retouches-post-recette-et-arcade-multijoueur--r1027r1031).

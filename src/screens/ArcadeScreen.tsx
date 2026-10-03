@@ -37,7 +37,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   useEffect(() => { if (activeGame && activeDifficulty) { setGame(activeGame); setDifficulty(activeDifficulty) } }, [activeGame, activeDifficulty])
   useEffect(() => {
     if (!session || !autoAdvance || blocked || actionError) return
-    const delay = Math.max(750, Date.parse(session.nextActionAt) - Date.now() + 80)
+    const delay = Math.max(session.mode === 'MULTIPLAYER' ? 60 : 750, Date.parse(session.nextActionAt) - Date.now() + 80)
     const timer = window.setTimeout(() => { if (!presentationActive.current && document.visibilityState !== 'hidden') void advance(session) }, delay)
     return () => window.clearTimeout(timer)
   }, [session, autoAdvance, blocked, actionError, advance, presentationActive])
@@ -84,7 +84,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
         <div className="arcade-result" aria-live="polite">{session?.result && <><strong>{outcomeLabels[session.result.outcome]} · {difficultyLabels[session.difficulty]}</strong><span>+{session.result.scoreAwarded} score · +{session.result.xpAwarded} XP</span></>}</div>
         <div className="arcade-actions">{!active && <AppButton variant="primary" disabled={!arcade.value || blocked || Boolean(invitation)} onClick={() => { if (multiplayer && session?.status === 'FINISHED') void requestReplay(); else void arcade.start(selectedGame, difficulty) }}>{arcade.pending ? 'En cours…' : session ? 'Rejouer' : 'Commencer'}</AppButton>}
           {arcade.error && <AppButton disabled={arcade.pending || arcade.quitting} onClick={() => void arcade.load()}>Actualiser</AppButton>}</div>
-        <div className="arcade-error" role={arcade.error ? 'alert' : arcade.feedback ? 'status' : undefined}>{arcade.error || arcade.feedback}</div>
+        <div className="arcade-error" role={arcade.error ? 'alert' : 'status'}>{arcade.error || arcade.feedback || (!active && !invitation ? arcade.opponentsError : '')}</div>
       </section>
     </div>
     <footer data-tutorial-anchor="arcade-scores" className="arcade-footer"><span>Score {arcadeLabels[selectedGame]} <strong>{scoreText(arcade.value?.scores[selectedGame] ?? '0')}</strong></span><span>Total Arcade <strong>{scoreText(arcade.value?.totalScore ?? '0')}</strong></span><span>{daily?.used ? 'XP du jour : obtenue' : 'XP du jour : disponible'}</span></footer>

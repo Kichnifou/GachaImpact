@@ -876,3 +876,5 @@ export type DirectMessageReportDetailDto = DirectMessageReportSummaryDto & Reado
 
 export type FavorDto = Readonly<{ businessDate: string; active: boolean; daysRemaining: number; maxDays: number; dailyPrimogems: string; claimedToday: boolean; claimStatus: 'AVAILABLE' | 'CLAIMED' | 'UNAVAILABLE' }>
 export type FavorPresenceDto = Readonly<{ status: 'CLAIMED' | 'ALREADY_CLAIMED' | 'INACTIVE'; businessDate: string; creditedPrimogems: string; favor: FavorDto }>
+
+export type TutorialAutostartDto = { shouldLaunch: false } | { shouldLaunch: true; preference: TutorialPreferenceDto & { status: 'IN_PROGRESS' } }

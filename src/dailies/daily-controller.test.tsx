@@ -194,7 +194,9 @@ describe('Shared daily consultation and claim', () => {
   })
   it('keeps completion, waiting, hidden and unknown empty states honest, with explicit Overview access', async () => {
     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false }))
-    await render({ items }); expect(control.message).toBe('Tout est bon, tu es à jour')
+    await render({ items }); expect(control.message).toBe('Terminé ✅')
+    expect(container.querySelector('.daily-tracker-content h3')?.textContent).toBe('Terminé ✅')
+    expect(container.querySelector('.daily-tracker-content h3')?.classList.contains('daily-tracker-summary')).toBe(true)
     await click('.daily-tracker-all'); expect(overview).toHaveBeenCalledOnce()
     await render({ items: items.map(item => item.id === 'expedition' ? { ...item, state: 'in_progress', deadline: '2026-10-02T12:00:00Z' } : item) })
     expect(control.message).toBe('Rien à faire pour le moment')

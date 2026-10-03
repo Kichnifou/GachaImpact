@@ -147,5 +147,5 @@ export function dailySummaryMessage(items: readonly DailyItem[], hidden: readonl
   if (visible.some(item => item.state === 'unknown' || item.state === 'error')) return 'État du jour incomplet'
   if (visible.some(item => item.state === 'waiting' || item.state === 'in_progress')) return 'Rien à faire pour le moment'
   if (visible.some(item => item.state === 'unavailable' || item.state === 'ineligible')) return 'Aucune activité disponible pour le moment'
-  return 'Tout est bon, tu es à jour'
+  return 'Terminé ✅'
 }
