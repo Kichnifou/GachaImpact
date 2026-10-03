@@ -11,7 +11,7 @@ export default function MissionProjectionView({ value }: Readonly<{ value: Perma
   const rank = useTutorialView('activities-missions', normalRank, ranks)
   const missions = rank === 'Z' ? value.z.status === 'LOCKED' ? [] : value.z.missions : value.ranks[rank]
   return <div className="mission-projection-view">
-    <nav data-tutorial-anchor="missions-ranks" className="activity-inner-tabs missions-rank-tabs" aria-label="Rangs des Missions">{ranks.map(candidate => <button type="button" className={rank === candidate ? 'active' : ''} aria-pressed={rank === candidate} key={candidate} onClick={() => setRank(candidate)}>{candidate}</button>)}</nav>
+    <nav data-tutorial-anchor="missions-ranks" className="activity-inner-tabs missions-rank-tabs" aria-label="Rangs des Missions">{ranks.map(candidate => <button type="button" data-tutorial-anchor={candidate === 'Z' ? 'missions-rank-z-tab' : undefined} className={rank === candidate ? 'active' : ''} aria-pressed={rank === candidate} key={candidate} onClick={() => setRank(candidate)}>{candidate}</button>)}</nav>
     <div data-tutorial-anchor="missions-progress" className="mission-projection-content">
       {rank === 'Z' && value.z.status === 'LOCKED'
         ? <div className="missions-state missions-z-locked"><strong>Rang Z verrouillé</strong><p>{lockedZMessage}</p></div>

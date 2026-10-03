@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { PermanentMissionDto, PermanentMissionRankDto, PlayerMissionsDto } from '../api/types'
 import { lockedZMessage, progressPercent } from '../missions/mission-presentation'
 import MissionsScreen from './MissionsScreen'
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep, type TutorialStepId } from '../tutorial/tutorial-catalog'
 
 const roots: Root[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -36,6 +38,29 @@ async function mount(onLoad = vi.fn(async () => locked)) {
 }
 
 describe('MissionsScreen', () => {
+  it.each(['missions-ranks', 'missions-progress', 'missions-secret-z'] as const)('presents %s on B for locked and unlocked Z, restoring the normal rank afterward', async (stepId: TutorialStepId) => {
+    for (const value of [locked, unlocked]) {
+      const container = document.createElement('div'); document.body.append(container)
+      const root = createRoot(container); roots.push(root)
+      const onLoad = vi.fn(async () => value)
+      const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: active ? getTutorialStep(stepId) : null }}><MissionsScreen onLoad={onLoad} /></TutorialPresentationContext.Provider>
+      await act(async () => root.render(render(false)))
+      const z = container.querySelector<HTMLButtonElement>('[data-tutorial-anchor="missions-rank-z-tab"]')!
+      act(() => z.click())
+      expect(z.getAttribute('aria-pressed')).toBe('true')
+      act(() => root.render(render(true)))
+      expect(z.getAttribute('aria-pressed')).toBe('false')
+      expect(container.querySelector('[data-mission-rank="B"]')?.children).toHaveLength(9)
+      expect(container.querySelector('[data-tutorial-anchor="missions-progress"] [data-mission-rank="B"]')).not.toBeNull()
+      expect(container.querySelector('[data-mission-rank="Z"]')).toBeNull()
+      expect(container.textContent).not.toContain('Description publique Z')
+      expect(getTutorialStep('missions-secret-z')?.anchor).toBe('missions-rank-z-tab')
+      act(() => root.render(render(false)))
+      expect(z.getAttribute('aria-pressed')).toBe('true')
+      expect(onLoad).toHaveBeenCalledOnce()
+      expect(container.querySelector('[data-mission-rank="Z"]') !== null).toBe(value === unlocked)
+    }
+  })
   it('loads once on entry and opens rank B with its nine authoritative cards', async () => {
     const { container, onLoad } = await mount()
     expect(onLoad).toHaveBeenCalledOnce()

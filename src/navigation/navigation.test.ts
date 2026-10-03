@@ -17,7 +17,7 @@ describe('navigation shell registry', () => {
     expect(navigationDestinations.find(({ id }) => id === 'tutorial')).toMatchObject({ available: true, screen: null, action: 'tutorial' })
   })
   it('adds Rankings to the global menu without changing the seven main tiles', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(21)
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(22)
   })
 })

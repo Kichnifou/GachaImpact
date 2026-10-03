@@ -58,16 +58,16 @@ return props
 const render = async (props: ComponentProps<typeof GameShell>) => { await act(async () => root.render(<GameShell {...props} />)) }
 it('waits behind Gacha, Level-up and Challenge, then resumes its queue entry', async () => {
  const props = makeProps()
- await render({ ...props, pendingGachaPullCount: 10 }); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).toBeNull()
- await render({ ...props, levelUpFeedbacks: [{ id: 'level', levelsGained: 1, rewards: [] }] }); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).toBeNull(); expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1)
+ await render({ ...props, pendingGachaPullCount: 10 }); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull()
+ await render({ ...props, levelUpFeedbacks: [{ id: 'level', levelsGained: 1, rewards: [] }] }); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull(); expect(container.querySelectorAll('[role="dialog"]')).toHaveLength(1)
  const challenge = { ...props.dailyChallenge, status: 'ACTIVE' as const, assigned: true, challenge: { externalKey: 'daily', type: 'pulls' as const, displayName: 'Vœux', description: '', progressLabel: 'Invocations', progress: '0', target: '5', rewardPrimogems: '800' } }
  await render({ ...props, dailyChallenge: challenge }); await render({ ...props, dailyChallenge: { ...challenge, status: 'COMPLETED', challenge: { ...challenge.challenge, progress: '5' } } })
- expect(container.querySelector('[aria-label="Défi du jour terminé"]')).not.toBeNull(); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).toBeNull()
- await act(async () => vi.advanceTimersByTime(5400)); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).not.toBeNull()
+ expect(container.querySelector('[aria-label="Défi du jour terminé"]')).not.toBeNull(); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull()
+ await act(async () => vi.advanceTimersByTime(5400)); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).not.toBeNull()
  await act(async () => vi.advanceTimersByTime(5400)); expect(control.finish).toHaveBeenCalledExactlyOnceWith('today')
 })
 it('waits behind conversion and resumes after it closes', async () => {
- await render(makeProps()); await act(async () => container.querySelector<HTMLButtonElement>('.sidebar-particle-convert')!.click()); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).toBeNull()
- await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Fermer la conversion"]')!.click()); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).not.toBeNull()
+ await render(makeProps()); await act(async () => container.querySelector<HTMLButtonElement>('.sidebar-particle-convert')!.click()); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull()
+ await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Fermer la conversion"]')!.click()); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).not.toBeNull()
 })
-it('defers behind global event feedback', async () => { await render({ ...makeProps(), externalFeedbackPending: true }); expect(container.querySelector('[aria-label="Récompense quotidienne Faveur"]')).toBeNull() })
+it('defers behind global event feedback', async () => { await render({ ...makeProps(), externalFeedbackPending: true }); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull() })

@@ -2,7 +2,7 @@ import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-
 import type { GetCurrentPlayer } from '../player/get-current-player.js'
 
 export const navigationMenuPreferenceKey = 'navigation_menu_v1'
-export const navigationMenuDestinationIds = ['home', 'invocation', 'box', 'team', 'catalog', 'activities', 'dailies', 'missions', 'combat', 'event', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
 export type NavigationMenuDestinationId = (typeof navigationMenuDestinationIds)[number]
 export type NavigationMenuPreferenceDto = Readonly<{ version: 1; order: readonly NavigationMenuDestinationId[]; hidden: readonly NavigationMenuDestinationId[] }>
 
@@ -16,10 +16,15 @@ export function mergeNavigationMenuPreference(value: unknown): NavigationMenuPre
   const known = new Set<string>(navigationMenuDestinationIds)
   const savedOrder = Array.isArray(record?.order) ? record.order.filter((id): id is NavigationMenuDestinationId => typeof id === 'string' && known.has(id)) : []
   const order = [...new Set(savedOrder)]
-  const missing = navigationMenuDestinationIds.filter((id) => id !== 'configuration' && !order.includes(id))
+  const introduced = ['profile', 'arcade'] as const
+  const missing = navigationMenuDestinationIds.filter((id) => id !== 'configuration' && !introduced.includes(id as typeof introduced[number]) && !order.includes(id))
   const configurationIndex = order.indexOf('configuration')
   if (configurationIndex >= 0) order.splice(configurationIndex, 0, ...missing)
   else order.push(...missing, 'configuration')
+  // Complete missing anchors first; insert only absent IDs, preserving every survivor.
+  for (const [id, anchor] of [['profile', 'home'], ['arcade', 'event']] as const) {
+    if (!order.includes(id)) order.splice(order.indexOf(anchor) + 1, 0, id)
+  }
   const savedHidden = Array.isArray(record?.hidden) ? record.hidden.filter((id): id is NavigationMenuDestinationId => typeof id === 'string' && known.has(id) && id !== 'configuration') : []
   return { version: 1, order, hidden: [...new Set(savedHidden)] }
 }

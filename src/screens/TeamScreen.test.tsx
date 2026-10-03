@@ -10,10 +10,25 @@ import type { PlayerTeamDto, PlayerTeamsDto, TeamCharacterDto } from '../api/typ
 import { canOpenNextTeamPage, filterTeamCharacters, insertTeamOrder, swapTeamOrder, swapTeamSlots, teamPageForPosition } from '../team/team-presentation'
 import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './TeamScreen'
 import teamScreenSource from './TeamScreen.tsx?raw'
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
 
 const appCssSource = readFileSync('src/App.css', 'utf8');
 
-(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+it('anchors the full passive reference and highlights only the real guided formation', () => {
+  const container = document.createElement('div'); document.body.append(container)
+  const root = createRoot(container); mountedRoots.push(root)
+  act(() => root.render(<TutorialPresentationContext.Provider value={{ active: true, step: getTutorialStep('team-passives') }}><TeamScreen teams={teams(4)} {...callbacks} /></TutorialPresentationContext.Provider>))
+  const target = container.querySelector('[data-tutorial-anchor="team-passives"]')!
+  expect(target.classList.contains('team-passive-modal')).toBe(true)
+  expect(target.querySelectorAll('.team-passive-reference article')).toHaveLength(7)
+  expect(target.querySelectorAll('h2[data-tutorial-anchor]')).toHaveLength(0)
+  expect(target.querySelectorAll('.active-passive')).toHaveLength(1)
+  expect(target.querySelector('.active-passive')?.textContent).toContain('Hydro · Actif II')
+  expect(container.querySelector('[data-tutorial-anchor="team-management"]')?.textContent).toBe('Vider')
+})
+
+;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
 const character = (overrides: Partial<TeamCharacterDto> = {}): TeamCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro',

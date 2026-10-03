@@ -6763,6 +6763,14 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .team-passive-modal .team-passive-reference article { gap: 11px; padding: 12px; }
 .team-passive-modal .team-passive-reference strong { font-size: 11px; }
 .team-passive-modal .team-passive-reference p { margin-top: 4px; font-size: 9px; line-height: 1.45; }
+.team-passive-modal .team-passive-reference article.active-passive { border-color: #8dd6bd; background: rgba(73, 148, 125, 0.14); }
+.team-passive-modal .team-passive-reference p.active-passive-level { color: #b7efd8; }
+.screen-stage[data-tutorial-step="team-passives"] { animation: none; }
+@media (max-width: 760px) {
+  .modal-layer.tutorial-passive-layer { place-items: start center; padding: 12px; }
+  .tutorial-passive-layer .team-passive-modal { max-height: calc(100dvh - 300px); }
+  .tutorial-passive-layer .team-passive-reference { max-height: calc(100dvh - 390px); }
+}
 
 .team-detail-status {
   position: relative;

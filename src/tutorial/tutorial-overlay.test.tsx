@@ -25,6 +25,7 @@ it('orders controls and disables Previous on profile', async () => {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble button'))
   expect(buttons.map(button => button.textContent)).toEqual(['Précédent', 'Suivant', 'Pause', 'Terminer'])
   expect(buttons[0].disabled).toBe(true)
+  expect(document.querySelector('.tutorial-bubble')?.textContent).toContain('1/116')
 })
 it('keeps Suivant text stable and protects all mutations while pending', async () => {
   await act(async () => root.render(<><div data-tutorial-anchor="resources" /><TutorialOverlay stepId="resources" pending error="" onPrevious={previous} onNext={next} onPause={pause} onFinish={finish} /></>))

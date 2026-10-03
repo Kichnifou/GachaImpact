@@ -14,6 +14,10 @@ function mount() {
 it('shows the exact accessible gain, focuses the dialog and locks Escape/backdrop for one second', () => {
   const { container, finish } = mount(); const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!
   expect(dialog.getAttribute('aria-modal')).toBe('true'); expect(document.activeElement).toBe(dialog)
+  expect(dialog.querySelector('.level-up-feedback-kicker')?.textContent).toBe('Récompense quotidienne')
+  expect(dialog.querySelector(':scope > strong')?.textContent).toBe('Faveur de l’Astre')
+  expect(dialog.querySelector('small')?.textContent).toBe('+800 Primogemmes')
+  expect(dialog.getAttribute('aria-label')).toBe('Faveur de l’Astre — récompense quotidienne')
   for (const label of ['Faveur de l’Astre', 'Récompense quotidienne', '+800 Primogemmes']) expect(dialog.textContent).toContain(label)
   act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); container.firstElementChild!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })) }); expect(finish).not.toHaveBeenCalled()
   act(() => vi.advanceTimersByTime(1000)); act(() => dialog.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))); expect(finish).not.toHaveBeenCalled()

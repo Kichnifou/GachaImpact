@@ -28,6 +28,14 @@ function click(button: HTMLButtonElement) { act(() => button.click()) }
 function buttons(container: HTMLElement) { return Array.from(container.querySelectorAll<HTMLButtonElement>('button')) }
 
 describe('Event Shop', () => {
+  it('anchors the full Shop including conversion and Collection without transacting', () => {
+    const { container, onTransact } = mount()
+    const target = container.querySelector('[data-tutorial-anchor="event-shop"]')!
+    expect(target.tagName).toBe('SECTION')
+    expect(target.querySelector('.event-shop-grid')).not.toBeNull()
+    expect(target.querySelector('.event-shop-collection')).not.toBeNull()
+    expect(onTransact).not.toHaveBeenCalled()
+  })
   it('keeps quantity buttons intrinsic and lets the input absorb available space', () => {
     const css = readFileSync('src/App.css', 'utf8')
     expect(css).toMatch(/\.event-shop-grid\s*\{[^}]*grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(min\(100%,\s*280px\),\s*1fr\)\);/s)

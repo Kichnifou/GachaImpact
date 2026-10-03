@@ -9,6 +9,14 @@ function harness(saved = initial) {
   return { api, controller: new TutorialController(api) }
 }
 describe('tutorial confirmed progression', () => {
+  it.each([['menu-destinations', 'notifications-entry'], ['event-ranking', 'arcade-memory']] as const)('moves both ways across the retired step between %s and %s', async (before, after) => {
+    const saved: TutorialPreferenceDto = { version: 1, status: 'IN_PROGRESS', stepId: before }
+    const { api, controller } = harness(saved)
+    await controller.launch(); expect(api.put).not.toHaveBeenCalled()
+    await controller.next(); expect(controller.getSnapshot().stepId).toBe(after)
+    await controller.previous(); expect(controller.getSnapshot().stepId).toBe(before)
+    expect(api.put.mock.calls.map(([value]) => value.stepId)).toEqual([after, before])
+  })
   it.each([initial, complete])('manually starts/replays %j at profile after confirmation', async saved => {
     const { api, controller } = harness(saved); expect(controller.getSnapshot().active).toBe(false)
     let resolve!: (value: TutorialPreferenceDto) => void

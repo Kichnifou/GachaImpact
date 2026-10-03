@@ -9,6 +9,8 @@ import { tutorialSteps } from './tutorial-controller'
 
 vi.mock('../components/ChatPanel', () => ({ default: ({ isCollapsed }: { isCollapsed: boolean }) => <aside data-tutorial-anchor="community" data-collapsed={isCollapsed} /> }))
 vi.mock('../favor/use-favor-presence', () => ({ useFavorPresence: () => ({ favor: null, error: false, feedbacks: [], finish: vi.fn() }) }))
+vi.mock('../screens/ProfileScreen', () => ({ default: ({ playerId }: { playerId: string }) => <div data-profile-player={playerId} /> }))
+vi.mock('../screens/SocialScreen', () => ({ default: ({ onProfile }: { onProfile: (id: string) => void }) => <button data-other-profile onClick={() => onProfile('other-player')}>Profil tiers</button> }))
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 let root: Root, container: HTMLDivElement
 beforeEach(() => {
@@ -17,6 +19,24 @@ beforeEach(() => {
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue(new DOMRect(10, 10, 200, 100))
 })
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks() })
+it('opens the connected player from Menu after a third-party profile and keeps Arcade direct', async () => {
+  const props = gameShellProps()
+  props.socialActions = { friends: vi.fn().mockResolvedValue({ friends: [], requests: [], players: [], summary: {} }), connected: vi.fn().mockResolvedValue({ total: 0, players: [] }), session: vi.fn().mockResolvedValue({}), heartbeat: vi.fn().mockResolvedValue({}), end: vi.fn().mockResolvedValue({}) } as unknown as NonNullable<typeof props.socialActions>
+  window.location.hash = '#social'
+  await act(async () => root.render(<GameShell {...props} />))
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-other-profile]')!.click())
+  expect(container.querySelector('[data-profile-player]')?.getAttribute('data-profile-player')).toBe('other-player')
+  const openMenu = async () => { await act(async () => container.querySelector<HTMLButtonElement>('[data-menu-trigger]')!.click()) }
+  await openMenu()
+  expect(container.querySelector('[data-destination-id="activities"]')).toBeNull()
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-destination-id="profile"]')!.click())
+  expect(container.querySelector('[data-profile-player]')?.getAttribute('data-profile-player')).toBe(props.player.id)
+  expect(window.location.hash).toBe('#profile')
+  await openMenu()
+  await act(async () => container.querySelector<HTMLButtonElement>('.global-menu footer button:last-child')!.click())
+  await act(async () => container.querySelector<HTMLButtonElement>('[data-destination-id="arcade"]')!.click())
+  expect(window.location.hash).toBe('#activities/arcade')
+})
 it('launches only via Menu, returns Home, resolves eight anchors and allows replay after completion', async () => {
   const props = gameShellProps()
   let saved: TutorialPreferenceDto = { version: 1, status: 'NOT_STARTED', stepId: null }

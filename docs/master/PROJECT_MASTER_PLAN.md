@@ -1,11 +1,31 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : checkpoint de promotion 25B sur main ; prototype 25A validé publiquement dans son périmètre réel.
+Version : correctif consolidé post-promotion 25B, candidat review.
 Date : 2026-10-03
-Statut : **25B implémentée/testée localement, approuvée indépendamment sur 5fc9be619434c73ec325482ac028b0edf0197bba et présente sur main après le fast-forward du présent checkpoint : 118 étapes / 24 chapitres / 21 écrans joueurs. Déploiement technique à vérifier, validation publique 25B non acquise.** 25A clôturée sur a23a423, validation publique conservée. Help/Aide, autostart et étape 26 hors scope. Twitch générique en pause R942 ; Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
-But : porter l'état réel, les preuves, les décisions et la prochaine reprise du projet.
+Statut : **25B initiale de 118 étapes approuvée et promue via 81d7234 ; révision propriétaire à 116 étapes / 24 chapitres / 21 écrans candidate sur review. Review indépendante et recette publique finale du correctif non acquises.** Help/Aide, autostart et étape 26 hors scope ; Twitch générique en pause R942, Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — promotion du Tutoriel joueurs 25B du 03/10/2026
+## Point courant — correctif consolidé post-promotion 25B du 03/10/2026
+
+**Gate exécuté :** fetch réussi, branche review, index/worktree propres ; HEAD = origin/main = origin/review = **81d7234e46167d4a304065ce8e6b7b5d1d647d89**, parent fonctionnel 5fc9be619434c73ec325482ac028b0edf0197bba ; divergence 0/0, aucun commit distant inattendu.
+
+**État public conservé :** 25B de 118 étapes implémentée sur 5fc9be6, approuvée indépendamment, promue par fast-forward via 81d7234. Selon les preuves ChatGPT transmises par la mission : GitHub sur ce SHA commun, Railway production SUCCESS sur 81d7234 exact, healthcheck public /health = {"status":"ok"}. Ces contrôles ne sont pas réexécutés ici. Cloudflare Pages répond, mais son inspection anonyme ne prouve pas suffisamment le bundle frontend authentifié 25B. **Recette propriétaire complète 25B non acquise**. La validation publique 25A sur a23a423 et son périmètre Sidebar/Home sont conservés.
+
+**Correctif livré :** 116 titres/descriptions propriétaire exacts, suppression des seules étapes menu-pagination/event-calendar, alias GET/PUT compatibles sans réparation au GET, 24 chapitres et 21 écrans conservés. Missions toujours B pendant les trois étapes, Z uniquement sur son onglet même débloqué, restauration du rang normal. Passifs fenêtre complète et formation réelle mise en évidence ; Event Shop section complète ; Vider bouton réel ; Invocation 4★ zone dédiée contrôlée. [Matrice et contrat canonique](../specifications/tutorial-v1.md), R1023 révisée.
+
+**Menu et Faveur :** R1024 ajoute Profil personnel après Accueil et Arcade après Événement, retire uniquement le doublon Menu Activités ; navigation principale, sous-onglets et routes Activités préservés. navigation_menu_v1/version 1 conserve ordre relatif et masquages survivants, insère seulement les nouveaux IDs absents après leurs ancres et reste idempotent ; Configuration non masquable. Profil remet explicitement la cible sur player.id. Faveur : petit kicker Récompense quotidienne, grand titre Faveur de l’Astre, +800 Primogemmes et aria-label cohérent ; délais, déclenchement, queue et déduplication inchangés.
+
+**Contrôles exécutés et limites :** Ciblés frontend **218/218** (19 fichiers), backend **143/143** (2 fichiers), comparaison indépendante des 116 copies et contrôle catalogue/matrice/whitelist/ordre réussis. Dernier **verify:full 8/8** : frontend **1232/1232** (117 fichiers), backend hors DB **1211/1211** (102 fichiers), builds/typechecks/lint/diff-check ; **verify:quick 5/5**. Chromium privé sur le vrai GameShell et CSS production : parcours des 116 étapes à **1920×1080** et **390×844**, compteurs, limites aux deux suppressions, Terminer/replay, Menu et Faveur ; Missions Z débloqué sur B à **390×844** et **1366×768**, Passifs/Shop également contrôlés à 1366×768. Contrôle complémentaire de reprise Passifs aux trois tailles : panneau complet stable ; sur mobile, bulle sous le panneau et défilement interne réel. Captures Passifs, Faveur, Z et Menu/Shop inspectées. Aucune mutation métier ; API/fixtures privées, aucun accès public de préférence. Les échecs intermédiaires de sélecteurs Faveur et de typage du payload de test ont été corrigés, puis la suite complète a réussi. Warnings React de lint, ECONNREFUSED localhost:3000 des tests, bundle >500 kB et annonce de mise à jour Prisma restent non bloquants. Logs/harness/captures hors Git ; ces preuves techniques ne valent ni review indépendante ni recette publique propriétaire.
+
+**DB :** Prisma validate et migrate status réussis en lecture seule, 58 migrations à jour ; dernière **20261001120000_058_harden_arcade_session_lifecycle**, aucune 059. Même PlayerPreference, tutorial_v1 et navigation_menu_v1, version 1, mêmes routes/stores/schéma ; 116 IDs Tutoriel actifs et deux alias backend. Aucun tutorial_v2/navigation_menu_v2, migration ou test DB mutatif ; aucune préférence Tutoriel ni mutation gameplay publique.
+
+**Documentation :** Master, Tutoriel, R1023/R1024, navigation, UI, modèle de données, architecture backend et PostgreSQL actualisés ; comptes rendus historiques à 118 conservés. Roadmap durable sans nouvelle étape, propriétaire Faveur sans libellé modal explicite : inchangés. AGENTS, Guide, workflow, handoff, Story, audits et contrats gameplay/économie inchangés.
+
+**Git attendu après publication :** un seul commit consolidé sur review, parent exact 81d7234, main reste 81d7234 ; ahead 1 / behind 0, SHA distant vérifié après push, branche locale review propre. Candidat uniquement, aucune promotion main, aucun redeploy/activation Twitch/Gift/Giveaway/Faveur.
+
+**Prochaine action exacte : REVIEW INDÉPENDANTE CHATGPT DU VRAI COMMIT GITHUB SUR review.** STOP après publication et rapport ; Help/Aide, autostart et étape 26 non lancés.
+
+## Historique — promotion du Tutoriel joueurs 25B du 03/10/2026
 
 Le propriétaire confirme la recette publique finale du correctif 25A sur **a23a42304da7396da2ceeaa5a1e245a79310cec1** : Précédent, ordre des contrôles et Suivant stable ; carte sidebar entière cliquable avec ses contrôles indépendants ; titre Home simple, hauteur Quotidiennes/BannerHero et splash recentré. Les validations publiques Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale acquises sur 9aef02c sont conservées. **25A est clôturée dans son périmètre réel de prototype**. Cette preuve propriétaire est transmise par la mission, sans nouvelle vérification de déploiement Railway/Cloudflare ni mutation publique ici.
 

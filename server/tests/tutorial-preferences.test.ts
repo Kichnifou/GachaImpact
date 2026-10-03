@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js'
-import { defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
+import { defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
 
 const players = ['first', 'second'].map(name => ({ id: crypto.randomUUID(), displayName: name, elementKey: 'hydro' as const, status: 'ACTIVE' as const }))
 const headers = { authorization: 'Bearer first' }
@@ -18,6 +18,21 @@ async function harness() {
   return { app, values, store }
 }
 describe('dedicated authenticated tutorial preference', () => {
+  it.each(Object.entries(tutorialStepAliases))('projects and canonicalizes retired %s to %s without GET repair', async (legacy, canonical) => {
+    const { app, values, store } = await harness()
+    const saved = { version: 1, status: 'IN_PROGRESS', stepId: legacy }
+    const current = { ...saved, stepId: canonical }
+    values.set(players[0]!.id, saved)
+    expect((await app.inject({ url: '/api/v1/me/tutorial', headers })).json()).toEqual(current)
+    expect(store.write).not.toHaveBeenCalled()
+    expect(values.get(players[0]!.id)).toEqual(saved)
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial', headers, payload: saved })).json()).toEqual(current)
+    expect(store.write).toHaveBeenCalledExactlyOnceWith(players[0]!.id, current)
+    expect((await app.inject({ url: '/api/v1/me/tutorial', headers: { authorization: 'Bearer second' } })).json()).toEqual(defaultTutorialPreference)
+    for (const payload of [{ ...saved, extra: true }, { ...saved, status: 'COMPLETED' }, { ...saved, version: 2 }]) {
+      expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial', headers, payload })).statusCode).toBe(400)
+    }
+  })
   it.each(['GET', 'PUT'] as const)('refuses unauthenticated %s', async method => {
     const { app } = await harness()
     expect((await app.inject({ method, url: '/api/v1/me/tutorial', ...(method === 'PUT' ? { payload: defaultTutorialPreference } : {}) })).statusCode).toBe(401)

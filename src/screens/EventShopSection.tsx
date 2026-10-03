@@ -27,7 +27,7 @@ export default function EventShopSection({ value, intent, pending, feedback, err
   const balance = BigInt(value.shop.balance)
   const max = balance > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(balance)
 
-  return <section className="event-shop" aria-label="Boutique du Festival">
+  return <section data-tutorial-anchor="event-shop" className="event-shop" aria-label="Boutique du Festival">
     <div className="panel event-shop-balance"><div><span className="eyebrow">Votre solde du Festival</span><h2>{formatResourceAmount(value.shop.balance)} {eventCurrencyLabel(value.shop.balance, value.festival.currency)}</h2><p>Vos monnaies de ce Festival restent disponibles d’une année à l’autre.</p></div><span aria-hidden="true">{value.festival.currency.emoji}</span></div>
     {!value.shop.available && <p className="event-shop-preview">La boutique est consultable librement. Rejoignez le Festival pour effectuer un échange.</p>}
     <div className="event-shop-grid">

@@ -2,12 +2,18 @@
 
 Statut : évolutif.
 
-## Extension Tutoriel joueurs 25B — R1023 (2026-10-02)
+## Menu global personnel — R1024 (2026-10-03)
 
-- `VALIDÉ R1023 — mission propriétaire après recette finale 25A sur a23a423` : conserver le lancement manuel Menu, les huit IDs d'introduction, le mode visuel et Précédent / Suivant / Pause / Terminer ; étendre le parcours aux 21 écrans joueurs et panneaux utiles, hors Modération/opérateur même ADMIN. Livrer 118 étapes courtes et une conclusion Home dans le candidat consolidé.
+- `VALIDÉ R1024 — mission propriétaire` : retirer Activités uniquement du Menu global ; ajouter Profil après Accueil et Arcade entre Événement et Concours. Profil ouvre toujours le Player connecté, même après consultation d’un profil tiers ; Arcade ouvre activities-arcade. Navigation principale Activités, sous-onglets et hashes conservés, sans nouveau bouton Profil principal. Glyphes cohérents et pagination neuf destinations/page conservée.
+- Même navigation_menu_v1/version 1, sans migration/reset : activities retiré de order/hidden, ordre relatif et masquages des IDs survivants préservés. Insérer profile absent après home, arcade absent après event ; ancres absentes rétablies déterministement selon l’ordre canonique. Merge idempotent ; Configuration toujours disponible/non masquable. [Source navigation](navigation-shell-v1.md), état du candidat au Master.
+
+## Extension Tutoriel joueurs 25B — R1023 (2026-10-02, révisée le 2026-10-03)
+
+- `VALIDÉ R1023 — mission propriétaire après recette finale 25A sur a23a423` : conserver le lancement manuel Menu, les huit IDs d'introduction, le mode visuel et Précédent / Suivant / Pause / Terminer ; étendre le parcours aux 21 écrans joueurs et panneaux utiles, hors Modération/opérateur même ADMIN. Première implémentation : 118 étapes sur 5fc9be6, promue via 81d7234. Révision propriétaire : 116 étapes actives et une conclusion Home ; seuls menu-pagination et event-calendar retirés, ordre/IDs survivants conservés.
 - Navigation entre propriétaires et adaptation temporaire des sous-vues, jamais via handlers métier. Transition PUT confirmé → préparation annulable → ancre primaire ou entrée réelle avec repli honnête. Pause/Terminer anticipé laissent l'écran courant ; reprise remonte la sous-vue persistée indirectement par le seul stepId. Garde synchrone, retry exact et rejet des réponses tardives propres au Player.
-- Même PlayerPreference/tutorial_v1/version 1 : whitelist étendue, forme et statuts inchangés, compatibilité sans reset des huit IDs. Aucun état de vue/entité persisté ni migration. Interactions neutralisées et gardes explicites contre read/seen/typing Chat/MP, consultation Panier et avance Arcade ; brouillons, confidentialité, choix normaux et parties réelles conservés.
-- Les fonctions distinctes restent identifiées dans la [matrice canonique](tutorial-v1.md). Réutiliser les vrais composants/données autorisées ; aucune possession, conversation, formation ou disponibilité fictive. Aucun autostart, Help/Aide final, récompense, action imposée ou changement gameplay/économie. 25A clôturée dans son périmètre réel, **25B approuvée indépendamment et promue sur main par le présent checkpoint ; déploiement technique et validation publique 25B encore à acquérir ; review ChatGPT favorable sur 5fc9be619434c73ec325482ac028b0edf0197bba, aucun correctif code requis** ; état/prochain contrôle au Master.
+- Révision propriétaire de copie/ciblages : 116 titres/descriptions exacts ; Passifs fenêtre complète et passifs de la formation réelle mis en évidence, Event Shop section complète, Vider contrôle réel, Invocation zone 4★. Missions-ranks/progress/secret-z restent toutes sur B ; dernière étape uniquement sur le contrôle Z, sans contenu Z même débloqué.
+- Même PlayerPreference/tutorial_v1/version 1 : 116 IDs actifs et aliases backend menu-pagination → notifications-entry / event-calendar → arcade-memory normalisés en GET sans écriture et en PUT vers l’ID canonique ; forme et statuts inchangés, compatibilité sans reset des huit IDs. Aucun état de vue/entité persisté ni migration. Interactions neutralisées et gardes explicites contre read/seen/typing Chat/MP, consultation Panier et avance Arcade ; brouillons, confidentialité, choix normaux et parties réelles conservés.
+- Les fonctions distinctes restent identifiées dans la [matrice canonique](tutorial-v1.md). Réutiliser les vrais composants/données autorisées ; aucune possession, conversation, formation ou disponibilité fictive. Aucun autostart, Help/Aide final, récompense, action imposée ou changement gameplay/économie. 25A clôturée dans son périmètre réel, **25B initiale approuvée et promue via 81d7234 ; correctif propriétaire à 116 étapes candidat sur review, sans review indépendante ni recette publique finale acquises** ; état/prochain contrôle au Master.
 
 ## Retouches UX Quotidiennes/Home — R1021/R1022 (2026-10-02)
 
@@ -18,7 +24,7 @@ Première implémentation groupée avec 25A approuvée sur a30e7e9 et promue via
 
 ## Prototype Tutoriel 25A — R1015–R1020 (2026-10-02)
 
-Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Prototype public sur 9aef02c, correctif 342aab1 promu via a23a423 ; recette publique finale acquise selon la mission 25B. 25A clôturée dans son périmètre, extension distincte R1023 approuvée indépendamment et promue sur main ; déploiement technique et recette publique 25B encore à acquérir.
+Décisions propriétaire ; détails et séquence dans la source canonique [Tutoriel V1](tutorial-v1.md). Prototype public sur 9aef02c, correctif 342aab1 promu via a23a423 ; recette publique finale acquise selon la mission 25B. 25A clôturée dans son périmètre, première extension R1023 approuvée/promue via 81d7234 ; révision propriétaire suivante candidate review, recette publique 25B encore à acquérir.
 
 - `VALIDÉ R1015` — Prototype manuel uniquement via Menu > Tutoriel ; activation future de la destination, aucun autostart ni bouton Tutoriel supplémentaire au header. Première arrivée à étudier après validation du prototype.
 - `VALIDÉ R1016` — Overlay assombrissant, une seule zone réelle montée en spotlight et courte bulle proche, sans copie d’interface. Intercepter toutes les interactions métier sous-jacentes, y compris sur la cible.

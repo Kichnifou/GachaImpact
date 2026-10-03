@@ -12,9 +12,9 @@ export default function FavorDailyFeedback({ id, onFinished }: { id: string; onF
     return () => { window.clearTimeout(unlock); window.clearTimeout(timeout) }
   }, [finish])
   return <div className={`level-up-feedback-overlay${dismissible ? ' dismissible' : ''}`} onMouseDown={event => { if (event.target === event.currentTarget && dismissible) finish() }}>
-    <section ref={dialog} tabIndex={-1} className="level-up-feedback favor-daily-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label="Récompense quotidienne Faveur">
-      <span className="level-up-feedback-kicker">Faveur de l’Astre</span>
-      <strong>Récompense quotidienne</strong>
+    <section ref={dialog} tabIndex={-1} className="level-up-feedback favor-daily-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label="Faveur de l’Astre — récompense quotidienne">
+      <span className="level-up-feedback-kicker">Récompense quotidienne</span>
+      <strong>Faveur de l’Astre</strong>
       <small>+800 Primogemmes</small>
     </section>
   </div>

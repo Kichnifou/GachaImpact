@@ -8,6 +8,22 @@ const player = { id: crypto.randomUUID(), displayName: 'Menu Test', elementKey: 
 const identity = { subject: 'navigation-subject' }
 
 describe('navigation preferences', () => {
+  it('uses the exact 22-destination canonical default with personal Profile and direct Arcade', () => {
+    expect(mergeNavigationMenuPreference(null)).toEqual({ version: 1, hidden: [], order: ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] })
+  })
+  it('retires Activities and inserts only absent Profile/Arcade beside their anchors without resetting survivors', () => {
+    const oldOrder = ['bank', 'event', 'combat', 'home', 'activities', 'shop', 'configuration']
+    const value = mergeNavigationMenuPreference({ version: 1, order: oldOrder, hidden: ['activities', 'bank', 'home', 'configuration'] })
+    expect(value.order.slice(0, 8)).toEqual(['bank', 'event', 'arcade', 'combat', 'home', 'profile', 'shop', 'invocation'])
+    expect(value.order.filter(id => oldOrder.includes(id))).toEqual(oldOrder.filter(id => id !== 'activities'))
+    expect(value.hidden).toEqual(['bank', 'home'])
+    expect(mergeNavigationMenuPreference(value)).toEqual(value)
+    expect(mergeNavigationMenuPreference({ order: ['arcade', 'shop', 'profile', 'home'], hidden: ['profile', 'arcade'] }).order.slice(0, 4)).toEqual(['arcade', 'shop', 'profile', 'home'])
+    const incomplete = mergeNavigationMenuPreference({ order: ['shop'], hidden: [] })
+    expect(incomplete.order.indexOf('profile')).toBe(incomplete.order.indexOf('home') + 1)
+    expect(incomplete.order.indexOf('arcade')).toBe(incomplete.order.indexOf('event') + 1)
+    expect(mergeNavigationMenuPreference(incomplete)).toEqual(incomplete)
+  })
   it('enriches the previous complete menu with Trades before Configuration and preserves hidden choices', () => {
     const current = mergeNavigationMenuPreference(null)
     const old = { ...current, order: current.order.filter(id => id !== 'trades'), hidden: ['friends'] }
@@ -32,7 +48,7 @@ describe('navigation preferences', () => {
     expect(oldPreference.order.at(-1)).toBe('configuration')
     expect(oldPreference.order.at(-2)).toBe('tutorial')
     expect(oldPreference.order.indexOf('codes')).toBeLessThan(oldPreference.order.indexOf('configuration'))
-    expect(oldPreference.order).toEqual(expect.arrayContaining(['activities', 'friends']))
+    expect(oldPreference.order).toEqual(expect.arrayContaining(['profile', 'arcade', 'friends']))
     expect(oldPreference.hidden).toEqual(['combat', 'codes'])
     expect(new Set(oldPreference.order).size).toBe(navigationLength())
   })
@@ -51,6 +67,16 @@ describe('navigation preferences', () => {
     apps.push(app)
     expect((await app.inject({ url: '/api/v1/me/navigation-preferences' })).statusCode).toBe(401)
     const headers = { authorization: 'Bearer token' }
+    const legacyPreference = { version: 1, order: ['event', 'home', 'activities', 'shop', 'configuration'], hidden: ['activities', 'shop'] }
+    stored = legacyPreference
+    const legacyGet = (await app.inject({ url: '/api/v1/me/navigation-preferences', headers })).json()
+    expect(legacyGet.order.slice(0, 5)).toEqual(['event', 'arcade', 'home', 'profile', 'shop'])
+    expect(legacyGet.hidden).toEqual(['shop'])
+    expect(store.write).not.toHaveBeenCalled()
+    const legacyPut = await app.inject({ method: 'PUT', url: '/api/v1/me/navigation-preferences', headers, payload: legacyPreference })
+    expect(legacyPut.json()).toEqual(legacyGet)
+    expect((await app.inject({ url: '/api/v1/me/navigation-preferences', headers })).json()).toEqual(legacyGet)
+    vi.mocked(store.write).mockClear()
     expect((await app.inject({ method: 'PUT', url: '/api/v1/me/navigation-preferences', headers, payload: { version: 2, order: [], hidden: [] } })).statusCode).toBe(400)
     const response = await app.inject({ method: 'PUT', url: '/api/v1/me/navigation-preferences', headers, payload: { version: 1, order: ['bank', 'unknown'], hidden: ['configuration', 'shop', 'unknown'] } })
     expect(response.statusCode).toBe(200)

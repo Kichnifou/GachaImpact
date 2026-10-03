@@ -15,6 +15,23 @@ const roots: ReturnType<typeof createRoot>[] = []
 afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren(); document.head.replaceChildren() })
 
 describe('ConfigurationScreen', () => {
+  it.each([['Profil', 'profile'], ['Arcade', 'arcade']] as const)('allows ordering and hiding/showing %s with the existing preference', async (label, id) => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+    const onSave = vi.fn().mockResolvedValue(undefined)
+    const render = (hidden: typeof defaultNavigationPreference.hidden) => root.render(<ConfigurationScreen preference={{ ...defaultNavigationPreference, hidden }} onSave={onSave} onReset={vi.fn()} />)
+    await act(async () => render([]))
+    expect(Array.from(container.querySelectorAll('li strong'), node => node.textContent)).not.toContain('Activités')
+    const row = () => Array.from(container.querySelectorAll('li')).find(node => node.querySelector('strong')?.textContent === label)!
+    await act(async () => row().querySelector<HTMLButtonElement>('.menu-visibility-button')!.click())
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ hidden: [id] }))
+    await act(async () => render([id]))
+    expect(row().querySelector('.menu-visibility-button')?.textContent).toBe('Afficher')
+    await act(async () => row().querySelector<HTMLButtonElement>('.menu-visibility-button')!.click())
+    expect(onSave).toHaveBeenLastCalledWith(expect.objectContaining({ hidden: [] }))
+    await act(async () => row().querySelector<HTMLButtonElement>(`[aria-label="Monter ${label}"]`)!.click())
+    const order = onSave.mock.calls.at(-1)![0].order
+    expect(order.indexOf(id)).toBe(defaultNavigationPreference.order.indexOf(id) - 1)
+  })
   it('reserves three desktop grid tracks with specificity above the generic two-track screen', () => {
     expect(appCssSource).toMatch(/\.configuration-screen\.long-screen-layout:has\(> \.screen-header\)\s*\{\s*grid-template-rows:\s*auto auto minmax\(0, 1fr\);/)
   })
@@ -36,7 +53,7 @@ describe('ConfigurationScreen', () => {
     expect(Array.from(container.querySelectorAll('li')).every((row) => row.getAttribute('draggable') === null)).toBe(true)
 
     await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.getAttribute('aria-label') === 'Descendre Accueil')!.click())
-    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ order: ['invocation', 'home', ...defaultNavigationPreference.order.slice(2)] }))
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ order: ['profile', 'home', ...defaultNavigationPreference.order.slice(2)] }))
 
     const configurationRow = Array.from(container.querySelectorAll('li')).find((row) => row.textContent?.includes('Configuration'))!
     expect(Array.from(configurationRow.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Masquer')?.disabled).toBe(true)
@@ -66,7 +83,7 @@ describe('ConfigurationScreen', () => {
     const onSave = vi.fn().mockRejectedValue(new Error('offline'))
     await act(async () => root.render(<ConfigurationScreen preference={defaultNavigationPreference} onSave={onSave} onReset={vi.fn()} />))
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.getAttribute('aria-label') === 'Descendre Accueil')!.click(); await Promise.resolve(); await Promise.resolve() })
-    expect(Array.from(container.querySelectorAll('li strong'), (node) => node.textContent).slice(0, 2)).toEqual(['Accueil', 'Invocation'])
+    expect(Array.from(container.querySelectorAll('li strong'), (node) => node.textContent).slice(0, 2)).toEqual(['Accueil', 'Profil'])
     expect(container.querySelector('[role="alert"]')).not.toBeNull()
   })
 })
