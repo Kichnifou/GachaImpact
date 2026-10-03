@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correctif consolidé post-promotion 25B, candidat review.
+Version : checkpoint documentaire de promotion du correctif post-25B sur main.
 Date : 2026-10-03
-Statut : **25B initiale de 118 étapes approuvée et promue via 81d7234 ; révision propriétaire à 116 étapes / 24 chapitres / 21 écrans candidate sur review. Review indépendante et recette publique finale du correctif non acquises.** Help/Aide, autostart et étape 26 hors scope ; Twitch générique en pause R942, Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : **25B initiale promue via 81d7234 ; correctif propriétaire 468dbaa approuvé indépendamment par ChatGPT et présent sur main après fast-forward strict du checkpoint documentaire ; 116 étapes / 24 chapitres / 21 écrans, aucun correctif code requis. Déploiement du SHA promu à vérifier ; validation publique propriétaire du correctif non acquise**. Menu R1024 approuvé ; aliases legacy conservés ; Faveur libellé corrigé. Help/Aide, autostart et étape 26 hors scope ; Twitch générique en pause R942, Faveur QA conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctif consolidé post-promotion 25B du 03/10/2026
+## Point courant — promotion du correctif post-25B du 03/10/2026
+
+**Gate initial exécuté :** fetch réussi, branche review, index/worktree propres ; HEAD = origin/review = **468dbaae061d363be2a8506da22b52dbfd5bada0**, origin/main = **81d7234e46167d4a304065ce8e6b7b5d1d647d89** ; ahead 1 / behind 0, parent exact 81d7234, aucun commit distant inattendu.
+
+**Review indépendante acquise :** ChatGPT favorable sur le vrai candidat GitHub **468dbaae061d363be2a8506da22b52dbfd5bada0**, selon la mission de promotion explicite ; aucun correctif code requis. Unique réserve documentaire : préciser l’historique Arcade de l’étape 23, sans retirer la destination Menu actuelle. La navigation principale garde ses sept destinations, dont Activités, et les six sous-onglets Activités restent intacts. Aucun nouvel ID Rxxx.
+
+**Correctif promu :** 116 étapes uniques / 24 chapitres / 21 écrans ; copies et parité des IDs conservées. Aliases menu-pagination → notifications-entry et event-calendar → arcade-memory : GET sans réparation, PUT canonique. R1024 approuvé : Profil personnel après Accueil, Arcade après Événement, Activités retiré seulement du Menu ; navigation_menu_v1 compatible, ordres/masquages survivants conservés. Missions B/B/B, Z éclairé seulement sur son onglet sans contenu ; Vider exact, Passifs fenêtre complète, Event Shop section complète. Faveur : kicker Récompense quotidienne, titre Faveur de l’Astre, +800 Primogemmes ; aucun changement métier. [Contrat Tutoriel](../specifications/tutorial-v1.md) et [Navigation](../specifications/navigation-shell-v1.md) font autorité.
+
+**Checkpoint :** diff de cette mission exclusivement documentaire dans huit propriétaires du lot ; aucun fichier code/test de 468dbaa modifié, aucun nouveau Rxxx. Historique et preuves locales de 468dbaa conservés ci-dessous, sans relance des grandes suites, quick/full ou Chromium. git diff --check réussi ; Prisma validate et migrate status réussis en lecture seule : **58 migrations à jour**, dernière **20261001120000_058_harden_arcade_session_lifecycle**, aucune 059. Aucun test DB mutatif, préférence publique, test public ni activation Twitch/Gift/Giveaway.
+
+**État Git après promotion :** checkpoint documentaire de parent exact 468dbaa, publié d’abord sur review puis main avancée uniquement par git merge --ff-only review et push normal. Chaîne stricte **81d7234 → 468dbaa → checkpoint documentaire** ; origin/main = origin/review au checkpoint, divergence 0/0, branche locale review propre. Aucun rebase, squash, merge commit ni force-push.
+
+**Public restant :** déploiement Railway et healthcheck du nouveau SHA à vérifier ensuite par ChatGPT ; frontend public et recette propriétaire du correctif non acquis. Les preuves Railway/health de 81d7234 restent historiques et ne certifient pas ce checkpoint. Aucune annonce SUCCESS/health OK ni validation Axel dans cette mission.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE GITHUB, RAILWAY ET LE HEALTHCHECK DU SHA PROMU, PUIS FOURNIT UNE RECETTE PUBLIQUE CIBLÉE DU CORRECTIF : MENU, 116 ÉTAPES/ALIASES, MISSIONS B/Z, PASSIFS, EVENT SHOP ET FAVEUR.** STOP ; aucune suite fonctionnelle lancée.
+
+## Historique — candidat du correctif consolidé post-promotion 25B du 03/10/2026
 
 **Gate exécuté :** fetch réussi, branche review, index/worktree propres ; HEAD = origin/main = origin/review = **81d7234e46167d4a304065ce8e6b7b5d1d647d89**, parent fonctionnel 5fc9be619434c73ec325482ac028b0edf0197bba ; divergence 0/0, aucun commit distant inattendu.
 
