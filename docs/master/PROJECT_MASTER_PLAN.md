@@ -1,11 +1,29 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correctifs post-recette et candidat Multijoueur Arcade étape 28.
+Version : promotion approuvée du Multijoueur Arcade étape 28 et de son micro-correctif.
 Date : 2026-10-03
-Statut : **Étapes 1–25 implémentation acquise, retouches post-recette candidates review ; étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; étape 28 Multijoueur Arcade IMPLEMENTATION_CLOSED CANDIDATE REVIEW.** Public 9ec8c98/059/59 migrations ; séquence réelle 26→28→29→27→30→31→32. PAID_INFRA_APPROVED = false.
+Statut : **Étapes 1–25 implémentation acquise, retouches post-recette promues et à recetter ; étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; étape 28 implémentée/approuvée sur main, recette publique propriétaire NON acquise.** Avant déploiement : public 9ec8c98/059/59 migrations, 060 pending ; déploiement automatique à vérifier. Séquence réelle 26→28→29→27→30→31→32. PAID_INFRA_APPROVED = false.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctifs post-recette et candidat étape 28 du 03/10/2026
+## Point courant — promotion approuvée de l’étape 28 du 03/10/2026
+
+**Gate initial exécuté :** fetch réussi, branche review et worktree/index propres ; origin/main = **9ec8c98e75d586072d45f2e27efa6c4cdbcbaa37**, origin/review = **a5fd8c29db89852d78c0c0b40f2bd23454d4d915**, ahead 2 / behind 0. Chaîne exacte : 9ec8c98 → **177f242789c1aba64bdca37f578a2c5087ac53b0** → a5fd8c2 ; parent exact du micro-correctif : 177f242. Aucun commit inattendu.
+
+**Review indépendante acquise :** ChatGPT FAVORABLE sur le candidat fonctionnel 177f242 et le micro-correctif a5fd8c2, selon la mission explicite. Aucun correctif code supplémentaire requis. Le micro-correctif couvre l’ARIA Memory relatif à viewerSide, la copie mémoire de l’IA en solo et la présence Profil → nouveau MP. Ce checkpoint est exclusivement documentaire, de parent exact a5fd8c2 ; aucun code/test/migration modifié, aucun nouveau Rxxx. La migration 060 est conservée byte-for-byte.
+
+**État après fast-forward strict :** étape **28 implémentée et approuvée, présente sur main** avec les retouches post-smoke R1027 des étapes 1–25. **Étape 26 VALIDÉE PAR LE PROPRIÉTAIRE.** La validation publique propriétaire du PvP et la recette publique des retouches de ce lot restent **NON acquises**. Présence sur main ne prouve ni déploiement Railway/Cloudflare, ni Application ready, ni healthcheck, ni application publique de 060. Les validations publiques antérieures sont conservées uniquement dans leur périmètre.
+
+**DB avant déploiement :** Prisma validate réussi ; migrate status public en lecture seule trouve 60 migrations versionnées, seulement **20261003180000_060_add_arcade_multiplayer pending** (exit 1 attendu). Registre public en READ ONLY : **59 appliquées, zéro inachevée, dernière 20261003160000_059_add_profile_level_titles**. Aucune mutation/fixture publique, aucun migrate deploy public manuel, aucun redeploy manuel. **060 reste non appliquée tant que Railway n’a pas déployé : le predeploy automatique npx prisma migrate deploy l’appliquera après le push main ; résultat à vérifier par ChatGPT.** Aucun résultat de déploiement de ce lot n’est revendiqué ici.
+
+**Preuves antérieures conservées, non réexécutées :** candidat principal : frontend 1256/1256, backend hors DB 1219/1219, PostgreSQL privé 95/95 dont PvP 23/23, quick 5/5, full 8/8 et Chromium aux quatre résolutions. Micro-correctif : ciblés 145/145, frontend 1262/1262, backend hors DB 1219/1219, quick 5/5, full 8/8 ; règles Memory inspectées desktop/mobile, parcours MP vérifié par intégration, contrôle navigateur de ce parcours non abouti. GitHub n’expose aucune CI/status selon la review reçue ; ces preuves sont locales. Contrôles propres à cette promotion : gates Git, périmètre documentaire, diff-check, Prisma validate/status et registre public en lecture seule ; aucune grosse suite relancée.
+
+**Publication :** checkpoint documentaire poussé normalement sur review, puis main avancée uniquement par git merge --ff-only review et push normal. État final requis et contrôlé au rapport : origin/main = origin/review au SHA documentaire, divergence 0/0, worktree review propre. Aucun rebase, squash, merge commit ou force-push.
+
+**Séquence R1032 conservée :** **26 validée → 28 implémentation approuvée, promotion courante et recette publique attendue → 29 prochaine après recette 28 → 27 finition transverse différée après 29 → 30 migration foundation/rehearsal → 31 cutover → 32 validation finale**. Le propriétaire veut terminer Arcade et la passe commandes avant la finition transverse ; 27 n’est pas abandonnée. Aucune étape 29 ou 27 commencée. Twitch générique R942 en pause, bridges Gift/Giveaway OFF, Streamer.bot autoritatif, PAID_INFRA_APPROVED = false.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE GITHUB, RAILWAY, L’APPLICATION PUBLIQUE DE 060, LES 60 MIGRATIONS À JOUR ET /HEALTH, PUIS FOURNIT UNE RECETTE PUBLIQUE CIBLÉE DE L’ÉTAPE 28 : TITRES/STICKY, SELF-MENTION, EXPÉDITION QUOTIDIENNE, PRÉSENCE SOCIAL/MP, INVITATION ARCADE, ANNULER/REFUSER/EXPIRATION, START HORS ÉCRAN, MEMORY/PUISSANCE 4/MORPION, SCORE PVP, 0 XP, QUITTER ET REJOUER. STOP.** Aucune étape 29 ni 27.
+
+## Historique — correctifs post-recette et candidat étape 28 du 03/10/2026
 
 **Gate exécuté :** fetch réussi, branche review et worktree/index propres à l'entrée ; HEAD = origin/main = origin/review = **9ec8c98e75d586072d45f2e27efa6c4cdbcbaa37**, divergence 0/0. GitHub refs vérifiées au même SHA ; aucun commit inattendu. Ce SHA reste le baseline et parent prévu du candidat consolidé ; main n'est pas promue dans cette mission.
 

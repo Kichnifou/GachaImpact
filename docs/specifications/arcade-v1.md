@@ -2,7 +2,7 @@
 
 ## Multijoueur Arcade — étape 28
 
-Extension autorisée par le propriétaire, R1028–R1031. État de livraison et preuves au [Master](../master/PROJECT_MASTER_PLAN.md) : candidat `review`, jamais une validation PvP publique. Les règles et preuves solo historiques ci-dessous sont conservées, sans attribuer rétroactivement le multijoueur à R970–R1006.
+Extension autorisée par le propriétaire, R1028–R1031. État de livraison et preuves au [Master](../master/PROJECT_MASTER_PLAN.md) : implémentation 177f242 + micro-correctif a5fd8c2 approuvés indépendamment, promus sur main par fast-forward strict avec leur checkpoint documentaire ; validation PvP publique propriétaire NON acquise. Avant déploiement, 59 migrations publiques appliquées et 060 seule pending ; son application automatique par le predeploy Railway après push main reste à vérifier. Aucune application manuelle de 060 ni recette publique dans la mission de promotion. Les règles et preuves solo historiques ci-dessous sont conservées, sans attribuer rétroactivement le multijoueur à R970–R1006.
 
 ### Interface et adversaires
 

@@ -2,7 +2,7 @@
 
 Statut : évolutif.
 
-État de livraison : R1025/R1026 promues via 9ec8c98 ; validation publique Menu/Aide/tracker/cinq titres et 059 appliquée reçues dans la mission propriétaire. Les retouches R1027 et l'extension Arcade R1028–R1031 restent candidates review. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+État de livraison : R1025/R1026 promues via 9ec8c98 ; validation publique Menu/Aide/tracker/cinq titres et 059 appliquée reçues dans la mission propriétaire. Les retouches R1027 et l’extension Arcade R1028–R1031, chaîne 177f242 + a5fd8c2, sont approuvées indépendamment et promues sur main par fast-forward strict avec le checkpoint documentaire. Étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; recette publique PvP et retouches du lot encore NON acquise. Avant déploiement : 59 migrations publiques appliquées, 060 seule pending ; application automatique par Railway à vérifier. Aucune nouvelle décision produit ni nouvel ID dans cette promotion. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
 
 ## Correctifs post-recette — R1027 (2026-10-03)
 

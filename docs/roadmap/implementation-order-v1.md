@@ -77,7 +77,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 
 ### Séquence d'exécution finale — numéros conservés (R1032)
 
-Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
+Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; implémentation 28 approuvée et promotion courante. La prochaine étape 29 ne commence qu’après la recette publique de 28 ; le déploiement et cette recette restent à vérifier selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
 
 | Étape | Périmètre dans l'ordre réel |
 | --- | --- |
