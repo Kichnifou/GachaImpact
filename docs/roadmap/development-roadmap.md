@@ -127,7 +127,7 @@ Objectifs :
 
 Le jeu doit rester entièrement utilisable sans Twitch.
 
-Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. La conservation définitive de l'intégration dépend d'une recette de charge/performance ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
+Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. La conservation définitive de l’intégration dépend de la recette technique 27 ; la passe exhaustive commandes/sorties et leur validation propriétaire appartient à 29 avant migration ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
 
 ---
 
@@ -147,6 +147,10 @@ Après implémentation fonctionnelle suffisante :
 Le lot transverse de finition implémente la [politique canonique de rétention](../specifications/data-retention-v1.md) après audit des statistiques, états, FK, claims, idempotence et preuves de chaque domaine, avec maintenance DB. La recette finale Twitch couvre trafic ordinaire/spam/multi-auteurs/commandes, latence webhook/API, pool PostgreSQL, UI, Chat/MP, retries et doubles effets. La cible des messages ordinaires en mémoire sans persistance inutile sera évaluée à cette passe ; les durées décidées ne prouvent pas que ces purges sont déjà physiques.
 
 ---
+
+## Séquence de clôture avant migration globale
+
+Suivre [implementation-order-v1.md](implementation-order-v1.md) : 25 Tutoriel/Help/Aide → 26 recette fonctionnelle globale → 27 finition technique/visuelle, rétention et décision Twitch → 28 Multijoueur Arcade (futur, non cadré) → 29 passe exhaustive de toutes les commandes ! → 30 foundation/rehearsal global → 31 migration finale/cutover distinct → 32 validation finale V1. Les numéros 1–25 sont conservés. Ajouter 28 ne déclare aucun multijoueur déjà conçu ou implémenté ; 29 ferme les écarts de syntaxe, permissions et textes avant la migration.
 
 ## Principe final
 

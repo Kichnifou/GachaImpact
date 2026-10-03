@@ -103,3 +103,9 @@
 @media(max-width:1120px), (min-width:1121px) and (max-height:850px) {
   .daily-tracker .daily-tracker-heading .daily-tracker-hide { height:18px; min-height:18px; font-size:14px; }
 }
+
+/* Sidebar polish only; keep its three regions and all hit targets. */
+.player-sidebar .daily-card.daily-tracker { background:linear-gradient(145deg,rgba(30,66,103,.66),rgba(14,30,53,.95) 55%,rgba(10,20,38,.96)); }
+.daily-tracker-content h3 { font-size:15px; font-weight:750; letter-spacing:.045em; text-transform:uppercase; }
+@media(max-width:1120px) { .daily-tracker-content h3 { font-size:11px; } }
+@media(min-width:1121px) and (max-height:850px) { .daily-tracker-content h3 { font-size:12px; } }

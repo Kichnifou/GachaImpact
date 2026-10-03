@@ -209,3 +209,7 @@ Chromium local, GameShell complet avec CSS réels, réseau externe bloqué : **6
 | 390×844 | 11,297 px | 475 → 475 px (flux mobile) | 508,938 px | 507 / 507 |
 
 À 1920×1080 : action x=172,188 / y=899,625 / 65,625×28 px, bord inférieur=927,625 ; navigation x=71 / y=1029 / 268×24 px. Aucun recouvrement, gap 101,375 px ≥6. Résumé y=720,063 / hauteur=341,938 / bas=1062, égal au bas du centre ; bannière y=181 / hauteur=525,063, 14 px entre les panneaux. Les trois desktops ont un résumé intrinsèque sans scroll ni grande zone vide ; mobile conserve son flux naturel. Ces preuves techniques synthétiques n'anticipent aucune approbation indépendante ni recette publique du nouveau candidat.
+
+## Retouche du tracker sidebar — mission de clôture du 03/10/2026
+
+Fond subtil bleuté en dégradé, titre central légèrement agrandi et affirmé avec text-transform:uppercase : 15 px normal, 12 px desktop compact, 11 px <=1120. Header Quotidiennes [position/total] conservé. Géométrie, ordre/priorités, masques/LIFO, cinq contrôles indépendants, hit-target, claim partagé, compteurs et synchronisation inchangés ; aucune logique daily modifiée. Inspection GameShell/CSS production aux quatre formats avec équipe 4/4, tous les titres et états plein/partiel/terminé/attente/erreur/refresh et restauration LIFO ; résultats de ce candidat au Master. Retouche candidate, pas de nouvelle recette publique présumée.

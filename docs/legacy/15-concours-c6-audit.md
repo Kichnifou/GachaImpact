@@ -795,6 +795,10 @@ Les mêmes permissions s'appliquent :
 - dans le chat interne ;
 - via Twitch lorsque l'intégration existera.
 
+### Rubriques applicables — clarification propriétaire du 03/10/2026
+
+L’auteur confirme : Box pour la liste des 5★ C6 ; Box et Statistiques générales pour leurs détails. Les réglages Public/Amis/Privé existants restent indépendants, avec accès propriétaire conservé. Profil > Box et Chat interne réutilisent SocialService.legends et la présentation Concours, en lecture seule ; un refus ne charge pas la progression privée. Aucune nouvelle catégorie de permission ni règle économique.
+
 ### Commandes cibles
 
 `!legende`

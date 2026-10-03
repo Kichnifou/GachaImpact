@@ -8,8 +8,8 @@ const player = { id: crypto.randomUUID(), displayName: 'Menu Test', elementKey: 
 const identity = { subject: 'navigation-subject' }
 
 describe('navigation preferences', () => {
-  it('uses the exact 22-destination canonical default with personal Profile and direct Arcade', () => {
-    expect(mergeNavigationMenuPreference(null)).toEqual({ version: 1, hidden: [], order: ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] })
+  it('uses the exact 23-destination canonical default with personal Profile and direct Arcade', () => {
+    expect(mergeNavigationMenuPreference(null)).toEqual({ version: 1, hidden: [], order: ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'] })
   })
   it('retires Activities and inserts only absent Profile/Arcade beside their anchors without resetting survivors', () => {
     const oldOrder = ['bank', 'event', 'combat', 'home', 'activities', 'shop', 'configuration']
@@ -46,7 +46,7 @@ describe('navigation preferences', () => {
     const oldPreference = mergeNavigationMenuPreference({ version: 1, order: ['shop', 'home', 'configuration'], hidden: ['combat', 'codes', 'configuration', 'codes'] })
     expect(oldPreference.order.slice(0, 2)).toEqual(['shop', 'home'])
     expect(oldPreference.order.at(-1)).toBe('configuration')
-    expect(oldPreference.order.at(-2)).toBe('tutorial')
+    expect(oldPreference.order.at(-2)).toBe('help')
     expect(oldPreference.order.indexOf('codes')).toBeLessThan(oldPreference.order.indexOf('configuration'))
     expect(oldPreference.order).toEqual(expect.arrayContaining(['profile', 'arcade', 'friends']))
     expect(oldPreference.hidden).toEqual(['combat', 'codes'])
@@ -88,3 +88,17 @@ describe('navigation preferences', () => {
 })
 
 function navigationLength() { return mergeNavigationMenuPreference(null).order.length }
+
+it('inserts absent Help after Tutorial, preserves custom placement and hidden state, without changing version', () => {
+ const full=mergeNavigationMenuPreference(null);
+ const legacy={...full,order:full.order.filter(id=>id!=='help'),hidden:['bank']};
+ const merged=mergeNavigationMenuPreference(legacy);
+ expect(merged.version).toBe(1); expect(merged.order).toHaveLength(23);
+ expect(merged.order.indexOf('help')).toBe(merged.order.indexOf('tutorial')+1);
+ expect(merged.order.filter(id=>id!=='help')).toEqual(legacy.order);
+ expect(mergeNavigationMenuPreference(merged)).toEqual(merged);
+ const custom=mergeNavigationMenuPreference({order:['help','shop','tutorial','configuration'],hidden:['help']});
+ expect(custom.order.slice(0,3)).toEqual(['help','shop','tutorial']);expect(custom.hidden).toEqual(['help']);
+ const incomplete=mergeNavigationMenuPreference({order:['bank','configuration'],hidden:[]});
+ expect(incomplete.order.indexOf('help')).toBe(incomplete.order.indexOf('tutorial')+1);
+});

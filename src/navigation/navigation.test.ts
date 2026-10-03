@@ -17,7 +17,15 @@ describe('navigation shell registry', () => {
     expect(navigationDestinations.find(({ id }) => id === 'tutorial')).toMatchObject({ available: true, screen: null, action: 'tutorial' })
   })
   it('adds Rankings to the global menu without changing the seven main tiles', () => {
-    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'])
-    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(22)
+    expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'])
+    expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(23)
   })
 })
+
+it('keeps Help an action and Catalogue distinct from Profile',()=>{
+ expect(navigationDestinations.find(d=>d.id==='help')).toMatchObject({screen:null,action:'help',available:true});
+ expect(navigationDestinations.find(d=>d.id==='profile')?.icon).toBe('♙');
+ expect(navigationDestinations.find(d=>d.id==='catalog')?.icon).toBe('▥');
+ expect(navigationDestinations.filter(d=>d.icon==='▥')).toHaveLength(1);
+ expect(parseNavigationHash('#help')).toBe('home');
+});

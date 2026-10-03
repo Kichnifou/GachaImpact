@@ -48,7 +48,7 @@ export type ChatCommandServices = Readonly<{
   withdrawPlayerBankChat: Pick<TransferPlayerBank, 'execute'>;
   getCurrentPlayerShop: Pick<GetCurrentPlayerShop, 'execute'>;
   purchaseShopItemChat: Pick<PurchaseShopItem, 'execute'>;
-  socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'favor' | 'friends' | 'friendship'>;
+  socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'favor' | 'legends' | 'friends' | 'friendship'>;
   rankingService: Pick<RankingService, 'chatTop' | 'personal'>;
   tradeService: Pick<TradeService, 'create' | 'mutate' | 'all' | 'snapshot' | 'partners'>;
   tradePlayer: Pick<GetCurrentPlayer, 'execute'>;
@@ -157,6 +157,26 @@ export class ChatCommandDispatcher {
     if (!definition.handler) return 'Cette commande n’est pas encore disponible dans le Chat.';
     try {
       switch (definition.handler) {
+        case 'legende': {
+          const actor = await this.services.socialService.actor(identity);
+          let target: { id: string; displayName: string } | null = actor;
+          let characterName = '';
+          if (args.length && !['me', 'moi'].includes(args[0]!.toLocaleLowerCase('fr-FR'))) {
+            target = null;
+            for (let length = args.length; length > 0; length -= 1) {
+              target = await this.player(identity, args.slice(0, length).join(' '));
+              if (target) { characterName = args.slice(length).join(' '); break; }
+            }
+          } else characterName = args.slice(1).join(' ');
+          if (!target) return 'Joueur introuvable.';
+          const view = await this.services.socialService.legends(identity, target.id, Boolean(characterName));
+          if (view.access === 'PRIVATE') return 'Les Légendes de ce joueur sont privées.';
+          if (!characterName) return `Légendes de ${target.displayName} : ${names(view.data.characters.map(character => character.name))}.`;
+          const legend = view.data.legends.find(row => normalizePlayerSearch(row.character.name) === normalizePlayerSearch(characterName));
+          if (!legend) return 'Légende introuvable parmi les personnages C6 accessibles.';
+          const stats = legend.stats;
+          return `${legend.character.name} · Force ${stats.strength}, Intelligence ${stats.intelligence}, Beauté ${stats.beauty}, Charisme ${stats.charisma}, Popularité ${stats.popularity} · Concours ${legend.totals.contests}, victoires ${legend.totals.wins} · ${Object.values(legend.themes).map(theme => `${theme.title ?? 'Sans titre'} (${theme.wins}/${theme.participations} victoires)`).join(' · ')}.`;
+        }
         case 'top': {
           if (args.length > 1) return syntax(definition.syntax);
           if (!args.length) return `Classements : ${rankingRegistry.map(metric => metric.aliases[0]).join(', ')}. Utilise !top <metrique> ou !top me.`;

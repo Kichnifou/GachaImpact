@@ -14,6 +14,7 @@ import { PresenceService, derivePresence, PRESENCE_CONNECTION_TIMEOUT_MS } from 
 import { FriendshipService } from './friendship-service.js';
 import { GeneralStatisticsProjection } from '../statistics/general-statistics-projection.js';
 import { appearanceSelect, avatarAssetPath, equippedTitle } from '../appearance/appearance-service.js';
+import { presentLegend } from '../contest/contest-service.js';
 
 export type SocialQuery = { q: string; element?: string; status?: 'ONLINE' | 'AWAY' | 'OFFLINE'; relation?: 'SELF' | 'FRIEND' | 'SENT' | 'RECEIVED' | 'NONE'; page: number };
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T };
@@ -92,6 +93,21 @@ export class SocialService {
     const publicState = { active: state.active, daysRemaining: state.daysRemaining, maxDays: state.maxDays };
     return allowed(viewer.id === playerId ? { ...publicState, dailyPrimogems: state.dailyPrimogems, claimedToday: state.claimedToday, claimStatus: state.claimStatus } : publicState);
   }
+  /** R565: Box controls the list; details additionally require General Statistics. Read only. */
+  async legends(identity: AuthenticatedIdentity, playerId: string, detailed: boolean) {
+    const viewer = await this.actor(identity);
+    if (!await this.database.player.count({ where: { id: playerId, status: 'ACTIVE' } })) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
+    const permissions = await this.privacy.permissions(playerId, viewer.id);
+    if (!permissions.BOX || detailed && !permissions.GENERAL_STATISTICS) return hidden;
+    const possessions = await this.database.playerCharacter.findMany({
+      where: { playerId, constellation: 6, character: { rarity: 5 } },
+      select: { characterId: true, character: { select: { id: true, name: true } } },
+      orderBy: { character: { name: 'asc' } },
+    });
+    if (!detailed) return allowed({ characters: possessions.map(row => row.character), legends: [] });
+    const progress = await this.database.c6CompetitionProgress.findMany({ where: { playerId, characterId: { in: possessions.map(row => row.characterId) } }, include: { character: true } });
+    return allowed({ characters: possessions.map(row => row.character), legends: progress.map(presentLegend) });
+  }
   async profile(identity: AuthenticatedIdentity, playerId: string) {
     const viewer = await this.actor(identity);
     const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, ...appearanceSelect, progression: { select: { xp: true } } } });
@@ -106,6 +122,9 @@ export class SocialService {
       permissions.GENERAL_STATISTICS ? new GeneralStatisticsProjection(this.database).read(playerId).then(allowed) : hidden,
       this.favor(identity, playerId),
     ]);
-    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics, favor };
+    const legends = box.access === 'ALLOWED' && box.data.some(character => character.rarity === 5 && character.constellation === 6)
+      ? await this.legends(identity, playerId, permissions.GENERAL_STATISTICS)
+      : permissions.BOX ? allowed({ characters: [], legends: [] }) : hidden;
+    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics, favor, legends };
   }
 }

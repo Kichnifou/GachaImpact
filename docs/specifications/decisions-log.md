@@ -2,10 +2,21 @@
 
 Statut : évolutif.
 
+## Titres de niveau du Profil — R1025 (2026-10-03)
+
+- VALIDÉ par la mission propriétaire : titres permanents purement cosmétiques aux niveaux 10, 25, 50, 75, 100 : Éclat naissant, Voyageur astral, Étoile montante, Maître des Astres, Légende astrale. Catalogue réel TITLE/VISIBLE/actif, sans asset ni auto-équipement. Conditions visibles pour les titres verrouillés ; rendu uniquement dans Profil.
+- XP autoritative : tous les seuils franchis passent par la transaction XP existante et la primitive commune de possession. Notification uniquement pour une nouvelle possession. Backfill des niveaux actuels silencieux, provenance explicite, aucune modification économique ou des équipements. Source : [modèle Apparence](v1-data-model.md#241-cosmeticdefinition).
+
+## Aide standalone — R1026 (2026-10-03)
+
+- VALIDÉ par la mission propriétaire : action Menu Aide après Tutoriel avant Configuration, ID help ; même navigation_menu_v1/version 1. L’insertion absente suit Tutoriel rétabli déterministement, sans déplacer l’ordre relatif ni le masquage des IDs existants ; une Aide déjà personnalisée garde sa place. Configuration peut masquer, réafficher et déplacer Aide.
+- Grande fenêtre flottante accessible avec recherche accent/casse, rubriques Démarrage/Systèmes/Commandes/Twitch, body seul défilant, header/recherche/navigation/footer fixes. Aide informative, distincte du parcours de 116 étapes et du Help textuel ; aucune nouvelle route/ScreenId/étape, mutation métier ou persistance de guide.
+- Le bouton Tutoriel rejoint le lanceur normal : toute action/présentation pending bloque avant GET/PUT Tutoriel. Source : [Aide / Guide](help-guide-v1.md).
+
 ## Menu global personnel — R1024 (2026-10-03)
 
 - `VALIDÉ R1024 — mission propriétaire` : retirer Activités uniquement du Menu global ; ajouter Profil après Accueil et Arcade entre Événement et Concours. Profil ouvre toujours le Player connecté, même après consultation d’un profil tiers ; Arcade ouvre activities-arcade. Navigation principale Activités, sous-onglets et hashes conservés, sans nouveau bouton Profil principal. Glyphes cohérents et pagination neuf destinations/page conservée.
-- Même navigation_menu_v1/version 1, sans migration/reset : activities retiré de order/hidden, ordre relatif et masquages des IDs survivants préservés. Insérer profile absent après home, arcade absent après event ; ancres absentes rétablies déterministement selon l’ordre canonique. Merge idempotent ; Configuration toujours disponible/non masquable. [Source navigation](navigation-shell-v1.md), Review indépendante ChatGPT acquise sur 468dbaa, sans correctif code ; Menu R1024 approuvé et présent sur main après promotion documentaire. Recette publique du correctif non acquise ; état au Master.
+- Même navigation_menu_v1/version 1, sans migration/reset : activities retiré de order/hidden, ordre relatif et masquages des IDs survivants préservés. Insérer profile absent après home, arcade absent après event ; ancres absentes rétablies déterministement selon l’ordre canonique. Merge idempotent ; Configuration toujours disponible/non masquable. [Source navigation](navigation-shell-v1.md), Review indépendante ChatGPT acquise sur 468dbaa, sans correctif code ; Menu R1024 approuvé et présent sur main après promotion documentaire. Recette publique des six groupes acquise sur 1e5a5d7 ; aliases seulement techniques, état au Master.
 
 ## Extension Tutoriel joueurs 25B — R1023 (2026-10-02, révisée le 2026-10-03)
 
@@ -13,7 +24,7 @@ Statut : évolutif.
 - Navigation entre propriétaires et adaptation temporaire des sous-vues, jamais via handlers métier. Transition PUT confirmé → préparation annulable → ancre primaire ou entrée réelle avec repli honnête. Pause/Terminer anticipé laissent l'écran courant ; reprise remonte la sous-vue persistée indirectement par le seul stepId. Garde synchrone, retry exact et rejet des réponses tardives propres au Player.
 - Révision propriétaire de copie/ciblages : 116 titres/descriptions exacts ; Passifs fenêtre complète et passifs de la formation réelle mis en évidence, Event Shop section complète, Vider contrôle réel, Invocation zone 4★. Missions-ranks/progress/secret-z restent toutes sur B ; dernière étape uniquement sur le contrôle Z, sans contenu Z même débloqué.
 - Même PlayerPreference/tutorial_v1/version 1 : 116 IDs actifs et aliases backend menu-pagination → notifications-entry / event-calendar → arcade-memory normalisés en GET sans écriture et en PUT vers l’ID canonique ; forme et statuts inchangés, compatibilité sans reset des huit IDs. Aucun état de vue/entité persisté ni migration. Interactions neutralisées et gardes explicites contre read/seen/typing Chat/MP, consultation Panier et avance Arcade ; brouillons, confidentialité, choix normaux et parties réelles conservés.
-- Les fonctions distinctes restent identifiées dans la [matrice canonique](tutorial-v1.md). Réutiliser les vrais composants/données autorisées ; aucune possession, conversation, formation ou disponibilité fictive. Aucun autostart, Help/Aide final, récompense, action imposée ou changement gameplay/économie. 25A clôturée dans son périmètre réel, **25B initiale promue via 81d7234 ; correctif propriétaire 468dbaa approuvé indépendamment par ChatGPT et présent sur main après fast-forward strict du checkpoint documentaire ; 116 étapes / 24 chapitres / 21 écrans, aucun correctif code requis. Déploiement du SHA promu à vérifier ; validation publique propriétaire du correctif non acquise** ; état/prochain contrôle au Master.
+- Les fonctions distinctes restent identifiées dans la [matrice canonique](tutorial-v1.md). Réutiliser les vrais composants/données autorisées ; aucune possession, conversation, formation ou disponibilité fictive. Aucun autostart, récompense, action imposée ou changement gameplay/économie ; Help/Aide sont livrés séparément sous R1026. 25A clôturée dans son périmètre réel, **Tutoriel 25B de 116 étapes / 24 chapitres / 21 écrans validé publiquement par le propriétaire sur 1e5a5d7 ; Menu, transitions, Missions B/Z, Passifs, Event Shop et Faveur validés dans les six groupes rapportés. Compatibilité des deux anciens IDs prouvée techniquement, sans recette manuelle publique rapportée** ; état/prochain contrôle au Master.
 
 ## Retouches UX Quotidiennes/Home — R1021/R1022 (2026-10-02)
 
@@ -935,7 +946,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `HISTORIQUE SUPERSÉDÉ PAR R657–R672` — L'ancienne orientation suspendait les jours sans récompense réclamée. Elle n'est plus une règle actuelle : R657 impose l'écoulement calendaire `Europe/Paris`, même en cas d'absence ; R658 réserve les +800 à une présence dans la journée, sans rattrapage.
 - Le contrat actuel d'attribution, calendrier, récompenses et consultation est fixé par R657–R672 ci-dessous et [l'audit Faveur clôturé](../legacy/18-faveur-subscription-audit.md). Aucune nouvelle décision produit n'est introduite par cette réconciliation.
 
-## Concours / C6 — domaine en cours
+## Concours / C6 — décisions validées
 - `VALIDÉ R526` — Le Concours est visible par tous. Sans personnage 5★ C6 éligible, un joueur peut consulter le système et agir comme spectateur/support, mais pas participer comme concurrent.
 - `VALIDÉ R527` — Un seul concours global peut exister à la fois. Tout joueur peut le regarder passivement dans l'UI sans s'enregistrer comme spectateur ; ce visionnage passif ne donne aucune action de spectateur.
 - `VALIDÉ R528` — Le thème Concours est mondial et quotidien, avec reset serveur selon `Europe/Paris`.
@@ -1202,6 +1213,10 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `TECHNIQUE` — UI standalone, chat interne et Twitch utilisent le même service de Ranking.
 - `MIGRATION` — Aucun historique de rang, podium ou saison Top legacy n'est inventé ; les classements sont recalculés depuis les données sources migrées.
 - `RÉVISÉ R910` — Le métier principal des Classements est validé au test public ; les correctifs post-test restent en candidat `review` et le domaine attend leur validation publique.
+
+## Clarification R565 — permissions de consultation des Légendes (2026-10-03)
+
+L’auteur confirme dans cette mission : Box autorise la liste des 5★ C6 ; le détail exige aussi Statistiques générales. Appliquer les rubriques Public/Amis/Privé existantes, avec accès propriétaire conservé, avant toute lecture de la progression. Même projection read-only dans Profil > Box et !legende ; aucun compte, nom ou statistique privée dans un refus. [Source Concours R565](../legacy/15-concours-c6-audit.md).
 
 ## Help / cohérence finale des commandes
 - `VALIDÉ R728` — `!help` utilise trois niveaux : catégories principales, résumé d'une catégorie et aide directe par commande.

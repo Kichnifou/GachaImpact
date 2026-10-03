@@ -1,3 +1,4 @@
+import HelpGuide from '../help/HelpGuide'
 import type { EventDailyOpenIntent } from '../event/event-presentation'
 import { getGameApiClient } from '../api/game-api'
 import { useFavorPresence } from '../favor/use-favor-presence'
@@ -271,6 +272,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const friendship = useFriendships(socialActions, activeScreen === 'social' || activeScreen === 'profile' || activeScreen === 'activities-dailies' || isPlayersOpen)
   const clearFriendshipFeedback = friendship.clearFeedback
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
   const [tutorialUnavailable, setTutorialUnavailable] = useState('')
   const [isParticleConversionOpen, setIsParticleConversionOpen] = useState(false)
   const previousDailyChallengeStatus = useRef(dailyChallenge.status)
@@ -472,11 +474,12 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const launchTutorial = () => {
     if (tutorial.getSnapshot().active) return
     if (pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || document.querySelector('.invocation-sequence-panel, [data-business-pending="true"]')) {
-      setIsMenuOpen(true); setTutorialUnavailable('Terminez l’action ou la présentation en cours avant de lancer le Tutoriel.'); return
+      if (!isHelpOpen) setIsMenuOpen(true); setTutorialUnavailable('Terminez l’action ou la présentation en cours avant de lancer le Tutoriel.'); return
     }
     setTutorialUnavailable('')
     sidebarBeforeTutorial.current = isSidebarOpen
     setIsMenuOpen(false)
+    setIsHelpOpen(false)
     void tutorial.launch()
   }
 
@@ -641,9 +644,10 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         />
       )}
 
+      {isHelpOpen && !tutorialState.active && <HelpGuide notice={tutorialUnavailable} onTutorial={launchTutorial} onClose={() => { setIsHelpOpen(false); requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-menu-trigger]')?.focus()) }} />}
       {tutorialState.active && <TutorialOverlay key={player.id} {...tutorialState} onPrevious={() => { void tutorial.previous() }} onNext={() => { void tutorial.next() }} onPause={tutorial.pause} onFinish={() => { void tutorial.finish() }} />}
       {(isPlayersOpen || presentationStep?.panel === 'players') && <OnlinePlayersPanel value={presence.value} error={presence.error} ownerPlayerId={player.id} controller={friendship} onProfile={openProfile} onDirectory={() => { setIsPlayersOpen(false); setSocialTab('players'); navigate('social') }} onClose={() => { friendship.clearFeedback(); setIsPlayersOpen(false) }} />}
-      {(isMenuOpen || presentationStep?.panel === 'menu') && <GlobalMenu notice={tutorialUnavailable} onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'profile') { openProfile(player.id); return } if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onClose={() => setIsMenuOpen(false)} />}
+      {(isMenuOpen || presentationStep?.panel === 'menu') && <GlobalMenu notice={tutorialUnavailable} onHelp={() => { setTutorialUnavailable(''); setIsMenuOpen(false); setIsHelpOpen(true) }} onTutorial={launchTutorial} preference={menuPreference} page={menuPage} onPageChange={setMenuPage} onNavigate={screen => { if (screen === 'profile') { openProfile(player.id); return } if (screen === 'social') setSocialTab('friends'); if (screen === 'history') setHistoryIntent(null); navigate(screen) }} onClose={() => setIsMenuOpen(false)} />}
       {(isParticleConversionOpen || presentationStep?.panel === 'conversion') && player.elementKey && <ParticleConversionModal elementKey={player.elementKey} stock={resources.particles[player.elementKey]} onClose={() => setIsParticleConversionOpen(false)} onOpenTrades={() => { setTradeIntent(undefined); navigate('trades') }} onConvert={convertParticles} />}
       {!tutorialState.active && activeLevelUpFeedback && activeLevelUpFeedback.id !== closedLevelUpModalId && <LevelUpFeedback key={activeLevelUpFeedback.id} event={activeLevelUpFeedback} onFinished={finishLevelUpModal} />}
       {!tutorialState.active && completedChallengeFeedback && !externalFeedbackPending && !activeLevelUpFeedback && pendingGachaPullCount === null && !isParticleConversionOpen && <DailyChallengeCompletionFeedback challenge={completedChallengeFeedback} onFinished={() => setCompletedChallengeFeedback(null)} />}

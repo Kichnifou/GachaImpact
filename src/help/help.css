@@ -1,0 +1,23 @@
+.help-guide { width:min(1080px,100%); height:min(800px,calc(100dvh - 40px)); display:grid; grid-template-rows:auto auto minmax(0,1fr) auto; overflow:hidden; }
+.help-search { display:grid; gap:6px; padding:14px 18px; color:#b9d1ec; font-size:12px; }
+.help-search input { min-width:0; width:100%; padding:10px 12px; border:1px solid #46688f; border-radius:9px; background:#0a172b; color:#edf5ff; }
+.help-guide-layout { display:grid; grid-template-columns:160px minmax(0,1fr); min-height:0; }
+.help-guide-layout nav { display:flex; flex-direction:column; gap:8px; padding:12px; }
+.help-guide-layout nav button[aria-pressed=true] { border-color:#87d8ec; background:#214361; }
+.help-guide-body { min-height:0; overflow-y:auto; padding:12px 20px 24px; overscroll-behavior:contain; }
+.help-guide-body section + section { margin-top:24px; }
+.help-guide-body h3 { margin:0 0 12px; color:#d9efff; font-size:20px; }
+.help-guide-body h4 { margin:0 0 8px; color:#d9efff; font-size:15px; }
+.help-guide-body p { color:#b1c4dc; font-size:13px; line-height:1.6; margin:6px 0 12px; }
+.help-guide-body small { color:#89c5df; font-size:11px; }
+.help-discovery { margin:0; padding-left:24px; }
+.help-discovery li { padding:8px 4px; color:#a6d8ed; }
+.help-discovery strong { color:#edf5ff; }
+.help-system-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.help-system-grid article,.help-command-list article { min-width:0; padding:14px; border:1px solid #315070; border-radius:10px; background:linear-gradient(140deg,#19345066,#101c32aa); }
+.help-command-list { display:grid; gap:10px; }
+.help-command-list code { color:#a6e5f2; font-size:12px; overflow-wrap:anywhere; }
+.help-guide > footer { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:14px 18px; border-top:1px solid #315070; }
+.help-guide > footer p { margin:0; color:#9eb7d1; font-size:11px; }
+.help-guide > footer .app-button { flex-shrink:0; }
+@media(max-width:760px) { .help-guide-layer { padding:12px; } .help-guide { height:calc(100dvh - 24px); } .help-guide-layout { grid-template-columns:minmax(0,1fr); grid-template-rows:auto minmax(0,1fr); } .help-guide-layout nav { flex-direction:row; gap:4px; padding:8px; } .help-guide-layout nav .app-button { min-width:0; flex:1; font-size:11px; padding:8px 5px; } .help-guide-body { padding:12px; } .help-system-grid { grid-template-columns:minmax(0,1fr); } .help-guide > footer { flex-wrap:wrap; padding:12px; } }

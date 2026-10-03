@@ -882,7 +882,7 @@ function presentParticipantIdentity(participant: ContestRecord['participants'][n
 
 function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title, statKey: item.statKey }; }
 
-function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ include: { character: true } }>) {
+export function presentLegend(progress: Prisma.C6CompetitionProgressGetPayload<{ include: { character: true } }>) {
   return {
     character: { id: progress.character.id, externalKey: progress.character.externalKey, name: progress.character.name, iconPath: progress.character.iconPath, elementKey: progress.character.elementKey },
     stats: { strength: progress.strength, intelligence: progress.intelligence, beauty: progress.beauty, charisma: progress.charisma, popularity: progress.popularity },

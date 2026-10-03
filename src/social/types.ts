@@ -1,4 +1,4 @@
-import type { AppearanceDto, BoxCharacterDto, ElementKey, InventoryItemDto, PermanentMissionProjectionDto, PlayerMissionsDto, PlayerTeamDto } from '../api/types'
+import type { AppearanceDto, BoxCharacterDto, ContestLegendDto, ElementKey, InventoryItemDto, PermanentMissionProjectionDto, PlayerMissionsDto, PlayerTeamDto } from '../api/types'
 
 export type Access<T> = { access: 'PRIVATE' } | { access: 'ALLOWED'; data: T }
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE'
@@ -24,6 +24,7 @@ export type Profile = {
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
   team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite' | 'c6CompetitionStats'>[]>; collection: Access<InventoryItemDto[]>
   statistics: Access<GeneralStatistics>
+  legends?: Access<{ characters: readonly { id: string; name: string }[]; legends: readonly ContestLegendDto[] }>
 }
 export type GeneralStatistics = {
   totalXp: string | null; totalMessages: string | null; countedMessages: string | null

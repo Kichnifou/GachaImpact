@@ -38,6 +38,7 @@ function harness() {
     getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
     purchaseShopItemChat: execute({ purchase: { quantity: 2n, displayName: 'Lot de Primogemmes', totalPrice: 100_000n, effect: { type: 'resource_bundle', amount: 320n, resourceKey: 'primogems' } } }),
     socialService: {
+      legends: vi.fn(async () => ({ access: 'ALLOWED', data: { characters: [{ id: 'c6', name: 'Étoile' }], legends: [{ character: { name: 'Étoile' }, stats: { strength: 1, intelligence: 2, beauty: 3, charisma: 4, popularity: 5 }, totals: { contests: '9', wins: '2' }, themes: { STRENGTH: { title: 'Titre thème', wins: '2', participations: '9' } } }] } })),
       favor: vi.fn(async () => ({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } })),
       actor: vi.fn(async () => ({ id: 'self', displayName: 'Moi' })),
       directory: vi.fn(async () => ({ players: [{ id: 'other', displayName: 'Autre' }], page: 1, totalPages: 1 })),
@@ -89,6 +90,18 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('reads Legends with exact normalized character names, self aliases, player names and no private leak', async () => {
+    const { services, send } = harness();
+    expect(await send('!legende')).toBe('Légendes de Moi : Étoile.');
+    expect(await send('!legende moi ETOILE')).toContain('Force 1');
+    expect(await send('!legende me Etoile')).toContain('Concours 9, victoires 2');
+    expect(await send('!legende Autre')).toBe('Légendes de Autre : Étoile.');
+    expect(await send('!legende @Autre Étoile')).toContain('Titre thème');
+    expect(services.socialService.legends).toHaveBeenLastCalledWith(actor, 'other', true);
+    expect(await send('!legende moi Éto')).toContain('Légende introuvable');
+    services.socialService.legends.mockResolvedValueOnce({ access: 'PRIVATE' } as never);
+    expect(await send('!legende Autre Étoile')).toBe('Les Légendes de ce joueur sont privées.');
+  });
   it('includes current Mission completions in the immediate command response', async () => {
     const { chat, send } = harness();
     chat.commandMissionCompletions.mockResolvedValueOnce(['Mission terminée : Bavard du jour (+160 Primogemmes).']);

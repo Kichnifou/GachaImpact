@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { chatCommandRegistry, chatHelp, findChatCommand } from '../src/application/chat/chat-command-registry.js';
+import { chatCommandRegistry, chatHelp, chatHelpCategories, commandHelp, findChatCommand } from '../src/application/chat/chat-command-registry.js';
 
 describe('Chat command registry', () => {
   it('contains every canonical root once and never invents retired commands', () => {
@@ -18,24 +18,55 @@ describe('Chat command registry', () => {
 
   it('lists ten validated categories without exposing Twitch-only or unavailable commands as usable', () => {
     expect(chatHelp()).toContain('twitch');
-    expect(chatHelp('twitch')).not.toContain('!giveaway');
+    expect(chatHelp('twitch')).toContain('uniquement sur Twitch');
+    expect(chatHelp('twitch')).toContain('!giveaway');
     expect(chatHelp('progression')).not.toContain('!xp');
-    expect(chatHelp('inconnue')).toBe('Commande inconnue. Utilise !help.');
+    expect(chatHelp('inconnue')).toBe('Aide inconnue. Utilise !help pour voir les catégories.');
   });
 
   it('offers only the read-only Contest command in internal Chat help', () => {
     expect(findChatCommand('concours')).toMatchObject({ internalChat: 'READY', syntax: '!concours' });
-    expect(chatHelp('concours')).toBe('Aide concours : !concours.');
-    expect(chatHelp('activites')).toContain('!concours');
+    expect(chatHelp('concours')).toContain('!concours');
+    expect(chatHelp('events')).toContain('!concours');
     expect(chatHelp('concours')).not.toContain('open');
   });
 
   it('publishes the canonical Mission help without advertising the resume alias', () => {
     expect(findChatCommand('mission')).toMatchObject({ internalChat: 'READY', syntax: '!mission [B|A|S|Z]' });
     expect(chatHelp('activites')).toContain('!mission');
-    expect(chatHelp('mission')).toBe('Aide mission : !mission [B|A|S|Z].');
+    expect(chatHelp('mission')).toContain('!mission [B|A|S|Z]');
     expect(chatHelp('mission')).not.toContain('resume');
   });
 });
 
-it('makes Favor available in standalone Help',()=>{expect(findChatCommand('faveur')).toMatchObject({internalChat:'READY',handler:'faveur'});expect(chatHelp('progression')).toContain('!faveur');expect(chatHelp('faveur')).toBe('Aide faveur : !faveur [pseudo].')});
+it('makes Favor available in standalone Help',()=>{expect(findChatCommand('faveur')).toMatchObject({internalChat:'READY',handler:'faveur'});expect(chatHelp('progression')).toContain('!faveur');expect(chatHelp('faveur')).toContain('!faveur [pseudo]')});
+
+it('describes all 34 roots honestly, prioritizes root aliases and keeps the rate recommendation', () => {
+  for (const command of chatCommandRegistry) { expect(command.summary.length).toBeGreaterThan(10); expect(chatHelp(command.name)).toContain(command.syntax); }
+  for (const root of ['box', 'shop', 'top']) expect(chatHelp(root)).toContain(findChatCommand(root)!.summary);
+  expect(chatHelp('TOP')).toContain('!top taux5');
+  expect(chatHelp('wish')).toContain('Twitch uniquement');
+  expect(chatHelp('giveaway')).not.toContain('reroll');
+  expect(chatHelp()).toBe('Aide : progression · gacha · ressources · collection · equipe · activites · social · events · classements · twitch. Utilise !help <categorie> ou !help <commande>.');
+});
+
+it('keeps unavailable and administrator definitions out of usable player help', () => {
+  const definition = findChatCommand('legende')!;
+  for (const internalChat of ['NOT_PHYSICAL', 'NOT_CONNECTED'] as const) {
+    const output = commandHelp({ ...definition, internalChat });
+    expect(output).toContain('pas disponible');
+    expect(output).not.toContain(definition.syntax);
+  }
+  expect(commandHelp({ ...definition, permission: 'ADMIN' })).toContain('Aide inconnue');
+});
+
+it('resolves all ten categories against the real player registry', () => {
+  for (const category of chatHelpCategories) {
+    const output = chatHelp(category);
+    for (const definition of chatCommandRegistry.filter(c => c.category === category && c.permission === 'PLAYER')) {
+      if (definition.internalChat === 'READY' || (category === 'twitch' && definition.internalChat === 'TWITCH_ONLY')) expect(output).toContain('!' + definition.name);
+    }
+    expect(output).not.toContain('!gift');
+    expect(output).not.toContain('!xp');
+  }
+});

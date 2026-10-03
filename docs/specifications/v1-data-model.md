@@ -2160,3 +2160,15 @@ La migration 015 matérialise `PlayerExpedition` comme état unique par Player a
 `departureBusinessDate` survit au retour à IDLE après claim afin de porter la règle d'un départ par journée Europe/Paris. Une annulation due à la désactivation catalogue remet l'état à IDLE et efface cette date sans gain ni incrément.
 
 `Notification` est également physique avec états `UNREAD`, `READ`, `RESOLVED`, `ARCHIVED`. Pour Expedition, RUNNING → READY produit une entrée dédupliquée `expedition/ready` dont l'action `open-expedition-character` cible le personnage ; claim ou annulation la résout.
+
+## R1025 — catalogue canonique des titres de niveau
+
+| externalKey | Titre | Condition |
+| --- | --- | --- |
+| title-level-10 | Éclat naissant | Atteindre le niveau 10. |
+| title-level-25 | Voyageur astral | Atteindre le niveau 25. |
+| title-level-50 | Étoile montante | Atteindre le niveau 50. |
+| title-level-75 | Maître des Astres | Atteindre le niveau 75. |
+| title-level-100 | Légende astrale | Atteindre le niveau 100. |
+
+Les cinq définitions sont TITLE/VISIBLE/actives, assetPath NULL, unlockRule PLAYER_LEVEL avec seuil. Le niveau reste dérivé de l’XP totale selon player-progression ; aucune colonne niveau supplémentaire. PlayerCosmetic conserve source/provenance/date, possession permanente et notification seulement à insertion live nouvelle. Pas d’auto-équipement, d’extension du rendu hors Profil ni de changement des récompenses XP. Migration additive 059 : catalogue et backfill silencieux des seuls seuils réellement atteints, source PROFILE_LEVEL_BACKFILL_059, provenance niveau/XP. La progression native appelle la primitive commune dans la transaction XP existante ; aucun seed runtime ou écriture GET. Le statut public/privé appartient au Master.

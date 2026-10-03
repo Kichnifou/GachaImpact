@@ -93,13 +93,14 @@ export class AppearanceService {
 
   /** Transaction-aware; each caller must declare whether this is a player-facing unlock or a silent technical import. */
   async unlockCosmetic(input: { playerId: string; externalKey: string; source: string; provenance?: Prisma.InputJsonValue; notificationMode: 'PLAYER_FACING' | 'SILENT_BACKFILL' }, transaction?: Prisma.TransactionClient) {
-    const run = async (db: Database) => {
-      const definition = await db.cosmeticDefinition.findUnique({ where: { externalKey: input.externalKey }, select: { id: true, displayName: true, type: true, isActive: true } });
-      if (!definition || !definition.isActive) throw new AppError('Cosmétique indisponible.', 404, 'COSMETIC_UNAVAILABLE');
-      const inserted = await db.playerCosmetic.createMany({ data: [{ playerId: input.playerId, cosmeticId: definition.id, unlockSource: input.source, ...(input.provenance ? { provenance: input.provenance } : {}) }], skipDuplicates: true });
-      if (inserted.count && input.notificationMode === 'PLAYER_FACING') await db.notification.create({ data: { playerId: input.playerId, domainKey: 'appearance', typeKey: 'COSMETIC_UNLOCKED', payload: { cosmeticId: definition.id, type: definition.type, displayName: definition.displayName }, actionKey: 'OPEN_PROFILE_PERSONALIZATION', deduplicationKey: `cosmetic-unlock:${input.playerId}:${definition.id}` } });
-      return { unlocked: inserted.count === 1, cosmeticId: definition.id };
-    };
-    return transaction ? run(transaction) : this.database.$transaction(run);
+    return transaction ? unlockCosmeticInTransaction(transaction, input) : this.database.$transaction(tx => unlockCosmeticInTransaction(tx, input));
   }
+}
+
+export async function unlockCosmeticInTransaction(db: Database, input: { playerId: string; externalKey: string; source: string; provenance?: Prisma.InputJsonValue; notificationMode: 'PLAYER_FACING' | 'SILENT_BACKFILL' }) {
+  const definition = await db.cosmeticDefinition.findUnique({ where: { externalKey: input.externalKey }, select: { id: true, displayName: true, type: true, isActive: true } });
+  if (!definition || !definition.isActive) throw new AppError('Cosmétique indisponible.', 404, 'COSMETIC_UNAVAILABLE');
+  const inserted = await db.playerCosmetic.createMany({ data: [{ playerId: input.playerId, cosmeticId: definition.id, unlockSource: input.source, ...(input.provenance ? { provenance: input.provenance } : {}) }], skipDuplicates: true });
+  if (inserted.count && input.notificationMode === 'PLAYER_FACING') await db.notification.create({ data: { playerId: input.playerId, domainKey: 'appearance', typeKey: 'COSMETIC_UNLOCKED', payload: { cosmeticId: definition.id, type: definition.type, displayName: definition.displayName }, actionKey: 'OPEN_PROFILE_PERSONALIZATION', deduplicationKey: `cosmetic-unlock:${input.playerId}:${definition.id}` } });
+  return { unlocked: inserted.count === 1, cosmeticId: definition.id };
 }

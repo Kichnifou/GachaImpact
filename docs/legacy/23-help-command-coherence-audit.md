@@ -760,7 +760,7 @@ Le domaine Help est suffisamment cadré pour un futur lot Codex lorsque les poin
 - aucun besoin de persistance Help ;
 - aucune logique métier dupliquée dans le routeur Help.
 
-L'implémentation devra néanmoins être précédée du sweep exhaustif final afin de s'assurer qu'aucune racine, alias ou contradiction player-facing n'a été oubliée.
+La mission propriétaire du 03/10/2026 autorise la complétion du Help et de l’Aide dès l’étape 25 : catalogue de 34 racines vérifié, dix catégories, canaux et priorité des commandes. La passe exhaustive de toutes les syntaxes, aliases, permissions et sorties demeure distincte, à l’étape 29 avant migration ; elle n’est plus un prérequis bloquant de cette aide.
 
 ---
 
@@ -791,3 +791,7 @@ Statut final du domaine :
 **CLÔTURÉ après R731, sous réserve des corrections factuelles pouvant ressortir du sweep exhaustif final.**
 
 La prochaine étape globale n'est pas définie ici ; elle appartient au Master.
+
+## Raccordement standalone
+
+R728–R731 alimentent le registre partagé chat-command-metadata.ts et le Help textuel. Le contrat autonome R1026 est porté par [help-guide-v1.md](../specifications/help-guide-v1.md), sans nouveau service métier. L’état de review/public appartient au Master.

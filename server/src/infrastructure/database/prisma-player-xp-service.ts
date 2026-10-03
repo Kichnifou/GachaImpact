@@ -1,3 +1,4 @@
+import { unlockProfileLevelTitles } from '../../application/appearance/profile-level-titles.js';
 import type { Prisma, SourceChannel } from '../../../generated/prisma/client.js';
 import type { ElementKey } from '../../domain/economy/resources.js';
 import { planPlayerXpGrant, type PlayerXpGrantPlan } from '../../domain/player/xp-grant.js';
@@ -37,6 +38,8 @@ export class PrismaPlayerXpService {
         lastXpAt: plan.stateAfter.lastXpAt,
       },
     });
+
+    await unlockProfileLevelTitles(transaction, { playerId: input.playerId, levelsReached: plan.levelsReached, operationId: input.operationId });
 
     for (const reward of plan.rewards) {
       await this.economy.credit(transaction, {

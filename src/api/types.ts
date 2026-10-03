@@ -26,7 +26,7 @@ export type GiveawayStateDto = Readonly<{
 }>
 export type ModerationPlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath: string | null; level: number; tester: boolean; rank: 'SUPER' | 'MODERATOR' | 'TESTER' | 'PLAYER'; roles?: readonly ('ADMIN' | 'MODERATOR' | 'TESTER')[] }>
 
-export const navigationMenuDestinationIds = ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'configuration'] as const
+export const navigationMenuDestinationIds = ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'] as const
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE'
 export type RankingMetricDto = Readonly<{ id: string; label: string; category: RankingCategory; aliases: readonly string[]; source: string; format: 'INTEGER' | 'PERCENT' | 'PITY5'; privacy: readonly string[]; eligibility: string }>
 export type RankingEntryDto = Readonly<{ playerId: string; displayName: string; elementKey: string; avatarAssetPath?: string | null; rank: number; value: string; isSelf: boolean }>

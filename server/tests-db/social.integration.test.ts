@@ -126,7 +126,8 @@ describe('Social isolated PostgreSQL', () => {
     for (const privateValue of ['Secret preset', 'Secret Sac fixture', '"stella"', '"favorite"', '"resources"']) expect(JSON.stringify(result)).not.toContain(privateValue);
     expect(await database.team.count({ where: { playerId: owner } })).toBe(2);
   }, 30_000);
-  it('serializes a real public C6 Box character without loading or exposing Contest progression', async () => {
+  it('keeps Box fields separate and applies the shared Legends privacy policy', async () => {
+    await service.privacy.save(owner, 'GENERAL_STATISTICS', 'PRIVATE');
     const character = await database.character.create({ data: { externalKey: randomUUID(), name: 'C6 public fixture', rarity: 5, elementKey: 'pyro', weaponType: 'sword', region: 'fixture' } });
     await database.playerCharacter.create({ data: { playerId: owner, characterId: character.id, constellation: 6, copies: 7, firstObtainedAt: now, favorite: true } });
     await database.c6CompetitionProgress.create({ data: {
@@ -142,6 +143,21 @@ describe('Social isolated PostgreSQL', () => {
       const publicCharacter = profileBox.find(value => value.id === character.id)!;
       expect(publicCharacter).toMatchObject({ id: character.id, constellation: 6, copies: 7, weaponType: 'sword', region: 'fixture' });
       expect(Object.keys(publicCharacter).sort()).toEqual(['id', 'externalKey', 'name', 'rarity', 'elementKey', 'weaponType', 'region', 'iconPath', 'splashPath', 'wishPath', 'fullbodyPath', 'constellation', 'copies', 'firstObtainedAt'].sort());
+      expect(response.json().legends).toMatchObject({ access: 'ALLOWED', data: { characters: [{ id: character.id }], legends: [] } });
+      expect(await service.legends(identity(viewer), owner, true)).toEqual({ access: 'PRIVATE' });
+      expect(c6Read).not.toHaveBeenCalled();
+      await service.privacy.save(owner, 'GENERAL_STATISTICS', 'PUBLIC');
+      const detailed = await service.legends(identity(viewer), owner, true);
+      expect(detailed).toMatchObject({ access: 'ALLOWED', data: { legends: [{ character: { id: character.id }, stats: { strength: 11, intelligence: 12, beauty: 13, charisma: 14, popularity: 15 } }] } });
+      await service.privacy.save(owner, 'BOX', 'FRIENDS');
+      expect(await service.legends(identity(viewer), owner, false)).toEqual({ access: 'PRIVATE' });
+      expect((await service.legends(identity(friendId), owner, true)).access).toBe('ALLOWED');
+      await service.privacy.save(owner, 'BOX', 'PRIVATE');
+      c6Read.mockClear();
+      expect(await service.legends(identity(viewer), owner, true)).toEqual({ access: 'PRIVATE' });
+      expect(c6Read).not.toHaveBeenCalled();
+      expect((await service.legends(identity(owner), owner, true)).access).toBe('ALLOWED');
+      await service.privacy.save(owner, 'BOX', 'PUBLIC');
     } finally {
       c6Read.mockRestore();
     }

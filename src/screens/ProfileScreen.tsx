@@ -95,7 +95,16 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
         {tab === 'Team active' && team}
         {tab === 'Box' && <Section value={value.box}>{characters => {
           const filtered = characters.map(c => ({ ...c, classKey: null })).filter(c => normalizeCharacterSearch(c.name).includes(normalizeCharacterSearch(query)) && (rarity === 'all' || c.rarity === rarity) && (!element || c.elementKey === element)).sort((a, b) => (direction === 'asc' ? 1 : -1) * compareCharacters(a, b, sortKey))
-          return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}</>
+          return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}
+            {value.legends && <Section value={value.legends}>{data => data.characters.length > 0 && <section aria-label="Légendes C6"><h2>Légendes C6</h2>{data.characters.map(character => {
+              const legend = data.legends.find(item => item.character.id === character.id)
+              return <details key={character.id}><summary>{character.name}</summary>{legend ? <>
+                <p>Force {legend.stats.strength} · Intelligence {legend.stats.intelligence} · Beauté {legend.stats.beauty} · Charisme {legend.stats.charisma} · Popularité {legend.stats.popularity}</p>
+                <p>Concours {legend.totals.contests} · Victoires {legend.totals.wins}</p>
+                {Object.entries(legend.themes).map(([key, theme]) => <p key={key}>{theme.title ?? 'Sans titre'} · {theme.wins}/{theme.participations} victoires</p>)}
+              </> : <p>Les statistiques de ces Légendes sont privées.</p>}</details>
+            })}</section>}</Section>}
+          </>
         }}</Section>}
         {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
         {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <Statistics stats={stats} />}</Section>}
