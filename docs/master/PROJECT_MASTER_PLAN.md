@@ -1,11 +1,31 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat consolidé de clôture pré-stabilisation V1.
+Version : clôture pré-stabilisation V1 promue techniquement sur main.
 Date : 2026-10-03
-Statut : **Étapes 1 à 24 : implémentation V1 clôturée dans ce candidat, sous réserve de review/promotion. Étape 25 : Tutoriel validé publiquement sur 1e5a5d7 ; Help textuel et Aide standalone implémentés, candidats review.** Catalogue de titres R1025/059 et polish Menu/tracker candidats ; nouvelle séquence 26–32. Aucune promotion main ni application 059 publique. Twitch générique en pause R942, QA Faveur conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
+Statut : **Étapes 1–24 : IMPLEMENTATION_CLOSED. Étape 25 : Tutoriel + Help + Aide implémentés et promus techniquement sur main après review indépendante favorable de adb1f510, sans correctif code.** Tutoriel public précédent validé sur 1e5a5d7 ; nouvelles surfaces et 059 attendent les contrôles de déploiement et la recette publique. Roadmap 26–32 conservée ; étape 26 non commencée. Twitch générique en pause R942, QA Faveur conservée, bridges Gift/Giveaway OFF, Streamer.bot autoritatif ; PAID_INFRA_APPROVED = false.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — candidat consolidé de clôture V1 du 03/10/2026
+## Point courant — promotion de la clôture pré-stabilisation V1 du 03/10/2026
+
+**Gate initial exécuté :** fetch réussi, branche review, index/worktree propres ; HEAD = origin/review = **adb1f5102eedb83a6856ac983e4d70908585c6cd**, origin/main = **1e5a5d7dcd71c7b804b8db9fb39acb06217f7dbe**, ahead 1 / behind 0. Parent exact du candidat : 1e5a5d7dcd71c7b804b8db9fb39acb06217f7dbe ; aucun commit distant inattendu.
+
+**Review indépendante acquise :** ChatGPT FAVORABLE sur le vrai commit GitHub **adb1f5102eedb83a6856ac983e4d70908585c6cd**, selon la mission de promotion explicite. Aucun correctif code/test/migration requis ni réalisé ; aucun nouveau Rxxx ni changement produit. Le checkpoint est exclusivement documentaire, de parent exact adb1f510, publié sur review avant fast-forward strict vers main.
+
+**État après promotion technique :** étapes **1–24 IMPLEMENTATION_CLOSED**, y compris les raccordements !legende/Profil C6 et le catalogue de titres R1025. Étape **25 implémentée sur main** : Tutoriel existant, Help partagé (34 racines/dix catégories) et Aide standalone R1026 ; Menu à 23 IDs dans navigation_menu_v1/version 1. Permissions C6 Box pour liste, Box + GENERAL_STATISTICS pour détail, accès propriétaire conservé. Catalogue ▥ et tracker bleuté/uppercase présents. La matrice, les fonctionnalités et les preuves techniques du candidat sont conservées dans l’historique ci-dessous.
+
+**Public :** le Tutoriel de 116 étapes/24 chapitres/21 écrans et les six groupes précédents restent validés sur 1e5a5d7 dans le périmètre rapporté ; aliases seulement prouvés techniquement. **Aide, Help et !legende, titres Profil, nouvelle icône Catalogue et polish tracker attendent leur recette publique.** Présence sur main ne certifie ni Railway/Cloudflare, ni Application ready, ni healthcheck, ni l’application publique de 059. Les attentes naturelles R911/R912/Calendrier/Missions/Notifications/Faveur restent en recette globale 26/32 ; aucune preuve nouvelle inventée.
+
+**DB avant fast-forward :** Prisma validate réussi (exit 0). Prisma migrate status en lecture seule trouve 59 migrations versionnées et **seulement 20261003160000_059_add_profile_level_titles pending** (exit 1 normal). Le registre public consulté en transaction READ ONLY confirme **58 terminées, zéro inachevée**, dernière 058. Aucun deploy SQL/Prisma public manuel, mutation de test, Player/cosmétique/équipement ou préférence public. **Railway appliquera 059 au prochain déploiement automatique de main via son predeploy npx prisma migrate deploy ; résultat à vérifier ensuite par ChatGPT.** Aucun redeploy manuel ni 060.
+
+**Contrôles de cette promotion :** périmètre documentaire inspecté, diff-check worktree/index ; chaîne exacte baseline → adb1f510 → checkpoint documentaire, refs distantes et worktree contrôlés pour la publication. **Sans relance** des preuves du candidat : chaîne privée de 59 migrations, titres/backfill/rollback/replay, 84 tests PostgreSQL privés, frontend 1236/1236, backend hors DB 1218/1218, quick 5/5, full 8/8 et Chromium. Ces chiffres restent des preuves historiques du candidat, pas des contrôles réexécutés ici.
+
+**Git après publication/promotion :** un seul checkpoint documentaire de parent adb1f510 ; review poussée normalement, puis main avancée uniquement par git merge --ff-only review et push normal. origin/main = origin/review au SHA du checkpoint, divergence 0/0, branche locale review propre. SHA exact remis au rapport après vérification GitHub ; aucun rebase, squash, merge commit ou force-push.
+
+**Roadmap conservée :** 26 recette fonctionnelle globale → 27 finition/rétention/Twitch technique → 28 Multijoueur Arcade futur à cadrer → 29 sweep exhaustif commandes → 30 migration foundation/rehearsal → 31 cutover distinct → 32 validation finale. La prochaine phase après les contrôles et la recette de ce candidat est **26**, sans la commencer dans cette mission.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE GITHUB, LE DÉPLOIEMENT RAILWAY EXACT, L’APPLICATION PUBLIQUE DE 059, LES 59 MIGRATIONS À JOUR ET /HEALTH, PUIS FOURNIT UNE RECETTE PUBLIQUE COURTE DE CLÔTURE DE L’ÉTAPE 25 : MENU / ICÔNE CATALOGUE / AIDE ; TRACKER QUOTIDIENNES ; TITRES PROFIL ; HELP ET !LEGENDE. STOP.**
+
+## Historique — candidat consolidé de clôture V1 du 03/10/2026
 
 **Gate exécuté avant modification :** fetch réussi, review, index/worktree propres ; HEAD = origin/main = origin/review = **1e5a5d7dcd71c7b804b8db9fb39acb06217f7dbe**, divergence 0/0. Parent du candidat unique : ce SHA exact ; code fonctionnel antérieur 468dbaae061d363be2a8506da22b52dbfd5bada0. Aucun changement distant inattendu constaté au gate.
 

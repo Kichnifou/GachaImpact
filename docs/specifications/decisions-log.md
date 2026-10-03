@@ -2,6 +2,8 @@
 
 Statut : évolutif.
 
+État de livraison R1025/R1026 : candidat adb1f510 approuvé indépendamment par ChatGPT, sans correctif code, puis promu techniquement sur main par fast-forward strict du checkpoint documentaire. Titres, Help/Aide, !legende, icône Catalogue et tracker attendent la recette publique ; application de 059 par le déploiement automatique Railway à contrôler. Aucune nouvelle décision produit. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l’état exact et la reprise.
+
 ## Titres de niveau du Profil — R1025 (2026-10-03)
 
 - VALIDÉ par la mission propriétaire : titres permanents purement cosmétiques aux niveaux 10, 25, 50, 75, 100 : Éclat naissant, Voyageur astral, Étoile montante, Maître des Astres, Légende astrale. Catalogue réel TITLE/VISIBLE/actif, sans asset ni auto-équipement. Conditions visibles pour les titres verrouillés ; rendu uniquement dans Profil.

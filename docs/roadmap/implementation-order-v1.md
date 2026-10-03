@@ -43,6 +43,8 @@ Ce fichier n’est pas un tracker vivant et ne doit pas être modifié pour enre
 
 Avant d'ouvrir une étape suivante, vérifier dans le Master que le lot précédent a atteint le niveau de review, de déploiement et de validation publique requis. Une étape close côté implémentation peut conserver des scénarios naturels à observer : les regrouper dans la recette globale 26/32 au Master, sans les reclasser comme dette de code.
 
+La clôture de l’étape 25 passe par la review indépendante, la promotion technique, le contrôle du déploiement exact (dont 059 via le predeploy Railway) et une recette publique ciblée Aide/Help/!legende, Menu/icône Catalogue, tracker et titres Profil. L’étape 26 vient ensuite sur mission distincte ; une présence sur main ne remplace pas ces preuves. La séquence 26–32 ci-dessous reste inchangée.
+
 ## Trajectoire V1 de référence après Boss
 
 Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas encore candidats ou restants. Seul le Master indique le point atteint.

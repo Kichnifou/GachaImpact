@@ -2,6 +2,8 @@
 
 Source canonique de la fenêtre Aide, distincte du [Tutoriel](tutorial-v1.md) et du [Help textuel R728–R731](../legacy/23-help-command-coherence-audit.md). État courant au [Master](../master/PROJECT_MASTER_PLAN.md).
 
+Livraison : review indépendante ChatGPT favorable sur adb1f510, aucun correctif code ; Aide et Help promus techniquement sur main par fast-forward strict avec le Menu à 23 IDs. Déploiement exact et recette publique de l’Aide/Help encore à vérifier ; le Tutoriel public précédent reste validé. La phase 26 vient après la recette de ce candidat, sans démarrage implicite.
+
 Menu > Aide ouvre un portal sur document.body avec le pattern floating-panel et useModalDialog. Fermeture ×/Escape, focus borné et retour au bouton Menu. L’action help n’est pas un ScreenId/hash et ne crée pas de chapitre Tutoriel. navigation_menu_v1 reste version 1, avec 23 IDs et neuf destinations/page ; Configuration conserve masquage et réordonnancement.
 
 Header, recherche, navigation et footer sont fixes. .help-guide-body possède le seul overflow-y:auto ; desktop au plus 1080×800, borné au viewport, navigation horizontale compacte sur mobile. AppButton et ModalCloseButton communs conservent leurs états focus/disabled et leur apparence sombre.
@@ -12,4 +14,4 @@ La recherche locale normalise casse et accents et parcourt titres, descriptions,
 
 Lancer le Tutoriel utilise le même launchTutorial de GameShell que Menu > Tutoriel. La garde d’action/présentation en cours précède toute lecture/écriture Tutoriel ; le refus reste visible dans l’Aide. Une réussite ferme l’Aide puis lance le contrôleur existant. Aucun autostart ni appel de mutation de gameplay.
 
-Les contrôles de ce candidat sont consignés au Master : navigateur réel/CSS production aux quatre formats, recherche/rubriques/scroll/focus, sauvegarde Menu, lancement normal/refus pending, et tests de non-régression. Ils ne constituent pas une validation publique.
+Les contrôles du candidat adb1f510, conservés sans relance dans la promotion, sont consignés au Master : navigateur réel/CSS production aux quatre formats, recherche/rubriques/scroll/focus, sauvegarde Menu, lancement normal/refus pending, et tests de non-régression. Ils ne constituent pas une validation publique.
