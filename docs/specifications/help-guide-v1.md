@@ -2,7 +2,7 @@
 
 Source canonique de la fenêtre Aide, distincte du [Tutoriel](tutorial-v1.md) et du [Help textuel R728–R731](../legacy/23-help-command-coherence-audit.md). État courant au [Master](../master/PROJECT_MASTER_PLAN.md).
 
-Livraison : review indépendante ChatGPT favorable sur adb1f510, aucun correctif code ; Aide et Help promus techniquement sur main par fast-forward strict avec le Menu à 23 IDs. Déploiement exact et recette publique de l’Aide/Help encore à vérifier ; le Tutoriel public précédent reste validé. La phase 26 vient après la recette de ce candidat, sans démarrage implicite.
+Livraison : Aide et Help R1026 promus techniquement sur main après review indépendante favorable sur adb1f510, avec le Menu à 23 IDs. Les validations publiques Menu/Aide reçues sont conservées dans leur périmètre au Master, sans les étendre à tout le Help. L'état courant de l'étape 28 et la prochaine action appartiennent au Master.
 
 Menu > Aide ouvre un portal sur document.body avec le pattern floating-panel et useModalDialog. Fermeture ×/Escape, focus borné et retour au bouton Menu. L’action help n’est pas un ScreenId/hash et ne crée pas de chapitre Tutoriel. navigation_menu_v1 reste version 1, avec 23 IDs et neuf destinations/page ; Configuration conserve masquage et réordonnancement.
 
@@ -12,6 +12,6 @@ Démarrage présente élément, Accueil, Quotidiennes, Invocation, Box/Équipe, 
 
 La recherche locale normalise casse et accents et parcourt titres, descriptions, accès, catégories, racines et syntaxes ; elle couvre toutes les rubriques, avec un état vide honnête. Aucune API Help, copie de logique métier, prix/taux/formule ou donnée secrète. Le registre de présentation pur est compilé côté serveur et Vite ; le dispatcher et le Help texte consomment la même autorité de canaux/syntaxes/résumés.
 
-Lancer le Tutoriel utilise le même launchTutorial de GameShell que Menu > Tutoriel. La garde d’action/présentation en cours précède toute lecture/écriture Tutoriel ; le refus reste visible dans l’Aide. Une réussite ferme l’Aide puis lance le contrôleur existant. Aucun autostart ni appel de mutation de gameplay.
+Le bouton Lancer le Tutoriel reste un lancement manuel et utilise le même launchTutorial de GameShell que Menu > Tutoriel. La garde d’action/présentation en cours précède toute lecture/écriture Tutoriel ; le refus reste visible dans l’Aide. Une réussite ferme l’Aide puis lance le contrôleur existant. R1033 gère séparément l'unique autostart rétroactif par Player ; consulter l'Aide ne le déclenche pas elle-même. Aucun appel de mutation de gameplay.
 
 Les contrôles du candidat adb1f510, conservés sans relance dans la promotion, sont consignés au Master : navigateur réel/CSS production aux quatre formats, recherche/rubriques/scroll/focus, sauvegarde Menu, lancement normal/refus pending, et tests de non-régression. Ils ne constituent pas une validation publique.

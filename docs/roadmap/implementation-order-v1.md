@@ -73,11 +73,11 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 22. **Administration / Modération complète** — achever les outils privés nécessaires aux domaines physiques.
 23. **Mini-jeux XP interface** — concevoir les vrais mini-jeux cadrés dans [04-xp-audit.md](../legacy/04-xp-audit.md), sans transformer les activités ordinaires en source XP.
 24. **Accueil dynamique et résumé Quotidiennes/sidebar final** — consolider [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md) et [navigation-shell-v1.md](../specifications/navigation-shell-v1.md).
-25. **Tutoriel interactif, Help textuel et Aide standalone distincts** — Tutoriel manuel de 116 étapes/24 chapitres/21 écrans selon [tutorial-v1.md](../specifications/tutorial-v1.md) ; Help R728–R731 selon [l’audit](../legacy/23-help-command-coherence-audit.md), Guide R1026 selon [help-guide-v1.md](../specifications/help-guide-v1.md). Aucune nouvelle étape/route Tutoriel ni autostart. Le statut technique/public appartient au Master.
+25. **Tutoriel interactif, Help textuel et Aide standalone distincts** — Tutoriel de 116 étapes/24 chapitres/21 écrans avec reprise/replay manuels depuis Menu/Aide selon [tutorial-v1.md](../specifications/tutorial-v1.md) ; R1033 ajoute un unique autostart rétroactif par Player via PlayerPreference, sans nouveau ScreenId/route écran ni autostart récurrent. Help R728–R731 selon [l’audit](../legacy/23-help-command-coherence-audit.md), Guide R1026 selon [help-guide-v1.md](../specifications/help-guide-v1.md). Aucune nouvelle étape Tutoriel ; statut technique/public au Master.
 
 ### Séquence d'exécution finale — numéros conservés (R1032)
 
-Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; 28 déployée et partiellement recettée, reste ACTIVE pendant les correctifs post-recette performance/autostart candidats review et leur nouvelle recette. 29 reste NON commencée, suivante après recette 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
+Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; 28 déployée et partiellement recettée, reste ACTIVE jusqu'au smoke post-déploiement des correctifs performance/autostart approuvés indépendamment et promus sur main par cette mission. Leur déploiement et nouvelle recette restent à vérifier. 29 reste NON commencée, suivante après recette 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
 
 | Étape | Périmètre dans l'ordre réel |
 | --- | --- |

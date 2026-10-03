@@ -4,11 +4,11 @@ Statut du 03/10/2026 : **Tutoriel 25B de 116 étapes / 24 chapitres / 21 écrans
 
 Le propriétaire confirme la recette publique finale du correctif 25A sur **a23a42304da7396da2ceeaa5a1e245a79310cec1** : Précédent, ordre des contrôles et Suivant stable ; carte sidebar entière cliquable avec ses contrôles indépendants ; titre Home simple, hauteur Quotidiennes/BannerHero et splash recentré. Les validations publiques Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale acquises sur 9aef02c sont conservées. **25A est clôturée dans son périmètre réel de prototype**. Cette preuve propriétaire est transmise par la mission, sans nouvelle vérification de déploiement Railway/Cloudflare ni mutation publique ici.
 
-## Autostart unique rétroactif — R1033, candidat review
+## Autostart unique rétroactif — R1033, approuvé et promu sur main
 
 POST /api/v1/me/tutorial/autostart authentifié et sans paramètres client résout le Player. PrismaTutorialPreferenceStore insère le marqueur tutorial_v1_autostart avec INSERT ON CONFLICT DO NOTHING via createMany(skipDuplicates) : un seul onglet concurrent reçoit shouldLaunch:true. Dans la même transaction, il canonicalise tutorial_v1 ; IN_PROGRESS garde son étape, NOT_STARTED/COMPLETED/invalide deviennent IN_PROGRESS/profile, même pour un ancien Player ayant fini le parcours. Réponse true avec préférence confirmée ; marqueur déjà présent : false, aucun reset/PUT. Une erreur transactionnelle ne consomme pas le marqueur. Aucune nouvelle table/colonne/migration, tutorial_v1/version 1/116 étapes et deux aliases conservés.
 
-Le GameShell monté après auth/onboarding/élément/bootstrap utilise le gate du lancement manuel : Pull/reveal, LevelUp, Faveur/Défi, conversion, mutations et data-business-pending bloquent le claim. Une observation DOM coalescée et les changements métier/focus attendent un point sûr, sans polling agressif. StrictMode partage le claim en vol ; Player/génération protègent les réponses tardives. Une réponse confirmée est présentée par startConfirmed sans deuxième GET/PUT, avec les mêmes préparation/retry, overlay, sidebar, focus/inert et contrôles. Si un blocage arrive pendant le réseau, présentation différée jusqu’au point sûr. Claim consommé durablement : aucun autostart après Pause, Terminer, fermeture browser, refresh/relogin/jour/autre appareil. tutorial_v1 reste IN_PROGRESS pour la reprise manuelle si le browser disparaît après le claim. Menu/Aide restent rejouables. R1033 remplace uniquement l’ancien lancement exclusivement manuel R1015/R1023 ; leur historique reste conservé. Ce candidat attend review/promotion/recette.
+Le GameShell monté après auth/onboarding/élément/bootstrap utilise le gate du lancement manuel : Pull/reveal, LevelUp, Faveur/Défi, conversion, mutations et data-business-pending bloquent le claim. Une observation DOM coalescée et les changements métier/focus attendent un point sûr, sans polling agressif. StrictMode partage le claim en vol ; Player/génération protègent les réponses tardives. Une réponse confirmée est présentée par startConfirmed sans deuxième GET/PUT, avec les mêmes préparation/retry, overlay, sidebar, focus/inert et contrôles. Si un blocage arrive pendant le réseau, présentation différée jusqu’au point sûr. Claim consommé durablement : aucun autostart après Pause, Terminer, fermeture browser, refresh/relogin/jour/autre appareil. tutorial_v1 reste IN_PROGRESS pour la reprise manuelle si le browser disparaît après le claim. Menu/Aide restent rejouables. R1033 remplace uniquement l’ancien lancement exclusivement manuel R1015/R1023 ; leur historique reste conservé. Review indépendante favorable acquise sur 178423a ; promotion sur main par le checkpoint documentaire courant. Déploiement et validation publique de l'autostart encore NON acquis, à vérifier selon le Master.
 
 ## 25B — contrat du parcours joueurs livré
 
@@ -210,6 +210,8 @@ Prisma validate/status en lecture seule : 58 migrations à jour, dernière 20261
 
 ## Historique 25A — prototype manuel à huit étapes
 
+Les clauses de lancement exclusivement manuel ci-dessous décrivent le lot historique R1015. R1033 les supersède seulement sur l'autostart unique ; elles ne constituent plus la règle courante.
+
 Le prototype valide d’abord le moteur overlay/spotlight, la progression, le placement des bulles, la pause/reprise persistante et le Menu sur la vraie interface Accueil/sidebar/chat.
 
 - Démarrage uniquement par `Menu > Tutoriel` ; aucun autostart de première arrivée, aucun bouton Tutoriel supplémentaire dans le header (R1015).
@@ -279,7 +281,9 @@ Les identifiants ci-dessous sont stables. Les textes sont une base courte de pro
 - Intercepter les événements sous l’overlay et la propagation des contrôles ; préserver focus clavier, Escape, reduced-motion et lecteur d’écran.
 - Le contrat doit être testé sur la vraie interface et ses changements de dimensions ; validation technique distincte de la validation visuelle/expérience du propriétaire.
 
-## Suites distinctes du Tutoriel joueurs 25B
+## Historique — suites distinctes du Tutoriel joueurs 25B
+
+Le paragraphe suivant décrit l'état historique 25B. Depuis, R1026 porte Help/Aide et R1033 supersède uniquement l'absence d'autostart par son lancement unique ; consulter leurs sections courantes et le Master.
 
 25B ci-dessus étend effectivement le parcours aux écrans joueurs. Help/Aide, autostart, découverte progressive par niveau et étapes exigeant une vraie action ne sont pas implémentés. Une mission distincte explicitement autorisée reste nécessaire.
 

@@ -1,11 +1,31 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correctif consolidé post-recette publique étape 28, performance Arcade et autostart Tutoriel candidat review.
+Version : promotion approuvée du correctif post-recette étape 28, performance Arcade et autostart Tutoriel R1033.
 Date : 2026-10-03
-Statut : **Étapes 1–25 implémentation acquise ; étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; étape 28 ACTIVE, recette publique partielle acquise, CORRECTIF PERFORMANCE/AUTOSTART CANDIDATE REVIEW.** Public 8fedb6c/060/60 migrations ; les correctifs de cette mission attendent review indépendante, promotion dédiée et nouvelle recette. Étape 29 NON COMMENCÉE. Séquence réelle 26→28→29→27→30→31→32. PAID_INFRA_APPROVED = false.
+Statut : **Étapes 1–25 implémentation acquise ; étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; étape 28 ACTIVE, recette publique partielle acquise, correctif performance/autostart approuvé et promu sur main.** Public vérifié antérieurement : 8fedb6c/060/60 migrations ; nouveau déploiement et validation publique des correctifs NON acquis, à vérifier après cette promotion. Étape 29 NON COMMENCÉE. Séquence réelle 26→28→29→27→30→31→32. PAID_INFRA_APPROVED = false.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctif consolidé post-recette publique étape 28 du 03/10/2026
+## Point courant — promotion approuvée du correctif post-recette étape 28 du 03/10/2026
+
+**Gate initial exécuté :** fetch réussi, branche review, index/worktree propres ; origin/main = **8fedb6c66a2a60d33f30820c4a798c2948a30f84**, HEAD = origin/review = **178423a1a514b8aef0293bedad537e572d15c4b6**, ahead 1/behind 0. Parent unique du candidat : 8fedb6c ; aucun commit inattendu. La chaîne de cette promotion est 8fedb6c → 178423a → checkpoint documentaire courant, de parent exact 178423a.
+
+**Review indépendante reçue :** ChatGPT **FAVORABLE** sur le vrai candidat 178423a, aucun correctif code requis. Unique réserve traitée : formulations courantes de roadmap, navigation et Aide incompatibles avec R1033. Tutoriel conserve 116 étapes, reprise/replay manuels Menu/Aide ; R1033 ajoute en parallèle un seul autostart rétroactif par Player, sans nouveau ScreenId/route écran ni lancement récurrent. Consulter l'Aide ne déclenche pas elle-même cet autostart. Clauses historiques R1015/R1023 préservées, supersession explicite ; aucun R1034 ni nouvelle décision.
+
+**État post-promotion :** le correctif performance/autostart est approuvé et présent sur main avec ce checkpoint exclusivement documentaire. Titres kind/levelRequirement/heading/ordre/gradients/sticky, synthèse Terminé ✅, réponses invitation immédiates, overview/opponents découplés, polling 600/900/2500 ms, Memory PvP 500 ms et autostart transactionnel R1033 sont conservés tels qu'approuvés. Aucun code/test/migration modifié par la mission ; aucune 061. **Déploiement du nouveau SHA, Railway SUCCESS, Application ready, healthcheck, bundle frontend public et autostart public fonctionnel NON vérifiés ici.** Aucun redeploy manuel ; le push main déclenche les déploiements automatiques habituels, à contrôler ensuite par ChatGPT.
+
+**Preuves publiques antérieures conservées :** Railway SUCCESS sur 8fedb6c, deployment 9889dff9-8f26-4d68-9402-5803df02fd3b, 060 appliquée, Application ready et 60 migrations publiques. Recette propriétaire partielle : self-mention, présence Social/MP, invitation, start hors écran, score/0 XP, Quitter, fonctionnement global PvP acquis ; Prêt/Annuler/Refuser fonctionnels, latence corrigée par le candidat. **Validation publique des nouveaux correctifs et de l'autostart NON acquise ; Rejouer PvP toujours à recetter.** Ne pas étendre les validations anciennes à ce nouveau lot.
+
+**Contrôles propres à cette promotion :** Prisma validate réussi ; migrate status public en lecture seule : **60 migrations trouvées, base à jour, aucune pending**. Registre READ ONLY : **60 terminées, zéro inachevée, dernière 20261003180000_060_add_arcade_multiplayer**. Diff documentaire et diff-check worktree/index inspectés ; schéma et migrations inchangés, aucun test DB mutatif, aucune mutation/fixture publique, aucun migrate deploy manuel. Les mentions PowerShell NativeCommandError du stderr Prisma sont de la capture de logs : les deux commandes ont terminé avec exit 0, aucun échec Prisma.
+
+**Preuves du candidat conservées, non réexécutées :** frontend 1278/1278, backend hors DB 1221/1221, PostgreSQL privé 42/42, quick 5/5, full 8/8, builds/typechecks/lint, Chromium desktop/mobile et mesures du harnais performance décrits dans l'historique immédiatement ci-dessous. Aucun nouveau contrôle visuel/gameplay ni relance des grosses suites dans cette mission documentaire.
+
+**Publication et promotion :** un seul commit documentaire de parent 178423a, push normal sur review ; second gate avec main inchangée et chaîne stricte, puis main avancée uniquement par **git merge --ff-only review** et push normal. État final requis et contrôlé au rapport : origin/main = origin/review = checkpoint documentaire, divergence **0/0**, worktree local review propre. Aucun rebase/squash/merge commit/force-push ; SHA exact remis au rapport après contrôle GitHub.
+
+**Roadmap :** 26 VALIDÉE PAR LE PROPRIÉTAIRE ; **28 reste ACTIVE jusqu'au smoke post-déploiement** ; 29 NON COMMENCÉE, suivante seulement après validation/clôture 28 ; 27 volontairement différée après 29, car le propriétaire veut terminer Arcade et la passe commandes avant la finition transverse, sans abandon de 27 ; puis 30→31→32. Aucune étape 29 ni 27 engagée.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE GITHUB, RAILWAY ET /HEALTH, PUIS FOURNIT UNE RECETTE PUBLIQUE COURTE : TITRES (HEADING/ORDRE/GRADIENTS/STICKY), QUOTIDIENNES (Terminé ✅), PRÊT/ANNULER/REFUSER RÉACTIFS, FLUIDITÉ PVP/MEMORY, AUTOSTART TUTORIEL UNIQUE RÉTROACTIF ET REJOUER PVP. STOP.** Si validé, clôturer 28 puis ouvrir 29 dans une mission distincte. Aucune validation de déploiement ou recette anticipée dans ce checkpoint.
+
+## Historique — correctif consolidé post-recette publique étape 28 du 03/10/2026
 
 **Gate exécuté :** fetch réussi, branche review, index/worktree propres à l'entrée ; HEAD = origin/main = origin/review = **8fedb6c66a2a60d33f30820c4a798c2948a30f84**, divergence 0/0. Ce SHA est le baseline et parent exact du candidat consolidé. Aucun commit distant inattendu. Publication prévue : un commit sur review, push normal, main inchangée, ahead 1/behind 0 et worktree propre ; SHA exact et contrôle GitHub remis au rapport final.
 

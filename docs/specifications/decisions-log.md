@@ -2,7 +2,7 @@
 
 Statut : évolutif.
 
-État de livraison : R1025/R1026 et R1027–R1031 promues via 8fedb6c ; déploiement Railway SUCCESS et 060 publique/60 migrations acquis selon la mission reçue. Recette propriétaire partielle de 28 acquise (self mention, présence, invitation, start hors écran, score/0 XP, Quitter, PvP opérationnel). Titres, synthèse Quotidiennes, latence Arcade et autostart R1033 restent candidats review ; Rejouer non encore validé publiquement. Étape 26 validée ; 28 active. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+État de livraison : R1025/R1026 et R1027–R1031 promues via 8fedb6c ; déploiement Railway SUCCESS et 060 publique/60 migrations acquis selon la mission reçue. Recette propriétaire partielle de 28 acquise (self mention, présence, invitation, start hors écran, score/0 XP, Quitter, PvP opérationnel). Correctifs Titres/synthèse/latence Arcade et autostart R1033 du candidat 178423a approuvés indépendamment, promus sur main avec le checkpoint documentaire courant ; nouveau déploiement et validation publique de ces correctifs encore NON acquis. Rejouer reste à recetter publiquement. Étape 26 validée ; 28 ACTIVE jusqu'au smoke post-déploiement ; 29 NON commencée. Aucun nouveau Rxxx dans cette promotion. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
 
 ## Autostart Tutoriel unique — R1033 (2026-10-03)
 
