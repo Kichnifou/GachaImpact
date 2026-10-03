@@ -7,6 +7,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DirectConversationDto, DirectMessageDto, DirectMessageMutationDto, DirectMessageReportPreviewDto } from '../api/types'
+import ProfileScreen from '../screens/ProfileScreen'
+import type { Profile, SocialActions } from '../social/types'
+import type { FriendshipController } from '../social/use-friendships'
 
 const directMessages = vi.hoisted(() => ({
   players: vi.fn(), list: vi.fn(), unread: vi.fn(), messages: vi.fn(), typing: vi.fn(), history: vi.fn(), historySearch: vi.fn(), historyDate: vi.fn(), initiate: vi.fn(), send: vi.fn(), edit: vi.fn(), remove: vi.fn(), restore: vi.fn(), accept: vi.fn(), ignore: vi.fn(), block: vi.fn(), unblock: vi.fn(), read: vi.fn(), receipts: vi.fn(), archive: vi.fn(), reportPreview: vi.fn(), report: vi.fn(),
@@ -18,7 +21,7 @@ vi.mock('../api/game-api', () => ({
 }))
 import { directMessageReceiptLabel } from '../direct-messages/receipt-label'
 import { ApiError } from '../api/game-api'
-import DirectMessagePanel from './DirectMessagePanel'
+import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
 
 const appCss = readFileSync(resolve(process.cwd(), 'src/App.css'), 'utf8')
 
@@ -82,6 +85,31 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it.each(['ONLINE', 'AWAY', 'OFFLINE', 'PRIVATE'] as const)('preserves %s presence from Profile into a new thread without a conversation or extra lookup', async status => {
+    const presence: Profile['presence'] = status === 'PRIVATE' ? { access: 'PRIVATE' } : { access: 'ALLOWED', data: status }
+    const profile: Profile = { player: { ...baseConversation.other, level: 25 }, own: false, presence, favor: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
+    const actions = { profile: vi.fn().mockResolvedValue(profile) } as unknown as SocialActions
+    const controller = { value: null, error: '', feedback: '', feedbackScope: '', pending: false, clearFeedback: vi.fn() } as unknown as FriendshipController
+    directMessages.list.mockResolvedValue({ conversations: [] })
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); roots.push(root)
+    const onMessage = vi.fn((target: DirectMessageOpenIntent['player']) => root.render(<DirectMessagePanel playerId={ownId} isActive intent={{ playerId: otherId, player: target, token: 'profile-message' }} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile} />))
+    await act(async () => root.render(<ProfileScreen playerId={otherId} ownerPlayerId={ownId} actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} onMessage={onMessage} />))
+    await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Message privé')!.click())
+    await settle()
+    expect(onMessage).toHaveBeenCalledWith(expect.objectContaining({ id: otherId, presence }))
+    const field = container.querySelector<HTMLTextAreaElement>('#dm-message')!
+    await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(field, 'Bonjour'); field.dispatchEvent(new Event('input', { bubbles: true })) })
+    await act(async () => field.form!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    await settle()
+    const header = container.querySelector('.dm-thread-identity')!
+    expect(header.textContent).toContain('Aster')
+    if (status === 'PRIVATE') expect(header.querySelector('.presence-dot')).toBeNull()
+    else expect(header.querySelector('.presence-dot')?.classList.contains('presence-dot-' + status.toLowerCase())).toBe(true)
+    expect(actions.profile).toHaveBeenCalledOnce()
+    expect(directMessages.players).not.toHaveBeenCalled()
+    expect(social.directory).not.toHaveBeenCalled()
+  })
   it.each(['ONLINE','AWAY','OFFLINE','PRIVATE'] as const)('renders %s presence as a dot only in Conversations, Archives, search and thread header', async status => {
     const presence = status === 'PRIVATE' ? { access:'PRIVATE' as const } : { access:'ALLOWED' as const,data:status }
     const conversation = { ...baseConversation, other:{...baseConversation.other,presence} }

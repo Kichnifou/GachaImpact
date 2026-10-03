@@ -22,7 +22,7 @@ export default function ArcadeBoards({ board, disabled, onMove, viewerSide = 'PL
   if (board.kind === 'MEMORY') return <div className="arcade-memory" style={{ '--memory-columns': columns } as CSSProperties} role="group" aria-label={`Memory, ${columns} lignes et ${columns} colonnes`} onKeyDown={event => navigate(event, columns)}>
     {board.cards.map(card => card.status === 'BLOCKED' ? <span key={card.position} className="arcade-memory-decorative" role="img" aria-label="Case centrale décorative">✦</span> : <AppButton key={card.position} className={`arcade-memory-card ${card.status.toLowerCase()} ${'owner' in card ? card.owner?.toLowerCase() ?? '' : ''}`}
       disabled={disabled || card.status !== 'HIDDEN' || board.phase !== 'PICK'} onClick={() => onMove(card.position)}
-      aria-label={!('face' in card) ? `Carte cachée ${card.position + 1}` : `${card.face.name}${card.status === 'MATCHED' ? card.owner === 'PLAYER' ? ', paire à vous' : ', paire adverse' : ', révélée'}`}>
+      aria-label={!('face' in card) ? `Carte cachée ${card.position + 1}` : `${card.face.name}${card.status === 'MATCHED' ? card.owner === viewerSide ? ', paire à vous' : ', paire adverse' : ', révélée'}`}>
       {!('face' in card) ? <span className="arcade-card-back" aria-hidden="true">✦</span> : <><CharacterPortraitFrame characterName={card.face.name} element={card.face.elementKey} assetPaths={card.face.assetPaths}
         frameClassName="arcade-portrait" imageClassName="arcade-portrait-image" /><span className="arcade-card-name">{card.face.name}</span>{card.status === 'MATCHED' && <span className="arcade-card-owner" aria-hidden="true">{card.owner === 'PLAYER' ? '●' : '◆'}</span>}</>}
     </AppButton>)}

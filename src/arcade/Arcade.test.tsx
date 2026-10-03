@@ -289,6 +289,20 @@ describe('Arcade Records', () => {
 })
 
 describe('Arcade rules and board presentation', () => {
+  it.each(['PLAYER', 'AI'] as const)('labels matched Memory pairs relative to %s while keeping canonical colors', async viewerSide => {
+    const board = session('MEMORY').board
+    if (board.kind !== 'MEMORY') throw Error('Memory')
+    const face = { id: 'face', name: 'Furina', elementKey: 'hydro', assetPaths: [] }
+    const { container } = await mount(<ArcadeBoards viewerSide={viewerSide} disabled={false} onMove={vi.fn()} board={{ ...board, cards: [
+      { position: 0, status: 'MATCHED', owner: 'PLAYER', face },
+      { position: 1, status: 'MATCHED', owner: 'AI', face },
+    ] }} />)
+    const cards = container.querySelectorAll('button')
+    expect(cards[0]!.getAttribute('aria-label')).toBe(`Furina, paire ${viewerSide === 'PLAYER' ? 'à vous' : 'adverse'}`)
+    expect(cards[1]!.getAttribute('aria-label')).toBe(`Furina, paire ${viewerSide === 'AI' ? 'à vous' : 'adverse'}`)
+    expect(cards[0]!.classList.contains('player')).toBe(true)
+    expect(cards[1]!.classList.contains('ai')).toBe(true)
+  })
   it('keeps only arrows in column buttons and numbers in accessible labels', async () => {
     const { container } = await mount(<ArcadeBoards board={session('CONNECT_FOUR').board} disabled={false} onMove={vi.fn()} />)
     const columns = container.querySelectorAll<HTMLButtonElement>('.arcade-columns button')
@@ -308,6 +322,10 @@ describe('Arcade rules and board presentation', () => {
     first.focus(); act(() => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true })))
     expect(document.activeElement).toBe(last)
     await click(button(dialog, 'Memory')); expect(dialog.textContent).toContain('12 paires, centre décoratif')
+    expect(dialog.querySelector('caption')?.textContent).toBe('Plateau et mémoire de l’IA en solo')
+    expect(dialog.querySelector('thead')?.textContent).toContain('Mémoire de l’IA (solo)')
+    expect(dialog.textContent).toContain('4 cartes')
+    expect(dialog.textContent).toContain('12 cartes')
     expect(dialog.textContent).not.toMatch(/50 %|85 %|100 %/)
     expect(dialog.textContent).toContain('Toutes les cartes révélées')
     act(() => first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))

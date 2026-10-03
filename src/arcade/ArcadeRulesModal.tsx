@@ -20,7 +20,7 @@ export default function ArcadeRulesModal({ onClose }: { onClose: () => void }) {
             <article><h3>Quitter</h3><p>Un abandon ne donne ni score ni XP.</p></article></div>
         </> : <>
           {tab === 'Memory' ? <><p>Retrouvez les paires de portraits. Une paire trouvée permet de rejouer ; sinon, mémorisez les deux cartes avant qu’elles soient masquées. Le plus grand nombre de paires gagne.</p>
-            <table><caption>Plateau et mémoire de l’adversaire</caption><thead><tr><th>Difficulté</th><th>Plateau</th><th>Mémoire de l’adversaire</th></tr></thead><tbody>
+            <table><caption>Plateau et mémoire de l’IA en solo</caption><thead><tr><th>Difficulté</th><th>Plateau</th><th>Mémoire de l’IA (solo)</th></tr></thead><tbody>
               <tr><th>Facile</th><td>4 × 4 · 8 paires</td><td>4 cartes</td></tr>
               <tr><th>Moyen</th><td>5 × 5 · 12 paires, centre décoratif</td><td>12 cartes</td></tr>
               <tr><th>Difficile</th><td>6 × 6 · 18 paires</td><td>Toutes les cartes révélées</td></tr>

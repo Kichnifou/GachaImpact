@@ -45,7 +45,7 @@ describe('GameShell shared particle conversion overlay', () => {
   })
 
   it('routes Profile messages through the same persistent Community panel intent as Chat', () => {
-    expect(profileScreenSource).toContain("onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey })}")
+    expect(profileScreenSource).toContain("onClick={() => onMessage({ id: playerId, displayName: value.player.displayName, elementKey: value.player.elementKey, presence: value.presence })}")
     expect(profileScreenSource).toContain('>Message privé</AppButton>')
     expect(profileScreenSource).not.toContain('Envoyer un message privé')
     expect(gameShellSource).toContain('onMessage={openDirectMessage}')
