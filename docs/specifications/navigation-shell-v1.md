@@ -152,3 +152,7 @@ Menu canonique : home, profile, invocation, box, team, catalog, dailies, mission
 Help est une action informative après Tutoriel avant Configuration, masquable/réordonnable. navigation_menu_v1/version 1 insère seulement help absent après tutorial ; tutorial absent est restauré avant configuration, puis help après lui. Ordre relatif/hidden survivants et placement d’un help déjà personnalisé conservés ; GET sans réparation, PUT normalisé, merge idempotent. [Guide](help-guide-v1.md).
 
 Profil > Personnalisation > Titres affiche les cinq définitions réelles et leurs conditions verrouillées, avec équipement/retrait manuel et preview ; Aperçu montre le seul titre équipé. Aucun titre dans Chat/MP/Social/Classements/Twitch. Profil > Box consulte les Légendes C6 autorisées sous R565, à partir de la même projection read-only que !legende, sans nouvel écran/onglet.
+
+## Extension post-recette étape 28 — R1027–R1031
+
+Menu/ScreenId/Tutoriel inchangés. OPEN_ARCADE_INVITE conduit à activities-arcade et revalide l'overview ; invitation vivante impose son jeu/difficulté, lien stale ouvre normalement Arcade. Le clic archive seulement la notification d'invitation. Navigation away/back conserve session partagée et n'avance aucun humain. La présentation Social/MP et Titres de niveaux/sticky interne suit [le contrat UI](ui-layout-contract-v1.md#retouches-post-recette-et-arcade-multijoueur--r1027r1031) ; la projection quotidienne Expédition suit [le tracker](home-daily-tracker-v1.md#projection-quotidienne-expédition-après-recette--r1027).

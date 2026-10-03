@@ -107,3 +107,11 @@ Chaque modification de layout transverse se vérifie au minimum à 1920×1080, 1
 ## Fenêtre Aide standalone R1026
 
 Réutiliser le pattern floating-panel et useModalDialog : backdrop, fermeture sombre, Escape, trap/retour de focus. Header/recherche/navigation/footer fixes ; seul .help-guide-body est propriétaire du scroll. Sur mobile, navigation horizontale compacte et fenêtre bornée à la hauteur disponible ; aucun scroll masqué ni contrôle recouvert. Le contrat de contenu appartient à [help-guide-v1.md](help-guide-v1.md), distinct du Tutoriel et du Help textuel.
+
+## Retouches post-recette et Arcade multijoueur — R1027–R1031
+
+Profil > Personnalisation : seule la sous-navigation Avatars/Titres est sticky dans le body scroll réel du profil, fond opaque et z-index local ; ni la navigation Profil ni les autres onglets ne deviennent sticky. Titres de niveaux = famille dérivée PLAYER_LEVEL, ordre 100/75/50/25/10 ; gradients sombres améthyste/platine/or/argent/bronze, noms/conditions/locked/owned/equipped lisibles. Les autres familles ne rejoignent pas cette section.
+
+Social : pastille accessible à droite du pseudo sans retirer les textes existants. MP : même pastille sans nouveau texte visible. PRIVATE : aucun point ; [règles et projection groupée](global-chat-v1.md#self-mention-et-présence-des-mp--r1027).
+
+Arcade : [contrat étape 28](arcade-v1.md#multijoueur-arcade--étape-28). Bloc compact dans la colonne gauche existante, plateau central de dimensions inchangées ; boutons Prêt/Annuler et Refuser présents avec largeur réservée. Petit desktop/mobile : bloc avant plateau dans le flux, aucun overflow horizontal ; Règles/Records restent accessibles. Deux vrais pseudos/couleurs fixes et indication accessible de soi en partie partagée ; aucune citation IA, droite structurellement vide. Les états pending/active/quit/replay utilisent les mêmes cadres ; aucune nouvelle ScreenId ni destination.

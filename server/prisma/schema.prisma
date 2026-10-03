@@ -351,7 +351,10 @@ model ResourceDefinition {
 }
 
 model Player {
-  arcadeSessions ArcadeSession[]
+  arcadeSessions ArcadeSession[] @relation("ArcadeHost")
+  arcadeOpponentSessions ArcadeSession[] @relation("ArcadeGuest")
+  arcadeInvitationsSent ArcadeInvitation[] @relation("ArcadeInvitationHost")
+  arcadeInvitationsReceived ArcadeInvitation[] @relation("ArcadeInvitationGuest")
   arcadeReceipts ArcadeReceipt[]
   arcadeDailyGrants ArcadeDailyGrant[]
   arcadeStats ArcadeStat[]
@@ -2734,6 +2737,8 @@ model BossReward {
 model ArcadeSession {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   playerId String @map("player_id") @db.Uuid
+  mode String @default("SOLO") @db.Text
+  opponentPlayerId String? @map("opponent_player_id") @db.Uuid
   game String @db.Text
   difficulty String @db.Text
   status String @default("ACTIVE") @db.Text
@@ -2753,8 +2758,10 @@ model ArcadeSession {
   xpAwarded Int? @map("xp_awarded")
   businessDate DateTime? @map("business_date") @db.Date
   finishOperationId String? @unique @map("finish_operation_id") @db.Uuid
-  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  player Player @relation("ArcadeHost", fields: [playerId], references: [id], onDelete: Restrict)
   finishOperation BusinessOperation? @relation("ArcadeFinalization", fields: [finishOperationId], references: [id], onDelete: Restrict)
+  opponent Player? @relation("ArcadeGuest", fields: [opponentPlayerId], references: [id], onDelete: Restrict)
+  invitation ArcadeInvitation?
   receipts ArcadeReceipt[]
   dailyGrant ArcadeDailyGrant?
   records ArcadeStat[]
@@ -2765,14 +2772,16 @@ model ArcadeSession {
 model ArcadeReceipt {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   playerId String @map("player_id") @db.Uuid
-  sessionId String @map("session_id") @db.Uuid
+  sessionId String? @map("session_id") @db.Uuid
+  invitationId String? @map("invitation_id") @db.Uuid
   idempotencyKey String @map("idempotency_key") @db.Uuid
   fingerprint String @db.Text
   operationId String @unique @map("operation_id") @db.Uuid
   response Json @db.JsonB
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
-  session ArcadeSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  session ArcadeSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  invitation ArcadeInvitation? @relation(fields: [invitationId], references: [id], onDelete: Restrict)
   operation BusinessOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
   @@unique([playerId, idempotencyKey])
   @@index([sessionId], map: "arcade_receipts_session_idx")
@@ -2812,4 +2821,27 @@ model ArcadeStat {
   @@index([game, difficulty, bestPoints(sort: Desc), bestPairs(sort: Desc), playerId], map: "arcade_stats_record_idx")
   @@index([game, score(sort: Desc), playerId], map: "arcade_stats_score_idx")
   @@map("arcade_stats")
+}
+
+model ArcadeInvitation {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  hostPlayerId String @map("host_player_id") @db.Uuid
+  guestPlayerId String @map("guest_player_id") @db.Uuid
+  game String @db.Text
+  difficulty String @db.Text
+  status String @default("PENDING") @db.Text
+  hostReady Boolean @default(true) @map("host_ready")
+  guestReady Boolean @default(false) @map("guest_ready")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  sessionId String? @unique @map("session_id") @db.Uuid
+  host Player @relation("ArcadeInvitationHost", fields: [hostPlayerId], references: [id], onDelete: Restrict)
+  guest Player @relation("ArcadeInvitationGuest", fields: [guestPlayerId], references: [id], onDelete: Restrict)
+  session ArcadeSession? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+  receipts ArcadeReceipt[]
+  @@index([hostPlayerId, status], map: "arcade_invitations_host_status_idx")
+  @@index([guestPlayerId, status], map: "arcade_invitations_guest_status_idx")
+  @@index([status, expiresAt], map: "arcade_invitations_expiry_idx")
+  @@map("arcade_invitations")
 }

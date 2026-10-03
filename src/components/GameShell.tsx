@@ -583,6 +583,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         onOpenNotification={(notification) => {
           const intent = resolveNotificationNavigation(notification)
           switch (intent.destination) {
+            case 'arcade-invite': navigate('activities-arcade'); window.dispatchEvent(new Event('arcade:refresh')); break
             case 'profile-personalization': setProfileId(player.id); setAppearanceRequestToken(value => value + 1); navigate('profile'); break
             case 'expedition': if (intent.targetId) { setBoxOpenIntent({ characterId: intent.targetId, token: crypto.randomUUID() }); navigate('characters-box') } break
             case 'monthly-boss': setBossRequestToken(value => value + 1); navigate('activities-combat'); break

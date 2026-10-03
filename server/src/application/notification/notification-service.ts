@@ -8,13 +8,14 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 export type NotificationReconciler = Readonly<{ reconcileNotificationsForPlayer(playerId: string, now?: Date): Promise<void> }>;
 
 export class NotificationService {
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly expeditions: ExpeditionService, private readonly giftCodes?: NotificationReconciler, private readonly eventMessages?: NotificationReconciler, private readonly eventLifecycle?: NotificationReconciler) {}
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly expeditions: ExpeditionService, private readonly giftCodes?: NotificationReconciler, private readonly eventMessages?: NotificationReconciler, private readonly eventLifecycle?: NotificationReconciler, private readonly arcade?: NotificationReconciler) {}
 
   public async list(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     const expedition = await this.expeditions.getState(identity);
     await Promise.all([
+      this.arcade?.reconcileNotificationsForPlayer(player.id, now),
       this.giftCodes?.reconcileNotificationsForPlayer(player.id, now),
       (async () => {
         await this.eventMessages?.reconcileNotificationsForPlayer(player.id, now);

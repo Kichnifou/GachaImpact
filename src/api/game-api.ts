@@ -1,3 +1,4 @@
+import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
 import type { TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
 import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
@@ -239,6 +240,9 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     updateAdminCharacter: (id: string, input: Partial<AdminCharacterFields> & { idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/characters/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     getAdminPossessions: (playerId: string, page = 1, search = '', rarity?: string, elementKey?: string) => request<AdminPage<AdminPossession>>(`/api/v1/moderation/players/${playerId}/characters?${queryString({ page, search, rarity, elementKey })}`),
     changeAdminPossession: (playerId: string, characterId: string, input: { action: 'add' | 'remove' | 'constellation'; constellation?: number; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/characters/${characterId}`, { method: 'POST', body: JSON.stringify(input) }),
+    getArcadeOpponents: (friendsOnly: boolean) => request<{ opponents: ArcadeParticipant[] }>(`/api/v1/arcade/opponents?friendsOnly=${friendsOnly}`),
+    inviteArcade: (input: ArcadeInvite) => request<ArcadeInvitationMutation>('/api/v1/arcade/invitations', { method: 'POST', body: JSON.stringify(input) }),
+    actArcadeInvitation: (id: string, input: ArcadeInviteAction) => request<ArcadeInvitationMutation>(`/api/v1/arcade/invitations/${encodeURIComponent(id)}/actions`, { method: 'POST', body: JSON.stringify(input) }),
     getArcade: () => request<ArcadeOverview>('/api/v1/arcade'),
     getArcadeSession: (id: string) => request<ArcadeSession>(`/api/v1/arcade/sessions/${id}`),
     startArcade: (input: ArcadeStart) => request<ArcadeMutation>('/api/v1/arcade/sessions', { method: 'POST', body: JSON.stringify(input) }),

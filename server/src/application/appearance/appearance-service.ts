@@ -51,7 +51,7 @@ export class AppearanceService {
     const actor = await this.actor(identity);
     const [player, definitions, possessions, characters] = await Promise.all([
       this.database.player.findUniqueOrThrow({ where: { id: actor.id }, select: { displayName: true, elementKey: true, ...appearanceSelect } }),
-      this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, visibility: true, isActive: true } }),
+      this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, unlockRule: true, visibility: true, isActive: true } }),
       this.database.playerCosmetic.findMany({ where: { playerId: actor.id }, select: { cosmeticId: true } }),
       this.database.playerCharacter.findMany({ where: { playerId: actor.id }, select: { characterId: true } }),
     ]);
@@ -65,10 +65,12 @@ export class AppearanceService {
         const isOwned = owned.has(item.id);
         if (item.sourceCharacterId && (!isOwned || !ownedCharacters.has(item.sourceCharacterId))) return [];
         if (!isOwned && item.visibility === CosmeticVisibility.SECRET) return [];
+        const rule = item.unlockRule as { type?: string; level?: number } | null;
+        const levelRequirement = item.type === 'TITLE' && (isOwned || item.visibility === 'VISIBLE') && rule?.type === 'PLAYER_LEVEL' && Number.isInteger(rule.level) ? rule.level! : null;
         return [{ id: item.id, type: item.type, sourceCharacterId: item.sourceCharacterId, displayName: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? item.sourceCharacter?.name ?? item.displayName : 'Cosmétique mystérieux',
           assetPath: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? officialAsset(item.sourceCharacterId ? item.sourceCharacter?.iconPath ?? null : item.assetPath) : null,
           condition: !isOwned && item.visibility === CosmeticVisibility.VISIBLE ? item.conditionText : null,
-          visibility: item.visibility, owned: isOwned, isActive: item.isActive }];
+          levelRequirement, visibility: item.visibility, owned: isOwned, isActive: item.isActive }];
       }),
     };
   }

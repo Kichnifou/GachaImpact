@@ -674,6 +674,24 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect((await service.unreadCount(as(author))).unreadCount).toBe(200);
   }, 40_000);
 
+  it('suggests and resolves self mentions with case/accents, without notification or self-report', async () => {
+    const viewer = await player(), other = await player(), blocked = await player();
+    const displayName = 'Élio Mention ' + randomUUID().slice(0, 6);
+    await db.player.update({ where: { id: viewer }, data: { displayName } });
+    await db.player.update({ where: { id: other }, data: { displayName: displayName + ' Ami' } });
+    await db.playerBlock.create({ data: { blockerPlayerId: viewer, blockedPlayerId: blocked } });
+    expect((await service.searchMentions(as(viewer), '')).players[0]?.id).toBe(viewer);
+    const found = (await service.searchMentions(as(viewer), displayName.normalize('NFD').replace(/\p{M}/gu, '').toUpperCase())).players;
+    expect(found.map(row => row.id)).toEqual(expect.arrayContaining([viewer, other]));
+    expect(found).toHaveLength(2);
+    const before = await db.notification.count({ where: { playerId: viewer } });
+    const sent = await service.send(as(viewer), '@' + displayName, randomUUID(), null, [{ playerId: viewer, displayName }]);
+    expect(sent.message.resolvedMentions).toEqual([{ playerId: viewer, displayName }]);
+    expect(await db.notification.count({ where: { playerId: viewer } })).toBe(before);
+    await expect(service.report(as(viewer), sent.message.id)).rejects.toThrow();
+    expect((await service.searchMentions(as(viewer), '')).players.length).toBeLessThanOrEqual(5);
+    expect((await service.searchMentions(as(viewer), 'e')).players.length).toBeLessThanOrEqual(8);
+  }, 30000);
   it('ranks empty mention suggestions by current-generation authors, connected sessions, then name', async () => {
     const viewer = await player(), blocked = await player(), oldAuthor = await player(), moderator = await player();
     const recent1 = await player(), recent2 = await player(), connected1 = await player(), connected2 = await player();
@@ -699,8 +717,8 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const session = async (id: string, secondsAgo: number) => db.playerSession.create({ data: { playerId: id, sessionTokenHash: createHash('sha256').update(randomUUID()).digest('hex'), startedAt: new Date(now.getTime() - 60_000), lastHeartbeatAt: new Date(now.getTime() - secondsAgo * 1_000) } });
     const olderSession = await session(connected1, 40);
     await session(connected2, 10);
-    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([recent2, recent1, connected2, connected1, alphaA]);
+    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([viewer, recent2, recent1, connected2, connected1]);
     await db.playerSession.update({ where: { id: olderSession.id }, data: { endedAt: now } });
-    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([recent2, recent1, connected2, alphaA, alphaB]);
+    expect((await service.searchMentions(as(viewer), '')).players.map(item => item.id)).toEqual([viewer, recent2, recent1, connected2, alphaA]);
   }, 30_000);
 });

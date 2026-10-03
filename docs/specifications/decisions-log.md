@@ -2,7 +2,25 @@
 
 Statut : évolutif.
 
-État de livraison R1025/R1026 : candidat adb1f510 approuvé indépendamment par ChatGPT, sans correctif code, puis promu techniquement sur main par fast-forward strict du checkpoint documentaire. Titres, Help/Aide, !legende, icône Catalogue et tracker attendent la recette publique ; application de 059 par le déploiement automatique Railway à contrôler. Aucune nouvelle décision produit. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l’état exact et la reprise.
+État de livraison : R1025/R1026 promues via 9ec8c98 ; validation publique Menu/Aide/tracker/cinq titres et 059 appliquée reçues dans la mission propriétaire. Les retouches R1027 et l'extension Arcade R1028–R1031 restent candidates review. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+
+## Correctifs post-recette — R1027 (2026-10-03)
+
+- VALIDÉ : Titres de niveaux groupés par unlockRule PLAYER_LEVEL, tri des seuils 100→75→50→25→10 ; gradients sombres améthyste/platine/or/argent/bronze, verrouillage/possession/équipement lisibles, onglets internes Avatars/Titres sticky dans le scroll réel Profil. Noms/seuils/possessions/XP/059 inchangés, autres familles séparées.
+- VALIDÉ : self mention proposée avec @ vide et recherche casse/accents, résolue dans l'envoi ; blocks, quotas et interdiction self-report conservés, aucune notification additionnelle.
+- VALIDÉ : projection quotidienne Expédition RUNNING commencée aujourd'hui = completed/✅ Terminé ; ancienne RUNNING = in_progress ; READY = À récupérer ; IDLE/départ possible = available, départ utilisé = completed. Aucune règle métier modifiée.
+- VALIDÉ : point vert ONLINE, jaune AWAY, gris OFFLINE à droite du pseudo dans Social et MP. Textes Social conservés ; MP sans texte visible supplémentaire. PRIVATE = aucun point. Presence/Privacy existants, projections groupées sans nouvelle catégorie.
+
+## Multijoueur Arcade — R1028–R1031 (2026-10-03)
+
+- VALIDÉ R1028 — Extension des trois jeux/trois difficultés dans la même surface, panneau gauche compact et boutons Prêt/Annuler + Refuser toujours présents/stables ; mobile avant plateau. Candidats ACTIVE/élément/ONLINE autorisé, non bloqués et libres dans les deux rôles. Pseudo seul ; filtre Amis seulement serveur/temporaire. Aucun changement solo/plateau/Records ni nouvelle destination. [Contrat Arcade](arcade-v1.md#multijoueur-arcade--étape-28).
+- VALIDÉ R1029 — Invitation persistante deux minutes, hôte prêt immédiatement ; invité prêt démarre atomiquement même hôte hors écran. Annulation/expiration silencieuses, refus informationnel unique, invitation actionnable avec OPEN_ARCADE_INVITE et archive au clic ; terminaux résolvent l'invitation. Navigation/absence ne valent ni abandon ni coup automatique. Polling visible léger sans WebSocket/Realtime ; pas d'IA de remplacement ni timeout.
+- VALIDÉ R1030 — Résultats relatifs/points propres des deux, agrégats/Records existants, zéro XP/grant/quota/récompense/progression/économie/Mission PvP. Quitter = abandon partagé sans score ni statistique ; replay = nouvelle invitation identique, feedback propre si indisponible. Aucun ranking/monnaie/récompense PvP séparé. Barèmes et versions solo conservés.
+- VALIDÉ R1031 — Session partagée canonique PLAYER/AI = hôte/invité, DTO participant/viewerSide sans données privées Memory/RNG/présence. Migration additive 060 ; transactions/verrous Player triés, exclusivité entre tous les rôles, fin/score/opération/receipt atomiques ; idempotence durable et même clé après ambiguïté réseau. Tests mutatifs et répétition 60 migrations uniquement en schéma privé, aucune application publique de 060 dans cette mission.
+
+## Séquence réelle de fin V1 — R1032 (2026-10-03)
+
+- VALIDÉ par le propriétaire : numéros conservés, exécution 26 validée → 28 Arcade multijoueur → 29 passe exhaustive commandes → 27 finition transverse/rétention/Twitch technique → 30 foundation/rehearsal → 31 cutover → 32 finale. Le propriétaire veut terminer Arcade et les commandes avant la finition transverse ; 27 est différée, pas abandonnée. Aucune étape 27/29/30/31/32 autorisée implicitement. [Ordre propriétaire](../roadmap/implementation-order-v1.md).
 
 ## Titres de niveau du Profil — R1025 (2026-10-03)
 

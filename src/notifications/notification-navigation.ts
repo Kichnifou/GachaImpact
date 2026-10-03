@@ -12,8 +12,9 @@ export function resolveNotificationNavigation(notification: NotificationDto): No
   const destination = resolveNotificationPresentation(notification).destination
   return {
     destination,
-    targetId: destination === 'expedition' ? notification.actionTargetId : null,
+    targetId: (destination === 'expedition' || destination === 'arcade-invite') ? notification.actionTargetId : null,
     archiveOnOpen: destination !== null && (
+      notification.typeKey === 'ARCADE_INVITE' ||
       notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' ||
       notification.typeKey === 'TRADE_ACCEPTED' ||
       notification.typeKey === 'CHARACTER_AVATARS_UNLOCKED'

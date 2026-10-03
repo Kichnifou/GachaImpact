@@ -177,7 +177,7 @@ export class GlobalChatService {
       let resolvedMentions: string[] = [];
       if (normalized.type === GlobalChatMessageType.PLAYER && normalized.value.includes('@')) {
         const [players, blocks] = await Promise.all([
-          tx.player.findMany({ where: { status: 'ACTIVE', id: { not: player.id } }, select: { id: true, displayName: true } }),
+          tx.player.findMany({ where: { status: 'ACTIVE' }, select: { id: true, displayName: true } }),
           tx.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: player.id }, { blockedPlayerId: player.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } }),
         ]);
         const excluded = new Set(blocks.map(block => block.blockerPlayerId === player.id ? block.blockedPlayerId : block.blockerPlayerId));
@@ -462,7 +462,7 @@ export class GlobalChatService {
     const needle = normalizePlayerSearch(query);
     if (needle.length > 100) return { players: [] };
     const blocked = await this.database.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: viewer.id }, { blockedPlayerId: viewer.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } });
-    const excluded = new Set([viewer.id, ...blocked.map(row => row.blockerPlayerId === viewer.id ? row.blockedPlayerId : row.blockerPlayerId)]);
+    const excluded = new Set(blocked.map(row => row.blockerPlayerId === viewer.id ? row.blockedPlayerId : row.blockerPlayerId));
     const players = await this.database.player.findMany({ where: { status: 'ACTIVE', id: { notIn: [...excluded] } }, select: { id: true, displayName: true, elementKey: true } });
     const candidates = players.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
     if (needle) return { players: candidates.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
@@ -471,6 +471,7 @@ export class GlobalChatService {
       this.database.playerSession.findMany({ where: { playerId: { notIn: [...excluded] }, endedAt: null, lastHeartbeatAt: { gt: new Date(this.clock.now().getTime() - 180_000) } }, orderBy: { lastHeartbeatAt: 'desc' }, take: 50, select: { playerId: true } }),
     ]);
     const rank = new Map<string, number>();
+    rank.set(viewer.id, -1);
     for (const row of recentMessages) if (row.authorPlayerId && !rank.has(row.authorPlayerId)) rank.set(row.authorPlayerId, rank.size);
     for (const row of sessions) if (!rank.has(row.playerId)) rank.set(row.playerId, 100 + rank.size);
     return { players: candidates.sort((a, b) => (rank.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (rank.get(b.id) ?? Number.MAX_SAFE_INTEGER) || a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 5) };

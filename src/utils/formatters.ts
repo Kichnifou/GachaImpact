@@ -48,6 +48,8 @@ export function apiErrorMessage(error: unknown): string {
 
   const code = error.code
   const messages: Record<string, string> = {
+    ARCADE_OPPONENT_UNAVAILABLE: 'Ce joueur est indisponible. Choisissez un autre adversaire.',
+    ARCADE_INVITATION_STALE: 'Cette invitation est terminée. Actualisez Arcade.',
     TWITCH_GIFT_PENDING_REDEMPTIONS: 'Des Gifts Suprêmes sont encore en cours de traitement. Réessayez dans quelques instants.',
     TWITCH_GIFT_SHUTDOWN_IN_PROGRESS: 'La désactivation Gift Suprême est en cours. Réessayez dans quelques instants.',
     NETWORK_ERROR: 'Le serveur GachaImpact est momentanément inaccessible.',

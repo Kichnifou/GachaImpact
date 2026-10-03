@@ -85,7 +85,7 @@ export function projectDailies(source: DailySources): DailyItem[] {
   if (x && xv && known('expedition', xv.businessDate)) {
     const presentation = expeditionOverview(xv, 0)
     expedition = xv.operationalStatus === 'RUNNING'
-      ? { ...update(expedition, 'in_progress', 'En cours', `${xv.activeCharacter?.name ?? 'Personnage'} · ${formatRemainingSeconds(expeditionRemainingSeconds(x, source.monotonicNow ?? x.observedAt))}`, false), deadline: xv.readyAt ?? undefined }
+      ? { ...update(expedition, xv.startedOnCurrentBusinessDate ? 'completed' : 'in_progress', xv.startedOnCurrentBusinessDate ? '✅ Terminé' : 'En cours', `${xv.activeCharacter?.name ?? 'Personnage'} · ${formatRemainingSeconds(expeditionRemainingSeconds(x, source.monotonicNow ?? x.observedAt))}`, false), deadline: xv.readyAt ?? undefined }
       : xv.operationalStatus === 'READY' ? update(expedition, 'available', 'À récupérer', presentation.detail)
         : xv.departureUsedToday ? update(expedition, 'completed', presentation.status, presentation.detail)
           : xv.canStartToday ? update(expedition, 'available', presentation.status, presentation.detail)

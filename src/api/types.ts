@@ -806,14 +806,14 @@ export type ChatPageDto = { messages: ChatMessageDto[]; nextCursor: { createdAt:
 export type ChatUpdatesDto = { generation: number; reset: boolean; messages: ChatMessageDto[]; changes: ChatMessageDto[]; visibleMessageIds?: string[] }
 export type ChatSendDto = { cleared: true; generation: number; replayed: boolean } | { cleared?: false; message: ChatMessageDto; generation: number; xpGranted: number; refreshScopes: ChatRefreshScope[]; dailyChallengeCompleted: boolean; replayed: boolean; result: ChatMessageDto | null; results: ChatMessageDto[] }
 
-export type DirectMessagePlayerDto = Readonly<{ id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath?: string | null }>
+export type DirectMessagePlayerDto = Readonly<{ presence?: import('../social/types').Access<import('../social/types').PresenceStatus>; id: string; displayName: string; elementKey: ElementKey | null; avatarAssetPath?: string | null }>
 
 export type AppearanceDto = Readonly<{
   avatar: Readonly<{ kind: 'CUSTOM' | 'ELEMENT' | 'INITIAL'; assetPath: string | null }>
   title: string | null
   equippedAvatarCosmeticId: string | null
   equippedTitleCosmeticId: string | null
-  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
+  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; levelRequirement?: number | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
 export type TwitchAccountDto = Readonly<{ giftSupremeAvailable?: boolean; giftSupremeAuthorized?: boolean; giftSupremeActive?: boolean; giftSupremePending?: boolean; giftSupremeDisabling?: boolean; giftSupremeError?: 'CONFLICT' | 'UNAVAILABLE' | 'MANUAL_REWARD_CONFLICT' | 'CREDENTIAL_INVALID'; pilotAvailable: boolean; eligible: boolean; linked: null | { login: string; displayName: string | null; linkedAt: string }; snapshotAvailable: boolean; runtimeAuthorizationAvailable?: boolean; runtimeSubscriptionAvailable?: boolean; runtimeChatActive?: boolean; runtimeChatPending?: boolean; runtimeChatError?: 'CONFLICT' | 'UNAVAILABLE'; favorSubscriptionAvailable?: boolean; favorSubscriptionActive?: boolean; favorSubscriptionPending?: boolean; favorSubscriptionError?: 'CONFLICT' | 'UNAVAILABLE'; lastImport: null | { at: string; snapshotHash: string } }>
 export type SnapshotDomainDto = Readonly<{ name: string; category: 'PLAYER_LOCAL_PHYSICAL' | 'DEFERRED_CROSS_PLAYER_OR_GLOBAL' | 'DEFERRED_NOT_PHYSICAL' | 'BLOCKED_AMBIGUOUS'; action: 'NO_CHANGE' | 'UPDATE' | 'REPLACE' | 'CREATE' | 'PENDING_MAPPING' | 'DEFERRED' | 'BLOCKED'; current: string; snapshot: string; reason: string | null; anomalies: readonly string[] }>

@@ -1,3 +1,4 @@
+import { ArcadeInvitations } from '../application/arcade/arcade-invitations.js';
 import { TwitchFavorChatPresenceConsumer } from '../application/twitch/twitch-favor-chat-presence-consumer.js';
 import { SocialService } from '../application/social/social-service.js';
 import { AppearanceService } from '../application/appearance/appearance-service.js';
@@ -249,7 +250,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     arcadeRecords: new ArcadeRecords(database),
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
-    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService)),
+    notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
     start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
     close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };

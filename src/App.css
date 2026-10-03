@@ -9024,7 +9024,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 @keyframes dm-history-pulse { 0%, 35% { filter: brightness(1.35); } 100% { filter: brightness(1); } }
 .dm-thread-identity { min-width: 0; display: flex; align-items: center; flex: 1; gap: 8px; padding: 0; cursor: pointer; color: inherit; text-align: left; border: 0; background: transparent; }
 .dm-thread-identity .dm-avatar { width: 32px; height: 32px; }
-.dm-thread-identity span:last-child { min-width: 0; display: grid; }
+.dm-thread-identity > span:last-child { min-width: 0; display: grid; }
 .dm-thread-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dm-menu-button { margin-left: auto; }
 .dm-conversation-menu { position: absolute; z-index: 10; top: 48px; right: 9px; min-width: 175px; display: grid; gap: 2px; padding: 5px; border: 1px solid #385274; border-radius: 8px; background: #11213b; box-shadow: 0 9px 24px #000a; }
@@ -9221,3 +9221,24 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .admin-list-row { flex-wrap: wrap; } .admin-list-row > div:first-child { flex-basis: 100%; }
   .admin-filters > * { flex: 1 1 125px; } .admin-domain .dm-reports-panel { padding: 10px; }
 }
+
+/* Authorized presence, shared by Social and private messages. */
+.presence-dot[class*="presence-dot-"] { display:inline-block; width:8px; height:8px; margin-left:7px; border-radius:50%; vertical-align:middle; flex-shrink:0; }
+.presence-dot-online { background:#65d7a1; box-shadow:0 0 5px #65d7a144; }
+.presence-dot-away { background:#eac46a; }
+.presence-dot-offline { background:#8d99a9; }
+.appearance-tabs { position:sticky; top:0; z-index:4; background:#111a2a; padding-block:8px; box-shadow:0 4px 9px #080e19; }
+@media(max-width:1100px) { .screen-stage:has(.appearance-tabs) { overflow:visible; } }
+.appearance-level-section { display:grid; gap:10px; }
+.appearance-level-section h3 { margin:0; font-size:14px; color:#dbe8fa; }
+.appearance-level-title { --title-tone:151,122,97; background:linear-gradient(115deg,rgba(var(--title-tone),.26),#111a2a 85%); border-color:rgba(var(--title-tone),.6); }
+.title-tier-10 { --title-tone:167,117,81; }
+.title-tier-25 { --title-tone:166,182,203; }
+.title-tier-50 { --title-tone:206,175,91; }
+.title-tier-75 { --title-tone:155,205,209; }
+.title-tier-100 { --title-tone:166,125,219; }
+.appearance-level-title.is-locked { background:linear-gradient(115deg,rgba(var(--title-tone),.15),#111a2a 85%); }
+.appearance-level-title.is-locked > span { color:#b7c3d5; }
+.appearance-level-title.is-equipped { box-shadow:inset 0 0 0 1px rgba(var(--title-tone),.45); }
+.appearance-level-title > div { flex:1; }
+.appearance-level-title small { color:#c4cee0; }

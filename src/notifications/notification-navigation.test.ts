@@ -9,6 +9,12 @@ const base: NotificationDto = {
 }
 
 describe('notification navigation registry', () => {
+  it('opens and archives only Arcade invitations, including stale links, while refusal stays informational', () => {
+    const invite = { ...base, domainKey: 'arcade', typeKey: 'ARCADE_INVITE', actionKey: 'OPEN_ARCADE_INVITE', actionTargetId: 'old-invitation', payload: { invitationId: 'old-invitation', message: 'Axel vous invite à jouer à Memory.' } }
+    expect(resolveNotificationNavigation(invite)).toEqual({ destination: 'arcade-invite', targetId: 'old-invitation', archiveOnOpen: true })
+    expect(resolveNotificationNavigation({ ...invite, typeKey: 'ARCADE_INVITE_REFUSED' })).toEqual({ destination: null, targetId: null, archiveOnOpen: false })
+    expect(resolveNotificationNavigation({ ...invite, actionKey: 'OPEN_SOCIAL_REQUESTS' }).destination).toBeNull()
+  })
   it('routes a Mission to Missions without automatic archive', () => {
     expect(resolveNotificationNavigation(base)).toEqual({ destination: 'missions', targetId: null, archiveOnOpen: false })
   })

@@ -1,12 +1,14 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades' | 'trades-history' | 'profile-personalization' | 'missions'
+export type NotificationDestination = 'arcade-invite' | 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades' | 'trades-history' | 'profile-personalization' | 'missions'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'arcade:ARCADE_INVITE': notification => ({ title: 'Invitation Arcade', message: text(notification.payload.message, 'Vous avez reçu une invitation Arcade.'), destination: notification.actionKey === 'OPEN_ARCADE_INVITE' ? 'arcade-invite' : null }),
+  'arcade:ARCADE_INVITE_REFUSED': notification => ({ title: 'Invitation refusée', message: text(notification.payload.message, 'Votre invitation Arcade a été refusée.'), destination: null }),
   'missions:PERMANENT_MISSION_COMPLETED': notification => ({ title: 'Mission terminée', message: text(notification.payload.displayName, 'Mission permanente'), rewards: [{ resourceKey: 'primogems', label: 'Primogemmes', amount: formatResourceAmount(text(notification.payload.rewardPrimogems, '0')) }], destination: notification.actionKey === 'OPEN_MISSIONS' ? 'missions' : null }),
   'giveaway:GIVEAWAY_REWARD': notification => ({ title: text(notification.payload.title, '🎉 Récompense Giveaway'),
     message: text(notification.payload.message, 'Votre récompense Giveaway a déjà été créditée.'), destination: null }),

@@ -13,6 +13,14 @@ export async function finalizeArcade(tx: Prisma.TransactionClient, session: Arca
   if (!state.outcome || session.status !== 'ACTIVE') throw new Error('Arcade finalization requires a terminal transition');
   const points = performancePoints(session.game as ArcadeGame, session.difficulty as ArcadeDifficulty, state.outcome, state.kind === 'MEMORY' ? state.playerPairs : 0, session.scoringVersion);
   const businessDate = businessDateToDatabaseDate(getBusinessDate(now));
+  if (session.mode === 'MULTIPLAYER') {
+    if (!session.opponentPlayerId) throw new Error('Missing Arcade opponent');
+    const outcome = inverseOutcome(state.outcome);
+    const opponentPoints = performancePoints(session.game as ArcadeGame, session.difficulty as ArcadeDifficulty, outcome, state.kind === 'MEMORY' ? state.aiPairs : 0, session.scoringVersion);
+    await recordArcadeScore(tx, session, state, session.playerId, state.outcome, points, false);
+    await recordArcadeScore(tx, session, state, session.opponentPlayerId, outcome, opponentPoints, true);
+    return { terminal: { status: 'FINISHED', outcome: state.outcome, performancePoints: points, xpAwarded: 0, businessDate, finishedAt: now, finishOperationId: operationId }, award: null };
+  }
   const grant = await tx.arcadeDailyGrant.findUnique({ where: { playerId_game_businessDate: { playerId: session.playerId, game: session.game, businessDate } } });
   const xpAwarded = grant ? 0 : points;
   let award = null;
@@ -27,14 +35,19 @@ export async function finalizeArcade(tx: Prisma.TransactionClient, session: Arca
       levelsReached: plan.levelsReached, overflowRewardsGranted: plan.overflowRewardsGranted,
       rewards: plan.rewards.map(row => ({ resourceKey: row.resourceKey, amount: row.amount.toString() })) };
   }
-  const key = { playerId: session.playerId, game: session.game, difficulty: session.difficulty };
-  const old = await tx.arcadeStat.findUnique({ where: { playerId_game_difficulty: key } });
-  const pairs = state.kind === 'MEMORY' ? state.playerPairs : null;
-  const best = !old || points > old.bestPoints;
-  const record = { bestPoints: points, bestPairs: pairs, bestOutcome: state.outcome, bestSessionId: session.id };
-  await tx.arcadeStat.upsert({ where: { playerId_game_difficulty: key },
-    create: { ...key, score: BigInt(points), played: 1n, wins: state.outcome === 'WIN' ? 1n : 0n, draws: state.outcome === 'DRAW' ? 1n : 0n, losses: state.outcome === 'LOSS' ? 1n : 0n, ...record },
-    update: { score: { increment: points }, played: { increment: 1 }, wins: { increment: state.outcome === 'WIN' ? 1 : 0 },
-      draws: { increment: state.outcome === 'DRAW' ? 1 : 0 }, losses: { increment: state.outcome === 'LOSS' ? 1 : 0 }, ...(best ? record : {}) } });
+  await recordArcadeScore(tx, session, state, session.playerId, state.outcome, points, false);
   return { terminal: { status: 'FINISHED', outcome: state.outcome, performancePoints: points, xpAwarded, businessDate, finishedAt: now, finishOperationId: operationId }, award };
+}
+
+export const inverseOutcome = (outcome: 'WIN' | 'DRAW' | 'LOSS') => outcome === 'WIN' ? 'LOSS' as const : outcome === 'LOSS' ? 'WIN' as const : 'DRAW' as const;
+async function recordArcadeScore(tx: Prisma.TransactionClient, session: ArcadeSession, state: ArcadeState, playerId: string, outcome: 'WIN' | 'DRAW' | 'LOSS', points: number, guest: boolean) {
+  const key = { playerId, game: session.game, difficulty: session.difficulty };
+  const old = await tx.arcadeStat.findUnique({ where: { playerId_game_difficulty: key } });
+  const pairs = state.kind === 'MEMORY' ? (guest ? state.aiPairs : state.playerPairs) : null;
+  const best = !old || points > old.bestPoints;
+  const record = { bestPoints: points, bestPairs: pairs, bestOutcome: outcome, bestSessionId: session.id };
+  await tx.arcadeStat.upsert({ where: { playerId_game_difficulty: key },
+    create: { ...key, score: BigInt(points), played: 1n, wins: outcome === 'WIN' ? 1n : 0n, draws: outcome === 'DRAW' ? 1n : 0n, losses: outcome === 'LOSS' ? 1n : 0n, ...record },
+    update: { score: { increment: points }, played: { increment: 1 }, wins: { increment: outcome === 'WIN' ? 1 : 0 },
+      draws: { increment: outcome === 'DRAW' ? 1 : 0 }, losses: { increment: outcome === 'LOSS' ? 1 : 0 }, ...(best ? record : {}) } });
 }

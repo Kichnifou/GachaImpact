@@ -1,8 +1,9 @@
 import { createHash } from 'node:crypto';
-import type { PrismaClient } from '../../../generated/prisma/client.js';
+import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import { AppError } from '../../api/errors.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
+import { privacyAllowedWhere } from './privacy-service.js';
 
 export const PRESENCE_AWAY_MS = 10 * 60_000;
 export const PRESENCE_INACTIVE_MS = 2 * 60 * 60_000;
@@ -17,6 +18,16 @@ export function derivePresence(sessions: readonly Session[], now: Date): Presenc
 
 export class PresenceService {
   constructor(private readonly database: PrismaClient, private readonly clock: Clock) {}
+  /** Two batched queries, independent of Arcade and shared by all presence consumers. */
+  async visibleFor(viewer: string, ids: readonly string[], db: PrismaClient | Prisma.TransactionClient = this.database) {
+    if (!ids.length) return new Map<string, PresenceStatus>();
+    const owners = await db.player.findMany({ where: { id: { in: [...ids] }, status: 'ACTIVE', ...privacyAllowedWhere(viewer, 'PRESENCE') }, select: { id: true } });
+    const now = this.clock.now();
+    const sessions = await db.playerSession.findMany({ where: { playerId: { in: owners.map(p => p.id) }, endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) } }, select: { playerId: true, endedAt: true, lastHeartbeatAt: true, lastActivityAt: true } });
+    const grouped = new Map<string, typeof sessions>();
+    for (const session of sessions) { const list = grouped.get(session.playerId) ?? []; list.push(session); grouped.set(session.playerId, list); }
+    return new Map(owners.map(p => [p.id, derivePresence(grouped.get(p.id) ?? [], now)]));
+  }
   private hash(playerId: string, key: string) { return createHash('sha256').update(`${playerId}:${key}`).digest('hex'); }
   async touch(playerId: string, key: string, activity: boolean, start = false) {
     const sessionTokenHash = this.hash(playerId, key);

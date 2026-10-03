@@ -5,6 +5,23 @@ import { createExpeditionClientSnapshot } from '../expedition/expedition-client-
 const item = (id: DailyId, sources: DailySources = dailySources()) => projectDailies(sources).find(row => row.id === id)!
 
 describe('Shared daily business projection', () => {
+  it.each([
+    ['IDLE', false, false, true, 'available'],
+    ['RUNNING', true, true, false, 'completed'],
+    ['RUNNING', false, false, false, 'in_progress'],
+    ['READY', true, true, false, 'available'],
+    ['READY', false, false, false, 'available'],
+    ['IDLE', true, true, false, 'completed'],
+    ['IDLE', false, false, true, 'available'],
+  ] as const)('projects expedition %s startedToday=%s usedToday=%s consistently for all daily surfaces', (operationalStatus, startedOnCurrentBusinessDate, departureUsedToday, canStartToday, state) => {
+    const source = dailySources(), value = { ...expedition, operationalStatus, startedOnCurrentBusinessDate, departureUsedToday, canStartToday, activeCharacter: operationalStatus === 'IDLE' ? null : character }
+    const projected = item('expedition', { ...source, expedition: createExpeditionClientSnapshot(value, 0) })
+    expect(projected.state).toBe(state)
+    expect(projected.actionable).toBe(state === 'available')
+    if (operationalStatus === 'READY') expect(projected.status).toBe('À récupérer')
+    if (operationalStatus === 'RUNNING' && startedOnCurrentBusinessDate) expect(projected.status).toBe('✅ Terminé')
+    if (state === 'completed') expect(dailySuggestions([projected])).toEqual([])
+  })
   it('keeps nine owners in canonical order, counts each actionable activity once, and gives reward then READY priority', () => {
     const source = dailySources(), items = projectDailies(source)
     expect(items.map(row => row.id)).toEqual(dailyIds)

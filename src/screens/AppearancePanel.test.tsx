@@ -14,6 +14,25 @@ const initial: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, t
 ] }
 
 describe('AppearancePanel', () => {
+  it('groups level titles by derived thresholds descending, keeps future families separate and preserves equipment', async () => {
+    const container = document.createElement('div'), root = createRoot(container)
+    const catalog: AppearanceDto['catalog'] = [10, 50, 25, 100, 75].map(level => ({ id: 'level-' + level, type: 'TITLE', displayName: 'Titre ' + level, levelRequirement: level, assetPath: null, condition: 'Atteindre le niveau ' + level, visibility: 'VISIBLE', owned: level <= 50, isActive: true }))
+    const appearance = { ...initial, equippedTitleCosmeticId: 'level-50', catalog: [...catalog, { id: 'future', type: 'TITLE' as const, displayName: 'Une autre famille', levelRequirement: null, assetPath: null, condition: null, visibility: 'VISIBLE' as const, owned: false, isActive: true }] }
+    const equipAppearance = vi.fn(async () => appearance)
+    try {
+      await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => appearance, equipAppearance } as unknown as SocialActions} displayName="Axel" elementKey="hydro" onChanged={async () => {}} />); await Promise.resolve() })
+      await act(async () => [...container.querySelectorAll('nav button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })))
+      const section = container.querySelector('.appearance-level-section')!
+      expect(section.querySelector('h3')?.textContent).toBe('Titres de niveaux')
+      expect([...section.querySelectorAll('.appearance-card strong')].map(node => node.textContent)).toEqual(['Titre 100', 'Titre 75', 'Titre 50', 'Titre 25', 'Titre 10'])
+      for (const level of [10,25,50,75,100]) expect(section.querySelector('.title-tier-' + level)).toBeTruthy()
+      expect(section.textContent).not.toContain('Une autre famille')
+      expect(section.querySelectorAll('.is-locked')).toHaveLength(2)
+      expect(section.querySelector('.is-equipped')?.textContent).toContain('Équipé')
+      expect(container.querySelector('.appearance-tabs')).toBeTruthy()
+      expect(equipAppearance).not.toHaveBeenCalled()
+    } finally { act(() => root.unmount()) }
+  })
   it('shows owned character portraits alphabetically and falls back to the simple element icon', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     const catalog: AppearanceDto['catalog'] = [

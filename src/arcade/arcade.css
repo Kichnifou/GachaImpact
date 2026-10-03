@@ -10,7 +10,7 @@
 .arcade-controls nav .app-button:hover:not(:disabled) { transform:none; }
 .arcade-body { min-height:0; overflow-y:auto; border-radius:15px; }
 .arcade-arena.panel { display:grid; justify-items:center; grid-template-columns:minmax(0,1fr) minmax(0,min(62%,640px)) minmax(0,1fr); grid-template-rows:auto auto minmax(0,1fr) auto auto auto auto; gap:8px; height:100%; min-height:480px; padding:12px 18px 8px; background:radial-gradient(ellipse at 50% 10%,#20305488,transparent 65%),#111a2c; }
-.arcade-arena > :not(.arcade-play-area):not(.arcade-banter) { grid-column:1 / -1; }
+.arcade-arena > :not(.arcade-play-area):not(.arcade-banter):not(.arcade-multiplayer) { grid-column:1 / -1; }
 .arcade-arena .arcade-play-area { grid-column:2; grid-row:3; }
 .arcade-arena .arcade-banter { grid-column:3; grid-row:3; align-self:center; justify-self:stretch; margin:0; margin-left:-12px; padding-left:0; font-style:italic; font-size:.8rem; line-height:1.6; color:#b7c8df; overflow-wrap:anywhere; }
 .arcade-top-actions { display:flex; justify-content:space-between; align-items:center; width:100%; min-height:30px; gap:8px; }
@@ -95,3 +95,13 @@
 @media(max-width:1100px) { .arcade-arena.panel { height:auto; grid-template-columns:1fr; grid-template-rows:repeat(8,auto); }.arcade-arena .arcade-banter { grid-column:1; grid-row:3; margin:0; padding:0; text-align:right; justify-self:end; max-width:65%; }.arcade-arena .arcade-play-area { grid-column:1; grid-row:4; container-type:normal; min-height:220px; }.arcade-memory { width:min(100%,400px); }.arcade-tic { width:min(100%,335px); }.arcade-connect { width:min(100%,440px); } }
 @media(max-width:550px) { .arcade-top-actions .app-button { font-size:.68rem; padding:5px 7px; }.arcade-top-actions > div { gap:4px; } }
 @media(max-width:550px) { .arcade-rule-cards { grid-template-columns:1fr; }.arcade-rules.panel { padding:12px; max-height:calc(100dvh - 16px); }.arcade-rules nav .app-button { font-size:.72rem; padding:7px; }.arcade-rules th,.arcade-rules td { padding:5px; }.arcade-record-controls .arcade-score-tabs .app-button { font-size:.68rem; padding:4px 6px; } }
+
+.arcade-arena > .arcade-multiplayer { grid-column:1; grid-row:3; justify-self:stretch; align-self:center; display:grid; gap:10px; margin-right:12px; max-width:190px; min-width:0; }
+.arcade-multiplayer .arcade-opponent-select { display:grid; gap:6px; }
+.arcade-multiplayer select { width:100%; min-width:0; text-overflow:ellipsis; }
+.arcade-multiplayer .arcade-friends-only { gap:6px; font-size:.76rem; }
+.arcade-multiplayer input { accent-color:#78def6; cursor:pointer; }
+.arcade-multiplayer input:disabled { cursor:not-allowed; }
+.arcade-invite-actions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
+.arcade-invite-actions .app-button { min-width:0; padding:6px 3px; font-size:.72rem; }
+@media(max-width:1100px) { .arcade-arena > .arcade-multiplayer { grid-column:1; grid-row:3; width:min(100%,360px); max-width:360px; margin:0; grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; }.arcade-multiplayer .arcade-opponent-select { grid-column:1 / -1; }.arcade-arena .arcade-banter { grid-row:5; }.arcade-invite-actions { align-self:center; width:146px; } }

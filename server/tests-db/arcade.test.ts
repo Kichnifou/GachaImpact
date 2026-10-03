@@ -84,11 +84,11 @@ async function stateSnapshot(playerId: string) {
   };
 }
 describe('Arcade — fully migrated private PostgreSQL', () => {
-  it('deploys all 59 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
+  it('deploys all 60 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
     expect(isolated.migrationStatus).toContain('up to date');
     const migrations = await isolated.admin.query('SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name');
-    expect(migrations.rows).toHaveLength(59);
-    expect(migrations.rows.at(-1).migration_name).toBe('20261003160000_059_add_profile_level_titles');
+    expect(migrations.rows).toHaveLength(60);
+    expect(migrations.rows.at(-1).migration_name).toBe('20261003180000_060_add_arcade_multiplayer');
     const guards = await isolated.admin.query("SELECT relname, relrowsecurity, has_table_privilege('anon', oid, 'SELECT') AS anon_read, has_table_privilege('authenticated', oid, 'SELECT') AS user_read FROM pg_class WHERE relnamespace = $1::regnamespace AND relname = ANY($2::text[])", [isolated.schema, ['arcade_sessions','arcade_receipts','arcade_daily_grants','arcade_stats']]);
     expect(guards.rows).toHaveLength(4); guards.rows.forEach(row => expect(row).toMatchObject({ relrowsecurity: true, anon_read: false, user_read: false }));
     const p = await player(), begun = await start(p);

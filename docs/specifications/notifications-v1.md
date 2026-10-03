@@ -2,7 +2,7 @@
 
 ## Raccord Arcade R982–R984
 
-[Arcade V1](arcade-v1.md) n'ajoute aucun producteur persistant Arcade, level-up ou tutoriel. Le bilan de partie est inline ; niveaux et overflow empruntent `LevelUpFeedback` existant. Les vraies complétions Missions provoquées par le propriétaire XP conservent leurs notifications normales R954–R955. Les anciennes intentions de découverte/notifications XP interface ne sont pas implémentées ici : Tutoriel attend son lot dédié. Aucun nouvel actionKey, typeKey ou canal Chat.
+Le **solo Arcade étape 23, R982–R984 (historique)** n'ajoute aucun producteur persistant Arcade, level-up ou tutoriel. L'étape 28 ajoute uniquement les deux types d'invitations décrits plus bas ; elle ne réécrit pas ces décisions solo. Le bilan de partie est inline ; niveaux et overflow empruntent `LevelUpFeedback` existant. Les vraies complétions Missions provoquées par le propriétaire XP conservent leurs notifications normales R954–R955. Les anciennes intentions de découverte/notifications XP interface ne sont pas implémentées ici : Tutoriel attend son lot dédié. Aucun nouvel actionKey, typeKey ou canal Chat.
 
 Statut : décisions propriétaire R954–R958 ; candidat fonctionnel `c11c6f5eeb9a9a9fa96fbc83f504ffcd9a7e3811` approuvé par review indépendante ChatGPT, promu techniquement au checkpoint `c5f4412a9b07832916a288905cf9a9499cbf8e30` et déployé. Étape 21 validée publiquement dans le périmètre du smoke test des surfaces Notifications/Missions décrit ci-dessous. Aucune migration 057. Ce document est la matrice du domaine Notifications. Les règles métier des producteurs restent dans leurs domaines.
 
@@ -24,6 +24,8 @@ Dans le panneau, une ligne avec destination a le curseur `pointer`, même lue. S
 
 | Domaine / type | Catégorie | Résolution ou consommation | Destination |
 | --- | --- | --- | --- |
+| `arcade / ARCADE_INVITE` | Actionnable | STARTED, refus, annulation, expiration ou invalidation ; archive au clic | Arcade, `OPEN_ARCADE_INVITE` |
+| `arcade / ARCADE_INVITE_REFUSED` | Informationnelle | Cycle général | Aucune |
 | `expedition / ready` | Actionnable | Claim ou annulation | Box du personnage |
 | `gift-codes / GIFT_CODE_AVAILABLE` | Actionnable | Claim, expiration ou désactivation | Codes |
 | `event / EVENT_MESSAGES_PENDING` | Actionnable | Consultation ou rollover ; nouvel envoi peut réactiver | Événement > Jeux > Panier |
@@ -51,3 +53,7 @@ Le catch-up historique R301 (`STANDALONE_CATCHUP`), `ADMIN` et `MIGRATION` ne pr
 ## Domaines différés
 
 Aucune notification persistante nouvelle pour mentions Chat, cœurs d'amitié, intérêt Banque, signalement/modération non décidé, Objectifs, mini-jeux XP futurs, Tutoriel, spectateur Concours ou Pull générique. Aucun centre d'historique, push temps réel, email, push navigateur/mobile ni Twitch asynchrone n'est activé par l'étape 21. Les Objectifs restent à concevoir avec leur domaine ; les mini-jeux XP suivent l'étape 23.
+
+## Invitations Arcade — étape 28, R1029
+
+Producteur transactionnel unique Arcade : une invitation PENDING notifie seulement l'invité, avec invitationId/hostPlayerId/game/difficulty, texte « <Pseudo> vous invite à jouer à <Nom du jeu>. » et OPEN_ARCADE_INVITE. Le registre ouvre Arcade et archive au clic ; le contexte vivant provient de l'overview serveur, jamais du payload périmé. Un lien expiré/inexistant ouvre Arcade normalement, sans erreur ni faux Prêt. STARTED, REFUSED, CANCELLED, EXPIRED et INVALIDATED résolvent la notification active. Reconcile à GET Arcade, GET Notifications et mutations, avec verrous et échéance serveur deux minutes. Une invitation absente ne laisse aucune notification actionable obsolète. Refus : une ARCADE_INVITE_REFUSED informationnelle à l'hôte, « <Pseudo> a refusé votre invitation à <Nom du jeu>. », aucun deep-link. Aucune notification d'annulation, expiration, acceptation, démarrage, navigation, coup ou Quitter. Solo reste sans producteur ; [cycle et concurrence Arcade](arcade-v1.md#multijoueur-arcade--étape-28).

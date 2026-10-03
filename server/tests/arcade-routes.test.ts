@@ -10,7 +10,7 @@ describe('Arcade strict authenticated protocol', () => {
   afterEach(async () => { await Promise.all(apps.splice(0).map(app => app.close())); });
   async function setup() {
     const identity = { subject: 'arcade-route-user' }, player = { id: crypto.randomUUID(), displayName: 'Route player', elementKey: 'hydro' as const, status: 'ACTIVE' as const };
-    const service = { actor: vi.fn(async () => player), overview: vi.fn(async () => ({ sessions: [] })), session: vi.fn(async () => ({})), start: vi.fn(async () => ({})), act: vi.fn(async () => ({})) };
+    const service = { actor: vi.fn(async () => player), opponents: vi.fn(async () => ({ opponents: [] })), invite: vi.fn(async () => ({})), actInvitation: vi.fn(async () => ({})), overview: vi.fn(async () => ({ sessions: [] })), session: vi.fn(async () => ({})), start: vi.fn(async () => ({})), act: vi.fn(async () => ({})) };
     const records = { list: vi.fn(async () => ({ entries: [] })) };
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, {
       authIdentityVerifier: { verify: async () => identity },
@@ -20,6 +20,21 @@ describe('Arcade strict authenticated protocol', () => {
     apps.push(app); return { app, service, records, identity };
   }
   const headers = { authorization: 'Bearer test-token' };
+  it('validates authenticated multiplayer intents and server-only candidates without forged state or side', async () => {
+    const { app, service, identity } = await setup(), id = crypto.randomUUID();
+    const input = { opponentPlayerId:id,game:'MEMORY',difficulty:'HARD',friendsOnly:true,idempotencyKey:crypto.randomUUID() };
+    expect((await app.inject({url:'/api/v1/arcade/opponents?friendsOnly=true'})).statusCode).toBe(401);
+    expect((await app.inject({url:'/api/v1/arcade/opponents?friendsOnly=yes',headers})).statusCode).toBe(400);
+    expect((await app.inject({url:'/api/v1/arcade/opponents?friendsOnly=true',headers})).statusCode).toBe(200);
+    expect(service.opponents).toHaveBeenCalledWith(identity,true);
+    expect((await app.inject({method:'POST',url:'/api/v1/arcade/invitations',payload:input})).statusCode).toBe(401);
+    for(const extra of [{side:'PLAYER'},{score:10},{board:[]},{status:'STARTED'}]) expect((await app.inject({method:'POST',url:'/api/v1/arcade/invitations',headers,payload:{...input,...extra}})).statusCode).toBe(400);
+    expect((await app.inject({method:'POST',url:'/api/v1/arcade/invitations',headers,payload:input})).statusCode).toBe(200);
+    expect(service.invite).toHaveBeenCalledWith(identity,input);
+    const action={kind:'READY',idempotencyKey:crypto.randomUUID()};
+    expect((await app.inject({method:'POST',url:`/api/v1/arcade/invitations/${id}/actions`,headers,payload:action})).statusCode).toBe(200);
+    expect(service.actInvitation).toHaveBeenCalledWith(identity,id,action);
+  });
   it('authenticates all reads/mutations and GET never starts or advances a game', async () => {
     const { app, service } = await setup(), id = crypto.randomUUID();
     for (const url of ['/api/v1/arcade', '/api/v1/arcade/sessions/' + id, '/api/v1/arcade/records?kind=SCORE&game=TOTAL']) expect((await app.inject({ url })).statusCode).toBe(401);

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DirectMessageService } from '../src/application/direct-messages/direct-message-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
@@ -24,6 +24,23 @@ beforeAll(async () => fixture.setup(), 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 
 describe('Direct-message foundations on isolated PostgreSQL', () => {
+  it('projects authorized presence in batches for live/archive/search and hides PRIVATE/blocked/inactive', async () => {
+    const viewer = await player('Presence viewer'), online = await player('Presence online'), away = await player('Presence away'), offline = await player('Presence offline'), hidden = await player('Presence private');
+    for (const id of [online,away]) await db.playerSession.create({ data: { playerId:id,sessionTokenHash:randomUUID(),startedAt:new Date(+now-12*60000),lastHeartbeatAt:now,lastActivityAt:id===online?now:new Date(+now-11*60000) } });
+    await db.privacySetting.create({ data: { playerId:hidden,categoryKey:'PRESENCE',level:'PRIVATE' } });
+    for(const id of [online,away,offline,hidden]) { advance(); await service.initiate(as(viewer),id,'Bonjour présence',randomUUID()); }
+    const spy=vi.spyOn(db.playerSession,'findMany');
+    let conversations;
+    try { conversations=(await service.list(as(viewer))).conversations;expect(spy).toHaveBeenCalledTimes(1); } finally { spy.mockRestore(); }
+    for(const [id,presence] of [[online,{access:'ALLOWED',data:'ONLINE'}],[away,{access:'ALLOWED',data:'AWAY'}],[offline,{access:'ALLOWED',data:'OFFLINE'}],[hidden,{access:'PRIVATE'}]] as const) expect(conversations.find(row=>row.other.id===id)?.other.presence).toEqual(presence);
+    const search=await service.searchPlayers(as(viewer),'Presence');
+    expect(search.players.find(row=>row.id===online)?.presence).toEqual({access:'ALLOWED',data:'ONLINE'});
+    await db.playerBlock.create({data:{blockerPlayerId:online,blockedPlayerId:viewer}});
+    const archived=(await service.list(as(viewer),true)).conversations.find(row=>row.other.id===online);
+    expect(archived?.other.presence).toEqual({access:'PRIVATE'});
+    await db.player.update({where:{id:away},data:{status:'SUSPENDED'}});
+    expect((await service.list(as(viewer))).conversations.find(row=>row.other.id===away)?.other.presence).toEqual({access:'PRIVATE'});
+  },60000);
   it('has migration 043 registered with the nullable reply column, restrictive self-FK and dedicated index', async () => {
     const migration = await fixture.admin.query<{ count: string }>("SELECT count(*)::text AS count FROM public._prisma_migrations WHERE migration_name='20260925100000_043_add_direct_message_replies' AND finished_at IS NOT NULL AND rolled_back_at IS NULL");
     const column = await fixture.admin.query<{ is_nullable: string }>("SELECT is_nullable FROM information_schema.columns WHERE table_schema='public' AND table_name='direct_messages' AND column_name='reply_to_message_id'");
@@ -48,7 +65,7 @@ describe('Direct-message foundations on isolated PostgreSQL', () => {
     expect(result.players).toHaveLength(20);
     expect(result.players[0]).toMatchObject({ id: matching, displayName: 'Éléa 02', elementKey: null });
     expect(result.players.some(candidate => candidate.id === viewer || candidate.id === inactive)).toBe(false);
-    expect(Object.keys(result.players[0]!).sort()).toEqual(['avatarAssetPath', 'displayName', 'elementKey', 'id']);
+    expect(Object.keys(result.players[0]!).sort()).toEqual(['avatarAssetPath', 'displayName', 'elementKey', 'id', 'presence']);
   }, 30_000);
 
   it('creates one pending first message, resolves it, pages, counts unread and keeps read receipts private when disabled', async () => {

@@ -150,7 +150,7 @@ Le lot transverse de finition implémente la [politique canonique de rétention]
 
 ## Séquence de clôture avant migration globale
 
-Suivre [implementation-order-v1.md](implementation-order-v1.md) : 25 Tutoriel/Help/Aide → 26 recette fonctionnelle globale → 27 finition technique/visuelle, rétention et décision Twitch → 28 Multijoueur Arcade (futur, non cadré) → 29 passe exhaustive de toutes les commandes ! → 30 foundation/rehearsal global → 31 migration finale/cutover distinct → 32 validation finale V1. Les numéros 1–25 sont conservés. Ajouter 28 ne déclare aucun multijoueur déjà conçu ou implémenté ; 29 ferme les écarts de syntaxe, permissions et textes avant la migration.
+Suivre [implementation-order-v1.md](implementation-order-v1.md), R1032 : 25 Tutoriel/Help/Aide → 26 recette globale validée par le propriétaire → 28 Multijoueur Arcade → 29 passe exhaustive commandes ! → 27 finition technique/visuelle, rétention et décision Twitch → 30 foundation/rehearsal → 31 cutover distinct → 32 validation finale. Tous les numéros sont conservés. Le propriétaire veut achever Arcade et les commandes avant la finition transverse : 27 est différée après 29, pas abandonnée. Les contrats spécialisés définissent la cible ; le Master seul porte les statuts et prochaines actions.
 
 ## Principe final
 

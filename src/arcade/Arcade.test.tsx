@@ -4,11 +4,11 @@ import { getTutorialStep } from '../tutorial/tutorial-catalog'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ArcadeOverview, ArcadeSession, ArcadeMutation, ArcadeRanking } from '../api/arcade-types'
+import type { ArcadeOverview, ArcadeSession, ArcadeMutation, ArcadeRanking, ArcadeInvitation } from '../api/arcade-types'
 import { activityTabs, parseNavigationHash, hashForScreen } from '../navigation/navigation'
 import { publishProgressionUpdate } from '../progression/publish-progression-update'
 import type { PlayerProgressionDto } from '../api/types'
-const api = vi.hoisted(() => ({ getArcade: vi.fn(), startArcade: vi.fn(), actArcade: vi.fn(), getArcadeRecords: vi.fn() }))
+const api = vi.hoisted(() => ({ getArcade: vi.fn(), getArcadeOpponents: vi.fn().mockResolvedValue({ opponents: [] }), inviteArcade: vi.fn(), actArcadeInvitation: vi.fn(), startArcade: vi.fn(), actArcade: vi.fn(), getArcadeRecords: vi.fn() }))
 vi.mock('../api/game-api', async importOriginal => ({ ...await importOriginal<object>(), getGameApiClient: () => api }))
 import ArcadeScreen from '../screens/ArcadeScreen'
 import ArcadeRecords from './ArcadeRecords'
@@ -30,17 +30,17 @@ const button = (scope: ParentNode, text: string) => {
   if (!node) throw Error('Missing button ' + text); return node
 }
 function session(game: ArcadeSession['game'], status: ArcadeSession['status'] = 'ACTIVE'): ArcadeSession {
-  return { id: game + '-session', game, difficulty: 'MEDIUM', status, version: 0, rulesVersion: 1, scoringVersion: 1, firstSide: 'PLAYER', createdAt: '2026-10-01T10:00:00Z', nextActionAt: '2026-10-01T10:00:00Z', banter: { id: 'START:0', text: 'Prêt.' }, result: null,
+  return { mode: 'SOLO', viewerSide: 'PLAYER', participants: null, opponent: null, id: game + '-session', game, difficulty: 'MEDIUM', status, version: 0, rulesVersion: 1, scoringVersion: 1, firstSide: 'PLAYER', createdAt: '2026-10-01T10:00:00Z', nextActionAt: '2026-10-01T10:00:00Z', banter: { id: 'START:0', text: 'Prêt.' }, result: null,
     board: game === 'MEMORY' ? { kind: 'MEMORY', turn: 'PLAYER', phase: 'PICK', playerPairs: 0, aiPairs: 0, remainingPairs: 18, columns: 6, totalPairs: 18, outcome: null, cards: Array.from({ length: 36 }, (_, position) => ({ position, status: 'HIDDEN' })) }
       : { kind: game, turn: 'PLAYER', cells: Array(game === 'TIC_TAC_TOE' ? 9 : 42).fill(null), winningCells: [], lastMove: null, outcome: null } }
 }
 function overview(sessions: ArcadeSession[] = []): ArcadeOverview {
-  return { sessions, serverNow: '2026-10-01T10:00:00Z', businessDate: '2026-10-01', records: [], scores: { MEMORY: '0', CONNECT_FOUR: '0', TIC_TAC_TOE: '0' }, totalScore: '0',
+  return { sessions, invitation: null, serverNow: '2026-10-01T10:00:00Z', businessDate: '2026-10-01', records: [], scores: { MEMORY: '0', CONNECT_FOUR: '0', TIC_TAC_TOE: '0' }, totalScore: '0',
     daily: (['MEMORY', 'CONNECT_FOUR', 'TIC_TAC_TOE'] as const).map(game => ({ game, used: false, xpAwarded: 0 })) }
 }
 function mutation(row: ArcadeSession): ArcadeMutation { return { ...overview(), session: row, operationId: 'operation', alreadyProcessed: false, award: null } }
-beforeEach(() => { vi.resetAllMocks(); api.getArcade.mockResolvedValue(overview()) })
-afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } vi.useRealTimers() })
+beforeEach(() => { vi.resetAllMocks(); api.getArcade.mockResolvedValue(overview()); api.getArcadeOpponents.mockResolvedValue({ opponents: [] }) })
+afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe('Arcade interface and session lifecycle', () => {
   it.each(['ACTIVE', 'FINISHED'] as const)('queues Quitter behind an ADVANCE and respects its %s outcome', async status => {
@@ -356,4 +356,102 @@ it.each(['AI', 'REVEAL'] as const)('suspends %s advancement in the tour and resu
   await act(async () => root.render(render(false)))
   await act(async () => { await vi.advanceTimersByTimeAsync(900) })
   expect(api.actArcade).toHaveBeenCalledOnce()
+})
+
+const participantA = { id: 'player-a', displayName: 'Axel' }, participantB = { id: 'player-b', displayName: 'Élio' }
+const challenge: ArcadeInvitation = { id: 'invite', direction: 'INCOMING', host: participantB, guest: participantA, game: 'CONNECT_FOUR', difficulty: 'HARD', status: 'PENDING', hostReady: true, guestReady: false, expiresAt: '2026-10-01T12:02:00Z', sessionId: null }
+const multiplayer = (game: ArcadeSession['game'] = 'TIC_TAC_TOE', viewerSide: ArcadeSession['viewerSide'] = 'PLAYER'): ArcadeSession => ({ ...session(game), mode: 'MULTIPLAYER', viewerSide, participants: { PLAYER: participantA, AI: participantB }, opponent: viewerSide === 'PLAYER' ? participantB : participantA, banter: { id:'START:0',text:'' } })
+describe('Multiplayer Arcade interface and polling', () => {
+  it('keeps solo available when opponent discovery fails, and filters friends without a mutation', async () => {
+    api.getArcadeOpponents.mockRejectedValueOnce(new Error('Discovery unavailable'))
+    const { container } = await mount(<ArcadeScreen playerId="player-a" />)
+    expect(button(container, 'Commencer').disabled).toBe(false)
+    api.getArcadeOpponents.mockResolvedValue({ opponents: [participantB] })
+    await click(container.querySelector<HTMLInputElement>('.arcade-friends-only input')!)
+    expect(api.getArcadeOpponents).toHaveBeenLastCalledWith(true)
+    expect(container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!.options[1]!.textContent).toBe('Élio')
+    expect(api.inviteArcade).not.toHaveBeenCalled()
+    expect(api.startArcade).not.toHaveBeenCalled()
+  })
+  it('selection is local; Ready sends the chosen context and friends filter once, with pseudo-only choices', async () => {
+    api.getArcadeOpponents.mockResolvedValue({opponents:[participantB]})
+    const {container}=await mount(<ArcadeScreen playerId="player-a" />)
+    const select=container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!
+    expect([...select.options].map(option=>option.textContent)).toEqual(['Choisir un joueur','Élio'])
+    expect(button(container,'Prêt').disabled).toBe(true);expect(button(container,'Refuser').disabled).toBe(true)
+    await act(async()=>{select.value=participantB.id;select.dispatchEvent(new Event('change',{bubbles:true}))})
+    expect(api.inviteArcade).not.toHaveBeenCalled();expect(button(container,'Prêt').disabled).toBe(false)
+    api.inviteArcade.mockResolvedValue({invitation:{...challenge,direction:'OUTGOING'},operationId:'op',alreadyProcessed:false})
+    api.getArcade.mockResolvedValue({...overview(),invitation:{...challenge,direction:'OUTGOING'}})
+    await click(button(container,'Prêt'))
+    expect(api.inviteArcade).toHaveBeenCalledTimes(1)
+    expect(api.inviteArcade.mock.calls[0]![0]).toMatchObject({opponentPlayerId:participantB.id,game:'MEMORY',difficulty:'MEDIUM',friendsOnly:false})
+    expect(button(container,'Annuler').disabled).toBe(false);expect(button(container,'Refuser').disabled).toBe(true)
+    expect(select.disabled).toBe(true)
+    expect(button(container,'Commencer').disabled).toBe(true)
+    expect(button(container,'Règles & gains').disabled).toBe(false)
+  })
+  it('manual entry discovers incoming without a notification and forces game/difficulty; Ready starts shared session', async()=>{
+    api.getArcade.mockResolvedValue({...overview(),invitation:challenge})
+    const {container}=await mount(<ArcadeScreen playerId="player-a" />)
+    expect(container.querySelector('.arcade-controls [aria-pressed=true]')?.textContent).toBe('Puissance 4')
+    expect(container.querySelector<HTMLSelectElement>('.arcade-controls select')?.value).toBe('HARD')
+    expect(button(container,'Prêt').disabled).toBe(false);expect(button(container,'Refuser').disabled).toBe(false)
+    expect(button(container,'Commencer').disabled).toBe(true)
+    const active=multiplayer('CONNECT_FOUR','AI')
+    api.actArcadeInvitation.mockResolvedValue({invitation:{...challenge,status:'STARTED',guestReady:true,sessionId:active.id},operationId:'op',alreadyProcessed:false})
+    api.getArcade.mockResolvedValue(overview([active]))
+    await click(button(container,'Prêt'))
+    expect(api.actArcadeInvitation).toHaveBeenCalledWith('invite',expect.objectContaining({kind:'READY'}))
+    expect([...container.querySelectorAll('.arcade-versus strong')].map(node => node.textContent)).toEqual(['Axel','Élio'])
+    expect(container.querySelector('.arcade-banter')?.textContent).toBe('')
+  })
+  it('guest side receives its human controls and relative accessible names, without AI timers', async()=>{
+    vi.useFakeTimers()
+    const active=multiplayer('TIC_TAC_TOE','AI');active.board.turn='AI'
+    api.getArcade.mockResolvedValue(overview([active]))
+    const {container}=await mount(<ArcadeScreen playerId="player-a" />)
+    expect(container.querySelector<HTMLButtonElement>('.arcade-cell')?.disabled).toBe(false)
+    await act(async()=>{await vi.advanceTimersByTimeAsync(1900)})
+    expect(api.actArcade).not.toHaveBeenCalled()
+    expect(container.querySelector('.arcade-banter')?.textContent).toBe('')
+    expect(container.querySelector('.arcade-versus [aria-label="Élio, vous"]')).toBeTruthy()
+    api.actArcade.mockResolvedValue(mutation({...active,version:1}))
+    await click(container.querySelector<HTMLButtonElement>('.arcade-cell')!)
+    expect(api.actArcade.mock.calls[0]![1]).toMatchObject({kind:'MOVE',position:0,expectedVersion:0})
+    expect(api.actArcade.mock.calls[0]![1]).not.toHaveProperty('side')
+  })
+  it('coalesces polling/focus/visibility, stops hidden and unmounted reads, and resumes authoritative state', async()=>{
+    vi.useFakeTimers()
+    let visibility='visible'
+    vi.spyOn(document,'visibilityState','get').mockImplementation(()=>visibility as DocumentVisibilityState)
+    const active=multiplayer();api.getArcade.mockResolvedValue(overview([active]))
+    const {root}=await mount(<ArcadeScreen playerId="player-a" />)
+    let resolve!:(value:ArcadeOverview)=>void
+    api.getArcade.mockImplementation(()=>new Promise<ArcadeOverview>(r=>{resolve=r}))
+    await act(async()=>{await vi.advanceTimersByTimeAsync(2000);window.dispatchEvent(new Event('focus'));document.dispatchEvent(new Event('visibilitychange'))})
+    expect(api.getArcade).toHaveBeenCalledTimes(2)
+    await act(async()=>{resolve(overview([active]));await Promise.resolve()})
+    visibility='hidden';document.dispatchEvent(new Event('visibilitychange'))
+    await act(async()=>{await vi.advanceTimersByTimeAsync(6000)})
+    expect(api.getArcade).toHaveBeenCalledTimes(2)
+    visibility='visible';api.getArcade.mockResolvedValue(overview([{...active,status:'ABANDONED'}]))
+    await act(async()=>{document.dispatchEvent(new Event('visibilitychange'));await Promise.resolve()})
+    expect(api.getArcade).toHaveBeenCalledTimes(3)
+    await act(async()=>root.unmount());const calls=api.getArcade.mock.calls.length
+    await act(async()=>{await vi.advanceTimersByTimeAsync(5000);window.dispatchEvent(new Event('focus'))})
+    expect(api.getArcade).toHaveBeenCalledTimes(calls)
+  })
+  it('replay invites the same opponent/context; unavailable replay returns cleanly to idle with feedback', async()=>{
+    const finished={...multiplayer(),status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
+    api.getArcade.mockResolvedValue(overview([finished]))
+    api.inviteArcade.mockRejectedValue(new ApiError('ARCADE_OPPONENT_UNAVAILABLE','Ce joueur est indisponible.',409))
+    const {container}=await mount(<ArcadeScreen playerId="player-a" />)
+    await click(button(container,'Morpion'))
+    await click(button(container,'Rejouer'))
+    expect(api.startArcade).not.toHaveBeenCalled()
+    expect(api.inviteArcade.mock.calls[0]![0]).toMatchObject({opponentPlayerId:participantB.id,game:finished.game,difficulty:finished.difficulty,replaySessionId:finished.id})
+    expect(container.querySelector('.arcade-error')?.textContent).toContain('indisponible')
+    expect(button(container,'Commencer').disabled).toBe(false)
+  })
 })

@@ -9,8 +9,8 @@ import { PrismaBoxStore } from '../../infrastructure/database/prisma-box-store.j
 import { PrismaTeamStore } from '../../infrastructure/database/prisma-team-store.js';
 import { PrismaInventoryStore } from '../../infrastructure/database/prisma-inventory-store.js';
 import { AppError } from '../../api/errors.js';
-import { PrivacyService, privacyAllowedWhere } from './privacy-service.js';
-import { PresenceService, derivePresence, PRESENCE_CONNECTION_TIMEOUT_MS } from './presence-service.js';
+import { PrivacyService } from './privacy-service.js';
+import { PresenceService } from './presence-service.js';
 import { FriendshipService } from './friendship-service.js';
 import { GeneralStatisticsProjection } from '../statistics/general-statistics-projection.js';
 import { appearanceSelect, avatarAssetPath, equippedTitle } from '../appearance/appearance-service.js';
@@ -43,14 +43,7 @@ export class SocialService {
     return rows.map(row => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey && isElementKey(row.elementKey) ? row.elementKey : null, avatarAssetPath: avatarAssetPath(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
   }
-  private async visiblePresence(viewer: string, ids: string[]) {
-    const owners = await this.database.player.findMany({ where: { id: { in: ids }, ...privacyAllowedWhere(viewer, 'PRESENCE') }, select: { id: true } });
-    const now = this.clock.now();
-    const sessions = await this.database.playerSession.findMany({ where: { playerId: { in: owners.map(p => p.id) }, endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) } }, select: { playerId: true, endedAt: true, lastHeartbeatAt: true, lastActivityAt: true } });
-    const byPlayer = new Map<string, typeof sessions>();
-    for (const session of sessions) { const list = byPlayer.get(session.playerId) ?? []; list.push(session); byPlayer.set(session.playerId, list); }
-    return new Map(owners.map(p => [p.id, derivePresence(byPlayer.get(p.id) ?? [], now)]));
-  }
+  private visiblePresence(viewer: string, ids: string[]) { return this.presence.visibleFor(viewer, ids); }
   async directory(identity: AuthenticatedIdentity, query: SocialQuery) {
     const viewer = await this.actor(identity);
     // Same accent/case/substring semantics as the existing Player browser. Only identities

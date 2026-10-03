@@ -1,6 +1,46 @@
-# Arcade V1 — étape 23
+# Arcade V1 — solo étape 23, multijoueur étape 28
 
-Source canonique du domaine, décisions propriétaire **R970–R990, R991–R994 puis R999–R1001/R1003** du 01/10/2026. Étape 23 validée publiquement dans le périmètre du [Master](../master/PROJECT_MASTER_PLAN.md) : dernier polish b373aa2 promu au checkpoint `2aa086edddcde8de8325f4e999c1e41d7d9e3976`, contrôles techniques antérieurs acquis et dernier smoke propriétaire R1004 confirmé sur layout, Quitter, Règles, Puissance 4 et Records. Micro-polish résiduel R1006 candidat review dans le lot étape 24 ; aucun changement score, XP, IA, sessions, barème, privacy ou DB/migration. Public toujours sur 058 ; aucune 059. Les anciennes pistes Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
+## Multijoueur Arcade — étape 28
+
+Extension autorisée par le propriétaire, R1028–R1031. État de livraison et preuves au [Master](../master/PROJECT_MASTER_PLAN.md) : candidat `review`, jamais une validation PvP publique. Les règles et preuves solo historiques ci-dessous sont conservées, sans attribuer rétroactivement le multijoueur à R970–R1006.
+
+### Interface et adversaires
+
+Même ScreenId `activities-arcade`, même destination Arcade du Menu, mêmes trois jeux, trois difficultés et plateaux. La colonne gauche desktop reçoit le bloc compact `Jouer contre :`, select, `Amis seulement`, boutons `Prêt/Annuler` et `Refuser` toujours présents. Leur largeur réserve Annuler ; centre et citation solo conservent leur géométrie. Sous le breakpoint de l'arène, le bloc précède le plateau dans le flux. Règles et Records restent accessibles pendant une invitation et une partie.
+
+Le select expose seulement `id`/`displayName` et affiche le pseudo. Le backend exclut soi-même, profil non ACTIVE, élément invalide, AWAY/OFFLINE, présence privée ou bloquée dans les deux sens, toute session ACTIVE solo/partagée et toute invitation PENDING vivante entrante/sortante. Il consulte le service commun Presence/Privacy ; Presence ne dépend pas d'Arcade. `friendsOnly` est un filtre serveur d'amitié ACTIVE, temporaire à l'écran, false par défaut, sans préférence persistée ni détail de relation projeté.
+
+Une sélection seule ne crée rien. Sans cible, Prêt/Refuser sont désactivés. Avec cible, Prêt crée une invitation pour le jeu et la difficulté courants. PENDING sortante : select/checkbox/jeux/difficulté/Commencer sont verrouillés ; Annuler actif, Refuser inactif. PENDING entrante, découverte même par entrée manuelle : jeu/difficulté forcés, select/checkbox/jeux/Commencer verrouillés, Prêt et Refuser actifs.
+
+### Invitation, notifications et démarrage
+
+L'hôte est prêt dès la création. Un seul `ARCADE_INVITE` actionnable est envoyé à l'invité : `<Pseudo> vous invite à jouer à <Nom du jeu>.`, payload invitationId/hostPlayerId/game/difficulty et action `OPEN_ARCADE_INVITE`. Le clic ouvre Arcade et archive cette notification ; seul l'overview autoritatif force un contexte vivant. Un lien périmé/inexistant ouvre normalement Arcade, sans faux bouton Prêt ni erreur. Voir le [cycle Notifications](notifications-v1.md).
+
+Transitions atomiques : `PENDING → STARTED / REFUSED / CANCELLED / EXPIRED / INVALIDATED`. Prêt de l'invité crée immédiatement la session partagée, même si l'hôte est hors écran ; aucun second accord de l'hôte, retour forcé, notification d'acceptation ou démarrage. Annuler est silencieux. Refuser produit une unique notification informationnelle `ARCADE_INVITE_REFUSED` à l'hôte : `<Pseudo> a refusé votre invitation à <Nom du jeu>.`, sans deep-link. Expiration exactement deux minutes après création : libération des deux, aucune session/XP/statistique ni notification supplémentaire. Expiration et invalidation par blocage/inactivité sont réconciliées à la lecture Arcade/Notifications et aux mutations. Tous les états terminaux résolvent l'ancienne invitation actionable ; une référence absente ne conserve pas de ligne actionable.
+
+ONLINE est vérifié à l'invitation, avec confidentialité, blocages et occupation relus sous verrou. Une fois réservés, navigation/AWAY/OFFLINE ne l'annulent pas. Blocage ou inactivité avant Prêt invalide proprement l'invitation au prochain accès/mutation. Aucun remplacement bot, matchmaking, lobby, spectateur, chat, ELO ou timeout de tour.
+
+### Session, tours et résultats
+
+Une `ArcadeSession` MULTIPLAYER a un hôte `playerId` et un invité `opponentPlayerId`. Côtés canoniques internes PLAYER/AI = A/B ; le côté AI ne désigne pas une IA dans ce mode. Les DTO explicites projettent mode, participants (id/pseudo), viewerSide, opponent, invitation entrante/sortante, échéance et ready. Aucun email/auth subject, session de présence, RNG, observation Memory ou face cachée n'est transmis.
+
+Le premier côté est tiré une seule fois et persisté. Pseudonymes/couleurs cyan et violet sont fixes pour les deux clients, avec identification accessible de soi. Aucune citation/automate IA en multijoueur ; la colonne droite peut rester structurellement vide. Le serveur autorise MOVE seulement au participant dont viewerSide égale le tour courant ; aucun résultat, côté, score ou plateau envoyé par le client. `chooseMemoryCard`, alpha-bêta et timers de coups IA restent exclusivement SOLO. Memory conserve tailles, faces sûres, paires et barème versionné ; une paire conserve le tour, un échec reste révélé 700 ms. L'un ou l'autre humain peut ADVANCE pour cacher les cartes après ce délai ; une concurrence réussit une fois et l'autre client rafraîchit silencieusement. Aucune progression humaine hors écran.
+
+Fin naturelle : un résultat canonique versionné dérive WIN/LOSS/DRAW et les points propres de chaque joueur, y compris ses propres paires Memory. Les deux gagnent leur score dans les agrégats/Records existants ; aucune statistique PvP ou leaderboard séparé. **XP multijoueur = 0**, sans appel au service XP, daily grant, quota consommé, LevelUpFeedback, récompense, overflow, économie ou Mission. Une prochaine partie solo peut encore utiliser son quota quotidien. Le footer conserve cette disponibilité.
+
+Quitter par l'un ou l'autre abandonne la session partagée ; les deux reviennent à la présentation initiale au prochain refresh. Aucun gagnant/perdant, score, played/win/draw/loss, record, XP/grant/quota/récompense/Mission/notification. Quitter concurrent avec le dernier coup donne un seul terminal : FINISHED naturel ou ABANDONED, jamais les deux. Rejouer après FINISHED crée une nouvelle invitation au même adversaire/jeu/difficulté, sans démarrage immédiat. Cible indisponible : feedback propre et retour à la sélection normale. Deux replays simultanés ne créent qu'une invitation.
+
+### API, persistance et synchronisation
+
+Migration additive **060** : mode/opponent sur sessions, table `arcade_invitations`, cible invitation nullable sur les receipts (session nullable pour les actions sans partie). FK restrictives, CHECK de modes/XP zéro/ready/terminaux/échéance, index partiels ACTIVE et PENDING par rôle. RLS activée, aucun accès client Data API. 057/058/059 ne sont pas modifiées. Le contrôle de l'exclusivité croisée reste sous verrous Player triés par UUID : une seule session ACTIVE solo/partagée ou invitation PENDING entrante/sortante par Player. Transactions Serializable avec retry borné ; session/résultat/score/opération/receipt restent atomiques.
+
+API authentifiée : `GET /api/v1/arcade`, session/records existants ; `GET /api/v1/arcade/opponents?friendsOnly=true|false` ; `POST /api/v1/arcade/invitations` (opponentPlayerId/game/difficulty/friendsOnly, replaySessionId éventuel, idempotencyKey) ; `POST /api/v1/arcade/invitations/:id/actions` (READY/CANCEL/REFUSE, clé UUID). MOVE/ADVANCE/QUIT conservent expectedVersion et clé UUID. Intents stricts : mêmes clé/intent rejouent le receipt, autre intent conflit ; ambiguïté réseau réessaie la même clé. Invitations croisées, Ready/cancel/refuse/expiry, doubles Ready/coups/replays et Quitter/fin partagent les mêmes verrous et revalidations.
+
+Polling HTTP environ deux secondes seulement lorsque l'écran Arcade est monté et visible, en idle/pending/MULTIPLAYER active ; aucune boucle supplémentaire pendant SOLO ACTIVE. Focus/visibility/timer/mutation coalescent une seule lecture en vol, réponses périmées ignorées, erreurs avec backoff jusqu'à seize secondes. Rechargement/navigation conservent l'état serveur. Aucune WebSocket, Realtime, infrastructure payante ni intégration Twitch ; `PAID_INFRA_APPROVED = false`.
+
+## Solo — contrat et historique préservés
+
+Source canonique du domaine, décisions propriétaire **R970–R990, R991–R994 puis R999–R1001/R1003** du 01/10/2026. Étape 23 validée publiquement dans le périmètre du [Master](../master/PROJECT_MASTER_PLAN.md) : dernier polish b373aa2 promu au checkpoint `2aa086edddcde8de8325f4e999c1e41d7d9e3976`, contrôles techniques antérieurs acquis et dernier smoke propriétaire R1004 confirmé sur layout, Quitter, Règles, Puissance 4 et Records. Micro-polish résiduel R1006 candidat review dans le lot étape 24 ; aucun changement score, XP, IA, sessions, barème, privacy ou DB/migration. Repère DB de ce checkpoint solo historique : 058, avant 059 ; le Master porte le public courant. Les anciennes pistes Réflexes / séquence Mémoire / jauge Précision sont abandonnées.
 
 R1006 : la citation reste à droite, centrée verticalement, en italique et entre guillemets. Son texte gagne l'espace libre vers la gauche, avec wrap naturel, sans agrandir/rétrécir le plateau selon la longueur. Les onglets de jeu retirent localement la translation `translateY(-1px)` du hover global, reproduite avant correction sur boutons déverrouillés ; couleur/bordure et focus restent visibles dans leur cadre. Aucun AppButton global modifié ; Commencer/Rejouer en bas et contrôles supérieurs conservés.
 

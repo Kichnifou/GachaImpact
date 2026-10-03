@@ -82,6 +82,29 @@ beforeEach(() => {
 afterEach(() => { vi.restoreAllMocks(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('DirectMessagePanel', () => {
+  it.each(['ONLINE','AWAY','OFFLINE','PRIVATE'] as const)('renders %s presence as a dot only in Conversations, Archives, search and thread header', async status => {
+    const presence = status === 'PRIVATE' ? { access:'PRIVATE' as const } : { access:'ALLOWED' as const,data:status }
+    const conversation = { ...baseConversation, other:{...baseConversation.other,presence} }
+    directMessages.list.mockImplementation(async (archived:boolean)=>({conversations:[{...conversation,archived}]}))
+    const container = await mount(conversation,true,true)
+    const assertDot = (scope:Element) => {
+      const dot=scope.querySelector('.presence-dot')
+      if(status==='PRIVATE')expect(dot).toBeNull()
+      else expect(dot?.classList.contains('presence-dot-'+status.toLowerCase())).toBe(true)
+      expect(scope.textContent).not.toMatch(/En ligne|Absent|Hors ligne/)
+    }
+    assertDot(container.querySelector('.dm-conversation-row')!)
+    await act(async()=>container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click());await settle()
+    assertDot(container.querySelector('.dm-thread-header')!)
+    await act(async()=>container.querySelector<HTMLButtonElement>('.dm-back')!.click());await settle()
+    await act(async()=>Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-list-tabs button')).find(button=>button.textContent==='Archives')!.click());await settle()
+    assertDot(container.querySelector('.dm-conversation-row')!)
+    directMessages.players.mockResolvedValue({players:[conversation.other]})
+    await act(async()=>Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button=>button.textContent==='Nouveau message')!.click())
+    const search=container.querySelector<HTMLInputElement>('#dm-player-search')!
+    await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(search,'Ast');search.dispatchEvent(new Event('input',{bubbles:true}));await new Promise(resolve=>setTimeout(resolve,80))})
+    assertDot(container.querySelector('.dm-player-results')!)
+  })
   it.each([true, false])('respects canSend=%s when opening a conversation from Archives without unarchiving for typing', async (canSend) => {
     const archived = { ...baseConversation, archived: true, canSend }
     directMessages.list.mockImplementation(async (isArchived: boolean) => ({ conversations: isArchived ? [archived] : [] }))
