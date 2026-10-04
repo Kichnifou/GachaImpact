@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 29 — audit et adaptation des 31 sources restantes, lot R1038.
+Version : étape 29 — hotfix production de sérialisation Boss après R1038.
 Date : 2026-10-04
 Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 ACTIVE / PROCHAINE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel R1034 : **29 → 30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — étape 29, 31 sources restantes, lot R1038 du 04/10/2026
+## Point courant — étape 29, hotfix production après R1038 du 04/10/2026
+
+**Baseline contrôlée :** fetch réussi ; HEAD = origin/main = origin/review = **9158b9a5df432762ea5ab71e86ce202568a41c67**, review et index/worktree propres. Aucun descendant distant inattendu. Promotion du même correctif review → main par fast-forward strict explicitement autorisée dans la mission.
+
+**Incident post-déploiement R1038 signalé et vérifié par le propriétaire :** Railway UP, autres endpoints de bootstrap 200, mais GET `/api/v1/me/combat/boss` 500 avec `TypeError: Do not know how to serialize a BigInt`. L'ajout de `publicSummary` dans la vue métier R1038 traversait le spread du serializer HTTP sans conversion des BigInt imbriqués. Le défaut est reproduit localement par injection HTTP avec Boss vivant et défait, pas par appel en production.
+
+**Correctif :** helper commun de sérialisation de MonthlyBossSummary, réutilisé par `defeatedSummary` et `publicSummary` ; BigInt exacts en strings, Date en ISO. Le résumé métier reste disponible pour `!combat stat/stats`, sans mutation ni changement du service, calculs, DB ou schéma. Correction minimale du bootstrap : l'erreur fatale de la session authentifiée passe avant l'écran loading ; après les retries existants, un échec définitif affiche « Connexion impossible ». Aucun nouveau retry, timeout ou refactor.
+
+**Validation :** régressions en échec avant correction, puis 202 tests ciblés backend / 5 fichiers et 12 tests frontend / 3 fichiers PASS, dont injection HTTP Boss vivant/défait, précision au-delà de Number.MAX_SAFE_INTEGER, dates ISO, domaine inchangé, Chat stat/stats et rendu réel du bootstrap après deux échecs Boss. `verify:full` PASS **8/8** : **1296 tests frontend / 122 fichiers**, **1458 tests backend hors DB / 111 fichiers**, builds/typechecks frontend et backend, lint et diff-checks. Logs complets locaux : `gachaimpact-verify-full-NA8TaY`. Warnings préexistants non bloquants de lint et chunk frontend >500 kB. Tests DB non exécutés pour ce hotfix : sérialisation/rendu uniquement, services métier et DB inchangés.
+
+**Publication et reprise :** hotfix dédié publié sur review puis même commit promu sur main par fast-forward strict, refs finales/chaîne/divergence 0/0 et propreté contrôlées au rapport de publication. Aucune migration, écriture DB, activation Twitch, nouvelle décision durable ou réouverture de l'audit 29. **Déploiement du hotfix et recette publique restent à vérifier par ChatGPT au SHA exact**, notamment GET Boss 200 et fin normale du bootstrap. Le constat propriétaire de l'incident n'est pas une vérification du déploiement correctif par Codex. Étape 29 toujours ACTIVE. STOP après publication et rapport.
+
+## Historique — étape 29, 31 sources restantes, lot R1038 du 04/10/2026
 
 **Gate initial exécuté :** fetch réussi, review propre ; HEAD = origin/main = origin/review = **f3c17fe326b8ee485a67db9fa3da6f332f3240da**, divergence 0/0. Le précédent lot Banque/Box/Code/Coffre R1037 est bien publié sur les deux branches ; son diff depuis 6a4bea61bb3649a87e607f3ac1c20547078526bb a été contrôlé. Ses preuves techniques sont historiques ; son déploiement et sa recette ne sont pas déduits de Git.
 

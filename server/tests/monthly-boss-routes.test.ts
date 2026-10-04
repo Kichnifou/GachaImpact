@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { MonthlyBossView } from '../src/application/combat/monthly-boss-service.js';
+import type { MonthlyBossSummary, MonthlyBossView } from '../src/application/combat/monthly-boss-service.js';
 import { buildApp } from '../src/app.js';
 
 const bossId = randomUUID();
@@ -16,9 +16,9 @@ const view: MonthlyBossView = { todayDamage: null,
 describe('monthly Boss HTTP contract', () => {
   const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
   afterEach(async () => Promise.all(apps.splice(0).map((app) => app.close())));
-  async function setup() {
+  async function setup(currentView: MonthlyBossView = view) {
     const service = {
-      getCurrent: vi.fn(async () => view), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view), copyActiveTeam: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
+      getCurrent: vi.fn(async () => currentView), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view), copyActiveTeam: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
       attack: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, result: { damage: 10_000n, defeated: false }, view, resources: { primogems: 0n, moras: 0n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n } })),
       getRanking: vi.fn(async () => ({ boss: { id: bossId, nameSnapshot: view.boss.name, monthStart: view.boss.monthStart, defeatedAt: null }, ranking: [{ rank: 1, playerId, displayName: 'Fixture', totalDamage: 10_000n, attackCount: 1n, bestHit: 10_000n }] })),
       getHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, bosses: [{
@@ -31,6 +31,31 @@ describe('monthly Boss HTTP contract', () => {
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, monthlyBossService: service as never });
     apps.push(app); return { app, service };
   }
+
+  it.each(['ALIVE', 'DEFEATED'] as const)('serializes the %s Boss public summary without changing domain values', async status => {
+    const entry = { rank: 1, playerId, displayName: 'Fixture', totalDamage: 9_007_199_254_740_993n, attackCount: 5n, bestHit: 900_000n };
+    const createdAt = new Date('2026-09-10T10:00:00Z');
+    const summary: MonthlyBossSummary = {
+      victoryDayCount: status === 'DEFEATED' ? 13 : null, daysRemainingAfterVictory: status === 'DEFEATED' ? 17 : null,
+      community: { participantCount: 3, attackCount: 5n, totalDamage: entry.totalDamage, averageDamage: 322_000n },
+      records: { topContributor: entry, biggestHit: { playerId, displayName: 'Fixture', damage: entry.bestHit, createdAt }, mostAttacks: entry, finalBlow: status === 'DEFEATED' ? { id: playerId, displayName: 'Fixture' } : null, topThree: [entry] },
+    };
+    const { app } = await setup({ ...view, status, publicSummary: summary, defeatedSummary: status === 'DEFEATED' ? summary : null,
+      boss: { ...view.boss, currentHp: status === 'DEFEATED' ? 0n : view.boss.currentHp, defeatedAt: status === 'DEFEATED' ? createdAt : null } });
+    const response = await app.inject({ url: '/api/v1/me/combat/boss', headers: { authorization: 'Bearer token' } });
+    expect(response.statusCode).toBe(200);
+    const dto = response.json();
+    expect(() => JSON.stringify(dto)).not.toThrow();
+    const serializedEntry = { ...entry, totalDamage: '9007199254740993', attackCount: '5', bestHit: '900000' };
+    expect(dto.publicSummary).toEqual({ ...summary,
+      community: { participantCount: 3, attackCount: '5', totalDamage: '9007199254740993', averageDamage: '322000' },
+      records: { ...summary.records, topContributor: serializedEntry, biggestHit: { playerId, displayName: 'Fixture', damage: '900000', createdAt: createdAt.toISOString() }, mostAttacks: serializedEntry, topThree: [serializedEntry] },
+    });
+    expect(dto.defeatedSummary).toEqual(status === 'DEFEATED' ? dto.publicSummary : null);
+    expect(dto.boss.defeatedAt).toBe(status === 'DEFEATED' ? createdAt.toISOString() : null);
+    expect(summary.community.totalDamage).toBe(9_007_199_254_740_993n);
+    expect(summary.records.biggestHit?.createdAt).toBe(createdAt);
+  });
 
   it('protects private endpoints while keeping the explicit ranking public', async () => {
     const { app } = await setup();

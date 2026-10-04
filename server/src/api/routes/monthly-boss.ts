@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import type { MonthlyBossService, MonthlyBossView } from '../../application/combat/monthly-boss-service.js';
+import type { MonthlyBossService, MonthlyBossSummary, MonthlyBossView } from '../../application/combat/monthly-boss-service.js';
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
@@ -68,13 +68,14 @@ function serializeView(view: MonthlyBossView) {
     reward: { primogems: view.reward.primogems.toString(), moras: view.reward.moras.toString() },
     participation: view.participation ? { ...view.participation, totalDamage: view.participation.totalDamage.toString(), attackCount: view.participation.attackCount.toString(), bestHit: view.participation.bestHit.toString(), contributionBasisPoints: view.participation.contributionBasisPoints.toString() } : null,
     ranking: view.ranking.map(serializeRanking),
-    defeatedSummary: view.defeatedSummary ? {
-      ...view.defeatedSummary,
-      community: serializeCommunity(view.defeatedSummary.community),
-      records: serializeRecords(view.defeatedSummary.records),
-    } : null,
+    defeatedSummary: view.defeatedSummary ? serializeSummary(view.defeatedSummary) : null,
+    publicSummary: view.publicSummary ? serializeSummary(view.publicSummary) : undefined,
     playerStats: Object.fromEntries(Object.entries(view.playerStats).map(([key, value]) => [key, value.toString()])),
   };
+}
+
+function serializeSummary(summary: MonthlyBossSummary) {
+  return { ...summary, community: serializeCommunity(summary.community), records: serializeRecords(summary.records) };
 }
 
 function serializeCharacter(character: MonthlyBossView['availableCharacters'][number]) { return { ...character, firstObtainedAt: character.firstObtainedAt.toISOString() }; }

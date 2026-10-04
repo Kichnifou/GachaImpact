@@ -136,6 +136,17 @@ describe('Complete remaining command families', () => {
     const h = harness(); h.services.dailyCombatService.fight.mockResolvedValue({ result: { won: true, chanceHalfPoints: 141 }, view: { reward: { primogems: 881n, moras: 22333n } } } as never);
     const text = await h.send('!combat go'); expect(text).toContain('70.5%'); expect(text).toContain('💠881'); expect(text).toContain('🪙22 333'); expect(text).not.toContain('+800');
   });
+  it.each(['stat', 'stats'])('retains the R1038 public Boss summary for combat %s', async mode => {
+    const h = harness();
+    const boss = await h.services.monthlyBossService.getCurrentForChat();
+    h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ ...boss, publicSummary: {
+      community: { participantCount: 3, attackCount: 5n, totalDamage: 9_007_199_254_740_993n, averageDamage: 322_000n },
+    } } as never);
+    await h.send(`!combat ${mode}`);
+    expect(parts(h).join(' ')).toContain('Boss actuel (public) : 3 participants · 5 attaques · 9 007 199 254 740 993 dégâts');
+    expect(h.services.monthlyBossService.getCurrentForChat).toHaveBeenLastCalledWith(actor);
+    expect(h.services.monthlyBossService.attackWithActiveTeam).not.toHaveBeenCalled();
+  });
   it.each(['résumé', 'resumé', 'récap', 'recap'])('normalizes mission summary %s without exposing locked Z', async mode => {
     const h = harness(); expect(await h.send(`!mission ${mode}`)).toBe(await h.send('!mission'));
   });

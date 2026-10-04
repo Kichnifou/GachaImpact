@@ -459,9 +459,9 @@ function AppBootstrap() {
     return <StatusScreen title="Configuration requise" message={configurationMessage ?? 'La configuration frontend est incomplète.'} />
   }
 
-  if (stage === 'loading') return <StatusScreen title="Connexion aux astres…" message="Restauration de votre session et de votre profil." loading />
   if (stage === 'signedOut') return <AuthScreen />
-  if (currentFatalError) return <StatusScreen title="Connexion impossible" message={currentFatalError} />
+  if (authStatus === 'signedIn' && currentFatalError) return <StatusScreen title="Connexion impossible" message={currentFatalError} />
+  if (stage === 'loading') return <StatusScreen title="Connexion aux astres…" message="Restauration de votre session et de votre profil." loading />
 
   if (stage === 'onboarding') {
     return (
