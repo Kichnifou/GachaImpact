@@ -21,7 +21,7 @@ Au checkpoint historique avant première activation, il fallait appliquer/vérif
 Désactivation en deux phases sur la même file Player : Reward OFF confirmée d'abord, puis drain et lecture Twitch UNFULFILLED + guard settlements locaux, puis EventSub OFF confirmé et credential/cache supprimés. Un pending retourne une erreur retryable et conserve EventSub/credential/identité, pour que le webhook/retry termine même reward OFF. Réessayer la désactivation après settlement ; ne réactiver que par une action propriétaire explicite. Unlink attend ce cleanup Gift avant Chat/Faveur/identité. Flag OFF seul n'efface pas une reward déjà active. Ce cleanup a été vérifié publiquement après le Gift réussi ; 055 inchangée, aucune 056. Annonce at-most-once en cas ambigu, possibilité d'annonce manquante documentée dans l'[architecture](../architecture/backend-architecture-v1.md#gift-suprême-lot-12--bridge-twitch-durable-promu-techniquement-sur-main).
 
 
-État au 2026-09-05 : premier déploiement public validé. `PAID_INFRA_APPROVED = false`.
+État initial au 2026-09-05 : premier déploiement public validé sans infrastructure payante autorisée. État courant au 2026-10-04 : Railway Hobby / hébergement payant approuvé et confirmé payé par le propriétaire ; autorisation limitée à Railway selon le registre du Master, facturation non vérifiée directement par Codex/ChatGPT.
 
 ## État réalisé
 
@@ -35,7 +35,9 @@ Désactivation en deux phases sur la même file Player : Reward OFF confirmée d
 - Healthcheck : `/health` ; domaine public : [https://gachaimpact-production.up.railway.app](https://gachaimpact-production.up.railway.app). `GET /health` retourne `{"status":"ok"}`.
 - Le vertical Banque utilise un scheduler interne au processus backend : catch-up idempotent au démarrage, puis planification du prochain minuit `Europe/Paris`. Aucune infrastructure cron payante n'est requise ; l'unicité DB par Player/journée protège les intérêts positifs et le checkpoint monotone `lastInterestDate` protège les journées à intérêt nul sans créer d'historique `+0`. Le statut courant des lots appartient au Master.
 
-Railway est actuellement en **Trial Free** (30 jours ou 5 USD de crédits). Railway Hobby n’est pas activé. Observer la consommation réelle avant toute décision ; aucune disponibilité 24/7 ne doit être promise après l’expiration du Trial.
+Railway Hobby / hébergement payant est approuvé et confirmé payé par le propriétaire, en remplacement du Trial Free historique. ChatGPT a vérifié le service GachaImpact en **EU West / Amsterdam**, région europe-west4-drams3a : 1/1 replica running, 0 crashed, aucun volume ni warning/critical ; ancien déploiement Virginia/iad supprimé. Le propriétaire confirme une réactivité nettement améliorée ; aucun benchmark réseau chiffré n'est revendiqué. Supabase reste Europe centrale. La confirmation de paiement vient du propriétaire, sans vérification directe de facturation par Codex/ChatGPT.
+
+Cette autorisation ne couvre ni autre fournisseur/infrastructure payante, ni Redis, Realtime, service tiers ou environnement supplémentaire. Toute nouvelle dépense demande un accord explicite. Aucun changement Railway ou Serverless n'est effectué dans le checkpoint de promotion. ContestScheduler (2 s) et GiftCodeScheduler (60 s) restent inchangés ; fonctionnement stable/rapide, Concours autonome conservé (tours auto, bots, timeouts, remplacements, soutien). Une optimisation éventuelle relève de 27 après audit dédié, après 29.
 
 ### Frontend Cloudflare Pages — FAIT
 
@@ -59,10 +61,10 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 ## À surveiller
 
-- Consommation Railway et fin du Trial Free ; ne pas activer Hobby ou un autre service payant sans accord explicite du propriétaire.
+- Consommation Railway Hobby ; toute nouvelle dépense ou service payant demande une autorisation explicite de son périmètre.
 - Healthcheck public et parcours authentifié après les futurs déploiements.
 - Après un déploiement qui touche la Banque ou son scheduler, vérifier dans les logs que le démarrage/catch-up ne produit aucune erreur et valider le reset concerné ; l'exactitude ne dépend pas d'un processus resté actif sans interruption, car le prochain démarrage reprend les journées manquées.
-- Limites Free effectives (Railway, Cloudflare Pages, Supabase et e-mails Auth) avant d’élargir les tests externes.
+- Limites effectives Railway Hobby et offres Free Cloudflare Pages, Supabase et e-mails Auth avant d'élargir les tests externes.
 
 ## Workflow de validation alpha
 
@@ -79,7 +81,7 @@ Le workflow général de conception, implémentation, review et checkpoint appar
 - Après les tests locaux, le candidat est committé/poussé sur `review` pour inspection GitHub. Après approbation seulement, il est promu vers `main`, puis l’équipe attend les déploiements Railway et Cloudflare verts avant le smoke test public.
 - Les checkpoints Git validés permettent un rollback propre ; annuler un lot public avec `git revert` plutôt qu'un force-push ou un reset destructif de `main`.
 - Les quelques testeurs publics actuels ne justifient pas encore un environnement staging séparé. Aucun environnement payant supplémentaire n'est ajouté ; le staging reste reporté tant que la taille de l'alpha ne justifie pas sa complexité ou son coût.
-- `PAID_INFRA_APPROVED = false` reste inchangé.
+- Les autorisations payantes par fournisseur/service du Master font autorité ; Railway Hobby autorisé ne vaut aucune autorisation générale.
 
 ## Checklist de redéploiement utile
 

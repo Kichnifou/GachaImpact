@@ -44,7 +44,7 @@ La sauvegarde autoritaire d'un joueur et toute logique sensible doivent résider
 
 Privilégier les solutions gratuites ou disposant d'un free tier véritablement exploitable et durable. Ne jamais introduire un service payant sans en informer le propriétaire du projet et obtenir son accord préalable.
 
-L'état vivant de cette autorisation est porté uniquement par `PAID_INFRA_APPROVED` dans le Master ; sa valeur actuelle est `false` et demeure autoritative. Tant que sa valeur est `false`, un agent ne doit souscrire, activer ni exiger aucun plan ou service payant. Il peut préparer une architecture compatible avec une évolution future et expliquer ou recommander un passage payant, mais attend l'accord explicite du propriétaire. Seul le propriétaire peut faire passer ce flag à `true`, en précisant le service concerné lorsque nécessaire. Un upgrade Free → payant ne doit jamais être effectué implicitement.
+L'état vivant des autorisations payantes est porté uniquement par le registre **Autorisations d'infrastructure payante — périmètre** du Master, par fournisseur et service. Railway Hobby / hébergement payant est approuvé et confirmé payé par le propriétaire ; cette autorisation ne couvre aucun autre fournisseur, service, environnement supplémentaire ou nouvelle dépense. Un agent peut préparer une architecture compatible et recommander une évolution, mais ne doit souscrire, activer ni exiger une nouvelle dépense sans accord explicite du propriétaire pour son périmètre exact. Un upgrade ou achat ne doit jamais être effectué implicitement ; aucun booléen global ne vaut autorisation générale.
 
 ## Direction de l'interface
 

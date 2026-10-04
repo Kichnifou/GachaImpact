@@ -77,7 +77,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 
 ### Séquence d'exécution finale — numéros conservés (R1032)
 
-Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; 28 déployée, correctifs performance/autostart publiquement validés dans leur périmètre ; reste ACTIVE pour le dernier candidat reset Quotidiennes/notifications invitation-only/Rejouer PvP vers SOLO. Clôture seulement après promotion, déploiement et recette finale de ce correctif. 29 reste NON commencée, suivante après clôture 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
+Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; correctifs performance/autostart publiquement validés dans leur périmètre. Dernier lot 6d2ac46 et micro-correctif 8696c1a3 approuvés indépendamment et promus techniquement sur main ; 28 reste ACTIVE jusqu'au déploiement et au smoke propriétaire final de ce checkpoint. Aucune clôture par la seule promotion Git. 29 reste NON commencée, suivante après clôture 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
 
 | Étape | Périmètre dans l'ordre réel |
 | --- | --- |

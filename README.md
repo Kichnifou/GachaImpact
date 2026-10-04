@@ -11,7 +11,7 @@ Le repository contient :
 - les audits métier clôturés servant de spécifications fonctionnelles ;
 - la documentation utilisée comme mémoire externe pour ChatGPT et comme contrat d'implémentation pour Codex.
 
-Le frontend est déployé sur Cloudflare Pages et le backend sur Railway. Les données sensibles et mutations métier restent validées côté serveur. Le projet suit une approche Free-first ; `PAID_INFRA_APPROVED = false` demeure autoritatif dans le Master.
+Le frontend est déployé sur Cloudflare Pages et le backend sur Railway. Les données sensibles et mutations métier restent validées côté serveur. Le projet suit une approche Free-first ; Railway Hobby est approuvé et confirmé payé par le propriétaire. Les autorisations payantes sont limitées à leur fournisseur/service dans le Master ; toute nouvelle dépense exige un accord explicite.
 
 ## Démarrage documentaire
 

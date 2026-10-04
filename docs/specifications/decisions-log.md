@@ -2,7 +2,7 @@
 
 Statut : évolutif.
 
-État de livraison : déploiement Railway SUCCESS sur e3a54e4 reçu, 60 migrations publiques à jour. Titres/sticky, Terminé ✅, réactivité invitation/PvP/Memory et autostart R1033 validés publiquement dans leur périmètre. Dernier correctif candidat review : reset Quotidiennes explicite, invitation seule notification Arcade et Rejouer PvP vers SOLO. R1029/R1030 révisées après recette propriétaire du 04/10/2026, aucun nouvel ID. Étape 26 validée ; 28 ACTIVE jusqu'à promotion/déploiement/recette finale ; 29 NON commencée, 27 différée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+État de livraison : déploiement Railway SUCCESS sur e3a54e4 reçu, 60 migrations publiques à jour. Titres/sticky, Terminé ✅, réactivité invitation/PvP/Memory et autostart R1033 validés publiquement dans leur périmètre. Dernier lot 6d2ac46 et micro-correctif 8696c1a3 approuvés indépendamment par ChatGPT et promus techniquement sur main, sans correctif code supplémentaire : reset Quotidiennes explicite, invitation seule notification Arcade, Rejouer PvP vers SOLO, contrat API final et rewards LevelUpFeedback explicites. Déploiement et recette publique finale de ce checkpoint NON acquis ici. R1029/R1030 révisées après recette propriétaire du 04/10/2026, aucun nouvel ID. Étape 26 validée ; 28 ACTIVE jusqu'à déploiement/recette finale ; 29 NON commencée, 27 différée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves, les autorisations payantes limitées à leur périmètre et la reprise.
 
 ## Autostart Tutoriel unique — R1033 (2026-10-03)
 
