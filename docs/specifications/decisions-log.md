@@ -2,6 +2,14 @@
 
 Statut : évolutif.
 
+## Foundation étape 30 et gate transport Kichnifou — R1040 (2026-10-04)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : séquence **30 → pilote Twitch réel Kichnifou-only de validation transport/commandes → 31A Ceo → 31B batch → 32**. Ce gate distinct est préparé documentairement en 30, exécuté seulement dans une future mission dédiée. Identité Twitch réellement liée, auteur filtré par User ID immuable, autres chatters ignorés ; parser/consumer et outbound OFF par défaut, activation explicite/réversible et un seul exécutant. Le propriétaire désactive temporairement Streamer.bot juste avant les lectures !pity/!banniere/!team/!sac/!quotis/!exp puis !pull 1 contrôlé ; réponse Twitch visible, même état standalone et une seule opération/récompense. Fin : natif OFF vérifié, puis Streamer.bot réactivé par le propriétaire. Aucun consentement/scope, abonnement EventSub, parser ni envoi réel n'est activé en 30. [Runbook](../process/legacy-cutover-runbook.md).
+
+Précision propriétaire R435/R436 : Boss importé avec `baseHp = 1 500 000`, `maxHp` et `currentHp` exacts de monthly_boss.json. Le legacy tire directement des PV dans ±15 % et les arrondit à 10 000, sans enregistrer de pourcentage entier. La colonne obligatoire `hpVariationPercent` reçoit l'entier le plus proche comme **métadonnée dérivée seulement** ; provenance `hpVariationPercentKnown: false`, `derivedHpVariationPercent` et `maxHpSourceAuthoritative: true`. Exemple : 1 360 000 PV → -9, sans recalcul des PV. R449 reste la règle des seuls nouveaux Boss natifs ; aucune migration ni règle native changée. [Contrat](../architecture/legacy-migration-v1.md).
+
+Présentation Pull précisée : Hydro chance et Pyro/Geo multiplicateurs restent actifs et enregistrés, sans suffixe constant Chat. Afficher seulement les procs Cryo/Electro/Anemo/Dendro réellement présents sur chaque tirage, avec leurs valeurs modernes. Gains finaux, snapshots séquentiels, N messages, idempotence et moteur inchangés. L'exception de promotion 29 est terminée : candidat 30 sur review uniquement, review indépendante ChatGPT et promotion dédiée ultérieure.
+
 ## Recette propriétaire finale / clôture étape 29 — R1039 (2026-10-04)
 
 VALIDÉ PAR LE PROPRIÉTAIRE AVANT CODE : recette publique représentative R1038 acquise hors des onze retours listés ; hotfix 36a068c publiquement confirmé, chargement normal. Corriger seulement Quotis, Échanges, Expédition, alias passif, Team, Shop, Sac, Liste, Concours, Event racine et restitution Pull. [Contrats courants](../commands/command-reference.md#restitution-finale-propriétaire--r1039).

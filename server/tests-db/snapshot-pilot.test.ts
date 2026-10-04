@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { SnapshotPilotService } from '../src/application/migration/snapshot-pilot-service.js';
-import { snapshotFileNames } from '../src/application/migration/streamerbot-snapshot.js';
+import { parseStreamerbotSnapshot, snapshotFileNames } from '../src/application/migration/streamerbot-snapshot.js';
 import type { TwitchPilotService } from '../src/application/twitch/twitch-pilot-service.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
@@ -71,6 +71,13 @@ beforeAll(async () => {
 afterAll(() => isolated.cleanup(), 60_000);
 
 describe('private snapshot pilot transaction', () => {
+  it('preflights a new global Player without creating a row or relaxing the pilot identity gate', async () => {
+    const newId = randomUUID();
+    const mapped = await service.globalPlayerPlan(newId, 'Kichnifou', parseStreamerbotSnapshot(bundle()), new Date('2026-09-26T19:00:00.000Z'));
+    expect(mapped.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL')).toHaveLength(15);
+    expect(await db.player.findUnique({ where: { id: newId } })).toBeNull();
+    expect(mapped.resources.get('moras')).toBe(80n);
+  });
   it('replaces personal rows, replays the exact confirmation and refreshes the same hash after standalone changes', async () => {
     const first = bundle({ zAcceptedAt: '2026-09-20 12:00:00', dailyRewardDate: '2026-09-25' });
     const preview = await service.preview(identity, first);

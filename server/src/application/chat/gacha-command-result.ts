@@ -53,8 +53,9 @@ export function pullChatResult(actorName: string, result: GachaPullResult): read
       for (const effect of row.passiveEffects) {
         const emoji = chatElementEmojis[effect.elementKey];
         switch (effect.type) {
-          case 'five_star_chance_bonus': suffix.push(`${emoji} +${effect.basisPoints / 100}% chance 5★`); break;
-          case 'secondary_reward_multiplier': suffix.push(`${emoji} ×${(effect.numerator / effect.denominator).toLocaleString('fr-FR')} inclus`); break;
+          // Constant effects remain in the engine/receipt; the final gain already includes them.
+          case 'five_star_chance_bonus':
+          case 'secondary_reward_multiplier': break;
           case 'xp': suffix.push(`${emoji} +${number(effect.amount)} XP${effect.levelsReached.length ? ' · niveaux ' + effect.levelsReached.join(', ') : ''}${effect.overflowRewardsGranted ? ' · bonus niv.100 ×' + effect.overflowRewardsGranted : ''}`); break;
           case 'pity5': suffix.push(`${emoji} +${effect.amount} pity 5★`); break;
           case 'primogem_recovery': suffix.push(`${emoji} ${compactGain('primogems', effect.amount, true)}`); break;

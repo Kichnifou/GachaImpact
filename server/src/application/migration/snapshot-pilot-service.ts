@@ -77,9 +77,11 @@ export class SnapshotPilotService {
     return { player, linked, snapshot, viewer };
   }
 
-  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string, snapshotHash: string, at: Date = new Date()) {
+  private async report(playerId: string, viewer: Record<string, unknown>, sources: Readonly<Record<string, unknown>>, login: string, snapshotHash: string, at: Date = new Date(), allowNewPlayer = false) {
     const facts = mapLegacyPersonalFacts(viewer, snapshotHash, at);
-    const player = await this.db.player.findUniqueOrThrow({ where: { id: playerId }, select: { elementKey: true, equippedAvatarCosmeticId: true, equippedTitleCosmeticId: true } });
+    const query = { where: { id: playerId }, select: { elementKey: true, equippedAvatarCosmeticId: true, equippedTitleCosmeticId: true } } as const;
+    const player = (allowNewPlayer ? await this.db.player.findUnique(query) : await this.db.player.findUniqueOrThrow(query))
+      ?? { elementKey: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null };
     const identity = await this.db.twitchIdentity.findUnique({ where: { playerId }, select: { firstSeenAt: true, lastMessageAt: true } });
     const activity = await this.db.playerActivityState.findUnique({ where: { playerId }, select: { lastTwitchActivityAt: true } });
     const progression = await this.db.playerProgression.findUnique({ where: { playerId } });
@@ -408,7 +410,7 @@ export class SnapshotPilotService {
   /** Reuses the audited personal mapping for a global rehearsal, without invoking the pilot confirmation route. */
   async globalPlayerPlan(playerId: string, login: string, snapshot: ReturnType<typeof parseStreamerbotSnapshot>, cutoverAt: Date) {
     const viewer = resolveSnapshotViewer(snapshot, login);
-    return this.report(playerId, viewer.data, snapshot.sources, login, snapshot.hash, cutoverAt);
+    return this.report(playerId, viewer.data, snapshot.sources, login, snapshot.hash, cutoverAt, true);
   }
 
   async apply(identity: AuthenticatedIdentity, files: SnapshotFiles, previewId: string) {

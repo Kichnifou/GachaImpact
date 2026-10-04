@@ -26,6 +26,7 @@ function day(value: unknown): Date | null {
 }
 
 export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Snapshot, plan: LegacyGlobalPlan, batchId: string) {
+  validateLegacyBossSnapshot(snapshot);
   const source = object(snapshot.sources['monthly_boss.json']);
   const rawBosses = [...(Array.isArray(source.history) ? source.history : []), source.currentBoss].filter(Boolean);
   const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
@@ -39,10 +40,10 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
     const resistance = String(row.resistance ?? '').toLowerCase();
     if (!['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'].includes(resistance) || currentHp > maxHp) throw new Error('Invalid legacy Boss state.');
     const createdAt = instant(row.createdAt), defeatedAt = row.defeated === true ? instant(row.defeatedAt) : null;
-    if (!createdAt || (row.defeated === true && !defeatedAt) || (row.defeated !== true && row.defeatedAt != null))
+    // Combat.txt initializes a living Boss with defeatedAt = "" (no defeat occurred).
+    if (!createdAt || (row.defeated === true && !defeatedAt) || (row.defeated !== true && row.defeatedAt != null && row.defeatedAt !== ''))
       throw new Error('Legacy Boss lifecycle timestamp is missing or invalid.');
-    const variation = Number((maxHp - 1_500_000n) * 100n / 1_500_000n);
-    if (BigInt(variation) * 1_500_000n !== (maxHp - 1_500_000n) * 100n) throw new Error('Legacy Boss HP scaling cannot be represented exactly.');
+    const variation = derivedLegacyBossVariation(maxHp);
     const finalBlowPlayerId = typeof row.finalBlowBy === 'string' ? byName.get(normalizeLegacyName(row.finalBlowBy)) ?? null : null;
     const boss = await tx.monthlyBoss.create({ data: { monthStart: new Date(`${month}-01T00:00:00.000Z`), nameSnapshot: String(row.name ?? ''),
       baseHp: 1_500_000n, hpVariationPercent: variation, maxHp, currentHp,
@@ -51,7 +52,8 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
     await tx.bossLegacyAggregate.create({ data: { bossId: boss.id, reportedTotalDamage: count(row.totalDamage, 'total damage'),
       reportedTotalAttacks: count(row.totalAttacks, 'total attacks'),
       globalStats: raw === source.currentBoss ? object(source.globalStats) as Prisma.InputJsonValue : undefined,
-      batchId, legacyProvenance: { source: 'monthly_boss.json', month, totalsAreSourceReported: true } } });
+      batchId, legacyProvenance: { source: 'monthly_boss.json', month, totalsAreSourceReported: true,
+        hpVariationPercentKnown: false, derivedHpVariationPercent: variation, maxHpSourceAuthoritative: true } } });
     bosses++;
     for (const [username, rawPart] of Object.entries(object(row.participants))) {
       const playerId = byName.get(normalizeLegacyName(username));
@@ -100,4 +102,22 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
       totalRewarded: max(viewerRewarded, known.rewarded), finalBlows: max(viewerFinal, known.finalBlows), bestHit: max(viewerBest, known.bestHit) } });
   }
   return { bosses, participants, excludedParticipants, rewards, divergences, attacks: 0, operations: 0 };
+}
+
+/** Fail before any purge/import when a Boss cannot be represented by the existing contract. */
+export function validateLegacyBossSnapshot(snapshot: Snapshot): void {
+  const source = object(snapshot.sources['monthly_boss.json']);
+  for (const raw of [...(Array.isArray(source.history) ? source.history : []), source.currentBoss].filter(Boolean)) {
+    const row = object(raw);
+    const maxHp = count(row.maxHp, 'maxHp');
+    derivedLegacyBossVariation(maxHp);
+  }
+}
+
+function derivedLegacyBossVariation(maxHp: bigint): number {
+  // R435/R436: the legacy drew HP directly and rounded to 10,000, not an integer percentage.
+  // This mandatory column is derived metadata only; maxHp is never reconstructed from it.
+  const variation = Math.round((Number(maxHp) - 1_500_000) * 100 / 1_500_000);
+  if (variation < -15 || variation > 15) throw new Error('Legacy Boss HP lies outside the supported variation range.');
+  return variation;
 }

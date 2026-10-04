@@ -1,4 +1,4 @@
-import type { PrismaClient } from '../../../generated/prisma/client.js';
+import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 
 // The contract is deliberately exhaustive. A new table blocks cutover until assigned here.
 export const referenceTables = [
@@ -9,6 +9,8 @@ export const referenceTables = [
 export const preservedTables = [
   '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
   'privacy_settings', 'player_role_assignments',
+  // Operational authorizations are not gameplay; rehearsal never enables or refreshes them.
+  'twitch_gift_supreme_credentials', 'twitch_giveaway_credentials',
 ] as const;
 export const clearTables = [
   'admin_audit_entries', 'player_sessions', 'trade_requests', 'trade_executions', 'player_cosmetics', 'player_permanent_mission_states',
@@ -40,6 +42,9 @@ export const clearTables = [
   'gift_code_rewards', 'gift_code_claims', 'monthly_bosses', 'player_boss_loadouts',
   'player_boss_loadout_slots', 'boss_attacks', 'boss_attack_members',
   'player_boss_participations', 'player_boss_stats', 'boss_rewards',
+  'giveaway_announcements', 'giveaway_command_receipts', 'giveaway_counted_messages',
+  'giveaway_deferred_messages', 'giveaway_rewards',
+  'arcade_daily_grants', 'arcade_invitations', 'arcade_receipts', 'arcade_sessions', 'arcade_stats',
 ] as const;
 
 export type PurgeTable = { table: string; rows: bigint };
@@ -87,7 +92,7 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string): P
 }
 
 /** Private-schema rehearsal only. Public cutover has no callable apply path in this foundation lot. */
-export async function applyPrivateCutoverPurge(db: PrismaClient, plan: CutoverPurgePlan): Promise<void> {
+export async function applyPrivateCutoverPurge(db: Prisma.TransactionClient, plan: CutoverPurgePlan): Promise<void> {
   if (!/^batch_test_[0-9a-f]{32}$/.test(plan.schema)) throw new Error('Public cutover mutation is unavailable.');
   for (const { table, rows } of plan.deleteOrder) {
     if (rows === 0n) continue;

@@ -631,14 +631,20 @@ describe('Gacha foundation on the development database', () => {
       const store = new PrismaGachaStore(database);
       const pullWith = async (element: string, random: { nextInt(maximum: number): number }) => {
         await configureTeams(fixture.playerId, [element, element]);
-        return store.pull({
+        const input = {
           playerId: fixture.playerId,
-          playerElementKey: 'hydro',
-          count: 1,
+          playerElementKey: 'hydro' as const,
+          count: 1 as const,
           idempotencyKey: randomUUID(),
           now: fixture.now,
           random,
-        });
+        };
+        const recorded = await store.pull(input);
+        const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+        const replay = await store.pull({ ...input, random: { nextInt: () => { throw new Error('Passive replay must not resolve again.'); } } });
+        expect(pullChatResult('Axel', replay)).toEqual(pullChatResult('Axel', recorded));
+        expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+        return recorded;
       };
 
       const pyro = await pullWith('pyro', procResourceRandom);
@@ -646,33 +652,44 @@ describe('Gacha foundation on the development database', () => {
       const particleGain = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, resourceKey: 'particles_pyro', causeKey: 'gacha.pull.secondary-reward' } });
       expect(pyro.results[0]!.resourceTotalsAfter).toEqual({ particles_pyro: particleGain.balanceAfter.toString() });
       expect(pyro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'pyro', numerator: 3, denominator: 2 }));
+      expect(pullChatResult('Axel', pyro)[0]).toContain('+30 particules');
+      expect(pullChatResult('Axel', pyro)[0]).not.toContain(' | ');
 
       const geo = await pullWith('geo', procMoraRandom);
       expect(geo.results[0]).toMatchObject({ resourceKey: 'moras', resourceAmount: 7_500n });
       expect(geo.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'geo', numerator: 3, denominator: 2 }));
+      expect(pullChatResult('Axel', geo)[0]).toContain('+7 500 💰 moras');
+      expect(pullChatResult('Axel', geo)[0]).not.toContain(' | ');
 
-      const hydro = await pullWith('hydro', maxRandom);
+      // 100 fails the baseline 60bp but succeeds with the active +60bp Hydro bonus.
+      const hydro = await pullWith('hydro', { nextInt: maximum => maximum === 10_000 ? 100 : 0 });
+      expect(hydro.results[0]!.rarity).toBe(5);
       expect(hydro.results[0]!.passiveEffects).toContainEqual({ elementKey: 'hydro', type: 'five_star_chance_bonus', basisPoints: 60 });
+      expect(pullChatResult('Axel', hydro)[0]).not.toContain('chance 5★');
 
       const cryoRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
       const cryo = await pullWith('cryo', cryoRandom);
       expect(cryoRandom.nextInt).toHaveBeenCalledWith(10);
       expect(cryo.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'cryo', type: 'xp', amount: 1n }));
+      expect(pullChatResult('Axel', cryo)[0]).toContain('❄️ +1 XP');
 
       const electroRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
       const electro = await pullWith('electro', electroRandom);
       expect(electroRandom.nextInt).toHaveBeenCalledWith(20);
       expect(electro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'electro', type: 'pity5', requestedAmount: 2 }));
+      expect(pullChatResult('Axel', electro)[0]).toContain('⚡ +2 pity');
 
       const anemoRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
       const anemo = await pullWith('anemo', anemoRandom);
       expect(anemoRandom.nextInt).toHaveBeenCalledWith(8);
       expect(anemo.results[0]!.passiveEffects).toContainEqual({ elementKey: 'anemo', type: 'primogem_recovery', amount: 80n });
+      expect(pullChatResult('Axel', anemo)[0]).toContain('🌪️ +80 primos');
 
       const dendroRandom = { nextInt: vi.fn(procMoraRandom.nextInt) };
       const dendro = await pullWith('dendro', dendroRandom);
       expect(dendroRandom.nextInt).toHaveBeenCalledWith(15);
       expect(dendro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'dendro', type: 'resource_bundle' }));
+      expect(pullChatResult('Axel', dendro)[0]).toContain('🌿 +40 primos');
     } finally { await deletePullPlayer(fixture.playerId); }
   }, 35_000);
 });

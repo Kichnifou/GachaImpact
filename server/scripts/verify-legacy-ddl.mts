@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { execFileSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { join, resolve, sep } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
@@ -34,9 +34,11 @@ try {
   await client.query(`ALTER TABLE "player_daily_reward_state" ADD CONSTRAINT "player_daily_reward_state_claim_dates_check" CHECK (("first_claim_date" IS NULL AND "last_claim_date" IS NULL) OR ("first_claim_date" IS NOT NULL AND "last_claim_date" IS NOT NULL AND "first_claim_date" <= "last_claim_date"))`);
   await client.query(`ALTER TABLE "gift_codes" ADD CONSTRAINT "gift_codes_recurrence_check" CHECK (("type" = 'ANNUAL' AND "recurring_month" BETWEEN 1 AND 12 AND "starts_at" IS NULL AND "ends_at" IS NULL) OR ("type" = 'ONE_OFF' AND "recurring_month" IS NULL AND "starts_at" IS NOT NULL AND "ends_at" IS NOT NULL AND "ends_at" > "starts_at"))`);
   await client.query(`ALTER TABLE "event_game_b_daily_states" ADD CONSTRAINT "event_game_b_daily_states_solved_discoverer_check" CHECK ("discoverer_player_id" IS NULL OR "solved_at" IS NOT NULL)`);
-  for (const migration of ['20260926223000_050_add_legacy_migration_foundation', '20260926224000_051_add_legacy_claim_provenance',
-    '20260927014500_052_align_legacy_favor_giveaway_provenance',
-    '20260927150000_053_key_pilot_refresh_by_preview']) {
+  // The historical baseline is 049. Verify every subsequent migration against current HEAD.
+  const migrations = (await readdir(join('prisma', 'migrations'), { withFileTypes: true }))
+    .filter(entry => entry.isDirectory() && entry.name > '20260926150000_049_add_twitch_pilot_identity_snapshot')
+    .map(entry => entry.name).sort();
+  for (const migration of migrations) {
     const sql = await readFile(join('prisma', 'migrations', migration, 'migration.sql'), 'utf8');
     if (/"public"\.|\bpublic\./.test(sql)) throw new Error(`${migration} addresses public.`);
     await client.query(sql);

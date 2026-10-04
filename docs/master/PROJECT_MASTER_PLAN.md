@@ -1,11 +1,29 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 29 — recette propriétaire représentative et correctifs finaux R1039, clôture.
+Version : étape 30 — foundation/rehearsal privée et présentation Pull, candidat R1040 à review.
 Date : 2026-10-04
-Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE ; 30 FOUNDATION / REHEARSAL PRIVÉE PROCHAINE, NON COMMENCÉE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel après clôture R1039 : **30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
+Statut : **29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE ; 30 ACTIVE / CANDIDAT À REVIEW, SORTIE BLOQUÉE PAR IDENTITÉS TWITCH RÉELLES.** 26/28 validées et 27 clôturée par périmètre. Séquence R1040 : **30 → pilote réel Kichnifou-only transport/commandes → 31A Ceo → 31B batch → 32**. Main reste le checkpoint stable ; review indépendante avant promotion. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctif final et clôture étape 29, R1039 du 04/10/2026
+## Point courant — étape 30 foundation / rehearsal privée, R1040 du 04/10/2026
+
+**Baseline réelle :** fetch ; HEAD/main/review/origin/main/origin/review = **32bf76dbef8eebfecc790f4e407514c25f56b937**, divergence 0/0, index/worktree propres. Mission sur review uniquement ; exception de promotion 29 terminée. Le propriétaire déclare R1039 déployé ; aucun nouveau déploiement vérifié par Codex.
+
+**Capture récente :** copie locale ignorée du 04/10/2026 à 20:02 UTC, hash **d0cf57becc4645a97c6b634e78ca4e075222aac7ea77f97d234ab83f7be7d486** ; dossier vivant read-only, copies/manifest vérifiés. **17 sources, 29 463 chemins classifiés, 0 inconnu, 216 profils / 45 éligibles / 171 exclus**. Aucune donnée individuelle dans Git. Détails et commandes au [runbook](../process/legacy-cutover-runbook.md#capture-et-contrôle-du-candidat-du-04102026).
+
+**Fondation :** plan de purge exhaustif actualisé pour Arcade/Giveaway, credentials opérationnels préservés sans activation ; préflight des nouveaux Players sans création, plan/ordre FK et volumes avant mutation. Rehearsal globale atomique, erreur injectée après les domaines partagés, sauvegarde/restauration privée et second import sur état restauré. Boss legacy conserve les PV exacts, base 1 500 000 et pourcentage dérivé tracé en provenance R435/R436/R1040 ; Boss vivant à defeatedAt vide accepté, règles natives R449 inchangées. Aucune migration/schema/calcul natif ajouté.
+
+**Pull :** suffixes constants Hydro et Pyro/Geo supprimés uniquement du renderer ; effets moteur/snapshots conservés. Procs Cryo/Electro/Anemo/Dendro uniquement sur leurs tirages ; gains réels et stocks séquentiels, N messages, replay sans nouvelle résolution. Régression explicite Hydro RNG et montants Pyro/Geo dans la suite Gacha privée.
+
+**Contrôles techniques :** scanner, Prisma generate/validate/status et verify-ddl PASS : **60 migrations à jour, 1 134 colonnes comparées**, catalogue 120 distinct, RLS/absence de droits navigateur sur les 135 tables métier lues. **280 tests ciblés / 18 fichiers PASS** ; **44 tests PostgreSQL / 5 fichiers PASS** (Gacha 30, snapshot personnel 6, contraintes 052 : 5, sauvegarde/Boss 2, confirmation 053 : 1), invocations séquentielles et schémas privés. **verify:full PASS 8/8** : frontend **1 296 tests / 122 fichiers**, backend hors DB **1 520 tests / 114 fichiers**, builds/typechecks, lint et diff-checks ; scripts de rehearsal/DDL également typecheckés explicitement. Warnings non bloquants : lint frontend hors périmètre, chunk frontend >500 kB et dépréciation pg des suites DB. Logs complets locaux : gacha30-*.log et gachaimpact-verify-full-gb8ejU dans TEMP.
+
+**Preuves privées récentes PASS :** 45 profils importés, trois Boss dont le vivant à PV exacts, 82 claims Codes, 45 états Faveur/19 claims et un GiveawayWin legacy sans reward. Rollback injecté après tous les domaines : hash intégral cible identique ; deux imports sur état initial restauré : agrégats et sommes numériques exactes identiques ; sauvegarde/restauration intégrale privée vérifiée. Zéro opération/mouvement/historique/reward fictif ; comptes/rôles/prefs/privacy préservés et sessions invalidées dans la fixture. Schémas de cette mission nettoyés, aucun Player/batch public créé ; un autre schéma privé reste hors périmètre. [Agrégats complets, dispositions et corrections intermédiaires](../process/legacy-cutover-runbook.md#capture-et-contrôle-du-candidat-du-04102026).
+
+**BLOCKER sortie 30 :** credentials applicatifs TWITCH_CLIENT_ID/TWITCH_CLIENT_SECRET absents ; résolveur réel sorti 1 sans requête Twitch, **0/45 résolu par cette mission**. Réconciliation réelle avec l'identité immuable des comptes web et rehearsal sur ces correspondances **NON EXÉCUTÉES**. Lecture public seulement : 10 Players/comptes web, une TwitchIdentity, zéro batch. Les fixtures numériques privées ne sont pas des preuves d'identité ; le script de rehearsal actuel reste fixture-only et devra recevoir l'entrée vérifiée lors de la levée du blocker. Étape 30 **non certifiée terminée**, même avec tous les contrôles techniques verts.
+
+**Prochaine action exacte : CHATGPT REVIEW DU SHA REVIEW DE L'ÉTAPE 30.** Candidat review uniquement, main inchangé et worktree propre à vérifier au rapport final. Gate futur Kichnifou-only documenté [R1040](../specifications/decisions-log.md) et runbook, **NON EXÉCUTÉ** ; aucun parser/outbound/EventSub supplémentaire, arrêt Streamer.bot, migration publique, Ceo/31A/31B ou cutover. STOP après publication.
+
+## Historique — correctif final et clôture étape 29, R1039 du 04/10/2026
 
 **Baseline contrôlée :** fetch exécuté ; HEAD/main/review/origin/main/origin/review = **36a068cf54afc359c140392826378590a6c9d0c7**, divergence 0/0, index/worktree propres, aucun descendant inattendu. Le propriétaire confirme publiquement que ce hotfix a rétabli le chargement normal de GachaImpact. Recette publique représentative R1038 terminée : tout ce qui n’est pas listé dans la mission finale est acquis dans ce périmètre, sans audit général rouvert.
 

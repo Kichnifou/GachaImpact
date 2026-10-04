@@ -53,7 +53,7 @@ describe('Authoritative Gacha chat presentation', () => {
     expect(messages[2]).toBe('✅ [3/3] Axel obtient +6 664 💰 moras (3 209 037).');
     expect(pullChatResult('Axel', result([{ ...base, rarity: 4, constellationAfter: 2 }]))[0]).toContain('Doublon : passe C2.');
   });
-  it('keeps all seven passive facts compact without losing level or bundle gains', () => {
+  it('shows all triggered procs but hides constant effects without losing level or bundle gains', () => {
     const row: PullResultRecord = { ...base, passiveEffects: [
       { elementKey: 'hydro', type: 'five_star_chance_bonus', basisPoints: 60 },
       { elementKey: 'pyro', type: 'secondary_reward_multiplier', numerator: 5, denominator: 4, amountBefore: 20n, amountAfter: 25n },
@@ -65,7 +65,34 @@ describe('Authoritative Gacha chat presentation', () => {
     ], bonusRewards: [{ resourceKey: 'primogems', amount: 160n, causeKey: 'player.xp.level-reward' }] };
     const messages = pullChatResult('Axel', result([row])); expect(messages).toHaveLength(1);
     expect(Array.from(messages[0]!).length).toBeLessThanOrEqual(500);
-    for (const fact of ['💧 +0.6%', '🔥 ×1,25', '☄️ ×1,5', '❄️ +1 XP', 'niveaux 3', 'bonus niv.100 ×1', '⚡ +2 pity', '🌪️ +80 primos', '🌿 +40 primos, +1 000 💰 moras', '+5 🔥💧❄️⚡🌪️☄️🌿 chacun', 'Niveau : +160 primos']) expect(messages[0]).toContain(fact);
+    for (const fact of ['💧 +0.6%', '🔥 ×1,25', '☄️ ×1,5']) expect(messages[0]).not.toContain(fact);
+    for (const fact of ['❄️ +1 XP', 'niveaux 3', 'bonus niv.100 ×1', '⚡ +2 pity', '🌪️ +80 primos', '🌿 +40 primos, +1 000 💰 moras', '+5 🔥💧❄️⚡🌪️☄️🌿 chacun', 'Niveau : +160 primos']) expect(messages[0]).toContain(fact);
+  });
+  it.each([3, 10])('keeps procs on their own row and exactly replays x%i', count => {
+    const effects: PullResultRecord['passiveEffects'] = [
+      { elementKey: 'cryo', type: 'xp', amount: 1n, xpAfter: 1n, levelsReached: [], overflowRewardsGranted: 0 },
+      { elementKey: 'electro', type: 'pity5', amount: 2, requestedAmount: 2 },
+      { elementKey: 'anemo', type: 'primogem_recovery', amount: 80n },
+      { elementKey: 'dendro', type: 'resource_bundle', rewards: [{ resourceKey: 'moras', amount: 1000n }] },
+    ];
+    for (const effect of effects) {
+      const rows = Array.from({ length: count }, (_, i): PullResultRecord => ({
+        ...base, index: i + 1, rarity: null, character: null, resourceKey: 'moras', resourceAmount: 9000n,
+        passiveEffects: [{ elementKey: 'hydro', type: 'five_star_chance_bonus', basisPoints: 60 },
+          { elementKey: 'geo', type: 'secondary_reward_multiplier', numerator: 3, denominator: 2, amountBefore: 6000n, amountAfter: 9000n },
+          ...(i === 1 ? [effect] : [])],
+      }));
+      const recorded = result(rows);
+      const messages = pullChatResult('Axel', recorded);
+      expect(messages).toHaveLength(count);
+      messages.forEach((message, i) => {
+        expect(message).toContain('+9 000 💰 moras');
+        expect(message.includes(' | ')).toBe(i === 1);
+        expect(message).not.toMatch(/chance 5★|×1,5/u);
+      });
+      expect(messages[1]).toContain({ cryo: '❄️ +1 XP', electro: '⚡ +2 pity', anemo: '🌪️ +80 primos', dendro: '🌿 +1 000' }[effect.elementKey as 'cryo' | 'electro' | 'anemo' | 'dendro']);
+      expect(pullChatResult('Axel', { ...recorded, operation: { ...recorded.operation, alreadyProcessed: true } })).toEqual(messages);
+    }
   });
   it('uses Stella progression and remaining quantity without a fictitious refund', () => {
     const outcome = { character: { name: 'Étoile Royale', elementKey: 'pyro', constellation: 6 }, stellaRemaining: 2n, c6Progression: { type: 'stat', stat: 'beauty', valueAfter: 19 } } as StellaUseResult;
