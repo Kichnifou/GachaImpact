@@ -18,13 +18,13 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const arcade = useArcade(playerId, onMutation)
   const [game, setGame] = useState<ArcadeGame>('MEMORY'), [difficulty, setDifficulty] = useState<ArcadeDifficulty>('MEDIUM')
   const [visible, setVisible] = useState(document.visibilityState !== 'hidden'), [recordsOpen, setRecordsOpen] = useState(false), [help, setHelp] = useState(false)
-  const [opponentId, setOpponentId] = useState(''), [dismissedSessionId, setDismissedSessionId] = useState<string | null>(null)
+  const [opponentId, setOpponentId] = useState('')
   const [quitSession, setQuitSession] = useState<string | null>(null)
   const guidedGame = useTutorialView('activities-arcade', game, ['MEMORY', 'CONNECT_FOUR', 'TIC_TAC_TOE'])
   const activeSession = arcade.value?.sessions.find(row => row.status === 'ACTIVE')
   const invitation = arcade.value?.invitation
   const selectedGame = activeSession?.game ?? invitation?.game ?? guidedGame
-  const session = activeSession ?? (!invitation ? arcade.value?.sessions.find(row => row.game === selectedGame && row.id !== dismissedSessionId && !(row.mode === 'MULTIPLAYER' && row.status === 'ABANDONED')) : undefined)
+  const session = activeSession ?? (!invitation ? arcade.value?.sessions.find(row => row.game === selectedGame && !(row.mode === 'MULTIPLAYER' && row.status === 'ABANDONED')) : undefined)
   const active = session?.status === 'ACTIVE', actualDifficulty = active ? session.difficulty : invitation?.difficulty ?? difficulty
   const multiplayer = session?.mode === 'MULTIPLAYER'
   const viewerSide = session?.viewerSide ?? 'PLAYER'
@@ -53,11 +53,6 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const opponentChoices = opponent ? [opponent] : arcade.opponents
   const selectedOpponentId = opponent?.id ?? opponentId
   const invitationLocked = Boolean(invitation) || Boolean(active) || blocked
-  const requestReplay = async () => {
-    if (!session?.opponent) return
-    const success = await arcade.invite({ opponentPlayerId: session.opponent.id, game: session.game, difficulty: session.difficulty, replaySessionId: session.id })
-    if (!success) { setDismissedSessionId(session.id); setOpponentId('') }
-  }
   useEffect(() => { if (!invitation && !active && !arcade.pending && opponentId && !arcade.opponents.some(row => row.id === opponentId)) setOpponentId('') }, [invitation, active, arcade.pending, arcade.opponents, opponentId])
   return <div data-business-pending={arcade.pending || arcade.quitting || feedbackPending} className="screen-content long-screen-layout arcade-screen">
     <h1 className="sr-only">Arcade</h1>
@@ -82,7 +77,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
         <aside className="arcade-banter" aria-hidden={multiplayer ? true : undefined}>{!multiplayer && <>« {session?.status !== 'ABANDONED' && session?.banter.text || 'Trois jeux, à votre rythme.'} »</>}</aside>
         <div className="arcade-status" aria-live="polite"><strong>{status}</strong>{session?.status !== 'ABANDONED' && session?.board.kind === 'MEMORY' && <span>{session.board.remainingPairs} paires restantes</span>}</div>
         <div className="arcade-result" aria-live="polite">{session?.result && <><strong>{outcomeLabels[session.result.outcome]} · {difficultyLabels[session.difficulty]}</strong><span>+{session.result.scoreAwarded} score · +{session.result.xpAwarded} XP</span></>}</div>
-        <div className="arcade-actions">{!active && <AppButton variant="primary" disabled={!arcade.value || blocked || Boolean(invitation)} onClick={() => { if (multiplayer && session?.status === 'FINISHED') void requestReplay(); else void arcade.start(selectedGame, difficulty) }}>{arcade.pending ? 'En cours…' : session ? 'Rejouer' : 'Commencer'}</AppButton>}
+        <div className="arcade-actions">{!active && <AppButton variant="primary" disabled={!arcade.value || blocked || Boolean(invitation)} onClick={() => { void arcade.start(selectedGame, multiplayer && session?.status === 'FINISHED' ? session.difficulty : difficulty) }}>{arcade.pending ? 'En cours…' : session ? 'Rejouer' : 'Commencer'}</AppButton>}
           {arcade.error && <AppButton disabled={arcade.pending || arcade.quitting} onClick={() => void arcade.load()}>Actualiser</AppButton>}</div>
         <div className="arcade-error" role={arcade.error ? 'alert' : 'status'}>{arcade.error || arcade.feedback || (!active && !invitation ? arcade.opponentsError : '')}</div>
       </section>

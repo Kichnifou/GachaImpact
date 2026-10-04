@@ -39,6 +39,6 @@ export function useDailyTracker(items: readonly DailyItem[], playerId: string, d
     save(hidden.slice(0, -1))
     setSelection({ key, id })
   }
-  return { selected, suggestions, hidden, message: dailySummaryMessage(items, hidden), move, hide, restoreLast, restoreAll: () => save([]), canHide: Boolean(day) }
+  return { selected, suggestions, hidden, businessDate: day, message: dailySummaryMessage(items, hidden), move, hide, restoreLast, restoreAll: () => save([]), canHide: Boolean(day) }
 }
 export type DailyTracker = ReturnType<typeof useDailyTracker>

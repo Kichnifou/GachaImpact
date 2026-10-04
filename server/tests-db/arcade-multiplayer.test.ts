@@ -146,10 +146,11 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     const friends = await service.opponents(a.identity,true);
     expect(friends.opponents).toEqual([{ id: online.id, displayName: (await db.player.findUniqueOrThrow({ where: { id: online.id } })).displayName }]);
   }, 60000);
-  it('creates one durable invitation, resolves cancel silently, refuses once, and rejects changed intent', async () => {
+  it('notifies only the initial invitation, resolves cancel/refuse silently, and rejects changed intent', async () => {
     const a = await player(), b = await player(), outsider = await player();
     const input = { opponentPlayerId: b.id, game: 'CONNECT_FOUR' as const, difficulty: 'HARD' as const, friendsOnly: false, idempotencyKey: randomUUID() };
     const first = await service.invite(a.identity,input), again = await service.invite(a.identity,input);
+    expect(await db.notification.count({where:{playerId:b.id,typeKey:'ARCADE_INVITE'}})).toBe(1);
     expect(again).toEqual({ ...first, alreadyProcessed: true });
     expect(first.invitation).toMatchObject({ hostReady: true, guestReady: false, game: 'CONNECT_FOUR', difficulty: 'HARD', direction: 'OUTGOING', status: 'PENDING' });
     expect((await service.overview(b.identity)).invitation).toMatchObject({ id: first.invitation.id, direction: 'INCOMING' });
@@ -164,8 +165,11 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     expect((await db.notification.findFirstOrThrow({where:{playerId:b.id,typeKey:'ARCADE_INVITE'}})).state).toBe('RESOLVED');
     const next = await invite(a,b); const refuse={kind:'REFUSE' as const,idempotencyKey:randomUUID()};
     await service.actInvitation(b.identity,next.invitation.id,refuse); await service.actInvitation(b.identity,next.invitation.id,refuse);
-    expect(await db.notification.count({where:{playerId:a.id,typeKey:'ARCADE_INVITE_REFUSED'}})).toBe(1);
-    expect((await db.notification.findFirstOrThrow({where:{playerId:a.id}})).actionKey).toBeNull();
+    expect(await db.notification.count({where:{playerId:a.id}})).toBe(0);
+    expect(await db.notification.count({where:{playerId:b.id}})).toBe(2);
+    expect((await db.notification.findFirstOrThrow({where:{playerId:b.id,actionTargetId:next.invitation.id}})).state).toBe('RESOLVED');
+    expect((await service.overview(a.identity)).invitation).toBeNull();
+    expect((await service.overview(b.identity)).invitation).toBeNull();
   },60000);
   it('expires exactly at two minutes from notifications or overview and never starts at stale Ready', async () => {
     const a=await player(),b=await player(),first=await invite(a,b);
@@ -173,6 +177,7 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     expect((await service.overview(a.identity)).invitation?.id).toBe(first.invitation.id);
     now=new Date(+now+1);
     expect((await notifications.list(b.identity)).notifications).toEqual([]);
+    expect(await db.notification.count({where:{playerId:{in:[a.id,b.id]}}})).toBe(1);
     expect((await service.overview(a.identity)).invitation).toBeNull();
     await expect(service.actInvitation(b.identity,first.invitation.id,{kind:'READY',idempotencyKey:randomUUID()})).rejects.toMatchObject({code:'ARCADE_INVITATION_STALE'});
     const c=await player(),d=await player(),second=await invite(c,d);
@@ -205,6 +210,8 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     const serialized=JSON.stringify(bb);expect(serialized).not.toMatch(/randomState|observations|providerSubject|email|privateState/);
     expect(await db.arcadeSession.count({where:{playerId:a.id}})).toBe(1);
     expect(await db.notification.count({where:{playerId:a.id}})).toBe(0);
+    expect(await db.notification.count({where:{playerId:b.id}})).toBe(1);
+    expect((await db.notification.findFirstOrThrow({where:{playerId:b.id}})).state).toBe('RESOLVED');
   },60000);
   it.each(['MEMORY','CONNECT_FOUR','TIC_TAC_TOE'] as const)('%s enforces both human turns, stale versions and no AI; two simultaneous moves commit once',async game=>{
     const a=await player(),b=await player(),s=await ready(a,b,game,'EASY');
@@ -271,6 +278,7 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     expect(await economy([a.id,b.id])).toEqual(before);
     expect(await db.arcadeStat.count({where:{playerId:{in:[a.id,b.id]}}})).toBe(0);
     expect(await db.arcadeDailyGrant.count({where:{playerId:{in:[a.id,b.id]}}})).toBe(0);
+    expect(await db.notification.count({where:{playerId:{in:[a.id,b.id]}}})).toBe(1);
     expect((await invite(b,a)).invitation.status).toBe('PENDING');
   },60000);
   it('serializes A→B/B→A and blocks all cross-role solo or third-player invitations',async()=>{
@@ -300,9 +308,9 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     const row=await db.arcadeSession.findUniqueOrThrow({where:{id:s.id}}),stats=await db.arcadeStat.count({where:{playerId:{in:[a.id,b.id]}}});
     expect(['FINISHED','ABANDONED']).toContain(row.status);expect(stats).toBe(row.status==='FINISHED'?2:0);
   },60000);
-  it('simultaneous replays reserve a single invitation and never start immediately; unavailable opponent rejects',async()=>{
+  it('new manual PvP invitations after a result reserve once and still require an available opponent',async()=>{
     const a=await player(),b=await player(),s=await ready(a,b),move=await nearFinish(s.id,'TIC_TAC_TOE');await act(a,s.id,'MOVE',move);
-    const input={game:s.game,difficulty:s.difficulty,friendsOnly:false,replaySessionId:s.id};
+    const input={game:s.game,difficulty:s.difficulty,friendsOnly:false};
     const results=await Promise.allSettled([service.invite(a.identity,{...input,opponentPlayerId:b.id,idempotencyKey:randomUUID()}),service.invite(b.identity,{...input,opponentPlayerId:a.id,idempotencyKey:randomUUID()})]);
     expect(results.filter(row=>row.status==='fulfilled')).toHaveLength(1);
     expect(await db.arcadeSession.count({where:{playerId:a.id}})).toBe(1);
@@ -310,5 +318,33 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     await service.actInvitation(invitation.hostPlayerId===a.id?a.identity:b.identity,invitation.id,{kind:'CANCEL',idempotencyKey:randomUUID()});
     await db.playerSession.updateMany({where:{playerId:b.id},data:{endedAt:now}});
     await expect(service.invite(a.identity,{...input,opponentPlayerId:b.id,idempotencyKey:randomUUID()})).rejects.toMatchObject({code:'ARCADE_OPPONENT_UNAVAILABLE'});
+  },60000);
+  it.each(['host','guest'] as const)('solo replay by %s retains context and XP eligibility despite the old opponent being offline or busy',async who=>{
+    const a=await player(),b=await player(),s=await ready(a,b,'TIC_TAC_TOE','HARD'),move=await nearFinish(s.id,'TIC_TAC_TOE');
+    await act(a,s.id,'MOVE',move);
+    const replaying=who==='host'?a:b,other=who==='host'?b:a;
+    const oldResult=(await service.session(replaying.identity,s.id)).result;
+    const notificationCount=await db.notification.count({where:{playerId:{in:[a.id,b.id]},domainKey:'arcade'}});
+    await db.playerSession.updateMany({where:{playerId:other.id},data:{endedAt:now}});
+    await service.start(other.identity,{game:s.game,difficulty:s.difficulty,previousSessionId:s.id,expectedVersion:0,idempotencyKey:randomUUID()});
+    tick();
+    const input={game:s.game,difficulty:s.difficulty,previousSessionId:s.id,expectedVersion:0 as const,idempotencyKey:randomUUID()};
+    const started=await service.start(replaying.identity,input);
+    expect((await service.start(replaying.identity,input)).session).toEqual(started.session);
+    expect(started.session).toMatchObject({mode:'SOLO',game:s.game,difficulty:s.difficulty,opponent:null,participants:null});
+    expect(started.session.banter.text).not.toBe('');
+    expect((await db.arcadeSession.findUniqueOrThrow({where:{id:started.session.id}})).opponentPlayerId).toBeNull();
+    expect(['PLAYER','AI']).toContain(started.session.firstSide);
+    expect(await db.notification.count({where:{playerId:{in:[a.id,b.id]}}})).toBe(notificationCount);
+    if(started.session.board.turn==='AI') await act(replaying,started.session.id,'ADVANCE');
+    else { await act(replaying,started.session.id,'MOVE',0); await act(replaying,started.session.id,'ADVANCE'); }
+    const finishMove=await nearFinish(started.session.id,s.game);
+    const finished=await act(replaying,started.session.id,'MOVE',finishMove);
+    expect(finished.session.result!.xpAwarded).toBeGreaterThan(0);
+    expect(await db.arcadeDailyGrant.count({where:{playerId:replaying.id,game:s.game}})).toBe(1);
+    expect((await service.session(replaying.identity,s.id)).result).toEqual(oldResult);
+    expect(oldResult!.xpAwarded).toBe(0);
+    expect(await db.notification.count({where:{playerId:{in:[a.id,b.id]},domainKey:'arcade'}})).toBe(notificationCount);
+    expect(await db.arcadeInvitation.count({where:{status:'PENDING',OR:[{hostPlayerId:replaying.id},{guestPlayerId:replaying.id}]}})).toBe(0);
   },60000);
 });

@@ -4,6 +4,7 @@ import type { DailyItem } from './daily-summary'
 import type { DailyTracker } from './use-daily-tracker'
 import type { DailyClaimController } from './use-daily-claim'
 import { dailyTrackerStatus } from './daily-compact-presentation'
+import { useDailyResetCountdown } from './use-daily-reset-countdown'
 import './dailies.css'
 
 export type DailyCompactProps = { items: readonly DailyItem[]; tracker: DailyTracker; claim: DailyClaimController; onOpen: (item: DailyItem) => void; onOverview: () => void; refreshing?: boolean }
@@ -26,8 +27,10 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
     else onOpen(selected)
   }
   const currentMessage = claim.pending ? 'Récupération…' : claim.error || claim.feedback
-  const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id))?.deadline
-  const status = currentMessage || (selected ? dailyTrackerStatus(selected) : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
+  const completed = !selected && tracker.message === 'Terminé ✅'
+  const resetCountdown = useDailyResetCountdown(completed, tracker.businessDate)
+  const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id) && (item.state === 'waiting' || item.state === 'in_progress' || item.actionable))?.deadline
+  const status = currentMessage || (selected ? dailyTrackerStatus(selected) : completed ? resetCountdown : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
   const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
   return <section data-tutorial-anchor="daily-tracker" className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
     <button type="button" className="daily-tracker-hit-target" disabled={!actionable} aria-label={selected ? `${isClaim ? 'Récupérer' : 'Accéder à'} ${selected.title}` : 'Activité indisponible'} onClick={run} />

@@ -142,8 +142,6 @@ export class ArcadeInvitations {
           const status = input.kind === 'CANCEL' ? 'CANCELLED' : 'REFUSED';
           await resolveArcadeInvite(tx, row, status, now);
           row = { ...row, status, resolvedAt: now };
-          if (input.kind === 'REFUSE') await tx.notification.create({ data: { playerId: row.hostPlayerId, domainKey: 'arcade', typeKey: 'ARCADE_INVITE_REFUSED', deduplicationKey: `arcade-refused:${id}`,
-            payload: { invitationId: id, message: `${row.guest.displayName} a refusé votre invitation à ${arcadeGameNames[row.game as ArcadeGame]}.` }, createdAt: now } });
         }
         await resolveArcadeInviteNotification(tx, id, now);
         return { response: { invitation: projectInvitation(row, playerId), operationId, alreadyProcessed: false, session: startedSession }, invitationId: id, sessionId: row.sessionId ?? undefined };

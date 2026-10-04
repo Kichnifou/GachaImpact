@@ -77,7 +77,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 
 ### Séquence d'exécution finale — numéros conservés (R1032)
 
-Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; 28 déployée et partiellement recettée, reste ACTIVE jusqu'au smoke post-déploiement des correctifs performance/autostart approuvés indépendamment et promus sur main par cette mission. Leur déploiement et nouvelle recette restent à vérifier. 29 reste NON commencée, suivante après recette 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
+Le propriétaire choisit de terminer Arcade puis la passe commandes avant la finition transverse. L'étape 27 est différée après 29, jamais abandonnée. Étape 26 validée ; 28 déployée, correctifs performance/autostart publiquement validés dans leur périmètre ; reste ACTIVE pour le dernier candidat reset Quotidiennes/notifications invitation-only/Rejouer PvP vers SOLO. Clôture seulement après promotion, déploiement et recette finale de ce correctif. 29 reste NON commencée, suivante après clôture 28 selon le Master. Les numéros ci-dessous sont des IDs stables, pas des positions ordinales.
 
 | Étape | Périmètre dans l'ordre réel |
 | --- | --- |

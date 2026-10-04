@@ -461,17 +461,38 @@ describe('Multiplayer Arcade interface and polling', () => {
     await act(async()=>{await vi.advanceTimersByTimeAsync(5000);window.dispatchEvent(new Event('focus'))})
     expect(api.getArcade).toHaveBeenCalledTimes(calls)
   })
-  it('replay invites the same opponent/context; unavailable replay returns cleanly to idle with feedback', async()=>{
-    const finished={...multiplayer(),status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
-    api.getArcade.mockResolvedValue(overview([finished]))
-    api.inviteArcade.mockRejectedValue(new ApiError('ARCADE_OPPONENT_UNAVAILABLE','Ce joueur est indisponible.',409))
+  it.each((['MEMORY','CONNECT_FOUR','TIC_TAC_TOE'] as const).flatMap(game => (['PLAYER','AI'] as const).map(side => ({game,side}))))('replays finished $game for $side as solo with the same difficulty, independently of the old opponent', async ({game,side}) => {
+    vi.useFakeTimers()
+    const finished={...multiplayer(game,side),difficulty:'HARD' as const,status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
+    const solo={...session(game),id:'new-solo',difficulty:finished.difficulty}; solo.board.turn='AI'
+    api.getArcade.mockResolvedValue(overview([finished])); api.getArcadeOpponents.mockResolvedValue({opponents:[]})
+    api.startArcade.mockResolvedValue(mutation(solo)); api.actArcade.mockImplementation(() => new Promise(() => undefined))
     const {container}=await mount(<ArcadeScreen playerId="player-a" />)
-    await click(button(container,'Morpion'))
+    await click(button(container,game==='MEMORY'?'Memory':game==='CONNECT_FOUR'?'Puissance 4':'Morpion'))
     await click(button(container,'Rejouer'))
-    expect(api.startArcade).not.toHaveBeenCalled()
-    expect(api.inviteArcade.mock.calls[0]![0]).toMatchObject({opponentPlayerId:participantB.id,game:finished.game,difficulty:finished.difficulty,replaySessionId:finished.id})
-    expect(container.querySelector('.arcade-error')?.textContent).toContain('indisponible')
-    expect(button(container,'Commencer').disabled).toBe(false)
+    expect(api.startArcade).toHaveBeenCalledOnce(); expect(api.inviteArcade).not.toHaveBeenCalled()
+    expect(api.startArcade.mock.calls[0]![0]).toMatchObject({game,difficulty:'HARD',previousSessionId:finished.id,expectedVersion:0,idempotencyKey:expect.any(String)})
+    expect(api.startArcade.mock.calls[0]![0]).not.toHaveProperty('opponentPlayerId')
+    expect(container.querySelector('.arcade-versus')?.textContent).toContain('Adversaire')
+    expect(container.querySelector('.arcade-banter')?.textContent).toContain('Prêt.')
+    await act(async () => { await vi.advanceTimersByTimeAsync(750) })
+    expect(api.actArcade).toHaveBeenCalledWith('new-solo',expect.objectContaining({kind:'ADVANCE'}))
+  })
+  it('keeps the result and manual opponent selection separate from solo replay after PvP', async () => {
+    const finished={...multiplayer('MEMORY'),status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
+    const another={id:'another-player',displayName:'Autre joueur'}
+    api.getArcade.mockResolvedValue(overview([finished])); api.getArcadeOpponents.mockResolvedValue({opponents:[another]})
+    const {container}=await mount(<ArcadeScreen playerId="player-a" />)
+    expect(container.querySelector('.arcade-result')?.textContent).toContain('+8 score · +0 XP')
+    const select=container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!
+    expect(select.disabled).toBe(false); expect(select.value).toBe(''); expect(button(container,'Rejouer')).toBeTruthy()
+    await act(async () => { select.value=another.id; select.dispatchEvent(new Event('change',{bubbles:true})) })
+    expect(api.inviteArcade).not.toHaveBeenCalled()
+    api.inviteArcade.mockResolvedValue({invitation:{...challenge,game:'MEMORY',direction:'OUTGOING'},operationId:'new-invite',alreadyProcessed:false})
+    await click(button(container,'Prêt'))
+    expect(api.inviteArcade).toHaveBeenCalledOnce(); expect(api.startArcade).not.toHaveBeenCalled()
+    expect(api.inviteArcade.mock.calls[0]![0]).toMatchObject({opponentPlayerId:another.id,game:'MEMORY'})
+    expect(api.inviteArcade.mock.calls[0]![0]).not.toHaveProperty('replaySessionId')
   })
 })
 
