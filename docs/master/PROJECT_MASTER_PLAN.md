@@ -1,11 +1,55 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : promotion finale approuvée étape 28 — reset Quotidiennes, invitation seule notification, Rejouer SOLO, contrat API final et récompenses explicites.
+Version : clôture publique 28, clôture 27 par périmètre propriétaire et cadrage 29 / cutover progressif R1034.
 Date : 2026-10-04
-Statut : **Étapes 1–25 implémentation acquise ; étape 26 VALIDÉE PAR LE PROPRIÉTAIRE ; étape 28 ACTIVE, dernier lot et micro-correctif approuvés indépendamment, promus techniquement sur main.** Déploiement et recette publique finale de ce checkpoint NON acquis ici. Étape 29 NON COMMENCÉE, 27 différée. Séquence réelle 26→28→29→27→30→31→32. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
+Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 ACTIVE / PROCHAINE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel R1034 : **29 → 30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — promotion finale approuvée étape 28 du 04/10/2026
+## Point courant — clôture 27/28 et ouverture documentaire 29 du 04/10/2026
+
+**Gate exécuté :** fetch réussi, branche review et index/worktree propres ; HEAD = origin/main = origin/review = **6d61a9b1954165c78dfe56e025983fe2c90f6006**, divergence 0/0. Baseline et parent exact du checkpoint documentaire ; publication sur review uniquement, main inchangée, ahead 1/behind 0 et worktree propre vérifiés au rapport. Aucun code/test/package/migration modifié, aucun cutover ou activation Twitch, aucune mutation publique.
+
+**Preuves post-promotion reçues de ChatGPT, non réexécutées ici :** GitHub main==review au SHA exact 6d61a9b ; Railway production deployment **756f9dfd-0e81-46d1-ac42-d5b603c889b2**, commit exact **6d61a9b1954165c78dfe56e025983fe2c90f6006**, **SUCCESS / Online**, région **europe-west4-drams3a / EU West Amsterdam**, 1/1 running, 0 crashed/warning/critical. Predeploy : 60 migrations found / No pending migrations to apply, puis Application ready. Healthcheck Railway réel GET /health **HTTP 200**, environ **2,9 ms au contrôle de déploiement reçu**, pas un benchmark général. Dernière migration 20261003180000_060_add_arcade_multiplayer ; aucune 061. Aucune preuve Cloudflare distincte inventée.
+
+**Recette publique finale 28 VALIDÉE PAR LE PROPRIÉTAIRE :** les cinq contrôles reçus ferment la recette : (1) Terminé ✅ + Réinitialisation dans… sans readyAt Expédition déjà satisfaite présenté comme reset ; (2) refus résolu sans nouvelle notification hôte, invitation initiale seule Notification Arcade ; (3) Rejouer FINISHED MULTIPLAYER → nouvelle SOLO/IA même jeu/difficulté ; (4) nouveau PvP uniquement liste/sélection/Prêt, aucune revanche automatique ; (5) overflow niveau 100 affiche explicitement Récompenses : et toutes les rewards réelles visibles sans troncature. **28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE**, plus aucune recette 28 ACTIVE dans l'état courant.
+
+**Acquis conservés :** trois jeux/trois difficultés, présence/opponents/invitations, Prêt/Annuler/Refuser/start hors écran, sessions partagées/navigation/rejoin, Memory/Puissance 4/Morpion PvP, score des deux/0 XP, Quitter partagé/polling optimisé, Amsterdam, notification invitation-only, Rejouer SOLO/PvP manuel, ancien contrat replay supprimé, reset Quotidiennes, LevelUpFeedback overflow, autostart Tutoriel, Titres, présence Social/MP et self mention. Les anciennes preuves restent acquises dans leur périmètre ; clôture n'invente aucun test rare supplémentaire.
+
+**27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE :** fonctionnement jugé suffisamment stable ; le propriétaire préfère les bêtas et l'utilisation réelle pour détecter les anomalies rares. Cela ne signifie pas que tous les travaux envisagés ont été implémentés/exécutés. Aucune campagne supplémentaire de charge/responsive exhaustive/scénarios temporels artificiels obligatoire avant migration ; aucune optimisation coût, modification ContestScheduler/GiftCodeScheduler/cadences Chat/MP ou Serverless. La politique de rétention reste valide, ses protections conservées ; ce qui est implémenté reste actif selon ses gates, le non-implémenté devient backlog maintenance post-V1/besoin réel, sans obligation préalable au cutover.
+
+### Observations bêta / situations réelles — acceptées, non bloquantes (R1034)
+
+Les éléments suivants ne sont pas déclarés individuellement testés. Statut commun : **ACCEPTÉ — observation bêta / situation réelle, non bloquante** ; anomalie réellement observée → correctif borné, sans fabrication publique de progression/récompense/état pour obtenir une preuve.
+
+- Prochain snapshot naturel R911 ; polish visuel R912.
+- Variantes Apparence non spécifiquement observées.
+- Notifications naturelles de Missions et autres producteurs Notifications rares.
+- Calendrier de Noël naturel.
+- Transitions naturelles Event, Concours, Boss et Faveur.
+- Aliases techniques Tutoriel non testés manuellement.
+- Cas limites nécessitant de fabriquer artificiellement un état public.
+- Charge/performance Twitch.
+- Maintenance/rétention non indispensable au fonctionnement actuel ; travaux non implémentés en backlog post-V1, sans implémentation présumée.
+
+### Suite opérationnelle R1034 — numéros conservés
+
+**29 ACTIVE / PROCHAINE** : passe exhaustive de TOUTES les commandes !, aliases/sous-commandes ; syntaxe, préconditions/permissions, coûts/cooldowns, domaine propriétaire, données lues/écrites, succès/erreurs, idempotence, sorties exactes, différences legacy, Chat standalone et compatibilité Twitch future. Comparer systématiquement legacy/streamerbot/commands/*.txt et [command-reference](../commands/command-reference.md), tester d'abord dans le Chat standalone avec Kichnifou puis validation propriétaire des textes/comportements. Ce checkpoint cadre 29 ; aucun sweep ni code exécuté ici.
+
+29 prépare le futur remplacement transparent de Streamer.bot : syntaxes pertinentes/aliases conservés ou migration explicitement approuvée, réponses partagées lorsque pertinent, mêmes services PostgreSQL/économie/cooldowns, Twitch User ID immuable, état migré conservé sans réinscription manuelle due au backend. **Streamer.bot reste autoritatif aujourd'hui.** Préparer un gate natif OFF par défaut avec un seul propriétaire d'exécution par Player/message/commande, aucun double traitement/réponse/récompense, pilote Ceo/rollback puis batch après validation ; design/code exacts à décider dans les futurs lots 29 après lecture du runtime et des contraintes Streamer.bot. Aucun cutover Twitch en 29 ni activation dans ce checkpoint.
+
+**30 À FAIRE = FOUNDATION / REHEARSAL, pas cutover :** snapshot récent, 17 sources/0 chemin inconnu, résolution Twitch/mappings, plan purge/import, FK/catalogues, import privé/idempotence/rollback/absence de double reward/claim, sauvegarde/restauration et plan exact de 31. Aucune écriture publique de migration ; Streamer.bot reste autoritatif. **31 À FAIRE**, numéro unique en deux phases : **31A CANARY CEO**, premier autre joueur réel ciblé, migration Ceo uniquement et domaines partagés explicitement bornés, comparaison données personnelles/ressources/progression/Box/Team/statistiques/Faveur, commandes natives ciblées et aucun double traitement, gate/rollback propre ; autres Players Streamer.bot. **31B BATCH** seulement après validation propriétaire Ceo, nouvelle capture si nécessaire/rehearsal correspondante, population résolue/blockers=0, import/agrégats/bascule d'autorité/désactivation des chemins remplacés. Jamais de bascule globale automatique après 31A. [Contrat migration](../architecture/legacy-migration-v1.md) et [runbook](../process/legacy-cutover-runbook.md).
+
+**32 À FAIRE** : smoke final après batch/cutover, parcours principaux, anomalies réellement observées en bêta et stabilité V1. Les situations rares non survenues ne bloquent pas artificiellement la clôture. R1034 supersède R1032 sur l'ordre après 28, sans renumérotation ni suppression des protections de migration/rétention. Les sections anciennes ci-dessous sont historiques et ne redéclarent pas 27 différée, 28 ACTIVE ou les observations rares comme blockers courants.
+
+### Autorisations d'infrastructure payante — périmètre
+
+Railway Hobby / hébergement payant reste approuvé et confirmé payé par le propriétaire, sans vérification directe de facturation Codex/ChatGPT. Autorisation limitée au service Railway existant ; toute nouvelle dépense/fournisseur/environnement/Redis/Realtime/service tiers exige un accord explicite. Amsterdam europe-west4-drams3a/1 replica acquis ; Supabase Europe centrale, schedulers inchangés, aucune optimisation infra dans ce lot. Ce registre courant conserve le périmètre précédemment confirmé.
+
+**Contrôles documentaires exécutés :** IDs vérifiés au gate, **R1034 libre créé** avec une seule définition canonique, R1032 explicitement supersédée après 28 ; sources courantes de statut/commandes/migration/runbook/rétention alignées, recherche de contradictions effectuée et états passés conservés comme historiques. 229 liens locaux/ancres contrôlés dans les 12 documents modifiés, dont 7 nouveaux liens valides ; aucune nouvelle cible/ancre introuvable. Cinq anciennes ancres introuvables également présentes au parent restent signalées hors périmètre (Gift Lot 12 et ancienne reprise Master depuis l'architecture, Giveaway depuis le Master, R671/R672 depuis le journal). git diff --check réussi. Aucun test code requis ni relancé, aucun lot DB/Prisma modifié : pas de nouvelle commande Prisma ni mutation publique ; les preuves de déploiement/60 migrations/health sont celles reçues ci-dessus.
+
+**Prochaine action exacte : REVIEW INDÉPENDANTE CHATGPT DU CHECKPOINT DOCUMENTAIRE, PUIS OUVERTURE DE L'ÉTAPE 29 — PASSE EXHAUSTIVE DE TOUTES LES COMMANDES !. STOP.** Aucune promotion main, activation Twitch, migration publique ou cutover dans cette mission.
+
+## Historique — promotion finale approuvée étape 28 du 04/10/2026 (6d61a9b)
 
 **Gate initial exécuté :** fetch réussi, branche review, index/worktree propres ; origin/main = **e3a54e441b385554de211122602f3e8ae154b7f1**, HEAD = origin/review = **8696c1a3eab6b8db571cae9f92ea2e0312eebdfe**, ahead 2/behind 0. Chaîne exacte e3a54e4 → **6d2ac468e7feb11e8158c6be5bd838ee9ab69309** → 8696c1a3 ; parent du micro-correctif 6d2ac46. Aucun commit inattendu. Ce checkpoint exclusivement documentaire a pour parent exact 8696c1a3 ; publié normalement sur review puis main avancée par fast-forward strict, sans merge commit/rebase/squash/force-push. SHA commun et divergence 0/0 contrôlés au rapport après publication, worktree review propre.
 
@@ -15,7 +59,7 @@ But : porter l’état réel, les preuves, les décisions et la prochaine repris
 
 **Infrastructure reçue/acquise :** ChatGPT a officiellement vérifié Railway GachaImpact **EU West / Amsterdam**, région **europe-west4-drams3a**, 1 replica/1 sur 1 running, zéro crashed, aucun volume, warning ou critical ; ancien déploiement Virginia/iad supprimé. Le propriétaire confirme une amélioration majeure de réactivité, sans benchmark chiffré inventé. Supabase reste Europe centrale. Ces preuves concernent le service déjà public ; la région et le déploiement du nouveau checkpoint restent à contrôler après promotion.
 
-### Autorisations d'infrastructure payante — périmètre
+### Autorisations d'infrastructure payante — périmètre historique de la promotion 6d61a9b
 
 **Railway Hobby / hébergement payant : approuvé et confirmé payé par le propriétaire.** Confirmation propriétaire reçue dans cette mission ; ni Codex ni ChatGPT ne revendiquent une vérification directe de facturation. Autorisation limitée au service Railway existant, sans autorisation générale pour autre fournisseur, nouvelle infrastructure/environnement, Redis, Realtime ou service tiers payant. Toute nouvelle dépense nécessite un accord explicite du propriétaire sur son périmètre. Ce registre remplace le booléen global ambigu ; les mentions historiques PAID_INFRA_APPROVED=false ci-dessous décrivent uniquement leur état à l'époque et ne font plus autorité pour l'état courant. AGENTS/README et le propriétaire déploiement renvoient à ce registre.
 

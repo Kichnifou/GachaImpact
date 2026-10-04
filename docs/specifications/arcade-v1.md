@@ -2,7 +2,7 @@
 
 ## Multijoueur Arcade — étape 28
 
-Extension R1028–R1031 et correctifs performance/autostart déployés via e3a54e4/060/60 migrations ; recette publique réactivité/fluidité acquise dans son périmètre. Dernier lot 6d2ac46 et micro-correctif 8696c1a3 approuvés indépendamment par ChatGPT et promus techniquement sur main : R1029/R1030 révisées (refus silencieux, Rejouer PvP vers SOLO), contrat API final sans revanche et rewards LevelUpFeedback explicites. Aucun correctif code supplémentaire ; déploiement et recette publique finale de ce checkpoint NON acquis ici. Étape 28 reste ACTIVE. État et preuves au [Master](../master/PROJECT_MASTER_PLAN.md). Règles et preuves solo historiques préservées, sans attribuer rétroactivement le multijoueur à R970–R1006.
+Étape 28 **VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE** sous R1034 : lot 6d2ac46 et micro-correctif 8696c1a3 promus via 6d61a9b, déploiement Railway exact SUCCESS/Online Amsterdam, 60 migrations/060, Application ready et health 200 reçus. Recette finale publique acquise : reset Quotidiennes, refus silencieux/invitation seule notification, Rejouer PvP vers SOLO, nouvelle invitation humaine manuelle et rewards overflow explicites sans troncature. Les acquis trois jeux/trois difficultés/invitations/présence/start hors écran/sessions partagées/navigation/rejoin/score des deux/0 XP/Quitter/polling sont conservés. État et preuves au [Master](../master/PROJECT_MASTER_PLAN.md) ; observations rares acceptées en bêta/non bloquantes, sans tests inventés. Historique solo préservé sans attribuer rétroactivement le PvP à R970–R1006.
 
 ### Interface et adversaires
 

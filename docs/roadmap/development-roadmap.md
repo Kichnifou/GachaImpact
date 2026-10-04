@@ -127,7 +127,7 @@ Objectifs :
 
 Le jeu doit rester entièrement utilisable sans Twitch.
 
-Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. La conservation définitive de l’intégration dépend de la recette technique 27 ; la passe exhaustive commandes/sorties et leur validation propriétaire appartient à 29 avant migration ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
+Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. R1034 clôture 27 par périmètre et reclasse charge/performance en observation bêta non bloquante ; 29 ACTIVE porte la passe exhaustive commandes/sorties, leur validation propriétaire et la préparation d'une bascule transparente. Aucune activation Twitch en 29 ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
 
 ---
 
@@ -144,13 +144,13 @@ Après implémentation fonctionnelle suffisante :
 - résilience ;
 - nettoyage des dettes techniques justifiées.
 
-Le lot transverse de finition implémente la [politique canonique de rétention](../specifications/data-retention-v1.md) après audit des statistiques, états, FK, claims, idempotence et preuves de chaque domaine, avec maintenance DB. La recette finale Twitch couvre trafic ordinaire/spam/multi-auteurs/commandes, latence webhook/API, pool PostgreSQL, UI, Chat/MP, retries et doubles effets. La cible des messages ordinaires en mémoire sans persistance inutile sera évaluée à cette passe ; les durées décidées ne prouvent pas que ces purges sont déjà physiques.
+R1034 clôture le lot transverse 27 par décision de périmètre propriétaire, sans affirmer que tous ses travaux ont été exécutés. La [politique canonique de rétention](../specifications/data-retention-v1.md) et ses protections restent valables : ce qui est implémenté reste actif selon ses gates ; purges et maintenance non implémentées deviennent backlog post-V1/besoin réel, non obligatoires avant cutover. Charge/performance Twitch et validations rares deviennent observations bêta/situation réelle non bloquantes, sans nouvelle campagne artificielle imposée ni test inventé. Une anomalie observée ouvre un correctif borné ; les protections contre doubles effets restent obligatoires pour la migration et la bascule d'autorité.
 
 ---
 
 ## Séquence de clôture avant migration globale
 
-Suivre [implementation-order-v1.md](implementation-order-v1.md), R1032 : 25 Tutoriel/Help/Aide → 26 recette globale validée par le propriétaire → 28 Multijoueur Arcade → 29 passe exhaustive commandes ! → 27 finition technique/visuelle, rétention et décision Twitch → 30 foundation/rehearsal → 31 cutover distinct → 32 validation finale. Tous les numéros sont conservés. Le propriétaire veut achever Arcade et les commandes avant la finition transverse : 27 est différée après 29, pas abandonnée. Les contrats spécialisés définissent la cible ; le Master seul porte les statuts et prochaines actions.
+Suivre [implementation-order-v1.md](implementation-order-v1.md), R1034 supersédant R1032 après 28 : 26 et 28 VALIDÉES / CLÔTURÉES, 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; puis **29 ACTIVE → 30 foundation/rehearsal privée → 31A Ceo → 31B batch → 32 validation finale**. Tous les numéros sont conservés. 29 prépare le remplacement Twitch transparent sans activation ; 30 ne fait aucune écriture publique de migration ; 31B exige la validation propriétaire du pilote Ceo, sans bascule globale automatique. Streamer.bot reste autoritatif jusqu'au transfert effectif de chaque périmètre. Les contrats spécialisés définissent la cible ; le Master porte les preuves et prochaines actions.
 
 ## Principe final
 
