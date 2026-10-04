@@ -62,7 +62,7 @@ export class PrismaBankingStore implements BankingStore {
           if (existing) {
             assertMatchingOperation(existing.playerId, existing.operationType, existing.resultSummary, input.playerId, operationType, requestedAmount);
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('BANK_IDEMPOTENCY_CONFLICT', 'Cette opération Banque est encore en cours.');
-            return this.completedResult(transaction, input.playerId, account.balance, existing.id, true);
+            return this.completedResult(transaction, input.playerId, account.balance, existing.id, true, resolvedTransferAmount(existing.resultSummary));
           }
 
           const wallet = await lockWallet(transaction, input.playerId);
@@ -103,7 +103,7 @@ export class PrismaBankingStore implements BankingStore {
             completedAt: input.occurredAt,
             resultSummary: { requestedAmount, resolvedAmount: amount.toString(), walletMoras: walletChange.balanceAfter.toString(), bankMoras: bankBalanceAfter.toString() },
           } });
-          return this.completedResult(transaction, input.playerId, bankBalanceAfter, operation.id, false);
+          return this.completedResult(transaction, input.playerId, bankBalanceAfter, operation.id, false, amount);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
@@ -137,8 +137,8 @@ export class PrismaBankingStore implements BankingStore {
     return { playersProcessed, daysProcessed };
   }
 
-  private async completedResult(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint, operationId: string, alreadyProcessed: boolean): Promise<BankTransferResult> {
-    return { ...(await readState(transaction, playerId, bankMoras)), operation: { id: operationId, alreadyProcessed } };
+  private async completedResult(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint, operationId: string, alreadyProcessed: boolean, resolvedAmount: bigint): Promise<BankTransferResult> {
+    return { ...(await readState(transaction, playerId, bankMoras)), resolvedAmount, operation: { id: operationId, alreadyProcessed } };
   }
 
   private async readCompletedRetry(playerId: string, operationType: string, requestedAmount: string, idempotencyKey: string, businessDate: string, now: Date, sourceChannel: SourceChannel): Promise<BankTransferResult | null> {
@@ -147,7 +147,7 @@ export class PrismaBankingStore implements BankingStore {
     assertMatchingOperation(existing.playerId, existing.operationType, existing.resultSummary, playerId, operationType, requestedAmount);
     if (existing.status !== OperationStatus.COMPLETED) return null;
     const state = await this.getState(playerId, businessDate, now);
-    return { ...state, operation: { id: existing.id, alreadyProcessed: true } };
+    return { ...state, resolvedAmount: resolvedTransferAmount(existing.resultSummary), operation: { id: existing.id, alreadyProcessed: true } };
   }
 
   private async withRetry<T>(operation: () => Promise<T>): Promise<T> {
@@ -254,6 +254,12 @@ function toOperation(row: { id: string; transactionType: string; amount: bigint;
 
 function serializeRequestedAmount(amount: BankTransferInput['amount']): string {
   return amount === 'max' ? amount : amount.toString();
+}
+
+function resolvedTransferAmount(value: Prisma.JsonValue): bigint {
+  const summary = value && typeof value === 'object' && !Array.isArray(value) ? value : null;
+  if (typeof summary?.resolvedAmount !== 'string' || !/^[1-9]\d*$/u.test(summary.resolvedAmount)) throw new Error('Completed bank transfer has no resolved amount.');
+  return BigInt(summary.resolvedAmount);
 }
 
 function assertMatchingOperation(existingPlayerId: string | null, existingType: string, resultSummary: Prisma.JsonValue, playerId: string, operationType: string, requestedAmount: string): void {

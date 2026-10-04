@@ -138,15 +138,24 @@ describe('Banking persistence', { timeout: 20_000 }, () => {
     const playerId = await createPlayer(1_000n);
     const store = new PrismaBankingStore(database);
     const depositKey = randomUUID();
-    expect((await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).operation.alreadyProcessed).toBe(false);
-    expect((await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).operation.alreadyProcessed).toBe(true);
+    expect(await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).toMatchObject({ resolvedAmount: 1_000n, operation: { alreadyProcessed: false } });
+    expect(await store.transfer(transfer(playerId, 'deposit', 'max', depositKey))).toMatchObject({ resolvedAmount: 1_000n, operation: { alreadyProcessed: true } });
     await expect(store.transfer(transfer(playerId, 'deposit', 1_000n, depositKey))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
 
     const withdrawKey = randomUUID();
-    expect((await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).operation.alreadyProcessed).toBe(false);
-    expect((await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).operation.alreadyProcessed).toBe(true);
+    expect(await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).toMatchObject({ resolvedAmount: 1_000n, operation: { alreadyProcessed: false } });
+    expect(await store.transfer(transfer(playerId, 'withdraw', 'max', withdrawKey))).toMatchObject({ resolvedAmount: 1_000n, operation: { alreadyProcessed: true } });
     await expect(store.transfer(transfer(playerId, 'withdraw', 1_000n, withdrawKey))).rejects.toMatchObject({ code: 'BANK_IDEMPOTENCY_CONFLICT' });
     expect(await database.bankTransaction.count({ where: { playerId } })).toBe(2);
+  });
+
+  it('returns the persisted MAX amount after balances change, including concurrent replays', async () => {
+    const playerId = await createPlayer(1_000n), store = new PrismaBankingStore(database), key = randomUUID();
+    await store.transfer(transfer(playerId, 'deposit', 'max', key));
+    await store.transfer(transfer(playerId, 'withdraw', 300n));
+    const replays = await Promise.all([store.transfer(transfer(playerId, 'deposit', 'max', key)), store.transfer(transfer(playerId, 'deposit', 'max', key))]);
+    for (const result of replays) expect(result).toMatchObject({ resolvedAmount: 1_000n, walletMoras: 300n, bankMoras: 700n, operation: { alreadyProcessed: true } });
+    expect(await database.bankTransaction.count({ where: { playerId, transactionType: 'DEPOSIT' } })).toBe(1);
   });
 
   it('serializes concurrent transfers without negative balances', async () => {

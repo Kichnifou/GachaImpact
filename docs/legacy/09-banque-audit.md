@@ -1,5 +1,7 @@
 # 09 — Audit legacy Banque
 
+**Révision propriétaire étape 29 — R1037 :** Banque.txt : messages/emojis/noms réels et aliases historiques deposer/depose/déposer/dépose, retirer/retire/retiré/retirée rétablis ; Help canonique, aucun !bank. MAX résolu transactionnellement, resolvedAmount exposé depuis l’opération existante et identique au replay. Aucun changement de frais/cooldown/plafond/stats/intérêts, aucune migration. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
+
 Statut : CLÔTURÉ — R237 À R255 VALIDÉS
 Date : 2026-08-31
 

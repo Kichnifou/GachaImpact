@@ -2,7 +2,7 @@
 
 Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
 
-État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` et `team` restent des consultations synthétiques : leurs sous-commandes historiques de tri ou de mutation ne font pas partie de ce branchement. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `legende` consulte désormais le propriétaire Social/Concours en lecture seule, avec les permissions R565 précisées ci-dessous ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
+État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` possède maintenant les listes complètes, filtres, pages, favoris et tris textuels R1037 ; `team` reste une consultation synthétique sans sous-commandes historiques de mutation. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `legende` consulte désormais le propriétaire Social/Concours en lecture seule, avec les permissions R565 précisées ci-dessous ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
 
 La fondation Twitch runtime phase 1 promue techniquement sur `main` enregistre uniquement des reçus d'observation internes. La phase 2A promue techniquement sur `main` prépare un webhook entrant signé, toujours OFF et sans souscription EventSub. La Phase 2B-1 approuvée et promue techniquement sur `main` prépare seulement l’autorisation Chat et le manager GET/POST EventSub, sans consentement réel déclenché ni souscription publique créée. Le transport 2B-2 a été validé publiquement dans le périmètre porté au Master, puis mis en pause R942 ; il code l’UI pilote, l’activation volontaire après OAuth, le statut Twitch, la désactivation et l’unlink sûr ; production reste OFF après promotion. La souscription écoute tous les chatters de la chaîne Kichnifou : `user_id` n’est pas un filtre auteur. Le webhook n’écrit que des reçus avec hash du texte, aucun GlobalChatMessage standalone. Aucun scope `user:write:chat`, aucune commande ou réponse Twitch n’est ajouté. Le transport Chat générique n’exécute aucune commande ni réponse. Les pilotes spécialisés Faveur, Gift et Giveaway ont leurs preuves propres au Master ; seul Giveaway/Wish a un consumer natif et des annonces dédiées, désactivé hors pilote. Streamer.bot reste autoritatif hors ces essais explicitement autorisés ; aucune bascule globale.
 
@@ -292,6 +292,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 ## `!box`
 - **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
 - **But :** Consulter et organiser les personnages possédés.
+- **Syntaxe Help :** `!box [5|4|6|élément|pN|favoris [personnage]|a|d|c|e]` ; aucun alias racine.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Bouton UI équivalent :** écran Box complet
@@ -309,6 +310,18 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Présentation Twitch :** peut conserver un format différent de l'UI ; `!box favoris <nom>` cible cependant désormais un nom exact normalisé et ne conserve pas le fallback legacy par nom partiel
 - **Données dérivées :** taille Box, nombre de C6 et total copies
 - **Personnage désactivé :** invisible/inutilisable côté joueur
+
+### Contrat Chat Box — étape 29, R1037
+
+- `!box` : `✅ P, ta Box [tri ↑/↓] : ⭐⭐⭐⭐⭐ ... | ⭐⭐⭐⭐ ...` ; TOUS les personnages actifs possédés, tri mémorisé dans chaque rareté, 5★ puis 4★. Entrée : emoji élément + nom + `(Cn)`, jamais copies. Vide : `⚠️ P, ta Box est vide pour le moment.`.
+- `5` / `4` : `✅ P, Box ⭐⭐⭐⭐⭐ : ...` / quatre étoiles ; aucun résultat : `⚠️ P, tu n’as aucun personnage 5★.` (ou 4★).
+- `6` = exactement C6 : `✅ P, Box C6 [tri ↑/↓] : ⭐⭐⭐⭐⭐ ... | ⭐⭐⭐⭐ ...` ; vide : `⚠️ P, tu n’as aucun personnage C6.`.
+- Les sept éléments acceptent casse/accents ; exemple `✅ P, Box 🔥 Pyro [tri ↑/↓] : ⭐⭐⭐⭐⭐ ... | ⭐⭐⭐⭐ ...` ; vide : `⚠️ P, tu n’as aucun personnage Pyro.`.
+- `pN` entier positif : jusqu’à cinq 5★ puis cinq 4★, compléter les places manquantes avec l'autre rareté, avancer les index entre pages, dix maximum. `✅ P, Box pN [tri ↑/↓] : ...` ; page vide : `⚠️ P, cette page est vide.` ; p invalide = syntaxe canonique.
+- `favoris` : `⭐ Favoris de P : ...`, uniquement favoris possédés, alphabétique, liste complète ; vide : `⚠️ P, tu n’as aucun favori. Utilise : !box favoris NomPerso`.
+- `favoris <personnage>` : nom exact normalisé/possédé, aucun fallback partiel ; SetBoxCharacterFavorite existant. `✅ P, C ajouté aux favoris.` / `retiré des favoris.` ; introuvable : `⚠️ P, personnage introuvable dans ta Box.`.
+- `a/d/c/e` : alphabétique/date d’obtention/constellation/élément. Autre tri = ascendant ; même tri répété = inversion. SetBoxSortPreference existant ; `✅ P, tri de Box enregistré : alphabétique (ascendant).` (label/direction réels). Intentions de mutation mémorisées par message pour que le retry réapplique le même état. Préférence et favoris communs à l'UI, présentation Chat indépendante de la priorité favoris UI ; aucun changement UI.
+- Toutes les listes sont complètes, découpage opt-in entre personnages entiers à 500 caractères ; suites `✅ Box suite :` / `⭐ Favoris suite :`. Aucune troncature, « et N autres », coupure de nom, doublon ou perte. Les autres commandes string conservent leur publication existante.
 
 ## `!obtention`
 - **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé
@@ -552,6 +565,14 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
 - **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne candidats réutilisent ce service. Twitch et l’import legacy `usedCodes` restent non implémentés.
 
+### Contrat Chat Codes — étape 29, R1037
+
+- `!code` conserve la découverte moderne : `🎁 Codes disponibles : CODE1, CODE2, ... | Récupérés : N.` ; vide : `🎁 Aucun code cadeau disponible actuellement. Récupérés : N.`. Tous les tokens ; split opt-in seulement entre tokens si nécessaire, suites `🎁 Codes suite :`, aucun « et N autres ».
+- `!code <CODE>` insensible à la casse, édition du Player mémorisée pour le retry ; moteur GiftCodeService inchangé, atomique/idempotent, notifications et statistiques autoritatives.
+- Succès : `✅ P a utilisé CODE ! +💠1 600 Primogemmes (12 500) | +🪙200 000 Moras (850 000) | +200 particules 🔥 Pyro (1 250) | description éventuelle`. Valeurs d'exemple seulement : récompenses réellement positives et nouveaux totaux du snapshot resources retourné par claim ; description moderne si non vide. Ordre Primogemmes, Moras, puis Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro ; aucun montant Festival hardcodé.
+- Déjà récupéré : `⚠️ P, tu as déjà utilisé le code CODE.`. Inconnu/expiré/hors fenêtre/désactivé : `⚠️ Ce code cadeau n’est pas disponible.`, sans détail Admin. Replay technique confirmé continue le claim idempotent sans second paiement.
+- Ponctuel une fois/Player, annuel une fois/Player/édition, Economy/publication/notification/Admin inchangés ; aucun gift_codes.json runtime. Help `!code [CODE]`, aucun alias racine.
+
 ## `!event`
 
 - **Statut audit :** CLÔTURÉ — Domaine Event / monthly après R644
@@ -678,12 +699,21 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Intérêt :** 3 % quotidien automatique au reset serveur, arrondi inférieur
 - **Intérêt hors ligne :** oui
 - **Message consultation :** une seule ligne, conserve emojis legacy, soldes, intérêt estimé et aide dépôt/retrait
-- **Format cible :** `🏦 Banque <joueur> : X moras | 💰 Portefeuille : Y | Intérêt estimé (3%) : +Z | 📥 !banque deposer X | 📤 !banque retirer X`
+- **Format cible :** `🏦 Banque <joueur> : X Moras | 💰 Portefeuille : Y | Intérêt estimé (3%) : +Z | 📥 !banque deposer X | 📤 !banque retirer X`
 - **UI :** MAX remplit l'input sans muter, intérêt estimé, compte à rebours, patrimoine total dérivé, cinq opérations récentes et animation légère
 - **Historique :** complet et privé dans une modale Banque, paginée côté serveur par dix opérations newest-first
 - **Profil :** solde Banque exposable selon Public / Amis / Privé
 - **Migration :** wallet/banque/stats exacts ; aucun historique ou intérêt rétroactif inventé
 - **Interactions reportées :** `!top moras` / Classements à auditer séparément pour respecter la confidentialité Banque
+
+### Contrat Chat Banque — étape 29, R1037
+
+- Help canonique : `!banque [deposer|retirer <montant|max>]` ; invalidité = `Syntaxe : !banque [deposer|retirer <montant|max>].` ; aucun !bank. Dépôt accepte deposer/depose/déposer/dépose ; retrait retirer/retire/retiré/retirée (retire/retiree normalisés). Entiers strictement positifs ou max, sans abréviation.
+- Succès : `✅ P dépose X Moras à la banque. Banque : Y | Sur toi : Z` / `✅ P retire X Moras de la banque. Banque : Y | Sur toi : Z`.
+- X est resolvedAmount autoritatif : MAX reste résolu sous les verrous de la transaction Banque ; replay relit resultSummary.resolvedAmount existant, même montant sans double mouvement, aucune migration. Aucun calcul MAX depuis un solde lu dans le dispatcher.
+- Portefeuille insuffisant : `⚠️ P, tu n’as pas assez de Moras. Portefeuille : X.` ; Banque insuffisante : `⚠️ P, tu n’as pas assez de Moras en banque. Banque : X.`.
+- MAX vide : `⚠️ P, tu n’as aucun Mora à déposer.` / `⚠️ P, tu n’as aucun Mora à retirer.`.
+- Règles modernes conservées : aucun frais/cooldown/plafond, atomicité/soldes non négatifs, stats earned/spent neutres, intérêts 3 % au reset serveur Europe/Paris/offline/arrondi inférieur, aucune notification Twitch spontanée. Réponse normale unique.
 
 ## `!sac`
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
@@ -716,6 +746,14 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **ID inconnu :** possession conservée sous placeholder
 - **Migration :** quantité préservée ; dates absentes → fallback cutover traçable
 - **UI standalone :** montre aussi les objets non possédés et leur méthode d'obtention
+
+### Contrat Chat Coffre — étape 29, R1037
+
+- `!coffre`, aucun argument/alias ; syntaxe invalide : `Syntaxe : !coffre.`.
+- `🏆 Coffre de P | emoji objet (xN) | ...` ; TOUS les objets Collection possédés de quantité >0, tri alphabétique par displayName, emoji sans influence sur le tri. Aucune acquisition/récompense/mutation.
+- Douze clés stables modernes : lanterne_nouvel_an 🎆, coeur_cristallin 💖, bourgeon_eternel 🌱, oeuf_enchante 🥚, fleur_de_printemps 🌸, coquillage_dore 🏝️, etoile_filante ⭐, boussole_antique 🧭, gerbe_de_recolte 🌾, citrouille_hantee 🎃, feuille_ancienne 🍁, flocon_enchante ❄️. Petit mapping Chat externalKey, noms modernes affichés ; inconnu/non mappé conservé : `❔ displayName (xN)`.
+- Vide : `ℹ️ P, ton Coffre est vide. Les objets de Collection s’obtiennent avec !event collection.`.
+- Split opt-in entre objets entiers à environ 450 caractères, suites `🏆 Coffre suite | ...` ; aucun nom ni (xN) coupé, aucune troncature, doublon ou « et N autres ». L'ordre mensuel legacy n'est pas restauré.
 
 ## `!shop`
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298

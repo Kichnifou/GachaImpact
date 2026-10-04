@@ -388,6 +388,41 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
   });
 
+  it('publishes opt-in parts with stable ordering and one atomic winner for concurrent retries', async () => {
+    const id = await player(0n), sent = await service.send(as(id), '!coffre', randomUUID());
+    const parts = ['🏆 Coffre de Joueur | ❔ Objet composé (x2)', '🏆 Coffre suite | ❔ Deuxième objet (x1)'];
+    const results = await Promise.all([service.publishGameResult(sent.message.id, parts), service.publishGameResult(sent.message.id, parts)]);
+    expect(results[0]!.messages.map(message => message.content)).toEqual(parts);
+    expect(results[1]!.messages.map(message => message.id)).toEqual(results[0]!.messages.map(message => message.id));
+    const replay = await service.publishGameResult(sent.message.id, ['Une projection ultérieure différente']);
+    expect(replay.messages.map(message => message.content)).toEqual(parts);
+    expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(2);
+  });
+
+  it('rolls back every opt-in part when a later insert fails', async () => {
+    const id = await player(0n), sent = await service.send(as(id), '!coffre', randomUUID());
+    const rejected = 'fail-' + randomUUID(), schema = fixture.schema;
+    await fixture.admin.query(`CREATE FUNCTION "${schema}".reject_chat_part() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.content = '${rejected}' THEN RAISE EXCEPTION 'part failure'; END IF; RETURN NEW; END $$`);
+    await fixture.admin.query(`CREATE TRIGGER reject_chat_part BEFORE INSERT ON "${schema}".global_chat_messages FOR EACH ROW EXECUTE FUNCTION "${schema}".reject_chat_part()`);
+    try {
+      await expect(service.publishGameResult(sent.message.id, ['Première entrée intacte', rejected])).rejects.toThrow('part failure');
+      expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(0);
+    } finally {
+      await fixture.admin.query(`DROP TRIGGER reject_chat_part ON "${schema}".global_chat_messages`);
+      await fixture.admin.query(`DROP FUNCTION "${schema}".reject_chat_part()`);
+    }
+    const retry = await service.publishGameResult(sent.message.id, ['Première entrée intacte', 'Deuxième entrée intacte']);
+    expect(retry.messages).toHaveLength(2);
+  });
+
+  it('rejects unbounded or empty opt-in parts before any publication', async () => {
+    const id = await player(0n), sent = await service.send(as(id), '!box', randomUUID());
+    for (const parts of [[], [''], ['ok', 'x'.repeat(501)], ['line\nbreak']]) {
+      await expect(service.publishGameResult(sent.message.id, parts)).rejects.toMatchObject({ code: 'CHAT_INVALID' });
+    }
+    expect(await service.findGameResults(sent.message.id)).toEqual([]);
+  });
+
   it('replays a confirmed bank transfer after result publication fails, without a second debit', async () => {
     const id = await player();
     await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'moras' } }, data: { amount: 1_000n } });
@@ -398,7 +433,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     } finally { publish.mockRestore(); }
     expect((await commandServices.getCurrentPlayerBank.execute(as(id))).bankMoras).toBe(100n);
     const retry = await dispatcher.send(as(id), '!banque deposer 100', key);
-    expect(retry.result?.content).toContain('Banque : 100 Moras');
+    expect(retry.result?.content).toContain('dépose 100 Moras à la banque. Banque : 100 | Sur toi : 900');
     expect(retry.refreshScopes).toEqual(expect.arrayContaining(['bank', 'resources']));
     expect((await commandServices.getCurrentPlayerBank.execute(as(id))).walletMoras).toBe(900n);
     expect(await db.bankTransaction.count({ where: { playerId: id, transactionType: 'DEPOSIT' } })).toBe(1);

@@ -1,5 +1,7 @@
 # 19 — Audit Codes cadeaux
 
+**Révision propriétaire étape 29 — R1037 :** Code.txt : découverte !code sans argument conservée (amélioration moderne), tous les tokens disponibles et compte récupérés ; split opt-in entre tokens si nécessaire. Claim présenté avec récompenses positives et nouveaux totaux du snapshot autoritatif retourné, ordre Primos/Moras/sept éléments, description moderne éventuelle. Erreurs player-facing déjà utilisé/indisponible sans détail Admin. GiftCodeService/Economy/notifications/publication/ponctuel/annuel/idempotence inchangés. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
+
 > Domaine 16 de l'audit GachaImpact.  
 > Statut : **CLÔTURÉ — décisions produit R673 à R691 validées ; clôture technique finalisée**.  
 > Ce document est la source spécialisée validée du domaine Codes cadeaux.  

@@ -21,6 +21,7 @@ export type BankState = Readonly<{
 }>;
 
 export type BankTransferResult = BankState & Readonly<{
+  resolvedAmount: bigint;
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
 }>;
 

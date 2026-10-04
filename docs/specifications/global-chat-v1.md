@@ -1,5 +1,7 @@
 # Chat global V1 — contrat produit
 
+**Résultats opt-in — étape 29, R1037 :** les listes Box/Coffre et les listes longues de tokens Code peuvent fournir plusieurs parties déjà bornées à des entrées entières. GlobalChatService accepte string ou parties explicites : la string conserve le découpage existant, les parties ne sont pas redécoupées au milieu d'un nom/token et sont validées à 500 caractères/monoligne chacune. Publication de toutes les GAME_RESULT dans la même transaction, identifiants de source stables et replay dans le même ordre, zéro publication partielle/doublon en concurrence. Missions annexées à la dernière partie seulement si elles tiennent entières. Aucun changement des commandes string, du transport/API externe ou de Twitch. [Contrats](../commands/command-reference.md).
+
 Statut : décisions produit validées. Le Chat global player-facing est matérialisé par les migrations 032–035 et 039, ses routes et le `ChatPanel` réel, avec resynchronisation UI ciblée. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul l'état vivant et la validation publique. Le socle serveur/DB et le premier vertical UI des MP sont matérialisés sur main par les migrations 036–039 dans le même panneau Communauté ; leurs règles restent celles de [l'audit Social R501–R522](../legacy/14-ami-social-audit.md). Les syntaxes et résultats métier des commandes restent dans la [référence des commandes](../commands/command-reference.md).
 
 ## Messages et composition — R872

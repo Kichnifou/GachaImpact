@@ -12,7 +12,7 @@ export type BankingView = BankState & Readonly<{
   nextInterestAt: Date;
 }>;
 
-export type BankingTransferView = BankingView & Pick<BankTransferResult, 'operation'>;
+export type BankingTransferView = BankingView & Pick<BankTransferResult, 'operation' | 'resolvedAmount'>;
 
 export class GetCurrentPlayerBank {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore, private readonly clock: Clock) {}
@@ -39,7 +39,7 @@ export class TransferPlayerBank {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     const result = await this.store.transfer({ playerId: player.id, direction: this.direction, amount, idempotencyKey, businessDate: getBusinessDate(now), occurredAt: now, sourceChannel: this.sourceChannel });
-    return { ...decorate(result, now), operation: result.operation };
+    return { ...decorate(result, now), operation: result.operation, resolvedAmount: result.resolvedAmount };
   }
 }
 

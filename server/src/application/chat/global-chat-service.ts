@@ -324,12 +324,14 @@ export class GlobalChatService {
     return contestEvent !== null;
   }
 
-  async publishGameResult(commandMessageId: string, content: string) {
+  async publishGameResult(commandMessageId: string, content: string | readonly string[]) {
     const parent = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { messageType: true, sourceChannel: true, generation: true } });
     if (parent?.messageType !== 'COMMAND' || parent.sourceChannel !== 'INTERNAL_CHAT') throw unavailable();
-    const value = content.trim();
-    if (!value || /[\r\n\u2028\u2029]/u.test(value)) throw invalid('Résultat Chat invalide.');
-    const parts = splitGameResult(value);
+    const values = typeof content === 'string' ? [content.trim()] : content.map(part => part.trim());
+    if (!values.length || values.some(value => !value || /[\r\n\u2028\u2029]/u.test(value))) throw invalid('Résultat Chat invalide.');
+    // Opt-in parts are already bounded at logical entry boundaries by their command.
+    if (typeof content !== 'string' && values.some(value => Array.from(value).length > 500)) throw invalid('Résultat Chat invalide.');
+    const parts = typeof content === 'string' ? splitGameResult(values[0]!) : values;
     const existing = await this.findGameResult(commandMessageId);
     if (existing) return { message: existing, messages: await this.findGameResults(commandMessageId), replayed: true };
     try {

@@ -66,7 +66,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('vote', 'gacha', '!vote [nom]', 'READY'),
   command('pity', 'gacha', '!pity', 'READY'),
   command('pull', 'gacha', '!pull [1..10]', 'READY'),
-  command('box', 'collection', '!box', 'READY'),
+  command('box', 'collection', '!box [5|4|6|élément|pN|favoris [personnage]|a|d|c|e]', 'READY'),
   command('obtention', 'collection', '!obtention <personnage>', 'READY'),
   command('stella', 'collection', '!stella <nom exact>', 'READY'),
   command('legende', 'collection', '!legende [joueur] [personnage]', 'READY', ['légende']),

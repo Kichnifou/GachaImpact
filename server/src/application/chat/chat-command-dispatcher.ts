@@ -5,7 +5,7 @@ import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../gacha/gacha-services.js';
 import type { BannerVoteService } from '../gacha/banner-vote-service.js';
-import type { GetCurrentPlayerBox, UseMasterlessStella } from '../box/box-services.js';
+import type { GetCurrentPlayerBox, UseMasterlessStella, SetBoxCharacterFavorite, SetBoxSortPreference } from '../box/box-services.js';
 import type { GetCurrentPlayerTeams } from '../team/team-services.js';
 import type { GetCurrentPlayerInventory } from '../inventory/inventory-services.js';
 import type { GetCurrentPlayerBank, TransferPlayerBank } from '../banking/banking-services.js';
@@ -30,6 +30,10 @@ import { SourceChannel } from '../../../generated/prisma/client.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { findRanking, rankingRegistry, type RankingService } from '../ranking/ranking-service.js';
+import { boxCommand } from './box-command.js';
+import { bankCommand, codeCommand, coffreCommand } from './resource-commands.js';
+import { chatElementEmojis } from './chat-list-result.js';
+import { isElementKey } from '../../domain/economy/resources.js';
 import { amiCommand } from './ami-command.js';
 import { chatHelp, findChatCommand } from './chat-command-registry.js';
 import type { GlobalChatService } from './global-chat-service.js';
@@ -42,6 +46,8 @@ export type ChatCommandServices = Readonly<{
   bannerVotes: Pick<BannerVoteService, 'getCurrent' | 'vote'>;
   performGachaPullChat: Pick<PerformGachaPull, 'execute'>;
   getCurrentPlayerBox: Pick<GetCurrentPlayerBox, 'execute'>;
+  setBoxCharacterFavorite: Pick<SetBoxCharacterFavorite, 'execute'>;
+  setBoxSortPreference: Pick<SetBoxSortPreference, 'execute'>;
   useMasterlessStella: Pick<UseMasterlessStella, 'execute'>;
   getCurrentPlayerTeams: Pick<GetCurrentPlayerTeams, 'execute'>;
   getCurrentPlayerInventory: Pick<GetCurrentPlayerInventory, 'execute'>;
@@ -141,7 +147,17 @@ export class ChatCommandDispatcher {
     if (existing) return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: existing, results: await this.chat.findGameResults(sent.message.id) };
     const response = await this.resolve(identity, sent.message.content!, sent.message.id);
     const missions = await this.chat.commandMissionCompletions(sent.message.id);
-    const published = await this.chat.publishGameResult(sent.message.id, oneLine([response, ...missions].join(' ')));
+    let resultContent: string | string[];
+    if (typeof response === 'string') resultContent = oneLine([response, ...missions].join(' '));
+    else {
+      resultContent = response.map(oneLine);
+      for (const mission of missions.map(oneLine)) {
+        const last = resultContent.at(-1)!;
+        if (Array.from(`${last} ${mission}`).length <= 500) resultContent[resultContent.length - 1] = `${last} ${mission}`;
+        else resultContent.push(mission);
+      }
+    }
+    const published = await this.chat.publishGameResult(sent.message.id, resultContent);
     return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: published.message, results: published.messages };
   }
 
@@ -150,7 +166,7 @@ export class ChatCommandDispatcher {
     return this.chat.clear(identity, content, idempotencyKey);
   }
 
-  private async resolve(identity: AuthenticatedIdentity, content: string, commandMessageId: string): Promise<string> {
+  private async resolve(identity: AuthenticatedIdentity, content: string, commandMessageId: string): Promise<string | readonly string[]> {
     const [rawRoot = '', ...args] = content.slice(1).trim().split(/\s+/u);
     const definition = findChatCommand(rawRoot);
     if (!definition) return 'Commande inconnue. Utilise !help.';
@@ -212,8 +228,7 @@ export class ChatCommandDispatcher {
         case 'banniere': {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
           const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
-          const emojis: Readonly<Record<string, string>> = { pyro: '🔥', hydro: '💧', cryo: '❄️', electro: '⚡', anemo: '🌪️', geo: '☄️', dendro: '🌿' };
-          const characterText = (character: { elementKey: string; name: string }) => `${emojis[character.elementKey] ?? ''} ${character.name}`.trim();
+          const characterText = (character: { elementKey: string; name: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] : ''} ${character.name}`.trim();
           const dateText = (instant: Date) => { const [, month, day] = getBusinessDate(instant).split('-'); return `${day}/${month}`; };
           // endsAt is exclusive; use the last covered instant for the inclusive Paris date, including DST weeks.
           const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
@@ -254,11 +269,7 @@ export class ChatCommandDispatcher {
           const result = await this.services.performGachaPullChat.execute(identity, count, commandMessageId);
           return `Invocation ×${count} : ${names(result.results.map(pull => pull.character ? `${pull.character.name} ${pull.rarity}★` : `${pull.resourceAmount} ${pull.resourceKey}`), 10)}. Coût : ${result.operation.primogemCost} Primogemmes.`;
         }
-        case 'box': {
-          const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-          const box = await this.services.getCurrentPlayerBox.execute(identity);
-          return `Box : ${box.summary.totalOwned} personnages (${box.summary.fiveStars} 5★, ${box.summary.fourStars} 4★, ${box.summary.c6} C6). ${names(box.characters.map(c => `${c.name} C${c.constellation}`))}.`;
-        }
+        case 'box': return await boxCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         case 'obtention': {
           if (!args.length) return syntax(definition.syntax);
           const box = await this.services.getCurrentPlayerBox.execute(identity);
@@ -302,9 +313,7 @@ export class ChatCommandDispatcher {
         }
         case 'coffre': {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-          const inventory = await this.services.getCurrentPlayerInventory.execute(identity);
-          const items = inventory.items.filter(i => i.section === 'collection' && i.quantity > 0n).sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr'));
-          return `Coffre : ${items.length} objets. ${names(items.map(i => `${i.displayName} ×${i.quantity}`))}.`;
+          return await coffreCommand(identity, this.services);
         }
         case 'shop': {
           const action = args[0]?.toLocaleLowerCase('fr-FR');
@@ -330,20 +339,7 @@ export class ChatCommandDispatcher {
           if (page > pages) return `Boutique : page ${page} indisponible (${pages} page${pages > 1 ? 's' : ''}).`;
           return `Boutique ${page}/${pages} : ${names(available.slice((page - 1) * 5, page * 5).map(item => `${item.displayName} (${item.priceAmount} Moras)`), 5)}.`;
         }
-        case 'banque': {
-          if (!args.length) {
-            const bank = await this.services.getCurrentPlayerBank.execute(identity);
-            return `🏦 Banque : ${bank.bankMoras} Moras · Portefeuille : ${bank.walletMoras} Moras · Intérêt estimé (3 %) : +${bank.estimatedInterest}. !banque deposer <montant|max> / !banque retirer <montant|max>.`;
-          }
-          if (args.length !== 2 || !['deposer', 'retirer'].includes(args[0]!.toLocaleLowerCase('fr-FR'))) return syntax(definition.syntax);
-          const value = args[1]!.toLocaleLowerCase('fr-FR');
-          if (value !== 'max' && !/^[1-9]\d*$/u.test(value)) return syntax(definition.syntax);
-          const amount = value === 'max' ? 'max' as const : BigInt(value);
-          const result = args[0]!.toLocaleLowerCase('fr-FR') === 'deposer'
-            ? await this.services.depositPlayerBankChat.execute(identity, amount, commandMessageId)
-            : await this.services.withdrawPlayerBankChat.execute(identity, amount, commandMessageId);
-          return `Banque : ${result.bankMoras} Moras · Portefeuille : ${result.walletMoras} Moras.`;
-        }
+        case 'banque': return await bankCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         case 'convertir': {
           if (args.length !== 1 || !/^[1-9]\d*$/u.test(args[0]!)) return syntax(definition.syntax);
           const amount = BigInt(args[0]!);
@@ -419,17 +415,7 @@ export class ChatCommandDispatcher {
           const result = await this.services.socialService.directory(identity, { q: '', element: key, page });
           return `${key} ${result.page}/${result.totalPages} : ${names(result.players.map(p => p.displayName))}.`;
         }
-        case 'code': {
-          if (args.length > 1) return syntax(definition.syntax);
-          const codes = await this.services.giftCodeService.listForPlayer(identity);
-          if (!args.length) return `Codes disponibles : ${names(codes.available.map(code => code.token))}. Récupérés : ${codes.claimed.length}.`;
-          const normalized = args[0]!.toUpperCase().replace(/\s+/gu, '-');
-          const code = [...codes.available, ...codes.claimed].find(entry => entry.token.toUpperCase() === normalized);
-          if (!code) return 'Ce code cadeau n’est pas disponible.';
-          if (code.claimed && !await this.chat.hasConfirmedCommandMutation(commandMessageId)) return `Code ${code.token} déjà récupéré.`;
-          await this.services.giftCodeService.claim(identity, code.editionId, commandMessageId, SourceChannel.INTERNAL_CHAT);
-          return `Code ${code.token} récupéré : ${names(code.rewards.map(reward => `${reward.amount} ${reward.displayName}`), 5)}.`;
-        }
+        case 'code': return await codeCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         case 'event': {
           const action = normalizePlayerSearch(args[0] ?? '');
           if (action === 'top' && args.length === 1) {

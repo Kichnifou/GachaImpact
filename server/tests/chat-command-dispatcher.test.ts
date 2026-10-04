@@ -16,7 +16,10 @@ function harness() {
     hasConfirmedCommandMutation: vi.fn(async () => false),
     commandRefreshScopes: vi.fn(async () => []),
     rememberCommandRefreshScopes: vi.fn(async () => undefined),
-    publishGameResult: vi.fn(async (_id: string, content: string) => ({ message: { id: 'answer', content, messageType: 'GAME_RESULT' }, messages: [{ id: 'answer', content, messageType: 'GAME_RESULT' }], replayed: false })),
+    publishGameResult: vi.fn(async (_id: string, content: string | readonly string[]) => {
+      const messages = (typeof content === 'string' ? [content] : content).map((part, index) => ({ id: 'answer-' + index, content: part, messageType: 'GAME_RESULT' }));
+      return { message: messages[0]!, messages, replayed: false };
+    }),
     rememberCommandQuantity: vi.fn(async (_id: string, quantity: bigint) => quantity),
     rememberCommandText: vi.fn(async (_id: string, _field: string, value: string) => value),
   };
@@ -27,13 +30,15 @@ function harness() {
     setGachaTarget: execute({}),
     bannerVotes: { getCurrent: vi.fn(async () => ({ bannerRotationId: 'rotation', ownVote: null, candidates: [{ characterId: 'candidate', voteCount: 0 }] })), vote: vi.fn(async () => ({})) },
     performGachaPullChat: execute({ operation: { primogemCost: 160n }, results: [{ character: { name: 'A' }, rarity: 5 }] }),
-    getCurrentPlayerBox: execute({ summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 }, characters: [{ id: 'five', name: 'A', constellation: 0, firstObtainedAt: new Date('2026-09-01') }] }),
+    getCurrentPlayerBox: execute({ summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, characters: [{ id: 'five', name: 'A', constellation: 0, firstObtainedAt: new Date('2026-09-01'), rarity: 5, elementKey: 'pyro', favorite: false }] }),
+    setBoxCharacterFavorite: execute({ name: 'A' }),
+    setBoxSortPreference: execute({ sortKey: 'alphabetical', direction: 'desc' }),
     useMasterlessStella: execute({ character: { name: 'A', constellation: 1 }, stellaRemaining: 2n }),
     getCurrentPlayerTeams: execute({ teams: [{ active: true, position: 1, name: null, slots: [{ character: { name: 'A' } }], passives: [{ displayName: 'Élan', stacks: 1, description: 'Bonus' }] }] }),
     getCurrentPlayerInventory: execute({ resources: [{ key: 'primogems', amount: 160n, elementKey: null }, { key: 'moras', amount: 50n, elementKey: null }], items: [{ section: 'collection', quantity: 1n, displayName: 'Objet' }] }),
     getCurrentPlayerBank: execute({ bankMoras: 100n, walletMoras: 50n, estimatedInterest: 3n }),
-    depositPlayerBankChat: execute({ bankMoras: 150n, walletMoras: 0n }),
-    withdrawPlayerBankChat: execute({ bankMoras: 50n, walletMoras: 100n }),
+    depositPlayerBankChat: execute({ bankMoras: 150n, walletMoras: 0n, resolvedAmount: 50n }),
+    withdrawPlayerBankChat: execute({ bankMoras: 50n, walletMoras: 100n, resolvedAmount: 50n }),
     convertPersonalParticlesChat: execute({ resources: { primogems: 180n } }),
     getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
     purchaseShopItemChat: execute({ purchase: { quantity: 2n, displayName: 'Lot de Primogemmes', totalPrice: 100_000n, effect: { type: 'resource_bundle', amount: 320n, resourceKey: 'primogems' } } }),
@@ -56,7 +61,7 @@ function harness() {
       all: vi.fn(async () => ({ results: [{ state: 'ACCEPTED' }] })),
     },
     choosePlayerElement: execute({ elementKey: 'pyro' }),
-    giftCodeService: { listForPlayer: vi.fn(async () => ({ available: [{ token: 'CODE', editionId: 'edition', rewards: [{ amount: '1600', displayName: 'Primogemmes' }] }], claimed: [{ token: 'OTHER', editionId: 'other', claimed: true }] })), claim: vi.fn(async () => ({})) },
+    giftCodeService: { listForPlayer: vi.fn(async () => ({ available: [{ token: 'CODE', editionId: 'edition', rewards: [{ amount: '1600', displayName: 'Primogemmes', resourceKey: 'primogems' }] }], claimed: [{ token: 'OTHER', editionId: 'other', claimed: true }] })), claim: vi.fn(async () => ({ claimed: [], resources: { primogems: '1800', moras: '0', particles: {} }, operation: { alreadyProcessed: false } })) },
     eventService: {
       getCurrent: vi.fn(async () => ({ festival: { emoji: '🎊', title: 'Festival', currency: { label: 'Monnaies' } }, participation: { joined: false, points: 0 }, currency: { amount: '3' }, shop: { rates: { primogems: 160, moras: 20000 }, collection: { label: 'Souvenir', cost: 80, obtainedThisEdition: false } }, gameA: { theme: { key: 'feu', label: 'Feu' } }, gameB: { theme: { label: 'Coffre' } }, gameC: { theme: { label: 'Mot doux' } } })),
       getRanking: vi.fn(async () => ({ entries: [{ rank: 1, displayName: 'Autre', points: 10 }] })),
@@ -90,6 +95,13 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it('publishes logical command parts and appends a Mission only when it fits intact', async () => {
+    const { chat, send } = harness();
+    chat.commandMissionCompletions.mockResolvedValueOnce(['Mission terminée.']);
+    await send('!box');
+    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, [expect.stringContaining('ta Box [alphabétique ↑]')]);
+    expect((chat.publishGameResult.mock.calls[0]![1] as readonly string[])[0]).toMatch(/Mission terminée\.$/);
+  });
   it.each(['!banniere', '!bannière', '!ban', '!BAN'])('renders %s from authoritative data without mutations', async command => {
     const { services, chat, send } = harness();
     const current = await services.getCurrentGacha.execute();
@@ -199,7 +211,7 @@ describe('Chat command adapters', () => {
     expect(await send('!event Mot doux @Autre "@all est du texte"')).toBe(await send('!event Mot doux Autre "@all est du texte"'));
     expect(services.eventService.searchGameCRecipients).toHaveBeenLastCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
     expect(services.eventService.sendGameC).toHaveBeenLastCalledWith(actor, 'other', '@all est du texte', commandId);
-    expect(await send('!code @CODE')).toBe('Ce code cadeau n’est pas disponible.');
+    expect(await send('!code @CODE')).toBe('⚠️ Ce code cadeau n’est pas disponible.');
     expect(services.giftCodeService.claim).not.toHaveBeenCalled();
     expect(await send('!stella @A')).toBe('Ce personnage ne fait pas partie de votre Box.');
   });
@@ -234,7 +246,7 @@ describe('Chat command adapters', () => {
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);
     expect(services.purchaseShopItemChat.execute).toHaveBeenCalledWith(actor, 'primos', 2n, commandId);
-    expect(await send('!code CODE')).toContain('Code CODE récupéré');
+    expect(await send('!code CODE')).toContain('a utilisé CODE ! +💠1 600 Primogemmes (1 800)');
     expect(services.giftCodeService.claim).toHaveBeenCalledWith(actor, 'edition', commandId, 'INTERNAL_CHAT');
     expect(chat.publishGameResult).toHaveBeenCalledTimes(3);
   });
@@ -259,7 +271,7 @@ describe('Chat command adapters', () => {
   it('reports an earlier Code claim without claiming it again', async () => {
     const { services, send } = harness();
     services.giftCodeService.listForPlayer.mockResolvedValue({ available: [], claimed: [{ token: 'CODE', editionId: 'edition', claimed: true }] });
-    expect(await send('!code CODE')).toBe('Code CODE déjà récupéré.');
+    expect(await send('!code CODE')).toBe('⚠️ Moi, tu as déjà utilisé le code CODE.');
     expect(services.giftCodeService.claim).not.toHaveBeenCalled();
   });
 

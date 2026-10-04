@@ -1,5 +1,7 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
+**Révision propriétaire étape 29 — R1037 :** Coffre.txt : toutes les possessions Collection positives, emoji historique des douze externalKey modernes et fallback ❔, nom + (xN), tri alphabétique moderne (pas ordre mensuel legacy). Split logique vers 450 caractères entre objets entiers, suites 🏆 Coffre suite ; vide = conseil !event collection. Lecture seule, aucune acquisition Event ni modification UI/inventaire. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
+
 Statut : CLÔTURÉ — R256 À R298 VALIDÉS / DÉRIVÉS
 Date : 2026-08-31
 

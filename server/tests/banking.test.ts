@@ -30,7 +30,7 @@ class FakeBankingStore implements BankingStore {
     this.state = input.direction === 'deposit'
       ? { ...this.state, walletMoras: this.state.walletMoras - amount, bankMoras: this.state.bankMoras + amount }
       : { ...this.state, walletMoras: this.state.walletMoras + amount, bankMoras: this.state.bankMoras - amount };
-    return { ...this.state, operation: { id: 'operation', alreadyProcessed: false } };
+    return { ...this.state, resolvedAmount: amount, operation: { id: 'operation', alreadyProcessed: false } };
   }
   public async accrueAllInterestThrough() { return { playersProcessed: 0, daysProcessed: 0 }; }
 }
