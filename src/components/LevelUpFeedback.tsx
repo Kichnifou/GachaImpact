@@ -36,7 +36,7 @@ function LevelUpFeedback({ event, onFinished, title, rewardLabel }: { event: Lev
     <section className="level-up-feedback" role="dialog" aria-modal="true" aria-live="polite" aria-label={title ?? levelUpTitle(event.levelsGained, event.overflowRewardsGranted)}>
       <span className="level-up-feedback-kicker">{title ? 'Événement' : 'Progression'}</span>
       <strong>{title ?? levelUpTitle(event.levelsGained, event.overflowRewardsGranted)}</strong>
-      {rewardLabel ? <small>{rewardLabel}</small> : event.rewards.length > 0 && <small>{event.rewards.map(levelUpRewardLabel).join(' · ')}</small>}
+      {rewardLabel ? <small>{rewardLabel}</small> : event.rewards.length > 0 && <small className="level-up-feedback-rewards">Récompenses : {event.rewards.map(levelUpRewardLabel).join(' · ')}</small>}
     </section>
   </div>
 }

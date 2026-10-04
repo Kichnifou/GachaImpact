@@ -14,7 +14,7 @@ import { createArcadeSession } from './arcade-session-factory.js';
 export const arcadeGameNames = { MEMORY: 'Memory', CONNECT_FOUR: 'Puissance 4', TIC_TAC_TOE: 'Morpion' } as const;
 export const invitationIdentities = { host: { select: { id: true, displayName: true } }, guest: { select: { id: true, displayName: true } } } as const;
 type InvitationRow = ArcadeInvitation & { host: { id: string; displayName: string }; guest: { id: string; displayName: string } };
-export type ArcadeInviteInput = { opponentPlayerId: string; game: ArcadeGame; difficulty: ArcadeDifficulty; friendsOnly: boolean; replaySessionId?: string; idempotencyKey: string };
+export type ArcadeInviteInput = { opponentPlayerId: string; game: ArcadeGame; difficulty: ArcadeDifficulty; friendsOnly: boolean; idempotencyKey: string };
 export type ArcadeInviteAction = { kind: 'READY' | 'CANCEL' | 'REFUSE'; idempotencyKey: string };
 export function projectInvitation(row: InvitationRow, viewer: string) {
   return { id: row.id, direction: row.hostPlayerId === viewer ? 'OUTGOING' as const : 'INCOMING' as const,
@@ -101,12 +101,8 @@ export class ArcadeInvitations {
     await this.reconcileNotificationsForPlayer(playerId);
     await this.reconcileNotificationsForPlayer(input.opponentPlayerId);
     return arcadeTransaction<ArcadeInvitationMutation>(this.database, this.clock, playerId, [input.opponentPlayerId], input.idempotencyKey,
-      { action: 'INVITE', opponentPlayerId: input.opponentPlayerId, game: input.game, difficulty: input.difficulty, friendsOnly: input.friendsOnly, replaySessionId: input.replaySessionId ?? null },
+      { action: 'INVITE', opponentPlayerId: input.opponentPlayerId, game: input.game, difficulty: input.difficulty, friendsOnly: input.friendsOnly },
       async (tx, _element, operationId, now) => {
-        if (input.replaySessionId) {
-          const previous = await tx.arcadeSession.findFirst({ where: { id: input.replaySessionId, ...participantWhere(playerId), mode: 'MULTIPLAYER', status: 'FINISHED', game: input.game, difficulty: input.difficulty } });
-          if (!previous || (previous.playerId === playerId ? previous.opponentPlayerId : previous.playerId) !== input.opponentPlayerId) throw arcadeConflict('Cette revanche est indisponible.', 'ARCADE_OPPONENT_UNAVAILABLE');
-        }
         if (!await validArcadePair(tx, playerId, input.opponentPlayerId) || await arcadeBusy(tx, playerId) || await arcadeBusy(tx, input.opponentPlayerId)) throw arcadeConflict('Ce joueur est indisponible. Actualisez Arcade.', 'ARCADE_OPPONENT_UNAVAILABLE');
         const presence = await this.presence.visibleFor(playerId, [input.opponentPlayerId], tx);
         const friend = !input.friendsOnly || await tx.player.count({ where: { id: input.opponentPlayerId, ...activeFriendOf(playerId) } });

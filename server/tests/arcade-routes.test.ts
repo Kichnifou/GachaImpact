@@ -20,6 +20,18 @@ describe('Arcade strict authenticated protocol', () => {
     apps.push(app); return { app, service, records, identity };
   }
   const headers = { authorization: 'Bearer test-token' };
+  it('rejects the retired human replay field and accepts the normal invitation contract', async () => {
+    const { app, service, identity } = await setup();
+    const input = { opponentPlayerId:crypto.randomUUID(),game:'MEMORY',difficulty:'HARD',friendsOnly:false,idempotencyKey:crypto.randomUUID() };
+    // Build the retired wire key only here: it is no longer a current type or contract.
+    const retiredField = ['replay', 'SessionId'].join('');
+    const rejected = await app.inject({method:'POST',url:'/api/v1/arcade/invitations',headers,payload:{...input,[retiredField]:crypto.randomUUID()}});
+    expect(rejected.statusCode).toBe(400);
+    expect(rejected.json().error.code).toBe('VALIDATION_ERROR');
+    expect(service.invite).not.toHaveBeenCalled();
+    expect((await app.inject({method:'POST',url:'/api/v1/arcade/invitations',headers,payload:input})).statusCode).toBe(200);
+    expect(service.invite).toHaveBeenCalledWith(identity,input);
+  });
   it('validates authenticated multiplayer intents and server-only candidates without forged state or side', async () => {
     const { app, service, identity } = await setup(), id = crypto.randomUUID();
     const input = { opponentPlayerId:id,game:'MEMORY',difficulty:'HARD',friendsOnly:true,idempotencyKey:crypto.randomUUID() };

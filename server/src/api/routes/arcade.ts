@@ -12,7 +12,7 @@ const start = z.object({ ...mutation, expectedVersion: z.literal(0), game: z.enu
 const action = z.discriminatedUnion('kind', [z.object({ ...mutation, kind: z.literal('MOVE'), position: z.number().int().min(0).max(41) }).strict(), z.object({ ...mutation, kind: z.literal('ADVANCE') }).strict(), z.object({ ...mutation, kind: z.literal('QUIT') }).strict()]);
 const params = z.object({ sessionId: z.uuid() }).strict();
 const opponents = z.object({ friendsOnly: z.enum(['true', 'false']).default('false').transform(value => value === 'true') }).strict();
-const invite = z.object({ opponentPlayerId: z.uuid(), game: z.enum(arcadeGames), difficulty: z.enum(arcadeDifficulties), friendsOnly: z.boolean(), replaySessionId: z.uuid().optional(), idempotencyKey: z.uuid() }).strict();
+const invite = z.object({ opponentPlayerId: z.uuid(), game: z.enum(arcadeGames), difficulty: z.enum(arcadeDifficulties), friendsOnly: z.boolean(), idempotencyKey: z.uuid() }).strict();
 const invitationAction = z.object({ kind: z.enum(['READY', 'CANCEL', 'REFUSE']), idempotencyKey: z.uuid() }).strict();
 const invitationParams = z.object({ invitationId: z.uuid() }).strict();
 const ranking = z.object({ kind: z.enum(['GLOBAL', 'SCORE']), game: z.enum([...arcadeGames, 'TOTAL']), difficulty: z.enum(arcadeDifficulties).default('MEDIUM'), page: z.coerce.number().int().min(1).max(100000).optional() }).strict()

@@ -353,10 +353,12 @@ describe('shared Level-up overflow', () => {
   it('publishes level 100 overflow using actual server rewards without a second feedback system', async () => {
     const previous: PlayerProgressionDto = { totalXp: '3029', level: 100, xpIntoCurrentStep: '29', xpPerStep: '30', isMaxLevel: true, level100OverflowRewardsClaimed: 0, totalMessages: '0', countedMessages: '0' }
     const next = { ...previous, totalXp: '3039', xpIntoCurrentStep: '9', level100OverflowRewardsClaimed: 1 }
-    const result = publishProgressionUpdate(previous, next, { id: 'arcade:finish', rewards: [{ resourceKey: 'primogems', amount: '800' }] })
-    expect(result.feedback).toMatchObject({ levelsGained: 0, overflowRewardsGranted: 1, rewards: [{ resourceKey: 'primogems', amount: '800' }] })
+    const rewards = [{ resourceKey: 'primogems', amount: '800' }, { resourceKey: 'moras', amount: '10000' }, { resourceKey: 'particles_cryo', amount: '80' }, { resourceKey: 'particles_geo', amount: '40' }]
+    const result = publishProgressionUpdate(previous, next, { id: 'arcade:finish', rewards })
+    expect(result.feedback).toMatchObject({ levelsGained: 0, overflowRewardsGranted: 1, rewards })
     const { container } = await mount(<LevelUpFeedback event={result.feedback!} onFinished={vi.fn()} />)
-    expect(container.textContent).toContain('1 palier au niveau 100'); expect(container.textContent).toContain('800')
+    expect(container.textContent).toContain('1 palier au niveau 100')
+    expect(container.querySelector('.level-up-feedback-rewards')?.textContent?.replace(/\u202f|\u00a0/g, ' ')).toBe('Récompenses : +800 Primos · +10 000 Moras · +80 Cryo · +40 Géo')
     expect(publishProgressionUpdate(next, next, { id: 'arcade:finish' }).feedback).toBeNull()
   })
 })
@@ -491,8 +493,7 @@ describe('Multiplayer Arcade interface and polling', () => {
     api.inviteArcade.mockResolvedValue({invitation:{...challenge,game:'MEMORY',direction:'OUTGOING'},operationId:'new-invite',alreadyProcessed:false})
     await click(button(container,'Prêt'))
     expect(api.inviteArcade).toHaveBeenCalledOnce(); expect(api.startArcade).not.toHaveBeenCalled()
-    expect(api.inviteArcade.mock.calls[0]![0]).toMatchObject({opponentPlayerId:another.id,game:'MEMORY'})
-    expect(api.inviteArcade.mock.calls[0]![0]).not.toHaveProperty('replaySessionId')
+    expect(api.inviteArcade.mock.calls[0]![0]).toEqual({opponentPlayerId:another.id,game:'MEMORY',difficulty:'MEDIUM',friendsOnly:false,idempotencyKey:expect.any(String)})
   })
 })
 

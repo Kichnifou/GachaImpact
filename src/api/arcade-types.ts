@@ -25,6 +25,6 @@ export type ArcadeRanking = ArcadeRankingQuery & { page: number; pageSize: numbe
   entries: { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; value: string; rank: number; position: number; pairs: number | null; totalPairs: number | null; isSelf: boolean }[] }
 
 export type ArcadeInvitation = { id: string; direction: 'INCOMING' | 'OUTGOING'; host: ArcadeParticipant; guest: ArcadeParticipant; game: ArcadeGame; difficulty: ArcadeDifficulty; status: 'PENDING' | 'STARTED' | 'REFUSED' | 'CANCELLED' | 'EXPIRED' | 'INVALIDATED'; hostReady: boolean; guestReady: boolean; expiresAt: string; sessionId: string | null }
-export type ArcadeInvite = { opponentPlayerId: string; game: ArcadeGame; difficulty: ArcadeDifficulty; friendsOnly: boolean; replaySessionId?: string; idempotencyKey: string }
+export type ArcadeInvite = { opponentPlayerId: string; game: ArcadeGame; difficulty: ArcadeDifficulty; friendsOnly: boolean; idempotencyKey: string }
 export type ArcadeInviteAction = { kind: 'READY' | 'CANCEL' | 'REFUSE'; idempotencyKey: string }
 export type ArcadeInvitationMutation = { invitation: ArcadeInvitation; operationId: string; alreadyProcessed: boolean; unavailable?: boolean; session?: ArcadeSession | null }

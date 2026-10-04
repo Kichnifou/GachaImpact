@@ -2,7 +2,7 @@
 
 ## Raccord Arcade R982–R984
 
-Le **solo Arcade étape 23, R982–R984 (historique)** n'ajoute aucun producteur persistant Arcade, level-up ou tutoriel. L'étape 28 ajoute uniquement les deux types d'invitations décrits plus bas ; elle ne réécrit pas ces décisions solo. Le bilan de partie est inline ; niveaux et overflow empruntent `LevelUpFeedback` existant. Les vraies complétions Missions provoquées par le propriétaire XP conservent leurs notifications normales R954–R955. Les anciennes intentions de découverte/notifications XP interface ne sont pas implémentées ici : Tutoriel attend son lot dédié. Aucun nouvel actionKey, typeKey ou canal Chat.
+Le **solo Arcade étape 23, R982–R984 (historique)** n'ajoute aucun producteur persistant Arcade, level-up ou tutoriel. L'étape 28 ajoute uniquement le producteur ARCADE_INVITE décrit plus bas ; elle ne réécrit pas ces décisions solo. Le bilan de partie est inline ; niveaux et overflow empruntent `LevelUpFeedback` existant. Les vraies complétions Missions provoquées par le propriétaire XP conservent leurs notifications normales R954–R955. Les anciennes intentions de découverte/notifications XP interface ne sont pas implémentées ici : Tutoriel attend son lot dédié. Aucun nouvel actionKey, typeKey ou canal Chat.
 
 Statut : décisions propriétaire R954–R958 ; candidat fonctionnel `c11c6f5eeb9a9a9fa96fbc83f504ffcd9a7e3811` approuvé par review indépendante ChatGPT, promu techniquement au checkpoint `c5f4412a9b07832916a288905cf9a9499cbf8e30` et déployé. Étape 21 validée publiquement dans le périmètre du smoke test des surfaces Notifications/Missions décrit ci-dessous. Aucune migration 057. Ce document est la matrice du domaine Notifications. Les règles métier des producteurs restent dans leurs domaines.
 

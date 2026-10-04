@@ -2331,6 +2331,7 @@
 .level-up-feedback-kicker { color: #6bdcff; font-size: 9px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
 .level-up-feedback strong { font-family: Georgia, serif; font-size: clamp(29px, 4vw, 44px); }
 .level-up-feedback small { width: 100%; overflow: hidden; color: #d7e9ff; font-size: clamp(10px, 1.2vw, 14px); font-weight: 700; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
+.level-up-feedback small.level-up-feedback-rewards { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
 
 @keyframes level-up-feedback-lifecycle {
   0% { opacity: 0; }
