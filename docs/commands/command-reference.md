@@ -14,7 +14,7 @@ Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le
 
 ## Passe finale Twitch / commandes R939–R942
 
-**Méthode propriétaire étape 29 (R1035) :** traiter un seul fichier `legacy/streamerbot/commands/*.txt` à la fois ; comparer le legacy au standalone réel, inventorier commandes/aliases/variantes/messages, inclure les nouvelles commandes standalone et les commandes legacy abandonnées. Aucun changement métier sans arbitrage explicite ; faire valider les messages cibles AVANT codage, puis implémenter seulement le fichier validé, déployer et tester dans le Chat standalone. Passer au fichier suivant uniquement après validation propriétaire. Pour Ami.txt, les messages et arbitrages ont été explicitement validés avant code ; ce lot bénéficie d'une autorisation de promotion directe après tests verts et contrôle GitHub, sans review ChatGPT intermédiaire. Aucune activation Twitch.
+**Méthode propriétaire étape 29 (R1036, supersède la restriction R1035 au lot Ami) :** voir le [protocole canonique](../process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036). Lecture intégrale legacy + runtime, inventaire complet/aliases systématiques, tableau seul avant prompt et validation propriétaire avant code ; split individuel pertinent, jamais aveugle. Pour tous les petits lots validés de 29, push review puis fast-forward strict du même candidat vers main dans la même mission, sans review ChatGPT intermédiaire sauf nouvelle demande explicite. Recette Chat standalone avant le fichier suivant ; aucune activation Twitch.
 
 **Étape 29 ACTIVE — cadrage R1034, sans code/activation dans ce checkpoint.** Pour chaque racine, alias et sous-commande, inventorier syntaxe, aliases, préconditions, permissions, coûts, cooldown, domaine propriétaire, données lues/écrites, succès/erreurs, idempotence, sorties exactes, différences legacy, Chat standalone et future compatibilité Twitch. Comparer systématiquement tous les `legacy/streamerbot/commands/*.txt` avec ce registre ; première validation dans le Chat standalone avec Kichnifou puis validation propriétaire des textes/comportements. L'audit exhaustif lui-même reste à exécuter dans les lots 29 suivants.
 
@@ -189,7 +189,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 ## `!banniere`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Afficher la bannière active et la cible 5★ personnelle lorsqu'elle est valide.
-- **Syntaxe :** `!banniere`
+- **Syntaxe :** `!banniere` ; aliases `!bannière`, `!ban` (nouveau choix propriétaire R1036), casse tolérée ; `!banner` absent. Argument inutile : `Syntaxe : !banniere.`
 - **Bouton UI équivalent :** écran Invocation complet
 - **Disponible chat GachaImpact :** oui, sous forme compacte
 - **Disponible Twitch :** oui
@@ -198,6 +198,16 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Données lues :** catalogue personnages, bannière active, cible personnelle
 - **Données écrites :** aucune
 - **Décisions cible :** bannière hebdomadaire 4×5★ + 6×4★ ; conserver un seul message Twitch contenant tous les personnages et la cible personnelle ; UI standalone beaucoup plus riche
+
+### Sorties Banniere.txt validées et implémentées — étape 29, R1036
+
+- Cible valide : `🎯 Bannières (dd/MM → dd/MM) | ⭐⭐⭐⭐⭐ [les 4 personnages] | ⭐⭐⭐⭐ [les 6 personnages] | 5★ ciblé : [emoji] [personnage]`.
+- Cible absente ou hors des 5★ actifs : même bannière suivie de `Utilise !select nom_du_perso pour choisir ton 5★ ciblé.`.
+- GACHA_BANNER_UNAVAILABLE : `⚠️ Aucune bannière n’est active pour le moment.`, uniquement pour cette consultation.
+- Chaque personnage porte son emoji : Pyro 🔥, Hydro 💧, Cryo ❄️, Electro ⚡, Anemo 🌪️, Geo ☄️, Dendro 🌿. Données réelles et ordre autoritatif conservés, aucun nom hardcodé.
+- Période depuis startsAt/endsAt, dates calendaires inclusives Europe/Paris : endsAt exclusive représentée par le dernier instant couvert ; helper temporel moderne partagé.
+- Une seule réponse normale 4×5★ + 6×4★, aucune troncature. Consultation sans mutation ni sélection automatique. Pas de JSON legacy runtime, d'erreurs de fichiers, d'auto-création de viewer ou de génération au premier message ; serveur moderne autoritatif.
+- Textes/alias approuvés avant code, tests automatiques exécutés ; nouveau rendu et !ban encore à tester par le propriétaire après déploiement. Aucune validation publique présumée.
 
 ## `!select`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
@@ -995,9 +1005,8 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 ## `!ami`
 
 - **Statut audit :** CLÔTURÉ — R451 à R525
-- **État étape 29 :** Ami.txt traité seul ; messages cibles validés avant code, candidat promu / à recetter dans le Chat standalone. Twitch natif non activé ; Streamer.bot reste autoritatif. UI et Chat utilisent le propriétaire Friendship existant, réutilisable par le futur adapter Twitch.
+- **État étape 29 :** Recette publique du lot Ami R1035 confirmée par le propriétaire, sauf retrait demandé de la sous-commande liste (R1036). Retrait implémenté/testé, à recetter après déploiement. Twitch natif non activé ; Streamer.bot reste autoritatif. UI et Chat utilisent le propriétaire Friendship existant, réutilisable par le futur adapter Twitch.
 - **Résumé :** `!ami`
-- **Liste :** `!ami liste`, réponse compacte unique, nombre restant indiqué si nécessaire
 - **Demandes :** `!ami demandes`, reçues et envoyées séparées, nombre restant indiqué si nécessaire
 - **Ajouter :** `!ami ajouter <pseudo>`
 - **Accepter :** `!ami accepter <pseudo>`
@@ -1027,7 +1036,7 @@ Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une 
 
 | Situation | Réponse Chat |
 | --- | --- |
-| Résumé | `ℹ️ P | Amis : N | Cœurs disponibles : N | Demandes : N | Commandes : !ami pseudo · !ami liste · !ami demandes · !ami coeur pseudo · !ami coeur all` |
+| Résumé | `ℹ️ P | Amis : N | Cœurs disponibles : N | Demandes : N | Commandes : !ami pseudo · !ami demandes · !ami coeur pseudo · !ami coeur all` |
 | Demande créée | `✅ P envoie une demande d’ami à C | C peut accepter avec !ami P` |
 | Acceptation, y compris ADD inverse | `🤝 P et C sont maintenant amis ! Niveau d’amitié : N [Palier] emoji` |
 | Demande déjà envoyée | `⚠️ P, demande déjà envoyée à C. C doit faire !ami P pour accepter.` |
@@ -1035,8 +1044,6 @@ Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une 
 | Voir demande reçue | `📨 P, tu as reçu une demande d’ami de C. Utilise !ami accepter C ou simplement !ami C.` |
 | Voir demande envoyée | `📨 P, ta demande d’ami à C est en attente.` |
 | Voir sans relation | `ℹ️ P, aucune relation d’amitié avec C.` |
-| Liste | `🤝 Amis de P : C — niveau N [Palier] emoji · …` ; ` ✅` si cœur déjà envoyé ; liste bornée à 500 caractères via la primitive compacte, indication du nombre restant, aucune pagination Chat inventée |
-| Liste vide | `ℹ️ P, tu n’as encore aucun ami.` |
 | Demandes | `📨 Demandes d’ami | Reçues : liste ou aucune | Envoyées : liste ou aucune` |
 | Ajouter déjà ami | `ℹ️ P, tu es déjà ami avec C.` |
 | Accepter/refuser sans demande | `⚠️ P, aucune demande d’ami de C à accepter.` / `à refuser.` |
@@ -1058,7 +1065,7 @@ Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une 
 | All sans amis | `⚠️ P, tu n’as aucun ami disponible à qui envoyer un cœur.` |
 | All zéro mixte | `⚠️ P, aucun cœur envoyé. Déjà fait aujourd’hui ou aucun ami disponible.` |
 
-**Inventaire legacy / écarts :** Ami.txt avait résumé, pseudo polyvalent, cœur individuel et global, quatre aliases de cœur, @pseudo et @all via normalisation ; `tous`/`tout` étaient aussi présents mais ne sont pas ajoutés au contrat validé all/@all. Résumé legacy sur deux messages remplacé par un seul ; !ami liste/demandes/ajouter/accepter/refuser/annuler/retirer/voir modernes conservés. Stockage JSON, auto-création/defaults des profils, absence de refus/retrait explicites et horloge locale legacy ne sont pas transférés : PostgreSQL, notifications Social, privacy/block, archivage restaurable, Missions et Europe/Paris restent autoritatifs. Les écarts de textes et le pseudo autrefois purement consultatif sont résolus selon le choix propriétaire ; aucune nouvelle économie, phrase, action Twitch ou autre fichier legacy traité.
+**Inventaire legacy / écarts :** Ami.txt avait résumé, pseudo polyvalent, cœur individuel et global, quatre aliases de cœur, @pseudo et @all via normalisation ; `tous`/`tout` étaient aussi présents mais ne sont pas ajoutés au contrat validé all/@all. Résumé legacy sur deux messages remplacé par un seul ; !ami demandes/ajouter/accepter/refuser/annuler/retirer/voir modernes conservés ; sous-commande liste entièrement retirée par R1036. Stockage JSON, auto-création/defaults des profils, absence de refus/retrait explicites et horloge locale legacy ne sont pas transférés : PostgreSQL, notifications Social, privacy/block, archivage restaurable, Missions et Europe/Paris restent autoritatifs. Les écarts de textes et le pseudo autrefois purement consultatif sont résolus selon le choix propriétaire ; aucune nouvelle économie, phrase, action Twitch ou autre fichier legacy traité.
 
 ## `!infos`
 

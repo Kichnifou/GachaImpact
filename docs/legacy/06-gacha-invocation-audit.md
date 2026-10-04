@@ -1,5 +1,7 @@
 # 06 — Audit legacy : Gacha / Invocation
 
+**Révision propriétaire étape 29 — R1036 :** Banniere.txt aligné sur la présentation legacy avec la rotation moderne 4×5★ + 6×4★, ordre autoritatif, emojis élémentaires, dates inclusives Europe/Paris et cible valide/conseil !select. Canonique !banniere ; !bannière conservé, !ban ajouté explicitement, !banner absent. Consultation sans mutation, fichiers JSON legacy ou génération liée au Chat. Une réponse normale reste unique ; absence de bannière localisée. [Contrat des sorties](../commands/command-reference.md#banniere). Implémentation/test automatique ≠ déploiement ou recette publique ; nouveau rendu/!ban à recetter. Rotation, sélection et économie inchangées.
+
 **Complément étape 22 (candidat `review`) :** R107/R109 restent les invariants de l'administration nouvelle : désactivation plutôt que suppression d'un Character référencé ; correction d'une bannière active avec composition 4×5★/6×4★, conservation des Pulls/pity/garantie/Capture et vidage ciblé des sélections 5★ retirées. Le snapshot de vote reste figé, l'avant/après est audité. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). Les constats legacy ci-dessous restent historiques.
 
 Statut : CLÔTURÉ — R54 À R116 VALIDÉS

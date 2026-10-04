@@ -1,5 +1,6 @@
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { elementKeys } from '../../domain/economy/resources.js';
+import { getBusinessDate } from '../../domain/time/business-date.js';
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../gacha/gacha-services.js';
@@ -211,8 +212,13 @@ export class ChatCommandDispatcher {
         case 'banniere': {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
           const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
-          const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId)?.name ?? 'aucune';
-          return `Bannière : 5★ ${names(banner.featuredFiveStars.map(c => c.name), 4)} · 4★ ${names(banner.featuredFourStars.map(c => c.name), 6)} · Cible : ${target}.`;
+          const emojis: Readonly<Record<string, string>> = { pyro: '🔥', hydro: '💧', cryo: '❄️', electro: '⚡', anemo: '🌪️', geo: '☄️', dendro: '🌿' };
+          const characterText = (character: { elementKey: string; name: string }) => `${emojis[character.elementKey] ?? ''} ${character.name}`.trim();
+          const dateText = (instant: Date) => { const [, month, day] = getBusinessDate(instant).split('-'); return `${day}/${month}`; };
+          // endsAt is exclusive; use the last covered instant for the inclusive Paris date, including DST weeks.
+          const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
+          const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
+          return `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.'}`;
         }
         case 'select': {
           const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
@@ -575,6 +581,7 @@ export class ChatCommandDispatcher {
       }
     } catch (error) {
       if (await this.chat.hasConfirmedCommandMutation(commandMessageId)) throw error;
+      if (definition.handler === 'banniere' && error instanceof BusinessError && error.code === 'GACHA_BANNER_UNAVAILABLE') return '⚠️ Aucune bannière n’est active pour le moment.';
       if (error instanceof BusinessError && !error.code.includes('IDEMPOTENCY')) return /^(No |A |The |Player |Could )/u.test(error.message) ? 'Action impossible pour le moment.' : oneLine(error.message);
       if (error instanceof AppError && !error.code.includes('IDEMPOTENCY')) return oneLine(error.message);
       throw error;

@@ -28,7 +28,7 @@ function harness(relation: 'NONE' | 'FRIEND' | 'RECEIVED' | 'SENT' = 'NONE', lev
 
 describe('Ami.txt approved standalone contract', () => {
   it('uses the real actor and counters in the summary', async () => {
-    expect(await harness('FRIEND').run('')).toBe('ℹ️ Kichnifou | Amis : 1 | Cœurs disponibles : 1 | Demandes : 0 | Commandes : !ami pseudo · !ami liste · !ami demandes · !ami coeur pseudo · !ami coeur all');
+    expect(await harness('FRIEND').run('')).toBe('ℹ️ Kichnifou | Amis : 1 | Cœurs disponibles : 1 | Demandes : 0 | Commandes : !ami pseudo · !ami demandes · !ami coeur pseudo · !ami coeur all');
   });
   it.each(['NONE', 'RECEIVED', 'SENT', 'FRIEND'] as const)('bare target orchestration: %s', async relation => {
     const h = harness(relation); const result = await h.run('Ceo');
@@ -64,15 +64,12 @@ describe('Ami.txt approved standalone contract', () => {
   it.each([[1, 'Amitié Sincère', '💛'], [99, 'Amitié Sincère', '💛'], [100, 'Amitié Fusionnelle', '💖'], [300, 'Amitié Légendaire', '🌟'], [1000, 'Amitié Parfaite', '💞']] as const)('restored level %i is truthful', async (level, tier, emoji) => {
     expect(await harness('RECEIVED', level).run('accepter Ceo')).toContain(`${level} [${tier}] ${emoji}`);
   });
-  it('lists friends with levels, marks sent hearts and indicates overflow', async () => {
-    const h = harness('FRIEND'); h.friend.heartSent = true;
-    expect(await h.run('liste')).toBe('🤝 Amis de Kichnifou : Ceo — niveau 42 [Amitié Sincère] 💛 ✅');
-    h.state.friends = Array.from({ length: 10 }, () => h.friend);
-    expect(await h.run('liste')).toContain('et 2 autres');
-    h.state.players[0]!.displayName = 'C'.repeat(100);
-    expect(Array.from(await h.run('liste')).length).toBeLessThanOrEqual(500);
-    expect(await h.run('liste')).toContain('autres');
-    expect(await harness().run('liste')).toBe('ℹ️ Kichnifou, tu n’as encore aucun ami.');
+  it('has no liste subcommand: the token follows ordinary player lookup', async () => {
+    const h = harness('FRIEND');
+    expect(await h.run('liste')).toBe('⚠️ Kichnifou, le joueur liste est introuvable.');
+    expect(h.find).toHaveBeenCalledWith('liste');
+    expect(h.social.friendship.mutate).not.toHaveBeenCalled();
+    expect(h.social.friendship.sendHearts).not.toHaveBeenCalled();
   });
   it.each(['NONE', 'RECEIVED', 'SENT'] as const)('separates requests: %s', async relation => {
     expect(await harness(relation).run('demandes')).toBe(`📨 Demandes d’ami | Reçues : ${relation === 'RECEIVED' ? 'Ceo' : 'aucune'} | Envoyées : ${relation === 'SENT' ? 'Ceo' : 'aucune'}`);

@@ -61,7 +61,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('element', 'progression', '!element pyro|hydro|cryo|electro|anemo|geo|dendro', 'READY'),
   command('convertir', 'ressources', '!convertir <montant>', 'READY'),
   command('echanger', 'ressources', '!echanger [pseudo] [montant|max] | liste | accepter [pseudo] | annuler [pseudo]', 'READY'),
-  command('banniere', 'gacha', '!banniere', 'READY', ['bannière']),
+  command('banniere', 'gacha', '!banniere', 'READY', ['bannière', 'ban']),
   command('select', 'gacha', '!select [nom]', 'READY'),
   command('vote', 'gacha', '!vote [nom]', 'READY'),
   command('pity', 'gacha', '!pity', 'READY'),
@@ -88,7 +88,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('quotis', 'activites', '!quotis', 'READY'),
   command('expedition', 'activites', '!expedition [personnage|retour]', 'READY'),
   command('combat', 'equipe', '!combat [info|go|auto|elements|help|stat|boss [go]]', 'READY'),
-  command('ami', 'social', '!ami [liste|demandes|ajouter|accepter|refuser|annuler|retirer|voir|coeur] [pseudo|all]', 'READY'),
+  command('ami', 'social', '!ami [demandes|ajouter|accepter|refuser|annuler|retirer|voir|coeur] [pseudo|all]', 'READY'),
   command('infos', 'social', '!infos <pseudo>', 'READY', ['info']),
   command('liste', 'social', '!liste <element|online> [page]', 'READY'),
 ];

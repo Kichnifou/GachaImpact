@@ -24,10 +24,7 @@ export async function amiCommand(identity: AuthenticatedIdentity, args: readonly
     while (limit > 0 && Array.from(compact(values, limit)).length > budget) limit--;
     return compact(values, limit);
   };
-  if (!action) return `ℹ️ ${actor.displayName} | Amis : ${state.summary.activeFriends} | Cœurs disponibles : ${state.summary.available} | Demandes : ${state.requests.length} | Commandes : !ami pseudo · !ami liste · !ami demandes · !ami coeur pseudo · !ami coeur all`;
-  if (action === 'liste' && args.length === 1) return state.friends.length
-    ? `🤝 Amis de ${actor.displayName} : ${boundedList(state.friends.map(friend => `${label(friend.playerId)} — niveau ${levelText(friend.level)}${friend.heartSent ? ' ✅' : ''}`), 500 - Array.from(`🤝 Amis de ${actor.displayName} : `).length)}`
-    : `ℹ️ ${actor.displayName}, tu n’as encore aucun ami.`;
+  if (!action) return `ℹ️ ${actor.displayName} | Amis : ${state.summary.activeFriends} | Cœurs disponibles : ${state.summary.available} | Demandes : ${state.requests.length} | Commandes : !ami pseudo · !ami demandes · !ami coeur pseudo · !ami coeur all`;
   if (action === 'demandes' && args.length === 1) {
     const requests = (direction: 'RECEIVED' | 'SENT') => {
       const entries = state.requests.filter(request => request.direction === direction).map(request => label(request.playerId));

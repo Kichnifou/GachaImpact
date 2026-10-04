@@ -20,9 +20,9 @@ function harness() {
     rememberCommandQuantity: vi.fn(async (_id: string, quantity: bigint) => quantity),
     rememberCommandText: vi.fn(async (_id: string, _field: string, value: string) => value),
   };
-  const execute = (value: unknown) => ({ execute: vi.fn(async () => value) });
+  const execute = <T>(value: T) => ({ execute: vi.fn(async () => value) });
   const services = {
-    getCurrentGacha: execute({ banner: { featuredFiveStars: [{ id: 'five', name: 'A' }], featuredFourStars: [{ id: 'four', name: 'B' }] }, playerState: { pity5: 9, pity4: 2, guaranteedFeatured5: true, captureProgress: 1, selectedBannerCharacterId: 'five' } }),
+    getCurrentGacha: execute({ banner: { startsAt: new Date('2026-09-27T22:00:00Z'), endsAt: new Date('2026-10-04T22:00:00Z'), featuredFiveStars: [{ id: 'five', name: 'A', elementKey: 'pyro' }], featuredFourStars: [{ id: 'four', name: 'B', elementKey: 'hydro' }] }, playerState: { pity5: 9, pity4: 2, guaranteedFeatured5: true, captureProgress: 1, selectedBannerCharacterId: 'five' } }),
     getCharacters: execute([{ id: 'five', name: 'A' }, { id: 'candidate', name: 'Candidat' }]),
     setGachaTarget: execute({}),
     bannerVotes: { getCurrent: vi.fn(async () => ({ bannerRotationId: 'rotation', ownVote: null, candidates: [{ characterId: 'candidate', voteCount: 0 }] })), vote: vi.fn(async () => ({})) },
@@ -90,6 +90,54 @@ function harness() {
 }
 
 describe('Chat command adapters', () => {
+  it.each(['!banniere', '!bannière', '!ban', '!BAN'])('renders %s from authoritative data without mutations', async command => {
+    const { services, chat, send } = harness();
+    const current = await services.getCurrentGacha.execute();
+    const elements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'];
+    current.banner.featuredFiveStars = elements.slice(0, 4).map((elementKey, index) => ({ id: index === 0 ? 'five' : `five-${index}`, name: `Cinq ${index}`, elementKey }));
+    current.banner.featuredFourStars = elements.slice(1).map((elementKey, index) => ({ id: `four-${index}`, name: `Quatre ${index}`, elementKey }));
+    const before = structuredClone(current);
+    const result = await send(command);
+    expect(result).toBe('🎯 Bannières (28/09 → 04/10) | ⭐⭐⭐⭐⭐ 🔥 Cinq 0, 💧 Cinq 1, ❄️ Cinq 2, ⚡ Cinq 3 | ⭐⭐⭐⭐ 💧 Quatre 0, ❄️ Quatre 1, ⚡ Quatre 2, 🌪️ Quatre 3, ☄️ Quatre 4, 🌿 Quatre 5 | 5★ ciblé : 🔥 Cinq 0');
+    expect(Array.from(result!).length).toBeLessThanOrEqual(500);
+    expect(chat.publishGameResult).toHaveBeenCalledTimes(1);
+    expect(services.getCurrentGacha.execute).toHaveBeenLastCalledWith(actor);
+    expect(services.setGachaTarget.execute).not.toHaveBeenCalled();
+    expect(services.performGachaPullChat.execute).not.toHaveBeenCalled();
+    expect(services.bannerVotes.vote).not.toHaveBeenCalled();
+    expect(chat.rememberCommandText).not.toHaveBeenCalled();
+    expect(current).toEqual(before);
+  });
+  it.each([null, 'four', 'obsolete'])('instructs selection for missing or stale target %s', async target => {
+    const { services, send } = harness();
+    const current = await services.getCurrentGacha.execute();
+    current.playerState.selectedBannerCharacterId = target as never;
+    expect(await send('!banniere')).toBe('🎯 Bannières (28/09 → 04/10) | ⭐⭐⭐⭐⭐ 🔥 A | ⭐⭐⭐⭐ 💧 B | Utilise !select nom_du_perso pour choisir ton 5★ ciblé.');
+    expect(services.setGachaTarget.execute).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['2026-03-22T23:00:00Z', '2026-03-29T22:00:00Z', '23/03 → 29/03'],
+    ['2026-10-18T22:00:00Z', '2026-10-25T23:00:00Z', '19/10 → 25/10'],
+    ['2026-12-27T23:00:00Z', '2027-01-03T23:00:00Z', '28/12 → 03/01'],
+  ])('formats inclusive Paris dates through DST and year changes', async (start, end, period) => {
+    const { services, send } = harness();
+    const current = await services.getCurrentGacha.execute();
+    current.banner.startsAt = new Date(start); current.banner.endsAt = new Date(end);
+    expect(await send('!banniere')).toContain(`Bannières (${period})`);
+  });
+  it.each(['!banniere test', '!ban test', '!bannière test'])('keeps canonical syntax for %s', async command => {
+    const { services, send } = harness();
+    expect(await send(command)).toBe('Syntaxe : !banniere.');
+    expect(services.getCurrentGacha.execute).not.toHaveBeenCalled();
+  });
+  it('keeps banner unknown and localizes only unavailable banner consultation', async () => {
+    const { services, send } = harness();
+    expect(await send('!banner')).toBe('Commande inconnue. Utilise !help.');
+    services.getCurrentGacha.execute.mockRejectedValue(new BusinessError('GACHA_BANNER_UNAVAILABLE', 'No active Gacha banner is available.'));
+    expect(await send('!ban')).toBe('⚠️ Aucune bannière n’est active pour le moment.');
+    expect(await send('!select')).toBe('Action impossible pour le moment.');
+    expect(services.setGachaTarget.execute).not.toHaveBeenCalled();
+  });
   it('reads Legends with exact normalized character names, self aliases, player names and no private leak', async () => {
     const { services, send } = harness();
     expect(await send('!legende')).toBe('Légendes de Moi : Étoile.');
@@ -169,7 +217,7 @@ describe('Chat command adapters', () => {
   });
 
   it.each([
-    ['!pity', 'Pity 5★'], ['!banniere', 'Bannière'], ['!box', 'Box'], ['!team', 'Team 1'],
+    ['!pity', 'Pity 5★'], ['!banniere', 'Bannières'], ['!box', 'Box'], ['!team', 'Team 1'],
     ['!sac', 'Sac'], ['!coffre', 'Coffre'], ['!shop', 'Boutique'], ['!banque', 'Banque'],
     ['!infos Autre', 'Autre'], ['!liste pyro', 'pyro'], ['!code', 'Codes disponibles'],
     ['!event', 'Festival'], ['!event top', 'Festival Top 10'], ['!expedition', 'Expédition'],
@@ -299,7 +347,7 @@ describe('Chat command adapters', () => {
   });
 
   it.each([
-    '!select', '!vote', '!obtention A', '!passifs', '!ami', '!ami liste', '!ami demandes', '!ami voir Autre', '!ami coeur Autre', '!ami coeur all',
+    '!select', '!vote', '!obtention A', '!passifs', '!ami', '!ami demandes', '!ami voir Autre', '!ami coeur Autre', '!ami coeur all',
     '!echanger liste', '!echanger Autre MAX', '!echanger accepter', '!echanger accepter Autre', '!echanger annuler Autre',
     '!combat info', '!combat auto', '!combat elements', '!combat help', '!combat stat',
     '!expedition retour',

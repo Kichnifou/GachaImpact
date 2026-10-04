@@ -133,6 +133,12 @@ Ne jamais réécrire une décision actuelle depuis un vieux résumé sans vérif
 
 ---
 
+## Méthode bornée à l'étape 29 — R1036
+
+Appliquer le [protocole propriétaire étape 29](../docs/process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036) : lecture intégrale d'un fichier legacy et comparaison au runtime réel, inventaire complet incluant aliases historiques/variantes/ajouts/abandons, tableau seul avant prompt Codex (Commande / cas | Legacy Streamer.bot | Message cible proposé | Statut / arbitrage), sans colonne standalone actuel ni longue analyse. Prompt seulement après validation propriétaire du tableau ; arbitrage explicite si le legacy est plus pratique que le fonctionnement moderne conservé par défaut. Examiner le split individuellement, sans couper noms/entrées, sans troncature ni splitter global aveugle ; bannière normale = une réponse.
+
+R1036 supersède la restriction R1035 au seul lot Ami : tous les petits lots validés de 29 suivent review → tests verts → commit/push review → vérification distante → fast-forward strict du même candidat vers main → push/fetch et main == review dans la même mission Codex, sans review ChatGPT intermédiaire sauf demande explicite. Exception strictement limitée à 29 ; workflow normal inchangé ailleurs. Aucun cutover Twitch. Recette propriétaire avant le fichier suivant.
+
 # 3. Phase de travail
 
 Les audits legacy exhaustifs sont clôturés. Ils restent les autorités fonctionnelles des domaines concernés et ne doivent pas être rouverts simplement parce que l'implémentation avance.

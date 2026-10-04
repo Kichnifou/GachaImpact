@@ -16,6 +16,25 @@ Documents liés :
 
 Les règles produit restent dans les documents spécialisés et le journal des décisions. L’état courant reste dans le Master. Les commandes, valeurs et contrôles propres au déploiement restent dans le document de déploiement.
 
+## Protocole propriétaire — étape 29 uniquement (R1036)
+
+R1036 supersède explicitement la restriction de promotion directe au seul lot Ami de R1035. Hors étape 29, le workflow normal avec review indépendante et promotion dédiée demeure obligatoire.
+
+Pour chaque fichier `legacy/streamerbot/commands/*.txt`, lire intégralement le legacy puis le standalone réel correspondant. Inventorier commandes, sous-commandes, aliases, variantes de syntaxe, messages de succès et erreurs, comportements legacy abandonnés et nouveaux comportements standalone. Rechercher systématiquement aliases courts historiques, variantes accentuées/non accentuées, singulier/pluriel, formes @pseudo pertinentes et variantes historiques pratiques ; ne jamais supprimer silencieusement un alias utile. Exemple méthodologique futur : rechercher !expedition / !exp, sans autoriser leur audit dans le lot Banniere.
+
+ChatGPT réfléchit à la meilleure cible ; AVANT le prompt Codex, présenter au propriétaire uniquement ce tableau, sans longue analyse visible ni colonne « standalone actuel » :
+
+| Commande / cas | Legacy Streamer.bot | Message cible proposé | Statut / arbitrage |
+| --- | --- | --- | --- |
+
+Inclure aussi nouvelles commandes standalone, anciennes commandes abandonnées, aliases, erreurs importantes et variantes de syntaxe. Le propriétaire valide, modifie ou retire les propositions ; produire le prompt Codex seulement après cette validation. Conserver par défaut le fonctionnement moderne ; si une variante legacy est objectivement plus pratique, la présenter comme arbitrage explicite, jamais comme décision produit silencieuse de Codex.
+
+Examiner la longueur pour chaque fichier : splitter proprement seulement lorsqu'un message peut raisonnablement dépasser la limite du canal. Identifier et adopter une logique legacy de découpage pertinente, ou réutiliser le mécanisme moderne lorsqu'il convient. Respecter séparateurs logiques, noms/entrées entiers, ordre et absence de doublons ; éviter multiplication inutile et troncature arbitraire. Aucun splitter générique appliqué aveuglément ni refactor transversal. Une bannière normale 4×5★ + 6×4★ garde une seule réponse conformément à la décision Gacha.
+
+Pour chaque petit lot validé : implémenter sur review → tests verts → contrôle du diff/index → commit propre → push normal review → vérifier commit et SHA distant → promouvoir immédiatement CE MÊME candidat sur main par fast-forward strict → push main → fetch final et vérifier origin/main == origin/review, même SHA, divergence 0/0 et worktree propre. Tout est effectué dans la même mission Codex, sans review ChatGPT intermédiaire sauf nouvelle demande explicite du propriétaire ; jamais force-push ni reset destructif. Aucun commit documentaire supplémentaire seulement pour inscrire son propre SHA.
+
+Distinguer implémentation, tests automatiques, promotion, déploiement vérifié et validation publique. Déployer/recetter dans le Chat standalone avant le fichier suivant, après validation propriétaire. Streamer.bot reste autoritatif Twitch ; aucun parser natif global, outbound, EventSub Chat, double exécution, gate Ceo ou cutover autorisé par ce protocole.
+
 ## 1. Concevoir le lot avant le prompt Codex
 
 Pour un lot visible ou produit :

@@ -1,6 +1,6 @@
 # Audit legacy — Ami / Social
 
-**Révision propriétaire étape 29 — R1035 :** les décisions d'origine ci-dessous restent historiques ; R1035 supersède R494 uniquement pour `!ami <pseudo>`, désormais polyvalent (ADD / ACCEPT / attente / informations selon la relation). `!ami voir` reste consultation pure ; les commandes modernes sont conservées. Les messages et aliases Ami.txt validés avant code sont portés par [la référence courante](../commands/command-reference.md#ami). Aucun autre fichier legacy traité, aucune progression/économie/notification Social ni activation Twitch modifiée.
+**Révision propriétaire étape 29 — R1035 / R1036 :** les décisions d'origine ci-dessous restent historiques ; R1035 supersède R494 uniquement pour `!ami <pseudo>`, désormais polyvalent (ADD / ACCEPT / attente / informations selon la relation). `!ami voir` reste consultation pure ; les commandes modernes sont conservées sauf la sous-commande liste, entièrement supprimée par R1036 après recette publique propriétaire du reste du lot Ami. Les services/listes Social et l’UI demeurent. Les messages et aliases Ami.txt validés avant code sont portés par [la référence courante](../commands/command-reference.md#ami). Aucun autre fichier legacy traité, aucune progression/économie/notification Social ni activation Twitch modifiée.
 
 **Complément étape 22 (candidat `review`) :** Communauté joint aux dossiers MP les `GlobalChatReport` figés : liste/détail de modération, tombstone `MODERATION` du message source et suppression indépendante du dossier. Les anciens déblocages d'avatar de personnage restent permanents lors d'une correction de possession ; un ajout ADMIN débloque silencieusement sans notification artificielle. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). L'audit legacy reste la preuve de ses décisions d'origine.
 
@@ -911,7 +911,6 @@ Prévoir conceptuellement :
 Les syntaxes canoniques du chat interne et de Twitch sont :
 
 - `!ami` ;
-- `!ami liste [page]` ;
 - `!ami demandes [page]` ;
 - `!ami ajouter <pseudo>` ;
 - `!ami accepter <pseudo>` ;
@@ -935,9 +934,9 @@ Sans argument, `!ami` produit un seul message compact contenant :
 - nombre de cœurs encore disponibles ;
 - demandes reçues ;
 - demandes envoyées ;
-- renvoi vers `!ami liste` et `!ami demandes`.
+- renvoi vers `!ami demandes` (R1036 retire entièrement la sous-commande liste).
 
-Les listes sont paginées. L'UI standalone conserve les listes complètes, la recherche et les tris interactifs.
+Les listes restent dans l’UI ; aucune commande de liste d’amis Chat n’est disponible (R1036). L'UI standalone conserve les listes complètes, la recherche et les tris interactifs.
 
 ## R496 — Visibilité des résultats sociaux
 

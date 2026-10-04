@@ -1599,14 +1599,6 @@ Résumé
 
 !ami
 
-Liste
-
-!ami liste
-
-Pagination :
-
-!ami liste <page>
-
 Demandes
 
 !ami demandes
