@@ -27,17 +27,17 @@ export class GetDailyChallenge extends DailyChallengePlayerService {
 
 export class PurchaseDailyChallenge extends DailyChallengePlayerService {
   public constructor(getPlayer: GetCurrentPlayer, store: DailyChallengeStore, clock: Clock, private readonly random: RandomSource) { super(getPlayer, store, clock); }
-  public async execute(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async execute(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel?: SourceChannel) {
     const { player, playerElementKey, now, businessDate } = await this.context(identity);
-    return this.store.purchase({ playerId: player.id, playerElementKey, now, businessDate, idempotencyKey, random: this.random });
+    return this.store.purchase({ playerId: player.id, playerElementKey, now, businessDate, idempotencyKey, random: this.random, ...(sourceChannel ? { sourceChannel } : {}) });
   }
 }
 
 export class SwitchDailyChallenge extends DailyChallengePlayerService {
   public constructor(getPlayer: GetCurrentPlayer, store: DailyChallengeStore, clock: Clock, private readonly random: RandomSource) { super(getPlayer, store, clock); }
-  public async execute(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async execute(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel?: SourceChannel) {
     const { player, playerElementKey, now, businessDate } = await this.context(identity);
-    return this.store.switchChallenge({ playerId: player.id, playerElementKey, now, businessDate, idempotencyKey, random: this.random });
+    return this.store.switchChallenge({ playerId: player.id, playerElementKey, now, businessDate, idempotencyKey, random: this.random, ...(sourceChannel ? { sourceChannel } : {}) });
   }
 }
 

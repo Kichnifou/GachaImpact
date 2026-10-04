@@ -125,6 +125,7 @@ export class PrismaGachaStore implements GachaStore {
         bonusRewards: readBonusRewards(result.snapshot),
         c6Progression: readC6Progression(result.snapshot),
         passiveEffects: readPassiveEffects(result.snapshot),
+        backToBack: result.snapshot !== null && typeof result.snapshot === 'object' && !Array.isArray(result.snapshot) && result.snapshot.backToBack === true,
         pity5AtPull: readPityAtPull(result.snapshot, 'pity5'),
         pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
       })),
@@ -193,6 +194,11 @@ export class PrismaGachaStore implements GachaStore {
       const target = banner.featuredFiveStars.find(({ id }) => id === storedState.selectedBannerCharacterId);
       if (!target) throw new BusinessError('GACHA_TARGET_INVALID', 'La cible choisie ne fait pas partie de la bannière active.');
 
+      const previousResult = await transaction.pullResult.findFirst({
+        where: { pullOperation: { playerId: input.playerId } },
+        orderBy: [{ pullOperation: { businessOperation: { startedAt: 'desc' } } }, { resultIndex: 'desc' }], select: { rarity: true },
+      });
+      let previousWasFiveStar = previousResult ? previousResult.rarity === 5 : legacyContext.legacyLastPullWasFiveStar === true;
       const activeTeam = await readActiveTeamSnapshot(transaction, input.playerId);
 
       const businessOperation = await transaction.businessOperation.create({ data: {
@@ -333,6 +339,9 @@ export class PrismaGachaStore implements GachaStore {
           passiveEffects.push({ elementKey: 'dendro', type: 'resource_bundle', rewards: bundleRewards });
         }
 
+        const backToBack = record.rarity === 5 && previousWasFiveStar;
+        record = { ...record, pity5AtPull: resolved.stateBefore.pity5 + 1, pity4AtPull: resolved.stateBefore.pity4 + 1, backToBack };
+        previousWasFiveStar = record.rarity === 5;
         await transaction.pullResult.create({ data: {
           pullOperationId: pullOperation.id, resultIndex: index, resultType: record.resultType,
           characterId: record.character?.id, rarity: record.rarity, resourceKey: record.resourceKey,
@@ -340,7 +349,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects), createdAt: input.now,
+          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack), createdAt: input.now,
         } });
         records.push(record);
       }
@@ -407,6 +416,8 @@ export class PrismaGachaStore implements GachaStore {
         guaranteeConsumed: result.guaranteeConsumed, captureTriggered: result.captureTriggered,
         bonusRewards: readBonusRewards(result.snapshot), c6Progression: readC6Progression(result.snapshot),
         passiveEffects: readPassiveEffects(result.snapshot),
+        pity5AtPull: readPityAtPull(result.snapshot, 'pity5'), pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
+        backToBack: result.snapshot !== null && typeof result.snapshot === 'object' && !Array.isArray(result.snapshot) && result.snapshot.backToBack === true,
       })),
       playerState,
     };
@@ -494,9 +505,10 @@ function snapshot(
   c6Progression: PullResultRecord['c6Progression'],
   activeTeam: ActiveTeamSnapshot,
   passiveEffects: readonly GachaPassiveEffect[],
+  backToBack: boolean,
 ): Prisma.InputJsonObject {
   return {
-    stateBefore: snapshotState(before), stateAfter: snapshotState(after),
+    stateBefore: snapshotState(before), stateAfter: snapshotState(after), backToBack,
     bonusRewards: bonusRewards.map(({ resourceKey, amount, causeKey }) => ({ resourceKey, amount: amount.toString(), causeKey })),
     activeTeam: activeTeamSnapshotJson(activeTeam),
     passiveEffects: passiveEffects.map(passiveEffectJson),

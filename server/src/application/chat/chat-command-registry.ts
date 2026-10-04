@@ -3,7 +3,7 @@ export { chatCommandRegistry, chatHelpCategories } from './chat-command-metadata
 export type { ChatCommandDefinition, ChatHelpCategory, CommandAvailability } from './chat-command-metadata.js';
 
 const normalize = (token: string) => token.replace(/^!/, '').normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR');
-const categoryAliases: Readonly<Record<string, ChatHelpCategory>> = { xp: 'progression', stats: 'classements', quotidiennes: 'activites', daily: 'activites', boutique: 'ressources', box: 'collection', shop: 'ressources', top: 'classements' };
+const categoryAliases: Readonly<Record<string, ChatHelpCategory>> = { xp: 'progression', pulls: 'gacha', resources: 'ressources', codes: 'events', gift: 'twitch', stats: 'classements', quotidiennes: 'activites', daily: 'activites', boutique: 'ressources', box: 'collection', shop: 'ressources', top: 'classements' };
 export function findChatCommand(token: string): ChatCommandDefinition | undefined {
   return chatCommandRegistry.find(entry => [entry.name, ...entry.aliases].some(alias => normalize(alias) === normalize(token)));
 }

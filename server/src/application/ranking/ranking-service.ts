@@ -5,6 +5,7 @@ import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-serv
 import { privacyDefaults, type PrivacyCategory } from '../social/privacy-service.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { fiveStarRate } from '../statistics/general-statistics-projection.js';
+import { chatElementNames, logicalChatParts } from '../chat/chat-list-result.js';
 
 export type RankingCategory = 'PROGRESSION' | 'GACHA' | 'RESSOURCES' | 'COLLECTION' | 'ACTIVITE';
 type Source = 'progression' | 'gacha' | 'economy' | 'combat' | 'expedition' | 'social' | 'balances' | 'bank' | 'box';
@@ -27,7 +28,7 @@ export const rankingRegistry: readonly RankingDefinition[] = [
   define('lost5050', '50/50 perdus', 'GACHA', 'gacha', general, ['lose5050', 'lost5050']),
   define('primos', 'Primogemmes', 'RESSOURCES', 'balances', currency), define('moras', 'Patrimoine Moras', 'RESSOURCES', 'bank', ['CURRENCY_BALANCES', 'BANK']),
   define('particles', 'Particules totales', 'RESSOURCES', 'balances', currency, ['particules']),
-  ...elementKeys.map(key => define(key, `Particules ${key}`, 'RESSOURCES', 'balances', currency)),
+  ...elementKeys.map(key => define(key, `Particules ${chatElementNames[key]}`, 'RESSOURCES', 'balances', currency)),
   define('primosEarned', 'Primogemmes gagnées', 'RESSOURCES', 'economy', general, ['primos-earned']),
   define('primosSpent', 'Primogemmes dépensées', 'RESSOURCES', 'economy', general, ['primos-spent']),
   define('morasEarned', 'Moras gagnées', 'RESSOURCES', 'economy', general, ['moras-earned']),
@@ -38,7 +39,7 @@ export const rankingRegistry: readonly RankingDefinition[] = [
   define('expeditions', 'Expéditions terminées', 'ACTIVITE', 'expedition', general), define('hearts', 'Cœurs envoyés', 'ACTIVITE', 'social', general, ['coeurs']),
 ];
 export const rankingCategories: readonly RankingCategory[] = ['PROGRESSION', 'GACHA', 'RESSOURCES', 'COLLECTION', 'ACTIVITE'];
-export const findRanking = (token: string) => rankingRegistry.find(metric => metric.aliases.includes(token.toLocaleLowerCase('fr-FR')));
+export const findRanking = (token: string) => rankingRegistry.find(metric => metric.aliases.includes(normalizePlayerSearch(token).replaceAll('œ', 'oe')));
 type Entry = { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; rank: number; value: string; isSelf: boolean };
 type Ranked = { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; score: bigint | Ratio; rank: number };
 const compare = (a: bigint | Ratio, b: bigint | Ratio) => {
@@ -130,7 +131,8 @@ export class RankingService {
     if (!page) return 'Métrique inconnue. Utilise !top.';
     const lines = page.entries.map(entry => `#${entry.rank} ${entry.displayName} — ${entry.value}`);
     if (page.self && !page.entries.some(entry => entry.isSelf)) lines.push(`Vous : #${page.self.rank} — ${page.self.value}`);
-    return `${metric.label} : ${lines.join(' · ') || 'aucune donnée publique positive'}.`;
+    const parts = logicalChatParts(`${metric.label} :`, (lines.length ? lines : ['aucune donnée publique positive']).map(text => ({ text, separator: ' · ' })), `${metric.label} (suite) :`);
+    return parts.length === 1 ? parts[0]! : parts;
   }
 
   async personal(viewerId: string) {

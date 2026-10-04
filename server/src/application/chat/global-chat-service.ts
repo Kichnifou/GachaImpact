@@ -23,7 +23,7 @@ const conflict = () => new AppError('Cette clé appartient à un autre message.'
 const pacingLimited = () => new AppError('Envoi Chat temporairement limité.', 429, 'CHAT_PACING_LIMIT');
 const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string };
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
 const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
@@ -286,7 +286,12 @@ export class GlobalChatService {
       } },
       include: { definition: true },
     });
-    return rows.map(row => `Mission terminée : ${row.definition.displayName} (+${row.definition.rewardPrimogems} Primogemmes).`);
+    const dailyRewards = await this.database.resourceMovement.findMany({ where: {
+      playerId: command.authorPlayerId, causeKey: 'daily-challenge.completion', delta: { gt: 0n },
+      operation: { sourceChannel: 'INTERNAL_CHAT', OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }] },
+    }, orderBy: { createdAt: 'asc' } });
+    return [...rows.map(row => `Mission terminée : ${row.definition.displayName} (+${row.definition.rewardPrimogems} Primogemmes).`),
+      ...dailyRewards.map(row => `✅ Défi terminé : +💠${row.delta} Primogemmes.`)];
   }
 
   async findGameResult(commandMessageId: string) {
@@ -373,7 +378,7 @@ export class GlobalChatService {
   }
 
   /** Freeze a resolved target or branch before a domain mutation, including across workers. */
-  async rememberCommandText(commandMessageId: string, field: 'targetId' | 'action', proposed: string): Promise<string> {
+  async rememberCommandText(commandMessageId: string, field: 'targetId' | 'action' | 'eventContext', proposed: string): Promise<string> {
     return this.database.$transaction(async tx => {
       const rows = await tx.$queryRaw<{ result_summary: ChatOperationSummary }[]>`
         SELECT o.result_summary FROM business_operations o

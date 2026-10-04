@@ -44,6 +44,11 @@ describe('active Event ranking', () => {
     expect(result.entries.some(({ playerId }) => playerId === participantIds[10])).toBe(false);
     expect(result.entries.some(({ playerId }) => playerId === ids[11])).toBe(false);
     expect(result.entries.every((entry) => Object.keys(entry).sort().join(',') === 'displayName,playerId,points,rank')).toBe(true);
+    expect(result.self).toBeNull();
+    await database.eventParticipant.create({ data: { eventEditionId: context.edition.id, playerId: ids[11]!, points: 11, joinedAt: null, legacyProvenance: { fixture: 'unknown legacy join date' } } });
+    const legacyRanking = await contextService.getRanking({ subject: 'ranking-legacy' });
+    expect(legacyRanking.self).toEqual({ rank: 11, points: 11 });
+    expect(legacyRanking.entries.map(entry => entry.playerId)).toEqual(result.entries.map(entry => entry.playerId));
     expect(await database.businessOperation.count({ where: { playerId: { in: ids } } })).toBe(0);
     expect(await database.resourceMovement.count({ where: { playerId: { in: ids } } })).toBe(0);
   }, 90_000);

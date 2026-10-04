@@ -1,5 +1,7 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
+**Amendement Chat R1038 — étape 29 :** Échanges : les actions Chat accepter/refuser sans pseudo ou all/@all/tout/tous concernent les reçues ; annuler concerne toutes les envoyées initiales. Les IDs du lot sont figés, traités par ancienneté/ID, indépendamment des nouvelles demandes ; réservations unilatérales et réductions dynamiques R5–R27 inchangées. Alias conv/echange/ech, matching exact et reçus avec identités/ressources réelles. La syntaxe Refuser tout auparavant future est maintenant raccordée. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 Statut : CLÔTURÉ — R1 À R53 VALIDÉS
 Date : 2026-08-28
 

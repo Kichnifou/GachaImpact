@@ -1,5 +1,7 @@
 # 17 — Audit Roue / quotidien
 
+**Amendement Chat R1038 — étape 29 :** Le résultat Roue expose déjà traité par le propre reçu, distinct de déjà consommé par une autre intention quotidienne ; le Chat rejoue son gain initial ou avertit sans annoncer de nouveau gain. Résultat/RNG/crédit unique même avec concurrence UI, aucun nouveau droit ni reset. Les glyphes et quantités viennent du résultat réel ; quotis reste une lecture transversale. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 > Domaine 14 de l'audit GachaImpact.  
 > Statut : **CLÔTURÉ — décisions produit R645 à R656 validées**.  
 > Ce document est la source spécialisée validée du domaine Roue / quotidien.  

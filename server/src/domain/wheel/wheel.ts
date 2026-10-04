@@ -16,6 +16,7 @@ export type WheelSpinResult = WheelReward &
   Readonly<{
     businessDate: string;
     alreadySpun: boolean;
+    alreadyProcessed?: boolean;
   }>;
 
 export type WheelTodayState = Readonly<{

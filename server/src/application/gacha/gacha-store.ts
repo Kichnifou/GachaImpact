@@ -16,6 +16,9 @@ export type CurrentBanner = Readonly<{
 }>;
 export type PullResultRecord = Readonly<{
   index: number;
+  pity5AtPull?: number | null;
+  pity4AtPull?: number | null;
+  backToBack?: boolean;
   resultType: 'character' | 'resource';
   character: GachaCharacter | null;
   rarity: 4 | 5 | null;

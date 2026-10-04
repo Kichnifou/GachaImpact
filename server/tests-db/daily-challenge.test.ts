@@ -53,6 +53,26 @@ const purchaseInput = (playerId: string, roll: number, idempotencyKey = randomUU
 });
 
 describe('Daily Challenge persistence', () => {
+  it('replays the exact Chat challenge, cost and balances after later switches and conversions', async () => {
+    const playerId = await createPlayer({ moras: 150000n, particles: 1000n });
+    const store = new PrismaDailyChallengeStore(database);
+    const input = { ...purchaseInput(playerId, 0), sourceChannel: SourceChannel.INTERNAL_CHAT };
+    const first = await store.purchase(input);
+    const switchInput = { ...purchaseInput(playerId, 0), sourceChannel: SourceChannel.INTERNAL_CHAT };
+    const switched = await store.switchChallenge(switchInput);
+    await store.switchChallenge({ ...purchaseInput(playerId, 0), sourceChannel: SourceChannel.INTERNAL_CHAT });
+    const noRandom = { nextInt: () => { throw new Error('Replay must not draw another challenge.'); } };
+    const replay = await store.purchase({ ...input, random: noRandom });
+    const switchReplay = await store.switchChallenge({ ...switchInput, random: noRandom });
+    expect(replay.view).toEqual(first.view); expect(replay.resources).toEqual(first.resources); expect(replay.spentMoras).toBe(10000n);
+    expect(switchReplay.view).toEqual(switched.view); expect(switchReplay.resources).toEqual(switched.resources); expect(switchReplay.spentMoras).toBe(20000n);
+    expect(await database.businessOperation.count({ where: { playerId } })).toBe(3);
+    expect((await database.resourceMovement.findMany({ where: { playerId } })).every(row => row.sourceChannel === SourceChannel.INTERNAL_CHAT)).toBe(true);
+    const conversion = { playerId, playerElementKey: 'hydro' as const, amount: 1n, businessDate, now, idempotencyKey: randomUUID(), sourceChannel: SourceChannel.INTERNAL_CHAT };
+    const converted = await store.convertParticles(conversion);
+    await store.convertParticles({ ...conversion, idempotencyKey: randomUUID() });
+    expect((await store.convertParticles(conversion)).resources).toEqual(converted.resources);
+  });
   it('keeps the three-definition catalog while only real producers are eligible', async () => {
     const definitions = await database.dailyChallengeDefinition.findMany({ orderBy: { displayOrder: 'asc' } });
     expect(definitions.map(({ externalKey, weight, isEligible }) => ({ externalKey, weight, isEligible }))).toEqual([

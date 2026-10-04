@@ -49,7 +49,7 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
-  public activate(playerId: string, teamId: string): Promise<PlayerTeams> {
+  public activate(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       const team = await lockOwnedTeam(transaction, playerId, teamId);
@@ -58,19 +58,19 @@ export class PrismaTeamStore implements TeamStore {
         await transaction.team.update({ where: { id: teamId }, data: { isActive: true } });
       }
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['activate', teamId] } : undefined);
   }
 
-  public rename(playerId: string, teamId: string, name: string | null): Promise<PlayerTeams> {
+  public rename(playerId: string, teamId: string, name: string | null, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await lockOwnedTeam(transaction, playerId, teamId);
       await transaction.team.update({ where: { id: teamId }, data: { name } });
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['rename', teamId, name] } : undefined);
   }
 
-  public createNext(playerId: string, expectedPosition: number): Promise<PlayerTeams> {
+  public createNext(playerId: string, expectedPosition: number, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await provisionBaseTeams(transaction, playerId);
@@ -84,7 +84,7 @@ export class PrismaTeamStore implements TeamStore {
       }
       await transaction.team.create({ data: { playerId, displayPosition: expectedPosition, isBaseSlot: false } });
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['create', expectedPosition] } : undefined);
   }
 
   public deleteExtra(playerId: string, teamId: string): Promise<PlayerTeams> {
@@ -115,7 +115,7 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
-  public setSlot(playerId: string, teamId: string, position: number, characterId: string): Promise<PlayerTeams> {
+  public setSlot(playerId: string, teamId: string, position: number, characterId: string, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await lockOwnedTeam(transaction, playerId, teamId);
@@ -144,7 +144,7 @@ export class PrismaTeamStore implements TeamStore {
       });
       await assertUniqueCompleteComposition(transaction, playerId, teamId);
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['add', teamId, position, characterId] } : undefined);
   }
 
   public reorderSlots(playerId: string, teamId: string, characterIds: readonly (string | null)[]): Promise<PlayerTeams> {
@@ -167,29 +167,50 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
-  public removeSlot(playerId: string, teamId: string, position: number): Promise<PlayerTeams> {
+  public removeSlot(playerId: string, teamId: string, position: number, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await lockOwnedTeam(transaction, playerId, teamId);
       await transaction.teamMember.deleteMany({ where: { teamId, position } });
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['remove', teamId, position] } : undefined);
   }
 
-  public clear(playerId: string, teamId: string): Promise<PlayerTeams> {
+  public clear(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await lockOwnedTeam(transaction, playerId, teamId);
       await transaction.teamMember.deleteMany({ where: { teamId } });
       return readPlayerTeams(transaction, playerId);
-    });
+    }, chatKey ? { playerId, chatKey, request: ['clear', teamId] } : undefined);
   }
 }
 
-async function runTeamTransaction<T>(database: PrismaClient, operation: (transaction: Prisma.TransactionClient) => Promise<T>): Promise<T> {
+type TeamChatReceipt = Readonly<{ playerId: string; chatKey: string; request: readonly (string | number | null)[] }>;
+async function runTeamTransaction(database: PrismaClient, operation: (transaction: Prisma.TransactionClient) => Promise<PlayerTeams>, receipt?: TeamChatReceipt): Promise<PlayerTeams> {
   for (let attempt = 1; attempt <= MAX_TEAM_ATTEMPTS; attempt += 1) {
     try {
-      return await database.$transaction(operation, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      return await database.$transaction(async transaction => {
+        if (!receipt) return operation(transaction);
+        await lockPlayer(transaction, receipt.playerId);
+        const key = `chat.team:${receipt.chatKey}`;
+        const existing = await transaction.businessOperation.findFirst({ where: { idempotencyKey: key, sourceChannel: 'INTERNAL_CHAT' } });
+        if (existing) {
+          const summary = existing.resultSummary as { request?: unknown; state?: PlayerTeams } | null;
+          if (existing.playerId !== receipt.playerId || existing.operationType !== 'team.command' || existing.sourceChannel !== 'INTERNAL_CHAT'
+            || existing.status !== 'COMPLETED' || JSON.stringify(summary?.request) !== JSON.stringify(receipt.request)) {
+            throw new BusinessError('TEAM_IDEMPOTENCY_CONFLICT', 'Cette intention Team ne correspond pas à son premier traitement.');
+          }
+          if (!Array.isArray(summary?.state?.teams)) throw new Error('Completed Team command has no result.');
+          return summary.state;
+        }
+        const state = await operation(transaction);
+        await transaction.businessOperation.create({ data: {
+          playerId: receipt.playerId, idempotencyKey: key, operationType: 'team.command', sourceChannel: 'INTERNAL_CHAT',
+          status: 'COMPLETED', completedAt: new Date(), resultSummary: { request: [...receipt.request], state: state as unknown as Prisma.InputJsonValue },
+        } });
+        return state;
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
       if (!isPrismaConcurrencyCollision(error) || attempt === MAX_TEAM_ATTEMPTS) throw error;
     }

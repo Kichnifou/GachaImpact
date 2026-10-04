@@ -7,7 +7,7 @@ export function classifyGiveawayText(text: string): GiveawayCommand {
   if (!trimmed.startsWith('!')) return 'MESSAGE';
   const parts = trimmed.toLocaleLowerCase('fr-FR').split(/\s+/);
   if (parts[0] === '!wish' && parts.length === 1) return 'WISH';
-  if (parts[0] !== '!giveaway') return 'OTHER_COMMAND';
+  if (!['!giveaway', '!ga'].includes(parts[0]!)) return 'OTHER_COMMAND';
   if (parts.length === 2 && (parts[1] === 'stats' || parts[1] === 'stat')) return 'STATS';
   if (parts.length === 2 && (parts[1] === 'open' || parts[1] === 'ouvrir')) return 'OPEN';
   if (parts.length === 2 && (parts[1] === 'close' || parts[1] === 'fermer')) return 'CLOSE';

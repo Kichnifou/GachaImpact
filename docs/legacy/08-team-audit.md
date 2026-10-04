@@ -1,5 +1,7 @@
 # 08 — Audit legacy Team
 
+**Amendement Chat R1038 — étape 29 :** Les mutations Chat apply/add/remove/rename/new sont raccordées aux propriétaires existants avec clé Chat optionnelle et snapshot transactionnel dans BusinessOperation. Consultation N sans activation ; N remove/delete/supprimer vide sans suppression physique ; list/liste affiche dix compositions entières par page ; save reste un helper. Intentions de slot/ID/position/nom figées, replay stable après autres modifications ; aucun nouveau schéma ni changement des appels UI sans clé. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 Statut : CLÔTURÉ — R177 À R236 VALIDÉS
 Date : 2026-08-30
 

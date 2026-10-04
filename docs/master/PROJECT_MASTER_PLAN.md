@@ -1,11 +1,31 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 29 — Banque, Box, Code et Coffre, lot R1037.
+Version : étape 29 — audit et adaptation des 31 sources restantes, lot R1038.
 Date : 2026-10-04
 Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 ACTIVE / PROCHAINE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel R1034 : **29 → 30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — étape 29, Banque / Box / Code / Coffre, lot R1037 du 04/10/2026
+## Point courant — étape 29, 31 sources restantes, lot R1038 du 04/10/2026
+
+**Gate initial exécuté :** fetch réussi, review propre ; HEAD = origin/main = origin/review = **f3c17fe326b8ee485a67db9fa3da6f332f3240da**, divergence 0/0. Le précédent lot Banque/Box/Code/Coffre R1037 est bien publié sur les deux branches ; son diff depuis 6a4bea61bb3649a87e607f3ac1c20547078526bb a été contrôlé. Ses preuves techniques sont historiques ; son déploiement et sa recette ne sont pas déduits de Git.
+
+**29 ACTIVE — délégation et livraison regroupée R1038 :** les 31 sources restantes sont lues intégralement, helpers compris, Event sur les douze mois et XP/Gift/Subscription sur tous leurs traitements. La [couverture des 37 sources](../commands/step-29-command-coverage.md) sépare les six premières livraisons conservées et la présente adaptation Chat. Mutations Team et Shop mission/switch raccordées aux propriétaires existants ; aliases demandés, réponses complètes/glyphes/durées françaises, Pull/C6/passifs/XP, lectures privées Social, actions groupées Échanges, Combat/Boss/Expédition et jeux Event alignés sur les contrats modernes. Concours et Faveur restent en lecture ; Wish/Giveaway et les triggers restent derrière leurs gates Twitch. Aucun moteur économique legacy restauré.
+
+**Intégrité :** intentions cibles/quantités/actions figées ; reçus et résultats stables réutilisant BusinessOperation et les schémas existants, multiparties atomiques R1037 et refresh UI ciblé conservés. Pas de double coût, gain, réservation, toggle ou cooldown via retries/aliases. Aucun fichier legacy, frontend, configuration de déploiement, scheduler, schéma Prisma ou migration modifié ; aucune fixture métier écrite dans public.
+
+**Validation technique finale : PASS.** 249 tests ciblés / 7 fichiers réussis. `verify:full` réussi **8/8** : frontend **1295 tests / 121 fichiers**, backend hors DB **1454 tests / 111 fichiers** ; builds frontend/backend, typechecks, lint et diff-checks worktree/index réussis. Logs complets locaux : `gachaimpact-verify-full-jvyse9` dans le dossier temporaire de cette session. Warnings non bloquants constatés : lint préexistant hors périmètre, chunk frontend >500 kB et dépréciation pg des suites DB. Aucune erreur finale restante.
+
+**PostgreSQL : 255 tests / 24 fichiers PASS**, chacun dans les schémas privés prévus, une invocation par fichier, séquentiellement : Team 15 ; DailyChallenge 10 ; Shop 10 ; Event/Shop 8 ; GlobalChat 35 ; Gacha 25 ; Échanges 23 ; Roue vertical slice 2 ; Box 2 ; BannerVote 3 ; Expédition 15 ; Combat quotidien 9 ; Boss 10 ; Social 10 ; Social/Faveur 4 ; Ranking 5 ; Missions permanentes 21 ; Event replay Chat 4 ; Event socle/Jeu A 8 ; Jeu B 7 ; Jeu C 8 ; calendrier 5 ; classement Event 1 ; paliers Event 15. Le replay après commit et échec de publication conserve gains/IDs, aucun double mouvement ; snapshots après autre action, concurrence UI, ensemble initial des échanges et changement de mois sont couverts. Les dates legacy inconnues du classement restent compatibles. Ces fixtures ne constituent pas une recette publique, aucune écriture de fixture métier dans public.
+
+**Échecs intermédiaires et relances :** assertions de présentation adaptées aux contrats livrés, fixture Échanges départagée par dates/ID, nouvelle assertion pity 4★ corrigée (un 5★ ne la remet pas à zéro), assertions Roue complétées avec le champ de propre replay et erreur de typage du mock MAX corrigée. Une première passe backend chargée a dépassé le timeout existant d'un test Arcade HARD ; aucune modification Arcade ni des timeouts/assertions pour masquer cet échec. La passe complète finale sans suite lourde parallèle passe. Tous les fichiers concernés ont été relancés avec succès.
+
+**Publication du lot :** un seul candidat global complet publié sur review, puis exactement le même candidat promu sur main par fast-forward strict selon l’autorisation R1038, sans review ChatGPT intermédiaire. Les SHA et refs distantes, la chaîne de commits, la divergence finale 0/0 et la propreté de l’index/worktree sont contrôlés dans la mission et portés au rapport final ; aucun commit supplémentaire pour inscrire son propre SHA.
+
+**Déploiement et recette propriétaire : NON VÉRIFIÉS / RESTANTS.** Textes choisis sous délégation, sans prétendre à une validation publique individuelle. Streamer.bot reste autoritatif ; aucun outbound/activation EventSub/pilote Ceo/cutover, aucune migration ni répétition 30 exécutée. 26/28 CLOSED et 27 CLOSED BY OWNER / SCOPE DECISION conservés ; 29 ACTIVE, 30/31A/31B/32 TODO selon leurs gates.
+
+**Prochaine action exacte : ChatGPT vérifie le SHA et le déploiement exacts, puis fournit uniquement la courte recette essentielle du Chat standalone par famille** ([annexe](../commands/step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement)). Pas de tableau d’erreurs purement système ni de répétition manuelle de tous les aliases. Tests Twitch séparés et non activés. STOP après publication et rapport ; aucune poursuite automatique ni clôture implicite de 29.
+
+## Historique — étape 29, Banque / Box / Code / Coffre, lot R1037 du 04/10/2026
 
 **Gate initial exécuté :** fetch réussi ; HEAD = origin/main = origin/review = **6a4bea61bb3649a87e607f3ac1c20547078526bb**, divergence 0/0, branche review et index/worktree propres. Lot dédié publié sur review, puis même candidat promu sur main par fast-forward strict selon la mission propriétaire et R1036 ; les refs finales contrôlées figurent au rapport de publication.
 

@@ -57,6 +57,26 @@ async function debitWithRetry(id: string, amount: bigint, resourceKey: ResourceK
   }
 }
 describe('Particle trades isolated PostgreSQL', () => {
+  it('cancels only the initial sent batch, freezes its names and leaves later arrivals and received offers intact', async () => {
+    const a = await player(), b = await player('pyro'), c = await player('hydro'), d = await player('geo');
+    const first = await request(a, b, 100n);
+    now = new Date(now.getTime() + 1000);
+    const second = await request(a, c, 100n);
+    const incoming = await request(d, a, 50n);
+    const key = randomUUID();
+    const result = await service.all(a, 'cancel', key, 'INTERNAL_CHAT');
+    expect(result.results.map(({ requestId, state, amount }) => ({ requestId, state, amount }))).toEqual([
+      { requestId: first.requestId, state: 'CANCELLED', amount: '100' }, { requestId: second.requestId, state: 'CANCELLED', amount: '100' },
+    ]);
+    expect(result.results[0]).toMatchObject({ sender: { id: a }, recipient: { id: b }, senderResourceKey: 'particles_pyro', recipientResourceKey: 'particles_cryo' });
+    await db.player.update({ where: { id: b }, data: { displayName: 'Changed after cancellation' } });
+    const later = await request(a, b, 25n);
+    expect(await service.all(a, 'cancel', key, 'INTERNAL_CHAT')).toEqual(result);
+    expect((await db.tradeRequest.findUniqueOrThrow({ where: { id: later.requestId } })).state).toBe('PENDING');
+    expect((await db.tradeRequest.findUniqueOrThrow({ where: { id: incoming.requestId } })).state).toBe('PENDING');
+    expect((await stock(a, 'particles_pyro')).reserved).toBe('25');
+    expect(await db.tradeExecution.count({ where: { request: { senderPlayerId: a } } })).toBe(0);
+  }, 30000);
   it('resolves the recipient pending aggregate immediately when its sender cancels the last request', async () => {
     const a = await player(), b = await player('pyro'), r = await request(a, b);
     expect(await notification(b)).toMatchObject({ state: 'UNREAD', payload: { count: 1 } });
@@ -261,7 +281,8 @@ describe('Particle trades isolated PostgreSQL', () => {
     const first = await request(a, b, 100n); now = new Date(now.getTime() + 1000); const second = await request(c, b, 100n);
     await db.playerBlock.create({ data: { blockerPlayerId: a, blockedPlayerId: b } });
     const key = randomUUID(), result = await service.all(b, 'accept', key);
-    expect(result.results).toEqual([{ requestId: first.requestId, state: 'UNAVAILABLE', amount: '0' }, { requestId: second.requestId, state: 'ACCEPTED', amount: '100' }]);
+    expect(result.results.map(({ requestId, state, amount }) => ({ requestId, state, amount }))).toEqual([{ requestId: first.requestId, state: 'UNAVAILABLE', amount: '0' }, { requestId: second.requestId, state: 'ACCEPTED', amount: '100' }]);
+    expect(result.results[1]).toMatchObject({ sender: { id: c }, recipient: { id: b }, senderResourceKey: 'particles_pyro', recipientResourceKey: 'particles_cryo' });
     const d = await player(); const later = await request(d, b, 100n);
     expect(await service.all(b, 'accept', key)).toEqual(result);
     expect((await db.tradeRequest.findUniqueOrThrow({ where: { id: later.requestId } })).state).toBe('PENDING');

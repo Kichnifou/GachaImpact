@@ -1,5 +1,7 @@
 # 16 — Audit Event / monthly
 
+**Amendement Chat R1038 — étape 29 :** Les mutations Event Chat utilisent INTERNAL_CHAT et mémorisent leur snapshot de résultat dans les reçus existants ; replay du même Player/type/requête avant résolution du nouveau jour/mois, sans nouveau gain ni RNG. Le contexte Festival/thèmes initial est conservé dans l’intention Chat privée. A/B/C rapportent seulement leurs gains réels ; go déjà inscrit ne promet aucun bonus. Rang personnel ajouté au Top 10 selon points/joinedAt/ID, dates legacy inconnues après dates connues. Jeux des douze mois et aliases legacy utiles sont raccordés ; aucun contenu privé du Jeu C répété dans le résultat. Règles, paliers, permissions, calendrier et données actives restent autoritatifs ici. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 **Complément étape 22 (candidat `review`) :** l'Administration lit les définitions/éditions Event et permet une configuration future validée par le parser métier. Une édition active ou programmée fige sa configuration ; la désactivation/réactivation d'une définition n'efface ni snapshot, ni participant, ni point, ni claim. Aucun reset ou recalcul rétroactif. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). Les décisions legacy ci-dessous conservent leur statut historique.
 
 > Domaine 13 de l'audit GachaImpact.  

@@ -45,11 +45,11 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
       if (wallet < DAILY_CHALLENGE_PURCHASE_COST) throw new BusinessError('DAILY_CHALLENGE_WALLET_INSUFFICIENT', 'Vous ne possédez pas assez de Moras pour acheter le Défi.');
       await this.economy.debit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: DAILY_CHALLENGE_PURCHASE_COST,
-        causeKey: 'daily-challenge.purchase', domainKey: 'daily-challenge', operationId, sourceChannel: SourceChannel.UI,
+        causeKey: 'daily-challenge.purchase', domainKey: 'daily-challenge', operationId, sourceChannel: input.sourceChannel ?? SourceChannel.UI,
       });
       const definition = selectDefinition(definitions, input.random);
       await transaction.playerDailyChallenge.create({ data: snapshotData(input, definition) });
-      return { definitionExternalKey: definition.externalKey };
+      return { definitionExternalKey: definition.externalKey, spentMoras: DAILY_CHALLENGE_PURCHASE_COST.toString() };
     });
   }
 
@@ -68,7 +68,7 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
       if (wallet < cost) throw new BusinessError('DAILY_CHALLENGE_WALLET_INSUFFICIENT', 'Vous ne possédez pas assez de Moras pour remplacer le Défi.');
       await this.economy.debit(transaction, {
         playerId: input.playerId, playerElementKey: input.playerElementKey, resourceKey: 'moras', amount: cost,
-        causeKey: 'daily-challenge.switch', domainKey: 'daily-challenge', operationId, sourceChannel: SourceChannel.UI,
+        causeKey: 'daily-challenge.switch', domainKey: 'daily-challenge', operationId, sourceChannel: input.sourceChannel ?? SourceChannel.UI,
       });
       const definition = selectDefinition(definitions, input.random);
       await transaction.playerDailyChallenge.update({ where: { id: current.id }, data: {
@@ -84,7 +84,7 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
         switchCount: { increment: 1 },
         assignedAt: input.now,
       } });
-      return { definitionExternalKey: definition.externalKey, switchCost: cost.toString() };
+      return { definitionExternalKey: definition.externalKey, switchCost: cost.toString(), spentMoras: cost.toString() };
     });
   }
 
@@ -144,17 +144,20 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
           if (existing) {
             assertExisting(existing, input.playerId, operationType, request);
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('DAILY_CHALLENGE_IDEMPOTENCY_CONFLICT', 'Cette opération est déjà en cours.');
-            return { operation: { id: existing.id, alreadyProcessed: true }, view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId) };
+            const saved = readMutationSnapshot(existing.resultSummary);
+            return { operation: { id: existing.id, alreadyProcessed: true }, ...(saved ?? { view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId) }) };
           }
           const operation = await transaction.businessOperation.create({ data: {
             playerId: input.playerId, operationType, sourceChannel, idempotencyKey: operationKey,
             resultSummary: { ...request },
           }, select: { id: true } });
           const result = await action(transaction, operation.id);
+          const state = { view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId), ...(typeof result.spentMoras === 'string' ? { spentMoras: BigInt(result.spentMoras) } : {}) };
+          const stateJson = JSON.parse(JSON.stringify(state, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)) as Prisma.InputJsonObject;
           await transaction.businessOperation.update({ where: { id: operation.id }, data: {
-            status: OperationStatus.COMPLETED, completedAt: input.now, resultSummary: { ...request, ...result },
+            status: OperationStatus.COMPLETED, completedAt: input.now, resultSummary: { ...request, ...result, state: stateJson },
           } });
-          return { operation: { id: operation.id, alreadyProcessed: false }, view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId) };
+          return { operation: { id: operation.id, alreadyProcessed: false }, ...state };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
@@ -162,6 +165,19 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
     }
     throw new Error(`${operationType} exhausted all retry attempts.`);
   }
+}
+
+/** Old receipts have no state; new receipts preserve the exact result before another action. */
+function readMutationSnapshot(summary: Prisma.JsonValue | null): Omit<DailyChallengeMutationResult, 'operation'> | null {
+  if (!summary || typeof summary !== 'object' || Array.isArray(summary) || !summary.state) return null;
+  const state = summary.state as unknown as { view: DailyChallengeView; resources: Record<string, string>; spentMoras?: string };
+  const view = state.view;
+  return {
+    view: { ...view, purchaseCost: BigInt(view.purchaseCost), nextSwitchCost: view.nextSwitchCost === null ? null : BigInt(view.nextSwitchCost), completedAt: view.completedAt ? new Date(view.completedAt) : null,
+      challenge: view.challenge ? { ...view.challenge, progress: BigInt(view.challenge.progress), target: BigInt(view.challenge.target), rewardPrimogems: BigInt(view.challenge.rewardPrimogems) } : null },
+    resources: Object.fromEntries(Object.entries(state.resources).map(([key, amount]) => [key, BigInt(amount)])) as PlayerResourceBalances,
+    ...(state.spentMoras === undefined ? {} : { spentMoras: BigInt(state.spentMoras) }),
+  };
 }
 
 function snapshotData(input: DailyChallengePurchaseInput, definition: Definition) {

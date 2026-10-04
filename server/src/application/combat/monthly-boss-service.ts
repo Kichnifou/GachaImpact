@@ -95,6 +95,7 @@ export type MonthlyBossView = Readonly<{
   participation: null | { rank: number; totalDamage: bigint; attackCount: bigint; bestHit: bigint; contributionBasisPoints: bigint };
   ranking: readonly MonthlyBossRankingEntry[];
   defeatedSummary: MonthlyBossSummary | null;
+  publicSummary?: MonthlyBossSummary;
   playerStats: { totalDamage: bigint; totalAttacks: bigint; totalParticipated: bigint; totalRewarded: bigint; finalBlows: bigint; bestHit: bigint };
 }>;
 
@@ -475,6 +476,7 @@ async function readView(client: Client, playerId: string, businessDate: string, 
     participation: own ? { rank: own.rank, totalDamage: own.totalDamage, attackCount: own.attackCount, bestHit: own.bestHit, contributionBasisPoints: calculateContributionBasisPoints(own.totalDamage, boss.maxHp) } : null,
     ranking: summary.records.topThree,
     defeatedSummary: defeated ? summary : null,
+    publicSummary: summary,
     playerStats: stats ? { totalDamage: stats.totalDamage, totalAttacks: stats.totalAttacks, totalParticipated: stats.totalParticipated, totalRewarded: stats.totalRewarded, finalBlows: stats.finalBlows, bestHit: stats.bestHit } : { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n },
   };
 }

@@ -45,6 +45,24 @@ afterAll(async () => {
 });
 
 describe('authenticated Player vertical slice on the development database', () => {
+  it('distinguishes the same Chat Wheel receipt from another intent on the consumed day', async () => {
+    const current = new PrismaCurrentPlayerStore(database);
+    const getPlayer = new GetCurrentPlayer(current);
+    const identity = { subject: `wheel-chat-${randomUUID()}` };
+    const { player } = await new GetOrProvisionCurrentPlayer(current).execute(identity, 'Wheel Chat Fixture');
+    await new ChoosePlayerElement(getPlayer, new PrismaPlayerElementStore(database)).execute(identity, 'hydro');
+    const wheel = new PrismaWheelStore(database);
+    const roll = vi.fn(() => ({ resultType: 'moras' as const, resourceKey: 'moras' as const, amount: 50000n }));
+    const input = { playerId: player.id, businessDate: '2026-09-04', spunAt: new Date('2026-09-04T12:00:00Z'), sourceChannel: 'INTERNAL_CHAT' as const, idempotencyKey: randomUUID(), roll };
+    const first = await wheel.spin(input);
+    const [replay, consumed] = await Promise.all([wheel.spin(input), wheel.spin({ ...input, idempotencyKey: randomUUID() })]);
+    expect(first).toMatchObject({ alreadySpun: false, alreadyProcessed: false, amount: 50000n });
+    expect(replay).toMatchObject({ alreadySpun: true, alreadyProcessed: true, amount: 50000n });
+    expect(consumed).toMatchObject({ alreadySpun: true, alreadyProcessed: false, amount: 50000n });
+    expect(roll).toHaveBeenCalledOnce();
+    expect(await database.playerWheelDailyState.count({ where: { playerId: player.id } })).toBe(1);
+    expect(await database.resourceMovement.count({ where: { playerId: player.id, causeKey: 'wheel.reward' } })).toBe(1);
+  });
   it('persists one deterministic Wheel reward under repeated and concurrent calls', async () => {
     const subject = `test-vertical-slice-${randomUUID()}`;
     const displayName = `Vertical Slice ${randomUUID().slice(0, 8)}`;
@@ -109,8 +127,9 @@ describe('authenticated Player vertical slice on the development database', () =
         resourceKey: 'primogems',
         amount: 1_600n,
         alreadySpun: false,
+        alreadyProcessed: false,
       });
-      expect(repeatedResult).toEqual({ ...firstResult, alreadySpun: true });
+      expect(repeatedResult).toEqual({ ...firstResult, alreadySpun: true, alreadyProcessed: true });
       expect(random.nextInt).toHaveBeenCalledTimes(1);
 
       await expect(spinWheel.execute(identity)).resolves.toEqual(repeatedResult);
@@ -194,7 +213,7 @@ describe('authenticated Player vertical slice on the development database', () =
       const chatResult = await chatSpin.execute(identity, key);
       const replay = await laterReplay.execute(identity, key);
       expect(chatResult).toMatchObject({ businessDate: '2026-09-05', alreadySpun: false, amount: 1_600n });
-      expect(replay).toEqual({ ...chatResult, alreadySpun: true });
+      expect(replay).toEqual({ ...chatResult, alreadySpun: true, alreadyProcessed: true });
       expect(await database.playerWheelDailyState.count({ where: { playerId } })).toBe(2);
       expect(await database.businessOperation.count({ where: { playerId, operationType: 'wheel.spin', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
       expect(random.nextInt).toHaveBeenCalledTimes(2);

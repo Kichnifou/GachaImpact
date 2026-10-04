@@ -71,6 +71,28 @@ afterEach(async () => {
 afterAll(async () => database.$disconnect());
 
 describe('Event Shop persistence', () => {
+  it('replays the exact Chat join and conversion across an edition boundary without another gain', async () => {
+    const player = await fixture(); const joinKey = randomUUID();
+    const joined = await service.join(player.identity, joinKey, SourceChannel.INTERNAL_CHAT);
+    expect(joined.creditedCurrency).toBe(1);
+    await setCurrency(player.playerId, 4n);
+    const key = randomUUID(); const first = await service.convertShop(player.identity, 'MORAS', 2, key, SourceChannel.INTERNAL_CHAT);
+    await service.convertShop(player.identity, 'PRIMOGEMS', 1, randomUUID(), SourceChannel.INTERNAL_CHAT);
+    const operationCount = await database.businessOperation.count({ where: { playerId: player.playerId } });
+    const movements = await database.resourceMovement.count({ where: { playerId: player.playerId } });
+    const before = now;
+    try {
+      now = new Date(`${year}-10-01T12:00:00Z`);
+      const replay = await service.convertShop(player.identity, 'MORAS', 2, key, SourceChannel.INTERNAL_CHAT);
+      expect(replay.currency).toEqual(first.currency); expect(replay.resources).toEqual(first.resources); expect(replay.conversion).toEqual(first.conversion);
+      expect(replay.edition.id).toBe(first.edition.id); expect(replay.operation.alreadyProcessed).toBe(true);
+      const joinReplay = await service.join(player.identity, joinKey, SourceChannel.INTERNAL_CHAT);
+      expect(joinReplay.edition.id).toBe(joined.edition.id); expect(joinReplay.currency).toEqual(joined.currency); expect(joinReplay.creditedCurrency).toBe(1);
+      expect(await database.businessOperation.count({ where: { playerId: player.playerId } })).toBe(operationCount);
+      expect(await database.resourceMovement.count({ where: { playerId: player.playerId } })).toBe(movements);
+      await expect(service.convertShop(player.identity, 'PRIMOGEMS', 2, key, SourceChannel.INTERNAL_CHAT)).rejects.toMatchObject({ code: 'EVENT_IDEMPOTENCY_CONFLICT' });
+    } finally { now = before; }
+  });
   it('attributes a Chat conversion to INTERNAL_CHAT without a duplicate Mission notification', async () => {
     const player = await fixture();
     await join(player);

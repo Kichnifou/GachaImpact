@@ -1,8 +1,8 @@
 # Registre des commandes GachaImpact
 
-Statut : CONSOLIDÉ APRÈS SWEEPS LEGACY — 37 scripts + 17 JSON vérifiés.
+Statut : sweep métier historique 37 scripts + 17 JSON ; adaptation Chat des 37 sources couverte par R1035–R1038. Recette propriétaire de la présente livraison restante.
 
-État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` possède maintenant les listes complètes, filtres, pages, favoris et tris textuels R1037 ; `team` reste une consultation synthétique sans sous-commandes historiques de mutation. `!echanger annuler` sans pseudo requiert une seule demande envoyée non ambiguë ; aucune action globale d'annulation n'existe dans `TradeService`. `legende` consulte désormais le propriétaire Social/Concours en lecture seule, avec les permissions R565 précisées ci-dessous ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
+État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` possède maintenant les listes complètes, filtres, pages, favoris et tris textuels R1037 ; `team` consulte et exécute les mutations modernes décidées : apply/add/remove/rename/list/new ; save reste une aide. `!echanger accepter`, `annuler` et `refuser` sans pseudo traitent respectivement toutes les demandes reçues, envoyées et reçues de l'ensemble initial. `legende` consulte désormais le propriétaire Social/Concours en lecture seule, avec les permissions R565 précisées ci-dessous ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
 
 La fondation Twitch runtime phase 1 promue techniquement sur `main` enregistre uniquement des reçus d'observation internes. La phase 2A promue techniquement sur `main` prépare un webhook entrant signé, toujours OFF et sans souscription EventSub. La Phase 2B-1 approuvée et promue techniquement sur `main` prépare seulement l’autorisation Chat et le manager GET/POST EventSub, sans consentement réel déclenché ni souscription publique créée. Le transport 2B-2 a été validé publiquement dans le périmètre porté au Master, puis mis en pause R942 ; il code l’UI pilote, l’activation volontaire après OAuth, le statut Twitch, la désactivation et l’unlink sûr ; production reste OFF après promotion. La souscription écoute tous les chatters de la chaîne Kichnifou : `user_id` n’est pas un filtre auteur. Le webhook n’écrit que des reçus avec hash du texte, aucun GlobalChatMessage standalone. Aucun scope `user:write:chat`, aucune commande ou réponse Twitch n’est ajouté. Le transport Chat générique n’exécute aucune commande ni réponse. Les pilotes spécialisés Faveur, Gift et Giveaway ont leurs preuves propres au Master ; seul Giveaway/Wish a un consumer natif et des annonces dédiées, désactivé hors pilote. Streamer.bot reste autoritatif hors ces essais explicitement autorisés ; aucune bascule globale.
 
@@ -10,19 +10,19 @@ La fondation Twitch runtime phase 1 promue techniquement sur `main` enregistre u
 
 Syntaxe exacte : `!clear`. Seul un Player avec attribution active `MODERATOR` ou `ADMIN` peut l'exécuter ; `TESTER` seul est refusé. Le serveur ouvre une nouvelle génération visible du Chat pour tous sans effacer les anciens contenus physiques. La commande n'est pas publiée, aucun `GAME_RESULT` ne suit, et les retries de la même intention sont idempotents. Aucun canal Twitch ni aide joueur ordinaire.
 
-Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le Help textuel et [l’Aide / Guide R1026](../specifications/help-guide-v1.md), sans réimplémenter les domaines. La vérification exhaustive des sous-commandes/aliases/erreurs/sorties reste à l’étape 29.
+Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le Help textuel et [l’Aide / Guide R1026](../specifications/help-guide-v1.md), sans réimplémenter les domaines. La [matrice de couverture R1038](step-29-command-coverage.md) détaille les 37 sources, leurs variantes, propriétaires, adaptations, abandons et preuves. La recette publique reste distincte des contrôles automatiques.
 
 ## Passe finale Twitch / commandes R939–R942
 
-**Méthode propriétaire étape 29 (R1036, supersède la restriction R1035 au lot Ami) :** voir le [protocole canonique](../process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036). Lecture intégrale legacy + runtime, inventaire complet/aliases systématiques, tableau seul avant prompt et validation propriétaire avant code ; split individuel pertinent, jamais aveugle. Pour tous les petits lots validés de 29, push review puis fast-forward strict du même candidat vers main dans la même mission, sans review ChatGPT intermédiaire sauf nouvelle demande explicite. Recette Chat standalone avant le fichier suivant ; aucune activation Twitch.
+**Méthode propriétaire étape 29 — R1038 amendement de R1036 :** le [protocole canonique](../process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036) autorise une mission regroupant les 31 sources restantes, lecture intégrale et choix des formulations sous délégation, sans validation tableau par tableau. Candidat complet et contrôles verts avant push review puis promotion strictement fast-forward du même candidat vers main, sans review ChatGPT intermédiaire. Après publication, vérifier le SHA et le déploiement exacts, puis la courte [recette essentielle](step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement). Aucune activation Twitch.
 
-**Étape 29 ACTIVE — cadrage R1034, sans code/activation dans ce checkpoint.** Pour chaque racine, alias et sous-commande, inventorier syntaxe, aliases, préconditions, permissions, coûts, cooldown, domaine propriétaire, données lues/écrites, succès/erreurs, idempotence, sorties exactes, différences legacy, Chat standalone et future compatibilité Twitch. Comparer systématiquement tous les `legacy/streamerbot/commands/*.txt` avec ce registre ; première validation dans le Chat standalone avec Kichnifou puis validation propriétaire des textes/comportements. L'audit exhaustif lui-même reste à exécuter dans les lots 29 suivants.
+**Étape 29 ACTIVE :** l'audit et l'adaptation Chat des 31 sources restantes sont réalisés dans ce lot ; six sources déjà livrées sont conservées en non-régression. Le sweep historique ne remplace pas cette preuve d'adaptation. Tests, publication, déploiement et recette sont distingués au Master ; 29 n'est pas clôturée par les seuls tests.
 
 **Préparation de bascule transparente, pas cutover en 29 :** mêmes syntaxes pertinentes, aliases conservés ou migration explicitement approuvée, réponses communes standalone/Twitch lorsque pertinent, mêmes services PostgreSQL/économie/cooldowns, identité Twitch User ID immuable, idempotence ; aucun double traitement/message, réponse ou récompense. Objectif après cutover : état migré reconnu et aucune réinscription manuelle due au changement de backend. Streamer.bot reste autoritatif aujourd'hui. Préparer un seul propriétaire d'exécution par Player/message/commande, natif OFF par défaut, pilote Ceo avec rollback/gate puis batch uniquement après validation ; mécanisme exact à décider en 29 après lecture du runtime et des contraintes Streamer.bot. Répétition privée en 30, activation par missions 31A Ceo puis 31B batch selon le [runbook](../process/legacy-cutover-runbook.md).
 
 Twitch et Chat standalone peuvent rester deux flux distincts, sans mirroring obligatoire. Tous les messages Twitch devront pouvoir alimenter en mémoire la future classification, XP et le parser ; seules les commandes nécessaires atteindront les services métier communs. L'adapter Twitch n'exécute aujourd'hui aucune commande et ne répond pas sur Twitch.
 
-**Étape 29 — dette explicite de parité des sorties :** la formulation standalone actuelle n'est pas déclarée équivalente au legacy. Les sources `.txt` sont réellement versionnées dans [legacy/streamerbot/commands](../../legacy/streamerbot/commands) ; exemples exacts : [Help.txt](../../legacy/streamerbot/commands/Help.txt), [Infos.txt](../../legacy/streamerbot/commands/Infos.txt), [Pull.txt](../../legacy/streamerbot/commands/Pull.txt), [Event.txt](../../legacy/streamerbot/commands/Event.txt) et [Banque.txt](../../legacy/streamerbot/commands/Banque.txt). La passe finale devra inventorier chaque fichier et ses usages, comparer chaque sortie standalone, corriger les formulations partagées, tester **d'abord uniquement dans le Chat standalone avec Kichnifou**, puis faire valider les textes par le propriétaire. Seulement après ce gate décider/implémenter l'envoi des mêmes réponses sur Twitch. Aucun outbound avant, aucune réécriture de texte ni syntaxe métier dans ce checkpoint.
+**Sorties communes — R1038 :** résultats issus des propriétaires modernes, montants exacts, glyphes et libellés français, noms complets, durées lisibles. Listes demandées complètes réparties en entrées logiques entières, une ligne et au plus 500 caractères Unicode par message, via le pipeline multiparties R1037. Pagination métier conservée (Box, Team 10, Shop 5, Liste 20) ; Top 5 et Event Top 10 restent leurs limites volontaires. Les intentions de mutation et les résultats autoritatifs sont mémorisés pour les retries après commit et avant publication ; aucun gain, toggle ou cooldown répété via un alias. Les textes sont choisis sous délégation et restent à recetter publiquement. Streamer.bot demeure autoritatif sur Twitch.
 
 Après validation du transport 2B-2, pause de Twitch avancé et passage aux domaines V1 suivants. R1034 clôture 27 par décision de périmètre : la charge/performance restante est acceptée en observation bêta/situation réelle, non bloquante, sans campagne obligatoire pré-migration ; [l'architecture](../architecture/backend-architecture-v1.md) décrit le trafic/latence/pool/retries à mesurer. Le pilote conserve une écriture Receipt par notification ; sa seule purge codée suit la [politique de rétention](../specifications/data-retention-v1.md). Les commandes ordinaires seront évaluées en mémoire, sans historique Twitch ordinaire persistant lorsque inutile.
 
@@ -91,7 +91,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Catégories :** `progression`, `gacha`, `ressources`, `collection`, `equipe`, `activites`, `social`, `events`, `classements`, `twitch`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
-- **UI standalone équivalente :** futur écran `Aide / Guide`, plus riche et distinct du Help textuel
+- **UI standalone équivalente :** écran `Aide / Guide` R1026, plus riche et distinct du Help textuel
 - **Préconditions :** aucune pour l'aide générale
 - **Coûts :** aucun
 - **Cooldown :** aucun
@@ -115,7 +115,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **But :** Choisir définitivement l'élément personnel du joueur.
 - **Syntaxes :** `!element pyro|hydro|cryo|electro|anemo|geo|dendro`
 - **Bouton UI équivalent :** choix intégré à l'onboarding standalone
-- **Disponible chat GachaImpact :** à conserver si pertinent pour les profils nécessitant encore un choix
+- **Disponible chat GachaImpact :** oui, choix permanent défensif via le propriétaire de l’onboarding
 - **Disponible Twitch :** oui, mécanisme d'onboarding Twitch
 - **Préconditions :** profil existant ; aucun élément déjà choisi
 - **Coûts :** aucun
@@ -146,6 +146,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Interactions :** Missions/Daily via `convert_particles`
 - **Décisions de migration :** conversion manuelle conservée ; toute quantité entière >= 1 ; une seule logique métier serveur partagée UI/chat/Twitch
 
+**Amendement Chat R1038 :** Alias conv ; montant positif strict sans flottant/exposant, conversion 1:1, quantité et nouveau total depuis le service. Un défi terminé est annoncé depuis son crédit réel.
+
 ## `!echanger`
 
 - **Statut audit :** Audité — sous-domaine Échanges finalisé, R5 à R27 validées
@@ -159,8 +161,11 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
   - `!echanger accepter <pseudo>`
   - `!echanger annuler`
   - `!echanger annuler <pseudo>`
+  - `!echanger refuser`
+  - `!echanger refuser <pseudo>`
+  - `!echanger accepter|annuler|refuser all` (également `@all`, `tout`, `tous`)
   
-- **Bouton UI équivalent :** oui, futur écran Échanges
+- **Bouton UI équivalent :** oui, écran Échanges existant
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **Préconditions :** profils existants ; éléments choisis ; joueurs différents ; éléments différents ; montant réalisable ; aucune demande active entre la paire
@@ -181,11 +186,13 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Interactions :** réservation de stock ; expiration quotidienne ; notification agrégée des demandes en attente ; historique récent UI ; historique serveur ; réconciliation automatique lors des variations de stock
 - **Décisions de migration :** troc X contre X conservé ; une demande par paire ; expiration serveur à 00:00 Europe/Paris ; écran UI reçues/envoyées ; notification agrégée ; source de vérité DB unique
 - **Historique futur :** conserver les événements importants d'échange côté serveur à partir de GachaImpact, sans inventer d'historique rétroactif
-- **Action future supplémentaire :** `Refuser tout` pour les demandes reçues ; syntaxe chat exacte à figer lors de l'adaptation finale des commandes.
+- **Actions groupées R1038 :** sans pseudo ou avec all/@all/tout/tous, accepter/refuser traite les reçues, annuler les envoyées ; IDs initiaux figés et ordre ancienneté/ID. Une nouvelle demande après le début ne rejoint pas le lot. Échecs indépendants et résultats réels de chaque reçu, sans annulation des demandes reçues.
 - **Notifications :** aucune notification individuelle lors d'une acceptation/refus/annulation/expiration ; seule la notification agrégée des demandes en attente est utilisée
 - **Historique UI :** environ 3 transactions visibles puis scroll jusqu'à environ 20–30 dernières
 - **Migration :** les demandes en attente ne sont pas migrées au cutover
 - **Identité cible :** relations basées sur les IDs internes immuables des joueurs
+**Amendement Chat R1038 :** Aliases echange/ech. Partenaires compatibles et demandes affichés intégralement en parties logiques ; noms/éléments/quantités du reçu, MAX calculé uniquement par le propriétaire.
+
 ## `!banniere`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Afficher la bannière active et la cible 5★ personnelle lorsqu'elle est valide.
@@ -222,8 +229,11 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Données écrites legacy :** `selectedBannerCharacterId`
 - **Décisions cible :** cible librement modifiable ; vidée automatiquement à chaque nouvelle bannière ; aucune pity/garantie reset lors d'un changement
 
+**Amendement Chat R1038 :** Nom exact normalisé (casse/accents), sans matching partiel. ID de cible et disposition initiale figés ; une consultation ne sélectionne rien.
+
 ## `!vote`
-- **État physique Batch A :** le bouton `Personnages > Catalogue` utilise `BannerVoteService` et le canal UI. Les disponibilités chat/Twitch ci-dessous décrivent le contrat cible audité : aucun parseur `!vote`, canal textuel ni fuzzy matching n'est implémenté dans ce batch. Les futurs canaux partageront la même unicité Player/rotation et le même service.
+- **Historique Batch A :** le bouton `Personnages > Catalogue` utilisait `BannerVoteService` via UI, sans parser ni fuzzy textuel dans ce batch initial.
+- **État Chat R1038 :** `!vote` appelle ce même propriétaire avec le matching textuel décrit ci-dessous ; unicité Player/rotation commune, Twitch global non activé.
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Influencer le quatrième personnage 5★ de la bannière suivante.
 - **Syntaxes :** `!vote`, `!vote <nom>`
@@ -234,6 +244,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Coûts :** aucun
 - **Données lues/écrites legacy :** `banner_votes.json`, catalogue personnages
 - **Décisions cible :** un vote définitif par ID joueur/semaine tous canaux confondus ; résultat pondéré ; conservation du fuzzy matching legacy côté texte ; snapshot + votes individuels historisés à partir de GachaImpact
+
+**Amendement Chat R1038 :** Matching exact, phrase contenant un nom ou typo non ambiguë propre à Vote ; ce matching ne s’étend pas aux mutations des autres domaines. Votes positifs complets et triés ; nom/intention hebdomadaire figés.
 
 ## `!pity`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
@@ -247,11 +259,13 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Données écrites :** aucune
 - **Décisions cible :** progression conservée entre rotations/cibles ; `fiftyFiftyLostStreak` et `captureProgress` sont distincts ; affichage compact `Garantie 5★ : oui/non` + `Capture : X/3` ; le streak n'est pas affiché par `!pity`
 
+**Amendement Chat R1038 :** Pity 5★/4★, garantie et Capture modernes ; aucune copie du score legacy de pertes.
+
 ## `!pull`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé après R116
 - **But :** Exécuter une ou plusieurs invocations.
 - **Syntaxes :** `!pull`, `!pull <1..10>`
-- **Adaptateur Chat interne candidat :** x1 et x10 uniquement, seuls volumes acceptés par le service moderne actuel ; les autres volumes cibles restent à brancher sans réécrire le moteur Gacha.
+- **Adaptateur Chat interne courant :** tout entier de 1 à 10 accepté par le propriétaire moderne commun ; chaque résultat est restitué dans son ordre, coût global réel et bonus autoritatifs.
 - **Bouton UI équivalent :** `Invocation x1` / `Invocation x10`
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -285,9 +299,11 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Historique :** historique complet depuis GachaImpact ; bouton Historique ; 10 résultats par page
 - **Twitch :** résultat textuel rapide, résultat par résultat
 - **Mentions chat :** Early, Back-to-back et Hard (pity >= 80) conservés
-- **Stats futures :** Early/Back-to-back/Hard et autres métriques dérivables depuis l'historique
+- **Métadonnées R1038 :** pity du tirage et Back-to-back persistés dans le résultat existant pour une restitution stable ; Early 2–35 et Hard ≥80 sont affichés pour les 5★ concernés. Autres métriques dérivables depuis l'historique
 - **Arrondi Pyro/Geo :** entier le plus proche, `.5` vers le haut
 - **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6
+
+**Amendement Chat R1038 :** Chaque résultat [i/N] conserve nom entier, étoiles, élément, Cn, nouveau/double, coût, pity et bonus réels. Refund C6 80/160, stat et compensation 100 000 Moras au maximum, passifs et XP/overflow selon le propriétaire ; aucun montant ni RNG déduit par le formatter.
 
 ## `!box`
 - **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
@@ -306,7 +322,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Filtres/onglet :** non persistants
 - **Box publique :** mêmes outils de consultation mais aucune mutation ; favoris sans priorité d'ordre et sans étoile sur les cartes
 - **État public initial :** Tous + Alphabétique ↑ + aucun filtre à chaque ouverture
-- **Confidentialité :** accès soumis au futur système Public / Amis / Privé
+- **Confidentialité :** accès soumis aux permissions modernes Public / Amis / Privé
 - **Présentation Twitch :** peut conserver un format différent de l'UI ; `!box favoris <nom>` cible cependant désormais un nom exact normalisé et ne conserve pas le fallback legacy par nom partiel
 - **Données dérivées :** taille Box, nombre de C6 et total copies
 - **Personnage désactivé :** invisible/inutilisable côté joueur
@@ -334,6 +350,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Données écrites :** aucune
 - **Décision cible :** la première date est immuable ; date legacy absente/invalide → fallback à la date de migration, traçable intérieurement
 
+**Amendement Chat R1038 :** Nom exact normalisé, première obtention immuable en date française Europe/Paris et glyphe élémentaire.
+
 ## `!stella`
 - **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
 - **But :** Utiliser une Masterless Stella Fortuna comme copie synthétique sur un personnage 5★ possédé.
@@ -351,6 +369,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Remboursement Primogemmes :** aucun remboursement C6+ via Stella
 - **Atomicité :** vérification, consommation et progression doivent former une seule transaction
 - **Bug legacy corrigé :** `Stella.txt` n'incrémente actuellement pas `copies` et autorise des 4★ sous C6
+
+**Amendement Chat R1038 :** Nom exact normalisé, consommation/constellation/stat C6 depuis le propriétaire ; max refusé avant consommation, aucun refund supposé.
 
 ## `!legende`
 
@@ -372,6 +392,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Données catalogue :** jamais recopiées dans la progression C6
 - **Personnage désactivé :** progression/historique conservés mais personnage non sélectionnable pour un nouveau concours
 - **Vocabulaire player-facing :** ne jamais afficher le terme interne `legacy`
+
+**Amendement Chat R1038 :** Aliases légende/legendes/légendes/leg. Liste personnelle ou tierce entière des C6 5★ actifs ; détail canonique moi/me personnage ou joueur personnage, nom exact. Cinq stats avec thèmes et titres français. Permissions Box pour liste, Box et Statistiques générales pour détail.
 
 ## `!concours`
 
@@ -481,9 +503,11 @@ Nouvelles métriques V1 :
 
 L'aide player-facing peut n'afficher que les syntaxes canoniques principales afin de rester compacte.
 
+**Amendement Chat R1038 :** Aliases des métriques du registre conservés, normalisation accents/cœurs ; Top 5 et rang personnel éligible en entrées entières. Privé et valeur zéro exclus ; aucun faux rang.
+
 ## `!giveaway`
 
-- **Statut :** implémentation native candidate sur `review` selon R946–R952 ; bridge OFF par défaut, Streamer.bot reste autoritatif
+- **Statut :** implémentation native présente selon R946–R952 ; activation uniquement dans le périmètre pilote autorisé, bridge OFF hors pilote, Streamer.bot reste autoritatif
 - **But :** administrer ou consulter le Giveaway Twitch courant
 - **Canal joueur :** Twitch
 - **UI équivalente :** panneau privé Modération pour Open / Close et lifecycle Twitch ; aucune participation joueur standalone
@@ -505,9 +529,11 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Historique :** aucun écran joueur dédié ; historique serveur/Admin uniquement
 - **Atomicité :** fermeture, tirage et récompenses idempotents ; les annonces sortantes ont leurs propres états et retries sûrs
 
+**Amendement Chat R1038 :** Alias ga classifié par le consumer spécialisé derrière ses gates existants ; stats/stat/open/ouvrir/close/fermer. Reroll retiré conformément à R950 ; aucune mutation Admin dans le Help joueur. Twitch uniquement.
+
 ## `!wish`
 
-- **Statut :** consommateur Twitch spécialisé candidat sur `review`, inactif tant que le bridge n'est pas autorisé et activé
+- **Statut :** consommateur Twitch spécialisé présent, inactif tant que le bridge n'est pas autorisé et activé
 - **But :** s'inscrire au tirage aléatoire du Giveaway Twitch ouvert
 - **Disponible Twitch :** oui
 - **Disponible chat GachaImpact :** non
@@ -563,7 +589,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Modification :** récompenses/token/type verrouillés après le premier claim
 - **Atomicité :** claim + récompenses dans une seule opération serveur idempotente
 - **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
-- **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne candidats réutilisent ce service. Twitch et l’import legacy `usedCodes` restent non implémentés.
+- **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne livrés par R1037 réutilisent ce service. Twitch et l’import legacy `usedCodes` restent non implémentés.
 
 ### Contrat Chat Codes — étape 29, R1037
 
@@ -616,6 +642,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Atomicité :** gains, paliers, Jeu B, calendrier, boutique, Collection et rollover protégés contre concurrence/retry/double exécution
 - **Migration :** état actif conservé uniquement lorsqu'il correspond au cutover ; monnaie du snapshot conservée comme solde saisonnier ; aucun historique ou gain absent inventé
 
+**Amendement Chat R1038 :** Les douze mois et noms A/B/C sont dans l’annexe. go déjà inscrit affiche zéro nouveau gain ; sac indique rang et prochain palier ; Top 10 complet. boutique/shop et primos/primo/primogems, moras/mora, montant/MAX. Jeu B sans code liste les 32 codes possibles restants sans révéler la solution ni consommer d’essai ; Jeu C accepte les noms composés et anciens motdoux/motprintemps, sans recopier le contenu privé. Résultats/rewards et contexte thématique initiaux conservés au rejeu, y compris après changement de jour/mois.
+
 ## `!team`
 - **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Consulter, activer et modifier les Teams du joueur.
@@ -664,6 +692,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Helpers :** courts, une syntaxe recommandée, aucune référence à une migration
 - **Interactions :** Box/Possession, Passifs, Gacha, Combat, confidentialité
 
+**Amendement Chat R1038 :** Consultation N sans activation ; apply/add/remove/rename/list/liste/new raccordés aux services existants. remove all/tout/tous vide l’active ; N remove/delete/supprimer vide N, sans suppression physique. save/save N aide seulement. Rename quoted, 20 caractères, vide pour reset ; liste 10/page avec composition complète. Les six mutations conservent intention/IDs/slot/position et snapshot transactionnel.
+
 ## `!passifs`
 - **Statut audit :** Audité — Domaine Team clôturé après R236
 - **But :** Afficher la table générale des passifs élémentaires et leur détail par élément.
@@ -676,9 +706,11 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Correction cible :** les textes affichés doivent refléter les règles Gacha finales, y compris les corrections apportées aux descriptions legacy
 - **Différence avec `!team` :** `!passifs` décrit les règles générales ; Team calcule les passifs réellement actifs pour une composition
 
+**Amendement Chat R1038 :** Table générale des sept éléments indépendante de la composition ; détail avec accents. Plafond moderne de deux stacks, Dendro concerne les sept éléments.
+
 ## `!banque`
 - **Statut audit :** Audité — Domaine Banque clôturé après R255
-- **Statut implémentation :** écran, cache de session et API personnelles, dont historique paginé, réels ; consultation/dépôt/retrait Chat interne candidats appellent les mêmes services avec `INTERNAL_CHAT`. Twitch reste non branché.
+- **Statut implémentation :** écran, cache de session et API personnelles, dont historique paginé, réels ; consultation/dépôt/retrait Chat interne livrés par R1037 appellent les mêmes services avec `INTERNAL_CHAT`. Twitch reste non branché.
 - **But :** Consulter et transférer les Moras entre portefeuille et Banque.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
@@ -721,7 +753,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
-- **Statut implémentation :** écran Sac personnel réel branché sur l'agrégat serveur ; la consultation Chat interne candidate appelle ce même agrégat. Twitch reste non branché.
+- **Statut implémentation :** écran Sac personnel réel branché sur l'agrégat serveur ; la consultation Chat interne R1038 appelle ce même agrégat. Twitch reste non branché.
 - **UI actuelle :** catégories `Tout` / `Ressources` / `Objets` / `Collection`; la carte Moras entière navigue vers Banque et indique discrètement `Accéder à la Banque`; Stella réutilise le flux Box/Team commun.
 - **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
 - **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
@@ -731,6 +763,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Mutation :** aucune
 - **Réponse Twitch :** une seule ligne
 - **Donnée dérivée :** invocations possibles = `floor(primogems / 160)`
+
+**Amendement Chat R1038 :** Les sept stocks de particules, même nuls, avec personnel en premier ; Moras/Primogemmes, vœux entiers et objets positifs. Collection réservée au Coffre.
 
 ## `!coffre`
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
@@ -786,10 +820,12 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Stats :** dépenses Moras réelles → `totalMorasSpent`; gains réels suivent leurs compteurs Earned
 - **Réponses Twitch :** une seule ligne
 
+**Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
+
 ## `!mission`
 
 - **Statut audit :** Clôturé — R299 à R339
-- **État physique :** candidat Chat interne ; projection personnelle canonique, résumé Défi + permanentes, rangs B/A/S/Z, alias `resume` accepté mais absent de l’aide, longues réponses découpées par `GlobalChatService`
+- **État physique :** Chat interne raccordé ; projection personnelle canonique, résumé Défi + permanentes, rangs B/A/S/Z, variantes résumé/récap normalisées. Réponses longues en entrées entières via les parties explicites de `GlobalChatService`.
 - **But :** Consulter la mission quotidienne et les progressions permanentes du joueur.
 - **Syntaxes cible :**
   - `!mission`
@@ -815,6 +851,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Interactions :** MissionService, Chat/XP, Gacha, Ressources, Expedition, Combat, Social
 - **Décisions cible :** les anciennes syntaxes d'acceptation `!mission B 1` et d'abandon ne font plus partie du fonctionnement standalone
 
+**Amendement Chat R1038 :** Résumé via résumé/resumé/resume/récap/recap ; rangs en entrées entières, accomplis à la fin. Aucun contenu Z verrouillé. Acceptation et abandon legacy ne sont pas restaurés.
+
 ## `!faveur`
 
 - **Statut audit :** CLÔTURÉ — Domaine Faveur / Subscription après R672
@@ -839,6 +877,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Migration :** préserver les jours restants certains et le claim du jour sans reconstruire les anciens jours absents
 - **Atomicité :** attribution, overflow, daily et bonus gifter protégés contre retry et doublons Twitch
 
+**Amendement Chat R1038 :** Lecture seule, permissions FAVOR Public/Amis/Privé, actif/durée uniquement pour tiers ; aucune acquisition ou claim.
+
 ## `!roue`
 
 - **Statut audit :** CLÔTURÉ — Domaine Roue / quotidien après R656
@@ -862,6 +902,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Atomicité :** spin, verrou quotidien, résultat, récompense et statistiques protégés contre double clic, concurrence inter-canaux et retry
 - **Migration :** conserver `lastWheelDate`, `totalWheelSpins`, `totalWheelJackpots` ; ne pas inventer les anciens résultats détaillés
 
+**Amendement Chat R1038 :** Récompense réelle et durées lisibles ; spin déjà consommé par une autre intention = avertissement sans nouveau gain. Rejeu du propre reçu = résultat initial, une seule récompense malgré concurrence UI.
+
 ## `!quotis`
 
 - **Statut audit :** Principe transverse validé R355 ; contenu enrichi progressivement avec les domaines quotidiens
@@ -877,6 +919,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Réponse :** état dynamique des activités pertinentes, avec présentation compacte
 - **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
 - **Évolution :** le Combat quotidien possède désormais ses états À faire / En cours / Terminé / Bloqué ; Roue, Ami et Event continueront à préciser leurs états lors de leurs audits
+
+**Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, départ Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
 
 ## `!expedition`
 
@@ -908,6 +952,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Notification :** notification UI à `readyAt`, aucune notification Twitch asynchrone
 - **Historique player-facing :** aucun en V1
 - **Migration :** préserver une Expedition active valide et son `readyAt`; aucune récompense automatique au cutover
+
+**Amendement Chat R1038 :** Alias exp ; nom exact normalisé pour départ, retour ou nom envoyé prêt pour récupération. Branche/ID figés, durée lisible, récompense propriétaire ; départ quotidien/20 h inchangés.
 
 ## `!combat`
 
@@ -1040,6 +1086,8 @@ Boss vaincu :
 
 Les aides ne recommandent qu'une seule syntaxe canonique.
 
+**Amendement Chat R1038 :** info/infos, help/aide, stat/stats, element/elements/faiblesse/faiblesses [élément]. Preview et Team active consultatifs, quatre ennemis entiers, matrice française ; go/auto affichent résultat et récompense propriétaire, KO bloque le jour. Boss : dommages, récompense de victoire, résumé public et contribution propre depuis les vues existantes.
+
 ## `!ami`
 
 - **Statut audit :** CLÔTURÉ — R451 à R525
@@ -1122,9 +1170,11 @@ Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une 
 - **UI standalone :** Profil détaillé en lecture seule selon permissions
 - **Titre :** jamais affiché dans les chats
 
+**Amendement Chat R1038 :** Alias info ; joueur/pseudo/@pseudo/me/moi, noms composés. Résumé moderne fixe en entrées entières, glyphes et permissions ; sections historiques restent supprimées.
+
 ## `!liste`
 
-État physique : annuaire UI et présence standalone implémentés. `!liste` Chat interne candidat consulte les mêmes données et applique les mêmes permissions ; Twitch reste non branché.
+État physique : annuaire UI et présence standalone implémentés. `!liste` Chat interne consulte les mêmes données et applique les mêmes permissions ; Twitch reste non branché.
 
 - **Statut audit :** CLÔTURÉ — R462/R464/R472/R523/R524
 - **Élément :** `!liste <élément> [page]`
@@ -1136,3 +1186,5 @@ Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une 
 - **Confidentialité :** présence privée/non autorisée totalement absente de `online`
 - **Hors ligne :** jamais inclus dans `online`
 - **UI standalone :** recherche, filtres et listes détaillées dans Social
+
+**Amendement Chat R1038 :** Page moderne de 20 entière, filtres élément normalisé et online ; aucune présence cachée affichée ni ancien classement par activité.

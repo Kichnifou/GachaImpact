@@ -54,6 +54,19 @@ async function cleanup() {
 const input = (playerId: string, itemId: string, quantity: bigint, idempotencyKey = randomUUID()) => ({ playerId, playerElementKey: 'hydro' as const, itemId, quantity, idempotencyKey, occurredAt: now });
 
 describe('Shop persistence', () => {
+  it('keeps the Chat transaction wallet after another purchase and replays without new movements', async () => {
+    const playerId = await createPlayer(200000n);
+    const store = new PrismaShopStore(database, { nextInt: () => 0 });
+    const request = { ...input(playerId, primosId, 1n), sourceChannel: SourceChannel.INTERNAL_CHAT };
+    const first = await store.purchase(request);
+    await store.purchase({ ...request, idempotencyKey: randomUUID() });
+    const replay = await store.purchase(request);
+    expect(first.walletMorasAfter).toBe(150000n); expect(replay.walletMorasAfter).toBe(first.walletMorasAfter);
+    expect(replay.purchase).toEqual(first.purchase);
+    expect(replay.resources.moras).toBe(100000n);
+    expect(await database.shopPurchase.count({ where: { playerId } })).toBe(2);
+    expect(await database.resourceMovement.count({ where: { playerId } })).toBe(4);
+  });
   it('reads only the visible Primos and Ticket catalog with derived odds and no stock', async () => {
     const playerId = await createPlayer(1n); const view = await new PrismaShopStore(database, { nextInt: () => 0 }).getView(playerId);
     expect(view.items.map(({ externalKey }) => externalKey)).toEqual(['primogem-bundle', 'reward-ticket']);

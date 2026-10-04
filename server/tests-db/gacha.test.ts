@@ -27,6 +27,21 @@ afterAll(async () => {
 });
 
 describe('Gacha foundation on the development database', () => {
+  it('stores exact per-pull pity and B2B across operations and replays them without RNG', async () => {
+    const fixture = await createPullPlayer(1000n);
+    try {
+      const store = new PrismaGachaStore(database);
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey: randomUUID(), now: fixture.now, random: { nextInt: () => 0 }, sourceChannel: 'INTERNAL_CHAT' as const };
+      await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { pity5: 9, pity4: 3 } });
+      const first = await store.pull(input);
+      expect(first.results[0]).toMatchObject({ rarity: 5, pity5AtPull: 10, pity4AtPull: 4, backToBack: false });
+      const second = await store.pull({ ...input, idempotencyKey: randomUUID(), now: new Date(fixture.now.getTime() + 1000) });
+      expect(second.results[0]).toMatchObject({ rarity: 5, pity5AtPull: 1, pity4AtPull: 5, backToBack: true });
+      const replay = await store.pull({ ...input, random: { nextInt: () => { throw new Error('Replay must not draw.'); } } });
+      expect(replay.results).toEqual(first.results);
+      expect(await database.pullResult.count({ where: { pullOperation: { playerId: fixture.playerId } } })).toBe(2);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
   it('has the complete catalog, RLS, state backfill and one concurrency-safe current banner', async () => {
     const store = new PrismaGachaStore(database);
     const window = getParisWeekWindow(new Date());

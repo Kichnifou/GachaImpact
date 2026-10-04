@@ -133,11 +133,13 @@ Ne jamais réécrire une décision actuelle depuis un vieux résumé sans vérif
 
 ---
 
-## Méthode bornée à l'étape 29 — R1036
+## Méthode bornée à l'étape 29 — R1036 / R1038
 
-Appliquer le [protocole propriétaire étape 29](../docs/process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036) : lecture intégrale d'un fichier legacy et comparaison au runtime réel, inventaire complet incluant aliases historiques/variantes/ajouts/abandons, tableau seul avant prompt Codex (Commande / cas | Legacy Streamer.bot | Message cible proposé | Statut / arbitrage), sans colonne standalone actuel ni longue analyse. Prompt seulement après validation propriétaire du tableau ; arbitrage explicite si le legacy est plus pratique que le fonctionnement moderne conservé par défaut. Examiner le split individuellement, sans couper noms/entrées, sans troncature ni splitter global aveugle ; bannière normale = une réponse.
+Appliquer le [protocole propriétaire étape 29](../docs/process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036), amendé R1038 : **31 sources restantes groupées, adaptation déléguée, sans tableau/validation fichier par fichier ni review ChatGPT intermédiaire avant main**. La lecture exhaustive en interne et les contrôles restent obligatoires, dont douze mois d'Event et triggers. Les six premiers lots et leurs recettes gardent leur état réel. Conserver les propriétaires modernes, leurs restrictions, aliases canoniques et split par entrées entières ; ne pas inventer une mécanique à partir du code ancien.
 
-R1036 supersède la restriction R1035 au seul lot Ami : tous les petits lots validés de 29 suivent review → tests verts → commit/push review → vérification distante → fast-forward strict du même candidat vers main → push/fetch et main == review dans la même mission Codex, sans review ChatGPT intermédiaire sauf demande explicite. Exception strictement limitée à 29 ; workflow normal inchangé ailleurs. Aucun cutover Twitch. Recette propriétaire avant le fichier suivant.
+Le candidat global complet et testé est publié sur review puis promu strictement à l'identique sur main dans la même mission. Cette exception reste limitée à 29 ; workflow normal ailleurs. Aucun parser/outbound/EventSub Chat/cutover ni migration activé.
+
+Après réception du SHA : **vérifier le commit GitHub et le déploiement exacts, puis fournir uniquement les commandes essentielles de recette par famille**, selon [la couverture et recette](../docs/commands/step-29-command-coverage.md). Ne pas faire retaper tous les aliases/cas limites. Ne pas présenter de tableaux d'erreurs purement système ; signaler un vrai problème bloquant si nécessaire. Tests Twitch séparés et non activés. Tests techniques, publication, déploiement et validation publique restent distincts ; 29 n'est pas déclarée close par la seule livraison des textes. STOP après la mission, sans lancement automatique de 30/31/32.
 
 # 3. Phase de travail
 

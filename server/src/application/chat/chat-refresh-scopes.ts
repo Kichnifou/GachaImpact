@@ -9,9 +9,11 @@ export type ChatRefreshScope = typeof chatRefreshScopes[number];
 export function scopesForOperation(type: string): ChatRefreshScope[] {
   if (type === 'gacha.pull') return ['resources', 'gacha', 'box', 'inventory', 'dailyChallenge', 'progression', 'teams', 'dailyCombat', 'monthlyBoss', 'contest'];
   if (type === 'gacha.target') return ['gacha'];
+  if (type === 'team.command') return ['teams', 'dailyCombat', 'monthlyBoss'];
   if (type === 'wheel.spin') return ['wheel', 'resources'];
   if (type.startsWith('bank.')) return ['bank', 'resources'];
   if (type === 'particles.convert') return ['resources', 'inventory', 'dailyChallenge'];
+  if (type.startsWith('daily-challenge.')) return ['dailyChallenge', 'resources', 'shop'];
   if (type === 'shop.purchase') return ['shop', 'resources', 'inventory', 'gacha'];
   if (type === 'box.stella.use') return ['box', 'inventory', 'resources', 'teams', 'dailyCombat', 'monthlyBoss', 'contest'];
   if (type.startsWith('friendship.')) return ['social', 'resources', 'notifications'];

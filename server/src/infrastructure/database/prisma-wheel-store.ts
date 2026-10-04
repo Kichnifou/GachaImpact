@@ -49,7 +49,11 @@ export class PrismaWheelStore implements WheelStore {
         );
 
         if (persistedResult) {
-          return { ...persistedResult, alreadySpun: true };
+          const ownOperation = await this.database.businessOperation.findFirst({
+            where: { sourceChannel: input.sourceChannel, idempotencyKey: `wheel:${input.playerId}:${input.businessDate}`, status: OperationStatus.COMPLETED },
+            select: { id: true },
+          });
+          return { ...persistedResult, alreadySpun: true, alreadyProcessed: ownOperation !== null };
         }
 
         if (attempt === MAX_SPIN_ATTEMPTS) {
@@ -88,7 +92,7 @@ export class PrismaWheelStore implements WheelStore {
         if (prior.status !== OperationStatus.COMPLETED) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est encore en cours.');
         const state = await transaction.playerWheelDailyState.findFirst({ where: { operationId: prior.id } });
         if (!state) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est indisponible.');
-        return { ...this.toResult(state), alreadySpun: true };
+        return { ...this.toResult(state), alreadySpun: true, alreadyProcessed: true };
       }
 
       const databaseBusinessDate = businessDateToDatabaseDate(input.businessDate);
@@ -102,7 +106,7 @@ export class PrismaWheelStore implements WheelStore {
       });
 
       if (existing) {
-        return { ...this.toResult(existing), alreadySpun: true };
+        return { ...this.toResult(existing), alreadySpun: true, alreadyProcessed: false };
       }
 
       const reward = input.roll();
@@ -166,7 +170,7 @@ export class PrismaWheelStore implements WheelStore {
         },
       });
 
-      return { ...this.toResult(dailyState), alreadySpun: false };
+      return { ...this.toResult(dailyState), alreadySpun: false, alreadyProcessed: false };
     });
   }
 

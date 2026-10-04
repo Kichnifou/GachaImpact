@@ -67,6 +67,7 @@ export type ShopView = ShopPlayerSnapshot & Readonly<{
 
 export type ShopPurchaseResult = ShopView & Readonly<{
   purchase: ShopPurchase;
+  walletMorasAfter?: bigint;
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
 }>;
 

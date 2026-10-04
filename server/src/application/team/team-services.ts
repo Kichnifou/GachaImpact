@@ -13,29 +13,29 @@ export class GetCurrentPlayerTeams {
 
 export class ActivatePlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string) {
+  public async execute(identity: AuthenticatedIdentity, teamId: string, chatKey?: string) {
     const player = await this.getPlayer.execute(identity);
-    return this.store.activate(player.id, teamId);
+    return chatKey ? this.store.activate(player.id, teamId, chatKey) : this.store.activate(player.id, teamId);
   }
 }
 
 export class RenamePlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, rawName: string | null) {
+  public async execute(identity: AuthenticatedIdentity, teamId: string, rawName: string | null, chatKey?: string) {
     const name = normalizeTeamName(rawName);
     const player = await this.getPlayer.execute(identity);
-    return this.store.rename(player.id, teamId, name);
+    return chatKey ? this.store.rename(player.id, teamId, name, chatKey) : this.store.rename(player.id, teamId, name);
   }
 }
 
 export class CreateNextPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, expectedPosition: number) {
+  public async execute(identity: AuthenticatedIdentity, expectedPosition: number, chatKey?: string) {
     if (!Number.isInteger(expectedPosition) || expectedPosition < 11) {
       throw new BusinessError('TEAM_CREATE_POSITION_INVALID', 'La prochaine Team supplémentaire demandée est invalide.');
     }
     const player = await this.getPlayer.execute(identity);
-    return this.store.createNext(player.id, expectedPosition);
+    return chatKey ? this.store.createNext(player.id, expectedPosition, chatKey) : this.store.createNext(player.id, expectedPosition);
   }
 }
 
@@ -57,10 +57,10 @@ export class ReorderPlayerTeams {
 
 export class SetPlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number, characterId: string) {
+  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number, characterId: string, chatKey?: string) {
     assertSlotPosition(position);
     const player = await this.getPlayer.execute(identity);
-    return this.store.setSlot(player.id, teamId, position, characterId);
+    return chatKey ? this.store.setSlot(player.id, teamId, position, characterId, chatKey) : this.store.setSlot(player.id, teamId, position, characterId);
   }
 }
 
@@ -77,18 +77,18 @@ export class ReorderPlayerTeamSlots {
 
 export class RemovePlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number) {
+  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number, chatKey?: string) {
     assertSlotPosition(position);
     const player = await this.getPlayer.execute(identity);
-    return this.store.removeSlot(player.id, teamId, position);
+    return chatKey ? this.store.removeSlot(player.id, teamId, position, chatKey) : this.store.removeSlot(player.id, teamId, position);
   }
 }
 
 export class ClearPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string) {
+  public async execute(identity: AuthenticatedIdentity, teamId: string, chatKey?: string) {
     const player = await this.getPlayer.execute(identity);
-    return this.store.clear(player.id, teamId);
+    return chatKey ? this.store.clear(player.id, teamId, chatKey) : this.store.clear(player.id, teamId);
   }
 }
 

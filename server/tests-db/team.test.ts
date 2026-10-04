@@ -44,6 +44,39 @@ afterAll(async () => {
 });
 
 describe('authoritative Team persistence', () => {
+  it('replays a Chat removal without deleting a later character occupying the slot', async () => {
+    const player = await createPlayer('Chat replay'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), state = await store.getOrProvision(player.id), team = state.teams[0]!, key = randomUUID();
+    await store.setSlot(player.id, team.id, 1, activeCharacterIds[0]!);
+    const first = await store.removeSlot(player.id, team.id, 1, key);
+    await store.setSlot(player.id, team.id, 1, activeCharacterIds[1]!);
+    const replays = await Promise.all([store.removeSlot(player.id, team.id, 1, key), store.removeSlot(player.id, team.id, 1, key)]);
+    expect(replays).toEqual([first, first]);
+    expect((await store.getOrProvision(player.id)).teams[0]!.slots[0]!.character?.id).toBe(activeCharacterIds[1]);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, idempotencyKey: `chat.team:${key}` } })).toBe(1);
+    await expect(store.clear(player.id, team.id, key)).rejects.toMatchObject({ code: 'TEAM_IDEMPOTENCY_CONFLICT' });
+  });
+
+  it('records each Team Chat mutation atomically and preserves its first result on retry', async () => {
+    const player = await createPlayer('Chat mutations'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id), firstTeam = initial.teams[0]!, secondTeam = initial.teams[1]!;
+    const actions = [
+      (key: string) => store.activate(player.id, secondTeam.id, key),
+      (key: string) => store.rename(player.id, secondTeam.id, 'Boss Électro', key),
+      (key: string) => store.createNext(player.id, 11, key),
+      (key: string) => store.setSlot(player.id, secondTeam.id, 1, activeCharacterIds[0]!, key),
+      (key: string) => store.clear(player.id, secondTeam.id, key),
+    ];
+    for (const action of actions) {
+      const key = randomUUID(), result = await action(key);
+      await store.activate(player.id, firstTeam.id);
+      expect(await action(key)).toEqual(result);
+    }
+    const failedKey = randomUUID();
+    await expect(store.setSlot(player.id, secondTeam.id, 1, inactiveCharacterId, failedKey)).rejects.toMatchObject({ code: 'TEAM_CHARACTER_NOT_AVAILABLE' });
+    expect(await database.businessOperation.count({ where: { idempotencyKey: `chat.team:${failedKey}` } })).toBe(0);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, operationType: 'team.command' } })).toBe(5);
+  });
   it('lazily provisions exactly ten base Teams with Team 1 as the sole active Team', async () => {
     const player = await createPlayer('Provision');
     expect(await database.team.count({ where: { playerId: player.id } })).toBe(0);
@@ -366,6 +399,7 @@ async function setCharacterActive(characterId: string, isActive: boolean) {
 
 async function cleanupPlayers() {
   if (playerIds.size === 0) return;
+  await database.businessOperation.deleteMany({ where: { playerId: { in: [...playerIds] } } });
   await database.player.deleteMany({ where: { id: { in: [...playerIds] } } });
   playerIds.clear();
 }

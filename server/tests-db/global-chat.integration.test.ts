@@ -17,6 +17,7 @@ import { elementKeys, resourceKeys } from '../src/domain/economy/resources.js';
 import { GetCurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
+import { getBusinessDate } from '../src/domain/time/business-date.js';
 
 const fixture = isolatedBatchDatabase();
 const db = fixture.database;
@@ -454,6 +455,24 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(Object.fromEntries(balances.map(balance => [balance.resourceKey, balance.amount]))).toMatchObject({ particles_pyro: 30n, primogems: 20n });
     expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'particles.convert', sourceChannel: 'INTERNAL_CHAT' } })).toBe(1);
     expect(await progress(id)).toMatchObject({ totalMessages: 1n, countedMessages: 0n, xp: 60n });
+  });
+
+  it('reports the exact completed Challenge bonus after conversion succeeds and publication fails', async () => {
+    const id = await player();
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'particles_pyro' } }, data: { amount: 320n } });
+    const definition = await db.dailyChallengeDefinition.create({ data: { externalKey: `chat-convert-${id}`, type: 'conversion', target: 320n, displayName: 'Conversion', description: 'Convertir', progressLabel: 'particules', rewardPrimogems: 800n, weight: 1, isEnabled: true, isEligible: true, displayOrder: 1 } });
+    await db.playerDailyChallenge.create({ data: { playerId: id, businessDate: new Date(`${getBusinessDate(now)}T00:00:00Z`), definitionId: definition.id, definitionExternalKeySnapshot: definition.externalKey, typeSnapshot: 'conversion', displayNameSnapshot: 'Conversion', descriptionSnapshot: 'Convertir', progressLabelSnapshot: 'particules', targetSnapshot: 320n, rewardPrimogemsSnapshot: 800n, progress: 0n, status: 'ACTIVE', assignedAt: now } });
+    const key = randomUUID();
+    const publication = vi.spyOn(service, 'publishGameResult').mockRejectedValueOnce(new Error('Publication temporarily unavailable'));
+    await expect(dispatcher.send(as(id), '!conv 320', key)).rejects.toThrow('Publication temporarily unavailable');
+    publication.mockRestore();
+    const result = await dispatcher.send(as(id), '!conv 320', key);
+    expect(result.results.map(row => row.content).join(' ')).toContain('✅ Défi terminé : +💠800 Primogemmes.');
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(1120n);
+    expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-challenge.completion' } })).toBe(1);
+    const replay = await dispatcher.send(as(id), '!conv 320', key);
+    expect(replay.results.map(row => row.id)).toEqual(result.results.map(row => row.id));
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'particles.convert' } })).toBe(1);
   });
 
   it('omits private profile sections in a public infos answer', async () => {

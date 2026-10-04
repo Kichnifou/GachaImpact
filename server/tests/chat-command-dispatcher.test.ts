@@ -1,98 +1,9 @@
-import { describe, expect, expectTypeOf, it, vi } from 'vitest';
-import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
-import type { GlobalChatService } from '../src/application/chat/global-chat-service.js';
+import { describe, expect, expectTypeOf, it } from 'vitest';
+import { type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import { BusinessError } from '../src/application/errors.js';
 import type { CurrentPlayerMissions } from '../src/application/missions/get-current-player-missions.js';
 
-const commandId = '11111111-1111-4111-8111-111111111111';
-const actor = { subject: 'actor' };
-
-function harness() {
-  const chat = {
-    send: vi.fn(async (_identity: unknown, content: string) => ({ message: { id: commandId, messageType: 'COMMAND', content }, xpGranted: 0, replayed: false })),
-    findGameResult: vi.fn(async () => null),
-    findGameResults: vi.fn(async () => []),
-    commandMissionCompletions: vi.fn(async () => [] as string[]),
-    hasConfirmedCommandMutation: vi.fn(async () => false),
-    commandRefreshScopes: vi.fn(async () => []),
-    rememberCommandRefreshScopes: vi.fn(async () => undefined),
-    publishGameResult: vi.fn(async (_id: string, content: string | readonly string[]) => {
-      const messages = (typeof content === 'string' ? [content] : content).map((part, index) => ({ id: 'answer-' + index, content: part, messageType: 'GAME_RESULT' }));
-      return { message: messages[0]!, messages, replayed: false };
-    }),
-    rememberCommandQuantity: vi.fn(async (_id: string, quantity: bigint) => quantity),
-    rememberCommandText: vi.fn(async (_id: string, _field: string, value: string) => value),
-  };
-  const execute = <T>(value: T) => ({ execute: vi.fn(async () => value) });
-  const services = {
-    getCurrentGacha: execute({ banner: { startsAt: new Date('2026-09-27T22:00:00Z'), endsAt: new Date('2026-10-04T22:00:00Z'), featuredFiveStars: [{ id: 'five', name: 'A', elementKey: 'pyro' }], featuredFourStars: [{ id: 'four', name: 'B', elementKey: 'hydro' }] }, playerState: { pity5: 9, pity4: 2, guaranteedFeatured5: true, captureProgress: 1, selectedBannerCharacterId: 'five' } }),
-    getCharacters: execute([{ id: 'five', name: 'A' }, { id: 'candidate', name: 'Candidat' }]),
-    setGachaTarget: execute({}),
-    bannerVotes: { getCurrent: vi.fn(async () => ({ bannerRotationId: 'rotation', ownVote: null, candidates: [{ characterId: 'candidate', voteCount: 0 }] })), vote: vi.fn(async () => ({})) },
-    performGachaPullChat: execute({ operation: { primogemCost: 160n }, results: [{ character: { name: 'A' }, rarity: 5 }] }),
-    getCurrentPlayerBox: execute({ summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, characters: [{ id: 'five', name: 'A', constellation: 0, firstObtainedAt: new Date('2026-09-01'), rarity: 5, elementKey: 'pyro', favorite: false }] }),
-    setBoxCharacterFavorite: execute({ name: 'A' }),
-    setBoxSortPreference: execute({ sortKey: 'alphabetical', direction: 'desc' }),
-    useMasterlessStella: execute({ character: { name: 'A', constellation: 1 }, stellaRemaining: 2n }),
-    getCurrentPlayerTeams: execute({ teams: [{ active: true, position: 1, name: null, slots: [{ character: { name: 'A' } }], passives: [{ displayName: 'Élan', stacks: 1, description: 'Bonus' }] }] }),
-    getCurrentPlayerInventory: execute({ resources: [{ key: 'primogems', amount: 160n, elementKey: null }, { key: 'moras', amount: 50n, elementKey: null }], items: [{ section: 'collection', quantity: 1n, displayName: 'Objet' }] }),
-    getCurrentPlayerBank: execute({ bankMoras: 100n, walletMoras: 50n, estimatedInterest: 3n }),
-    depositPlayerBankChat: execute({ bankMoras: 150n, walletMoras: 0n, resolvedAmount: 50n }),
-    withdrawPlayerBankChat: execute({ bankMoras: 50n, walletMoras: 100n, resolvedAmount: 50n }),
-    convertPersonalParticlesChat: execute({ resources: { primogems: 180n } }),
-    getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
-    purchaseShopItemChat: execute({ purchase: { quantity: 2n, displayName: 'Lot de Primogemmes', totalPrice: 100_000n, effect: { type: 'resource_bundle', amount: 320n, resourceKey: 'primogems' } } }),
-    socialService: {
-      legends: vi.fn(async () => ({ access: 'ALLOWED', data: { characters: [{ id: 'c6', name: 'Étoile' }], legends: [{ character: { name: 'Étoile' }, stats: { strength: 1, intelligence: 2, beauty: 3, charisma: 4, popularity: 5 }, totals: { contests: '9', wins: '2' }, themes: { STRENGTH: { title: 'Titre thème', wins: '2', participations: '9' } } }] } })),
-      favor: vi.fn(async () => ({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } })),
-      actor: vi.fn(async () => ({ id: 'self', displayName: 'Moi' })),
-      directory: vi.fn(async () => ({ players: [{ id: 'other', displayName: 'Autre' }], page: 1, totalPages: 1 })),
-      connected: vi.fn(async () => ({ players: [{ status: 'ONLINE', displayName: 'Autre' }], total: 1 })),
-      profile: vi.fn(async () => ({ player: { displayName: 'Autre', level: 5, elementKey: 'pyro' }, box: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } })),
-      friends: vi.fn(async () => ({ friends: [{ playerId: 'other', level: 3, tier: 'Amitié Sincère', totalHearts: '2', heartSent: false }], players: [{ id: 'other', displayName: 'Autre' }], requests: [], summary: { activeFriends: 1, available: 1 } })),
-      friendship: { mutate: vi.fn(async () => ({ state: 'ACTIVE' })), sendHearts: vi.fn(async () => ({ message: 'Moi envoie un cœur à Autre : leur amitié s’embellit doucement.', level: 3, sent: 1, alreadySent: 0, unavailable: 0, senderReward: '5', status: 'SENT' })) },
-    },
-    rankingService: { chatTop: vi.fn(async () => 'XP : #1 Autre — 30.'), personal: vi.fn(async () => 'Top personnel — Moi : XP 30.') },
-    tradePlayer: execute({ id: 'self' }),
-    tradeService: {
-      partners: vi.fn(async () => ({ partners: [{ id: 'other', displayName: 'Autre', maximum: 5n }] })),
-      snapshot: vi.fn(async () => ({ received: [{ id: 'request', sender: { displayName: 'Autre' }, currentAmount: 3n }], sent: [{ id: 'request', recipient: { displayName: 'Autre' }, currentAmount: 3n }] })),
-      create: vi.fn(async () => ({ amount: 3n })), mutate: vi.fn(async () => ({ state: 'ACCEPTED', amount: 3n })),
-      all: vi.fn(async () => ({ results: [{ state: 'ACCEPTED' }] })),
-    },
-    choosePlayerElement: execute({ elementKey: 'pyro' }),
-    giftCodeService: { listForPlayer: vi.fn(async () => ({ available: [{ token: 'CODE', editionId: 'edition', rewards: [{ amount: '1600', displayName: 'Primogemmes', resourceKey: 'primogems' }] }], claimed: [{ token: 'OTHER', editionId: 'other', claimed: true }] })), claim: vi.fn(async () => ({ claimed: [], resources: { primogems: '1800', moras: '0', particles: {} }, operation: { alreadyProcessed: false } })) },
-    eventService: {
-      getCurrent: vi.fn(async () => ({ festival: { emoji: '🎊', title: 'Festival', currency: { label: 'Monnaies' } }, participation: { joined: false, points: 0 }, currency: { amount: '3' }, shop: { rates: { primogems: 160, moras: 20000 }, collection: { label: 'Souvenir', cost: 80, obtainedThisEdition: false } }, gameA: { theme: { key: 'feu', label: 'Feu' } }, gameB: { theme: { label: 'Coffre' } }, gameC: { theme: { label: 'Mot doux' } } })),
-      getRanking: vi.fn(async () => ({ entries: [{ rank: 1, displayName: 'Autre', points: 10 }] })),
-      join: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, currency: { amount: '4' } })),
-      attemptGameA: vi.fn(async () => ({ attempt: { succeeded: true } })), attemptGameB: vi.fn(async () => ({ attempt: { kind: 'CORRECT' } })),
-      searchGameCRecipients: vi.fn(async () => ({ recipients: [{ playerId: 'other', displayName: 'Autre' }], totalPages: 1 })), sendGameC: vi.fn(async () => ({})),
-      claimCalendar: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, calendarClaim: { day: 1, reward: 2 } })),
-      convertShop: vi.fn(async () => ({ currency: { amount: '2' } })),
-      purchaseCollection: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, shop: { collection: { label: 'Souvenir', cost: 80 } } })),
-    },
-    expeditionService: { getState: vi.fn(async () => ({ operationalStatus: 'IDLE', departureUsedToday: false })), start: vi.fn(async () => ({})), claim: vi.fn(async () => ({ reward: { amount: 5n, resourceKey: 'primogems' } })) },
-    contestService: { getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false })) },
-    dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, chanceHalfPoints: 140 } })) },
-    monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss' } } })) },
-    getDailyChallenge: execute({ status: 'AVAILABLE', challenge: null }),
-    getCurrentPlayerMissions: execute({
-      catchUpApplied: false,
-      ranks: {
-        B: Array.from({ length: 9 }, (_, index) => ({ externalKey: `b${index}`, rank: 'B', displayName: `Mission B ${index + 1}`, description: '', progressLabel: '', progress: BigInt(index), target: 9n, status: index === 0 ? 'COMPLETED' : 'ACTIVE', rewardPrimogems: 160n, completedAt: null })),
-        A: Array.from({ length: 9 }, (_, index) => ({ externalKey: `a${index}`, rank: 'A', displayName: `Mission A ${index + 1}`, description: '', progressLabel: '', progress: 0n, target: 20n, status: 'LOCKED', rewardPrimogems: 1600n, completedAt: null })),
-        S: Array.from({ length: 9 }, (_, index) => ({ externalKey: `s${index}`, rank: 'S', displayName: `Mission S ${index + 1}`, description: '', progressLabel: '', progress: 0n, target: 30n, status: 'LOCKED', rewardPrimogems: 16000n, completedAt: null })),
-      },
-      z: { status: 'LOCKED' },
-    }),
-    getTodayWheelState: execute({ spun: false }),
-    spinDailyWheelChat: execute({ resultType: 'primogems', resourceKey: 'primogems', amount: 160n }),
-  };
-  const dispatcher = new ChatCommandDispatcher(chat as unknown as GlobalChatService, services as unknown as ChatCommandServices);
-  const send = async (content: string) => (await dispatcher.send(actor, content, 'intent')).result?.content;
-  return { chat, services, send };
-}
+import { harness, commandId, actor } from './helpers/chat-command-harness.js';
 
 describe('Chat command adapters', () => {
   it('publishes logical command parts and appends a Mission only when it fits intact', async () => {
@@ -152,10 +63,10 @@ describe('Chat command adapters', () => {
   });
   it('reads Legends with exact normalized character names, self aliases, player names and no private leak', async () => {
     const { services, send } = harness();
-    expect(await send('!legende')).toBe('Légendes de Moi : Étoile.');
+    expect(await send('!legende')).toBe('🏆 Légendes de Moi : Étoile');
     expect(await send('!legende moi ETOILE')).toContain('Force 1');
     expect(await send('!legende me Etoile')).toContain('Concours 9, victoires 2');
-    expect(await send('!legende Autre')).toBe('Légendes de Autre : Étoile.');
+    expect(await send('!legende Autre')).toBe('🏆 Légendes de Autre : Étoile');
     expect(await send('!legende @Autre Étoile')).toContain('Titre thème');
     expect(services.socialService.legends).toHaveBeenLastCalledWith(actor, 'other', true);
     expect(await send('!legende moi Éto')).toContain('Légende introuvable');
@@ -203,35 +114,35 @@ describe('Chat command adapters', () => {
     expect(await send('!ami coeur all')).toContain('+💠5 Primos pour Moi');
     expect(services.socialService.friendship.sendHearts).toHaveBeenLastCalledWith('self', 'all', commandId, 'INTERNAL_CHAT');
     expect(await send('!ami coeur @all')).toBe(await send('!ami coeur all'));
-    expect(await send('!echanger accepter')).toContain('Échanges reçus');
+    expect(await send('!echanger accepter')).toContain('1/1 acceptés');
     expect(await send('!echanger @Inconnu 3')).toBe('Partenaire échangeable introuvable.');
   });
   it('normalizes only the Event recipient, preserving message text and non-Player tokens', async () => {
     const { services, send } = harness();
     expect(await send('!event Mot doux @Autre "@all est du texte"')).toBe(await send('!event Mot doux Autre "@all est du texte"'));
     expect(services.eventService.searchGameCRecipients).toHaveBeenLastCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
-    expect(services.eventService.sendGameC).toHaveBeenLastCalledWith(actor, 'other', '@all est du texte', commandId);
+    expect(services.eventService.sendGameC).toHaveBeenLastCalledWith(actor, 'other', '@all est du texte', commandId, 'INTERNAL_CHAT');
     expect(await send('!code @CODE')).toBe('⚠️ Ce code cadeau n’est pas disponible.');
     expect(services.giftCodeService.claim).not.toHaveBeenCalled();
     expect(await send('!stella @A')).toBe('Ce personnage ne fait pas partie de votre Box.');
   });
   it('keeps !infos compact and omits general statistics when access is private', async () => {
     const { services, send } = harness();
-    expect(await send('!infos Autre')).toBe('Autre · niveau 5 · pyro · amitié niveau 3.');
+    expect(await send('!infos Autre')).toBe('ℹ️ Autre · niveau 5 · 🔥 Pyro · amitié niveau 3');
     services.socialService.profile.mockResolvedValue({
       player: { displayName: 'Autre', level: 5, elementKey: 'pyro' }, box: { access: 'PRIVATE' }, team: { access: 'PRIVATE' },
       statistics: { access: 'ALLOWED', data: { totalPulls: '20', combatWins: '5', totalPrimosEarned: '999999', fiveStarRate: '5.00' } },
     } as unknown as Awaited<ReturnType<typeof services.socialService.profile>>);
-    expect(await send('!infos Autre')).toBe('Autre · niveau 5 · pyro · 20 Pulls, 5 victoires Combat · amitié niveau 3.');
+    expect(await send('!infos Autre')).toBe('ℹ️ Autre · niveau 5 · 🔥 Pyro · 20 Pulls, 5 victoires Combat · amitié niveau 3');
   });
   it('requires only the Contest read projection in its dependency contract', () => {
     expectTypeOf<keyof ChatCommandServices['contestService']>().toEqualTypeOf<'getCurrent'>();
   });
 
   it.each([
-    ['!pity', 'Pity 5★'], ['!banniere', 'Bannières'], ['!box', 'Box'], ['!team', 'Team 1'],
-    ['!sac', 'Sac'], ['!coffre', 'Coffre'], ['!shop', 'Boutique'], ['!banque', 'Banque'],
-    ['!infos Autre', 'Autre'], ['!liste pyro', 'pyro'], ['!code', 'Codes disponibles'],
+    ['!pity', 'pity : 5★ 9/90'], ['!banniere', 'Bannières'], ['!box', 'Box'], ['!team', 'Team 1'],
+    ['!sac', 'sac : 💠160 Primogemmes'], ['!coffre', 'Coffre'], ['!shop', 'Boutique'], ['!banque', 'Banque'],
+    ['!infos Autre', 'Autre'], ['!liste pyro', 'Pyro'], ['!code', 'Codes disponibles'],
     ['!event', 'Festival'], ['!event top', 'Festival Top 10'], ['!expedition', 'Expédition'],
     ['!concours', 'Concours'], ['!combat', 'Combat du jour'], ['!combat boss', 'Boss'], ['!quotis', 'Quotidiennes'],
   ])('formats %s from the existing domain projection', async (command, expected) => {
@@ -277,7 +188,8 @@ describe('Chat command adapters', () => {
 
   it('formats daily states as player-facing text', async () => {
     const { send } = harness();
-    expect(await send('!quotis')).toBe('Quotidiennes : Roue à faire · Défi disponible · Combat à faire · Expédition à faire.');
+    const output = await send('!quotis');
+    for (const text of ['Récompense à récupérer', 'Roue à faire', 'Défi disponible', 'Combat à faire', 'Expédition départ à faire', 'Amitié : 1 cœur(s)', 'Festival : non inscrit', 'Faveur : inactive']) expect(output).toContain(text);
   });
 
   it('formats mission summary, compatibility alias and canonical ranks without leaking locked Z', async () => {
@@ -286,7 +198,7 @@ describe('Chat command adapters', () => {
     expect(summary).toContain('Défi : disponible, non attribué');
     expect(summary).toContain('B 1/9 terminées · A 0/9 · S 0/9 · Z verrouillé');
     expect(await send('!mission resume')).toBe(summary);
-    expect(await send('!mission b')).toMatch(/^Missions B : ▶ Mission B 2 1\/9/u);
+    expect(await send('!mission b')).toMatch(/^🎯 Missions B : ▶ Mission B 2 1\/9/u);
     expect(await send('!mission Z')).toBe('Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.');
     expect(await send('!mission pseudo')).toBe('Syntaxe : !mission [B|A|S|Z].');
   });
@@ -321,13 +233,16 @@ describe('Chat command adapters', () => {
     expect(chat.rememberCommandRefreshScopes).toHaveBeenCalledWith(commandId, ['resources']);
   });
 
-  it('hands one complete response longer than 500 characters to the existing Chat splitter', async () => {
+  it('publishes every Mission as logical bounded parts without truncation', async () => {
     const { chat, services, send } = harness();
     const current = await services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
     services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...current, ranks: { ...current.ranks, B: current.ranks.B.map((mission, index) => ({ ...mission, displayName: `Mission ${index + 1} ${'très-longue '.repeat(8)}` })) } } as never);
-    const response = await send('!mission B');
-    expect((response ?? '').length).toBeGreaterThan(500);
-    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, response);
+    await send('!mission B');
+    const parts = chat.publishGameResult.mock.calls[0]![1] as readonly string[];
+    expect(parts.length).toBeGreaterThan(1);
+    expect(parts.every(part => Array.from(part).length <= 500)).toBe(true);
+    for (let index = 1; index <= 9; index += 1) expect(parts.filter(part => part.includes(`Mission ${index} ${'très-longue '.repeat(8)}`))).toHaveLength(1);
+    expect(parts.join(' ')).not.toContain('autres');
   });
 
   it('attributes Expedition start and claim commands to INTERNAL_CHAT', async () => {
@@ -392,9 +307,9 @@ describe('Chat command adapters', () => {
   it('passes Game C the resolved recipient, exact message and durable command ID, then replays without another send', async () => {
     const { chat, services, send } = harness();
     const first = await send('!event Mot doux Autre "Bonjour exact !"');
-    expect(first).toBe('Mot doux envoyé à Autre.');
+    expect(first).toBe('Mot doux envoyé à Autre · +1 point(s) et +1 💖 Monnaies.');
     expect(services.eventService.searchGameCRecipients).toHaveBeenCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
-    expect(services.eventService.sendGameC).toHaveBeenCalledExactlyOnceWith(actor, 'other', 'Bonjour exact !', commandId);
+    expect(services.eventService.sendGameC).toHaveBeenCalledExactlyOnceWith(actor, 'other', 'Bonjour exact !', commandId, 'INTERNAL_CHAT');
     chat.findGameResult.mockResolvedValue({ id: 'answer', content: first, messageType: 'GAME_RESULT' } as never);
     chat.findGameResults.mockResolvedValue([{ id: 'answer', content: first, messageType: 'GAME_RESULT' }] as never);
     expect(await send('!event Mot doux Autre "Bonjour exact !"')).toBe(first);
@@ -428,12 +343,13 @@ describe('Chat command adapters', () => {
   });
 
   it('lists every persisted Pull result for x10 without inventing a reward', async () => {
-    const { services, send } = harness();
-    services.performGachaPullChat.execute.mockResolvedValue({ operation: { primogemCost: 1_600n }, results: Array.from({ length: 10 }, (_, index) => ({ character: { name: `Personnage${index + 1}` }, rarity: 4 })) } as never);
-    const answer = await send('!pull 10');
+    const { services, chat, send } = harness();
+    services.performGachaPullChat.execute.mockResolvedValue({ operation: { primogemCost: 1_600n, pullCount: 10 }, results: Array.from({ length: 10 }, (_, index) => ({ index: index + 1, character: { name: `Personnage${index + 1}`, elementKey: 'hydro' }, rarity: 4, constellationAfter: 2, bonusRewards: [], passiveEffects: [] })) } as never);
+    await send('!pull 10');
+    const answer = (chat.publishGameResult.mock.calls[0]![1] as readonly string[]).join(' ');
     expect(answer).toContain('Personnage1');
     expect(answer).toContain('Personnage10');
-    expect(answer).toContain('Coût : 1600 Primogemmes.');
+    expect(answer).toContain('coût 💠1 600 Primogemmes');
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 10, commandId);
   });
 
@@ -463,7 +379,7 @@ describe('Chat command adapters', () => {
     const view = await services.eventService.getCurrent();
     services.eventService.getCurrent.mockResolvedValue({ ...view, gameC: { theme: { label: 'Vœu' } } } as never);
     expect(await send('!event voeu Autre "bonjour"')).toContain('Vœu envoyé');
-    expect(services.eventService.sendGameC).toHaveBeenCalledWith(actor, 'other', 'bonjour', commandId);
+    expect(services.eventService.sendGameC).toHaveBeenCalledWith(actor, 'other', 'bonjour', commandId, 'INTERNAL_CHAT');
   });
 
   it.each(['!combat boss non', '!combat auto encore', '!event Coffre 01234', '!event Mot doux Autre bonjour', '!ami ajouter', '!stella', '!element inconnu'])('publishes syntax for malformed %s', async command => {

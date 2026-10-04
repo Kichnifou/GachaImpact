@@ -1,5 +1,7 @@
 # 22 — Audit Top / Classements globaux
 
+**Amendement Chat R1038 — étape 29 :** Chat Top conserve le Top 5 et le propre rang éligible de R717–R724 ; entrées entières réparties via le multiparties Chat existant si nécessaire, accents/cœurs normalisés. Les profils privés/zéro et les conditions de Taux 5★ restent filtrés par Ranking. Aucun élargissement arbitraire de classement ou nouveau payout. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 > Domaine 19 de l'audit GachaImpact.  
 > Statut : **CLÔTURÉ — décisions produit R714 à R727 validées ; clôture technique finalisée**.  
 > Ce document est la source spécialisée validée du domaine Top / Classements globaux.  

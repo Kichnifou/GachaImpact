@@ -93,8 +93,8 @@ export class SocialService {
     const permissions = await this.privacy.permissions(playerId, viewer.id);
     if (!permissions.BOX || detailed && !permissions.GENERAL_STATISTICS) return hidden;
     const possessions = await this.database.playerCharacter.findMany({
-      where: { playerId, constellation: 6, character: { rarity: 5 } },
-      select: { characterId: true, character: { select: { id: true, name: true } } },
+      where: { playerId, constellation: 6, character: { rarity: 5, isActive: true } },
+      select: { characterId: true, character: { select: { id: true, name: true, elementKey: true } } },
       orderBy: { character: { name: 'asc' } },
     });
     if (!detailed) return allowed({ characters: possessions.map(row => row.character), legends: [] });

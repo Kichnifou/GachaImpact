@@ -99,11 +99,14 @@ describe('Event Game C with isolated future editions and fixture Players', () =>
     expect(first.xpGranted).toBe(0);
     expect(first.result).toMatchObject({ messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM', replyToMessageId: first.message.id });
     expect(first.result?.content).toContain(`${theme} envoyé à ${recipient.displayName}`);
+    expect(first.result?.content).not.toContain('Message exact du Jeu C');
+    expect(first.result?.content).toContain('+1 point(s)');
     const eventMessage = await database.eventSocialMessage.findFirstOrThrow({ where: { senderPlayerId: sender.playerId, recipientPlayerId: recipient.playerId } });
     expect(eventMessage.content).toBe('Message exact du Jeu C');
     expect((await view(recipient)).gameC.receivedMessages).toEqual(expect.arrayContaining([expect.objectContaining({ message: 'Message exact du Jeu C' })]));
     const operation = await database.businessOperation.findFirstOrThrow({ where: { playerId: sender.playerId, operationType: 'event.game-c.send', idempotencyKey: first.message.id } });
     expect(operation.status).toBe('COMPLETED');
+    expect(operation.sourceChannel).toBe('INTERNAL_CHAT');
     const replay = await dispatcher.send(sender.identity, content, key);
     expect(replay.message.id).toBe(first.message.id);
     expect(replay.result?.id).toBe(first.result?.id);

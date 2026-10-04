@@ -116,7 +116,7 @@ export class EventService {
   }
 
   public async getRanking(identity: AuthenticatedIdentity) {
-    await this.getPlayer.execute(identity);
+    const viewer = await this.getPlayer.execute(identity);
     const context = await this.resolveCurrentEdition(this.database, this.clock.now());
     const participants = await this.database.eventParticipant.findMany({
       where: { eventEditionId: context.edition.id },
@@ -124,14 +124,19 @@ export class EventService {
       take: 10,
       select: { playerId: true, points: true, player: { select: { displayName: true } } },
     });
+    const own = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: viewer.id } } });
+    const before = own ? await this.database.eventParticipant.count({ where: { eventEditionId: context.edition.id, OR: [{ points: { gt: own.points } }, ...(own.joinedAt ? [{ points: own.points, joinedAt: { lt: own.joinedAt } }] : [{ points: own.points, joinedAt: { not: null } }]), { points: own.points, joinedAt: own.joinedAt, playerId: { lt: viewer.id } }] } }) : null;
     return {
       editionId: context.edition.id,
+      self: own ? { rank: before! + 1, points: own.points } : null,
       entries: participants.map(({ playerId, player, points }, index) => ({ rank: index + 1, playerId, displayName: player.displayName, points })),
     };
   }
 
-  public async join(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async join(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.join');
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, creditedCurrency: Number(replay.summary.creditedCurrency ?? 0) };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -144,7 +149,7 @@ export class EventService {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${businessDateToDatabaseDate(context.period.businessDate)}::date FOR UPDATE`;
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
           const existingOperation = await tx.businessOperation.findFirst({
-            where: { sourceChannel: SourceChannel.UI, idempotencyKey },
+            where: { sourceChannel, idempotencyKey },
           });
           if (existingOperation) {
             const request = readRecord(existingOperation.resultSummary)?.request;
@@ -156,7 +161,7 @@ export class EventService {
             ) {
               throw new BusinessError('EVENT_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
             }
-            return { operationId: existingOperation.id, alreadyProcessed: true, view: null };
+            return { operationId: existingOperation.id, alreadyProcessed: true, creditedCurrency: Number(readRecord(existingOperation.resultSummary)?.creditedCurrency ?? 0), view: readRecord(existingOperation.resultSummary)?.snapshot as Awaited<ReturnType<EventService['getCurrent']>> | undefined ?? null };
           }
 
           await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
@@ -168,16 +173,18 @@ export class EventService {
             data: {
               playerId: player.id,
               operationType: 'event.join',
-              sourceChannel: SourceChannel.UI,
+              sourceChannel,
               idempotencyKey,
               status: OperationStatus.PENDING,
               resultSummary: { request: { editionId: context.edition.id } },
             },
           });
 
+          let creditedCurrency = 0;
           if (!participant) {
             const gameB = await tx.eventGameBDailyState.findUniqueOrThrow({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, select: { solvedAt: true, legacyFound: true } });
             const lateReward = gameB.solvedAt !== null || gameB.legacyFound;
+            creditedCurrency = lateReward ? 2 : 1;
             await tx.eventParticipant.create({
               data: { eventEditionId: context.edition.id, playerId: player.id, points: 0, joinedAt: now },
             });
@@ -189,20 +196,21 @@ export class EventService {
             });
           }
 
+          const snapshot = await this.snapshot(tx, player.id, context, now, true);
           await tx.businessOperation.update({
             where: { id: operation.id },
             data: {
               status: OperationStatus.COMPLETED,
               completedAt: now,
-              resultSummary: { request: { editionId: context.edition.id }, joined: true, credited: !participant },
+              resultSummary: { request: { editionId: context.edition.id }, joined: true, credited: !participant, creditedCurrency, snapshot },
             },
           });
-          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, true) };
+          return { operationId: operation.id, alreadyProcessed: false, creditedCurrency, view: snapshot };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
         operationId = result.operationId;
         alreadyProcessed = result.alreadyProcessed;
-        if (result.view) return { ...result.view, operation: { id: operationId, alreadyProcessed } };
+        if (result.view) return { ...result.view, operation: { id: operationId, alreadyProcessed }, creditedCurrency: result.creditedCurrency };
         break;
       } catch (error) {
         if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
@@ -212,12 +220,14 @@ export class EventService {
 
     return {
       ...await this.getCurrent(identity),
-      operation: { id: operationId, alreadyProcessed },
+      operation: { id: operationId, alreadyProcessed }, creditedCurrency: 0,
     };
   }
 
-  public async attemptGameA(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async attemptGameA(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-a.attempt');
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { succeeded: replay.summary.succeeded === true, reward: { points: replay.summary.succeeded === true ? 1 : 0, currency: replay.summary.succeeded === true ? 1 : 0 } } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -227,14 +237,14 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
             const request = readRecord(summary?.request);
             if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'event.game-a.attempt' || request?.editionId !== context.edition.id || request.businessDate !== context.period.businessDate || existingOperation.status !== OperationStatus.COMPLETED) {
               throw new BusinessError('EVENT_GAME_A_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre tentative.');
             }
-            return { ...await this.snapshot(tx, player.id, context, now, true), operation: { id: existingOperation.id, alreadyProcessed: true }, attempt: { succeeded: summary?.succeeded === true } };
+            return { ...await this.snapshot(tx, player.id, context, now, true), operation: { id: existingOperation.id, alreadyProcessed: true }, attempt: { succeeded: summary?.succeeded === true, reward: { points: summary?.succeeded === true ? 1 : 0, currency: summary?.succeeded === true ? 1 : 0 } } };
           }
 
           await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
@@ -251,14 +261,15 @@ export class EventService {
 
           retainedRoll ??= this.random.nextInt(100);
           const succeeded = eventGameASucceeded(retainedRoll);
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-a.attempt', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate } } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-a.attempt', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate } } } });
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameAAttempts: { increment: 1 }, gameASuccess: succeeded, gameALastAttemptAt: now, updatedAt: now } });
           if (succeeded) {
             await this.awardEventPoints(tx, context, player.id, 1, now);
             await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
           }
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate }, succeeded } } });
-          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, attempt: { succeeded } };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate }, succeeded, snapshot } } });
+          return { ...snapshot, operation: { id: operation.id, alreadyProcessed: false }, attempt: { succeeded, reward: { points: succeeded ? 1 : 0, currency: succeeded ? 1 : 0 } } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
@@ -268,9 +279,11 @@ export class EventService {
     throw new Error('Event Game A attempt could not be completed.');
   }
 
-  public async attemptGameB(identity: AuthenticatedIdentity, code: string, idempotencyKey: string) {
+  public async attemptGameB(identity: AuthenticatedIdentity, code: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     if (!isEventGameBCode(code)) throw new BusinessError('EVENT_GAME_B_INVALID_CODE', 'Le code doit contenir exactement cinq chiffres 0 ou 1.');
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-b.attempt', { code });
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { kind: parseGameBResultKind(replay.summary.kind), reward: { points: replay.summary.kind === 'CORRECT' ? 1 : 0, currency: replay.summary.kind === 'CORRECT' ? 1 : 0 } } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -281,14 +294,14 @@ export class EventService {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${key.businessDate}::date FOR UPDATE`;
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
             const request = readRecord(summary?.request);
             if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'event.game-b.attempt' || request?.editionId !== context.edition.id || request.businessDate !== context.period.businessDate || request.code !== code || existingOperation.status !== OperationStatus.COMPLETED) {
               throw new BusinessError('EVENT_GAME_B_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre tentative.');
             }
-            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: existingOperation.id, alreadyProcessed: true }, attempt: { kind: parseGameBResultKind(summary?.kind) } };
+            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: existingOperation.id, alreadyProcessed: true }, attempt: { kind: parseGameBResultKind(summary?.kind), reward: { points: summary?.kind === 'CORRECT' ? 1 : 0, currency: summary?.kind === 'CORRECT' ? 1 : 0 } } };
           }
 
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } } });
@@ -301,7 +314,7 @@ export class EventService {
           if (!alreadyTested && daily.gameBAttemptsUsed >= EVENT_GAME_B_MAX_ATTEMPTS) throw new BusinessError('EVENT_GAME_B_NO_ATTEMPTS', 'Vous avez utilisé vos trois essais du jour.');
 
           const kind = alreadyTested ? 'ALREADY_TESTED' : code === global.solutionCode ? 'CORRECT' : 'INCORRECT';
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-b.attempt', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate, code } } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-b.attempt', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate, code } } } });
           if (!alreadyTested) {
             await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: key.businessDate } }, data: { gameBAttemptsUsed: { increment: 1 }, updatedAt: now } });
             await tx.eventGameBDailyState.update({ where: { eventEditionId_businessDate: key }, data: { testedCodes: [...testedCodes, code], ...(kind === 'CORRECT' ? { solvedAt: now, discovererPlayerId: player.id } : {}), updatedAt: now } });
@@ -313,8 +326,9 @@ export class EventService {
               }
             }
           }
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate, code }, kind } } });
-          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, attempt: { kind } };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId: context.edition.id, businessDate: context.period.businessDate, code }, kind, snapshot } } });
+          return { ...snapshot, operation: { id: operation.id, alreadyProcessed: false }, attempt: { kind, reward: { points: kind === 'CORRECT' ? 1 : 0, currency: kind === 'CORRECT' ? 1 : 0 } } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
@@ -350,11 +364,13 @@ export class EventService {
     return { page, pageSize, total, totalPages, recipients: recipients.slice((page - 1) * pageSize, page * pageSize) };
   }
 
-  public async sendGameC(identity: AuthenticatedIdentity, recipientPlayerId: string, message: string, idempotencyKey: string) {
+  public async sendGameC(identity: AuthenticatedIdentity, recipientPlayerId: string, message: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const content = message.trim();
     if (!content || content.length > 500) throw new BusinessError('EVENT_GAME_C_INVALID_MESSAGE', 'Le message doit contenir entre 1 et 500 caractères.');
     const player = await this.getPlayer.execute(identity);
     if (player.id === recipientPlayerId) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-c.send', { recipientPlayerId, content });
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, reward: { points: 1, currency: 1 } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -363,11 +379,11 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id IN (${player.id}::uuid, ${recipientPlayerId}::uuid) ORDER BY id FOR UPDATE`;
-          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const previousRequest = readRecord(readRecord(previous.resultSummary)?.request);
             if (previous.playerId !== player.id || previous.operationType !== 'event.game-c.send' || previous.status !== OperationStatus.COMPLETED || previousRequest?.editionId !== request.editionId || previousRequest.businessDate !== request.businessDate || previousRequest.recipientPlayerId !== request.recipientPlayerId || previousRequest.content !== request.content) throw new BusinessError('EVENT_GAME_C_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à un autre envoi.');
-            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true } };
+            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true }, reward: { points: 1, currency: 1 } };
           }
           const sender = await tx.player.findUnique({ where: { id: player.id }, select: { status: true } });
           const recipient = await tx.player.findFirst({ where: { ...eligibleContactRecipient(player.id), id: recipientPlayerId }, select: { id: true } });
@@ -376,15 +392,16 @@ export class EventService {
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
           const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
           if (daily.gameCSent) throw new BusinessError('EVENT_GAME_C_ALREADY_SENT', 'Votre message du Festival a déjà été envoyé aujourd’hui.');
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-c.send', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.game-c.send', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           await tx.eventSocialMessage.create({ data: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), senderPlayerId: player.id, recipientPlayerId, content, createdAt: now } });
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { gameCSent: true, updatedAt: now } });
           await this.awardEventPoints(tx, context, player.id, 1, now);
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
           await reconcileEventMessageAggregate(tx, recipientPlayerId, context.edition.id, context.period.businessDate, now, true);
           await new PlayerActivityRecorder().record(tx, player.id, now, 'GAMEPLAY');
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
-          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, snapshot } } });
+          return { ...snapshot, operation: { id: operation.id, alreadyProcessed: false }, reward: { points: 1, currency: 1 } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
@@ -407,8 +424,10 @@ export class EventService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  public async claimCalendar(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async claimCalendar(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.calendar.claim');
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, calendarClaim: { day: Number(replay.summary.day), reward: Number(replay.summary.reward) } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -417,7 +436,7 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           // A confirmed opening remains replayable after midnight or the end of December.
           if (previous) {
             if (previous.playerId !== player.id || previous.operationType !== 'event.calendar.claim' || previous.status !== OperationStatus.COMPLETED) {
@@ -437,11 +456,12 @@ export class EventService {
           if (await tx.eventCalendarClaim.findUnique({ where: { eventEditionId_playerId_calendarDay: { ...key, calendarDay: day } } })) throw new BusinessError('EVENT_CALENDAR_ALREADY_CLAIMED', 'Cette case est déjà ouverte.');
           retainedReward ??= calendarReward(day, this.random);
           const request = { editionId: context.edition.id, businessDate: date };
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.calendar.claim', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.calendar.claim', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           await tx.eventCalendarClaim.create({ data: { ...key, calendarDay: day, rewardAmount: retainedReward, operationId: operation.id, claimedAt: now } });
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: BigInt(retainedReward), updatedAt: now }, update: { amount: { increment: BigInt(retainedReward) }, updatedAt: now } });
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, day, reward: retainedReward } } });
-          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false }, calendarClaim: { day, reward: retainedReward } };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, day, reward: retainedReward, snapshot } } });
+          return { ...snapshot, operation: { id: operation.id, alreadyProcessed: false }, calendarClaim: { day, reward: retainedReward } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
@@ -488,6 +508,8 @@ export class EventService {
   public async convertShop(identity: AuthenticatedIdentity, target: EventShopTarget, quantity: number, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const units = eventShopQuantity(quantity);
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.convert', { target, quantity });
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, conversion: { resourceKey: target === 'PRIMOGEMS' ? 'primogems' : 'moras', amount: String(replay.summary.amount), quantity } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -500,7 +522,7 @@ export class EventService {
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
             if (previous.playerId !== player.id || previous.operationType !== 'event.shop.convert' || previous.status !== OperationStatus.COMPLETED || original?.editionId !== request.editionId || original.target !== target || original.quantity !== quantity) throw new BusinessError('EVENT_SHOP_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à un autre échange.');
-            return { operationId: previous.id, alreadyProcessed: true, view: null };
+            return { operationId: previous.id, alreadyProcessed: true, conversion: { resourceKey: target === 'PRIMOGEMS' ? 'primogems' : 'moras', amount: String(readRecord(previous.resultSummary)?.amount ?? '0'), quantity }, view: readRecord(previous.resultSummary)?.snapshot as Awaited<ReturnType<EventService['getCurrent']>> | undefined ?? null };
           }
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant un échange.');
@@ -509,10 +531,11 @@ export class EventService {
           const resourceKey = target === 'PRIMOGEMS' ? 'primogems' : 'moras';
           const playerRecord = await tx.player.findUniqueOrThrow({ where: { id: player.id }, select: { elementKey: true } });
           await economy.credit(tx, { playerId: player.id, playerElementKey: playerRecord.elementKey && isElementKey(playerRecord.elementKey) ? playerRecord.elementKey : null, resourceKey, amount: units * EVENT_SHOP_RATES[target], causeKey: 'event.shop.convert', domainKey: 'event', operationId: operation.id, sourceChannel });
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, amount: (units * EVENT_SHOP_RATES[target]).toString() } } });
-          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, false) };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, snapshot, amount: (units * EVENT_SHOP_RATES[target]).toString() } } });
+          return { operationId: operation.id, alreadyProcessed: false, conversion: { resourceKey, amount: (units * EVENT_SHOP_RATES[target]).toString(), quantity }, view: snapshot };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
-        return { ...(result.view ?? await this.getCurrent(identity)), operation: { id: result.operationId, alreadyProcessed: result.alreadyProcessed } };
+        return { ...(result.view ?? await this.getCurrent(identity)), operation: { id: result.operationId, alreadyProcessed: result.alreadyProcessed }, conversion: result.conversion };
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
         throw error;
@@ -521,8 +544,10 @@ export class EventService {
     throw new Error('Event Shop conversion could not be completed.');
   }
 
-  public async purchaseCollection(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async purchaseCollection(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
+    const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.collection');
+    if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true } };
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -531,11 +556,11 @@ export class EventService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
             if (previous.playerId !== player.id || previous.operationType !== 'event.shop.collection' || previous.status !== OperationStatus.COMPLETED || original?.editionId !== request.editionId || original.itemKey !== request.itemKey) throw new BusinessError('EVENT_SHOP_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à un autre achat.');
-            return { operationId: previous.id, alreadyProcessed: true, view: null };
+            return { operationId: previous.id, alreadyProcessed: true, view: readRecord(previous.resultSummary)?.snapshot as Awaited<ReturnType<EventService['getCurrent']>> | undefined ?? null };
           }
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant un achat.');
@@ -544,13 +569,14 @@ export class EventService {
           const item = await tx.itemDefinition.findUnique({ where: { externalKey: request.itemKey }, select: { id: true, isActive: true, category: true } });
           if (!item || !item.isActive || item.category !== 'COLLECTION') throw new BusinessError('EVENT_COLLECTION_UNAVAILABLE', 'L’objet Collection du Festival est indisponible.');
           await this.debitEventCurrency(tx, player.id, context.definition.id, EVENT_COLLECTION_COST, now);
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.collection', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.shop.collection', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           const currentItem = await tx.playerItem.findUnique({ where: { playerId_itemId: { playerId: player.id, itemId: item.id } }, select: { firstObtainedAt: true } });
           await tx.playerItem.upsert({ where: { playerId_itemId: { playerId: player.id, itemId: item.id } }, create: { playerId: player.id, itemId: item.id, quantity: 1n, firstObtainedAt: now }, update: { quantity: { increment: 1n }, firstObtainedAt: currentItem?.firstObtainedAt ?? now, updatedAt: now } });
           const acquisition = await tx.itemAcquisition.create({ data: { playerId: player.id, itemId: item.id, quantity: 1n, sourceKey: 'EVENT', provenance: { festival: context.editionSnapshot.externalKey, editionId: context.edition.id, year: context.edition.year }, operationId: operation.id, acquiredAt: now } });
           await tx.eventCollectionAcquisition.create({ data: { eventEditionId: context.edition.id, playerId: player.id, itemId: item.id, itemAcquisitionId: acquisition.id, operationId: operation.id, acquiredAt: now } });
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
-          return { operationId: operation.id, alreadyProcessed: false, view: await this.snapshot(tx, player.id, context, now, false) };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, snapshot } } });
+          return { operationId: operation.id, alreadyProcessed: false, view: snapshot };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
         return { ...(result.view ?? await this.getCurrent(identity)), operation: { id: result.operationId, alreadyProcessed: result.alreadyProcessed } };
       } catch (error) {
@@ -559,6 +585,18 @@ export class EventService {
       }
     }
     throw new Error('Event Collection purchase could not be completed.');
+  }
+
+  /** Replays a committed Chat operation before resolving a new day or Festival. */
+  private async replayChatOperation(playerId: string, key: string, sourceChannel: SourceChannel, operationType: string, request: Record<string, string | number> = {}) {
+    if (sourceChannel !== SourceChannel.INTERNAL_CHAT) return null;
+    const row = await this.database.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: key } });
+    if (!row) return null;
+    const summary = readRecord(row.resultSummary);
+    const original = readRecord(summary?.request);
+    if (row.playerId !== playerId || row.operationType !== operationType || row.status !== OperationStatus.COMPLETED || Object.entries(request).some(([key, value]) => original?.[key] !== value)) throw new BusinessError('EVENT_IDEMPOTENCY_CONFLICT', 'Cette clé appartient à une autre opération.');
+    if (!summary?.snapshot) return null;
+    return { id: row.id, summary, snapshot: summary.snapshot as Awaited<ReturnType<EventService['getCurrent']>> };
   }
 
   private async debitEventCurrency(tx: Prisma.TransactionClient, playerId: string, definitionId: string, amount: bigint, now: Date) {

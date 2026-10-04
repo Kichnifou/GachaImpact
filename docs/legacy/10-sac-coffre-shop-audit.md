@@ -1,5 +1,7 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
+**Amendement Chat R1038 — étape 29 :** Shop Chat raccorde mission/switch aux propriétaires DailyChallenge existants. Catalogue visible même indisponible, cinq entrées par page ; achat normal/MAX et Ticket affichent coût, effet réellement accordé et solde du reçu. Item ID/quantité MAX sont figés. Sac présente les sept stocks, même nuls, personnel en premier et objets positifs ; Coffre conserve R1037. Économie et catalogue modernes inchangés. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 **Révision propriétaire étape 29 — R1037 :** Coffre.txt : toutes les possessions Collection positives, emoji historique des douze externalKey modernes et fallback ❔, nom + (xN), tri alphabétique moderne (pas ordre mensuel legacy). Split logique vers 450 caractères entre objets entiers, suites 🏆 Coffre suite ; vide = conseil !event collection. Lecture seule, aucune acquisition Event ni modification UI/inventaire. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
 
 Statut : CLÔTURÉ — R256 À R298 VALIDÉS / DÉRIVÉS

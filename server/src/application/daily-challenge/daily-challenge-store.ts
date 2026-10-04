@@ -36,6 +36,7 @@ export type DailyChallengeMutationResult = Readonly<{
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
   view: DailyChallengeView;
   resources: PlayerResourceBalances;
+  spentMoras?: bigint;
 }>;
 
 export type DailyChallengePurchaseInput = Readonly<{
@@ -45,6 +46,7 @@ export type DailyChallengePurchaseInput = Readonly<{
   now: Date;
   idempotencyKey: string;
   random: RandomSource;
+  sourceChannel?: SourceChannel;
 }>;
 
 export type DailyChallengeSwitchInput = Omit<DailyChallengePurchaseInput, 'random'> & Readonly<{ random: RandomSource }>;

@@ -1,5 +1,7 @@
 # 11 — Audit legacy Missions / Daily
 
+**Amendement Chat R1038 — étape 29 :** Achat/switch/conversion Chat conservent un snapshot de résultat dans le reçu BusinessOperation existant et source INTERNAL_CHAT ; les appels UI gardent leur source UI. Les récompenses de défi terminé sont annoncées depuis les crédits réels, sans second calcul. Résumé mission normalise résumé/récap, rangs entiers et Z secret inchangés ; quotis/quoti/daily consulte aussi cœurs/Event/Faveur sans acquisition. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
+
 Statut : CLÔTURÉ — R299 À R339 VALIDÉS / DÉRIVÉS
 Date : 2026-09-01
 

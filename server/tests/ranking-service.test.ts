@@ -23,6 +23,17 @@ function harness(rows: ReturnType<typeof player>[]) {
   return { service: new RankingService(database), findMany, findUnique };
 }
 describe('global rankings R714–R727', () => {
+  it('splits all five ranked entries and the eligible personal rank without cutting Unicode names', async () => {
+    const rows = Array.from({ length: 7 }, (_, index) => ({ ...player(`P${index}`, BigInt(100 - index)), displayName: `P${index} ${'Étoile🌟'.repeat(25)}` }));
+    const { service } = harness(rows);
+    const result = await service.chatTop(findRanking('xp')!, 'P6');
+    expect(Array.isArray(result)).toBe(true);
+    const parts = result as readonly string[];
+    expect(parts.every(part => Array.from(part).length <= 500)).toBe(true);
+    for (const row of rows.slice(0, 5)) expect(parts.filter(part => part.includes(row.displayName))).toHaveLength(1);
+    expect(parts.join(' ')).toContain('Vous : #7'); expect(parts.join(' ')).not.toContain(rows[5]!.displayName);
+    expect(findRanking('ÉLECTRO')?.id).toBe('electro'); expect(findRanking('cœurs')?.id).toBe('hearts');
+  });
   it('registers all 34 metrics and historical aliases without specialist rankings', () => {
     expect(rankingRegistry).toHaveLength(34);
     const aliases = rankingRegistry.flatMap(metric => metric.aliases);
@@ -110,7 +121,8 @@ describe('global rankings R714–R727', () => {
     const rows = Array.from({ length: 7 }, (_, index) => player(`P${index + 1}`, BigInt(70 - index * 10)));
     const { service } = harness(rows);
     const xp = findRanking('xp')!;
-    const outside = await service.chatTop(xp, 'P7');
+    const result = await service.chatTop(xp, 'P7');
+    const outside = typeof result === 'string' ? result : result.join(' ');
     expect((outside.match(/#\d+ P\d+/gu) ?? [])).toHaveLength(5);
     expect(outside).toContain('Vous : #7');
     expect(await service.chatTop(xp, 'P1')).not.toContain('Vous :');

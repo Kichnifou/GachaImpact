@@ -39,13 +39,13 @@ export type PlayerTeams = Readonly<{
 
 export interface TeamStore {
   getOrProvision(playerId: string): Promise<PlayerTeams>;
-  activate(playerId: string, teamId: string): Promise<PlayerTeams>;
-  rename(playerId: string, teamId: string, name: string | null): Promise<PlayerTeams>;
-  createNext(playerId: string, expectedPosition: number): Promise<PlayerTeams>;
+  activate(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams>;
+  rename(playerId: string, teamId: string, name: string | null, chatKey?: string): Promise<PlayerTeams>;
+  createNext(playerId: string, expectedPosition: number, chatKey?: string): Promise<PlayerTeams>;
   deleteExtra(playerId: string, teamId: string): Promise<PlayerTeams>;
   reorderTeams(playerId: string, teamIds: readonly string[]): Promise<PlayerTeams>;
-  setSlot(playerId: string, teamId: string, position: number, characterId: string): Promise<PlayerTeams>;
+  setSlot(playerId: string, teamId: string, position: number, characterId: string, chatKey?: string): Promise<PlayerTeams>;
   reorderSlots(playerId: string, teamId: string, characterIds: readonly (string | null)[]): Promise<PlayerTeams>;
-  removeSlot(playerId: string, teamId: string, position: number): Promise<PlayerTeams>;
-  clear(playerId: string, teamId: string): Promise<PlayerTeams>;
+  removeSlot(playerId: string, teamId: string, position: number, chatKey?: string): Promise<PlayerTeams>;
+  clear(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams>;
 }

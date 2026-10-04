@@ -87,12 +87,14 @@ export class PrismaShopStore implements ShopStore {
             unitPrice: item.priceAmount, totalPrice, effectSnapshot: effectToJson(effect),
             operationId: operation.id, purchasedAt: input.occurredAt,
           }, include: purchaseInclude });
+          const view = await readView(transaction, input.playerId);
+          const walletMorasAfter = view.resources.moras;
           await transaction.businessOperation.update({ where: { id: operation.id }, data: {
             status: OperationStatus.COMPLETED,
             completedAt: input.occurredAt,
-            resultSummary: { ...requestSummary(input), purchaseId: purchase.id },
+            resultSummary: { ...requestSummary(input), purchaseId: purchase.id, walletMorasAfter: walletMorasAfter.toString() },
           } });
-          return { ...(await readView(transaction, input.playerId)), purchase: toPurchase(purchase), operation: { id: operation.id, alreadyProcessed: false } };
+          return { ...view, walletMorasAfter, purchase: toPurchase(purchase), operation: { id: operation.id, alreadyProcessed: false } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
@@ -164,7 +166,8 @@ async function readExistingPurchase(transaction: Prisma.TransactionClient, input
   if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('SHOP_IDEMPOTENCY_CONFLICT', 'Cet achat Boutique est encore en cours.');
   const purchase = await transaction.shopPurchase.findUnique({ where: { operationId: existing.id }, include: purchaseInclude });
   if (!purchase) throw new BusinessError('SHOP_IDEMPOTENCY_CONFLICT', 'Le résultat de cet achat Boutique est indisponible.');
-  return { ...(await readView(transaction, input.playerId)), purchase: toPurchase(purchase), operation: { id: existing.id, alreadyProcessed: true } };
+  const amount = jsonObject(existing.resultSummary)?.walletMorasAfter;
+  return { ...(await readView(transaction, input.playerId)), ...(typeof amount === 'string' ? { walletMorasAfter: BigInt(amount) } : {}), purchase: toPurchase(purchase), operation: { id: existing.id, alreadyProcessed: true } };
 }
 
 function assertMatchingRequest(existing: { playerId: string | null; operationType: string; resultSummary: Prisma.JsonValue }, input: ShopPurchaseInput): void {

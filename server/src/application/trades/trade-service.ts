@@ -13,7 +13,7 @@ import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-serv
 
 export type TradeSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
 export type TradeAction = 'accept' | 'refuse' | 'cancel';
-type Result = { requestId: string; state: string; amount: string };
+type Result = { requestId: string; state: string; amount: string; sender?: { id: string; displayName: string }; recipient?: { id: string; displayName: string }; senderResourceKey?: string; recipientResourceKey?: string };
 const unavailable = () => new AppError('Cet échange est indisponible.', 409, 'TRADE_UNAVAILABLE');
 const identity = { id: true, displayName: true, elementKey: true } as const;
 const include = { sender: { select: identity }, recipient: { select: identity } } as const;
@@ -94,12 +94,12 @@ export class TradeService {
       await reconcileParticleTrades(tx, [senderId], now);
       await refreshTradeNotification(tx, recipientId, now, true);
       await this.record(tx, senderId, source);
-      return this.complete(tx, operation.row.id, target, { requestId: request.id, state: request.state, amount: quantity.toString() });
+      return this.complete(tx, operation.row.id, target, { requestId: request.id, state: request.state, amount: quantity.toString(), sender: pair.sender, recipient: pair.recipient, senderResourceKey: pair.senderResource, recipientResourceKey: pair.recipientResource });
     });
   }
   async mutate(playerId: string, requestId: string, action: TradeAction, key: string, source: TradeSource = 'UI'): Promise<Result> {
     return this.transaction(async tx => {
-      const request = await tx.tradeRequest.findUnique({ where: { id: requestId } });
+      const request = await tx.tradeRequest.findUnique({ where: { id: requestId }, include });
       if (!request || (action === 'cancel' ? request.senderPlayerId !== playerId : request.recipientPlayerId !== playerId)) throw unavailable();
       await this.lockPlayers(tx, [request.senderPlayerId, request.recipientPlayerId]);
       await this.actor(tx, playerId);
@@ -129,16 +129,16 @@ export class TradeService {
       } else await tx.tradeRequest.update({ where: { id: requestId }, data: { state, resolvedAt: now, updatedAt: now } });
       await refreshTradeNotification(tx, request.recipientPlayerId, now);
       await this.record(tx, playerId, source);
-      return this.complete(tx, operation.row.id, requestId, { requestId, state, amount: request.currentAmount.toString() });
+      return this.complete(tx, operation.row.id, requestId, { requestId, state, amount: request.currentAmount.toString(), sender: request.sender, recipient: request.recipient, senderResourceKey: request.senderResourceKey, recipientResourceKey: request.recipientResourceKey });
     });
   }
-  async all(playerId: string, action: 'accept' | 'refuse', key: string, source: TradeSource = 'UI') {
+  async all(playerId: string, action: TradeAction, key: string, source: TradeSource = 'UI') {
     // Persist the initial ordered set. A retry must never include later arrivals.
     const batch = await this.transaction(async tx => {
       await this.lockPlayers(tx, [playerId]); await this.actor(tx, playerId);
       const op = await this.operation(tx, playerId, key, source, `${action}-all`, 'all');
       if (op.summary.ids) return { id: op.row.id, ids: op.summary.ids, results: op.summary.results };
-      const ids = (await tx.tradeRequest.findMany({ where: { recipientPlayerId: playerId, state: 'PENDING' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { id: true } })).map(r => r.id);
+      const ids = (await tx.tradeRequest.findMany({ where: { ...(action === 'cancel' ? { senderPlayerId: playerId } : { recipientPlayerId: playerId }), state: 'PENDING' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { id: true } })).map(r => r.id);
       await tx.businessOperation.update({ where: { id: op.row.id }, data: { resultSummary: { target: 'all', ids } } });
       return { id: op.row.id, ids, results: undefined };
     });
