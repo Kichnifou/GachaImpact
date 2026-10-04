@@ -13,6 +13,8 @@ import { EventService } from '../src/application/event/event-service.js';
 import { buildApp } from '../src/app.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
+import { amiCommand } from '../src/application/chat/ami-command.js';
+import type { GlobalChatService } from '../src/application/chat/global-chat-service.js';
 
 const fixture = isolatedBatchDatabase(), { database: db } = fixture;
 let now = new Date('2026-09-20T12:00:00Z');
@@ -48,6 +50,37 @@ const balance = async (id: string) => (await db.playerResourceBalance.findUnique
 const sent = async (id: string) => (await db.playerSocialStats.findUnique({ where: { playerId: id } }))?.totalFriendHeartsSent ?? 0n;
 
 describe('Friendship isolated PostgreSQL', () => {
+  it('replays standalone polyvalent ADD/ACCEPT without duplicate requests or notifications and restores real level', async () => {
+    const a = await player(), b = await player();
+    const target = await db.player.findUniqueOrThrow({ where: { id: b } });
+    const memory = new Map<string, string>();
+    const chat = { rememberCommandText: async (id: string, field: string, value: string) => {
+      const key = `${id}:${field}`; if (!memory.has(key)) memory.set(key, value); return memory.get(key)!;
+    }, rememberCommandRefreshScopes: async () => {}, hasConfirmedCommandMutation: async () => false } as unknown as GlobalChatService;
+    const run = (id: string, targetId: string, messageId: string, args: string[]) => amiCommand({ subject: id }, args, messageId, social, chat,
+      async () => db.player.findUnique({ where: { id: targetId }, select: { id: true, displayName: true } }), values => values.join(' · '), 'Syntaxe');
+    const addId = randomUUID();
+    const created = await run(a, b, addId, [target.displayName]);
+    expect(await run(a, b, addId, [target.displayName])).toBe(created);
+    expect(await db.friendRequest.count({ where: { senderPlayerId: a, recipientPlayerId: b } })).toBe(1);
+    expect(await db.notification.count({ where: { playerId: b, typeKey: 'FRIEND_REQUEST_RECEIVED' } })).toBe(1);
+    const acceptId = randomUUID(), actor = await db.player.findUniqueOrThrow({ where: { id: a } });
+    const accepted = await run(b, a, acceptId, [actor.displayName]);
+    expect(accepted).toContain('1 [Amitié Sincère] 💛');
+    expect(await run(b, a, acceptId, [actor.displayName])).toBe(accepted);
+    expect(await db.notification.count({ where: { playerId: a, typeKey: 'FRIEND_REQUEST_ACCEPTED' } })).toBe(1);
+    const relationship = (await service.snapshot(a)).friends[0]!;
+    await db.friendship.update({ where: { id: relationship.id }, data: { level: 300, totalHearts: 299n } });
+    await service.mutate(a, b, 'REMOVE', randomUUID(), 'INTERNAL_CHAT');
+    await service.mutate(a, b, 'ADD', randomUUID(), 'INTERNAL_CHAT');
+    expect(await run(b, a, randomUUID(), ['ajouter', actor.displayName])).toContain('300 [Amitié Légendaire] 🌟');
+    const heartId = randomUUID();
+    const heart = await run(a, b, heartId, ['cœurs', target.displayName]);
+    expect(heart).toContain('301 [Amitié Légendaire] 🌟 | +💠5 Primos chacun');
+    expect(await run(a, b, heartId, ['cœurs', target.displayName])).toBe(heart);
+    expect(await balance(a)).toBe(5n); expect(await balance(b)).toBe(5n);
+    expect(await db.friendHeart.count({ where: { friendshipId: relationship.id } })).toBe(1);
+  }, 60_000);
   it('authenticates REST mutations, rejects client ownership and stale request IDs, and sends no-store projections', async () => {
     const a = await player(), b = await player();
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async token => ({ subject: token }) }, getOrProvisionCurrentPlayer: {} as GetOrProvisionCurrentPlayer, socialService: social });

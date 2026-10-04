@@ -1,5 +1,7 @@
 # Audit legacy — Ami / Social
 
+**Révision propriétaire étape 29 — R1035 :** les décisions d'origine ci-dessous restent historiques ; R1035 supersède R494 uniquement pour `!ami <pseudo>`, désormais polyvalent (ADD / ACCEPT / attente / informations selon la relation). `!ami voir` reste consultation pure ; les commandes modernes sont conservées. Les messages et aliases Ami.txt validés avant code sont portés par [la référence courante](../commands/command-reference.md#ami). Aucun autre fichier legacy traité, aucune progression/économie/notification Social ni activation Twitch modifiée.
+
 **Complément étape 22 (candidat `review`) :** Communauté joint aux dossiers MP les `GlobalChatReport` figés : liste/détail de modération, tombstone `MODERATION` du message source et suppression indépendante du dossier. Les anciens déblocages d'avatar de personnage restent permanents lors d'une correction de possession ; un ajout ADMIN débloque silencieusement sans notification artificielle. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). L'audit legacy reste la preuve de ses décisions d'origine.
 
 > Domaine 11 de l'audit legacy GachaImpact.  

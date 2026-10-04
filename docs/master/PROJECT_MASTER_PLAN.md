@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : clôture publique 28, clôture 27 par périmètre propriétaire et cadrage 29 / cutover progressif R1034.
+Version : étape 29 — Ami.txt seul, parité Chat standalone et commande polyvalente R1035, promotion directe autorisée.
 Date : 2026-10-04
 Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 ACTIVE / PROCHAINE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel R1034 : **29 → 30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — clôture 27/28 et ouverture documentaire 29 du 04/10/2026
+## Point courant — étape 29, Ami.txt seul, lot du 04/10/2026
+
+**Gate :** fetch exécuté, main=review=30fa25ca768a9658f5ca65ff0d0bd4ed15020115, divergence 0/0, index/worktree propres ; parent exact du lot Ami. Un commit cohérent sur review, puis promotion directe vers main par fast-forward strict autorisée expressément par le propriétaire après tests verts et contrôle GitHub, sans review ChatGPT intermédiaire. Aucun autre fichier legacy, aucune migration ni modification des services Friendship/Twitch/EventSub/outbound/gate Ceo. Refs finales et SHA consignés au rapport après publication ; aucun nouveau commit uniquement pour constater la promotion.
+
+**29 ACTIVE ; Ami.txt = CANDIDAT PROMU / À RECETTER DANS LE CHAT STANDALONE.** Messages cibles et arbitrages explicitement validés par le propriétaire AVANT codage. Méthode R1035 : un fichier legacy à la fois, comparer le standalone réel, inventorier commandes/aliases/variantes/messages y compris ajouts modernes et abandons legacy ; arbitrage explicite avant changement métier, validation des messages puis code/déploiement/recette Chat. Fichier suivant uniquement après validation propriétaire Ami ; aucun Bannière.txt ni autre fichier commencé.
+
+**Implémentation Ami :** !ami résumé réel ; liste avec niveau/palier/emoji/✅ et quantité restante, une réponse compacte de 500 caractères ; demandes reçues/envoyées séparées. !ami pseudo = ADD si aucune relation, ACCEPT si demande reçue, attente sans mutation si envoyée, consultation si amis. !ami voir reste consultation pure ; ajouter/accepter/refuser/annuler/retirer modernes conservés. ADD inverse auto-accepte selon le service physique, réactivation conserve et affiche le vrai niveau. Aliases coeur/cœur/coeurs/cœurs et all/@all limités aux cœurs ; @pseudo conservé. Les 50 phrases, +5 Primos chacun, senderReward all autoritatif, cap 1000, total, sens indépendants/journée Europe/Paris, Missions, stats, privacy/block, activité et notifications Social restent sous Friendship. Cible/action mémorisées par commandMessageId, même transition au retry ; aucune duplication de logique métier. R1035 supersède la seule clause de consultation implicite R494 ; références et inventaire complet des textes au contrat commandes.
+
+**Validation technique réussie :** 57 tests Ami dédiés ; ciblés Chat/Ami/Social : 193 tests, puis 179 sur les trois suites affectées à la vérification finale. Suite complète frontend 1295 tests/121 fichiers ; backend hors DB 1279 tests/106 fichiers. Typechecks/builds/lint réussis, verify:quick 5/5 et verify:full 8/8, diff-check réussi. Suite Friendship PostgreSQL : 20 tests, entièrement en schéma privé créé puis nettoyé, replays ADD/ACCEPT/cœur sans double demande/notification/reward et restauration du vrai niveau contrôlés. Aucune mutation publique ; Prisma validate réussi et migrate status public READ ONLY : 60 migrations à jour, dernière 060, aucune pending/061. Liens des quatre docs contrôlés : aucune nouvelle ancre cassée, trois anciennes ancres introuvables déjà signalées au parent. Warnings : chunk frontend >500 kB et dépréciation pg sur requêtes concurrentes dans la fixture ; aucun échec de validation. Ces contrôles ne constituent pas une recette publique propriétaire Ami.
+
+**Statuts conservés :** 26/28 CLOSED, 27 CLOSED BY OWNER / SCOPE DECISION, 29 ACTIVE ; 30 foundation/rehearsal privée TODO, 31A Ceo TODO, 31B batch après validation Ceo TODO, 32 smoke final TODO. R1034 et observations bêta non bloquantes conservées ; aucune activation native Twitch. Streamer.bot reste autoritatif aujourd'hui. Infrastructure Amsterdam/1 replica, schedulers, Supabase et Cloudflare inchangés ; aucun redeploy manuel. Déploiement du lot Ami NON vérifié ici, ne pas reprendre le health/Railway du parent comme preuve de ce lot.
+
+**Prochaine action exacte : CHATGPT VÉRIFIE LE SHA ET LE DÉPLOIEMENT, PUIS FOURNIT UNIQUEMENT LA LISTE DES COMMANDES !ami À TESTER MANUELLEMENT DANS LE CHAT STANDALONE. STOP.** Attendre validation propriétaire Ami avant le fichier suivant ; pas de cutover Twitch.
+
+## Historique — checkpoint documentaire R1034 du 04/10/2026
 
 **Gate exécuté :** fetch réussi, branche review et index/worktree propres ; HEAD = origin/main = origin/review = **6d61a9b1954165c78dfe56e025983fe2c90f6006**, divergence 0/0. Baseline et parent exact du checkpoint documentaire ; publication sur review uniquement, main inchangée, ahead 1/behind 0 et worktree propre vérifiés au rapport. Aucun code/test/package/migration modifié, aucun cutover ou activation Twitch, aucune mutation publique.
 

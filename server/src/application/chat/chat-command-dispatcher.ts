@@ -29,6 +29,7 @@ import { SourceChannel } from '../../../generated/prisma/client.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { findRanking, rankingRegistry, type RankingService } from '../ranking/ranking-service.js';
+import { amiCommand } from './ami-command.js';
 import { chatHelp, findChatCommand } from './chat-command-registry.js';
 import type { GlobalChatService } from './global-chat-service.js';
 import type { ChatMentionInput } from './global-chat-service.js';
@@ -68,8 +69,8 @@ export type ChatCommandServices = Readonly<{
 
 const syntax = (usage: string) => `Syntaxe : ${usage}.`;
 const oneLine = (value: string) => value.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
-const names = (values: readonly string[], limit = 8) =>
-  `${values.slice(0, limit).join(', ') || 'aucun'}${values.length > limit ? `, et ${values.length - limit} autres` : ''}`;
+const names = (values: readonly string[], limit = 8, separator = ', ') =>
+  `${values.slice(0, limit).join(separator) || 'aucun'}${values.length > limit ? `${separator}et ${values.length - limit} autres` : ''}`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
 const statusLabel = (status: string) => ({
   AVAILABLE: 'disponible', ACTIVE: 'en cours', COMPLETED: 'terminé',
@@ -343,43 +344,8 @@ export class ChatCommandDispatcher {
           const result = await this.services.convertPersonalParticlesChat.execute(identity, amount, commandMessageId);
           return `${amount} particules converties en ${amount} Primogemmes. Nouveau total : ${result.resources.primogems}.`;
         }
-        case 'ami': {
-          const actor = await this.services.socialService.actor(identity);
-          const state = await this.services.socialService.friends(identity);
-          const label = (id: string) => state.players.find(player => player.id === id)?.displayName ?? 'Joueur';
-          const action = args[0]?.toLocaleLowerCase('fr-FR') ?? '';
-          if (!action) return `Amis : ${state.summary.activeFriends} · cœurs disponibles : ${state.summary.available} · demandes : ${state.requests.length}. !ami liste / !ami demandes.`;
-          if (action === 'liste' && args.length === 1) return `Amis : ${names(state.friends.map(friend => `${label(friend.playerId)} niveau ${friend.level}`))}.`;
-          if (action === 'demandes' && args.length === 1) return `Demandes : ${names(state.requests.map(request => `${label(request.playerId)} (${request.direction === 'RECEIVED' ? 'reçue' : 'envoyée'})`))}.`;
-          if (action === 'coeur') {
-            const raw = args.slice(1).join(' ');
-            if (!raw) return syntax(definition.syntax);
-            const target = normalizePlayerSearch(raw) === 'all' ? 'all' : state.players.find(player => samePlayerReference(player.displayName, raw))?.id;
-            const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target ?? '');
-            if (!targetId) return 'Ami introuvable.';
-            const result = await this.services.socialService.friendship.sendHearts(actor.id, targetId, commandMessageId, 'INTERNAL_CHAT');
-            if (result.sent > 0) await this.chat.rememberCommandRefreshScopes(commandMessageId, ['social', 'resources', 'notifications']);
-            return result.message ? `${result.message} Niveau ${result.level} · +5 Primogemmes chacun.` : `Cœurs : ${result.sent} envoyés, ${result.alreadySent} déjà faits, ${result.unavailable} indisponibles · +${result.senderReward} Primogemmes.`;
-          }
-          const mutation = { ajouter: 'ADD', accepter: 'ACCEPT', refuser: 'REFUSE', annuler: 'CANCEL', retirer: 'REMOVE' } as const;
-          if (action in mutation) {
-            const raw = args.slice(1).join(' ');
-            if (!raw) return syntax(definition.syntax);
-            const target = await this.player(identity, raw);
-            const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target?.id ?? '');
-            if (!targetId) return 'Joueur introuvable.';
-            const result = await this.services.socialService.friendship.mutate(actor.id, targetId, mutation[action as keyof typeof mutation], commandMessageId, 'INTERNAL_CHAT');
-            return `Amitié avec ${target?.displayName ?? raw} : ${statusLabel(result.state)}.`;
-          }
-          const raw = action === 'voir' ? args.slice(1).join(' ') : args.join(' ');
-          if (!raw) return syntax(definition.syntax);
-          const target = await this.player(identity, raw);
-          if (!target) return 'Joueur introuvable.';
-          const friend = state.friends.find(entry => entry.playerId === target.id);
-          const request = state.requests.find(entry => entry.playerId === target.id);
-          return friend ? `${target.displayName} : amitié niveau ${friend.level} (${friend.tier}) · cœur ${friend.heartSent ? 'déjà envoyé' : 'disponible'}.` :
-            request ? `${target.displayName} : demande ${request.direction === 'RECEIVED' ? 'reçue' : 'envoyée'}.` : `${target.displayName} : aucune relation d’amitié.`;
-        }
+        case 'ami': return await amiCommand(identity, args, commandMessageId, this.services.socialService, this.chat,
+          raw => this.player(identity, raw), (values, limit) => names(values, limit, ' · '), syntax(definition.syntax));
         case 'echanger': {
           const actor = await this.services.tradePlayer.execute(identity);
           const action = args[0]?.toLocaleLowerCase('fr-FR') ?? '';

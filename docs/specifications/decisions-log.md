@@ -2,7 +2,13 @@
 
 Statut : évolutif.
 
-État de livraison : checkpoint public 6d61a9b déployé Railway SUCCESS/Online à Amsterdam, 60 migrations/060 à jour, Application ready et health 200 selon preuves ChatGPT reçues. Cinq contrôles finaux publiquement validés par le propriétaire ; 28 VALIDÉE / CLÔTURÉE. 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE, sans exécution présumée de tous ses travaux ; observations rares acceptées en bêta/non bloquantes, maintenance non implémentée post-V1. R1034 créé, supersède R1032 après 28 ; 29 ACTIVE, puis 30 foundation/rehearsal → 31A Ceo → 31B batch → 32. Aucune activation Twitch/cutover/code/migration par ce checkpoint ; Streamer.bot reste autoritatif aujourd'hui. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
+## Méthode étape 29 et commande Ami polyvalente — R1035 (2026-10-04)
+
+- VALIDÉ PAR LE PROPRIÉTAIRE : traiter un seul fichier legacy de commande à la fois ; comparaison avec le standalone réel, inventaire commandes/aliases/variantes/messages incluant ajouts modernes et abandons legacy, arbitrage métier explicite, validation des messages AVANT code, implémentation puis déploiement/recette Chat standalone. Fichier suivant seulement après validation propriétaire. Ami.txt seul dans ce lot ; autorisation explicite de promotion directe après tests verts et vérification GitHub, sans review indépendante intermédiaire, exception bornée à ce lot.
+- Supersède R494 uniquement pour `!ami <pseudo>` : aucune relation → demande ADD, demande reçue → ACCEPT, demande envoyée → attente sans remutation, amis → informations. `!ami voir` reste consultation pure et les actions modernes restent disponibles. ADD inverse conserve l'auto-acceptation du propriétaire Social ; réactivation affiche le niveau historique réel. Précision de présentation R495 : listes/demandes Chat compactes en une réponse avec nombre restant, pagination UI inchangée.
+- Quatre aliases de cœur coeur/cœur/coeurs/cœurs, all/@all uniquement dans cette branche ; aucun transfert automatique des autres aliases legacy. Friendship conserve transitions, notifications, idempotence, +5 Primos aux deux, progression/paliers/cap, Missions, statistiques, sens indépendants et journée Europe/Paris. Streamer.bot reste autoritatif Twitch, natif OFF ; aucun EventSub/outbound/cutover/gate Ceo modifié. Le [contrat Ami](../commands/command-reference.md#ami) porte les textes approuvés ; aucune décision supplémentaire créée pour de simples formulations.
+
+État de livraison du checkpoint historique R1034 : checkpoint public 6d61a9b déployé Railway SUCCESS/Online à Amsterdam, 60 migrations/060 à jour, Application ready et health 200 selon preuves ChatGPT reçues. Cinq contrôles finaux publiquement validés par le propriétaire ; 28 VALIDÉE / CLÔTURÉE. 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE, sans exécution présumée de tous ses travaux ; observations rares acceptées en bêta/non bloquantes, maintenance non implémentée post-V1. R1034 créé, supersède R1032 après 28 ; 29 ACTIVE, puis 30 foundation/rehearsal → 31A Ceo → 31B batch → 32. Aucune activation Twitch/cutover/code/migration par ce checkpoint ; Streamer.bot reste autoritatif aujourd'hui. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise.
 
 ## Clôture 27/28 et stratégie de cutover progressif — R1034 (2026-10-04)
 
@@ -883,7 +889,7 @@ La [source spécialisée Chat global](global-chat-v1.md) détaille ces règles. 
 - `VALIDÉ R492` — Profil > Personnalisation avec onglets Avatars/Titres.
 - `VALIDÉ R493` — Chaque cosmétique verrouillé choisit condition visible, silhouette mystérieuse ou secret total.
   - État physique au 2026-09-25 : le premier vertical Apparence est candidat `review` avec catalogue, possession, équipement, fallback élémentaire et Profil > Personnalisation. Aucun catalogue produit ni producteur de déblocage n'est décidé ou ajouté par ce lot ; les règles R478–R493 ci-dessus restent la source des décisions.
-- `VALIDÉ R494` — Famille `!ami` explicite ; `!ami <pseudo>` est un alias de `!ami voir <pseudo>`.
+- `VALIDÉ R494 — historique, clause pseudo supersédée par R1035` — Famille `!ami` explicite ; `!ami <pseudo>` était un alias de `!ami voir <pseudo>`.
 - `VALIDÉ R495` — `!ami` sans argument produit un résumé compact ; listes et demandes sont paginées.
 - `VALIDÉ R496` — Résultats adaptés au canal ; confirmations Twitch toujours explicites mais refus/retrait sobres.
 - `VALIDÉ R497` — Phrases legacy conservées pour les cœurs individuels avec niveau/palier/récompense.

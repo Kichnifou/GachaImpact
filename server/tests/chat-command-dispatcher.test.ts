@@ -44,8 +44,8 @@ function harness() {
       directory: vi.fn(async () => ({ players: [{ id: 'other', displayName: 'Autre' }], page: 1, totalPages: 1 })),
       connected: vi.fn(async () => ({ players: [{ status: 'ONLINE', displayName: 'Autre' }], total: 1 })),
       profile: vi.fn(async () => ({ player: { displayName: 'Autre', level: 5, elementKey: 'pyro' }, box: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } })),
-      friends: vi.fn(async () => ({ friends: [{ playerId: 'other', level: 3, tier: 'CLOSE', heartSent: false }], players: [{ id: 'other', displayName: 'Autre' }], requests: [], summary: { activeFriends: 1, available: 1 } })),
-      friendship: { mutate: vi.fn(async () => ({ state: 'ACTIVE' })), sendHearts: vi.fn(async () => ({ message: 'Cœur envoyé.', level: 3 })) },
+      friends: vi.fn(async () => ({ friends: [{ playerId: 'other', level: 3, tier: 'Amitié Sincère', totalHearts: '2', heartSent: false }], players: [{ id: 'other', displayName: 'Autre' }], requests: [], summary: { activeFriends: 1, available: 1 } })),
+      friendship: { mutate: vi.fn(async () => ({ state: 'ACTIVE' })), sendHearts: vi.fn(async () => ({ message: 'Moi envoie un cœur à Autre : leur amitié s’embellit doucement.', level: 3, sent: 1, alreadySent: 0, unavailable: 0, senderReward: '5', status: 'SENT' })) },
     },
     rankingService: { chatTop: vi.fn(async () => 'XP : #1 Autre — 30.'), personal: vi.fn(async () => 'Top personnel — Moi : XP 30.') },
     tradePlayer: execute({ id: 'self' }),
@@ -140,9 +140,9 @@ describe('Chat command adapters', () => {
       ['!echanger accepter Autre', '!echanger accepter @Autre'], ['!echanger annuler Autre', '!echanger annuler @Autre'],
     ] as const) expect(await send(mentioned)).toBe(await send(plain));
     expect(services.tradeService.partners).toHaveBeenCalledWith('self', 'Autre');
-    expect(await send('!ami coeur all')).toContain('Niveau');
+    expect(await send('!ami coeur all')).toContain('+💠5 Primos pour Moi');
     expect(services.socialService.friendship.sendHearts).toHaveBeenLastCalledWith('self', 'all', commandId, 'INTERNAL_CHAT');
-    expect(await send('!ami coeur @all')).toBe('Ami introuvable.');
+    expect(await send('!ami coeur @all')).toBe(await send('!ami coeur all'));
     expect(await send('!echanger accepter')).toContain('Échanges reçus');
     expect(await send('!echanger @Inconnu 3')).toBe('Partenaire échangeable introuvable.');
   });
@@ -284,7 +284,7 @@ describe('Chat command adapters', () => {
   it.each([
     ['!select A', 'setGachaTarget', 'execute'], ['!vote Candidat', 'bannerVotes', 'vote'],
     ['!stella A', 'useMasterlessStella', 'execute'], ['!roue', 'spinDailyWheelChat', 'execute'],
-    ['!element pyro', 'choosePlayerElement', 'execute'], ['!ami ajouter Autre', 'socialService', 'friendship'],
+    ['!element pyro', 'choosePlayerElement', 'execute'], ['!ami retirer Autre', 'socialService', 'friendship'],
     ['!echanger Autre 3', 'tradeService', 'create'], ['!expedition A', 'expeditionService', 'start'],
     ['!event go', 'eventService', 'join'],
     ['!combat go', 'dailyCombatService', 'fight'], ['!combat boss go', 'monthlyBossService', 'attackWithActiveTeam'],

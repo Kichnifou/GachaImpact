@@ -14,6 +14,8 @@ Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le
 
 ## Passe finale Twitch / commandes R939–R942
 
+**Méthode propriétaire étape 29 (R1035) :** traiter un seul fichier `legacy/streamerbot/commands/*.txt` à la fois ; comparer le legacy au standalone réel, inventorier commandes/aliases/variantes/messages, inclure les nouvelles commandes standalone et les commandes legacy abandonnées. Aucun changement métier sans arbitrage explicite ; faire valider les messages cibles AVANT codage, puis implémenter seulement le fichier validé, déployer et tester dans le Chat standalone. Passer au fichier suivant uniquement après validation propriétaire. Pour Ami.txt, les messages et arbitrages ont été explicitement validés avant code ; ce lot bénéficie d'une autorisation de promotion directe après tests verts et contrôle GitHub, sans review ChatGPT intermédiaire. Aucune activation Twitch.
+
 **Étape 29 ACTIVE — cadrage R1034, sans code/activation dans ce checkpoint.** Pour chaque racine, alias et sous-commande, inventorier syntaxe, aliases, préconditions, permissions, coûts, cooldown, domaine propriétaire, données lues/écrites, succès/erreurs, idempotence, sorties exactes, différences legacy, Chat standalone et future compatibilité Twitch. Comparer systématiquement tous les `legacy/streamerbot/commands/*.txt` avec ce registre ; première validation dans le Chat standalone avec Kichnifou puis validation propriétaire des textes/comportements. L'audit exhaustif lui-même reste à exécuter dans les lots 29 suivants.
 
 **Préparation de bascule transparente, pas cutover en 29 :** mêmes syntaxes pertinentes, aliases conservés ou migration explicitement approuvée, réponses communes standalone/Twitch lorsque pertinent, mêmes services PostgreSQL/économie/cooldowns, identité Twitch User ID immuable, idempotence ; aucun double traitement/message, réponse ou récompense. Objectif après cutover : état migré reconnu et aucune réinscription manuelle due au changement de backend. Streamer.bot reste autoritatif aujourd'hui. Préparer un seul propriétaire d'exécution par Player/message/commande, natif OFF par défaut, pilote Ceo avec rollback/gate puis batch uniquement après validation ; mécanisme exact à décider en 29 après lecture du runtime et des contraintes Streamer.bot. Répétition privée en 30, activation par missions 31A Ceo puis 31B batch selon le [runbook](../process/legacy-cutover-runbook.md).
@@ -993,19 +995,21 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 ## `!ami`
 
 - **Statut audit :** CLÔTURÉ — R451 à R525
-- **Canaux :** UI standalone, chat interne et Twitch partagent le même service métier
+- **État étape 29 :** Ami.txt traité seul ; messages cibles validés avant code, candidat promu / à recetter dans le Chat standalone. Twitch natif non activé ; Streamer.bot reste autoritatif. UI et Chat utilisent le propriétaire Friendship existant, réutilisable par le futur adapter Twitch.
 - **Résumé :** `!ami`
-- **Liste :** `!ami liste [page]`
-- **Demandes :** `!ami demandes [page]`
+- **Liste :** `!ami liste`, réponse compacte unique, nombre restant indiqué si nécessaire
+- **Demandes :** `!ami demandes`, reçues et envoyées séparées, nombre restant indiqué si nécessaire
 - **Ajouter :** `!ami ajouter <pseudo>`
 - **Accepter :** `!ami accepter <pseudo>`
 - **Refuser :** `!ami refuser <pseudo>`
 - **Annuler :** `!ami annuler <pseudo>`
 - **Retirer :** `!ami retirer <pseudo>`
 - **Consulter :** `!ami voir <pseudo>`
-- **Alias de consultation :** `!ami <pseudo>`
+- **Polyvalent (R1035 supersède R494 sur ce point) :** `!ami <pseudo>` : aucune relation → ADD ; demande reçue → ACCEPT ; demande envoyée → attente sans mutation ; amis → informations. `!ami voir <pseudo>` reste une consultation pure.
 - **Cœur individuel :** `!ami coeur <pseudo>`
 - **Cœur global :** `!ami coeur all`
+- **Aliases cœur :** `coeur`, `cœur`, `coeurs`, `cœurs` ; `all` et `@all` seulement pour les cœurs, jamais généralisés aux autres commandes. Cibles par pseudo ou `@pseudo`, normalisation existante conservée.
+- **ADD réel :** une demande inverse est automatiquement acceptée par le service existant ; relation archivée réactivée avec son vrai niveau/palier, jamais un faux niveau 1.
 - **Demandes :** persistantes, paire unique par IDs, transitions explicites et idempotentes
 - **Relation :** retrait archivé ; progression restaurée au réajout
 - **Cœur :** un par relation, sens et journée Europe/Paris
@@ -1016,6 +1020,45 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 - **Notifications :** aucune notification dédiée au cœur
 - **Missions :** B/A/S comptent les cœurs sortants validés ; Z à la première relation niveau 1000
 - **Concurrence :** transaction/idempotence communes à UI, chat interne et Twitch
+
+### Messages Ami validés et implémentés — étape 29
+
+Les placeholders P/C/N désignent le displayName réel de l'acteur/cible et une valeur autoritative. Le palier est `[Amitié Sincère] 💛` avant 100, `[Amitié Fusionnelle] 💖` à 100, `[Amitié Légendaire] 🌟` à 300, `[Amitié Parfaite] 💞` à 1000. Niveau plafonné à 1000, total de cœurs non plafonné. Les 50 friendshipPhrases existantes sont inchangées.
+
+| Situation | Réponse Chat |
+| --- | --- |
+| Résumé | `ℹ️ P | Amis : N | Cœurs disponibles : N | Demandes : N | Commandes : !ami pseudo · !ami liste · !ami demandes · !ami coeur pseudo · !ami coeur all` |
+| Demande créée | `✅ P envoie une demande d’ami à C | C peut accepter avec !ami P` |
+| Acceptation, y compris ADD inverse | `🤝 P et C sont maintenant amis ! Niveau d’amitié : N [Palier] emoji` |
+| Demande déjà envoyée | `⚠️ P, demande déjà envoyée à C. C doit faire !ami P pour accepter.` |
+| Amis, consultation | `🤝 Amitié P ↔ C | Statut : ami | Niveau d’amitié : N [Palier] emoji | 💖💖✨ échangés : Total | Cœur aujourd’hui : disponible` (ou `déjà envoyé`) |
+| Voir demande reçue | `📨 P, tu as reçu une demande d’ami de C. Utilise !ami accepter C ou simplement !ami C.` |
+| Voir demande envoyée | `📨 P, ta demande d’ami à C est en attente.` |
+| Voir sans relation | `ℹ️ P, aucune relation d’amitié avec C.` |
+| Liste | `🤝 Amis de P : C — niveau N [Palier] emoji · …` ; ` ✅` si cœur déjà envoyé ; liste bornée à 500 caractères via la primitive compacte, indication du nombre restant, aucune pagination Chat inventée |
+| Liste vide | `ℹ️ P, tu n’as encore aucun ami.` |
+| Demandes | `📨 Demandes d’ami | Reçues : liste ou aucune | Envoyées : liste ou aucune` |
+| Ajouter déjà ami | `ℹ️ P, tu es déjà ami avec C.` |
+| Accepter/refuser sans demande | `⚠️ P, aucune demande d’ami de C à accepter.` / `à refuser.` |
+| Refuser | `✅ Demande d’ami de C refusée.` |
+| Annuler | `✅ Demande d’ami envoyée à C annulée.` |
+| Annuler sans demande | `⚠️ P, aucune demande d’ami envoyée à C à annuler.` |
+| Retirer | `✅ P et C ne sont plus amis.` ; archive/restauration internes conservées |
+| Retirer non-ami | `⚠️ P, tu n’es pas ami avec C.` |
+| Introuvable | `⚠️ P, le joueur C est introuvable.` |
+| Soi-même | `⚠️ P, tu ne peux pas devenir ami avec toi-même.` |
+| Interaction indisponible | `⚠️ P, cette interaction avec C est indisponible.` ; ne révèle ni blocage ni privacy |
+| Cœur individuel réussi | `💖💖✨ P envoie des cœurs cœurs paillettes à C | phrase legacy | Niveau d’amitié : N [Palier] emoji | +💠5 Primos chacun` |
+| Cœur déjà envoyé | `⚠️ P, tu as déjà envoyé des cœurs cœurs paillettes à C aujourd’hui.` |
+| Cœur non-ami | `⚠️ P, tu n’es pas encore ami avec C. Utilise : !ami C` |
+| Cœur à soi | `⚠️ P, tu ne peux pas t’envoyer des cœurs cœurs paillettes à toi-même.` |
+| Cœur indisponible | `⚠️ P, impossible d’envoyer un cœur à C pour le moment.` |
+| Cœurs all réussis | `💖💖✨ P envoie des cœurs cœurs paillettes à tous ses amis ! | N envoyé(s), A déjà fait(s), U indisponible(s) | +💠Gain Primos pour P` ; Gain = senderReward, jamais recalculé |
+| All déjà faits | `⚠️ P, tu as déjà envoyé des cœurs cœurs paillettes à tous tes amis aujourd’hui.` |
+| All sans amis | `⚠️ P, tu n’as aucun ami disponible à qui envoyer un cœur.` |
+| All zéro mixte | `⚠️ P, aucun cœur envoyé. Déjà fait aujourd’hui ou aucun ami disponible.` |
+
+**Inventaire legacy / écarts :** Ami.txt avait résumé, pseudo polyvalent, cœur individuel et global, quatre aliases de cœur, @pseudo et @all via normalisation ; `tous`/`tout` étaient aussi présents mais ne sont pas ajoutés au contrat validé all/@all. Résumé legacy sur deux messages remplacé par un seul ; !ami liste/demandes/ajouter/accepter/refuser/annuler/retirer/voir modernes conservés. Stockage JSON, auto-création/defaults des profils, absence de refus/retrait explicites et horloge locale legacy ne sont pas transférés : PostgreSQL, notifications Social, privacy/block, archivage restaurable, Missions et Europe/Paris restent autoritatifs. Les écarts de textes et le pseudo autrefois purement consultatif sont résolus selon le choix propriétaire ; aucune nouvelle économie, phrase, action Twitch ou autre fichier legacy traité.
 
 ## `!infos`
 
