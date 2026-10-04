@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 29 — hotfix production de sérialisation Boss après R1038.
+Version : étape 29 — recette propriétaire représentative et correctifs finaux R1039, clôture.
 Date : 2026-10-04
-Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 ACTIVE / PROCHAINE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel R1034 : **29 → 30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
+Statut : **26 VALIDÉE / CLÔTURÉE ; 28 VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE ; 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; 29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE ; 30 FOUNDATION / REHEARSAL PRIVÉE PROCHAINE, NON COMMENCÉE.** 1–25 implémentation acquise ; observations rares acceptées en bêta/non bloquantes. Ordre opérationnel après clôture R1039 : **30 → 31A Ceo → 31B batch → 32**, numéros conservés. Autorisation payante limitée à Railway Hobby ; toute nouvelle dépense exige un accord explicite.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — étape 29, hotfix production après R1038 du 04/10/2026
+## Point courant — correctif final et clôture étape 29, R1039 du 04/10/2026
+
+**Baseline contrôlée :** fetch exécuté ; HEAD/main/review/origin/main/origin/review = **36a068cf54afc359c140392826378590a6c9d0c7**, divergence 0/0, index/worktree propres, aucun descendant inattendu. Le propriétaire confirme publiquement que ce hotfix a rétabli le chargement normal de GachaImpact. Recette publique représentative R1038 terminée : tout ce qui n’est pas listé dans la mission finale est acquis dans ce périmètre, sans audit général rouvert.
+
+**Correctifs R1039 :** Quotis visuels depuis vrais états/claims ; Échanges via projection sûre TradeService read-only (notamment Mynonyme sans particules Cryo), create inchangé ; Expédition active avec nom/remaining et aide READY ; alias passif et Help Liste explicite/helper ; Team/Shop/Sac compacts avec paramètres/prix/bundle modernes, sans objets spéciaux Sac Chat ; Concours avec lien standalone ; Event racine avec heure Europe/Paris, essais restants/maximum métier et statuts demandés. Pull : N tirages = N résultats principaux distincts, ordonnés et atomiques ; textes personnages/ressources, faits 5★/C6/gains/passifs modernes, soldes exacts par étape persistés en strings dans le snapshot existant puis rejoués sans portefeuille live. Nom acteur figé dans l’intention Chat. Pipeline Mission/Défi et calculs/économie inchangés.
+
+**Validation automatique finale :** tests ciblés Chat/route Gacha **286 tests / 7 fichiers PASS** et typecheck backend PASS. PostgreSQL **90 tests / 3 fichiers PASS** : Gacha **30**, Échanges **25**, GlobalChat **35**. Soldes séquentiels exacts, refunds C6/compensation/particules et historique, rollback des parties x1/x3/x10, reprise après échec de publication puis changement de portefeuille/nom joueur, IDs stables et aucun second mouvement. **verify:full PASS 8/8** : frontend **1296 tests / 122 fichiers**, backend hors DB **1509 tests / 112 fichiers**, builds/typechecks frontend/backend, lint et diff-checks worktree/index. Logs complets locaux : gachaimpact-verify-full-qeGBoH et gacha-final29-*.log dans le dossier temporaire de cette session. Warnings non bloquants : lint hors périmètre, chunk frontend >500 kB et dépréciation pg des suites DB. Aucune erreur finale restante. Schémas exclusivement privés, une invocation par fichier, séquentielles. Aucune fixture métier dans public ; aucune migration/table/schéma Prisma ni configuration de déploiement/Twitch modifiés. Échecs intermédiaires : attentes des anciens rendus/fixtures ajustées ; test MAX Échanges corrigé pour appeler le propriétaire avec undefined au lieu du défaut 300 de sa fixture. Aucun assouplissement des validations de création ni des timeouts.
+
+**Documentation et décision :** [R1039](../specifications/decisions-log.md), [contrats des onze retours](../commands/command-reference.md#restitution-finale-propriétaire--r1039), couverture des 37 sources et protocole 29 actualisés ; seule contradiction spécialisée Sac/Shop corrigée. **29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE**, après corrections/tests et publication explicitement autorisées sans nouveau gate manuel ni review ChatGPT intermédiaire. Dernières corrections testées automatiquement : aucune recette publique individuelle post-correctif présumée.
+
+**Publication :** un candidat dédié review puis CE MÊME commit main par fast-forward strict, pushes normaux, SHA distant commun/divergence 0/0 et propreté contrôlés au rapport final ; aucun commit supplémentaire pour inscrire son propre SHA. Déploiement du nouveau SHA non vérifié par Codex, à contrôler séparément par ChatGPT. L’autorisation de clôture n’est pas une preuve de déploiement.
+
+**Prochaine étape globale : 30 — FOUNDATION / REHEARSAL PRIVÉE, NON COMMENCÉE.** STOP après publication et rapport. Streamer.bot reste autoritatif ; aucun parser natif global/outbound/nouvelle EventSub/cutover/pilote 31A/31B ni migration exécutés. L’exception de promotion 29 ne s’étend pas aux missions suivantes ; aucune poursuite automatique.
+
+## Historique — étape 29, hotfix production après R1038 du 04/10/2026
 
 **Baseline contrôlée :** fetch réussi ; HEAD = origin/main = origin/review = **9158b9a5df432762ea5ab71e86ce202568a41c67**, review et index/worktree propres. Aucun descendant distant inattendu. Promotion du même correctif review → main par fast-forward strict explicitement autorisée dans la mission.
 

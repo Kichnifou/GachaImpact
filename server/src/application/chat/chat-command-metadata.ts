@@ -77,7 +77,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('code', 'events', '!code [CODE]', 'READY'),
   command('event', 'events', '!event [go|sac|boutique|top|primos|moras|collection|calendrier|jeu du mois]', 'READY'),
   command('team', 'equipe', '!team [N [apply|remove|rename "Nom"]|add <nom>|remove <nom|all>|rename "Nom"|list [page]|new]', 'READY'),
-  command('passifs', 'equipe', '!passifs [element]', 'READY'),
+  command('passifs', 'equipe', '!passifs [element]', 'READY', ['passif']),
   command('banque', 'ressources', '!banque [deposer|retirer <montant|max>]', 'READY'),
   command('sac', 'ressources', '!sac', 'READY'),
   command('coffre', 'ressources', '!coffre', 'READY'),
@@ -90,5 +90,5 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('combat', 'equipe', '!combat [info|go|auto|elements|help|stat|boss [go]]', 'READY'),
   command('ami', 'social', '!ami [demandes|ajouter|accepter|refuser|annuler|retirer|voir|coeur] [pseudo|all]', 'READY'),
   command('infos', 'social', '!infos <pseudo>', 'READY', ['info']),
-  command('liste', 'social', '!liste <element|online> [page]', 'READY'),
+  command('liste', 'social', '!liste <pyro|hydro|cryo|electro|anemo|geo|dendro|online> [page]', 'READY'),
 ];

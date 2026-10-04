@@ -2,50 +2,84 @@ import type { GachaPullResult } from '../gacha/gacha-store.js';
 import type { StellaUseResult } from '../box/box-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import { chatElementEmojis } from './chat-list-result.js';
-import { chatNumber, entryParts, resourceText } from './chat-command-format.js';
+import { chatElementNames } from './chat-list-result.js';
+import { chatNumber } from './chat-command-format.js';
 
 export const c6StatNames = { strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' } as const;
 export const characterLabel = (character: { name: string; elementKey: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] + ' ' : ''}${character.name}`;
 
 /** Presentation uses the recorded transaction, including each gain and triggered passive. */
 export function pullChatResult(actorName: string, result: GachaPullResult): readonly string[] {
-  const count = result.operation.pullCount;
-  const entries: string[] = [];
-  for (const row of result.results) {
-    const marker = `[${row.index}/${count}]`;
-    const outcome: string[] = [row.character ? `${'⭐'.repeat(row.rarity ?? 0)} ${characterLabel(row.character)} — ${row.wasNewCharacter ? 'Nouveau' : 'Doublon'} C${row.constellationAfter}`
-      : resourceText(row.resourceKey ?? '', row.resourceAmount ?? 0n)];
-    if (row.rarity === 5) {
-      if (row.pity5AtPull !== null && row.pity5AtPull !== undefined) {
-        outcome.push(`pity ${row.pity5AtPull}/90`);
-        if (row.pity5AtPull >= 2 && row.pity5AtPull <= 35) outcome.push('Early');
-        if (row.pity5AtPull >= 80) outcome.push('Hard');
+  return result.results.map(row => {
+    const render = (compact: boolean) => {
+      const number = (amount: bigint | number) => compact ? amount.toString() : chatNumber(amount);
+      const marker = result.operation.pullCount > 1 ? `[${row.index}/${result.operation.pullCount}] ` : '';
+      const total = (key: string) => {
+        const amount = row.resourceTotalsAfter?.[key as keyof NonNullable<typeof row.resourceTotalsAfter>];
+        return amount === undefined ? '' : ` (${number(BigInt(amount))})`;
+      };
+      const compactGain = (key: string, amount: bigint, withTotal = false) => {
+        const element = key.replace(/^particles_/u, '');
+        return `+${number(amount)} ${key === 'primogems' ? 'primos' : key === 'moras' ? '💰 moras' : isElementKey(element) ? chatElementEmojis[element] : key === 'xp' ? 'XP' : key}${withTotal ? total(key) : ''}`;
+      };
+      const refund = row.bonusRewards.find(reward => reward.causeKey === 'gacha.c6-duplicate-refund');
+      const principal = row.character
+        ? `🎉 ${marker}${actorName} obtient ${'⭐'.repeat(row.rarity ?? 0)} ${characterLabel(row.character)} ! ${refund ? 'Déjà C6 : remboursement ' + compactGain(refund.resourceKey, refund.amount, true) : row.wasNewCharacter ? 'Nouveau personnage : C0' : 'Doublon : passe C' + row.constellationAfter}.`
+        : `✅ ${marker}${actorName} obtient +${number(row.resourceAmount ?? 0n)} ${row.resourceKey === 'moras' ? '💰 moras' : isElementKey(row.resourceKey?.replace(/^particles_/u, '') ?? '') ? 'particules ' + chatElementEmojis[row.resourceKey!.replace(/^particles_/u, '') as keyof typeof chatElementEmojis] + ' ' + chatElementNames[row.resourceKey!.replace(/^particles_/u, '') as keyof typeof chatElementNames] : 'primos'}${total(row.resourceKey ?? '')}.`;
+      const suffix: string[] = [];
+      if (row.rarity === 5) {
+        const facts: string[] = [];
+        if (row.pity5AtPull != null) {
+          facts.push(`pity ${row.pity5AtPull}/90`);
+          if (row.pity5AtPull >= 2 && row.pity5AtPull <= 35) facts.push('Early');
+          if (row.pity5AtPull >= 80) facts.push('Hard');
+        }
+        if (row.backToBack) facts.push('B2B');
+        if (row.captureTriggered) facts.push('✨ Capture');
+        else if (row.guaranteeConsumed) facts.push('🎯 Garantie');
+        else if (row.wasFiftyFifty) facts.push(`50/50 ${row.wonFiftyFifty ? 'gagné' : 'perdu'}`);
+        if (facts.length) suffix.push(facts.join(' · '));
       }
-      if (row.backToBack) outcome.push('B2B');
-      if (row.captureTriggered) outcome.push('✨ Capture');
-      else if (row.guaranteeConsumed) outcome.push('🎯 Garantie');
-      else if (row.wasFiftyFifty) outcome.push(`50/50 ${row.wonFiftyFifty ? 'gagné' : 'perdu'}`);
-    }
-    entries.push(`${marker} ${outcome.join(' · ')}`);
-    if (row.c6Progression) entries.push(`${marker} C6 : ${row.c6Progression.type === 'stat' ? `+1 ${c6StatNames[row.c6Progression.stat]} (${row.c6Progression.valueAfter}/20)` : 'statistiques au maximum'}`);
-    for (const reward of row.bonusRewards) {
-      if (reward.causeKey.startsWith('team.passive.')) continue; // These gains are displayed with their recorded passive below.
-      const label = reward.causeKey === 'gacha.c6-duplicate-refund' ? 'Remboursement C6' : reward.causeKey === 'gacha.c6-maxed-compensation' ? 'Compensation C6' : 'Bonus de niveau';
-      entries.push(`${marker} ${label} : +${resourceText(reward.resourceKey, reward.amount)}`);
-    }
-    for (const effect of row.passiveEffects) {
-      const label = `${marker} 🧩 ${chatElementEmojis[effect.elementKey]}`;
-      switch (effect.type) {
-        case 'five_star_chance_bonus': entries.push(`${label} Hydro : chance 5★ +${effect.basisPoints / 100}%`); break;
-        case 'secondary_reward_multiplier': entries.push(`${label} gain multiplié ×${effect.numerator / effect.denominator} (montant inclus)`); break;
-        case 'xp': entries.push(`${label} Cryo : +${chatNumber(effect.amount)} XP${effect.levelsReached.length ? ` · niveaux ${effect.levelsReached.join(', ')}` : ''}${effect.overflowRewardsGranted ? ` · ${effect.overflowRewardsGranted} récompense(s) après niveau 100` : ''}`); break;
-        case 'pity5': entries.push(`${label} Electro : +${effect.amount} pity 5★`); break;
-        case 'primogem_recovery': entries.push(`${label} Anemo : +${resourceText('primogems', effect.amount)}`); break;
-        case 'resource_bundle': for (const reward of effect.rewards) entries.push(`${label} Dendro : +${resourceText(reward.resourceKey, reward.amount)}`); break;
+      if (row.c6Progression && !(compact && row.c6Progression.type === 'maxed')) suffix.push(row.c6Progression.type === 'stat'
+        ? `🌟 ${row.character?.name ?? 'Personnage'}${compact ? '' : ' progresse'} : +1 ${c6StatNames[row.c6Progression.stat]} (${row.c6Progression.valueAfter}/20).`
+        : '🌟 Stats au maximum');
+      const levelGains: string[] = [];
+      for (const reward of row.bonusRewards) {
+        if (reward === refund || reward.causeKey.startsWith('team.passive.')) continue;
+        if (reward.causeKey === 'gacha.c6-maxed-compensation') suffix.push(`${compact ? '🌟 Stats max' : 'Compensation'} : ${compactGain(reward.resourceKey, reward.amount, true)}`);
+        else levelGains.push(compactGain(reward.resourceKey, reward.amount));
       }
-    }
-  }
-  return entryParts(`✅ ${actorName}, Invocation ×${count} — coût ${resourceText('primogems', result.operation.primogemCost)} :`, entries, '🎲 Invocation suite :');
+      if (levelGains.length) suffix.push('Niveau : ' + levelGains.join(', '));
+      for (const effect of row.passiveEffects) {
+        const emoji = chatElementEmojis[effect.elementKey];
+        switch (effect.type) {
+          case 'five_star_chance_bonus': suffix.push(`${emoji} +${effect.basisPoints / 100}% chance 5★`); break;
+          case 'secondary_reward_multiplier': suffix.push(`${emoji} ×${(effect.numerator / effect.denominator).toLocaleString('fr-FR')} inclus`); break;
+          case 'xp': suffix.push(`${emoji} +${number(effect.amount)} XP${effect.levelsReached.length ? ' · niveaux ' + effect.levelsReached.join(', ') : ''}${effect.overflowRewardsGranted ? ' · bonus niv.100 ×' + effect.overflowRewardsGranted : ''}`); break;
+          case 'pity5': suffix.push(`${emoji} +${effect.amount} pity 5★`); break;
+          case 'primogem_recovery': suffix.push(`${emoji} ${compactGain('primogems', effect.amount, true)}`); break;
+          case 'resource_bundle': {
+            // Group equal recorded particle gains without changing or inventing amounts.
+            const particles = new Map<string, string[]>();
+            const gains: string[] = [];
+            for (const reward of effect.rewards) {
+              const element = reward.resourceKey.replace(/^particles_/u, '');
+              if (isElementKey(element)) {
+                const key = number(reward.amount);
+                particles.set(key, [...(particles.get(key) ?? []), chatElementEmojis[element]]);
+              } else gains.push(compactGain(reward.resourceKey, reward.amount));
+            }
+            for (const [amount, emojis] of particles) gains.push(`+${amount} ${emojis.join('')} chacun`);
+            suffix.push(`${emoji} ${gains.join(', ')}`); break;
+          }
+        }
+      }
+      return [principal, ...suffix].join(compact ? ' |' : ' | ');
+    };
+    const message = render(false);
+    // Compact only numeric typography and labels, keeping player/character names intact.
+    return Array.from(message).length <= 500 ? message : render(true);
+  });
 }
 
 export function stellaChatResult(actorName: string, result: StellaUseResult): string {

@@ -57,6 +57,47 @@ async function debitWithRetry(id: string, amount: bigint, resourceKey: ResourceK
   }
 }
 describe('Particle trades isolated PostgreSQL', () => {
+  it('projects safe exact-name eligibility and stock reasons without mutating trades, operations or notifications', async () => {
+    const a = await player('cryo'), b = await player('pyro', 0n);
+    await db.player.update({ where: { id: b }, data: { displayName: 'Mynonyme' } });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: a, resourceKey: 'particles_pyro' } }, data: { amount: 7237n } });
+    const counts = async () => Promise.all([db.businessOperation.count(), db.tradeRequest.count(), db.notification.count()]);
+    const before = await counts();
+    expect(await service.eligibility(a, 'mynonyme')).toMatchObject({ player: { id: b, displayName: 'Mynonyme' }, eligible: false, reason: 'PARTNER_EMPTY', resourceKey: 'particles_cryo' });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: a, resourceKey: 'particles_pyro' } }, data: { amount: 0n } });
+    expect(await service.eligibility(a, 'Mynonyme')).toMatchObject({ reason: 'ACTOR_EMPTY', resourceKey: 'particles_pyro' });
+    const same = await player('cryo');
+    const name = (id: string) => db.player.findUniqueOrThrow({ where: { id }, select: { displayName: true } });
+    expect(await service.eligibility(a, (await name(same)).displayName)).toMatchObject({ reason: 'SAME_ELEMENT' });
+    expect(await service.eligibility(a, 'Not a real player')).toMatchObject({ reason: 'NOT_FOUND', player: null });
+    await db.playerBlock.create({ data: { blockerPlayerId: b, blockedPlayerId: a } });
+    expect(await service.eligibility(a, 'Mynonyme')).toEqual({ reason: 'UNAVAILABLE', player: null, eligible: false, maximum: '0' });
+    await db.playerBlock.deleteMany({ where: { blockerPlayerId: b, blockedPlayerId: a } });
+    await db.player.update({ where: { id: b }, data: { status: 'SUSPENDED' } });
+    expect(await service.eligibility(a, 'Mynonyme')).toMatchObject({ reason: 'UNAVAILABLE', player: null });
+    await db.player.update({ where: { id: b }, data: { status: 'ACTIVE' } });
+    expect(await counts()).toEqual(before);
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: a, resourceKey: 'particles_pyro' } }, data: { amount: 7237n } });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: b, resourceKey: 'particles_cryo' } }, data: { amount: 15n } });
+    expect(await service.eligibility(a, 'Mynonyme')).toMatchObject({ eligible: true, maximum: '15', reason: null });
+    const created = await service.create(a, b, undefined, randomUUID());
+    expect(created.amount).toBe('15');
+    expect(await service.eligibility(a, 'Mynonyme')).toMatchObject({ reason: 'PENDING' });
+    expect((await service.mutate(b, created.requestId, 'accept', randomUUID())).amount).toBe('15');
+    expect(await balance(a, 'particles_cryo')).toBe(515n);
+    expect(await balance(b, 'particles_pyro')).toBe(15n);
+  }, 60_000);
+  it('ignores expired pending reservations in the read-only projection without expiring their stored state', async () => {
+    const a = await player(), b = await player('pyro');
+    const created = await request(a, b, 500n);
+    const expiry = (await db.tradeRequest.findUniqueOrThrow({ where: { id: created.requestId } })).expiresAt;
+    const previousNow = now; now = expiry;
+    try {
+      const name = (await db.player.findUniqueOrThrow({ where: { id: b } })).displayName;
+      expect(await service.eligibility(a, name)).toMatchObject({ eligible: true, maximum: '500' });
+      expect((await db.tradeRequest.findUniqueOrThrow({ where: { id: created.requestId } })).state).toBe('PENDING');
+    } finally { now = previousNow; }
+  });
   it('cancels only the initial sent batch, freezes its names and leaves later arrivals and received offers intact', async () => {
     const a = await player(), b = await player('pyro'), c = await player('hydro'), d = await player('geo');
     const first = await request(a, b, 100n);

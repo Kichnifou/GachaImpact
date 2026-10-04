@@ -4,7 +4,10 @@ import { beforeAll, afterAll, afterEach, describe, expect, it, vi } from 'vitest
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
-import { SetGachaTarget } from '../src/application/gacha/gacha-services.js';
+import { GlobalChatService } from '../src/application/chat/global-chat-service.js';
+import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
+import { pullChatResult } from '../src/application/chat/gacha-command-result.js';
+import { PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
 import { getParisWeekWindow } from '../src/domain/gacha/gacha.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
@@ -27,6 +30,68 @@ afterAll(async () => {
 });
 
 describe('Gacha foundation on the development database', () => {
+  it.each([3, 10])('persists exact per-step resource totals for x%i and replays them after the live wallet changes', async count => {
+    const fixture = await createPullPlayer(10000n);
+    const store = new PrismaGachaStore(database);
+    const resourceKeys = ['moras', 'particles_hydro'];
+    for (const resourceKey of resourceKeys) await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey } }, data: { amount: 9007199254740993n } });
+    const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: count as 3 | 10, idempotencyKey: randomUUID(), now: fixture.now, random: procMoraRandom };
+    const first = await store.pull(input);
+    let expected = 9007199254740993n;
+    for (const row of first.results) {
+      if (row.resourceKey === 'moras') {
+        expected += row.resourceAmount!;
+        expect(row.resourceTotalsAfter).toEqual({ moras: expected.toString() });
+      } else expect(row.resourceTotalsAfter).toEqual({});
+    }
+    expect(first.results.filter(row => row.resourceKey === 'moras').length).toBeGreaterThan(1);
+    expect(pullChatResult('Axel', first)).toHaveLength(count);
+    expect(JSON.stringify(first.results.map(row => row.resourceTotalsAfter))).toContain('9007199254');
+    const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+    await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } }, data: { amount: 2n } });
+    const replay = await store.pull({ ...input, random: { nextInt: () => { throw new Error('Replay must not draw.'); } } });
+    expect(replay.results).toEqual(first.results);
+    expect(pullChatResult('Axel', replay)).toEqual(pullChatResult('Axel', first));
+    expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+    const history = await store.getHistory(fixture.playerId, 1);
+    expect(history.results.map(row => row.resourceTotalsAfter)).toEqual([...first.results].reverse().map(row => row.resourceTotalsAfter));
+  }, 60_000);
+  it.each([1, 3, 10])('publishes exactly x%i principal Pull results atomically after a failed later insert, then replays the same IDs', async count => {
+    const fixture = await createPullPlayer(10000n);
+    const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(database));
+    const clock = { now: () => fixture.now };
+    const store = new PrismaGachaStore(database);
+    const chat = new GlobalChatService(database, getPlayer, clock, maxRandom);
+    const dispatcher = new ChatCommandDispatcher(chat, {
+      performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, procMoraRandom, 'INTERNAL_CHAT'),
+      socialService: { actor: (identity: { subject: string }) => getPlayer.execute(identity) },
+    } as unknown as ChatCommandServices);
+    const key = randomUUID();
+    const failMarker = count > 1 ? `[${count}/${count}]` : 'obtient';
+    const schema = isolated.schema;
+    await isolated.admin.query(`CREATE FUNCTION "${schema}".reject_pull_part() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.message_type = 'GAME_RESULT' AND position('${failMarker}' in NEW.content) > 0 THEN RAISE EXCEPTION 'pull publication failed'; END IF; RETURN NEW; END $$`);
+    await isolated.admin.query(`CREATE TRIGGER reject_pull_part BEFORE INSERT ON "${schema}".global_chat_messages FOR EACH ROW EXECUTE FUNCTION "${schema}".reject_pull_part()`);
+    try {
+      await expect(dispatcher.send(fixture.identity, `!pull ${count}`, key)).rejects.toThrow('pull publication failed');
+      expect(await database.globalChatMessage.count({ where: { messageType: 'GAME_RESULT' } })).toBe(0);
+    } finally {
+      await isolated.admin.query(`DROP TRIGGER reject_pull_part ON "${schema}".global_chat_messages`);
+      await isolated.admin.query(`DROP FUNCTION "${schema}".reject_pull_part()`);
+    }
+    const command = await database.globalChatMessage.findFirstOrThrow({ where: { authorPlayerId: fixture.playerId, messageType: 'COMMAND' } });
+    const recorded = await store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: count as 1 | 3 | 10, idempotencyKey: command.id, now: fixture.now, random: { nextInt: () => { throw new Error('Replay must not draw.'); } }, sourceChannel: 'INTERNAL_CHAT' });
+    const expected = pullChatResult((await getPlayer.execute(fixture.identity)).displayName, recorded);
+    const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+    await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } }, data: { amount: 1n } });
+    await database.player.update({ where: { id: fixture.playerId }, data: { displayName: 'Renamed after the committed Pull' } });
+    const first = await dispatcher.send(fixture.identity, `!pull ${count}`, key);
+    expect(first.results.slice(0, count).map(message => message.content)).toEqual(expected);
+    expect(first.results.filter(message => /^(🎉|✅) /u.test(message.content ?? ''))).toHaveLength(count);
+    const replay = await dispatcher.send(fixture.identity, `!pull ${count}`, key);
+    expect(replay.results.map(message => message.id)).toEqual(first.results.map(message => message.id));
+    expect(await database.pullResult.count({ where: { pullOperation: { playerId: fixture.playerId } } })).toBe(count);
+    expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+  }, 60_000);
   it('stores exact per-pull pity and B2B across operations and replays them without RNG', async () => {
     const fixture = await createPullPlayer(1000n);
     try {
@@ -370,6 +435,8 @@ describe('Gacha foundation on the development database', () => {
       const retry = await store.pull({ ...input, random: { nextInt: () => { throw new Error('A committed retry must not choose another C6 progression.'); } } });
       const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
       expect(result.results[0]).toMatchObject({ c6Progression: { type: 'stat', stat: 'beauty', valueAfter: 2 } });
+      const refund = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-duplicate-refund' } });
+      expect(result.results[0]!.resourceTotalsAfter).toEqual({ primogems: refund.balanceAfter.toString() });
       expect(persisted.snapshot).toMatchObject({ c6Progression: { type: 'stat', stat: 'beauty', valueAfter: 2 } });
       expect(retry.operation).toMatchObject({ id: result.operation.id, alreadyProcessed: true });
       expect(retry.results).toEqual(result.results);
@@ -393,6 +460,9 @@ describe('Gacha foundation on the development database', () => {
       const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
       expect(result.results[0]).toMatchObject({ character: { id: fixture.targetId }, copiesAfter: 8, constellationAfter: 6, bonusRewards: [{ resourceKey: 'primogems', amount: 160n }, { resourceKey: 'moras', amount: 100_000n }], c6Progression: { type: 'maxed' } });
       expect(persisted.snapshot).toMatchObject({ c6Progression: { type: 'maxed' } });
+      const refund = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-duplicate-refund' } });
+      const compensation = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, causeKey: 'gacha.c6-maxed-compensation' } });
+      expect(result.results[0]!.resourceTotalsAfter).toEqual({ primogems: refund.balanceAfter.toString(), moras: compensation.balanceAfter.toString() });
       expect(retry.operation).toMatchObject({ id: result.operation.id, alreadyProcessed: true });
       expect(retry.results).toEqual(result.results);
       expect((await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } } })).copies).toBe(8);
@@ -573,6 +643,8 @@ describe('Gacha foundation on the development database', () => {
 
       const pyro = await pullWith('pyro', procResourceRandom);
       expect(pyro.results[0]).toMatchObject({ resourceKey: 'particles_pyro', resourceAmount: 30n });
+      const particleGain = await database.resourceMovement.findFirstOrThrow({ where: { playerId: fixture.playerId, resourceKey: 'particles_pyro', causeKey: 'gacha.pull.secondary-reward' } });
+      expect(pyro.results[0]!.resourceTotalsAfter).toEqual({ particles_pyro: particleGain.balanceAfter.toString() });
       expect(pyro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'pyro', numerator: 3, denominator: 2 }));
 
       const geo = await pullWith('geo', procMoraRandom);
@@ -620,11 +692,12 @@ async function createPullPlayer(primogems: bigint) {
   const target = current!.banner.featuredFiveStars[0]!;
   const fourStar = current!.banner.featuredFourStars.at(-1)!;
   await database.playerGachaState.update({ where: { playerId: player.id }, data: { selectedBannerCharacterId: target.id } });
-  return { playerId: player.id, targetId: target.id, fourStarId: fourStar.id, now: new Date((current!.banner.startsAt.getTime() + current!.banner.endsAt.getTime()) / 2) };
+  return { identity, playerId: player.id, targetId: target.id, fourStarId: fourStar.id, now: new Date((current!.banner.startsAt.getTime() + current!.banner.endsAt.getTime()) / 2) };
 }
 
 async function deletePullPlayer(playerId: string) {
   await database.$transaction(async (transaction) => {
+    await transaction.globalChatMessage.deleteMany({ where: { OR: [{ authorPlayerId: playerId }, { replyToMessage: { authorPlayerId: playerId } }] } });
     await transaction.pullResult.deleteMany({ where: { pullOperation: { playerId } } });
     await transaction.pullOperation.deleteMany({ where: { playerId } });
     await transaction.resourceMovement.deleteMany({ where: { playerId } });

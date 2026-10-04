@@ -1,6 +1,9 @@
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { elementKeys } from '../../domain/economy/resources.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
+import { EVENT_GAME_B_MAX_ATTEMPTS } from '../../domain/event/game-b.js';
+import { shopChatSummary } from './shop-command-summary.js';
+import { tradeEligibilityText } from './trade-eligibility-result.js';
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../gacha/gacha-services.js';
@@ -71,7 +74,7 @@ export type ChatCommandServices = Readonly<{
   purchaseShopItemChat: Pick<PurchaseShopItem, 'execute'>;
   socialService: Pick<SocialService, 'actor' | 'directory' | 'connected' | 'profile' | 'favor' | 'legends' | 'friends' | 'friendship'>;
   rankingService: Pick<RankingService, 'chatTop' | 'personal'>;
-  tradeService: Pick<TradeService, 'create' | 'mutate' | 'all' | 'snapshot' | 'partners'>;
+  tradeService: Pick<TradeService, 'create' | 'mutate' | 'all' | 'snapshot' | 'partners' | 'eligibility'>;
   tradePlayer: Pick<GetCurrentPlayer, 'execute'>;
   choosePlayerElement: Pick<ChoosePlayerElement, 'execute'>;
   dailyCombatService: Pick<CombatService, 'getDaily' | 'previewActiveTeam' | 'getElementMatrix' | 'fight'>;
@@ -299,9 +302,10 @@ export class ChatCommandDispatcher {
         case 'pull': {
           if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return syntax(definition.syntax);
           const count = args[0] ? Number(args[0]) : 1;
-          const result = await this.services.performGachaPullChat.execute(identity, count, commandMessageId);
           const actor = await this.services.socialService.actor(identity);
-          return pullChatResult(actor.displayName, result);
+          const actorName = await this.chat.rememberCommandText(commandMessageId, 'action', actor.displayName);
+          const result = await this.services.performGachaPullChat.execute(identity, count, commandMessageId);
+          return pullChatResult(actorName, result);
         }
         case 'box': return await boxCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         case 'obtention': {
@@ -370,6 +374,7 @@ export class ChatCommandDispatcher {
           if (args.length > 1 || args[0] && !/^[1-9]\d*$/u.test(args[0])) return syntax(definition.syntax);
           const page = args[0] ? Number(args[0]) : 1;
           if (!Number.isSafeInteger(page)) return syntax(definition.syntax);
+          if (!args.length) return shopChatSummary(identity, this.services);
           const view = await this.services.getCurrentPlayerShop.execute(identity);
           const available = view.items;
           const pages = Math.max(1, Math.ceil(available.length / 5));
@@ -419,15 +424,12 @@ export class ChatCommandDispatcher {
           const explicitMax = args.length > 1 && amountToken.toLocaleLowerCase('fr-FR') === 'max';
           if (args.length > 1 && /^-?\d+$/u.test(amountToken) && !hasAmount) return syntax(definition.syntax);
           const name = hasAmount || explicitMax ? args.slice(0, -1).join(' ') : args.join(' ');
-          const partners = await this.services.tradeService.partners(actor.id, playerReferenceName(name));
-          let target = partners.partners.find(player => samePlayerReference(player.displayName, name));
-          for (let page = 2; !target && page <= partners.totalPages; page += 1) {
-            target = (await this.services.tradeService.partners(actor.id, playerReferenceName(name), page)).partners.find(player => samePlayerReference(player.displayName, name));
-          }
-          const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', target?.id ?? '');
-          if (!targetId) return 'Partenaire échangeable introuvable.';
+          const eligibility = await this.services.tradeService.eligibility(actor.id, playerReferenceName(name));
+          const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', eligibility.player?.id ?? '');
+          if (!await this.chat.hasConfirmedCommandMutation(commandMessageId) && !eligibility.eligible) return tradeEligibilityText(eligibility);
+          if (!targetId) return 'Joueur introuvable.';
           const result = await this.services.tradeService.create(actor.id, targetId, hasAmount ? BigInt(amountToken) : undefined, commandMessageId, 'INTERNAL_CHAT');
-          return `Demande d’échange envoyée à ${result.recipient?.displayName ?? target?.displayName ?? name} : ${resourceText(result.senderResourceKey ?? '', result.amount)} réservées contre ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
+          return `Demande d’échange envoyée à ${result.recipient?.displayName ?? eligibility.player?.displayName ?? name} : ${resourceText(result.senderResourceKey ?? '', result.amount)} réservées contre ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
         }
         case 'infos': {
           const target = args.join(' ').trim();
@@ -450,6 +452,7 @@ export class ChatCommandDispatcher {
           const page = args[1] ? Number(args[1]) : 1;
           if (!Number.isSafeInteger(page)) return syntax(definition.syntax);
           const key = normalizePlayerSearch(args[0]!);
+          if (['element', 'elements'].includes(key) && args.length === 1) return 'Éléments : ' + elementKeys.map(element => '!liste ' + element).join(' | ');
           if (key === 'online') {
             const result = await this.services.socialService.connected(identity);
             const slice = result.players.slice((page - 1) * 20, page * 20);
@@ -533,7 +536,7 @@ export class ChatCommandDispatcher {
           }
           if (args.length) return syntax(definition.syntax);
           const nextMilestone = event.milestones.thresholds.find(row => !row.reached);
-          return entryParts(`${event.festival.emoji} ${event.festival.title} :`, [event.participation.joined ? `${event.participation.points} points · ${event.currency.amount} ${event.festival.currency.emoji} ${event.festival.currency.label}` : 'Rejoindre avec !event go', `Fin : ${new Date(event.edition.endsAt).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })} (à minuit)`, ...(event.participation.joined ? [nextMilestone ? `Prochain palier : ${nextMilestone.points} points` : 'Tous les paliers atteints', `${event.gameA.theme.label} : ${event.gameA.completedToday ? 'réussi' : event.gameA.canAttempt ? 'disponible' : 'hors fenêtre ou en attente'}`, `${event.gameB.theme.label} : ${event.gameB.solvedToday ? 'découvert' : event.gameB.attemptsRemaining + ' essai(s)'}`, `${event.gameC.theme.label} : ${event.gameC.sentToday ? 'envoyé' : 'à envoyer'}`, `Bonus : ${event.dailyBonus.claimedToday ? 'reçu' : 'à récupérer dans l’interface'}`] : []), `Jeux : !event ${event.gameA.theme.label} ; !event ${event.gameB.theme.label} <code> ; !event ${event.gameC.theme.label} <pseudo> "message"`, '!event boutique · !event top'], `${event.festival.title} (suite) :`);
+          return entryParts(`${event.festival.emoji} ${event.festival.title} :`, [event.participation.joined ? `${event.participation.points} points · ${event.currency.amount} ${event.festival.currency.label}` : 'Rejoindre avec !event go', `Fin : ${new Date(event.edition.endsAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '')}`, ...(event.participation.joined ? [nextMilestone ? `Prochain palier : ${nextMilestone.points} points` : 'Tous les paliers atteints', `${event.gameA.theme.label} ${event.gameA.completedToday ? '✅' : event.gameA.canAttempt ? '⏳' : '⏳ hors fenêtre ou en attente'}`, `${event.gameB.theme.label} : ${event.gameB.attemptsRemaining}/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants`, `${event.gameC.theme.label} : ${event.gameC.sentToday ? 'envoyé ✅' : 'à envoyer'}`, `Bonus quotidien ${event.dailyBonus.claimedToday ? '✅' : 'à récupérer'}`] : []), `Jeux : !event ${event.gameA.theme.label} ; !event ${event.gameB.theme.label} <code> ; !event ${event.gameC.theme.label} <pseudo> "message"`, '!event boutique · !event top'], `${event.festival.title} (suite) :`);
         }
         case 'expedition': {
           const view = await this.services.expeditionService.getState(identity);
@@ -544,6 +547,10 @@ export class ChatCommandDispatcher {
             if (branch === 'claim') {
               const result = await this.services.expeditionService.claim(identity, commandMessageId, SourceChannel.INTERNAL_CHAT);
               return `✅ Expédition récupérée : +${resourceText(result.reward.resourceKey, result.reward.amount)}.`;
+            }
+            if (!await this.chat.hasConfirmedCommandMutation(commandMessageId)) {
+              if (view.operationalStatus === 'RUNNING') return `⚠️ Une expédition est déjà en cours avec ${view.activeCharacter?.name ?? 'personnage'} · retour dans ${durationText(view.remainingSeconds)}.`;
+              if (view.operationalStatus === 'READY') return `⚠️ L’expédition de ${view.activeCharacter?.name ?? 'personnage'} est prête à être récupérée avec !expedition retour.`;
             }
             const box = await this.services.getCurrentPlayerBox.execute(identity);
             const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(target));
@@ -558,8 +565,8 @@ export class ChatCommandDispatcher {
         case 'concours': {
           if (args.length) return 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.';
           const view = await this.services.contestService.getCurrent(identity);
-          return view.active ? `Concours : ${statusLabel(view.active.status)} · ${view.active.participants.length}/4 participants · thème ${view.theme.label}. Participation dans Activités > Concours.` :
-            `Concours : aucun en cours · thème ${view.theme.label}${view.dailyUsed ? ' · participation du jour utilisée' : ' · participation du jour non utilisée'}. Participation dans Activités > Concours.`;
+          return view.active ? `Concours : ${statusLabel(view.active.status)} · ${view.active.participants.length}/4 participants · thème ${view.theme.label}. Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest` :
+            `Concours : aucun en cours · thème ${view.theme.label}${view.dailyUsed ? ' · participation du jour utilisée' : ' · participation du jour non utilisée'}. Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest`;
         }
         case 'combat': {
           if (args.length > 2) return syntax(definition.syntax);
@@ -617,7 +624,14 @@ export class ChatCommandDispatcher {
             this.services.getTodayDailyReward.execute(identity), this.services.socialService.friends(identity),
             this.services.eventService.getCurrent(identity), this.services.socialService.favor(identity, actor.id),
           ]);
-          return entryParts('Quotidiennes :', [`Récompense ${reward.claimed ? 'reçue' : 'à récupérer dans l’Aperçu'}`, `Roue ${wheel.spun ? 'faite' : 'à faire'}`, `Défi ${statusLabel(challenge.status)}`, `Combat ${statusLabel(combat.status)}`, `Expédition ${expedition.departureUsedToday ? 'départ effectué' : 'départ à faire'}${expedition.operationalStatus === 'READY' ? ' · récompense à récupérer' : ''}`, `Amitié : ${friends.summary.available} cœur(s) à envoyer`, `Festival : ${event.participation.joined ? event.dailyBonus.claimedToday ? 'bonus reçu' : 'bonus à récupérer dans l’interface' : 'non inscrit'}`, `Faveur : ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? 'récompense reçue' : 'active' : 'inactive'}`], 'Quotidiennes (suite) :');
+          return entryParts('Quotidiennes :', [
+            `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
+            `Défi ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
+            `Expédition ${expedition.operationalStatus === 'IDLE' && expedition.departureUsedToday && expedition.todayReward ? '✅' : '⏳'}`,
+            `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
+            `Festival ${event.participation.joined && event.dailyBonus.claimedToday ? '✅' : '⏳' + (event.participation.joined ? '' : ' · non inscrit')}`,
+            `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
+          ], 'Quotidiennes (suite) :');
         }
         case 'mission': {
           if (args.length > 1) return syntax(definition.syntax);

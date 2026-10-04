@@ -31,13 +31,14 @@ export function harness() {
     setBoxCharacterFavorite: execute({ name: 'A' }),
     setBoxSortPreference: execute({ sortKey: 'alphabetical', direction: 'desc' }),
     useMasterlessStella: execute({ character: { name: 'A', constellation: 1 }, stellaRemaining: 2n }),
-    getCurrentPlayerTeams: execute({ teams: [{ active: true, position: 1, name: null, slots: [{ character: { name: 'A' } }], passives: [{ displayName: 'Élan', stacks: 1, description: 'Bonus' }] }] }),
+    activatePlayerTeam: execute({}),
+    getCurrentPlayerTeams: execute({ teams: [{ active: true, position: 1, name: null, slots: [{ character: { name: 'A', elementKey: 'pyro', constellation: 0 } }], passives: [{ elementKey: 'pyro', displayName: 'Pyro', stacks: 1, description: 'Bonus' }] }] }),
     getCurrentPlayerInventory: execute({ resources: [{ key: 'primogems', amount: 160n, elementKey: null }, { key: 'moras', amount: 50n, elementKey: null }], items: [{ section: 'collection', quantity: 1n, displayName: 'Objet' }] }),
     getCurrentPlayerBank: execute({ bankMoras: 100n, walletMoras: 50n, estimatedInterest: 3n }),
     depositPlayerBankChat: execute({ bankMoras: 150n, walletMoras: 0n, resolvedAmount: 50n }),
     withdrawPlayerBankChat: execute({ bankMoras: 50n, walletMoras: 100n, resolvedAmount: 50n }),
     convertPersonalParticlesChat: execute({ resources: { primogems: 180n } }),
-    getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
+    getCurrentPlayerShop: execute({ resources: { moras: 100_000n }, items: [{ id: 'primos', externalKey: 'primogem-bundle', rewardPerUnit: { amount: 160n, resourceKey: 'primogems' }, displayName: 'Lot de Primogemmes', priceAmount: 50_000n, available: true }, { id: 'ticket', externalKey: 'reward-ticket', displayName: 'Ticket', priceAmount: 150_000n, available: true }] }),
     purchaseShopItemChat: execute({ purchase: { quantity: 2n, displayName: 'Lot de Primogemmes', totalPrice: 100_000n, effect: { type: 'resource_bundle', amount: 320n, resourceKey: 'primogems' } } }),
     socialService: {
       legends: vi.fn(async () => ({ access: 'ALLOWED', data: { characters: [{ id: 'c6', name: 'Étoile' }], legends: [{ character: { name: 'Étoile' }, stats: { strength: 1, intelligence: 2, beauty: 3, charisma: 4, popularity: 5 }, totals: { contests: '9', wins: '2' }, themes: { STRENGTH: { title: 'Titre thème', wins: '2', participations: '9' } } }] } })),
@@ -52,6 +53,7 @@ export function harness() {
     rankingService: { chatTop: vi.fn(async () => 'XP : #1 Autre — 30.'), personal: vi.fn(async () => 'Top personnel — Moi : XP 30.') },
     tradePlayer: execute({ id: 'self' }),
     tradeService: {
+      eligibility: vi.fn(async (_id: string, name: string) => ({ player: name === 'Autre' ? { id: 'other', displayName: 'Autre' } : null, eligible: name === 'Autre', maximum: '5', reason: name === 'Autre' ? null : 'NOT_FOUND' })),
       partners: vi.fn(async (_id?: string, _q?: string, _page?: number) => ({ partners: [{ id: 'other', displayName: 'Autre', maximum: 5n }] })),
       snapshot: vi.fn(async () => ({ received: [{ id: 'request', sender: { displayName: 'Autre' }, currentAmount: 3n }], sent: [{ id: 'request', recipient: { displayName: 'Autre' }, currentAmount: 3n }] })),
       create: vi.fn(async () => ({ amount: 3n })), mutate: vi.fn(async () => ({ state: 'ACCEPTED', amount: 3n })),
@@ -73,7 +75,7 @@ export function harness() {
     contestService: { getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false })) },
     dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, chanceHalfPoints: 140 }, view: { reward: { primogems: 800n, moras: 20000n } } })) },
     monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss' } } })) },
-    getDailyChallenge: execute({ status: 'AVAILABLE', challenge: null }),
+    getDailyChallenge: execute({ status: 'AVAILABLE', challenge: null, purchaseCost: 10000n }),
     getCurrentPlayerMissions: execute({
       catchUpApplied: false,
       ranks: {

@@ -4,16 +4,30 @@ import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import type { GlobalChatService } from './global-chat-service.js';
 import { chatElementEmojis } from './chat-list-result.js';
+import { deriveActiveTeamGachaEffects } from '../../domain/team/team-passives.js';
 import { entryParts } from './chat-command-format.js';
 
 type Intent = { kind: 'apply' | 'rename' | 'new' | 'add' | 'remove' | 'clear'; teamId: string; position: number; characterId: string; name: string | null; error?: string };
 const label = (team: PlayerTeam) => `Team ${team.position}${team.name ? ` « ${team.name} »` : ''}${team.active ? ' ⭐ active' : ''}`;
 const composition = (team: PlayerTeam) => team.slots.flatMap(slot => slot.character ? [`${chatElementEmojis[slot.character.elementKey]} ${slot.character.name} (C${slot.character.constellation})`] : []);
+function compactPassive(passive: PlayerTeam['passives'][number]): string {
+  const element = passive.elementKey;
+  const effects = deriveActiveTeamGachaEffects(Array.from({ length: passive.stacks }, () => element));
+  const multiplier = (value: { numerator: number; denominator: number }) => (value.numerator / value.denominator).toLocaleString('fr-FR');
+  const emoji = chatElementEmojis[element];
+  switch (element) {
+    case 'pyro': return `${emoji} ×${multiplier(effects.secondaryParticleMultiplier)} particules`;
+    case 'hydro': return `${emoji} +${effects.fiveStarChanceBonusBasisPoints / 100}% chance 5★`;
+    case 'cryo': return `${emoji} 1/${effects.xpReward!.oneIn} : +${effects.xpReward!.amount} XP`;
+    case 'electro': return `${emoji} 1/${effects.pity5Reward!.oneIn} : +${effects.pity5Reward!.amount} pity 5★`;
+    case 'anemo': return `${emoji} 1/${effects.primogemRecovery!.oneIn} : +${effects.primogemRecovery!.amount} primos`;
+    case 'geo': return `${emoji} ×${multiplier(effects.secondaryMoraMultiplier)} moras`;
+    case 'dendro': { const bundle = effects.dendroBundle!; return `${emoji} 1/${bundle.oneIn} : +${bundle.primogems} primos, +${bundle.moras} moras, +${bundle.particlesPerElement} particules/élément`; }
+  }
+}
 function viewTeam(player: string, team: PlayerTeam): readonly string[] {
-  return entryParts(`✅ ${player}, ${label(team)} :`, [
-    ...composition(team), `${team.slots.filter(slot => slot.character).length}/4 personnages`,
-    ...team.passives.map(passive => `🧩 ${chatElementEmojis[passive.elementKey]} ${passive.displayName} ×${passive.stacks} : ${passive.description}`),
-    ...(!team.passives.length ? ['🧩 Aucun passif actif'] : []),
+  return entryParts(`✅ Team ${player} :`, [composition(team).join(' - ') || 'vide',
+    team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif',
   ], '✅ Team suite :');
 }
 export async function teamCommand(identity: AuthenticatedIdentity, args: readonly string[], commandId: string, services: ChatCommandServices, chat: GlobalChatService, syntax: string): Promise<string | readonly string[]> {
@@ -80,5 +94,5 @@ export async function teamCommand(identity: AuthenticatedIdentity, args: readonl
   const outcome = saved.kind === 'new' ? `${label(updated)} créée, vide et non active` : saved.kind === 'apply' ? `${label(updated)} sélectionnée`
     : saved.kind === 'rename' ? `${label(updated)} renommée` : saved.kind === 'clear' ? `${label(updated)} vidée`
     : `${result.availableCharacters.find(row => row.id === saved.characterId)?.name ?? 'Personnage'} ${saved.kind === 'add' ? 'ajouté à' : 'retiré de'} la Team ${updated.position}`;
-  return entryParts(`✅ ${actor.displayName}, ${outcome}.`, composition(updated).length ? composition(updated) : ['0/4 personnages'], '✅ Team suite :');
+  return [`✅ ${actor.displayName}, ${outcome}.`, ...viewTeam(actor.displayName, updated)];
 }

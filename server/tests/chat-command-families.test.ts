@@ -34,7 +34,7 @@ describe('Complete remaining command families', () => {
     const h = harness();
     const items = Array.from({ length: 6 }, (_, i) => ({ id: `i${i}`, externalKey: `item${i}`, displayName: longName(i), priceAmount: 10000n, available: i !== 1 }));
     h.services.getCurrentPlayerShop.execute.mockResolvedValue({ resources: { moras: 100000n }, items } as never);
-    await h.send('!shop'); const output = parts(h); bounded(output);
+    await h.send('!shop 1'); const output = parts(h); bounded(output);
     expect(output.length).toBeGreaterThan(1);
     for (let i = 0; i < 5; i++) expect(output.filter(part => part.includes(items[i]!.displayName))).toHaveLength(1);
     expect(output.join(' ')).toContain('indisponible'); expect(output.join(' ')).not.toContain(items[5]!.displayName);
@@ -79,13 +79,15 @@ describe('Complete remaining command families', () => {
     await h.send('!echange accepter Autre');
     expect(h.services.tradeService.mutate).toHaveBeenLastCalledWith('self', 'request', 'accept', commandId, 'INTERNAL_CHAT');
   });
-  it('finds an exact trade partner beyond the first matching search page', async () => {
+  it('uses the owner eligibility projection for an exact trade partner', async () => {
     const h = harness();
     h.services.tradeService.partners.mockImplementation(async (_id, _q, page = 1) => ({
       partners: page === 1 ? [{ id: 'partial', displayName: 'Autre Ami', maximum: '9' }] : [{ id: 'exact', displayName: 'Autre', maximum: '9' }], page, totalPages: 2,
     }) as never);
+    h.services.tradeService.eligibility.mockResolvedValue({ player: { id: 'exact', displayName: 'Autre' }, eligible: true, maximum: '9', reason: null });
     await h.send('!ech Autre 3');
-    expect(h.services.tradeService.partners).toHaveBeenLastCalledWith('self', 'Autre', 2);
+    expect(h.services.tradeService.eligibility).toHaveBeenCalledWith('self', 'Autre');
+    expect(h.services.tradeService.partners).not.toHaveBeenCalled();
     expect(h.services.tradeService.create).toHaveBeenCalledWith('self', 'exact', 3n, commandId, 'INTERNAL_CHAT');
   });
   it.each(['online', 'GÉO'])('returns all twenty allowed directory entries for %s', async filter => {

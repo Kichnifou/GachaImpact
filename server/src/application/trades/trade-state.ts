@@ -1,8 +1,8 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 
-export async function particleStock(tx: Prisma.TransactionClient, playerId: string, resourceKey: string) {
+export async function particleStock(tx: Prisma.TransactionClient, playerId: string, resourceKey: string, now?: Date) {
   const balance = await tx.playerResourceBalance.findUnique({ where: { playerId_resourceKey: { playerId, resourceKey } } });
-  const reserved = (await tx.tradeRequest.aggregate({ where: { senderPlayerId: playerId, senderResourceKey: resourceKey, state: 'PENDING' }, _sum: { currentAmount: true } }))._sum.currentAmount ?? 0n;
+  const reserved = (await tx.tradeRequest.aggregate({ where: { senderPlayerId: playerId, senderResourceKey: resourceKey, state: 'PENDING', ...(now ? { expiresAt: { gt: now } } : {}) }, _sum: { currentAmount: true } }))._sum.currentAmount ?? 0n;
   const total = balance?.amount ?? 0n;
   return { total, reserved, available: total - reserved };
 }

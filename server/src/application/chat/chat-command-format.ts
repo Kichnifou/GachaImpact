@@ -35,8 +35,7 @@ export async function sacCommand(identity: AuthenticatedIdentity, services: Chat
   const primogems = amount('primogems');
   const primary = isElementKey(actor.elementKey ?? '') ? actor.elementKey : null;
   const elements = [...elementKeys].sort((a, b) => a === primary ? -1 : b === primary ? 1 : elementKeys.indexOf(a) - elementKeys.indexOf(b));
-  const entries = [`${resourceText('primogems', primogems)} (${chatNumber(primogems / 160n)} vœux)`, resourceText('moras', amount('moras')),
-    ...elements.map(key => resourceText(`particles_${key}`, amount(`particles_${key}`))),
-    ...inventory.items.filter(row => row.section === 'objects' && row.quantity > 0n).map(row => `${row.displayName} (x${row.quantity})`)];
+  const entries = [`💠 ${chatNumber(primogems)} primos (${chatNumber(primogems / 160n)} voeux)`, `💰 ${chatNumber(amount('moras'))} moras`,
+    ...elements.map(key => `${chatElementEmojis[key]} ${chatNumber(amount(`particles_${key}`))}`)];
   return entryParts(`✅ ${actor.displayName}, sac :`, entries, '🎒 Sac suite :');
 }

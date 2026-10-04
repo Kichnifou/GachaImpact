@@ -13,6 +13,13 @@ import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-serv
 
 export type TradeSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
 export type TradeAction = 'accept' | 'refuse' | 'cancel';
+export type TradeEligibility = Readonly<{
+  player: { id: string; displayName: string } | null;
+  eligible: boolean;
+  maximum: string;
+  reason: 'NOT_FOUND' | 'UNAVAILABLE' | 'SAME_ELEMENT' | 'PENDING' | 'ACTOR_EMPTY' | 'PARTNER_EMPTY' | null;
+  resourceKey?: string;
+}>;
 type Result = { requestId: string; state: string; amount: string; sender?: { id: string; displayName: string }; recipient?: { id: string; displayName: string }; senderResourceKey?: string; recipientResourceKey?: string };
 const unavailable = () => new AppError('Cet échange est indisponible.', 409, 'TRADE_UNAVAILABLE');
 const identity = { id: true, displayName: true, elementKey: true } as const;
@@ -164,6 +171,27 @@ export class TradeService {
     });
   }
   async expire() { await this.transaction(async () => undefined); }
+  /** Read only: ignore expired reservations without mutating them; create still validates atomically. */
+  async eligibility(playerId: string, requestedName: string): Promise<TradeEligibility> {
+    return this.database.$transaction(async tx => {
+      const now = this.clock.now();
+      const players = await tx.player.findMany({ select: { id: true, displayName: true } });
+      const found = players.find(player => normalizePlayerSearch(player.displayName) === normalizePlayerSearch(requestedName));
+      const failure = (reason: TradeEligibility['reason'], player: TradeEligibility['player'] = null, resourceKey?: string): TradeEligibility =>
+        ({ player, eligible: false, maximum: '0', reason, ...(resourceKey ? { resourceKey } : {}) });
+      if (!found) return failure('NOT_FOUND');
+      const recipient = await tx.player.findFirst({ where: { AND: [{ id: found.id }, unblockedRecipient(playerId)] }, select: identity });
+      if (!recipient?.elementKey || !isElementKey(recipient.elementKey)) return failure('UNAVAILABLE');
+      const actor = await this.actor(tx, playerId);
+      if (recipient.elementKey === actor.elementKey) return failure('SAME_ELEMENT', found);
+      if (await tx.tradeRequest.findFirst({ where: { state: 'PENDING', expiresAt: { gt: now }, OR: [{ senderPlayerId: playerId, recipientPlayerId: recipient.id }, { senderPlayerId: recipient.id, recipientPlayerId: playerId }] } })) return failure('PENDING', found);
+      const senderResource = particleResourceKey(recipient.elementKey), recipientResource = particleResourceKey(actor.elementKey);
+      const [a, b] = await Promise.all([particleStock(tx, playerId, senderResource, now), particleStock(tx, recipient.id, recipientResource, now)]);
+      if (a.available <= 0n) return failure('ACTOR_EMPTY', found, senderResource);
+      if (b.available <= 0n) return failure('PARTNER_EMPTY', found, recipientResource);
+      return { player: found, eligible: true, maximum: (a.available < b.available ? a.available : b.available).toString(), reason: null };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
   async snapshot(playerId: string) {
     return this.transaction(async tx => {
       await this.actor(tx, playerId);

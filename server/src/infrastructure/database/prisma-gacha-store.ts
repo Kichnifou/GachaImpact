@@ -125,6 +125,7 @@ export class PrismaGachaStore implements GachaStore {
         bonusRewards: readBonusRewards(result.snapshot),
         c6Progression: readC6Progression(result.snapshot),
         passiveEffects: readPassiveEffects(result.snapshot),
+        resourceTotalsAfter: readResourceTotals(result.snapshot),
         backToBack: result.snapshot !== null && typeof result.snapshot === 'object' && !Array.isArray(result.snapshot) && result.snapshot.backToBack === true,
         pity5AtPull: readPityAtPull(result.snapshot, 'pity5'),
         pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
@@ -339,8 +340,17 @@ export class PrismaGachaStore implements GachaStore {
           passiveEffects.push({ elementKey: 'dendro', type: 'resource_bundle', rewards: bundleRewards });
         }
 
+        // Store only balances displayed by the Chat, after this step's real credits.
+        const totalKeys = [...new Set([
+          ...(record.resourceKey ? [record.resourceKey] : []),
+          ...bonusRewards.filter(reward => reward.causeKey.startsWith('gacha.c6-') || reward.causeKey === 'team.passive.anemo.primogem-recovery').map(reward => reward.resourceKey),
+        ])];
+        const balances = totalKeys.length ? await transaction.playerResourceBalance.findMany({
+          where: { playerId: input.playerId, resourceKey: { in: totalKeys } }, select: { resourceKey: true, amount: true },
+        }) : [];
+        const resourceTotalsAfter = Object.fromEntries(balances.map(balance => [balance.resourceKey, balance.amount.toString()]));
         const backToBack = record.rarity === 5 && previousWasFiveStar;
-        record = { ...record, pity5AtPull: resolved.stateBefore.pity5 + 1, pity4AtPull: resolved.stateBefore.pity4 + 1, backToBack };
+        record = { ...record, pity5AtPull: resolved.stateBefore.pity5 + 1, pity4AtPull: resolved.stateBefore.pity4 + 1, backToBack, resourceTotalsAfter };
         previousWasFiveStar = record.rarity === 5;
         await transaction.pullResult.create({ data: {
           pullOperationId: pullOperation.id, resultIndex: index, resultType: record.resultType,
@@ -349,7 +359,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack), createdAt: input.now,
+          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack, resourceTotalsAfter), createdAt: input.now,
         } });
         records.push(record);
       }
@@ -416,6 +426,7 @@ export class PrismaGachaStore implements GachaStore {
         guaranteeConsumed: result.guaranteeConsumed, captureTriggered: result.captureTriggered,
         bonusRewards: readBonusRewards(result.snapshot), c6Progression: readC6Progression(result.snapshot),
         passiveEffects: readPassiveEffects(result.snapshot),
+        resourceTotalsAfter: readResourceTotals(result.snapshot),
         pity5AtPull: readPityAtPull(result.snapshot, 'pity5'), pity4AtPull: readPityAtPull(result.snapshot, 'pity4'),
         backToBack: result.snapshot !== null && typeof result.snapshot === 'object' && !Array.isArray(result.snapshot) && result.snapshot.backToBack === true,
       })),
@@ -506,9 +517,10 @@ function snapshot(
   activeTeam: ActiveTeamSnapshot,
   passiveEffects: readonly GachaPassiveEffect[],
   backToBack: boolean,
+  resourceTotalsAfter: Readonly<Partial<Record<ResourceKey, string>>>,
 ): Prisma.InputJsonObject {
   return {
-    stateBefore: snapshotState(before), stateAfter: snapshotState(after), backToBack,
+    stateBefore: snapshotState(before), stateAfter: snapshotState(after), backToBack, resourceTotalsAfter,
     bonusRewards: bonusRewards.map(({ resourceKey, amount, causeKey }) => ({ resourceKey, amount: amount.toString(), causeKey })),
     activeTeam: activeTeamSnapshotJson(activeTeam),
     passiveEffects: passiveEffects.map(passiveEffectJson),
@@ -709,4 +721,11 @@ export function validateSelections(selections: readonly FeaturedSelection[]): vo
   if (selections.length !== 10 || new Set(selections.map(({ character }) => character.id)).size !== 10 || selections.filter(({ character }) => character.rarity === 5).length !== 4 || selections.filter(({ character }) => character.rarity === 4).length !== 6) {
     throw new Error('Banner selection did not produce exactly four five-stars and six four-stars.');
   }
+}
+
+function readResourceTotals(snapshot: Prisma.JsonValue | null): PullResultRecord['resourceTotalsAfter'] {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return undefined;
+  const totals = snapshot.resourceTotalsAfter;
+  if (!totals || typeof totals !== 'object' || Array.isArray(totals)) return undefined;
+  return Object.fromEntries(Object.entries(totals).filter(([key, amount]) => isResourceKey(key) && typeof amount === 'string' && /^\d+$/u.test(amount)));
 }

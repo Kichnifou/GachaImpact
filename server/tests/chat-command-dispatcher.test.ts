@@ -110,12 +110,12 @@ describe('Chat command adapters', () => {
       ['!ami coeur Autre', '!ami coeur @Autre'], ['!echanger Autre 3', '!echanger @Autre 3'],
       ['!echanger accepter Autre', '!echanger accepter @Autre'], ['!echanger annuler Autre', '!echanger annuler @Autre'],
     ] as const) expect(await send(mentioned)).toBe(await send(plain));
-    expect(services.tradeService.partners).toHaveBeenCalledWith('self', 'Autre');
+    expect(services.tradeService.eligibility).toHaveBeenCalledWith('self', 'Autre');
     expect(await send('!ami coeur all')).toContain('+💠5 Primos pour Moi');
     expect(services.socialService.friendship.sendHearts).toHaveBeenLastCalledWith('self', 'all', commandId, 'INTERNAL_CHAT');
     expect(await send('!ami coeur @all')).toBe(await send('!ami coeur all'));
     expect(await send('!echanger accepter')).toContain('1/1 acceptés');
-    expect(await send('!echanger @Inconnu 3')).toBe('Partenaire échangeable introuvable.');
+    expect(await send('!echanger @Inconnu 3')).toBe('Joueur introuvable.');
   });
   it('normalizes only the Event recipient, preserving message text and non-Player tokens', async () => {
     const { services, send } = harness();
@@ -140,8 +140,8 @@ describe('Chat command adapters', () => {
   });
 
   it.each([
-    ['!pity', 'pity : 5★ 9/90'], ['!banniere', 'Bannières'], ['!box', 'Box'], ['!team', 'Team 1'],
-    ['!sac', 'sac : 💠160 Primogemmes'], ['!coffre', 'Coffre'], ['!shop', 'Boutique'], ['!banque', 'Banque'],
+    ['!pity', 'pity : 5★ 9/90'], ['!banniere', 'Bannières'], ['!box', 'Box'], ['!team', 'Team Moi'],
+    ['!sac', 'sac : 💠 160 primos'], ['!coffre', 'Coffre'], ['!shop', 'Shop'], ['!banque', 'Banque'],
     ['!infos Autre', 'Autre'], ['!liste pyro', 'Pyro'], ['!code', 'Codes disponibles'],
     ['!event', 'Festival'], ['!event top', 'Festival Top 10'], ['!expedition', 'Expédition'],
     ['!concours', 'Concours'], ['!combat', 'Combat du jour'], ['!combat boss', 'Boss'], ['!quotis', 'Quotidiennes'],
@@ -152,7 +152,7 @@ describe('Chat command adapters', () => {
 
   it('passes the durable command message ID to mutation owners and publishes one public answer', async () => {
     const { chat, services, send } = harness();
-    expect(await send('!pull 1')).toContain('Invocation ×1');
+    expect(await send('!pull 1')).toContain('Moi obtient ⭐⭐⭐⭐⭐');
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 1, commandId);
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);
@@ -189,7 +189,7 @@ describe('Chat command adapters', () => {
   it('formats daily states as player-facing text', async () => {
     const { send } = harness();
     const output = await send('!quotis');
-    for (const text of ['Récompense à récupérer', 'Roue à faire', 'Défi disponible', 'Combat à faire', 'Expédition départ à faire', 'Amitié : 1 cœur(s)', 'Festival : non inscrit', 'Faveur : inactive']) expect(output).toContain(text);
+    for (const text of ['Récompense ⏳', 'Roue ⏳', 'Défi ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Festival ⏳ · non inscrit', 'Faveur ➖']) expect(output).toContain(text);
   });
 
   it('formats mission summary, compatibility alias and canonical ranks without leaking locked Z', async () => {
@@ -349,7 +349,7 @@ describe('Chat command adapters', () => {
     const answer = (chat.publishGameResult.mock.calls[0]![1] as readonly string[]).join(' ');
     expect(answer).toContain('Personnage1');
     expect(answer).toContain('Personnage10');
-    expect(answer).toContain('coût 💠1 600 Primogemmes');
+    expect(chat.publishGameResult.mock.calls[0]![1]).toHaveLength(10);
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 10, commandId);
   });
 

@@ -30,7 +30,7 @@ export function remainingHarness() {
 
 describe('Remaining command aliases and simple presentation', () => {
   it.each([
-    ['convertir', 'conv'], ['quotis', 'quoti'], ['quotis', 'daily'], ['echanger', 'echange'], ['echanger', 'ech'],
+    ['passifs', 'passif'], ['convertir', 'conv'], ['quotis', 'quoti'], ['quotis', 'daily'], ['echanger', 'echange'], ['echanger', 'ech'],
     ['expedition', 'exp'], ['giveaway', 'ga'], ['infos', 'info'], ['legende', 'légende'], ['legende', 'legendes'], ['legende', 'légendes'], ['legende', 'leg'],
   ])('resolves %s / %s to the same definition and canonical Help', (canonical, alias) => {
     const command = findChatCommand(canonical);
@@ -76,15 +76,16 @@ describe('Remaining command aliases and simple presentation', () => {
     expect(passifsCommand(['ÉLECTRO'], 'syntax')).toEqual(passifsCommand(['electro'], 'syntax'));
     expect(passifsCommand(['unknown'], 'syntax')).toBe('syntax');
   });
-  it('shows all seven stocks, primary first, actual objects and no Collection possessions', async () => {
+  it('shows all seven stocks, primary first, without objects or Collection possessions', async () => {
     const inventory: PlayerInventory = { resources: [{ key: 'primogems', amount: 12345678901234567890n, displayName: '', category: '', elementKey: null }], items: [
       { id: 'stella', externalKey: 'stella', displayName: 'Masterless Stella Fortuna', quantity: 3n, section: 'objects', category: '', description: null, firstObtainedAt: null, acquisitionHint: null },
       { id: 'event', externalKey: 'event', displayName: 'Collection cachée', quantity: 4n, section: 'collection', category: '', description: null, firstObtainedAt: null, acquisitionHint: null },
     ] };
     const services = { socialService: { actor: vi.fn(async () => ({ displayName: 'Axel', elementKey: 'geo' })) }, getCurrentPlayerInventory: { execute: vi.fn(async () => inventory) } };
     const parts = await sacCommand(identity, services as unknown as ChatCommandServices); const result = parts.join(' ');
-    expect(result).toContain('12 345 678 901 234 567 890'); expect(result).toContain('Masterless Stella Fortuna (x3)'); expect(result).not.toContain('Collection cachée');
-    expect(result.indexOf('☄️ Geo')).toBeLessThan(result.indexOf('🔥 Pyro'));
-    for (const element of elementKeys) expect(result).toContain(element === 'electro' ? 'Electro' : element[0]!.toUpperCase() + element.slice(1));
+    expect(result).toContain('12 345 678 901 234 567 890'); expect(result).not.toContain('Masterless Stella Fortuna'); expect(result).not.toContain('Collection cachée');
+    expect(result.indexOf('☄️ 0')).toBeLessThan(result.indexOf('🔥 0'));
+    expect(result.split(' | ').slice(2)).toEqual(['☄️ 0', '🔥 0', '💧 0', '❄️ 0', '⚡ 0', '🌪️ 0', '🌿 0']);
+    expect(result).toContain('(77 160 493 132 716 049 voeux)'); expect(result).not.toContain('particules');
   });
 });

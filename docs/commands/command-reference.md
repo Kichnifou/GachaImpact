@@ -1,6 +1,6 @@
 # Registre des commandes GachaImpact
 
-Statut : sweep métier historique 37 scripts + 17 JSON ; adaptation Chat des 37 sources couverte par R1035–R1038. Recette propriétaire de la présente livraison restante.
+Statut : sweep métier historique 37 scripts + 17 JSON ; adaptation Chat des 37 sources couverte par R1035–R1039. Recette publique représentative R1038 acquise dans son périmètre ; derniers retours corrigés et étape 29 clôturée par décision propriétaire R1039.
 
 État physique du Chat interne, selon [R884](../specifications/global-chat-v1.md) : `help`, `element` (choix défensif), `banniere`, `select`, `vote`, `pity`, `pull` (tout entier 1..10), `obtention`, `stella`, `passifs`, `roue`, `ami`, `echanger`, `infos`, `liste`, `banque`, `convertir`, `sac`, `coffre`, `shop`, `code`, `event` complet avec Jeux A/B/C, `expedition`, `combat`, `quotis`, `mission`, `faveur` et `top` appellent les propriétaires modernes. `!concours` consulte uniquement la projection du Concours standalone ; aucune action Concours n'est disponible dans `INTERNAL_CHAT`. `box` possède maintenant les listes complètes, filtres, pages, favoris et tris textuels R1037 ; `team` consulte et exécute les mutations modernes décidées : apply/add/remove/rename/list/new ; save reste une aide. `!echanger accepter`, `annuler` et `refuser` sans pseudo traitent respectivement toutes les demandes reçues, envoyées et reçues de l'ensemble initial. `legende` consulte désormais le propriétaire Social/Concours en lecture seule, avec les permissions R565 précisées ci-dessous ; `faveur` est READY dans le Chat GachaImpact depuis le Lot 9. `giveaway` et `wish` restent Twitch uniquement. Le `ChatPanel` et les routes Chat navigateur sont actifs. `!clear` est l'exception interne de modération R886, absente de l'aide joueur.
 
@@ -16,15 +16,35 @@ Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le
 
 **Méthode propriétaire étape 29 — R1038 amendement de R1036 :** le [protocole canonique](../process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036) autorise une mission regroupant les 31 sources restantes, lecture intégrale et choix des formulations sous délégation, sans validation tableau par tableau. Candidat complet et contrôles verts avant push review puis promotion strictement fast-forward du même candidat vers main, sans review ChatGPT intermédiaire. Après publication, vérifier le SHA et le déploiement exacts, puis la courte [recette essentielle](step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement). Aucune activation Twitch.
 
-**Étape 29 ACTIVE :** l'audit et l'adaptation Chat des 31 sources restantes sont réalisés dans ce lot ; six sources déjà livrées sont conservées en non-régression. Le sweep historique ne remplace pas cette preuve d'adaptation. Tests, publication, déploiement et recette sont distingués au Master ; 29 n'est pas clôturée par les seuls tests.
+**Étape 29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE R1039 :** recette publique représentative R1038 et derniers retours explicitement bornés. Correctifs testés automatiquement et promotion du même candidat autorisée sans nouvelle review ou gate manuel. Aucune validation publique individuelle des dernières corrections présumée ; prochaine étape 30 foundation/rehearsal privée, non commencée.
 
 **Préparation de bascule transparente, pas cutover en 29 :** mêmes syntaxes pertinentes, aliases conservés ou migration explicitement approuvée, réponses communes standalone/Twitch lorsque pertinent, mêmes services PostgreSQL/économie/cooldowns, identité Twitch User ID immuable, idempotence ; aucun double traitement/message, réponse ou récompense. Objectif après cutover : état migré reconnu et aucune réinscription manuelle due au changement de backend. Streamer.bot reste autoritatif aujourd'hui. Préparer un seul propriétaire d'exécution par Player/message/commande, natif OFF par défaut, pilote Ceo avec rollback/gate puis batch uniquement après validation ; mécanisme exact à décider en 29 après lecture du runtime et des contraintes Streamer.bot. Répétition privée en 30, activation par missions 31A Ceo puis 31B batch selon le [runbook](../process/legacy-cutover-runbook.md).
 
 Twitch et Chat standalone peuvent rester deux flux distincts, sans mirroring obligatoire. Tous les messages Twitch devront pouvoir alimenter en mémoire la future classification, XP et le parser ; seules les commandes nécessaires atteindront les services métier communs. L'adapter Twitch n'exécute aujourd'hui aucune commande et ne répond pas sur Twitch.
 
-**Sorties communes — R1038 :** résultats issus des propriétaires modernes, montants exacts, glyphes et libellés français, noms complets, durées lisibles. Listes demandées complètes réparties en entrées logiques entières, une ligne et au plus 500 caractères Unicode par message, via le pipeline multiparties R1037. Pagination métier conservée (Box, Team 10, Shop 5, Liste 20) ; Top 5 et Event Top 10 restent leurs limites volontaires. Les intentions de mutation et les résultats autoritatifs sont mémorisés pour les retries après commit et avant publication ; aucun gain, toggle ou cooldown répété via un alias. Les textes sont choisis sous délégation et restent à recetter publiquement. Streamer.bot demeure autoritatif sur Twitch.
+**Sorties communes — R1038 :** résultats issus des propriétaires modernes, montants exacts, glyphes et libellés français, noms complets, durées lisibles. Listes demandées complètes réparties en entrées logiques entières, une ligne et au plus 500 caractères Unicode par message, via le pipeline multiparties R1037. Pagination métier conservée (Box, Team 10, Shop 5, Liste 20) ; Top 5 et Event Top 10 restent leurs limites volontaires. Les intentions de mutation et les résultats autoritatifs sont mémorisés pour les retries après commit et avant publication ; aucun gain, toggle ou cooldown répété via un alias. La recette représentative R1038 et la clôture propriétaire R1039 ne valent pas validation publique individuelle des dernières corrections. Streamer.bot demeure autoritatif sur Twitch.
 
 Après validation du transport 2B-2, pause de Twitch avancé et passage aux domaines V1 suivants. R1034 clôture 27 par décision de périmètre : la charge/performance restante est acceptée en observation bêta/situation réelle, non bloquante, sans campagne obligatoire pré-migration ; [l'architecture](../architecture/backend-architecture-v1.md) décrit le trafic/latence/pool/retries à mesurer. Le pilote conserve une écriture Receipt par notification ; sa seule purge codée suit la [politique de rétention](../specifications/data-retention-v1.md). Les commandes ordinaires seront évaluées en mémoire, sans historique Twitch ordinaire persistant lorsque inutile.
+
+## Restitution finale propriétaire — R1039
+
+Ces présentations remplacent les formulations R1038 concernées, sans changer les règles métier.
+
+| Commande | Contrat final |
+| --- | --- |
+| Quotis | ✅ = activité terminée/claim effectué ; ⏳ = action restante ; ➖ = Faveur inactive ou Combat bloqué. Expédition RUNNING/READY reste ⏳ ; IDLE après départ du jour et récompense récupérée = ✅. Amitié : zéro cœur restant ✅, sinon ⏳ avec nombre. Festival non inscrit ⏳. |
+| Échanges | Nom exact avec/sans @, montant/MAX. Projection TradeService read-only : introuvable, indisponible opaque (aucune divulgation de blocage/statut), même élément, demande PENDING, stock acteur nul, stock partenaire nul. Maximum après réservations non expirées ; create reste autoritatif. Cas Mynonyme : aucune particule ❄️ Cryo disponible à échanger chez le partenaire. |
+| Expédition | Tentative de départ RUNNING : vrai personnage et remainingSeconds via durationText ; READY : aide !expedition retour. Nom READY exact conserve le claim. Rejeu confirmé conserve branche/ID. |
+| Passifs | Alias exact !passif, Help canonique !passifs [element]. |
+| Team | !team et !team N : ✅ Team Joueur : emoji Nom (Cn) - ... \| 🧩 Passifs actifs : textes compacts séparés par virgules, ou Aucun passif actif. Paramètres modernes exclusivement ; formatter partagé avec les compositions après mutations. |
+| Shop | Racine 🛒 Shop : 📜 Mission [💰 coût] \| 💠 quantité Primos [💰 coût] \| 🎟️ Ticket [💰 coût] \| Achat : !shop article. Projection DailyChallenge.purchaseCost et catalogue Shop/rewardPerUnit ; aucun prix/bundle dupliqué. Pages explicites cinq entrées et actions mission/switch/primos/ticket conservées. |
+| Sac | ✅ Joueur, sac : 💠 montant primos (floor(primos/160) voeux) \| 💰 montant moras \| emoji stock. Sept particules même nulles, personnel d’abord puis Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro sans doublon ; aucun objet spécial Chat, UI Sac inchangée, Collection via Coffre. Lecture seule. |
+| Liste | Help !liste <pyro\|hydro\|cryo\|electro\|anemo\|geo\|dendro\|online> [page] ; element/elements/élément/éléments = helper des sept commandes, sans recherche/mutation. Filtres/pages modernes conservés. |
+| Concours | États actif et absent suivis de Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest ; consultation seulement. |
+| Event | Emoji Festival au début, monnaie sans emoji répété ; fin réelle Europe/Paris dd/MM/yyyy HH:mm. Jeu A ✅ ou ⏳, B restants/maximum quotidien (constante métier), C envoyé ✅/à envoyer, Bonus quotidien ✅/à récupérer ; trois syntaxes et boutique/top conservés. Racine consultative. |
+| Pull | N tirages = N résultats principaux distincts, monolignes, ordonnés, parties logiques atomiques R1037. [i/N] si N>1, aucun [1/1] ni Invocation ×N. Personnage : 🎉 Joueur obtient étoiles emoji Nom ! Nouveau personnage : C0 / Doublon : passe Cn / Déjà C6 : remboursement réel primos (solde). Ressource : ✅ Joueur obtient +montant 💰 moras ou particules emoji Élément (solde). Pity, 50/50, garantie/Capture, Early/Hard/B2B depuis faits enregistrés. C6 stat/compensation et tous les gains/passifs XP intégrés au tirage ; seule typographie/labels compactés si nécessaire pour 500 caractères. Soldes affichés par étape enregistrés en strings dans le snapshot JSON existant, à l’intérieur de la transaction ; aucun calcul depuis le portefeuille live au replay. Aucun nouveau moteur/table/migration/probabilité. Pipeline Mission/Défi conservé, sans fusionner deux Pulls. |
+
+Les tests Chat et PostgreSQL privés portent les régressions ; preuves exécutées au Master. Streamer.bot reste autoritatif ; aucun parser global/outbound/EventSub/cutover ni étape 30 activés.
 
 ## Règle d'audit
 
@@ -303,7 +323,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 - **Arrondi Pyro/Geo :** entier le plus proche, `.5` vers le haut
 - **Interactions reportées :** chaque Pull individuel contribue aux éventuelles missions de type `pulls`, mais les règles et récompenses Missions appartiennent au domaine Missions ; règles Concours détaillées reportées au domaine Concours/C6
 
-**Amendement Chat R1038 :** Chaque résultat [i/N] conserve nom entier, étoiles, élément, Cn, nouveau/double, coût, pity et bonus réels. Refund C6 80/160, stat et compensation 100 000 Moras au maximum, passifs et XP/overflow selon le propriétaire ; aucun montant ni RNG déduit par le formatter.
+**Amendement Chat R1038 :** Chaque résultat [i/N] conserve nom entier, étoiles, élément, Cn, nouveau/double, pity et bonus réels ; le coût reste celui de l’opération, sans en-tête agrégé Chat. Refund C6 80/160, stat et compensation 100 000 Moras au maximum, passifs et XP/overflow selon le propriétaire ; aucun montant ni RNG déduit par le formatter.
 
 ## `!box`
 - **Statut audit :** Audité — domaine Box / Possessions / Obtention clôturé après R176
@@ -749,14 +769,14 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!sac`
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
-- **But :** Consulter les ressources et objets spéciaux personnels.
+- **But :** Consulter les ressources personnelles dans le Chat ; le Sac UI conserve les objets spéciaux.
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** oui
 - **UI équivalente :** écran Sac
 - **Statut implémentation :** écran Sac personnel réel branché sur l'agrégat serveur ; la consultation Chat interne R1038 appelle ce même agrégat. Twitch reste non branché.
 - **UI actuelle :** catégories `Tout` / `Ressources` / `Objets` / `Collection`; la carte Moras entière navigue vers Banque et indique discrètement `Accéder à la Banque`; Stella réutilise le flux Box/Team commun.
 - **Profil ciblé :** propriétaire uniquement ; pas de `!sac <pseudo>`
-- **Contenu :** Primogemmes, invocations possibles dérivées, Moras, sept particules, objets spéciaux persistants possédés
+- **Contenu :** Primogemmes, invocations possibles dérivées, Moras et sept particules ; objets spéciaux dans l’UI Sac seulement
 - **Particules :** élément principal affiché en premier
 - **Stella :** visible comme objet spécial si possédée
 - **Collection :** non incluse dans la ligne `!sac`; utiliser `!coffre`
@@ -764,7 +784,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Réponse Twitch :** une seule ligne
 - **Donnée dérivée :** invocations possibles = `floor(primogems / 160)`
 
-**Amendement Chat R1038 :** Les sept stocks de particules, même nuls, avec personnel en premier ; Moras/Primogemmes, vœux entiers et objets positifs. Collection réservée au Coffre.
+**Amendement Chat R1038 :** Les sept stocks de particules, même nuls, avec personnel en premier ; Moras/Primogemmes, voeux entiers ; objets spéciaux omis du Chat depuis R1039. Collection réservée au Coffre.
 
 ## `!coffre`
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
@@ -920,7 +940,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
 - **Évolution :** le Combat quotidien possède désormais ses états À faire / En cours / Terminé / Bloqué ; Roue, Ami et Event continueront à préciser leurs états lors de leurs audits
 
-**Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, départ Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
+**Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, état/récupération Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
 
 ## `!expedition`
 

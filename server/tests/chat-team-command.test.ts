@@ -22,8 +22,12 @@ function fixture() {
 }
 describe('Team text commands', () => {
   it('consults numbered Teams without activation, including empty Teams and active status', async () => {
-    const h = fixture(); expect(await h.run()).toEqual(['✅ Axel, Team 1 ⭐ active : 0/4 personnages | 🧩 Aucun passif actif']);
-    expect((await h.run('2'))[0]).toContain('Team 2'); expect(h.services.activatePlayerTeam.execute).not.toHaveBeenCalled();
+    const h = fixture(); expect(await h.run()).toEqual(['✅ Team Axel : vide | 🧩 Aucun passif actif']);
+    expect((await h.run('2'))[0]).toContain('Team Axel : vide'); expect(h.services.activatePlayerTeam.execute).not.toHaveBeenCalled();
+    h.state.teams = h.state.teams.map(team => team.position === 2 ? { ...team, slots: team.slots.map(slot => slot.position === 1 ? { ...slot, character } : slot) } : team);
+    expect((await h.run('2'))[0]).toContain('🔥 Étoile Royale (C2)');
+    expect((await h.run())[0]).toContain('Team Axel : vide');
+    expect(h.services.activatePlayerTeam.execute).not.toHaveBeenCalled();
     expect(await h.run('99')).toContain('introuvable');
   });
   it('applies the requested Team and propagates delivery key and refresh scopes', async () => {

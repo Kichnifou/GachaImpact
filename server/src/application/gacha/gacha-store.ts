@@ -16,6 +16,8 @@ export type CurrentBanner = Readonly<{
 }>;
 export type PullResultRecord = Readonly<{
   index: number;
+  /** Exact balances captured inside this pull step; absent on historical receipts. */
+  resourceTotalsAfter?: Readonly<Partial<Record<ResourceKey, string>>>;
   pity5AtPull?: number | null;
   pity4AtPull?: number | null;
   backToBack?: boolean;

@@ -2,6 +2,14 @@
 
 Statut : évolutif.
 
+## Recette propriétaire finale / clôture étape 29 — R1039 (2026-10-04)
+
+VALIDÉ PAR LE PROPRIÉTAIRE AVANT CODE : recette publique représentative R1038 acquise hors des onze retours listés ; hotfix 36a068c publiquement confirmé, chargement normal. Corriger seulement Quotis, Échanges, Expédition, alias passif, Team, Shop, Sac, Liste, Concours, Event racine et restitution Pull. [Contrats courants](../commands/command-reference.md#restitution-finale-propriétaire--r1039).
+
+Restitution compacte proche des textes historiques, valeurs modernes autoritatives ; Sac Chat sans objets spéciaux, alias exact passif, diagnostic Échanges via projection Trade read-only respectant les blocages. N Pulls = N messages principaux distincts [i/N] (aucun [1/1]), passifs/gains/faits 5★/C6 modernes conservés. Soldes par étape utiles à l’affichage persistés en strings dans le snapshot JSON existant, sans migration ni reconstitution depuis l’état live au rejeu. Moteurs, économie, atomicité et pipeline Mission/Défi conservés.
+
+Après contrôles verts : publication review puis CE MÊME candidat main par fast-forward strict, sans review ChatGPT intermédiaire ni nouveau gate manuel. **29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE** ; dernières corrections testées automatiquement sans recette publique individuelle présumée. Prochaine étape **30 — FOUNDATION / REHEARSAL PRIVÉE, NON COMMENCÉE**. Exception de promotion 29 non étendue à 30. Streamer.bot autoritatif ; aucun parser global/outbound/EventSub/cutover/31A/31B/migration. STOP après publication et rapport.
+
 ## Toutes les commandes restantes — délégation étape 29 — R1038 (2026-10-04)
 
 - Décision explicite du propriétaire : regrouper les **31 sources restantes** dans une mission après les six fichiers Ami/Banniere/Banque/Box/Code/Coffre. Leur adaptation est déléguée suivant les principes R1035–R1037 ; suppression des tableaux et validations préalables fichier par fichier pour ce périmètre. Lecture intégrale de chaque source/helpers, douze mois d'Event et triggers XP/Gift/Subscription obligatoire. [Couverture des 37 sources](../commands/step-29-command-coverage.md), distincte du sweep métier historique.
