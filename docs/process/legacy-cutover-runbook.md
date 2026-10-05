@@ -15,7 +15,26 @@ Contrôle DEV du 27 septembre 2026 : 050–052 appliquées par Prisma, registre 
 
 ## Étape 30 — foundation / rehearsal, pas cutover
 
-### Capture et contrôle du candidat du 04/10/2026
+### Continuation après review indépendante — 05/10/2026
+
+Baseline review eeca318, main 32bf76d, divergence 1/0 et propre. Credentials vérifiés présents/non vides seulement ; server/.env ignoré, aucun secret lu dans les sorties ou copié. Même capture/hash du 04/10 contrôlé par le loader : 17 sources/0 inconnu et 45 profils éligibles.
+
+Commandes depuis server, rapports locaux ignorés :
+
+```powershell
+npm.cmd run migration:legacy:resolve-identities -- ../local-data/streamerbot-snapshots/20261004T200232514Z ../local-data/identity-resolutions/20261005-helix-final.json
+npm.cmd run migration:legacy:rehearse -- ../local-data/streamerbot-snapshots/20261004T200232514Z 2026-10-04T20:02:33.000Z --identities ../local-data/identity-resolutions/20261005-helix-final.json
+```
+
+**Résolution réelle PASS pour 43/45 :** 0 renommage, 2 NOT_FOUND, 0 CONFLICT, 0 DUPLICATE. Rapport détaillé/identités jamais versionnés. Rapprochement public READ ONLY : 10 Players/10 comptes web, une identité existante ; 1 compte web réutilisable, 42 futurs Twitch-only parmi les résolus, 9 comptes web non rattachés. Ces 42 ne préjugent pas du résultat des deux absents. Le préflight réel sort 1 sur deux TWITCH_IDENTITY_UNRESOLVED **avant création du schéma et toute mutation**. Rehearsal réelle complète **NON EXÉCUTÉE / BLOCKER sortie 30** ; ne pas importer seulement les 43, inventer des IDs, rapprocher par pseudo ou exclure les deux silencieusement. Le champ missing du rapport local est destiné à l'opérateur ; demander une preuve historique par User ID immuable pour un éventuel renommage, puis relancer Helix avec le rapport précédemment vérifié selon son contrat.
+
+Le mode fixture reste sans option --identities : ISOLATED_FIXTURE, exit30Certified=false. Le mode réel utilise le même planner et est marqué VERIFIED_TWITCH_IDENTITIES. Rapport strict version 1/TWITCH_HELIX, sous le répertoire ignoré vérifié (chemins réels), hash du snapshot, partition complète des profils éligibles, IDs et logins uniques, renommages cohérents, resolvedAt non futur et de moins de 24 h. Un fichier stale doit être régénéré par Helix, jamais retouché. Aucun token/secret autorisé dans le schéma du rapport. Les erreurs ne loggent ni raw JSON ni détails privés.
+
+Le chemin réel lit dans public uniquement la projection Players/WebIdentity/TwitchIdentity, préférences, privacy et rôles en transaction REPEATABLE READ READ ONLY. Dans batch_test_* seulement, les Players et leurs identités sont reproduits pour prouver les correspondances ; WebIdentity utilise des subjects Auth de fixture. Aucun email, credential ou session publique copié. Les préférences non gameplay restent exactes ; box.sort est remplacé pour les Players importés conformément au contrat existant. Les comptes sans identité restent non rattachés ; les Players déjà liés, y compris Twitch-only, sont réutilisés par User ID. Comptes/rôles/privacy/projection sont vérifiés après import. Preuves automatisées et bilan final au Master.
+
+**PASS de continuation :** 106 tests ciblés/7 fichiers, 16 tests DB/5 fichiers séquentiels, types et verify-ddl (1 134 colonnes/16 tables/29 provenance/sécurité). Rehearsal complète fixture : rollback, second import sur état restauré et restauration finale PASS ; mêmes agrégats et empreinte numérique que eeca318, aucune opération fictive/double claim/reward. Nouveau test PostgreSQL du rapport vérifié de fixture et des comptes existants : renommage, réutilisation par ID, Player Twitch-only, aucune liaison par pseudo, rollback/restore/idempotence PASS. Verify:full final 8/8 ; première passe frontend timeoutée, test isolé puis suite complète verts sans modification de code/timeout, détail au Master. 60 migrations à jour en lecture seule, aucune nouvelle/application publique. Schémas créés nettoyés ; un schéma préexistant hors périmètre conservé. Empreintes publiques stables hors présence : sessions au même nombre, aucune créée/clôturée durant l'audit et heartbeats récents compatibles avec le site actif. **Le préflight réel reste BLOCKER sur deux NOT_FOUND ; aucune preuve fixture ne certifie l'import complet réel.**
+
+### Historique — capture et contrôle du candidat du 04/10/2026
 
 Baseline `32bf76dbef8eebfecc790f4e407514c25f56b937`, main/review 0/0 et propres. Nouvelle capture depuis le chemin canonique lu dans Pull.txt, dossier vivant strictement en lecture seule : `20261004T200232514Z`, SHA-256 `d0cf57becc4645a97c6b634e78ca4e075222aac7ea77f97d234ab83f7be7d486`. Les 17 copies ont été comparées aux hashes source avant/après copie et au manifest. Aucun JSON privé versionné. Depuis server :
 

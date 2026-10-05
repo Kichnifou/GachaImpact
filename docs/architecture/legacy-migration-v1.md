@@ -4,7 +4,9 @@ Statut : **socle promu sur `main` ; cutover public non exécuté**. Ce document 
 
 ## Frontière
 
-**Candidat étape 30 du 04/10/2026 :** capture récente/hash/couverture et preuves privées au [runbook](../process/legacy-cutover-runbook.md#capture-et-contrôle-du-candidat-du-04102026). 216 profils, 45 éligibles/171 exclus, 17 sources/29 463 chemins classifiés/0 inconnu ; les chiffres figés ci-dessous restent historiques. Résolution Twitch réelle bloquée par credentials applicatifs absents ; fixtures explicitement non autoritatives. Aucune certification de sortie 30, promotion main, écriture publique ou activation Twitch.
+**Continuation étape 30 du 05/10/2026 :** Helix résout 43/45 identités, 0 renommage/conflit/doublon ; deux NOT_FOUND restent blockers. Lecture publique read-only : 1 compte web réutilisable, 42 futurs Twitch-only parmi les résolus, 9 comptes web non rattachés. Rehearsal --identities avec rapport strict local ignoré et frais, hash/population contrôlés ; même planner que le mode fixture conservé. Le préflight réel bloque avant création du schéma pour les deux absents : import réel complet non exécuté, étape 30 ACTIVE. Détails actuels au [runbook](../process/legacy-cutover-runbook.md#continuation-après-review-indépendante--05102026). Aucun changement des règles produit, DDL, autorités Twitch ou du cutover.
+
+**Historique — candidat étape 30 du 04/10/2026 :** capture récente/hash/couverture et preuves privées au [runbook](../process/legacy-cutover-runbook.md#historique--capture-et-contrôle-du-candidat-du-04102026). 216 profils, 45 éligibles/171 exclus, 17 sources/29 463 chemins classifiés/0 inconnu ; les chiffres figés ci-dessous restent historiques. Résolution Twitch réelle bloquée par credentials applicatifs absents ; fixtures explicitement non autoritatives. Aucune certification de sortie 30, promotion main, écriture publique ou activation Twitch.
 
 **R1040 :** 30 → pilote réel Kichnifou-only de validation transport/commandes → 31A Ceo → 31B batch → 32. Gate préparé seulement en 30, recette et activation dans une mission dédiée. Le premier import pilote Kichnifou historique ci-dessous et ce nouveau gate transport sont distincts.
 

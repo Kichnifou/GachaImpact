@@ -1,7 +1,7 @@
 import { normalizeLegacyName } from './streamerbot-snapshot.js';
 
 export type ResolvedTwitchUser = { legacyLogin: string; twitchUserId: string; currentLogin: string; displayName: string; renamed: boolean };
-export type TwitchResolution = { users: ResolvedTwitchUser[]; missing: string[]; conflicts: string[] };
+export type TwitchResolution = { users: ResolvedTwitchUser[]; missing: string[]; conflicts: string[]; duplicates: number };
 type Fetch = typeof fetch;
 const validLogin = /^[a-z0-9_]{1,25}$/;
 
@@ -65,15 +65,16 @@ export async function resolveLegacyTwitchLogins(
   const users: ResolvedTwitchUser[] = [];
   const missing: string[] = [];
   const conflicts: string[] = [];
+  let duplicates = 0;
   const ids = new Set<string>();
   for (const login of normalized) {
     const user = found.get(login.key);
     if (!user) { missing.push(login.original); continue; }
     if (knownIds[login.key] && knownIds[login.key] !== user.id) { conflicts.push(login.original); continue; }
-    if (ids.has(user.id)) { conflicts.push(login.original); continue; }
+    if (ids.has(user.id)) { conflicts.push(login.original); duplicates++; continue; }
     ids.add(user.id);
     users.push({ legacyLogin: login.original, twitchUserId: user.id, currentLogin: user.login,
       displayName: user.display_name, renamed: login.key !== normalizeLegacyName(user.login) });
   }
-  return { users, missing, conflicts };
+  return { users, missing, conflicts, duplicates };
 }

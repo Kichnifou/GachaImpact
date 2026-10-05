@@ -28,6 +28,7 @@ describe('Twitch app identity resolution', () => {
     const result = await resolveLegacyTwitchLogins(['one', 'two'], { clientId: 'id', clientSecret: 'secret' },
       fakeRequest([{ id: '123', login: 'one', display_name: 'One' }]), { two: '123' });
     expect(result.conflicts).toEqual(['two']);
+    expect(result.duplicates).toBe(1);
   });
 
   it('blocks a reused login when its previously verified Twitch ID differs', async () => {

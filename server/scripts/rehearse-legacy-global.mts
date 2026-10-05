@@ -3,6 +3,9 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { deepStrictEqual } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
+import pg from 'pg';
+import { identityResolutionSummary, loadVerifiedTwitchReport, parseRehearsalArguments } from '../src/application/migration/verified-twitch-report.js';
+import { assertLegacyAccountPreservation, readLegacyAccountProjection, seedLegacyAccountProjection, type AccountProjection } from '../tests-db/legacy-account-projection.js';
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
 import { capturePrivateSchema, privateNumericStateHash, restorePrivateBackup, writePrivateBackup } from '../tests-db/private-schema-backup.js';
 import { loadLegacySnapshotDirectory } from '../src/application/migration/legacy-snapshot-directory.js';
@@ -21,23 +24,46 @@ import { applyLegacyContest } from '../src/application/migration/legacy-contest-
 import { remainingFavorDays } from '../src/application/migration/legacy-favor-calendar.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
 
-const directory = process.argv[2];
-if (!directory) throw new Error('Usage: tsx scripts/rehearse-legacy-global.mts <ignored-snapshot-directory> [cutover-ISO-instant]');
+async function main() {
+const { directory, cutoverAt, identities: identityFile, identityMode } = parseRehearsalArguments(process.argv.slice(2));
 const snapshot = await loadLegacySnapshotDirectory(resolve(directory));
 validateLegacyBossSnapshot(snapshot);
 const catalog = JSON.parse(await readFile(new URL('../prisma/data/characters.json', import.meta.url), 'utf8')) as { externalKey: string }[];
-const identities = fixtureTwitchResolution(snapshot);
-const existingId = randomUUID(), unmatchedId = randomUUID();
-const existingWeb = [
-  { id: existingId, displayName: 'Existing web fixture', twitchUserId: identities[0]!.twitchUserId },
-  { id: unmatchedId, displayName: 'Unmatched web fixture', twitchUserId: null },
-];
-// A recent capture must never silently inherit the frozen September cutover date.
-const cutoverAt = new Date(process.argv[3] ?? new Date().toISOString());
-if (Number.isNaN(cutoverAt.getTime())) throw new Error('Invalid cutover instant.');
-const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)),
-  [{ playerId: existingId, twitchUserId: identities[0]!.twitchUserId }], cutoverAt);
-if (plan.issues.some(issue => issue.severity === 'BLOCKER') || plan.players.length === 0) throw new Error('Population rehearsal blocked.');
+const report = identityFile ? await loadVerifiedTwitchReport(identityFile, snapshot) : null;
+const identities = report?.users ?? fixtureTwitchResolution(snapshot);
+let accounts: AccountProjection;
+if (report) {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  try { await client.connect(); accounts = await readLegacyAccountProjection(client); }
+  finally { await client.end(); }
+} else {
+  const existingId = randomUUID(), unmatchedId = randomUUID();
+  accounts = {
+    players: [
+      { id: existingId, displayName: 'Existing web fixture', twitchUserId: identities[0]!.twitchUserId, elementKey: 'pyro', hasWebAccount: true },
+      { id: unmatchedId, displayName: 'Unmatched web fixture', twitchUserId: null, elementKey: 'pyro', hasWebAccount: true },
+    ],
+    identities: [{ playerId: existingId, twitchUserId: identities[0]!.twitchUserId, login: identities[0]!.currentLogin, displayName: 'Stale twitch fixture' }],
+    preferences: [{ playerId: existingId, preferenceKey: 'menu.defaultTab', value: 'inventory' }],
+    privacy: [{ playerId: existingId, categoryKey: 'CURRENCY_BALANCES', level: 'FRIENDS' }],
+    roles: [{ playerId: existingId, role: 'TESTER', source: 'private-rehearsal' }],
+  };
+}
+const existingWeb = accounts.players;
+const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)), accounts.identities, cutoverAt);
+const reused = plan.players.filter(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH').length;
+const blockers = plan.issues.filter(issue => issue.severity === 'BLOCKER');
+process.stdout.write(JSON.stringify({ phase: 'IDENTITY_PREFLIGHT', identityMode, snapshotHash: snapshot.hash,
+  ...(report ? identityResolutionSummary(report) : { resolved: 0, fixtureIdentities: identities.length }),
+  existingPlayers: accounts.players.length, webAccounts: accounts.players.filter(row => row.hasWebAccount).length,
+  reusedPlayers: reused, reusedWebAccounts: plan.players.filter(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH' && accounts.players.find(account => account.id === row.playerId)?.hasWebAccount).length,
+  futureTwitchOnly: plan.players.filter(row => row.mappingMode === 'TWITCH_ONLY').length,
+  unmatchedWebAccounts: plan.unmatchedWebPlayerIds.length, blockers: blockers.length,
+  blockerCodes: [...new Set(blockers.map(row => row.code))], exit30Certified: false }) + '\n');
+if (blockers.length || !plan.players.length || report?.missing.length || report?.conflicts.length) throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
+const existingId = plan.players.find(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH')?.playerId;
+const unmatchedId = plan.unmatchedWebPlayerIds[0];
+if (!existingId || !unmatchedId) throw new Error('PRIVATE_PRESERVATION_PROBES_UNAVAILABLE');
 const isolated = isolatedBatchDatabase();
 let setupStarted = false;
 try {
@@ -49,14 +75,8 @@ try {
   for (const entry of catalog.filter(row => ['legacy:119', 'legacy:120'].includes(row.externalKey)))
     await db.character.upsert({ where: { externalKey: entry.externalKey }, create: entry as never, update: {} });
   await db.$transaction(tx => ensureLegacyCharacterAvatars(tx), { timeout: 30_000 });
-  await db.player.createMany({ data: existingWeb.map(row => ({ id: row.id, displayName: row.displayName, elementKey: 'pyro' })) });
-  await db.webIdentity.createMany({ data: existingWeb.map(row => ({ playerId: row.id, provider: 'fixture', providerSubject: row.id })) });
-  await db.playerPreference.create({ data: { playerId: existingId, preferenceKey: 'menu.defaultTab', value: 'inventory' } });
-  await db.privacySetting.create({ data: { playerId: existingId, categoryKey: 'CURRENCY_BALANCES', level: 'FRIENDS' } });
-  await db.playerRoleAssignment.create({ data: { playerId: existingId, role: 'TESTER', source: 'private-rehearsal' } });
+  await db.$transaction(tx => seedLegacyAccountProjection(tx, isolated.schema, accounts));
   await db.playerSession.create({ data: { playerId: existingId, sessionTokenHash: randomBytes(32).toString('hex') } });
-  await db.twitchIdentity.create({ data: { playerId: existingId, twitchUserId: identities[0]!.twitchUserId, login: identities[0]!.currentLogin,
-    displayName: 'Stale twitch fixture' } });
   await db.playerProgression.createMany({ data: [{ playerId: unmatchedId, xp: 999n }, { playerId: existingId, xp: 888n }] });
   await db.globalChatMessage.create({ data: { authorPlayerId: existingId, sourceChannel: 'INTERNAL_CHAT',
     messageType: 'PLAYER', content: 'Private pre-cutover fixture' } });
@@ -79,7 +99,7 @@ try {
       throw new Error('Personal mapping preflight blocked; no purge applied.');
     personalPlans.set(player.playerId, mapped);
   }
-  process.stdout.write(JSON.stringify({ phase: 'PRIVATE_PURGE_IMPORT_PLAN', identityMode: 'ISOLATED_FIXTURE',
+  process.stdout.write(JSON.stringify({ phase: 'PRIVATE_PURGE_IMPORT_PLAN', identityMode,
     exit30Certified: false,
     snapshotHash: snapshot.hash, cutoverAt: cutoverAt.toISOString(), included: plan.players.length,
     excluded: plan.excludedProfiles, issueCounts: plan.issues.reduce<Record<string, number>>((counts, issue) => {
@@ -100,8 +120,9 @@ try {
     }), { resourceBalances: 0, characters: 0, c6Progress: 0, teams: 0, teamMembers: 0, items: 0, missionProgress: 0, characterCombatStats: 0 }),
     sharedDomains: ['Social', 'Giveaway', 'Codes', 'Boss', 'Event', 'Banner', 'DailyCombat', 'Contest'],
   }) + '\n');
-  if (purgePlan.retainedPlayers !== 2n || purgePlan.retainedWebIdentities !== 2n || purgePlan.retainedRoles !== 1n ||
-    purgePlan.retainedPreferences !== 1n || purgePlan.retainedPrivacy !== 1n) throw new Error('Existing web preservation plan is incomplete.');
+  if (purgePlan.retainedPlayers !== BigInt(accounts.players.length) || purgePlan.retainedWebIdentities !== BigInt(accounts.players.filter(row => row.hasWebAccount).length) ||
+    purgePlan.retainedRoles !== BigInt(accounts.roles.length) || purgePlan.retainedPreferences !== BigInt(accounts.preferences.length) ||
+    purgePlan.retainedPrivacy !== BigInt(accounts.privacy.length)) throw new Error('Existing web preservation plan is incomplete.');
   for (const table of ['global_chat_messages', 'direct_messages', 'notifications', 'player_sessions']) {
     if (purgePlan.deleteOrder.find(row => row.table === table)?.rows !== 1n) throw new Error(`Private purge missed seeded ${table}.`);
   }
@@ -111,9 +132,9 @@ try {
   const execute = (injectFailure: boolean) => db.$transaction(async db => {
     await applyPrivateCutoverPurge(db, purgePlan);
     if (await db.playerProgression.count() !== 0 || await db.playerSession.count() !== 0 ||
-      await db.player.count() !== 2 || await db.webIdentity.count() !== 2)
+      await db.player.count() !== accounts.players.length || await db.webIdentity.count() !== accounts.players.filter(row => row.hasWebAccount).length)
       throw new Error('Private purge did not preserve accounts or clear test gameplay.');
-    await db.player.update({ where: { id: unmatchedId }, data: { elementKey: null } });
+    await db.player.updateMany({ where: { id: { in: plan.unmatchedWebPlayerIds } }, data: { elementKey: null } });
     const manifest = JSON.parse((await readFile(resolve(directory, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, '')) as {
       files: { name: string; size: number; sha256: string; sourceModifiedUtc?: string }[]; capturedAtUtc?: string };
     const batch = await db.migrationBatch.create({ data: { snapshotHash: snapshot.hash, status: 'APPLYING', mode: 'REHEARSAL',
@@ -181,10 +202,8 @@ try {
       clearedSessions: await db.playerSession.count(),
       bossAggregates: await db.bossLegacyAggregate.count(),
       unmatchedWebElement: (await db.player.findUniqueOrThrow({ where: { id: unmatchedId } })).elementKey,
-      retainedWebDisplayName: (await db.player.findUniqueOrThrow({ where: { id: existingId } })).displayName,
-      retainedPreference: (await db.playerPreference.findUniqueOrThrow({ where: { playerId_preferenceKey: { playerId: existingId, preferenceKey: 'menu.defaultTab' } } })).value,
-      retainedPrivacy: (await db.privacySetting.findUniqueOrThrow({ where: { playerId_categoryKey: { playerId: existingId, categoryKey: 'CURRENCY_BALANCES' } } })).level,
-      retainedRoles: await db.playerRoleAssignment.count({ where: { playerId: existingId, revokedAt: null } }),
+      reusedPlayers: reused, futureTwitchOnly: plan.players.length - reused,
+      retainedRoles: await db.playerRoleAssignment.count(),
       sourceFiles: await db.migrationSourceFile.count({ where: { batchId: batch.id } }),
       issues: issueRows.length, issueCounts, personalIssueDomains,
       social,
@@ -204,10 +223,12 @@ try {
     const expectedPlayers = existingWeb.length + plan.players.filter(player => player.mappingMode === 'TWITCH_ONLY').length;
     const expectedFavorStates = plan.players.filter(player => player.viewer.favor != null).length;
     const retainedTwitch = await db.twitchIdentity.findUniqueOrThrow({ where: { playerId: existingId } });
-    if (retainedTwitch.displayName !== identities[0]!.displayName) throw new Error('Current Twitch display name was not refreshed.');
-    if (stats.imported !== plan.players.length || stats.players !== expectedPlayers || stats.identityRows !== plan.players.length || stats.runs !== plan.players.length ||
+    const mappedIdentity = plan.players.find(row => row.playerId === existingId)!;
+    if (retainedTwitch.displayName !== mappedIdentity.twitchDisplayName || retainedTwitch.login !== mappedIdentity.twitchLogin) throw new Error('Current Twitch identity was not refreshed.');
+    await assertLegacyAccountPreservation(db, accounts, plan.players.map(row => row.playerId));
+    if (stats.imported !== plan.players.length || stats.players !== expectedPlayers || stats.identityRows !== accounts.identities.length + plan.players.filter(row => !accounts.identities.some(identity => identity.playerId === row.playerId)).length || stats.runs !== plan.players.length ||
       stats.resourceMovements !== 0 || stats.businessOperations !== 0 || stats.unmatchedWebElement !== null || stats.sourceFiles !== 17 ||
-      stats.retainedWebDisplayName !== 'Existing web fixture' || stats.retainedPreference !== 'inventory' || stats.retainedPrivacy !== 'FRIENDS' || stats.retainedRoles !== 1 ||
+      stats.retainedRoles !== accounts.roles.length ||
       stats.unknownPaths !== 0 || issueRows.some(issue => issue.severity === 'BLOCKER') ||
       stats.social.friendships !== plan.friendshipCount || stats.social.requests !== plan.requestCount ||
       Object.values(stats.fabricatedHistories).some(count => count !== 0) || Object.values(stats.clearedMessaging).some(count => count !== 0) ||
@@ -234,10 +255,16 @@ try {
   const second = await execute(false);
   deepStrictEqual(second, first);
   await restorePrivateBackup(isolated.admin, isolated.schema, importedFile);
-  process.stdout.write(JSON.stringify({ phase: 'PRIVATE_GLOBAL_REHEARSAL', identityMode: 'ISOLATED_FIXTURE',
+  process.stdout.write(JSON.stringify({ phase: 'PRIVATE_GLOBAL_REHEARSAL', identityMode,
     ...first, snapshotHash: snapshot.hash, globalRollbackVerified: true, idempotentCleanTarget: true,
     privateBackupRestoreVerified: true,
-    exit30Certified: false }) + '\n');
+    exit30Certified: identityMode === 'VERIFIED_TWITCH_IDENTITIES' }) + '\n');
 } finally {
   if (setupStarted) await isolated.cleanup();
 }
+
+}
+await main().catch(error => {
+  const code = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : 'PRIVATE_REHEARSAL_FAILED';
+  process.stderr.write(`${code}; private details withheld.\n`); process.exitCode = 1;
+});

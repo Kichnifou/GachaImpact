@@ -8,7 +8,7 @@ import { isValidLegacyXpDate } from './legacy-xp-provenance.js';
 const elements = new Set(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']);
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 export type LegacyPlanIssue = { code: string; severity: 'BLOCKER' | 'WARNING' | 'QUARANTINE' | 'INFO'; source: string; path: string; legacyKey?: string };
-export type ExistingWebAccount = { id: string; displayName: string; twitchUserId: string | null };
+export type ExistingWebAccount = { id: string; displayName: string; twitchUserId: string | null; hasWebAccount?: boolean };
 export type PlannedPlayer = { legacyUsername: string; elementKey: string; playerId: string; displayName: string;
   twitchUserId: string; twitchLogin: string; twitchDisplayName: string;
   mappingMode: 'EXISTING_VERIFIED_TWITCH' | 'TWITCH_ONLY'; viewer: Record<string, unknown> };
@@ -109,7 +109,7 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
     }
     if ([request.from, request.to].every(value => eligible.has(normalizeLegacyName(value)))) requestCount++; else requestExcluded++;
   }
-  return { snapshotHash: snapshot.hash, players, unmatchedWebPlayerIds: existingWeb.filter(row => !usedWeb.has(row.id)).map(row => row.id),
+  return { snapshotHash: snapshot.hash, players, unmatchedWebPlayerIds: existingWeb.filter(row => row.hasWebAccount !== false && !usedWeb.has(row.id)).map(row => row.id),
     excludedProfiles: coverage.excludedProfiles, friendshipCount, friendshipExcluded, requestCount, requestExcluded,
     issues, unknownPaths: coverage.unknown.length };
 }
