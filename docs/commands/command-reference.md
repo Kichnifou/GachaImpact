@@ -28,6 +28,13 @@ Toute autre entrée ou argument est **ignoré silencieusement** : notamment Pull
 
 Réponses Helix au message source, segments ≤500 caractères Unicode ; scope AUTHORIZE_RUNTIME user:write:chat ajouté, réautorisation future et app token sans persistance de token utilisateur. Receipt/clés métier idempotents : duplicate final sans nouvel envoi ; refus certain reprend uniquement les réponses sauvegardées, issue ambiguë/SENDING bloquée sans résend automatique. [Architecture et limites](../architecture/backend-architecture-v1.md), [future recette propriétaire](../process/legacy-cutover-runbook.md#gate-distinct--futur-pilote-réel-kichnifou-only-r1040-non-exécuté). Streamer.bot reste autoritatif ; aucune activation ou recette réelle dans ce lot, aucune migration ni 31A.
 
+**État post-recette R1043 :** le transport Kichnifou a été promu/déployé et recetté ; Pull multiple répond bien par N messages. Après la recette, le pilote a été désarmé et Streamer.bot réactivé. La liste de sept familles ci-dessus reste donc l’état physique actuel du consumer générique, **pas la cible finale**.
+
+**Cible R1045 — présentation Pull, non encore implémentée :** le renderer partagé Chat/Twitch doit préfixer `⚠️ Tu entres en soft pity...` à pity 74 même sans 5★ ; `🔥 WOW EARLY !!` pour un 5★ pity 2..35 ; `💥 INCROYABLE BACK-TO-BACK !!!` pour deux 5★ consécutifs ; `✨ CAPTURE DE BRILLANCE !` lors d’une Capture ; et `💀 Outch la hard...` à pity 80 même sans 5★. Ne pas doubler ensuite Early/B2B/Hard/Capture sous forme de labels courts. Les faits pity/garantie/50-50 distincts et R1040 restent affichés normalement.
+
+**Cible R1047 — parité Twitch complète, non encore implémentée :** avant 31A, chaque commande Player du registre avec `twitch: true` doit être couverte par le bridge générique ou un consumer spécialisé. Les aliases et sous-commandes suivent exactement le contrat standalone moderne ; les mutations figent leurs intentions/replays dans le receipt et utilisent SourceChannel.TWITCH. `!wish` et `!giveaway` restent spécialisés ; `!clear` ne devient pas viewer-facing. Une matrice automatique doit rendre impossible l’oubli silencieux d’une commande Twitch. Le cutover complet audite aussi les triggers de messages ordinaires Streamer.bot nécessaires au gameplay, pas seulement les commandes.
+
+
 ### `!clear` — modération interne R886
 
 Syntaxe exacte : `!clear`. Seul un Player avec attribution active `MODERATOR` ou `ADMIN` peut l'exécuter ; `TESTER` seul est refusé. Le serveur ouvre une nouvelle génération visible du Chat pour tous sans effacer les anciens contenus physiques. La commande n'est pas publiée, aucun `GAME_RESULT` ne suit, et les retries de la même intention sont idempotents. Aucun canal Twitch ni aide joueur ordinaire.

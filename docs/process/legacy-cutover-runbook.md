@@ -102,7 +102,28 @@ Pour 31, après autorisation du périmètre et avant écriture : (1) geler les e
 
 Le helper privé n'est pas un outil de restauration publique. Pour une sauvegarde technique complète future 31B, installer/vérifier les outils PostgreSQL compatibles (`pg_dump --version`, `pg_restore --version`), utiliser un compte opérateur et les variables PG* sans secret en arguments/logs : `pg_dump --format=custom --schema=public --file=<backup-local-ignoré.dump>`. Tester d'abord `pg_restore --list <backup>` puis `pg_restore --exit-on-error --single-transaction --no-owner --no-privileges --dbname=<base-copie-isolée> <backup>` dans une base vide isolée explicitement vérifiée ; rétablir/vérifier séparément grants/RLS attendus et catalogues. Aucune base copie supplémentaire payante autorisée implicitement. Pour 31A, outil de sauvegarde/restauration **ciblé Ceo et dépendances partagées** à préparer/valider dans sa mission ; jamais restaurer tout public pour un canary. Aucun pg_dump/public restore exécuté en 30. Répertoire réservé à l'opérateur, pas de cloud/Git ; supprimer les backups temporaires après stabilisation validée, sans en faire un historique gameplay permanent (R927).
 
-## Gate distinct — futur pilote réel Kichnifou-only (R1040), NON EXÉCUTÉ
+## Post-recette Kichnifou — ordre obligatoire avant 31A (R1044–R1047)
+
+État de départ vérifié à la passation : `main == review == d475fd3bcc5ea948bd18fbcbcaf2b5c1522b4d7a`, Railway SUCCESS, capability commandes présente. R1042/R1043 a été recetté publiquement ; le propriétaire a ensuite désarmé le pilote et réactivé Streamer.bot. Streamer.bot reste donc l’autorité vivante pendant les lots ci-dessous.
+
+1. **Polish transverse R1044/R1045.** Corriger le refresh du standalone au retour focus/visibilité après une mutation Twitch en réutilisant les loaders autoritatifs existants. Restaurer les phrases Pull exactes : `⚠️ Tu entres en soft pity...` à 74, `🔥 WOW EARLY !!`, `💥 INCROYABLE BACK-TO-BACK !!!`, `✨ CAPTURE DE BRILLANCE !`, et nouvelle entrée `💀 Outch la hard...` à 80. Soft/hard sont des entrées de zone et s’affichent même sans 5★. Review/promotion puis recette ciblée ; aucune bascule globale.
+2. **Bridge commandes complet R1047.** Supprimer la petite allowlist canary comme limite produit et couvrir toutes les entrées Player `twitch: true` du registre. Mutualiser parser/exécution/présentation avec le standalone ; SourceChannel.TWITCH, intentions figées, idempotence et response-only retry. `wish/giveaway` restent spécialisés, `clear` hors viewer. Ajouter une matrice de couverture qui échoue si une commande Twitch est non classée.
+3. **Parité des messages ordinaires.** Auditer les triggers Streamer.bot hors commandes : XP/classification/cooldowns et tout script encore vivant au message, plus Faveur/Gift/Giveaway déjà spécialisés. Aucun cutover tant qu’un effet joueur dépend encore de Streamer.bot sans remplacement ou décision V1 explicite.
+4. **Récupération standalone R1046.** Implémenter avant 31B le claim `Configuration > Compte` pour un futur visiteur : OAuth Twitch → User ID immuable → TwitchIdentity existante → Player migré. Le flux doit déplacer/rattacher la WebIdentity depuis un Player web temporaire seulement s’il est disposable ; gameplay significatif = conflit bloquant. Aucun pseudo ne résout l’identité. Ce mécanisme est testé/opérationnel mais n’est pas annoncé aux viewers pendant le cutover Twitch.
+5. **Autorité permanente et recette Kichnifou.** Le gate mémoire du pilote repart OFF au restart et ne suffit pas comme autorité définitive. Avant 31B, construire/valider un mode natif durable et exclusif, survivant restart/redeploy, avec kill switch immédiat. Recette Kichnifou par familles de commandes et messages ordinaires, Streamer.bot coupé uniquement dans la fenêtre de test puis remis en cas de sortie pilote.
+6. **31A Ceo.** Ceo reste un viewer Twitch uniquement. Migrer son état par Twitch User ID, activer nativement uniquement son périmètre, comparer les effets et conserver rollback/retour Streamer.bot. Ne lui demander aucun compte standalone.
+7. **31B batch.** Capture finale + résolution Helix fraîche + plan/quarantaines + rehearsal finale + backup/restauration + migration. Puis transfert d’autorité unique ; les viewers continuent à utiliser Twitch comme avant. Les profils sans ID vérifié restent quarantainés.
+8. **Après batch seulement :** validation 32. Le claim standalone R1046 reste disponible silencieusement pour tout joueur qui viendrait plus tard sur le site.
+
+### Recettes propriétaire à prévoir
+
+- **R1044 :** laisser GachaImpact ouvert, muter via Twitch, revenir sur l’onglet et vérifier ressources/Gacha/Box/progression sans F5 ; aucun double feedback.
+- **R1045 :** tests déterministes privés pour soft 74, hard 80, Early, B2B, Capture et combinaisons. En public, vérifier au minimum les entrées 74/80 si elles peuvent être préparées proprement sans corrompre l’état ; les événements aléatoires peuvent rester observation naturelle s’ils sont déjà prouvés automatiquement.
+- **R1047 :** checklist générée depuis le registre, testée par familles. Les commandes invalides/non autorisées ne mutent rien ; toutes les commandes marquées Twitch sont soit génériques natives soit spécialisées natives.
+- **R1046 :** scénario privé Player Twitch-only + WebIdentity neuve → claim réussi et état complet retrouvé ; scénario Player web non vide → blocage sans fusion.
+- **31A :** Ceo continue uniquement sur Twitch ; même syntaxe/résultat métier, aucun doublon, rollback et autorité unique.
+
+## Historique — gate pilote Kichnifou-only R1040/R1042 (désormais exécuté)
 
 Séquence **30 clôturée R1041 → pilote transport/commandes Kichnifou-only → 31A Ceo → 31B batch → 32**. R1042 prépare le **CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ** sur review seulement. Les étapes ci-dessous restent futures ; aucune activation implicite. Streamer.bot demeure autoritatif.
 

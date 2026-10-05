@@ -30,6 +30,42 @@ Le pilote accepte !pull sans argument (x1) ou un seul entier canonique 1..10, se
 
 Replay : aucune nouvelle dépense/opération/récompense/progression ni réponse SENT renvoyée. Refus certain du segment B après A SENT : C attend ; retry response-only reprend B/C sans parser ni moteur. Règles SENDING/AMBIGUOUS et kill switch R1042 conservées. Toutes les autres commandes/gates/identités Twitch restent dans le périmètre R1042 ; aucun mirroring GlobalChat ni WebIdentity artificielle. Aucun DDL/migration, changement Railway/EventSub/OAuth, armement réel ou arrêt Streamer.bot dans ce lot.
 
+## Synchronisation du standalone après mutation externe — R1044 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE APRÈS RECETTE TWITCH : une commande native Twitch peut modifier PostgreSQL alors qu’un onglet GachaImpact reste ouvert avec un état React ancien. Le joueur ne doit pas devoir faire F5. Quand la session est signée et le Player résolu, le retour de l’onglet à l’état visible ou le retour focus déclenche une **relecture autoritative dédupliquée/coalescée** de l’état joueur partagé. Réutiliser le pipeline de refresh/bootstrap existant ; ne pas rejouer la mutation, ne pas générer de faux feedback de récompense et ne pas ajouter Supabase Realtime uniquement pour ce besoin. Le refresh doit couvrir les domaines susceptibles d’être modifiés depuis Twitch, pas seulement Gacha, car la cible est le bridge complet R1047. Une erreur de refresh ne remet jamais en cause une mutation serveur déjà commitée.
+
+## Présentation des événements rares de Pull — R1045 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE APRÈS RECETTE TWITCH : le renderer partagé standalone/Twitch doit reprendre les formulations spéciales utiles du `legacy/streamerbot/commands/Pull.txt`, sur la base des faits enregistrés et sans RNG de présentation.
+
+- tentative/pity 74 : préfixe **`⚠️ Tu entres en soft pity...`**, même si le tirage n’est pas 5★ ;
+- 5★ obtenu entre pity 2 et 35 : **`🔥 WOW EARLY !!`** ;
+- 5★ immédiatement après un autre 5★ : **`💥 INCROYABLE BACK-TO-BACK !!!`** ;
+- Capture déclenchée : **`✨ CAPTURE DE BRILLANCE !`** ;
+- nouvelle entrée Hard : à **pity 80**, quel que soit le résultat, préfixe **`💀 Outch la hard...`**, selon le même principe que l’entrée soft pity.
+
+L’ordre de présentation garde d’abord l’entrée de zone pity éventuelle (74 ou 80), puis les événements propres au 5★ (Early/B2B/Capture) lorsque présents. Les labels courts `Early`, `B2B`, `Hard`, `✨ Capture` ne sont pas répétés ensuite comme doublons ; conserver `pity N/90`, garantie et 50/50 lorsqu’ils apportent une information distincte. R1040 reste inchangée : effets Hydro/Pyro/Geo constants actifs mais invisibles, seuls les procs Cryo/Electro/Anemo/Dendro réellement déclenchés sont affichés.
+
+## Cutover Twitch transparent et récupération standalone ultérieure — R1046 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : le cutover global ne demande **aucune adoption du standalone** par les viewers. Après migration, un message/une commande Twitch identifie le joueur par `chatter_user_id` immuable, résout `TwitchIdentity → Player` et utilise ses données PostgreSQL migrées. Le viewer reste sur Twitch, garde les mêmes commandes et ne reçoit aucune instruction de création de compte GachaImpact. Aucun OAuth individuel des viewers n’est requis pour le fonctionnement Twitch ; l’autorisation broadcaster/bot reste une responsabilité opérateur.
+
+Le standalone doit néanmoins être **prêt et opérationnel avant 31B** pour le jour où un viewer décide de l’utiliser. Dans `Configuration > Compte`, un flux de récupération/rattachement Twitch vérifié par OAuth doit pouvoir retrouver une `TwitchIdentity` déjà propriétaire d’un Player Twitch-only migré et rattacher la WebIdentity authentifiée à **ce Player existant**, afin que le joueur retrouve immédiatement ressources, Box, Team, pity, progression, Faveur et autres données. Aucun rapprochement par login/displayName, aucune copie additive ni fusion aveugle.
+
+Le flux doit traiter explicitement le Player web éventuellement créé avant le claim : s’il est neuf/disposable et sans gameplay significatif, transférer la WebIdentity de façon transactionnelle vers le Player migré puis retirer/nettoyer le Player temporaire selon les contraintes réelles ; s’il possède déjà un gameplay significatif ou une autre identité, **bloquer** avec une résolution explicite au lieu d’écraser ou fusionner. Le Player migré garde son ID et sa TwitchIdentity. Après succès, la session/état frontend est réinitialisé ou rechargé vers le Player récupéré. R918 reste la règle générale de conflit ; ce claim est la procédure contrôlée qui la complète.
+
+## Remplacement complet de Streamer.bot par le transport Twitch natif — R1047 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : la petite allowlist R1042/R1043 était uniquement un canary. **Avant 31A**, toutes les commandes Player du registre déclarées disponibles sur Twitch doivent être réellement exécutables par le transport natif avec leurs aliases et sous-commandes, en appelant les mêmes propriétaires métier et présentations que le Chat standalone. `!wish` et `!giveaway` restent sur leurs consumers Twitch spécialisés déjà natifs ; `!clear` reste une commande interne/modération et n’est pas une commande viewer Twitch.
+
+Le bridge générique ne duplique pas `ChatCommandDispatcher` ni les moteurs. Extraire/partager le minimum nécessaire pour un exécuteur transport-neutral ; utiliser un acteur Player vérifié par Twitch User ID, `SourceChannel.TWITCH`, aucun faux subject Supabase et aucun `GlobalChatMessage/GAME_RESULT` créé par le transport Twitch. Pour toute mutation, figer dans le receipt Twitch les intentions nécessaires (cible, quantité, branche, slot, édition/contexte) avant exécution ; les retries/replays utilisent le résultat/intent persisté et ne résolvent jamais une nouvelle cible ou une nouvelle journée après commit.
+
+Ajouter une couverture structurelle : chaque entrée Player `twitch: true` du registre doit être classée soit **generic native**, soit **specialized native**, jamais laissée silencieusement non traitée par oubli. La recette propriétaire sera organisée par familles : lectures, collection/équipe, économie, activités/combat, social/échanges, Event/Codes/Top.
+
+Le remplacement transparent de Streamer.bot ne se limite pas aux `!commandes`. Avant le cutover, auditer tous les scripts/triggers Streamer.bot encore déclenchés par un message ordinaire (notamment XP/classification/cooldown de messages et tout autre effet encore vivant), et prouver pour chacun qu’il est déjà remplacé nativement, devient explicitement obsolète selon les règles V1, ou doit être implémenté dans le pipeline Twitch. Faveur, Gift Suprême et Giveaway/Wish conservent leurs consumers spécialisés. Aucun arrêt global de Streamer.bot tant que cette matrice de parité n’est pas complète.
+
+Le gate mémoire R1042 est adapté au pilote single-replica mais **n’est pas l’autorité permanente du batch** : avant 31B, définir une autorité native durable qui survit restart/redeploy, reste exclusive face à Streamer.bot et possède toujours un kill switch opérateur immédiat sans double exécution.
+
 ## Quarantaine propriétaire des identités introuvables et clôture 30 — R1041 (2026-10-05)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : les profils dont le Twitch User ID est vérifié restent éligibles ; les profils réellement NOT_FOUND peuvent être explicitement mis en quarantaine / migration différée, sans Player, TwitchIdentity, MigrationRun, gameplay ni ID inventé. Pour la capture du 04/10 : 43 vérifiés et deux différés. Le snapshot local ignoré est conservé intégralement comme preuve ; une migration complémentaire dédiée reste possible après vérification ultérieure d'un ID immuable, jamais par pseudo.
