@@ -3,6 +3,7 @@ import type { PrismaClient } from '../generated/prisma/client.js';
 import { TwitchCommandPilot, twitchResponseSegments, type TwitchCommandExecutor } from '../src/application/twitch/twitch-command-pilot.js';
 import { TwitchCommandSendError, type TwitchCommandChatClient } from '../src/infrastructure/twitch/twitch-command-chat-client.js';
 import { findChatCommand } from '../src/application/chat/chat-command-registry.js';
+import type { PilotChatTransport } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 import { loadConfig } from '../src/config/environment.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
@@ -11,14 +12,14 @@ export const commandEnvelope = (text = '!pity', chatter = '123') => ({
     condition: { broadcaster_user_id: '123', user_id: '123' }, transport: { method: 'webhook', callback: 'https://api.example/api/v1/twitch/eventsub' } },
   event: { broadcaster_user_id: '123', chatter_user_id: chatter, chatter_user_login: 'untrusted', chatter_user_name: 'untrusted', message_id: 'chat-message', message: { text } },
 });
-async function fixture(enabled = true, arm = true) {
+async function fixture(enabled = true, arm = true, receiverId = '123') {
   const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled },
     twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' }, twitchEventSub: { enabled: true, callbackUrl: 'https://api.example/api/v1/twitch/eventsub' } };
   const receipt = { id: 'receipt', externalEventId: 'network-id', eventType: 'channel.chat.message', twitchUserId: '123', state: 'RECEIVED',
     externalReference: null as string | null, payloadMinimal: {} as Record<string, unknown>, processedAt: null, errorMessage: null };
   const identity = { playerId, twitchUserId: '123', login: 'kichnifou', player: { id: playerId, displayName: 'Fixture', elementKey: 'pyro', status: 'ACTIVE' } };
   const identityRead = vi.fn(async ({ where }: { where: { twitchUserId?: string; playerId?: string } }) => where.twitchUserId === '123' || where.playerId === playerId ? identity : null);
-  const tx = { $queryRaw: vi.fn(async () => []), twitchEventReceipt: {
+  const tx = { $queryRaw: vi.fn(async () => []), twitchIdentity: { findUnique: identityRead }, twitchEventReceipt: {
     findUnique: vi.fn(async () => structuredClone(receipt)),
     findFirst: vi.fn(async () => null),
     update: vi.fn(async ({ data }: { data: object }) => { Object.assign(receipt, structuredClone(data)); return receipt; }),
@@ -30,13 +31,74 @@ async function fixture(enabled = true, arm = true) {
   const executor = { execute: vi.fn(async (..._args: Parameters<TwitchCommandExecutor['execute']>) => ['Réponse validée.']) };
   const outbound = { send: vi.fn(async (..._args: Parameters<TwitchCommandChatClient['send']>) => 'sent-id') };
   const parser = vi.fn(findChatCommand);
-  const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn(async (): Promise<'ACTIVE' | 'INACTIVE' | 'VERIFICATION_PENDING'> => 'ACTIVE') };
+  const transport: PilotChatTransport = { subscriptionId: 'subscription', broadcasterId: '123', receiverId, callback: config.twitchEventSub.callbackUrl };
+  const subscriptions = { activationAvailable: true, inspectPilotChatTransport: vi.fn(async (): Promise<PilotChatTransport | null> => transport) };
   const pilot = new TwitchCommandPilot(db, config, executor, outbound, parser, subscriptions);
   if (enabled && arm) await pilot.arm(playerId);
   return { config, receipt, identity, identityRead, executor, outbound, parser, subscriptions, db, tx, pilot };
 }
 
-describe('Kichnifou-only command pilot', () => {
+describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it.each(['!pity', '!pull'])('executes %s for an allowlisted viewer distinct from the transport receiver', async text => {
+    const f = await fixture(true, true, '200');
+    const viewerId = '22222222-2222-4222-8222-222222222222';
+    const viewer = { playerId: viewerId, twitchUserId: '300', login: 'viewer', player: { ...f.identity.player, id: viewerId } };
+    f.config.twitch.pilotPlayerIds.push(viewerId); f.receipt.twitchUserId = '300';
+    f.identityRead.mockImplementation(async ({ where }) => where.twitchUserId === '300' ? viewer : f.identity);
+    const body = commandEnvelope(text, '300'); body.subscription.condition.user_id = '200';
+    await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.executor.execute).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: viewerId }), expect.any(String), expect.any(Array), expect.any(String), expect.any(String), undefined);
+    expect(f.outbound.send).toHaveBeenCalledWith({ broadcasterId: '123', senderId: '200', message: 'Réponse validée.', replyParentMessageId: 'chat-message' }, expect.any(Function));
+    expect(f.receipt.state).toBe('PROCESSED');
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { chatterId: '300', senderId: '200', playerId: viewerId } });
+  });
+  it('lets the operator retry a viewer response without using the viewer as sender or repeating business', async () => {
+    const f = await fixture(true, true, '200');
+    const viewerId = '22222222-2222-4222-8222-222222222222';
+    const viewer = { playerId: viewerId, twitchUserId: '300', login: 'viewer', player: { ...f.identity.player, id: viewerId } };
+    f.config.twitch.pilotPlayerIds.push(viewerId); f.receipt.twitchUserId = '300';
+    f.identityRead.mockImplementation(async ({ where }) => where.twitchUserId === '300' ? viewer : where.playerId === playerId || where.twitchUserId === '123' ? f.identity : null);
+    const body = commandEnvelope('!pull', '300'); body.subscription.condition.user_id = '200';
+    f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(() => f.pilot.disarm(viewerId)).toThrow(expect.objectContaining({ code: 'TWITCH_COMMAND_PILOT_FORBIDDEN' }));
+    expect(f.pilot.status().commandPilotArmed).toBe(true);
+    await expect(f.pilot.retryResponses(viewerId, 'receipt')).rejects.toMatchObject({ statusCode: 403 });
+    expect(await f.pilot.retryResponses(playerId, 'receipt')).toEqual({ state: 'PROCESSED' });
+    expect(f.executor.execute).toHaveBeenCalledTimes(1);
+    expect(f.outbound.send.mock.calls.map(([input]) => input.senderId)).toEqual(['200', '200']);
+  });
+  it.each(['unknown viewer', 'inactive viewer', 'unlisted viewer', 'wrong subscription', 'wrong channel', 'wrong receiver', 'wrong callback', 'external shared chat'])(
+    'rejects %s independently of the operator/receiver identity', async gate => {
+      const f = await fixture(true, true, '200'), viewerId = '22222222-2222-4222-8222-222222222222';
+      const viewer = { playerId: viewerId, twitchUserId: '300', login: 'kichnifou', player: { ...f.identity.player, id: viewerId } };
+      f.receipt.twitchUserId = '300';
+      if (gate !== 'unlisted viewer') f.config.twitch.pilotPlayerIds.push(viewerId);
+      if (gate === 'inactive viewer') viewer.player.status = 'ARCHIVED';
+      f.identityRead.mockImplementation(async ({ where }) => where.twitchUserId === '300' && gate !== 'unknown viewer' ? viewer : null);
+      const body = commandEnvelope('!pull', '300'); body.subscription.condition.user_id = '200';
+      if (gate === 'wrong subscription') body.subscription.id = 'unapproved';
+      if (gate === 'wrong channel') body.event.broadcaster_user_id = body.subscription.condition.broadcaster_user_id = '400';
+      if (gate === 'wrong receiver') body.subscription.condition.user_id = '300';
+      if (gate === 'wrong callback') body.subscription.transport.callback += '/other';
+      if (gate === 'external shared chat') Object.assign(body.event, { source_broadcaster_user_id: '400' });
+      await f.pilot.consumeAuthenticated(body, 'receipt');
+      expect(f.parser).not.toHaveBeenCalled(); expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
+      expect(f.db.$transaction).not.toHaveBeenCalled();
+  });
+  it('does not substitute a new receiver for a response reserved in the original transport', async () => {
+    const f = await fixture(true, true, '200');
+    const body = commandEnvelope('!pull'); body.subscription.condition.user_id = '200';
+    f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    await f.pilot.consumeAuthenticated(body, 'receipt');
+    f.pilot.disarm(playerId);
+    f.subscriptions.inspectPilotChatTransport.mockResolvedValue({ subscriptionId: 'subscription', broadcasterId: '123', receiverId: '201', callback: f.config.twitchEventSub.callbackUrl });
+    await f.pilot.arm(playerId); body.subscription.condition.user_id = '201';
+    await expect(f.pilot.consumeAuthenticated(body, 'receipt')).rejects.toMatchObject({ code: 'TWITCH_COMMAND_RESPONSE_TRANSPORT_CHANGED' });
+    await expect(f.pilot.retryResponses(playerId, 'receipt')).rejects.toMatchObject({ statusCode: 404 });
+    expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.outbound.send).toHaveBeenCalledTimes(1);
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { senderId: '200' } });
+  });
   it('uses real arm/disarm as the kill switch without changing deployment capability', async () => {
     const f = await fixture(true, false); Object.freeze(f.config.twitchCommandPilot);
     expect(f.pilot.status()).toEqual({ commandPilotCapabilityEnabled: true, commandPilotArmed: false, commandPilotEnabled: false });
@@ -46,11 +108,11 @@ describe('Kichnifou-only command pilot', () => {
     await f.pilot.consumeAuthenticated(commandEnvelope('!pull 1'), 'receipt');
     expect(f.parser).toHaveBeenCalledTimes(1); expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.outbound.send).toHaveBeenCalledTimes(1);
     f.subscriptions.activationAvailable = false; // Disarm requires no healthy EventSub manager.
-    const inspections = f.subscriptions.inspectPilotChatSubscription.mock.calls.length;
+    const inspections = f.subscriptions.inspectPilotChatTransport.mock.calls.length;
     expect(f.pilot.disarm(playerId)).toMatchObject({ commandPilotArmed: false, commandPilotEnabled: false });
     await f.pilot.consumeAuthenticated(commandEnvelope('!pull 1'), 'new-receipt');
     expect(f.parser).toHaveBeenCalledTimes(1); expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.outbound.send).toHaveBeenCalledTimes(1);
-    expect(f.subscriptions.inspectPilotChatSubscription).toHaveBeenCalledTimes(inspections);
+    expect(f.subscriptions.inspectPilotChatTransport).toHaveBeenCalledTimes(inspections);
     expect(f.config.twitchCommandPilot.enabled).toBe(true);
   });
   it('restarts disarmed with the same capability, without persisting the arm state', async () => {
@@ -65,7 +127,7 @@ describe('Kichnifou-only command pilot', () => {
     const f = await fixture(false);
     await expect(f.pilot.arm(playerId)).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
     expect(f.pilot.status().commandPilotArmed).toBe(false); expect(f.identityRead).not.toHaveBeenCalled();
-    expect(f.subscriptions.inspectPilotChatSubscription).not.toHaveBeenCalled();
+    expect(f.subscriptions.inspectPilotChatTransport).not.toHaveBeenCalled();
   });
   it.each(['outside allowlist', 'unlinked', 'wrong login', 'inactive Player', 'manager unavailable', 'INACTIVE', 'VERIFICATION_PENDING', 'inspection error'])(
     'refuses arm for %s without any execution or subscription creation', async reason => {
@@ -75,8 +137,8 @@ describe('Kichnifou-only command pilot', () => {
       if (reason === 'wrong login') f.identity.login = 'other';
       if (reason === 'inactive Player') f.identity.player.status = 'ARCHIVED';
       if (reason === 'manager unavailable') f.subscriptions.activationAvailable = false;
-      if (reason === 'INACTIVE' || reason === 'VERIFICATION_PENDING') f.subscriptions.inspectPilotChatSubscription.mockResolvedValue(reason);
-      if (reason === 'inspection error') f.subscriptions.inspectPilotChatSubscription.mockRejectedValue(new Error('private upstream error'));
+      if (reason === 'INACTIVE' || reason === 'VERIFICATION_PENDING') f.subscriptions.inspectPilotChatTransport.mockResolvedValue(null);
+      if (reason === 'inspection error') f.subscriptions.inspectPilotChatTransport.mockRejectedValue(new Error('private upstream error'));
       await expect(f.pilot.arm(playerId)).rejects.toMatchObject({ statusCode: ['outside allowlist', 'unlinked', 'wrong login', 'inactive Player'].includes(reason) ? 403 : 409 });
       expect(f.pilot.status().commandPilotArmed).toBe(false);
       expect(f.parser).not.toHaveBeenCalled(); expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
@@ -84,10 +146,10 @@ describe('Kichnifou-only command pilot', () => {
     });
   it('cancels an in-flight arm after disarm, even when inspection subsequently returns ACTIVE', async () => {
     const f = await fixture(true, false);
-    let complete!: (state: 'ACTIVE') => void;
-    f.subscriptions.inspectPilotChatSubscription.mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
-    const arming = f.pilot.arm(playerId); await vi.waitFor(() => expect(f.subscriptions.inspectPilotChatSubscription).toHaveBeenCalled());
-    f.pilot.disarm(playerId); complete('ACTIVE');
+    let complete!: (state: PilotChatTransport) => void;
+    f.subscriptions.inspectPilotChatTransport.mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
+    const arming = f.pilot.arm(playerId); await vi.waitFor(() => expect(f.subscriptions.inspectPilotChatTransport).toHaveBeenCalled());
+    f.pilot.disarm(playerId); complete({ subscriptionId: 'subscription', broadcasterId: '123', receiverId: '123', callback: f.config.twitchEventSub.callbackUrl });
     await expect(arming).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
     expect(f.pilot.status().commandPilotArmed).toBe(false);
   });

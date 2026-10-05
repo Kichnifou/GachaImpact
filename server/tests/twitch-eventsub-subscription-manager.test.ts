@@ -120,6 +120,24 @@ describe('EventSub pilot subscription manager', () => {
 });
 
 describe('inspection, disable and serialized unlink', () => {
+  it('returns the active server-authorized chat transport with no creation or outbound call', async () => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page([subscription]));
+    expect(await manager.inspectPilotChatTransport(playerId)).toEqual({ subscriptionId: 'subscription-id', broadcasterId: '12345', receiverId: '12345', callback });
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET']);
+  });
+  it.each([null, 'webhook_callback_verification_pending', 'authorization_revoked'])('provides no command transport for status %s', async status => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page(status ? [{ ...subscription, status }] : []));
+    expect(await manager.inspectPilotChatTransport(playerId)).toBeNull();
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET']);
+  });
+  it.each([
+    { ...subscription, condition: { broadcaster_user_id: '12345', user_id: '300' } },
+    { ...subscription, transport: { method: 'webhook', callback: callback + '/other' } },
+  ])('rejects an unauthorized receiver/callback instead of trusting incoming transport IDs', async incompatible => {
+    const { manager, network } = setup(); network.mockResolvedValueOnce(page([incompatible]));
+    await expect(manager.inspectPilotChatTransport(playerId)).rejects.toMatchObject({ code: 'TWITCH_EVENTSUB_SUBSCRIPTION_CONFLICT' });
+    expect(network.mock.calls.map(([, options]) => options?.method)).toEqual(['GET']);
+  });
   it.each(['webhook_callback_verification_failed', 'notification_failures_exceeded', 'authorization_revoked',
     'moderator_removed', 'user_removed', 'version_removed', 'beta_maintenance'])
   ('treats terminal %s as inactive for inspection and disable', async status => {

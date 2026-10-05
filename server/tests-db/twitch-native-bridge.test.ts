@@ -125,13 +125,13 @@ describe('R1047 ordinary messages on private PostgreSQL', () => {
     const identity = await db.twitchIdentity.update({ where: { playerId: player.id }, data: { login: 'kichnifou' } });
     const userId = identity.twitchUserId, text = 'Message ordinaire';
     const body = { subscription: { id: 'private', type: 'channel.chat.message', version: '1', status: 'enabled',
-      condition: { broadcaster_user_id: userId, user_id: userId }, transport: { method: 'webhook' } },
+      condition: { broadcaster_user_id: userId, user_id: userId }, transport: { method: 'webhook', callback: 'https://api.example/api/v1/twitch/eventsub' } },
       event: { chatter_user_id: userId, broadcaster_user_id: userId, message_id: randomUUID(), message: { text } } };
     const outbound = { send: vi.fn(async () => randomUUID()) };
     const core = executor(), activity = new TwitchMessageActivity(db, clock, random, daily, events);
     const consume = vi.spyOn(activity, 'consume');
     const pilot = new TwitchCommandPilot(db, { host: 'localhost', port: 3001, supabase: {}, twitch: { pilotPlayerIds: [player.id], pilotLogin: 'kichnifou' }, twitchCommandPilot: { enabled: true } },
-      core, outbound, undefined, { activationAvailable: true, inspectPilotChatSubscription: async () => 'ACTIVE' }, activity);
+      core, outbound, undefined, { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'private', broadcasterId: userId, receiverId: userId, callback: 'https://api.example/api/v1/twitch/eventsub' }) }, activity);
     await pilot.arm(player.id);
     const observer = new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0));
     const observe = () => observer.observeTwitchEvent({ externalEventId: randomUUID(), eventType: 'channel.chat.message', twitchUserId: userId,

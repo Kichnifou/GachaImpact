@@ -13,13 +13,17 @@ import { TwitchEventObserver } from '../src/application/twitch/twitch-event-obse
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
 import { TwitchCommandPilot } from '../src/application/twitch/twitch-command-pilot.js';
 import { twitchPlayerCommandExecutor } from '../src/application/twitch/twitch-player-command-executor.js';
-import { TwitchCommandSendError } from '../src/infrastructure/twitch/twitch-command-chat-client.js';
+import { TwitchCommandSendError, type TwitchCommandChatClient } from '../src/infrastructure/twitch/twitch-command-chat-client.js';
 import { findChatCommand } from '../src/application/chat/chat-command-registry.js';
 import { harness } from '../tests/helpers/chat-command-harness.js';
 import type { ChatCommandServices } from '../src/application/chat/player-command-resolver.js';
 import { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
+import { TwitchMessageActivity } from '../src/application/twitch/twitch-message-activity.js';
+import { ClaimDailyReward } from '../src/application/daily-reward/claim-daily-reward.js';
+import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-daily-reward-store.js';
+import { EventService } from '../src/application/event/event-service.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const secret = 'private-command-webhook-secret';
@@ -33,7 +37,7 @@ const specialized = { consume: vi.fn(async () => undefined) };
 const business = vi.fn<ReturnType<typeof twitchPlayerCommandExecutor>['execute']>();
 let presence: TwitchFavorChatPresenceConsumer;
 let core: ReturnType<typeof twitchPlayerCommandExecutor>;
-const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn(async () => 'ACTIVE' as const) };
+const subscriptions = { activationAvailable: true, inspectPilotChatTransport: vi.fn(async () => ({ subscriptionId: 'private-subscription', broadcasterId: '123', receiverId: '123', callback: config.twitchEventSub.callbackUrl })) };
 beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
   const player = await db.player.create({ data: { displayName: 'Private command fixture', elementKey: 'hydro',
@@ -243,5 +247,130 @@ describe('real multi-pull idempotence and segmented delivery', () => {
     expect(await state()).toEqual(committed); expect(outbound.send).toHaveBeenCalledTimes(sends + (partial ? 4 : 3));
     expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
+  }, 60_000);
+});
+
+describe('non-broadcaster Player on an independently authorized chat transport', () => {
+  let viewerId: string, viewerApp: FastifyInstance, viewerPilot: TwitchCommandPilot, now: Date;
+  const send = vi.fn(async (..._args: Parameters<TwitchCommandChatClient['send']>) => randomUUID());
+  const receiver = '200', chatter = '300';
+  const viewerConfig = { ...config, twitch: { ...config.twitch, pilotPlayerIds: [] as string[] } };
+  beforeAll(async () => {
+    const player = await db.player.create({ data: { displayName: 'Private non-broadcaster', elementKey: 'hydro',
+      gachaState: { create: {} }, progression: { create: {} }, economyStats: { create: {} }, wheelStats: { create: {} }, dailyRewardState: { create: {} } } });
+    viewerId = player.id;
+    await db.twitchIdentity.create({ data: { playerId: viewerId, twitchUserId: chatter, login: 'viewer_untrusted_name' } });
+    const store = new PrismaGachaStore(db), current = await store.getCurrent(viewerId);
+    if (!current) throw new Error('Private banner unavailable');
+    now = new Date((current.banner.startsAt.getTime() + current.banner.endsAt.getTime()) / 2);
+    const clock = { now: () => new Date(now) }, random = { nextInt: (upper: number) => upper - 1 };
+    await db.$transaction(tx => new PermanentMissionService().initializePlayer(tx, viewerId, now, true));
+    const resources = await db.resourceDefinition.findMany({ where: { isActive: true } });
+    await db.playerResourceBalance.createMany({ data: resources.map(row => ({ playerId: viewerId, resourceKey: row.key, amount: row.key === 'primogems' ? 10000n : 0n })) });
+    await db.playerGachaState.update({ where: { playerId: viewerId }, data: { selectedBannerCharacterId: current.banner.featuredFiveStars[0]!.id } });
+    viewerConfig.twitch.pilotPlayerIds = [playerId, viewerId];
+    const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No web identity'); }, provision: async () => { throw new Error('No provisioning'); } });
+    const services = { ...harness().services, getCurrentGacha: new GetCurrentGacha(getPlayer, store), socialService: new SocialService(getPlayer, db, clock),
+      performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, random, 'TWITCH') } as unknown as ChatCommandServices;
+    const executor = twitchPlayerCommandExecutor(db, services, clock);
+    const activity = new TwitchMessageActivity(db, clock, random, new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock), new EventService(getPlayer, db, clock, random));
+    // Authorized server contract is deliberately distinct from both the Player and channel.
+    const transport = { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'viewer-subscription', broadcasterId: '123', receiverId: receiver, callback: config.twitchEventSub.callbackUrl }) };
+    viewerPilot = new TwitchCommandPilot(db, viewerConfig, executor, { send }, undefined, transport, activity);
+    await viewerPilot.arm(playerId);
+    viewerApp = await buildApp(viewerConfig, { getOrProvisionCurrentPlayer: {} as never, authIdentityVerifier: { verify: async () => ({ subject: 'HTTP-only-fixture' }) },
+      twitchEventObserver: new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0)), twitchCommandPilot: viewerPilot,
+      twitchFavorChatPresence: presence, twitchFavorSubscriptions: specialized as never, twitchFavorGifts: specialized as never,
+      twitchFavorResubs: specialized as never, twitchGiveawayConsumer: giveaway as never });
+  }, 60_000);
+  afterAll(async () => { await viewerApp?.close(); }, 60_000);
+  const body = (text: string, author = chatter) => {
+    const value = event(text, author); value.subscription.id = 'viewer-subscription'; value.subscription.condition.user_id = receiver; return value;
+  };
+  const deliver = (request: ReturnType<typeof signed>) => viewerApp.inject({ method: 'POST', url: '/api/v1/twitch/eventsub', ...request });
+  const progression = () => db.playerProgression.findUniqueOrThrow({ where: { playerId: viewerId } });
+  const wallet = () => db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: viewerId, resourceKey: 'primogems' } } });
+
+  it('reads for the immutable chatter identity and replies using the authorized receiver', async () => {
+    const before = await db.pullOperation.count(), sends = send.mock.calls.length;
+    expect((await deliver(signed(body('!pity')))).statusCode).toBe(204);
+    expect(await db.pullOperation.count()).toBe(before);
+    expect(send).toHaveBeenCalledTimes(sends + 1);
+    expect(send.mock.calls.at(-1)?.[0]).toMatchObject({ broadcasterId: '123', senderId: receiver });
+    expect(await db.webIdentity.count()).toBe(0); expect(await db.globalChatMessage.count()).toBe(0);
+  });
+  it('commits a real TWITCH mutation once and lets only the operator retry the viewer response', async () => {
+    const initial = await wallet(), pulls = await db.pullOperation.count(), text = body('!pull'), request = signed(text);
+    send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    expect((await deliver(request)).statusCode).toBe(204);
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { playerId: viewerId, operationType: 'gacha.pull', idempotencyKey: { endsWith: ':twitch-command:123:' + text.event.message_id } } });
+    expect(operation.sourceChannel).toBe('TWITCH'); expect((await wallet()).amount).toBe(initial.amount - 160n);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    expect(receipt.payloadMinimal).toMatchObject({ commandPilot: { playerId: viewerId, chatterId: chatter, senderId: receiver } });
+    await expect(viewerPilot.retryResponses(viewerId, receipt.id)).rejects.toMatchObject({ statusCode: 403 });
+    expect(await viewerPilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+    expect((await deliver(request)).statusCode).toBe(204); expect((await deliver(signed(text))).statusCode).toBe(204);
+    expect(await db.pullOperation.count()).toBe(pulls + 1); expect((await wallet()).amount).toBe(initial.amount - 160n);
+    expect(await db.webIdentity.count()).toBe(0); expect(await db.globalChatMessage.count()).toBe(0);
+  }, 60_000);
+  it('counts ordinary messages, XP/cooldown/daily/Event once per real viewer message ID', async () => {
+    const initial = await progression(), text = body('x'.repeat(101)), request = signed(text), sends = send.mock.calls.length;
+    expect((await deliver(request)).statusCode).toBe(204);
+    const first = await progression(), completeSends = send.mock.calls.length;
+    expect(first.totalMessages).toBe(initial.totalMessages + 1n); expect(first.countedMessages).toBe(initial.countedMessages + 1n); expect(first.xp).toBe(initial.xp + 2n);
+    expect(completeSends).toBeGreaterThan(sends);
+    expect(await db.businessOperation.count({ where: { playerId: viewerId, operationType: 'daily-reward.claim', sourceChannel: 'TWITCH' } })).toBe(1);
+    expect(await db.businessOperation.count({ where: { playerId: viewerId, operationType: 'event.presence.delivery', sourceChannel: 'TWITCH' } })).toBe(1);
+    expect((await deliver(request)).statusCode).toBe(204); expect((await deliver(signed(text))).statusCode).toBe(204);
+    expect(await progression()).toEqual(first); expect(send).toHaveBeenCalledTimes(completeSends);
+    now = new Date(now.getTime() + 1000);
+    expect((await deliver(signed(body('ordinary during cooldown')))).statusCode).toBe(204);
+    expect((await progression()).totalMessages).toBe(first.totalMessages + 1n); expect((await progression()).xp).toBe(first.xp);
+    now = new Date(now.getTime() + 1000);
+    expect((await deliver(signed(body('x'.repeat(201))))).statusCode).toBe(204);
+    expect((await progression()).xp).toBe(first.xp + 3n);
+    expect(await db.webIdentity.count()).toBe(0); expect(await db.globalChatMessage.count()).toBe(0);
+  }, 60_000);
+  it('keeps rejected authors/transports outside commands and ordinary-message effects', async () => {
+    const initial = await progression(), pulls = await db.pullOperation.count();
+    const wrongChannel = body('!pull'); wrongChannel.event.broadcaster_user_id = wrongChannel.subscription.condition.broadcaster_user_id = '400';
+    const wrongReceiver = body('ordinary'); wrongReceiver.subscription.condition.user_id = chatter;
+    const shared = body('ordinary'); Object.assign(shared.event, { source_broadcaster_user_id: '400' });
+    for (const value of [body('!pull', '456'), body('ordinary', '456'), body('!pull', '999'), body('ordinary', '999'), wrongChannel, wrongReceiver, shared]) {
+      expect((await deliver(signed(value))).statusCode).toBe(204);
+    }
+    await db.player.update({ where: { id: viewerId }, data: { status: 'ARCHIVED' } });
+    try { expect((await deliver(signed(body('!pull')))).statusCode).toBe(204); expect((await deliver(signed(body('ordinary')))).statusCode).toBe(204); }
+    finally { await db.player.update({ where: { id: viewerId }, data: { status: 'ACTIVE' } }); }
+    expect(await progression()).toEqual(initial); expect(await db.pullOperation.count()).toBe(pulls);
+  }, 60_000);
+  it('accepts two identical viewer !pull texts with distinct IDs and deduplicates redeliveries', async () => {
+    const initial = await wallet(), pulls = await db.pullOperation.count(), sends = send.mock.calls.length;
+    const messages = [body('!pull'), body('!pull')], requests = messages.map(value => signed(value));
+    for (const request of requests) expect((await deliver(request)).statusCode).toBe(204);
+    expect(await db.pullOperation.count()).toBe(pulls + 2); expect((await wallet()).amount).toBe(initial.amount - 320n);
+    expect(send).toHaveBeenCalledTimes(sends + 2);
+    const receipts = await db.twitchEventReceipt.findMany({ where: { externalEventId: { in: requests.map(row => row.headers['twitch-eventsub-message-id']) } } });
+    expect(new Set(receipts.map(row => row.externalReference)).size).toBe(2);
+    for (const request of requests) expect((await deliver(request)).statusCode).toBe(204);
+    expect((await deliver(signed(messages[0]!))).statusCode).toBe(204);
+    expect(await db.pullOperation.count()).toBe(pulls + 2); expect(send).toHaveBeenCalledTimes(sends + 2);
+  }, 60_000);
+  it('excludes replies by the receiver even when the original receipt belongs to another chatter', async () => {
+    const request = signed(body('!pity')); expect((await deliver(request)).statusCode).toBe(204);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const state = receipt.payloadMinimal as { commandPilot: { responses: { messageId: string; text: string }[] } };
+    const response = state.commandPilot.responses[0]!, echo = body(response.text, receiver); echo.event.message_id = response.messageId;
+    const favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length, sends = send.mock.calls.length, initial = await progression();
+    expect(await viewerPilot.isNativeOutboundMessage(echo)).toBe(true);
+    expect((await deliver(signed(echo))).statusCode).toBe(204);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways);
+    expect(send).toHaveBeenCalledTimes(sends); expect(await progression()).toEqual(initial);
+    const inFlight = structuredClone(receipt.payloadMinimal) as { commandPilot: { responses: { messageId?: string; status: string }[] } };
+    delete inFlight.commandPilot.responses[0]!.messageId; inFlight.commandPilot.responses[0]!.status = 'SENDING';
+    await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: inFlight } });
+    echo.event.message_id = randomUUID(); Object.assign(echo.event, { reply: { parent_message_id: JSON.parse(request.payload).event.message_id } });
+    expect(await viewerPilot.isNativeOutboundMessage(echo)).toBe(true);
+    await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: receipt.payloadMinimal! } });
   }, 60_000);
 });

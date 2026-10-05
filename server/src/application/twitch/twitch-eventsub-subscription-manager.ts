@@ -6,6 +6,7 @@ import { TwitchEventSubApiError, type PilotEventSubType, type TwitchEventSubClie
 
 export type PilotSubscriptionState = 'INACTIVE' | 'VERIFICATION_PENDING' | 'ACTIVE';
 export type PilotChatState = PilotSubscriptionState;
+export type PilotChatTransport = { subscriptionId: string; broadcasterId: string; receiverId: string; callback: string };
 type SubscriptionContext = { userId: string; callback: string; rewardId?: string };
 export type PilotFavorSubscriptions = {
   status: 'enabled' | 'webhook_callback_verification_pending';
@@ -86,6 +87,15 @@ export class TwitchEventSubSubscriptionManager {
     });
   }
   async inspectPilotChatSubscription(playerId: string, signal?: AbortSignal) { return this.inspect(playerId, 'channel.chat.message', signal); }
+  /** Server-validated transport, independent of the author of a received chat message. */
+  async inspectPilotChatTransport(playerId: string, signal?: AbortSignal): Promise<PilotChatTransport | null> {
+    return this.serial(playerId, async () => {
+      const { userId, callback } = await this.context(playerId, true);
+      const item = this.exact(await this.list('channel.chat.message', signal), userId, callback, 'channel.chat.message');
+      if (item?.status !== 'enabled') return null;
+      return { subscriptionId: item.id, broadcasterId: item.condition.broadcaster_user_id!, receiverId: item.condition.user_id!, callback };
+    });
+  }
   async inspectPilotFavorSubscription(playerId: string, signal?: AbortSignal): Promise<PilotSubscriptionState> {
     return this.serial(playerId, async () => {
       const { userId, callback } = await this.context(playerId, true);
