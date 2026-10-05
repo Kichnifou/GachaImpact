@@ -1,7 +1,7 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
-import type { LegacyGlobalPlan } from './legacy-global-plan.js';
+import { isIdentityQuarantined, type LegacyGlobalPlan } from './legacy-global-plan.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function knownInstant(value: unknown): Date | null {
@@ -24,13 +24,14 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
   if (source.status !== 'closed') throw new Error('Open Giveaway requires a dedicated cutover contract.');
   const winnerId = typeof source.winner === 'string' ? byName.get(normalizeLegacyName(source.winner)) : null;
-  if (source.winner && !winnerId) throw new Error('Giveaway winner is outside the migrable population.');
+  const winnerQuarantined = isIdentityQuarantined(plan, source.winner);
+  if (source.winner && !winnerId && !winnerQuarantined) throw new Error('Giveaway winner is outside the migrable population.');
   const hasPreviousWinner = Object.hasOwn(source, 'previousWinner');
   const previousWinnerId = hasPreviousWinner && typeof source.previousWinner === 'string' && source.previousWinner.trim()
     ? byName.get(normalizeLegacyName(source.previousWinner)) : null;
-  if (hasPreviousWinner && !previousWinnerId)
+  if (hasPreviousWinner && !previousWinnerId && !isIdentityQuarantined(plan, source.previousWinner))
     throw new Error('Giveaway previousWinner is outside the migrable population or invalid.');
-  if (previousWinnerId && (!winnerId || previousWinnerId === winnerId))
+  if (previousWinnerId && ((!winnerId && !winnerQuarantined) || previousWinnerId === winnerId))
     throw new Error('Giveaway previousWinner contradicts the current winner.');
   const hasRerolledAt = Object.hasOwn(source, 'rerolledAt');
   const rerolledAt = hasRerolledAt ? knownInstant(source.rerolledAt) : null;

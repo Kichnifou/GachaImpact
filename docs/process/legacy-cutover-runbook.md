@@ -15,7 +15,26 @@ Contrôle DEV du 27 septembre 2026 : 050–052 appliquées par Prisma, registre 
 
 ## Étape 30 — foundation / rehearsal, pas cutover
 
-### Sécurisation des preuves après review de f6ae4a8 — 05/10/2026
+### Arbitrage final R1041 — quarantaine opérateur et rehearsal réelle
+
+Le propriétaire autorise deux profils NOT_FOUND de la capture du 04/10 à rester **QUARANTINED / DEFERRED**, avec leurs données intactes dans le snapshot local ignoré. Les 43 IDs vérifiés restent la population incluse. Cet arbitrage ne transforme pas les absents en RESOLVED ; sans autorisation locale valide, le préflight bloque toujours avant schéma.
+
+Depuis `server/`, produire un nouveau rapport Helix actuel, puis créer un fichier opérateur local ignoré contenant **exactement** son ensemble missing, après autorisation propriétaire du périmètre. Le loader `loadIdentityQuarantine` applique le [contrat R1041](../architecture/legacy-migration-v1.md#identité-et-comptes) : objet strict version 1/marqueur OWNER_APPROVED_IDENTITY_QUARANTINE/reason TWITCH_IDENTITY_NOT_FOUND, hash exact et date ISO, logins uniques et exacts ; fichier ignoré sans lien/traversée, aucun champ inconnu/secret, aucun conflit/doublon. Ne jamais ajouter un profil RESOLVED ni compléter manuellement le rapport Helix.
+
+```powershell
+npm.cmd run migration:legacy:resolve-identities -- ../local-data/streamerbot-snapshots/20261004T200232514Z ../local-data/identity-resolutions/<rapport-actuel-nouveau>.json
+npm.cmd run migration:legacy:rehearse -- ../local-data/streamerbot-snapshots/20261004T200232514Z 2026-10-04T20:02:33.000Z --identities ../local-data/identity-resolutions/<rapport-actuel-nouveau>.json --quarantine ../local-data/identity-resolutions/<quarantaine-approuvee>.json
+```
+
+Le mode doit être **VERIFIED_TWITCH_IDENTITIES_WITH_QUARANTINE**, sans identités de fixture pour les inclus. Contrôler avant purge : population source/éligible/incluse/quarantainée/exclue, rapprochements par User ID, conflits/doublons/unknown/blockers=0, dispositions TWITCH_IDENTITY_QUARANTINED et DEFERRED_IDENTITY_QUARANTINE. Les logs partagés restent en nombres/domaines ; jamais les noms, IDs ou JSON opérateur. Les schémas mutables restent batch_test_* uniquement ; chaque rehearsal nettoie son propre schéma.
+
+Vérifier ensuite les comptes/rôles/prefs/privacy, l'absence de mapping/run/gameplay pour les quarantaines, les faits différés, les domaines et les invariants sans historique/reward fictif. Refaire rollback après domaines avec image intégrale identique, second import depuis l'état initial restauré et sauvegarde/restauration exacte. Le Master porte les résultats exécutés. La capture **20261004T200232514Z**, hash **d0cf57becc4645a97c6b634e78ca4e075222aac7ea77f97d234ab83f7be7d486**, conserve les deux profils et leurs preuves ; leur future migration exige une mission complémentaire et un ID alors vérifié. Pour 31B, montrer explicitement les quarantaines dans le plan final ; ne jamais migrer ces profils automatiquement.
+
+R1041 autorise exceptionnellement le lot final 30 : preuves réelles et contrôles complets verts → commit/push review vérifié → contrôle de toute la chaîne depuis main → fast-forward strict du même SHA et push main → fetch, refs identiques/divergence 0/0/worktree propre. Une preuve échouée interdit la promotion. Le pilote Kichnifou-only est la prochaine mission, non commencé ici ; Twitch natif/outbound OFF, aucune nouvelle EventSub, liaison, écriture publique, migration Ceo ou désactivation Streamer.bot.
+
+**Exécution réelle du 05/10/2026 PASS :** rapport Helix actuel 43 résolus/deux missing/zéro conflit/doublon ; autorisation exacte conservée localement hors Git. Population 216 source/45 éligibles/43 inclus/deux quarantainés/171 exclus, 17 sources/0 inconnu ; un compte web réutilisé par ID, 42 futurs Twitch-only/neuf web non rattachés. Plan privé avant purge de 117 tables, 43 mappings/runs/identités vérifiés, aucun import pour les deux différés ; faits interjoueurs différés **0, aucun domaine** pour cette capture. Rollback après domaines, second import et backup/restauration exacts PASS ; PV Boss vérifiés dans le backup importé, dont 1 360 000 max exact. Empreinte numérique réelle `ebf0fa5355d25ff44e893967bde9d675e82021dbd96118ff04de11b8e0acc761`. Les comptes/rôles/prefs/privacy et empreintes publiques sont conservés ; source/hash et deux profils différés intacts. La non-régression complète sur fixtures reste PASS avec l'empreinte `386537672626efabddd1b31663477a75275ab73b3790bf4f7151d6a10d3c7f32`. Le Master porte les contrôles finaux et la clôture ; ces preuves privées n'autorisent aucune migration publique.
+
+### Historique — sécurisation des preuves après review de f6ae4a8, 05/10/2026
 
 Baseline `f6ae4a8b016cb4509d50dfee135648bbc34cedf9`, main `32bf76dbef8eebfecc790f4e407514c25f56b937`, review ahead 2/behind 0, index/worktree propres après fetch. Le paramètre facultatif de rapport antérieur passe désormais par le loader historique strict du [contrat canonique](../architecture/legacy-migration-v1.md#identité-et-comptes). Aucun JSON libre ni ancien format sans marqueur n'est adapté en preuve.
 

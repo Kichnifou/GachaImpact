@@ -2,6 +2,14 @@
 
 Statut : évolutif.
 
+## Quarantaine propriétaire des identités introuvables et clôture 30 — R1041 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : les profils dont le Twitch User ID est vérifié restent éligibles ; les profils réellement NOT_FOUND peuvent être explicitement mis en quarantaine / migration différée, sans Player, TwitchIdentity, MigrationRun, gameplay ni ID inventé. Pour la capture du 04/10 : 43 vérifiés et deux différés. Le snapshot local ignoré est conservé intégralement comme preuve ; une migration complémentaire dédiée reste possible après vérification ultérieure d'un ID immuable, jamais par pseudo.
+
+Le gate par défaut reste strict : missing bloque. Seul un fichier opérateur local ignoré, strict, lié au snapshot et contenant exactement l'ensemble missing autorise la quarantaine ; conflits/doublons restent bloquants. Les faits liés à ces profils sont explicitement différés, sans Player fantôme ni rattachement à une autre identité ; leurs agrégats/domaines restent visibles au plan et à 31B. [Contrat](../architecture/legacy-migration-v1.md), [runbook](../process/legacy-cutover-runbook.md).
+
+Critère de clôture 30 : population vérifiée + quarantaine exacte approuvée, zéro autre blocker, rehearsal réelle privée PASS, rollback, second import identique, sauvegarde/restauration et contrôles complets verts. Cette mission seule autorise alors publication review puis promotion strictement fast-forward du même SHA vers main, sans force-push/reset/squash. Une preuve échouée interdit la promotion. Le pilote Kichnifou-only devient la prochaine mission, NON COMMENCÉE ici ; aucun parser/outbound/EventSub, rattachement, cutover public, migration Ceo ou arrêt Streamer.bot autorisé.
+
 ## Foundation étape 30 et gate transport Kichnifou — R1040 (2026-10-04)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : séquence **30 → pilote Twitch réel Kichnifou-only de validation transport/commandes → 31A Ceo → 31B batch → 32**. Ce gate distinct est préparé documentairement en 30, exécuté seulement dans une future mission dédiée. Identité Twitch réellement liée, auteur filtré par User ID immuable, autres chatters ignorés ; parser/consumer et outbound OFF par défaut, activation explicite/réversible et un seul exécutant. Le propriétaire désactive temporairement Streamer.bot juste avant les lectures !pity/!banniere/!team/!sac/!quotis/!exp puis !pull 1 contrôlé ; réponse Twitch visible, même état standalone et une seule opération/récompense. Fin : natif OFF vérifié, puis Streamer.bot réactivé par le propriétaire. Aucun consentement/scope, abonnement EventSub, parser ni envoi réel n'est activé en 30. [Runbook](../process/legacy-cutover-runbook.md).

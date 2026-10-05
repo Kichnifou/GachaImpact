@@ -5,7 +5,7 @@ import { generateEventGameAState } from '../../domain/event/game-a.js';
 import { collectionItemExternalKey } from '../../domain/event/shop.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
-import type { LegacyGlobalPlan } from './legacy-global-plan.js';
+import { isIdentityQuarantined, type LegacyGlobalPlan } from './legacy-global-plan.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function number(value: unknown, label: string): number {
@@ -87,7 +87,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
   }
   if (active && editionId) {
     const today = object(object(source.gameB)[businessDate]);
-    if (Object.keys(today).length) {
+    if (Object.keys(today).length && !isIdentityQuarantined(plan, today.foundBy)) {
       const solutionCode = today.winningCode;
       if (typeof solutionCode !== 'string' || !Array.isArray(today.testedCodes)) throw new Error('Invalid legacy Event Game B state.');
       const discovererPlayerId = typeof today.foundBy === 'string' ? byName.get(normalizeLegacyName(today.foundBy)) ?? null : null;
@@ -136,6 +136,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
       for (const raw of rawMessages) {
         const message = object(raw);
         if (message.read === true) continue;
+        if (isIdentityQuarantined(plan, message.sender)) continue; // R1041: defer the whole source fact, never invent its sender.
         const senderPlayerId = typeof message.sender === 'string' ? byName.get(normalizeLegacyName(message.sender)) : null;
         const createdAt = parseLegacyParisInstant(message.createdAt);
         if (!senderPlayerId || !createdAt || typeof message.text !== 'string') throw new Error('Undelivered legacy Event message cannot be mapped.');

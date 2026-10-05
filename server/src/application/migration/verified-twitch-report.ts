@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { readLocalIdentityJson } from './local-identity-file.js';
+import { validateIdentityQuarantine, type IdentityQuarantine } from './identity-quarantine.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
 import type { TwitchResolution } from './twitch-identity-resolver.js';
 
@@ -64,8 +65,14 @@ export async function loadHistoricalTwitchReport(file: string): Promise<Verified
 }
 
 /** Must run before even constructing a private database fixture. */
-export function assertIdentityRehearsalReady(report: VerifiedTwitchReport | null, blockers: number, players: number): void {
-  if (blockers || !players || report?.missing.length || report?.conflicts.length) throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
+export function assertIdentityRehearsalReady(report: VerifiedTwitchReport | null, blockers: number, players: number,
+  quarantine?: IdentityQuarantine): void {
+  if (quarantine) {
+    if (!report) throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
+    validateIdentityQuarantine(quarantine, report.snapshotHash, report);
+  }
+  if (blockers || !players || (report?.missing.length && !quarantine) || report?.conflicts.length || report?.duplicates)
+    throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
 }
 
 export function identityResolutionSummary(report: VerifiedTwitchReport) {
@@ -77,13 +84,18 @@ export function parseRehearsalArguments(args: readonly string[]) {
   const [directory, ...rest] = args;
   if (!directory || directory.startsWith('--')) throw new Error('REHEARSAL_ARGUMENTS_INVALID');
   const cutover = rest[0] && !rest[0].startsWith('--') ? rest.shift() : undefined;
-  let identities: string | undefined;
-  if (rest.length) {
-    if (rest.length !== 2 || rest[0] !== '--identities' || !rest[1] || rest[1].startsWith('--')) throw new Error('REHEARSAL_ARGUMENTS_INVALID');
-    identities = rest[1];
+  let identities: string | undefined, quarantine: string | undefined;
+  while (rest.length) {
+    const option = rest.shift(), file = rest.shift();
+    if (!file || file.startsWith('--')) throw new Error('REHEARSAL_ARGUMENTS_INVALID');
+    if (option === '--identities' && !identities) identities = file;
+    else if (option === '--quarantine' && !quarantine) quarantine = file;
+    else throw new Error('REHEARSAL_ARGUMENTS_INVALID');
   }
+  if (quarantine && !identities) throw new Error('REHEARSAL_ARGUMENTS_INVALID');
   const cutoverAt = new Date(cutover ?? new Date().toISOString());
   if (Number.isNaN(cutoverAt.getTime())) throw new Error('REHEARSAL_ARGUMENTS_INVALID');
-  return { directory, cutoverAt, identities,
-    identityMode: identities ? 'VERIFIED_TWITCH_IDENTITIES' as const : 'ISOLATED_FIXTURE' as const };
+  return { directory, cutoverAt, identities, quarantine,
+    identityMode: quarantine ? 'VERIFIED_TWITCH_IDENTITIES_WITH_QUARANTINE' as const
+      : identities ? 'VERIFIED_TWITCH_IDENTITIES' as const : 'ISOLATED_FIXTURE' as const };
 }

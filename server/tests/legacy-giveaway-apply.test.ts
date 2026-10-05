@@ -24,6 +24,13 @@ function fixture(giveaway: Record<string, unknown>) {
 }
 
 describe('legacy Giveaway optional reroll facts', () => {
+  it('defers a quarantined previous winner without inventing an identity or another result', async () => {
+    const { snapshot, plan, tx, createSession, createWin } = fixture({ previousWinner: 'bob' });
+    plan.players = plan.players.filter(row => row.legacyUsername !== 'bob'); plan.identityQuarantined = ['bob'];
+    await expect(applyLegacyGiveaway(tx, snapshot, plan, 'private-batch')).resolves.toMatchObject({ wins: 1 });
+    expect(createSession.mock.calls[0]![0]).toMatchObject({ data: { winnerPlayerId: aliceId, previousWinnerPlayerId: null } });
+    expect(createWin).toHaveBeenCalledOnce();
+  });
   it('keeps the current winner without inventing reroll facts when fields are absent', async () => {
     const { snapshot, plan, tx, createSession, createWin } = fixture({});
     await expect(applyLegacyGiveaway(tx, snapshot, plan, 'private-batch')).resolves.toMatchObject({ sessions: 1, wins: 1, rewardsCreated: 0 });

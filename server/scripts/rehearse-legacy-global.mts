@@ -9,7 +9,7 @@ import { assertLegacyAccountPreservation, readLegacyAccountProjection, seedLegac
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
 import { capturePrivateSchema, privateNumericStateHash, restorePrivateBackup, writePrivateBackup } from '../tests-db/private-schema-backup.js';
 import { loadLegacySnapshotDirectory } from '../src/application/migration/legacy-snapshot-directory.js';
-import { buildLegacyGlobalPlan, fixtureTwitchResolution } from '../src/application/migration/legacy-global-plan.js';
+import { buildLegacyGlobalPlan, fixtureTwitchResolution, identityQuarantineSummary } from '../src/application/migration/legacy-global-plan.js';
 import { SnapshotPilotService } from '../src/application/migration/snapshot-pilot-service.js';
 import { applyLegacyPersonalState, ensureLegacyCharacterAvatars } from '../src/application/migration/legacy-personal-apply.js';
 import { applyLegacySocial } from '../src/application/migration/legacy-social-apply.js';
@@ -23,13 +23,16 @@ import { applyPrivateCutoverPurge, buildCutoverPurgePlan } from '../src/applicat
 import { applyLegacyContest } from '../src/application/migration/legacy-contest-apply.js';
 import { remainingFavorDays } from '../src/application/migration/legacy-favor-calendar.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
+import { normalizeLegacyName } from '../src/application/migration/streamerbot-snapshot.js';
+import { loadIdentityQuarantine } from '../src/application/migration/identity-quarantine.js';
 
 async function main() {
-const { directory, cutoverAt, identities: identityFile, identityMode } = parseRehearsalArguments(process.argv.slice(2));
+const { directory, cutoverAt, identities: identityFile, quarantine: quarantineFile, identityMode } = parseRehearsalArguments(process.argv.slice(2));
 const snapshot = await loadLegacySnapshotDirectory(resolve(directory));
 validateLegacyBossSnapshot(snapshot);
 const catalog = JSON.parse(await readFile(new URL('../prisma/data/characters.json', import.meta.url), 'utf8')) as { externalKey: string }[];
 const report = identityFile ? await loadVerifiedTwitchReport(identityFile, snapshot) : null;
+const quarantine = quarantineFile && report ? await loadIdentityQuarantine(quarantineFile, snapshot.hash, report) : undefined;
 const identities = report?.users ?? fixtureTwitchResolution(snapshot);
 let accounts: AccountProjection;
 if (report) {
@@ -50,17 +53,18 @@ if (report) {
   };
 }
 const existingWeb = accounts.players;
-const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)), accounts.identities, cutoverAt);
+const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)), accounts.identities, cutoverAt, quarantine);
 const reused = plan.players.filter(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH').length;
 const blockers = plan.issues.filter(issue => issue.severity === 'BLOCKER');
 process.stdout.write(JSON.stringify({ phase: 'IDENTITY_PREFLIGHT', identityMode, snapshotHash: snapshot.hash,
   ...(report ? identityResolutionSummary(report) : { resolved: 0, fixtureIdentities: identities.length }),
+  included: plan.players.length, ...identityQuarantineSummary(plan),
   existingPlayers: accounts.players.length, webAccounts: accounts.players.filter(row => row.hasWebAccount).length,
   reusedPlayers: reused, reusedWebAccounts: plan.players.filter(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH' && accounts.players.find(account => account.id === row.playerId)?.hasWebAccount).length,
   futureTwitchOnly: plan.players.filter(row => row.mappingMode === 'TWITCH_ONLY').length,
   unmatchedWebAccounts: plan.unmatchedWebPlayerIds.length, blockers: blockers.length,
   blockerCodes: [...new Set(blockers.map(row => row.code))], exit30Certified: false }) + '\n');
-assertIdentityRehearsalReady(report, blockers.length, plan.players.length);
+assertIdentityRehearsalReady(report, blockers.length, plan.players.length, quarantine);
 const existingId = plan.players.find(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH')?.playerId;
 const unmatchedId = plan.unmatchedWebPlayerIds[0];
 if (!existingId || !unmatchedId) throw new Error('PRIVATE_PRESERVATION_PROBES_UNAVAILABLE');
@@ -102,6 +106,7 @@ try {
   process.stdout.write(JSON.stringify({ phase: 'PRIVATE_PURGE_IMPORT_PLAN', identityMode,
     exit30Certified: false,
     snapshotHash: snapshot.hash, cutoverAt: cutoverAt.toISOString(), included: plan.players.length,
+    ...identityQuarantineSummary(plan),
     excluded: plan.excludedProfiles, issueCounts: plan.issues.reduce<Record<string, number>>((counts, issue) => {
       const key = `${issue.severity}:${issue.code}`; counts[key] = (counts[key] ?? 0) + 1; return counts;
     }, {}), deleteOrder: purgePlan.deleteOrder.map(row => ({ table: row.table, rows: row.rows.toString() })),
@@ -144,7 +149,11 @@ try {
       sourceModifiedAt: file.sourceModifiedUtc ? new Date(file.sourceModifiedUtc) : null })) });
     await db.migrationIssue.createMany({ data: plan.issues.map(issue => ({ batchId: batch.id, sourceName: issue.source,
       path: issue.path, legacyKey: issue.legacyKey ?? null, severity: issue.severity, issueCode: issue.code,
-      description: issue.code, resolution: issue.severity === 'QUARANTINE' ? 'Source quarantined; Box authoritative' : 'Applied validated correction' })) });
+      domain: issue.domain ?? null, description: issue.code,
+      resolution: ['TWITCH_IDENTITY_QUARANTINED', 'DEFERRED_IDENTITY_QUARANTINE'].includes(issue.code)
+        ? 'R1041: identity/fact deferred; immutable snapshot retained, no ghost Player.'
+        : issue.severity === 'QUARANTINE' ? 'Source quarantined; Box authoritative' : 'Applied validated correction',
+      ...(issue.factCount !== undefined ? { details: { factCount: issue.factCount } } : {}) })) });
     await db.migrationMapping.createMany({ data: plan.players.map(player => ({ batchId: batch.id,
       sourceName: 'viewers_data.json', legacyType: 'VIEWER', legacyKey: player.legacyUsername,
       targetType: 'PLAYER', targetId: player.playerId, twitchUserId: player.twitchUserId,
@@ -179,7 +188,10 @@ try {
       if (xpByPlayer.get(player.playerId) !== expected) throw new Error('Private legacy lastXpDate was not retained.');
     }
     const legacyWin = await db.giveawayWin.findFirst({ where: { origin: 'LEGACY' } });
-    if (!legacyWin || legacyWin.drawIndex !== 0 || legacyWin.operationId !== null || legacyWin.drawnAt !== null)
+    const sourceWinner = (snapshot.sources['giveaway.json'] as { winner?: string }).winner;
+    const expectedWins = plan.players.some(player => normalizeLegacyName(player.legacyUsername) === normalizeLegacyName(sourceWinner ?? '')) ? 1 : 0;
+    if ((expectedWins === 1 && (!legacyWin || legacyWin.drawIndex !== 0 || legacyWin.operationId !== null || legacyWin.drawnAt !== null)) ||
+      (expectedWins === 0 && legacyWin))
       throw new Error('Private Giveaway result provenance is incomplete.');
     const issueRows = await db.migrationIssue.findMany({ where: { batchId: batch.id }, select: { severity: true, issueCode: true, domain: true } });
     const issueCounts = Object.fromEntries([...new Set(issueRows.map(issue => `${issue.severity}:${issue.issueCode}`))].sort()
@@ -217,11 +229,23 @@ try {
       purge: { tables: purgePlan.deleteOrder.length, rows: purgePlan.deletedRows.toString(), tablesWithRows: purgePlan.tablesWithRows },
       unknownPaths: plan.unknownPaths,
       excludedProfiles: plan.excludedProfiles,
+      ...identityQuarantineSummary(plan),
       intentionalDrops: { excludedFriendships: plan.friendshipExcluded, excludedRequests: plan.requestExcluded,
         staleContestLocks: contest.staleLocks, testRowsPurged: purgePlan.deletedRows.toString() },
     };
     const expectedPlayers = existingWeb.length + plan.players.filter(player => player.mappingMode === 'TWITCH_ONLY').length;
     const expectedFavorStates = plan.players.filter(player => player.viewer.favor != null).length;
+    const mappedLegacyKeys = await db.migrationMapping.findMany({ where: { batchId: batch.id }, select: { legacyKey: true } });
+    if (mappedLegacyKeys.some(row => plan.identityQuarantined.includes(normalizeLegacyName(row.legacyKey))))
+      throw new Error('QUARANTINED_IDENTITY_WAS_MAPPED');
+    // Every personal row must belong to an included source Player, never a quarantined or unmatched account.
+    const includedIds = plan.players.map(player => player.playerId);
+    if (await db.playerProgression.count({ where: { playerId: { notIn: includedIds } } }) ||
+      await db.playerResourceBalance.count({ where: { playerId: { notIn: includedIds } } }) ||
+      await db.playerCharacter.count({ where: { playerId: { notIn: includedIds } } }) ||
+      await db.team.count({ where: { playerId: { notIn: includedIds } } }) ||
+      await db.playerBankAccount.count({ where: { playerId: { notIn: includedIds } } }))
+      throw new Error('PRIVATE_GAMEPLAY_OUTSIDE_INCLUDED_POPULATION');
     const retainedTwitch = await db.twitchIdentity.findUniqueOrThrow({ where: { playerId: existingId } });
     const mappedIdentity = plan.players.find(row => row.playerId === existingId)!;
     if (retainedTwitch.displayName !== mappedIdentity.twitchDisplayName || retainedTwitch.login !== mappedIdentity.twitchLogin) throw new Error('Current Twitch identity was not refreshed.');
@@ -234,7 +258,9 @@ try {
       Object.values(stats.fabricatedHistories).some(count => count !== 0) || Object.values(stats.clearedMessaging).some(count => count !== 0) ||
       stats.favor.states !== expectedFavorStates || stats.favor.calendarChecked !== expectedFavorStates ||
       stats.favor.grants !== 0 || stats.favor.claims > stats.favor.states || stats.bossAggregates !== stats.boss.bosses ||
-      stats.clearedSessions !== 0 || stats.giveaway.wins !== 1)
+      stats.clearedSessions !== 0 || stats.giveaway.wins !== expectedWins ||
+      issueRows.filter(row => row.issueCode === 'TWITCH_IDENTITY_QUARANTINED').length !== plan.identityQuarantined.length ||
+      await db.migrationMapping.count({ where: { batchId: batch.id } }) !== plan.players.length)
       throw new Error(`Personal rehearsal invariant failed: ${JSON.stringify(stats)}`);
     if (snapshot.hash === '1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba' &&
       (plan.players.length !== 45 || plan.excludedProfiles !== 168 || stats.social.friendships !== 86 || stats.social.requests !== 19 ||
@@ -258,7 +284,7 @@ try {
   process.stdout.write(JSON.stringify({ phase: 'PRIVATE_GLOBAL_REHEARSAL', identityMode,
     ...first, snapshotHash: snapshot.hash, globalRollbackVerified: true, idempotentCleanTarget: true,
     privateBackupRestoreVerified: true,
-    exit30Certified: identityMode === 'VERIFIED_TWITCH_IDENTITIES' }) + '\n');
+    exit30Certified: identityMode !== 'ISOLATED_FIXTURE' }) + '\n');
 } finally {
   if (setupStarted) await isolated.cleanup();
 }

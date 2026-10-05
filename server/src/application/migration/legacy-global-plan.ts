@@ -4,17 +4,29 @@ import { scanLegacyCoverage } from './legacy-coverage.js';
 import type { ResolvedTwitchUser } from './twitch-identity-resolver.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { isValidLegacyXpDate } from './legacy-xp-provenance.js';
+import { validateIdentityQuarantine, type IdentityQuarantine } from './identity-quarantine.js';
+import { planDeferredIdentityFacts } from './legacy-identity-deferrals.js';
 
 const elements = new Set(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']);
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-export type LegacyPlanIssue = { code: string; severity: 'BLOCKER' | 'WARNING' | 'QUARANTINE' | 'INFO'; source: string; path: string; legacyKey?: string };
+export type LegacyPlanIssue = { code: string; severity: 'BLOCKER' | 'WARNING' | 'QUARANTINE' | 'INFO'; source: string; path: string; legacyKey?: string; domain?: string; factCount?: number };
 export type ExistingWebAccount = { id: string; displayName: string; twitchUserId: string | null; hasWebAccount?: boolean };
 export type PlannedPlayer = { legacyUsername: string; elementKey: string; playerId: string; displayName: string;
   twitchUserId: string; twitchLogin: string; twitchDisplayName: string;
   mappingMode: 'EXISTING_VERIFIED_TWITCH' | 'TWITCH_ONLY'; viewer: Record<string, unknown> };
 export type LegacyGlobalPlan = { snapshotHash: string; players: PlannedPlayer[]; unmatchedWebPlayerIds: string[];
   excludedProfiles: number; friendshipCount: number; friendshipExcluded: number; requestCount: number; requestExcluded: number;
-  issues: LegacyPlanIssue[]; unknownPaths: number };
+  issues: LegacyPlanIssue[]; unknownPaths: number; identityQuarantined: string[];
+  deferredIdentityFacts: ReturnType<typeof planDeferredIdentityFacts> };
+
+export const isIdentityQuarantined = (plan: LegacyGlobalPlan, login: unknown) => typeof login === 'string'
+  && (plan.identityQuarantined ?? []).includes(normalizeLegacyName(login));
+
+/** Shared CLI DTO intentionally omits individual logins, IDs, source values and message text. */
+export function identityQuarantineSummary(plan: LegacyGlobalPlan) {
+  return { identityQuarantined: plan.identityQuarantined.length,
+    deferredIdentityFacts: { total: plan.deferredIdentityFacts.total, byDomain: plan.deferredIdentityFacts.byDomain } };
+}
 
 function deterministicUuid(snapshotHash: string, login: string): string {
   const hex = createHash('sha256').update(`legacy-rehearsal-player\0${snapshotHash}\0${login}`).digest('hex');
@@ -31,13 +43,17 @@ export function fixtureTwitchResolution(snapshot: Snapshot): ResolvedTwitchUser[
 
 export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly ResolvedTwitchUser[],
   existingWeb: readonly ExistingWebAccount[], catalogKeys: ReadonlySet<string>,
-  existingIdentities: readonly { playerId: string; twitchUserId: string }[] = [], cutoverAt?: Date): LegacyGlobalPlan {
+  existingIdentities: readonly { playerId: string; twitchUserId: string }[] = [], cutoverAt?: Date,
+  quarantine?: IdentityQuarantine): LegacyGlobalPlan {
   const coverage = scanLegacyCoverage(snapshot);
   const issues: LegacyPlanIssue[] = coverage.unknown.map(item => ({ code: 'UNKNOWN_SOURCE_PATH', severity: 'BLOCKER', source: item.file, path: item.path }));
   const viewers = record(snapshot.sources['viewers_data.json']);
   const selected = Object.entries(viewers).filter(([, raw]) => elements.has(String(record(raw).element).toLowerCase()));
   const eligible = new Set(selected.map(([login]) => normalizeLegacyName(login)));
   const resolutionByLogin = new Map(resolved.map(user => [normalizeLegacyName(user.legacyLogin), user]));
+  if (quarantine) validateIdentityQuarantine(quarantine, snapshot.hash, { snapshotHash: snapshot.hash,
+    missing: selected.filter(([login]) => !resolutionByLogin.has(normalizeLegacyName(login))).map(([login]) => login), conflicts: [], duplicates: 0 });
+  const quarantined = new Set(quarantine?.legacyLogins.map(normalizeLegacyName) ?? []);
   const existingByTwitch = new Map(existingWeb.filter(row => row.twitchUserId).map(row => [row.twitchUserId!, row]));
   const linkedByTwitch = new Map(existingIdentities.map(row => [row.twitchUserId, row.playerId]));
   if (existingByTwitch.size !== existingWeb.filter(row => row.twitchUserId).length || linkedByTwitch.size !== existingIdentities.length)
@@ -57,6 +73,11 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
   const players: PlannedPlayer[] = [];
   for (const [login, raw] of selected) {
     const key = normalizeLegacyName(login);
+    if (quarantined.has(key)) {
+      issues.push({ code: 'TWITCH_IDENTITY_QUARANTINED', severity: 'QUARANTINE', source: 'viewers_data.json',
+        path: '*.username', legacyKey: login, domain: 'IDENTITY' });
+      continue;
+    }
     const viewer = record(raw);
     if (!isValidLegacyXpDate(record(viewer.dates).lastXpDate))
       issues.push({ code: 'LEGACY_XP_DATE_INVALID', severity: 'BLOCKER', source: 'viewers_data.json',
@@ -100,6 +121,7 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
     if (!Array.isArray(pair) || pair.length !== 2 || pair.some(value => typeof value !== 'string')) {
       issues.push({ code: 'FRIENDSHIP_PAIR_INVALID', severity: 'BLOCKER', source: 'friendships_data.json', path: 'friendships.*.users' }); continue;
     }
+    if (pair.some(value => quarantined.has(normalizeLegacyName(value)))) continue;
     if (pair.every(value => eligible.has(normalizeLegacyName(value)))) friendshipCount++; else friendshipExcluded++;
   }
   for (const raw of Array.isArray(friends.requests) ? friends.requests : []) {
@@ -107,9 +129,13 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
     if (typeof request.from !== 'string' || typeof request.to !== 'string') {
       issues.push({ code: 'FRIEND_REQUEST_INVALID', severity: 'BLOCKER', source: 'friendships_data.json', path: 'requests[]' }); continue;
     }
+    if ([request.from, request.to].some(value => quarantined.has(normalizeLegacyName(value)))) continue;
     if ([request.from, request.to].every(value => eligible.has(normalizeLegacyName(value)))) requestCount++; else requestExcluded++;
   }
+  const deferredIdentityFacts = planDeferredIdentityFacts(snapshot, quarantined, cutoverAt);
+  for (const fact of deferredIdentityFacts.facts) issues.push({ code: 'DEFERRED_IDENTITY_QUARANTINE', severity: 'QUARANTINE',
+    source: fact.source, path: fact.path, domain: fact.domain, factCount: fact.count });
   return { snapshotHash: snapshot.hash, players, unmatchedWebPlayerIds: existingWeb.filter(row => row.hasWebAccount !== false && !usedWeb.has(row.id)).map(row => row.id),
     excludedProfiles: coverage.excludedProfiles, friendshipCount, friendshipExcluded, requestCount, requestExcluded,
-    issues, unknownPaths: coverage.unknown.length };
+    issues, unknownPaths: coverage.unknown.length, identityQuarantined: [...quarantined], deferredIdentityFacts };
 }
