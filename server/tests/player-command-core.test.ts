@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SourceChannel } from '../generated/prisma/client.js';
 import { harness, commandId } from './helpers/chat-command-harness.js';
-import { resolvePlayerCommand, type PlayerCommandServices, type PlayerCommandHandler } from '../src/application/chat/player-command-core.js';
+import { parsePullCount, resolvePlayerCommand, type PlayerCommandServices, type PlayerCommandHandler } from '../src/application/chat/player-command-core.js';
 import { verifiedPlayerActor } from '../src/application/player/player-execution-actor.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { PerformGachaPull } from '../src/application/gacha/gacha-services.js';
@@ -35,4 +35,17 @@ describe('shared player command core', () => {
     await service.execute(internal, 1, 'network-key');
     expect(pull).toHaveBeenCalledWith(expect.objectContaining({ playerId: player.id, sourceChannel: SourceChannel.TWITCH, count: 1, idempotencyKey: 'network-key' }));
   });
+});
+
+describe('canonical pull quantity shared by transports', () => {
+  it.each([{ args: [], count: 1 }, ...Array.from({ length: 10 }, (_, index) => ({ args: [String(index + 1)], count: index + 1 }))])('accepts canonical args $args', ({ args, count }) => {
+    expect(parsePullCount(args)).toBe(count);
+  });
+  it.each(['0', '11', '-1', '01', '1.5', 'abc'])('rejects %s without reaching the engine', async arg => {
+    const f = harness();
+    expect(parsePullCount([arg])).toBeNull();
+    expect(await resolvePlayerCommand(verifiedPlayerActor(player), 'pull', [arg], '!pull [1..10]', commandId, f.services as unknown as PlayerCommandServices)).toContain('Syntaxe');
+    expect(f.services.performGachaPullChat.execute).not.toHaveBeenCalled();
+  });
+  it('rejects extra args', () => expect(parsePullCount(['2', 'extra'])).toBeNull());
 });

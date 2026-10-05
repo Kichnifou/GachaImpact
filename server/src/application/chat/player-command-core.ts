@@ -12,6 +12,10 @@ export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' 
 export type PlayerCommandHandler = 'pity' | 'banniere' | 'pull' | 'team' | 'sac' | 'expedition' | 'quotis';
 const syntax = (usage: string) => `Syntaxe : ${usage}.`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
+export function parsePullCount(args: readonly string[]): number | null {
+  if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return null;
+  return args[0] ? Number(args[0]) : 1;
+}
 export function playerCommandError(error: unknown, handler: string): string | undefined {
   if (handler === 'banniere' && error instanceof BusinessError && error.code === 'GACHA_BANNER_UNAVAILABLE') return '⚠️ Aucune bannière n’est active pour le moment.';
   const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
@@ -44,8 +48,8 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       return `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.'}`;
     }
     case 'pull': {
-      if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return syntax(definition.syntax);
-      const count = args[0] ? Number(args[0]) : 1;
+      const count = parsePullCount(args);
+      if (count === null) return syntax(definition.syntax);
       const actor = await services.socialService.actor(identity);
       const actorName = await rememberName(actor.displayName);
       const result = await services.performGachaPullChat.execute(identity, count, commandMessageId);

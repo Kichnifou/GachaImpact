@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : pilote commandes Twitch Kichnifou-only R1042 — UI opérateur candidate, non activée.
+Version : recette live pilote R1042 — correctif Pull 1..10 R1043 candidat review.
 Date : 2026-10-05
-Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; PILOTE KICHNIFOU-ONLY R1042, CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ.** Main stable 61c4eef ; backend R1042 promu, UI sur review uniquement dans ce lot. Review indépendante ChatGPT puis promotion/déploiement/recette propriétaire séparés avant 31A Ceo → 31B batch → 32. Streamer.bot autoritatif. Autorisation payante limitée à Railway Hobby.
+Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; RECETTE LIVE KICHNIFOU-ONLY R1042 RAPPORTÉE, CORRECTIF PULL R1043 CANDIDAT REVIEW.** Main stable 9bd20cf ; review indépendante ChatGPT puis promotion/déploiement et petite recette propriétaire séparés. Aucune bascule globale ; Streamer.bot autoritatif hors pilote. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — mini lot UI arm/disarm R1042, 05/10/2026
+## Point courant — correctif Pull Twitch 1..10 R1043, 05/10/2026
+
+**Baseline après fetch :** HEAD/review/main/origin/main/origin/review = **9bd20cf3a67112288ff584ae48bf1e521548d767**, divergence 0/0, worktree/index propres. Backend et UI R1042 promus et déployés ; recette réelle rapportée par le propriétaire : EventSub, !pity, !ban/!banniere, !team, !sac, !quotis, !exp, !pull/!pull 1 OK. Seul finding : !pull 2/3 ignorés par la restriction x1 volontaire ; aucun effet DB selon son contrôle des essais >1.
+
+**Correctif minimal candidat :** [R1043](../specifications/decisions-log.md) autorise un seul entier canonique 1..10, par primitive partagée avec le core Player. Un EventSub → une opération moteur source TWITCH → N résultats → N messages [i/N]. Coût, RNG/passifs R1040, rendu pullChatResult, feedback Mission réel existant, boucle outbound, Chat standalone et autres commandes inchangés. Aucun pacing ajouté. Clé stable et SENT préservés ; refus certain B après A SENT laisse C en attente, retry response-only B/C sans moteur ; SENDING/AMBIGUOUS inchangés.
+
+**Contrôles :** régression reproduite avant correctif ; 136 tests ciblés pilote/core/rendu Gacha/outbound PASS. PostgreSQL privé : huit tests PASS avec vrai x3, une BusinessOperation gacha.pull/une PullOperation, trois PullResult, débit unique PULL_COST[3], SourceChannel.TWITCH, trois messages distincts, replay sans nouveau gain/débit/progression/envoi ; refus certain puis reprise B/C sans moteur. Aucune WebIdentity ou GlobalChatMessage. Fixtures écrites uniquement dans le schéma privé puis nettoyées ; inventaire privé préexistant et empreintes des huit tables publiques contrôlées inchangés. Soixante migrations versionnées concordent avec le registre ; prisma migrate status PASS. Aucun schéma/migration de production modifié. Typechecks/builds/lint PASS ; verify:full 8/8 avec VITEST_MAX_WORKERS=2 : 1 311 tests frontend et 1 725 backend hors DB. Deux lancements avec parallélisme par défaut ont échoué (7/8) sur timeouts Chat et expiration du TTL de saisie MP ; ces deux fichiers passent isolément (156 tests), puis toute la suite passe avec deux workers, sans modification frontend ni augmentation des timeouts. Avertissement pg client.query concurrent dans la suite DB, sans échec ; aucune modification de driver.
+
+**Publication / suite :** review uniquement, un commit attendu ahead 1/behind 0 ; main **9bd20cf** inchangé. STOP pour review indépendante ChatGPT, puis promotion/déploiement et petite recette propriétaire. Aucune nouvelle activation/recette live dans cette mission, aucun armement ni Pull réel, aucune modification Railway/variable/EventSub/OAuth ou arrêt Streamer.bot.
+
+## Historique — mini lot UI arm/disarm R1042, 05/10/2026
 
 **Baseline après fetch :** HEAD/review/main/origin/review/origin/main = **61c4eef63907292ca076ebb67945fd1a4201c809**, divergence 0/0 et worktree/index propres. Promotion backend et déploiement Railway SUCCESS rapportés par le propriétaire ; variable de capacité absente (OFF), sans nouvelle inspection de production dans ce lot.
 

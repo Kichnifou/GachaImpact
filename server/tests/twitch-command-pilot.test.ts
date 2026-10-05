@@ -147,7 +147,7 @@ describe('Kichnifou-only command pilot', () => {
       expect(f.parser).not.toHaveBeenCalled(); expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
       expect(f.receipt.externalReference).toBeNull();
     });
-  it.each(['!pity', '!banniere', '!bannière', '!ban', '!team', '!sac', '!quotis', '!quoti', '!daily', '!exp', '!expedition', '!pull', '!pull 1'])(
+  it.each(['!pity', '!banniere', '!bannière', '!ban', '!team', '!sac', '!quotis', '!quoti', '!daily', '!exp', '!expedition', '!pull', '!pull 1', '!pull 2', '!pull 3', '!pull 9', '!pull 10'])(
     'allows canonical command %s only for the exact linked ID', async text => {
       const f = await fixture(); await f.pilot.consumeAuthenticated(commandEnvelope(text), 'receipt');
       expect(f.executor.execute).toHaveBeenCalledTimes(1);
@@ -155,7 +155,7 @@ describe('Kichnifou-only command pilot', () => {
       expect(f.outbound.send).toHaveBeenCalledWith({ broadcasterId: '123', senderId: '123', message: 'Réponse validée.', replyParentMessageId: 'chat-message' }, expect.any(Function));
       expect(f.receipt.state).toBe('PROCESSED'); expect(f.receipt.externalReference).toContain('twitch-command:network-id');
     });
-  it.each(['!pull 2', '!pull 10', '!pull 01', '!pull 1 extra', '!select A', '!banque', '!shop', '!conversion 1', '!ami', '!trade', '!combat', '!combat boss go', '!event join', '!concours', '!code X', '!daily claim', '!roue', '!exp A', '!exp retour', '!team 1 apply', '!sac extra', '!unknown'])(
+  it.each(['!pull 0', '!pull 11', '!pull -1', '!pull 01', '!pull 1.5', '!pull abc', '!pull 2 extra', '!pull 1 extra', '!select A', '!banque', '!shop', '!conversion 1', '!ami', '!trade', '!combat', '!combat boss go', '!event join', '!concours', '!code X', '!daily claim', '!roue', '!exp A', '!exp retour', '!team 1 apply', '!sac extra', '!unknown'])(
     'silently ignores command outside the exact recipe: %s', async text => {
       const f = await fixture(); await f.pilot.consumeAuthenticated(commandEnvelope(text), 'receipt');
       expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
@@ -219,5 +219,31 @@ describe('Kichnifou-only command pilot', () => {
     await expect(f.pilot.retryResponses(playerId, 'receipt')).rejects.toMatchObject({ code: 'TWITCH_COMMAND_RESPONSE_AMBIGUOUS' });
     await f.pilot.consumeAuthenticated(commandEnvelope('!pull 1'), 'receipt');
     expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.outbound.send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('multi-pull transport', () => {
+  const results = ['[1/3] A', '[2/3] B', '[3/3] C'];
+  it('parses and executes once, persists three responses and sends each in order', async () => {
+    const f = await fixture(); f.executor.execute.mockResolvedValue(results);
+    const body = commandEnvelope('!pull 3');
+    await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.parser).toHaveBeenCalledExactlyOnceWith('pull');
+    expect(f.executor.execute).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: playerId }), 'pull', ['3'], expect.any(String), 'twitch-command:network-id');
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: results.map(text => ({ text, status: 'SENT' })) } });
+    expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(results);
+    await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.outbound.send).toHaveBeenCalledTimes(3);
+  });
+  it('resumes results B and C only after certain rejection, without parsing or executing again', async () => {
+    const f = await fixture(); f.executor.execute.mockResolvedValue(results);
+    f.outbound.send.mockResolvedValueOnce('sent-A').mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pull 3'), 'receipt');
+    expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(results.slice(0, 2));
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ status: 'SENT' }, { status: 'FAILED' }, { status: 'PENDING' }] } });
+    await f.pilot.retryResponses(playerId, 'receipt');
+    expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual([results[0], results[1], results[1], results[2]]);
+    expect(f.parser).toHaveBeenCalledTimes(1); expect(f.executor.execute).toHaveBeenCalledTimes(1);
+    expect(f.receipt.state).toBe('PROCESSED');
   });
 });

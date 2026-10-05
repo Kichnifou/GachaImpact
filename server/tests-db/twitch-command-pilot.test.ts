@@ -1,6 +1,7 @@
 import { randomUUID, createHmac } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
+import { PULL_COST } from '../src/domain/gacha/pull.js';
 import { SourceChannel } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { buildApp } from '../src/app.js';
@@ -151,6 +152,44 @@ describe('signed command pilot in private PostgreSQL', () => {
     const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
     expect(receipt.externalReference).not.toBeNull(); expect(receipt.processedAt).toBeNull();
     expect((await post(request)).statusCode).toBe(204); expect(await state()).toEqual(committed);
+    expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
+  }, 60_000);
+});
+
+describe('real multi-pull idempotence and segmented delivery', () => {
+  it.each([false, true])('executes x3 once with certain partial rejection=%s', async partial => {
+    const before = await state(), executions = business.mock.calls.length, parses = parser.mock.calls.length, sends = outbound.send.mock.calls.length;
+    if (partial) outbound.send.mockResolvedValueOnce(randomUUID()).mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    const request = signed(event('!pull 3'));
+    expect((await post(request)).statusCode).toBe(204);
+    const committed = await state();
+    expect(committed.pulls).toBe(before.pulls + 1); expect(committed.operations).toBe(before.operations + 1);
+    expect(committed.wallet).toBe(before.wallet - PULL_COST[3]); expect(committed.gacha.totalPulls).toBe(before.gacha.totalPulls + 3n);
+    expect(business).toHaveBeenCalledTimes(executions + 1); expect(parser).toHaveBeenCalledTimes(parses + 1);
+    const key = { idempotencyKey: { endsWith: ':twitch-command:' + request.headers['twitch-eventsub-message-id'] } };
+    expect(await db.businessOperation.count({ where: key })).toBe(1);
+    const operation = await db.businessOperation.findFirstOrThrow({ where: key });
+    expect(operation).toMatchObject({ operationType: 'gacha.pull', sourceChannel: SourceChannel.TWITCH, playerId });
+    const pulls = await db.pullOperation.findMany({ where: { businessOperationId: operation.id }, include: { results: true } });
+    expect(pulls).toHaveLength(1); expect(pulls[0]).toMatchObject({ pullCount: 3, primogemCost: PULL_COST[3], sourceChannel: SourceChannel.TWITCH });
+    expect(pulls[0]!.results).toHaveLength(3);
+    expect(await db.resourceMovement.count({ where: { operationId: operation.id, resourceKey: 'primogems', delta: -PULL_COST[3] } })).toBe(1);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const saved = receipt.payloadMinimal as { commandPilot: { responses: { text: string; status: string }[] } };
+    expect(saved.commandPilot.responses).toHaveLength(3);
+    saved.commandPilot.responses.forEach((row, index) => expect(row.text).toContain('[' + (index + 1) + '/3]'));
+    if (partial) {
+      expect(saved.commandPilot.responses.map(row => row.status)).toEqual(['SENT', 'FAILED', 'PENDING']);
+      expect(outbound.send).toHaveBeenCalledTimes(sends + 2);
+      expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+    }
+    expect(await state()).toEqual(committed); expect(business).toHaveBeenCalledTimes(executions + 1); expect(parser).toHaveBeenCalledTimes(parses + 1);
+    const messages = outbound.send.mock.calls.slice(sends).map(call => (call as unknown as [{ message: string }])[0].message);
+    const texts = saved.commandPilot.responses.map(row => row.text);
+    expect(messages).toEqual(partial ? [texts[0], texts[1], texts[1], texts[2]] : texts);
+    expect((await post(request)).statusCode).toBe(204);
+    expect(await state()).toEqual(committed); expect(outbound.send).toHaveBeenCalledTimes(sends + (partial ? 4 : 3));
+    expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
   }, 60_000);
 });

@@ -5,6 +5,7 @@ import type { AppConfig } from '../../config/environment.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import { findChatCommand } from '../chat/chat-command-registry.js';
 import type { PlayerCommandHandler } from '../chat/player-command-core.js';
+import { parsePullCount } from '../chat/player-command-core.js';
 import type { TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 import { TwitchCommandSendError, type TwitchCommandChatClient } from '../../infrastructure/twitch/twitch-command-chat-client.js';
 
@@ -123,7 +124,7 @@ export class TwitchCommandPilot {
     const definition = this.parser(root);
     const handler = definition?.handler as PlayerCommandHandler | undefined;
     if (!definition || !handler || !allowed.has(handler) || (handler === 'pull'
-      ? args.length > 1 || args.length === 1 && args[0] !== '1' : args.length > 0)) return;
+      ? parsePullCount(args) === null : args.length > 0)) return;
     const read = (tx: Prisma.TransactionClient) => this.read(tx, receiptId, identity.twitchUserId);
     const save = (tx: Prisma.TransactionClient, minimal: Record<string, Prisma.JsonValue>, state: Execution) => this.save(tx, receiptId, minimal, state);
     // Commit the retention exemption BEFORE the business call, including its recoverable crash window.
