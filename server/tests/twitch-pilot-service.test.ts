@@ -237,7 +237,8 @@ describe('separate Twitch Chat runtime authorization', () => {
       { execute: async () => ({ id: playerId }) } as unknown as GetCurrentPlayer,
       { ...config, twitchCommandPilot: { enabled }, twitchEventSub: { enabled: true, secret: 'fixture-secret', callbackUrl: 'https://api.example/eventsub' } },
       keys, subscriptions as unknown as TwitchEventSubSubscriptionManager);
-    expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: true, commandPilotEnabled: enabled, runtimeChatActive: false });
+    expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: true, commandPilotCapabilityEnabled: enabled,
+      commandPilotArmed: false, commandPilotEnabled: false, runtimeChatActive: false });
     expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
     db.twitchIdentity.findUnique.mockResolvedValue({ ...linked, login: 'other' });
     expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: false, commandPilotEnabled: false });

@@ -8,6 +8,13 @@ function fixture() {
   return { tokens, request, client: new TwitchCommandChatClient('client', tokens, request) };
 }
 describe('Twitch command outbound with app authorization', () => {
+  it('does not start HTTP when disarmed while the app token is still being acquired', async () => {
+    const f = fixture(); let armed = true; let complete!: (token: string) => void;
+    f.tokens.getToken.mockReturnValueOnce(new Promise(resolve => { complete = resolve; }));
+    const sending = f.client.send(input, () => armed); armed = false; complete('private-fixture-token');
+    await expect(sending).rejects.toMatchObject({ certainty: 'CERTAIN', reason: 'PILOT_DISABLED' });
+    expect(f.request).not.toHaveBeenCalled();
+  });
   it('uses an app token and exact sender/channel/reply; never shares the reply with another channel', async () => {
     const f = fixture(); expect(await f.client.send(input)).toBe('sent');
     const [url, init] = f.request.mock.calls[0]!;

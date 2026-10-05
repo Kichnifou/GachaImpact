@@ -22,13 +22,15 @@ export class TwitchCommandChatClient {
   constructor(private readonly clientId: string, private readonly tokens: Pick<TwitchAppAccessTokenProvider, 'getToken' | 'invalidate'>,
     private readonly request: typeof fetch = fetch) {}
 
-  async send(input: TwitchCommandChatInput): Promise<string> {
+  async send(input: TwitchCommandChatInput, canSend: () => boolean = () => true): Promise<string> {
     const parsed = inputSchema.safeParse(input);
     if (!parsed.success) throw new TwitchCommandSendError('CERTAIN', 'INVALID_INPUT');
     for (let attempt = 0; attempt < 2; attempt++) {
       let token: string;
       try { token = await this.tokens.getToken(); }
       catch { throw new TwitchCommandSendError('CERTAIN', 'APP_TOKEN_UNAVAILABLE'); }
+      // A disarm during lazy token acquisition must also stop the actual HTTP request.
+      if (!canSend()) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
       let response: Response;
       try {
         response = await this.request('https://api.twitch.tv/helix/chat/messages', { method: 'POST',

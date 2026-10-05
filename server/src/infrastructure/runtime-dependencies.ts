@@ -265,7 +265,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchCommandPilot: twitchAppTokens && config.twitch?.clientId ? new TwitchCommandPilot(database, config,
       twitchPlayerCommandExecutor(database, { ...dependencies,
         performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.TWITCH) }),
-      new TwitchCommandChatClient(config.twitch.clientId, twitchAppTokens)) : undefined,
+      new TwitchCommandChatClient(config.twitch.clientId, twitchAppTokens), undefined, twitchSubscriptions) : undefined,
   };
 }
 

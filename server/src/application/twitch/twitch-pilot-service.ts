@@ -47,7 +47,7 @@ export async function verifyTwitchIdToken(token: string, clientId: string, nonce
 export class TwitchPilotService {
   private readonly settings: NonNullable<AppConfig['twitch']>;
   private readonly eventSubConfigured: boolean;
-  private readonly commandPilotEnabled: boolean;
+  private readonly commandPilotCapabilityEnabled: boolean;
   private readonly commandPilotConfigured: boolean;
   constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, config: AppConfig,
     private readonly keys: JWTVerifyGetKey = twitchKeys, private readonly subscriptions?: TwitchEventSubSubscriptionManager,
@@ -55,7 +55,7 @@ export class TwitchPilotService {
     private readonly giveaway?: TwitchGiveawayManager) {
     this.settings = config.twitch ?? { pilotPlayerIds: [], pilotLogin: 'kichnifou' };
     this.eventSubConfigured = Boolean(config.twitchEventSub?.enabled || config.twitchEventSub?.callbackUrl || config.twitchEventSub?.secret);
-    this.commandPilotEnabled = config.twitchCommandPilot?.enabled === true;
+    this.commandPilotCapabilityEnabled = config.twitchCommandPilot?.enabled === true;
     this.commandPilotConfigured = config.twitchEventSub?.enabled === true && this.settings.pilotLogin === 'kichnifou';
   }
 
@@ -116,7 +116,10 @@ export class TwitchPilotService {
       pilotAvailable: eligible && this.oauthReady(),
       eligible,
       commandPilotAvailable: available && this.commandPilotConfigured && linked?.login.toLowerCase() === this.settings.pilotLogin,
-      commandPilotEnabled: available && this.commandPilotConfigured && linked?.login.toLowerCase() === this.settings.pilotLogin && this.commandPilotEnabled,
+      commandPilotCapabilityEnabled: this.commandPilotCapabilityEnabled,
+      commandPilotArmed: false,
+      // The route overlays the process-local command pilot's actual runtime state.
+      commandPilotEnabled: false,
       linked: linked ? { login: linked.login, displayName: linked.displayName, linkedAt: linked.linkedAt.toISOString() } : null,
       snapshotAvailable: eligible && Boolean(linked) && this.oauthReady(),
       runtimeAuthorizationAvailable: eligible && Boolean(linked) && this.oauthReady(),

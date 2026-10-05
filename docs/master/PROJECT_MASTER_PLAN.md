@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : pilote commandes Twitch Kichnifou-only R1042 — candidat technique non activé.
+Version : pilote commandes Twitch Kichnifou-only R1042 — correctif review du kill switch, non activé.
 Date : 2026-10-05
 Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; PILOTE KICHNIFOU-ONLY R1042, CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ.** Main stable db6d542 ; review uniquement dans ce lot. Review indépendante ChatGPT puis promotion/déploiement/recette propriétaire séparés avant 31A Ceo → 31B batch → 32. Streamer.bot autoritatif. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — pilote commandes Twitch Kichnifou-only R1042, 05/10/2026
+## Point courant — correctif review R1042 du kill switch, 05/10/2026
+
+**Baseline après fetch :** HEAD/review/origin/review = **96559356ddedca52fb9b5a2fea6c4d6694e4709a** ; main/origin/main = **db6d542604b91c15cffdb2dcea5dcd971d9af02a**, review ahead 1/behind 0, index/worktree propres. Review indépendante ChatGPT rapportée par le propriétaire : architecture validée, seul finding bloquant = arrêt statique nécessitant redeploy.
+
+**Correction bornée :** env TWITCH_COMMAND_PILOT_ENABLED = capacité seulement, false interdit d'armer ; true laisse runtime OFF. Armement mémoire non persistant, false à chaque boot/restart/redeploy/crash, gate effectif capacité AND armed. POST authentifié /api/v1/me/twitch/commands/pilot exige requirePilot, Player actif lié Kichnifou et manager inspectant une subscription Chat ACTIVE, sans OAuth/create ni outbound. DELETE désarme sans appel Twitch/redeploy et empêche un arm en attente de réactiver le pilote. Status distingue available/capability/armed/enabled et EventSub. [R1042 précisée](../specifications/decisions-log.md), [architecture](../architecture/backend-architecture-v1.md).
+
+**Opérations engagées :** contrôle avant parser/métier et chaque nouvel HTTP, aussi après acquisition différée du token. Un métier commencé finit idempotemment ; si désarmé après commit, résultat sauvegardé sans envoi. A SENT puis disarm laisse B/C PENDING ; réarmement + response-only retry sans nouveau Pull. HTTP déjà parti non annulable ; SENDING/AMBIGUOUS toujours bloqué. Aucun AppConfig muté, token persistant, calcul métier ou DDL changé, aucun impact Faveur/Giveaway/Gift. Mémoire **strictement pilote à une seule réplique**, état partagé à revoir avant multi-réplique/batch.
+
+**Contrôles du complément PASS :** 385 tests ciblés / huit fichiers ; arm/disarm réel sans mutation du flag, OFF au boot/restart, env OFF interdit, refus d'identité/Player/manager/subscription inactive ou pending, auth 401/403 et paramètres stricts, status vivant, arm en attente invalidé, arrêt avant parser/métier/HTTP et pendant acquisition de token, multipart A SENT puis B/C repris sans moteur. PostgreSQL privé, trois fichiers séquentiels : pilote six tests (dont disarm après vrai commit Pull), webhook neuf, Faveur quinze ; 30 PASS. Duplicate/concurrence, TWITCH, une dépense/un résultat, aucune WebIdentity/GlobalChatMessage conservés. verify:full 8/8 : 1 296 tests frontend / 122 fichiers, 1 697 backend / 121 fichiers, builds/types/lint et diff-check. Prisma validate/status PASS, 60 migrations inchangées ; aucun DDL appliqué. Fixtures écrites uniquement dans les schémas privés du lot, tous nettoyés ; schéma privé préexistant conservé, inventaire/empreinte identiques. Huit tables publiques contrôlées par count/empreinte JSONB avant-après inchangées ; aucune donnée privée/token ajouté.
+
+**Publication / suite :** commit complémentaire review uniquement, main db6d542 inchangé, review attendu ahead 2/behind 0 ; STOP pour nouvelle review indépendante ChatGPT. Pilote NON ACTIVÉ, aucun changement Railway/OAuth/Streamer.bot ni migration publique/31A. Future recette propriétaire : OAuth → subscription ACTIVE → Streamer.bot OFF → arm runtime → tests → disarm runtime → vérification → Streamer.bot réactivé.
+
+## Historique — candidat initial transport Twitch R1042, 05/10/2026
 
 **Baseline certifiée après fetch :** HEAD/review/main/origin/main/origin/review = **db6d542604b91c15cffdb2dcea5dcd971d9af02a**, divergence 0/0, worktree/index propres. Déploiement Railway SUCCESS rapporté par le propriétaire, non revérifié en direct dans ce lot. Étape 30 clôturée R1041 ; aucune réouverture de la rehearsal ni de 29.
 

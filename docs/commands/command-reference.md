@@ -8,6 +8,8 @@ La fondation Twitch runtime phase 1 promue techniquement sur `main` enregistre u
 
 ### Pilote transport Twitch Kichnifou-only R1042 — candidat non activé
 
+**Kill switch après review :** TWITCH_COMMAND_PILOT_ENABLED est une capacité, pas l'état actif. Runtime mémoire OFF à chaque boot/restart, armement via POST authentifié /api/v1/me/twitch/commands/pilot après OAuth et subscription ACTIVE ; DELETE désarme immédiatement sans redeploy ni impact spécialisé. Body/query vides, requirePilot, aucun ID client. Gate effectif capacité AND armed ; response/retry exige aussi armed, conserve les segments SENT et reprend seulement les segments sûrs après réarmement. Solution pilote/single-replica à revoir avant batch. [R1042](../specifications/decisions-log.md).
+
 Première exception générique bornée aux phases historiques ci-dessus : flag serveur `TWITCH_COMMAND_PILOT_ENABLED=false`, absence = OFF ; observer/consumers spécialisés conservés. HMAC et auteur exact par Twitch User ID lié au Player actif Kichnifou allowlisté avant tout parser. Aucun message des autres viewers ne passe dans le parser générique. Sender/broadcaster/receiver liés identiques ; les noms EventSub ne font pas autorité. Giveaway exclusif reste prioritaire.
 
 | Entrée autorisée | Contrat pilote |

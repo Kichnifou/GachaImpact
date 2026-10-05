@@ -31,6 +31,8 @@ const giveaway = { consume: vi.fn(async () => false) };
 const specialized = { consume: vi.fn(async () => undefined) };
 const business = vi.fn<ReturnType<typeof twitchPlayerCommandExecutor>['execute']>();
 let presence: TwitchFavorChatPresenceConsumer;
+let core: ReturnType<typeof twitchPlayerCommandExecutor>;
+const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn(async () => 'ACTIVE' as const) };
 beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
   const player = await db.player.create({ data: { displayName: 'Private command fixture', elementKey: 'hydro',
@@ -49,8 +51,9 @@ beforeAll(async () => {
   const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No Supabase identity allowed in Twitch'); }, provision: async () => { throw new Error('No web provisioning allowed'); } });
   const services = { ...harness().services, getCurrentGacha: new GetCurrentGacha(getPlayer, store),
     socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as PlayerCommandServices;
-  const core = twitchPlayerCommandExecutor(db, services); business.mockImplementation((...args) => core.execute(...args));
-  pilot = new TwitchCommandPilot(db, config, { execute: business }, outbound, parser);
+  core = twitchPlayerCommandExecutor(db, services); business.mockImplementation((...args) => core.execute(...args));
+  pilot = new TwitchCommandPilot(db, config, { execute: business }, outbound, parser, subscriptions);
+  await pilot.arm(playerId);
   presence = new TwitchFavorChatPresenceConsumer(db, clock); vi.spyOn(presence, 'consume');
   app = await buildApp(config, { getOrProvisionCurrentPlayer: {} as never, authIdentityVerifier: { verify: async () => ({ subject: 'HTTP-only-fixture' }) },
     twitchEventObserver: new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0)), twitchCommandPilot: pilot,
@@ -83,8 +86,8 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(parser).not.toHaveBeenCalled(); expect(business).not.toHaveBeenCalled(); expect(await state()).toEqual(before);
   });
   it('observes OFF/other authors and preserves specialized consumers without native business effects', async () => {
-    const before = await state(); config.twitchCommandPilot.enabled = false;
-    expect((await post(signed(event()))).statusCode).toBe(204); config.twitchCommandPilot.enabled = true;
+    const before = await state(); pilot.disarm(playerId);
+    expect((await post(signed(event()))).statusCode).toBe(204); await pilot.arm(playerId);
     expect((await post(signed(event('!pull 1', '456')))).statusCode).toBe(204);
     expect((await post(signed(event('ordinary message', '456')))).statusCode).toBe(204);
     expect(presence.consume).toHaveBeenCalledTimes(1); expect(giveaway.consume).toHaveBeenCalledTimes(3);
@@ -107,6 +110,28 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(await db.pullResult.count({ where: { pullOperation: { businessOperationId: operation.id } } })).toBe(1);
     expect(await db.resourceMovement.count({ where: { operationId: operation.id, resourceKey: 'primogems', delta: -160n } })).toBe(1);
     const completed = await state(); await post(request); expect(await state()).toEqual(completed);
+  }, 60_000);
+  it('disarms after the real Pull commit, suppresses outbound and resumes only the response after re-arm', async () => {
+    const before = await state(), sends = outbound.send.mock.calls.length, executions = business.mock.calls.length;
+    business.mockImplementationOnce(async (...args) => {
+      const result = await core.execute(...args); pilot.disarm(playerId); return result;
+    });
+    const request = signed(event()); expect((await post(request)).statusCode).toBe(204);
+    const committed = await state(); expect(committed.pulls).toBe(before.pulls + 1);
+    expect(committed.operations).toBe(before.operations + 1); expect(committed.wallet).toBe(before.wallet - 160n);
+    expect(business).toHaveBeenCalledTimes(executions + 1); expect(outbound.send).toHaveBeenCalledTimes(sends);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    expect(receipt.state).toBe('RECEIVED'); expect(receipt.errorMessage).toBeNull();
+    expect(receipt.payloadMinimal).toMatchObject({ commandPilot: { stage: 'RESPONSES', responses: [{ status: 'PENDING' }] } });
+    await expect(pilot.retryResponses(playerId, receipt.id)).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
+    expect((await post(signed(event()))).statusCode).toBe(204); expect(await state()).toEqual(committed);
+    await pilot.arm(playerId); expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+    expect(await state()).toEqual(committed); expect(business).toHaveBeenCalledTimes(executions + 1);
+    expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
+    expect((await post(request)).statusCode).toBe(204); expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { idempotencyKey: { endsWith: `:twitch-command:${request.headers['twitch-eventsub-message-id']}` } } });
+    expect(operation.sourceChannel).toBe(SourceChannel.TWITCH);
+    expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
   }, 60_000);
   it('retries only a certainly rejected response, preserving the already committed Pull', async () => {
     const before = await state(); const calls = business.mock.calls.length; const request = signed(event());

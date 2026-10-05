@@ -29,8 +29,24 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     const status = await options.twitch.status(identity);
     if (!options.commandPilot || !status.eligible) return status;
     const player = await options.twitch.requirePilot(identity);
-    return { ...status, commandPilotResponse: await options.commandPilot.responseStatus(player.id) };
+    return { ...status, ...options.commandPilot.status(), commandPilotResponse: await options.commandPilot.responseStatus(player.id) };
   });
+  const commandControlParameters = (request: { body: unknown; query: unknown }) => {
+    if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres du pilote de commandes invalides.', 400, 'VALIDATION_ERROR');
+  };
+  if (options.commandPilot) {
+    app.post('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
+      reply.header('cache-control', 'no-store'); commandControlParameters(request);
+      const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
+      return options.commandPilot!.arm(player.id);
+    });
+    app.delete('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
+      reply.header('cache-control', 'no-store'); commandControlParameters(request);
+      const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
+      return options.commandPilot!.disarm(player.id);
+    });
+  }
   if (options.commandPilot) app.post('/api/v1/me/twitch/commands/:receiptId/response/retry', authenticated, async (request, reply) => {
     reply.header('cache-control', 'no-store');
     const params = z.object({ receiptId: z.uuid() }).strict().safeParse(request.params);
