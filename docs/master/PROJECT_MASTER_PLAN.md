@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat review — correction transport/identité R1047 après review indépendante.
+Version : checkpoint de promotion approuvée R1047 sur main.
 Date : 2026-10-05
-Statut : **29 ET 30 CLÔTURÉES ; R1042/R1043 ET R1044/R1045 VALIDÉS PUBLIQUEMENT ; R1047 IMPLÉMENTÉ ET TESTÉ SUR REVIEW SEULEMENT ; STREAMER.BOT AUTORITATIF.** Prochaine action après publication : review indépendante ChatGPT du vrai commit review. Après approbation : promotion dédiée, déploiement vérifié puis recette propriétaire Kichnifou par familles. R1046 seulement après validation R1047, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
+Statut : **29 ET 30 CLÔTURÉES ; R1042/R1043 ET R1044/R1045 VALIDÉS PUBLIQUEMENT ; R1047 APPROUVÉ EN REVIEW INDÉPENDANTE ET PROMU TECHNIQUEMENT SUR MAIN ; DÉPLOIEMENTS ET RECETTE R1047 À VÉRIFIER ; STREAMER.BOT AUTORITATIF.** Prochaine action : contrôle ChatGPT du SHA main, des déploiements Railway/Cloudflare et du healthcheck, puis recette propriétaire Kichnifou R1047 par familles et messages ordinaires. R1046 seulement après validation publique R1047, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correction R1047 après review indépendante, 05/10/2026
+## Point courant — promotion approuvée R1047 sur main, 05/10/2026
+
+**Baseline de promotion vérifiée avant écriture :** fetch exécuté ; branche locale review, worktree/index propres ; origin main = `7118740130063d9e42411fba3d7a58c95ef251d6`, origin review/HEAD = `9703811e4722fe43ba8db9936960b33862109ddc`, review ahead 2 / behind 0. Chaîne exacte et ancestry : `7118740 → d1760bccd5597190f660d7e58964cbc946fec9bc → 9703811e4722fe43ba8db9936960b33862109ddc` ; aucun commit inattendu, aucune modification Story.
+
+**Approbation indépendante acquise :** le propriétaire transmet le verdict ChatGPT **R1047 APPROUVÉ, aucun finding bloquant restant**, sur le vrai GitHub. Les **deux commits d1760bcc + 9703811e constituent ensemble le candidat approuvé** ; le blocker broadcaster-only est corrigé. Promotion explicitement autorisée, aucun code supplémentaire demandé. Les contrôles du candidat conservés ci-dessous ne sont pas présentés comme relancés ni comme recette publique.
+
+**État Git de sortie de cette promotion :** checkpoint documentaire publié sur review, puis chaîne entière avancée par fast-forward strict vers main : **main == review, divergence 0/0**. R1047 est présent sur main avec exactement le contenu produit approuvé ; aucun rebase/squash/force-push ni micro-commit pour inscrire le propre SHA du checkpoint. Les statuts de Master, command-reference, architecture, runbook et les deux mentions d’état roadmap/decisions-log sont actualisés ; aucune nouvelle décision Rxxx.
+
+**Contrat approuvé conservé :** 34 Player Twitch = 32 génériques + wish/giveaway spécialisés ; résolveur commun, source TWITCH, intents et cibles/quantités/MAX/jour/édition/Team/Combat/Expédition figés, replay/multipart et messages ordinaires via les owners XP/Défis/Missions/quotidienne/Event. Broadcaster = chaîne, receiver = sender autorisé par la subscription, chatter = auteur métier ; `chatter_user_id → TwitchIdentity → Player ACTIVE allowlisté`, sans exigence d’être broadcaster/receiver. Réponses du receiver, receipt du chatter. Deux !pull de même texte avec IDs distincts restent deux opérations, redelivery un seul effet ; diagnostic live amont/non démontré inchangé.
+
+**Contrôles de promotion :** diff complet main → review et chaîne approuvée contrôlés ; le checkpoint ne modifie que la documentation. Diff-checks, liens locaux, fichiers indexés exacts et identité du contenu produit avec 9703811e contrôlés avant fast-forward. Aucun code modifié, donc verify:full et tests DB du candidat non relancés dans cette mission. **Aucune migration/DDL ni action DB**, aucune modification Railway/env/service/flag/EventSub/OAuth, aucun armement ou commande Twitch réelle. Le push main déclenche uniquement les déploiements normaux.
+
+**Validation publique et prochaine action exacte :** R1044/R1045 restent publiquement validés selon le propriétaire. **R1047 promu techniquement, déploiements Railway/Cloudflare et healthcheck encore à vérifier après push ; recette propriétaire R1047 NON acquise, parité finale NON validée.** Ne revendiquer aucun SUCCESS/déploiement sans preuve dédiée. **Streamer.bot reste autoritatif ; pilote natif désarmé hors future recette autorisée, aucun cutover global.** Prochaine action : **CONTRÔLE CHATGPT DU SHA/DÉPLOIEMENTS/HEALTHCHECK, PUIS RECETTE PROPRIÉTAIRE KICHNIFOU R1047** par familles et messages ordinaires. R1046 seulement après validation publique R1047 ; aucun R1046/31A/31B/32 commencé. STOP après promotion et vérification Git.
+
+## Historique — correction R1047 après review indépendante, 05/10/2026
 
 **Baseline de correction vérifiée avant modification :** fetch exécuté ; HEAD/local review/origin review = `d1760bccd5597190f660d7e58964cbc946fec9bc`, origin main = `7118740130063d9e42411fba3d7a58c95ef251d6`, review ahead 1 / behind 0 ; worktree/index propres. Aucun nouveau commit ni travail parallèle à réconcilier. Correction dédiée au-dessus de ce parent, aucune promotion/main/env/Twitch réel autorisée.
 

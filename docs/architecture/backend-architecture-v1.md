@@ -1,6 +1,6 @@
 # GachaImpact — Architecture backend V1
 
-## Bridge Twitch natif complet R1047 — candidat review
+## Bridge Twitch natif complet R1047 — promu techniquement sur main
 
 Le dispatcher Chat conserve sa responsabilité de transport (message joueur, modération, résultats et refresh). Son switch Player est extrait dans `application/chat/player-command-resolver.ts` ; il utilise `PlayerCommandContext` pour la mémoire d’intention, les mêmes helpers/services/presentations et `parseChatCommand`. Twitch appelle ce résolveur directement, sans façade GlobalChat ni faux subject ; `PlayerExecutionActor` opaque est créé uniquement après résolution/autorisation du Player par User ID immuable.
 
@@ -22,7 +22,7 @@ SENT/FAILED/SENDING/AMBIGUOUS, multiparties, kill switch et reprise response-onl
 
 Diagnostic : deux !pull identiques avec deux IDs fonctionnent dans une preuve PostgreSQL sur les classes originales 7118740 et sur le bridge nouveau ; rejouer la même delivery ne répète rien. Le bridge nouveau protège aussi la redelivery sous un autre ID de transport. Absence de déduplication par texte ; chaîne HMAC/webhook/observer couverte localement. Limite amont probable, non vérifiée en live ; [msg_duplicate officiel Twitch](https://dev.twitch.tv/docs/chat/irc) est une piste seulement. Aucun message synthétisé ni espace artificiel.
 
-Sources/preuves : [couverture et audit des triggers](../commands/step-29-command-coverage.md#parité-des-messages-ordinaires-twitch-r1047), tests twitch-command-coverage, twitch-command-pilot et twitch-native-bridge privés. **Candidat review, Streamer.bot autoritatif ; aucune activation/promotion publique R1047 ni autorité durable batch.**
+Sources/preuves : [couverture et audit des triggers](../commands/step-29-command-coverage.md#parité-des-messages-ordinaires-twitch-r1047), tests twitch-command-coverage, twitch-command-pilot et twitch-native-bridge privés. **R1047 approuvé en review indépendante puis promu techniquement sur main (d1760bcc + 9703811e, code inchangé). Déploiements/healthcheck et recette publique R1047 restent à vérifier selon le [Master](../master/PROJECT_MASTER_PLAN.md). Streamer.bot autoritatif, pilote désarmé hors future recette ; aucun cutover ni autorité durable batch.**
 
 ## Historique — pilote commandes Twitch Kichnifou-only R1042, supersédé en couverture par R1047
 
