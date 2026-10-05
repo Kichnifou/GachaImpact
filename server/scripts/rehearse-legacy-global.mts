@@ -4,7 +4,7 @@ import { deepStrictEqual } from 'node:assert';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import pg from 'pg';
-import { identityResolutionSummary, loadVerifiedTwitchReport, parseRehearsalArguments } from '../src/application/migration/verified-twitch-report.js';
+import { assertIdentityRehearsalReady, identityResolutionSummary, loadVerifiedTwitchReport, parseRehearsalArguments } from '../src/application/migration/verified-twitch-report.js';
 import { assertLegacyAccountPreservation, readLegacyAccountProjection, seedLegacyAccountProjection, type AccountProjection } from '../tests-db/legacy-account-projection.js';
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
 import { capturePrivateSchema, privateNumericStateHash, restorePrivateBackup, writePrivateBackup } from '../tests-db/private-schema-backup.js';
@@ -60,7 +60,7 @@ process.stdout.write(JSON.stringify({ phase: 'IDENTITY_PREFLIGHT', identityMode,
   futureTwitchOnly: plan.players.filter(row => row.mappingMode === 'TWITCH_ONLY').length,
   unmatchedWebAccounts: plan.unmatchedWebPlayerIds.length, blockers: blockers.length,
   blockerCodes: [...new Set(blockers.map(row => row.code))], exit30Certified: false }) + '\n');
-if (blockers.length || !plan.players.length || report?.missing.length || report?.conflicts.length) throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
+assertIdentityRehearsalReady(report, blockers.length, plan.players.length);
 const existingId = plan.players.find(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH')?.playerId;
 const unmatchedId = plan.unmatchedWebPlayerIds[0];
 if (!existingId || !unmatchedId) throw new Error('PRIVATE_PRESERVATION_PROBES_UNAVAILABLE');

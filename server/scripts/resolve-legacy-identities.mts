@@ -1,42 +1,42 @@
 import 'dotenv/config';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { resolve, sep } from 'node:path';
+import { writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import pg from 'pg';
 import { loadLegacySnapshotDirectory } from '../src/application/migration/legacy-snapshot-directory.js';
 import { resolveLegacyTwitchLogins } from '../src/application/migration/twitch-identity-resolver.js';
-import { normalizeLegacyName } from '../src/application/migration/streamerbot-snapshot.js';
-import { createVerifiedTwitchReport, eligibleLegacyLogins, identityResolutionSummary } from '../src/application/migration/verified-twitch-report.js';
+import { createVerifiedTwitchReport, eligibleLegacyLogins, loadHistoricalTwitchReport } from '../src/application/migration/verified-twitch-report.js';
+import { checkedIdentityFile } from '../src/application/migration/local-identity-file.js';
+import { collectHistoricalIdentityCandidates, readHistoricalChatEvidence, scanHistoricalTwitchReports } from '../src/application/migration/historical-twitch-evidence.js';
 
 async function main() {
 const directory = process.argv[2], output = process.argv[3];
-if (!directory || !output) throw new Error('Usage: tsx scripts/resolve-legacy-identities.mts <ignored-snapshot-dir> <ignored-output.json> [prior-verified-ids.json]');
-const root = resolve('..', 'local-data', 'identity-resolutions');
-const target = resolve(output);
-if (!target.startsWith(root + sep) || !target.endsWith('.json')) throw new Error('Identity resolution output must be a new JSON under ignored local-data/identity-resolutions.');
+if (!directory || !output || process.argv.length > 5) throw new Error('TWITCH_RESOLUTION_ARGUMENTS_INVALID');
+const target = await checkedIdentityFile(output, true);
 const clientId = process.env.TWITCH_CLIENT_ID ?? '', clientSecret = process.env.TWITCH_CLIENT_SECRET ?? '';
 if (!clientId || !clientSecret) throw new Error('TWITCH_CLIENT_ID and TWITCH_CLIENT_SECRET required; no Twitch request sent.');
 const snapshot = await loadLegacySnapshotDirectory(resolve(directory));
 const logins = eligibleLegacyLogins(snapshot);
 const priorPath = process.argv[4];
-let knownIds: Record<string, string> = {};
-if (priorPath) {
-  const verifiedPath = resolve(priorPath);
-  if (!verifiedPath.startsWith(root + sep)) throw new Error('Previous verification must be an ignored local identity-resolution report.');
-  const prior = JSON.parse(await readFile(verifiedPath, 'utf8')) as { users?: unknown };
-  if (!Array.isArray(prior.users)) throw new Error('Previous verified identity report is invalid.');
-  knownIds = Object.fromEntries(prior.users.map(raw => {
-    const row = raw as Record<string, unknown>;
-    if (typeof row.legacyLogin !== 'string' || typeof row.twitchUserId !== 'string' || !/^[0-9]+$/.test(row.twitchUserId))
-      throw new Error('Previous verified identity row is invalid.');
-    return [normalizeLegacyName(row.legacyLogin), row.twitchUserId];
-  }));
-  if (Object.keys(knownIds).length !== prior.users.length) throw new Error('Previous identity report contains duplicate legacy logins.');
+const prior = priorPath ? await loadHistoricalTwitchReport(priorPath) : null;
+const reports = await scanHistoricalTwitchReports();
+if (prior) reports.push(prior);
+const direct = await resolveLegacyTwitchLogins(logins, { clientId, clientSecret });
+let receipts = [] as Awaited<ReturnType<typeof readHistoricalChatEvidence>>;
+if (direct.missing.length) {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  try { await client.connect(); receipts = await readHistoricalChatEvidence(client, direct.missing); }
+  finally { await client.end(); }
 }
-const resolution = await resolveLegacyTwitchLogins(logins, { clientId, clientSecret }, fetch, knownIds);
+// Also retain historical ID protection for logins that still resolve: a recycled login must not switch accounts.
+const candidates = collectHistoricalIdentityCandidates(logins, reports, receipts);
+const resolution = Object.keys(candidates.knownIds).length || candidates.conflicts.length
+  ? await resolveLegacyTwitchLogins(logins, { clientId, clientSecret }, fetch, candidates.knownIds, candidates.conflicts)
+  : direct;
 const report = createVerifiedTwitchReport(snapshot, resolution);
-await mkdir(root, { recursive: true });
+await checkedIdentityFile(target, true);
 await writeFile(target, JSON.stringify(report, null, 2), { flag: 'wx', mode: 0o600 });
-process.stdout.write(JSON.stringify({ snapshotHash: snapshot.hash, eligible: logins.length,
-  ...identityResolutionSummary(report), reportWrittenLocally: true }) + '\n');
+process.stdout.write(JSON.stringify({ resolved: report.users.length, missing: report.missing.length,
+  conflicts: report.conflicts.length, duplicates: report.duplicates }) + '\n');
 
 }
 await main().catch(() => { process.stderr.write('TWITCH_RESOLUTION_FAILED; credentials and private details withheld.\n'); process.exitCode = 1; });

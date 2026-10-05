@@ -15,7 +15,24 @@ Contrôle DEV du 27 septembre 2026 : 050–052 appliquées par Prisma, registre 
 
 ## Étape 30 — foundation / rehearsal, pas cutover
 
-### Continuation après review indépendante — 05/10/2026
+### Sécurisation des preuves après review de f6ae4a8 — 05/10/2026
+
+Baseline `f6ae4a8b016cb4509d50dfee135648bbc34cedf9`, main `32bf76dbef8eebfecc790f4e407514c25f56b937`, review ahead 2/behind 0, index/worktree propres après fetch. Le paramètre facultatif de rapport antérieur passe désormais par le loader historique strict du [contrat canonique](../architecture/legacy-migration-v1.md#identité-et-comptes). Aucun JSON libre ni ancien format sans marqueur n'est adapté en preuve.
+
+La recherche automatique a trouvé **un rapport historique préexistant valide, zéro receipt utile**, zéro candidat supplémentaire pour les deux absents et zéro contradiction. Lecture des receipts publique READ ONLY uniquement, après inspection du webhook signé et de l'observer. Le nouveau rapport courant est local/ignoré et récent : **Helix direct 43, récupérés par historique 0, résolus 43/45, renommés 0, missing 2, conflicts 0, duplicates 0**. Les preuves historiques des comptes déjà résolus conservent également la protection par ID immuable ; tous les candidats utilisés sont revalidés via Helix par ID.
+
+Étape 30 reste **ACTIVE**, deux blockers d'identité et **décision propriétaire nécessaire**. Aucun import partiel 43/45, aucune exclusion ni ID inventé. Le rapprochement des profils résolus reste par ID : un compte web réutilisable, 42 futurs Twitch-only et neuf comptes web non rattachés. La rehearsal complète réelle reste **NON EXÉCUTÉE** ; le préflight confirmé bloque avant création du schéma. Les contrôles du complément et la rehearsal fixture de non-régression sont consignés au Master. Publication review uniquement, review indépendante ChatGPT avant toute éventuelle promotion main ; pilote Kichnifou non commencé, Twitch natif OFF et Streamer.bot autoritatif.
+
+Commandes opérateur depuis `server/`, avec un nom de sortie nouveau à chaque résolution :
+
+```powershell
+npm.cmd run migration:legacy:resolve-identities -- ../local-data/streamerbot-snapshots/20261004T200232514Z ../local-data/identity-resolutions/<nouveau-rapport>.json
+npm.cmd run migration:legacy:rehearse -- ../local-data/streamerbot-snapshots/20261004T200232514Z 2026-10-04T20:02:33.000Z --identities ../local-data/identity-resolutions/<nouveau-rapport>.json
+```
+
+Le scan ignore les fichiers découverts invalides ; un rapport antérieur explicitement fourni et invalide fait échouer la commande. Ne pas retoucher la date, ajouter un marqueur ou compléter manuellement une ligne pour rendre un fichier admissible. Un rapport historique n'est pas directement une entrée fraîche d'import. Aucune recherche personnelle approximative ; les détails opérateur restent uniquement dans les fichiers ignorés, et les sorties de résolution partagées sont limitées aux quatre compteurs.
+
+### Historique — continuation après review de eeca318 — 05/10/2026
 
 Baseline review eeca318, main 32bf76d, divergence 1/0 et propre. Credentials vérifiés présents/non vides seulement ; server/.env ignoré, aucun secret lu dans les sorties ou copié. Même capture/hash du 04/10 contrôlé par le loader : 17 sources/0 inconnu et 45 profils éligibles.
 

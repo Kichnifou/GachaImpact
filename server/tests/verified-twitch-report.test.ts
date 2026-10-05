@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { buildLegacyGlobalPlan, fixtureTwitchResolution } from '../src/application/migration/legacy-global-plan.js';
 import { parseStreamerbotSnapshot, snapshotFileNames } from '../src/application/migration/streamerbot-snapshot.js';
-import { createVerifiedTwitchReport, identityResolutionSummary, loadVerifiedTwitchReport, parseRehearsalArguments,
+import { assertIdentityRehearsalReady, createVerifiedTwitchReport, identityResolutionSummary, loadVerifiedTwitchReport, parseRehearsalArguments,
   validateVerifiedTwitchReport } from '../src/application/migration/verified-twitch-report.js';
 
 const now = new Date('2026-10-05T09:00:00.000Z');
@@ -17,6 +17,21 @@ const report = () => createVerifiedTwitchReport(snapshot, { users: [
 ], missing: [], conflicts: [], duplicates: 0 }, now);
 
 describe('verified Twitch rehearsal input', () => {
+  it('accepts a complete 45-profile current report and gates missing/conflicts before schema construction', () => {
+    const files45 = { ...files, 'viewers_data.json': JSON.stringify(Object.fromEntries(Array.from({ length: 45 }, (_, index) => [`fixture_${index}`, { element: 'pyro' }]))) };
+    const snapshot45 = parseStreamerbotSnapshot(files45);
+    const users = Array.from({ length: 45 }, (_, index) => ({ legacyLogin: `fixture_${index}`, twitchUserId: String(index + 1),
+      currentLogin: `fixture_${index}`, displayName: `Fixture ${index}`, renamed: false }));
+    const verified = createVerifiedTwitchReport(snapshot45, { users, missing: [], conflicts: [], duplicates: 0 }, now);
+    const constructSchema = vi.fn();
+    const start = (r: typeof verified) => { assertIdentityRehearsalReady(r, 0, r.users.length); constructSchema(); };
+    start(verified); expect(constructSchema).toHaveBeenCalledOnce(); constructSchema.mockClear();
+    for (const field of ['missing', 'conflicts'] as const) {
+      const partial = validateVerifiedTwitchReport({ ...verified, users: users.slice(1), [field]: ['fixture_0'] }, snapshot45, now);
+      expect(() => start(partial)).toThrow('IDENTITY_PREFLIGHT_BLOCKED');
+      expect(constructSchema).not.toHaveBeenCalled();
+    }
+  });
   it('keeps a verified rename and reuses only the immutable ID, while fixture mode stays distinct', () => {
     const verified = validateVerifiedTwitchReport(report(), snapshot, now);
     expect(identityResolutionSummary(verified)).toEqual({ resolved: 2, renamed: 1, missing: 0, conflicts: 0, duplicates: 0 });

@@ -1,7 +1,5 @@
-import { execFileSync } from 'node:child_process';
-import { readFile, realpath } from 'node:fs/promises';
-import { resolve, sep } from 'node:path';
 import { z } from 'zod';
+import { readLocalIdentityJson } from './local-identity-file.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
 import type { TwitchResolution } from './twitch-identity-resolver.js';
 
@@ -23,17 +21,25 @@ export function eligibleLegacyLogins(snapshot: Snapshot): string[] {
 
 /** Errors intentionally contain no row, ID, login, path or raw JSON. Reports are fresh operator evidence. */
 export function validateVerifiedTwitchReport(raw: unknown, snapshot: Snapshot, now = new Date()): VerifiedTwitchReport {
-  const parsed = reportSchema.safeParse(raw);
-  if (!parsed.success) throw new Error('TWITCH_REPORT_INVALID');
-  const report = parsed.data;
-  if (report.duplicates > report.conflicts.length) throw new Error('TWITCH_REPORT_INVALID');
+  const report = validateHistoricalTwitchReport(raw);
   if (report.snapshotHash !== snapshot.hash) throw new Error('TWITCH_REPORT_SNAPSHOT_MISMATCH');
   const age = now.getTime() - new Date(report.resolvedAt).getTime();
   if (!Number.isFinite(age) || age < 0 || age > 24 * 60 * 60 * 1000) throw new Error('TWITCH_REPORT_STALE');
   const expected = eligibleLegacyLogins(snapshot).map(normalizeLegacyName);
   const classified = [...report.users.map(row => row.legacyLogin), ...report.missing, ...report.conflicts].map(normalizeLegacyName);
-  if (new Set(expected).size !== expected.length || new Set(classified).size !== classified.length ||
-      classified.length !== expected.length || classified.some(name => !expected.includes(name))) throw new Error('TWITCH_REPORT_POPULATION_MISMATCH');
+  if (new Set(expected).size !== expected.length || classified.length !== expected.length || classified.some(name => !expected.includes(name)))
+    throw new Error('TWITCH_REPORT_POPULATION_MISMATCH');
+  return report;
+}
+
+/** Historical evidence has its own population/snapshot/date; it never authorizes an import by itself. */
+export function validateHistoricalTwitchReport(raw: unknown): VerifiedTwitchReport {
+  const parsed = reportSchema.safeParse(raw);
+  if (!parsed.success) throw new Error('TWITCH_REPORT_INVALID');
+  const report = parsed.data;
+  if (report.duplicates > report.conflicts.length) throw new Error('TWITCH_REPORT_INVALID');
+  const classified = [...report.users.map(row => row.legacyLogin), ...report.missing, ...report.conflicts].map(normalizeLegacyName);
+  if (new Set(classified).size !== classified.length) throw new Error('TWITCH_REPORT_POPULATION_MISMATCH');
   if (new Set(report.users.map(row => row.twitchUserId)).size !== report.users.length ||
       new Set(report.users.map(row => normalizeLegacyName(row.currentLogin))).size !== report.users.length) throw new Error('TWITCH_REPORT_DUPLICATE');
   if (report.users.some(row => row.renamed !== (normalizeLegacyName(row.legacyLogin) !== normalizeLegacyName(row.currentLogin))))
@@ -48,12 +54,18 @@ export function createVerifiedTwitchReport(snapshot: Snapshot, resolution: Twitc
 
 export async function loadVerifiedTwitchReport(file: string, snapshot: Snapshot, now = new Date()): Promise<VerifiedTwitchReport> {
   try {
-    const root = await realpath(resolve('..', 'local-data', 'identity-resolutions'));
-    const target = await realpath(resolve(file));
-    if (!target.startsWith(root + sep) || !target.endsWith('.json')) throw new Error();
-    execFileSync('git', ['check-ignore', '--quiet', '--', target], { stdio: 'ignore' });
-    return validateVerifiedTwitchReport(JSON.parse(await readFile(target, 'utf8')), snapshot, now);
+    return validateVerifiedTwitchReport(await readLocalIdentityJson(file), snapshot, now);
   } catch { throw new Error('TWITCH_REPORT_UNUSABLE'); }
+}
+
+export async function loadHistoricalTwitchReport(file: string): Promise<VerifiedTwitchReport> {
+  try { return validateHistoricalTwitchReport(await readLocalIdentityJson(file)); }
+  catch { throw new Error('TWITCH_REPORT_UNUSABLE'); }
+}
+
+/** Must run before even constructing a private database fixture. */
+export function assertIdentityRehearsalReady(report: VerifiedTwitchReport | null, blockers: number, players: number): void {
+  if (blockers || !players || report?.missing.length || report?.conflicts.length) throw new Error('IDENTITY_PREFLIGHT_BLOCKED');
 }
 
 export function identityResolutionSummary(report: VerifiedTwitchReport) {

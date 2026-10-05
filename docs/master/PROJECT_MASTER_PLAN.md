@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 30 — continuation identités Twitch réelles après review indépendante.
+Version : étape 30 — sécurisation des preuves d'identité après review indépendante.
 Date : 2026-10-05
 Statut : **29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE ; 30 ACTIVE / CANDIDAT À REVIEW, SORTIE BLOQUÉE PAR DEUX IDENTITÉS TWITCH NON RETROUVÉES.** 26/28 validées et 27 clôturée par périmètre. Séquence R1040 : **30 → pilote réel Kichnifou-only transport/commandes → 31A Ceo → 31B batch → 32**. Main reste le checkpoint stable ; review indépendante avant promotion. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — continuation étape 30 du 05/10/2026
+## Point courant — sécurisation étape 30 du 05/10/2026
+
+**Baseline réelle :** fetch ; HEAD/review/origin/review = **f6ae4a8b016cb4509d50dfee135648bbc34cedf9**, main/origin/main = **32bf76dbef8eebfecc790f4e407514c25f56b937**, review ahead 2/behind 0 et index/worktree propres. Review indépendante ChatGPT de f6ae4a8 rapportée par le propriétaire ; complément sur review uniquement.
+
+**Finding corrigé :** le rapport antérieur facultatif ne fournit plus un mapping depuis un JSON libre. Loader historique dédié et strict : version/marqueur, hash/date, lignes complètes, identités uniques, renommages cohérents, chemin ignoré sans traversée ni lien. Scan automatique par ancien login exact ; receipts complémentaires publics READ ONLY avec contrat observer/transport contrôlé. Concordance des sources obligatoire et nouvelle vérification Helix par ID de chaque candidat utilisé, y compris protection contre un login réattribué. Le rapport courant garde ses exigences de fraîcheur/hash/population. Contrat durable dans l'architecture et procédure dans le runbook ; aucune nouvelle décision produit ni entrée decisions-log.
+
+**Recherche réelle agrégée :** un rapport historique préexistant valide, zéro receipt utile, zéro candidat supplémentaire pour les deux absents. Nouveau rapport courant local ignoré : **Helix direct 43, récupérés par historique 0, résolus 43/45, renommés 0, missing 2, conflicts 0, duplicates 0**. Même snapshot/hash du 04/10, 17 sources/0 inconnu et 45 éligibles. Aucun login/ID personnel versionné ou affiché. Credentials présents seulement, valeurs non exposées.
+
+**Contrôles du complément PASS :** **174 tests ciblés / 10 fichiers**, dont webhook signé/rétention, **17 tests PostgreSQL privés / 6 fichiers séquentiels**, typechecks backend et scripts. Rehearsal complète **ISOLATED_FIXTURE** : 45 importés, 17 sources/0 inconnu, plan avant purge de 117 tables/117 lignes privées, rollback avec hash intégral inchangé, second import logiquement identique et sauvegarde/restauration exactes. Empreinte numérique **386537672626efabddd1b31663477a75275ab73b3790bf4f7151d6a10d3c7f32**, identique à la baseline ; aucun calcul Boss ni rendu Pull modifié, aucune opération/reward fictive. Le préflight **VERIFIED_TWITCH_IDENTITIES** confirme deux blockers avant création du schéma. Verify-ddl : 1 134 colonnes/16 tables foundation/29 provenance/sécurité ; migrate status READ ONLY : 60 migrations à jour, aucune nouvelle migration/application publique.
+
+**Verify:full final PASS 8/8 :** frontend **1 296 tests / 122 fichiers**, backend hors DB **1 575 tests / 116 fichiers**, types/builds/lint/diff-checks. Première passe 7/8 : assertion frontend MP « saisie » après expiration de sa fenêtre réelle de 120 ms ; test isolé PASS puis suite complète PASS, sans modification frontend ni délai. Cette observation de stabilité du test reste distincte du correctif d'identité. Logs complets locaux : `gacha30-proof-*.log`, premières étapes dans `gachaimpact-verify-full-CTR2zN`, passe finale dans `gachaimpact-verify-full-jKMD0V`, sous TEMP.
+
+**Audit public/nettoyage :** empreintes exactes inchangées pour Players, WebIdentity, TwitchIdentity, MigrationBatch/Run, ResourceMovement et BusinessOperation ; aucun schéma créé par ce lot restant, un schéma privé préexistant conservé. Rapports/backups locaux ignorés, aucune exportation de receipts ni valeur de credential dans Git/logs partagés.
+
+**Sortie toujours bloquée :** deux identités non retrouvées, **décision propriétaire nécessaire**. Rehearsal complète réelle **NON EXÉCUTÉE** ; aucun import partiel ni exclusion silencieuse ni mapping inventé. Rapprochement par User ID des résolus : **un compte web réutilisable, 42 futurs Twitch-only, neuf comptes web non rattachés**. Étape 30 reste **ACTIVE** ; aucune certification réelle issue des fixtures. Prochaine action : review indépendante ChatGPT du complément review et arbitrage propriétaire sur les preuves manquantes. Pilote Kichnifou non commencé, main inchangé, Twitch natif OFF et Streamer.bot toujours autoritatif.
+
+## Historique — continuation étape 30 après review de eeca318, 05/10/2026
 
 **Baseline réelle :** fetch ; HEAD/review/origin/review = **eeca31867444074c71e7dccaf43b57276e62ad1a**, main/origin/main = **32bf76dbef8eebfecc790f4e407514c25f56b937**, review ahead 1/behind 0 et worktree/index propres. Review indépendante ChatGPT de eeca318 rapportée par le propriétaire : Pull, Boss legacy 1 360 000 PV et preuves privées acceptés. Continuer sur review, aucune promotion main autorisée.
 
