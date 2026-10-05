@@ -815,7 +815,19 @@ export type AppearanceDto = Readonly<{
   equippedTitleCosmeticId: string | null
   catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; levelRequirement?: number | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
-export type TwitchAccountDto = Readonly<{ giftSupremeAvailable?: boolean; giftSupremeAuthorized?: boolean; giftSupremeActive?: boolean; giftSupremePending?: boolean; giftSupremeDisabling?: boolean; giftSupremeError?: 'CONFLICT' | 'UNAVAILABLE' | 'MANUAL_REWARD_CONFLICT' | 'CREDENTIAL_INVALID'; pilotAvailable: boolean; eligible: boolean; linked: null | { login: string; displayName: string | null; linkedAt: string }; snapshotAvailable: boolean; runtimeAuthorizationAvailable?: boolean; runtimeSubscriptionAvailable?: boolean; runtimeChatActive?: boolean; runtimeChatPending?: boolean; runtimeChatError?: 'CONFLICT' | 'UNAVAILABLE'; favorSubscriptionAvailable?: boolean; favorSubscriptionActive?: boolean; favorSubscriptionPending?: boolean; favorSubscriptionError?: 'CONFLICT' | 'UNAVAILABLE'; lastImport: null | { at: string; snapshotHash: string } }>
+export type TwitchCommandPilotDto = Readonly<{
+  commandPilotCapabilityEnabled: boolean
+  commandPilotArmed: boolean
+  commandPilotEnabled: boolean
+}>
+export type TwitchCommandPilotResponseDto = Readonly<{
+  receiptId: string
+  state: 'RECEIVED' | 'FAILED' | 'PROCESSED'
+  stage: 'EXECUTING' | 'RESPONSES'
+  responses: readonly ('PENDING' | 'SENDING' | 'SENT' | 'FAILED' | 'AMBIGUOUS')[]
+  error: string | null
+}>
+export type TwitchAccountDto = Readonly<{ giftSupremeAvailable?: boolean; giftSupremeAuthorized?: boolean; giftSupremeActive?: boolean; giftSupremePending?: boolean; giftSupremeDisabling?: boolean; giftSupremeError?: 'CONFLICT' | 'UNAVAILABLE' | 'MANUAL_REWARD_CONFLICT' | 'CREDENTIAL_INVALID'; pilotAvailable: boolean; eligible: boolean; linked: null | { login: string; displayName: string | null; linkedAt: string }; snapshotAvailable: boolean; runtimeAuthorizationAvailable?: boolean; runtimeSubscriptionAvailable?: boolean; runtimeChatActive?: boolean; runtimeChatPending?: boolean; runtimeChatError?: 'CONFLICT' | 'UNAVAILABLE'; favorSubscriptionAvailable?: boolean; favorSubscriptionActive?: boolean; favorSubscriptionPending?: boolean; favorSubscriptionError?: 'CONFLICT' | 'UNAVAILABLE'; lastImport: null | { at: string; snapshotHash: string }; commandPilotAvailable?: boolean; commandPilotCapabilityEnabled?: boolean; commandPilotArmed?: boolean; commandPilotEnabled?: boolean; commandPilotResponse?: TwitchCommandPilotResponseDto | null }>
 export type SnapshotDomainDto = Readonly<{ name: string; category: 'PLAYER_LOCAL_PHYSICAL' | 'DEFERRED_CROSS_PLAYER_OR_GLOBAL' | 'DEFERRED_NOT_PHYSICAL' | 'BLOCKED_AMBIGUOUS'; action: 'NO_CHANGE' | 'UPDATE' | 'REPLACE' | 'CREATE' | 'PENDING_MAPPING' | 'DEFERRED' | 'BLOCKED'; current: string; snapshot: string; reason: string | null; anomalies: readonly string[] }>
 export type SnapshotPreviewDto = Readonly<{ previewId: string; snapshotHash: string; viewerFound: boolean; files: number; domains: readonly SnapshotDomainDto[]; warning: string }>
 export type SnapshotApplyDto = Readonly<{ snapshotHash: string; replayed: boolean; imported: readonly string[]; deferred: readonly string[] }>

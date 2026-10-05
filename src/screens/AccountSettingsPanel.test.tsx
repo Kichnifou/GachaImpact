@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const api = vi.hoisted(() => ({
   startTwitchGiftSupreme: vi.fn(), ensureTwitchGiftSupreme: vi.fn(), disableTwitchGiftSupreme: vi.fn(),
+  armTwitchCommandPilot: vi.fn(), disarmTwitchCommandPilot: vi.fn(),
   getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
@@ -417,3 +418,91 @@ describe('Gift Suprême account controls', () => {
     expect(api.getTwitchAccount).toHaveBeenCalledTimes(5); expect(container.querySelector('[role="alert"]')?.textContent).toContain('Gift Suprême n’a pas pu être confirmée');
   });
 });
+
+const commandAccount = { ...linkedAccount, commandPilotAvailable: true, commandPilotCapabilityEnabled: true, commandPilotArmed: false, commandPilotEnabled: false, runtimeChatActive: true }
+describe('explicit Twitch command pilot controls', () => {
+  const armLabel = 'Activer le pilote commandes'
+  const disarmLabel = 'D\u00e9sactiver le pilote commandes'
+  it.each([{}, { commandPilotCapabilityEnabled: false }, { eligible: false, commandPilotCapabilityEnabled: true, commandPilotAvailable: true }])('hides unavailable controls: %j', async flags => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, ...flags })
+    const container = await mount()
+    expect(container.textContent).not.toContain('Pilote commandes Twitch')
+    expect(api.armTwitchCommandPilot).not.toHaveBeenCalled()
+  })
+  it.each([{ runtimeChatActive: false }, { runtimeChatActive: false, runtimeChatPending: true, runtimeSubscriptionAvailable: true }])('requires active chat: %j', async flags => {
+    api.getTwitchAccount.mockResolvedValue({ ...commandAccount, ...flags })
+    const container = await mount()
+    expect(container.textContent).toContain('Pr\u00e9paration requise')
+    expect(button(container, armLabel).disabled).toBe(true)
+    expect(api.armTwitchCommandPilot).not.toHaveBeenCalled()
+  })
+  it('arms once, locks unlink and refreshes authoritative status without OAuth', async () => {
+    api.getTwitchAccount.mockResolvedValueOnce(commandAccount).mockResolvedValue({ ...commandAccount, commandPilotArmed: true, commandPilotEnabled: true })
+    let release!: () => void
+    api.armTwitchCommandPilot.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve }))
+    const container = await mount()
+    expect(container.textContent).toContain('Non activ\u00e9')
+    await act(async () => { button(container, armLabel).click(); button(container, armLabel).click() })
+    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith()
+    expect(button(container, 'D\u00e9lier Twitch').disabled).toBe(true)
+    await act(async () => release())
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('\u25cf Activ\u00e9')
+    expect(button(container, disarmLabel).disabled).toBe(false)
+    expect(api.startTwitchRuntime).not.toHaveBeenCalled()
+    expect(api.startTwitchLink).not.toHaveBeenCalled()
+  })
+  it.each([{}, { runtimeChatActive: false, runtimeChatError: 'UNAVAILABLE' }, { linked: null, commandPilotCapabilityEnabled: false }])('disarms explicitly despite degraded status: %j', async flags => {
+    api.getTwitchAccount.mockResolvedValueOnce({ ...commandAccount, commandPilotArmed: true, commandPilotEnabled: true, ...flags }).mockResolvedValue(commandAccount)
+    let release!: () => void
+    api.disarmTwitchCommandPilot.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve }))
+    const container = await mount()
+    await act(async () => { button(container, disarmLabel).click(); button(container, disarmLabel).click() })
+    expect(api.disarmTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith()
+    await act(async () => release())
+    expect(container.textContent).toContain('Non activ\u00e9')
+    expect(api.getTwitchAccount).toHaveBeenCalledTimes(2)
+  })
+  it('does not arm after OAuth, polling or a fresh mount', async () => {
+    vi.useFakeTimers()
+    history.replaceState(null, '', '/?twitch=runtime-activated')
+    api.getTwitchAccount.mockResolvedValueOnce({ ...commandAccount, runtimeChatActive: false, runtimeChatPending: true, runtimeSubscriptionAvailable: true }).mockResolvedValue(commandAccount)
+    const container = await mount()
+    await act(async () => vi.advanceTimersByTimeAsync(1000))
+    expect(button(container, armLabel).disabled).toBe(false)
+    await mount()
+    expect(api.armTwitchCommandPilot).not.toHaveBeenCalled()
+    expect(api.disarmTwitchCommandPilot).not.toHaveBeenCalled()
+  })
+  it('keeps disarm available during polling and ignores its stale result', async () => {
+    vi.useFakeTimers()
+    const armed = { ...commandAccount, commandPilotArmed: true, commandPilotEnabled: false, runtimeChatActive: false, runtimeChatPending: true, runtimeSubscriptionAvailable: true }
+    let release!: (value: typeof armed) => void
+    api.getTwitchAccount.mockResolvedValueOnce(armed).mockImplementationOnce(() => new Promise(resolve => { release = resolve })).mockResolvedValue(commandAccount)
+    api.disarmTwitchCommandPilot.mockResolvedValue({})
+    const container = await mount()
+    await act(async () => vi.advanceTimersByTimeAsync(1000))
+    expect(button(container, disarmLabel).disabled).toBe(false)
+    await act(async () => button(container, disarmLabel).click())
+    await act(async () => release(armed))
+    expect(container.textContent).toContain('Non activ\u00e9')
+    expect(button(container, disarmLabel)).toBeUndefined()
+    expect(api.disarmTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith()
+  })
+  it.each([
+    ['TWITCH_COMMAND_PILOT_OFF', 'Le pilote de commandes Twitch n\u2019est pas disponible sur ce serveur.'],
+    ['TWITCH_COMMAND_SUBSCRIPTION_INACTIVE', 'La r\u00e9ception du chat Twitch doit \u00eatre active avant d\u2019activer le pilote.'],
+    ['TWITCH_COMMAND_TRANSPORT_UNAVAILABLE', 'La r\u00e9ception du chat Twitch est temporairement indisponible.'],
+  ])('sanitizes %s without altering other controls', async (code, message) => {
+    api.getTwitchAccount.mockResolvedValue({ ...commandAccount, favorSubscriptionAvailable: true, giftSupremeAvailable: true })
+    api.armTwitchCommandPilot.mockRejectedValueOnce({ code, message: 'private upstream details' })
+    const container = await mount()
+    await act(async () => button(container, armLabel).click())
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain(message)
+    expect(container.textContent).not.toContain('private upstream details')
+    expect(container.textContent).toContain('Faveur')
+    expect(container.textContent).toContain('Gift Supr\u00eame')
+    expect(api.startTwitchFavor).not.toHaveBeenCalled()
+    expect(api.startTwitchGiftSupreme).not.toHaveBeenCalled()
+  })
+})

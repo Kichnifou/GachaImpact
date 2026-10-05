@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : pilote commandes Twitch Kichnifou-only R1042 — correctif review du kill switch, non activé.
+Version : pilote commandes Twitch Kichnifou-only R1042 — UI opérateur candidate, non activée.
 Date : 2026-10-05
-Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; PILOTE KICHNIFOU-ONLY R1042, CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ.** Main stable db6d542 ; review uniquement dans ce lot. Review indépendante ChatGPT puis promotion/déploiement/recette propriétaire séparés avant 31A Ceo → 31B batch → 32. Streamer.bot autoritatif. Autorisation payante limitée à Railway Hobby.
+Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; PILOTE KICHNIFOU-ONLY R1042, CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ.** Main stable 61c4eef ; backend R1042 promu, UI sur review uniquement dans ce lot. Review indépendante ChatGPT puis promotion/déploiement/recette propriétaire séparés avant 31A Ceo → 31B batch → 32. Streamer.bot autoritatif. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctif review R1042 du kill switch, 05/10/2026
+## Point courant — mini lot UI arm/disarm R1042, 05/10/2026
+
+**Baseline après fetch :** HEAD/review/main/origin/review/origin/main = **61c4eef63907292ca076ebb67945fd1a4201c809**, divergence 0/0 et worktree/index propres. Promotion backend et déploiement Railway SUCCESS rapportés par le propriétaire ; variable de capacité absente (OFF), sans nouvelle inspection de production dans ce lot.
+
+**UI opérateur candidate :** Configuration / Compte Twitch, bloc « Pilote commandes Twitch » sous la réception Chat. Capacité OFF : bloc caché hors état encore armé à désarmer ; Chat inactif : préparation requise et armement interdit ; Chat ACTIVE : armement explicite ; état effectif actif : désarmement explicite, disponible même si le statut Twitch se dégrade. POST/DELETE authentifiés existants, corps vide et aucune identité client, puis GET du statut autoritatif. Verrou pending commun et protection contre une lecture de polling obsolète ; erreurs assainies. Aucun auto-arm au chargement, retour OAuth, polling ou remontage ; aucune UI de retry des réponses. Faveur/Gift/Snapshot préservés.
+
+**Contrôles PASS :** AccountSettingsPanel et game-api, 106 tests ; typecheck frontend ; verify:full 8/8 (tests frontend/backend hors DB, builds/types/lint/diff-check). Rendu local headless isolé dans le GameShell complet avec CSS de production, desktop 1440×1000 et mobile 390×844 ; capacité OFF, Chat OFF, désarmé et armé contrôlés, sans appels publics. Aucune recette Twitch réelle ni DB requise/exécutée pour ce lot frontend ; aucun calcul/backend, schéma ou migration modifié.
+
+**Publication / suite :** un commit review uniquement, main **61c4eef** inchangé, review attendu ahead 1/behind 0 ; STOP pour review ChatGPT. Aucun changement Railway, variable de capacité, OAuth réel ou armement réel. Pilote toujours NON ACTIVÉ ; Streamer.bot autoritatif. R1042 matérialisée, aucune nouvelle décision.
+
+## Historique — correctif review R1042 du kill switch, 05/10/2026
 
 **Baseline après fetch :** HEAD/review/origin/review = **96559356ddedca52fb9b5a2fea6c4d6694e4709a** ; main/origin/main = **db6d542604b91c15cffdb2dcea5dcd971d9af02a**, review ahead 1/behind 0, index/worktree propres. Review indépendante ChatGPT rapportée par le propriétaire : architecture validée, seul finding bloquant = arrêt statique nécessitant redeploy.
 

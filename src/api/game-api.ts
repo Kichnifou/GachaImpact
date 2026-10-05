@@ -9,7 +9,7 @@ import type { TradeActions, TradeSnapshot, TradePartners, TradeResult } from '..
 import type { BannerVoteDto } from './types'
 import type { RankingPageDto } from './types'
 import type { AppearanceDto } from './types'
-import type { TwitchAccountDto, SnapshotPreviewDto, SnapshotApplyDto } from './types'
+import type { TwitchAccountDto, TwitchCommandPilotDto, SnapshotPreviewDto, SnapshotApplyDto } from './types'
 import type { ChatMentionDto, ChatPageDto, ChatSendDto, ChatUpdatesDto, DirectConversationListDto, DirectMessageArchiveDto, DirectMessageBlockDto, DirectMessageHistoryAnchorDto, DirectMessageHistoryPageDto, DirectMessageHistorySearchDto, DirectMessageInitiateDto, DirectMessageMutationDto, DirectMessagePageDto, DirectMessagePlayerDto, DirectMessageReceiptDto, DirectMessageReportDetailDto, DirectMessageReportPageDto, DirectMessageReportPreviewDto, DirectMessageResolveDto, DirectMessageSendDto, DirectMessageUnreadDto } from './types'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import type {
@@ -222,6 +222,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
+    armTwitchCommandPilot: () => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'POST' }),
+    disarmTwitchCommandPilot: () => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'DELETE' }),
     startTwitchLink: () => request<{ url: string }>('/api/v1/me/twitch/start', { method: 'POST' }),
     startTwitchGiftSupreme: () => request<{ url: string }>('/api/v1/me/twitch/gift-supreme/start', { method: 'POST' }),
     ensureTwitchGiftSupreme: () => request<{ giftSupremeActive: boolean; giftSupremePending: boolean }>('/api/v1/me/twitch/gift-supreme/ensure', { method: 'POST' }),

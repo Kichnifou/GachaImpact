@@ -30,6 +30,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const [result, setResult] = useState<SnapshotApplyDto | null>(null)
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
+  const commandRevision = useRef(0)
   const [runtimeChecking, setRuntimeChecking] = useState(false)
   const [applying, setApplying] = useState(false)
   const applyingRef = useRef(false)
@@ -57,8 +58,10 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     let checkingFavor = false
     void (async () => {
       try {
+        let revision = commandRevision.current
         let value = await api.getTwitchAccount(controller.signal)
         if (!active) return
+        if (revision !== commandRevision.current) return
         setAccount(value)
         checkingFavor = Boolean(value.favorSubscriptionPending)
         checkingGift = Boolean(value.giftSupremePending)
@@ -67,8 +70,10 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
           for (let attempt = 0; attempt < 4 && active && awaitingSubscription(value); attempt++) {
             await new Promise<void>(resolve => { cancelWait = resolve; timer = setTimeout(resolve, 1_000) })
             if (!active) return
+            revision = commandRevision.current
             value = await api.getTwitchAccount(controller.signal)
             if (!active) return
+            if (revision !== commandRevision.current) return
             setAccount(value)
             checkingFavor = Boolean(value.favorSubscriptionPending)
             checkingGift = Boolean(value.giftSupremePending)
@@ -96,8 +101,8 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     window.addEventListener('keydown', keys)
     return () => { window.removeEventListener('keydown', keys); openerRef.current?.focus() }
   }, [confirm])
-  const run = async (action: () => Promise<void>) => {
-    if (pendingRef.current || applyingRef.current || runtimeChecking) return
+  const run = async (action: () => Promise<void>, allowDuringRuntimeCheck = false) => {
+    if (pendingRef.current || applyingRef.current || runtimeChecking && !allowDuringRuntimeCheck) return
     pendingRef.current = true
     setPending(true); setError('')
     try { await action() } catch (reason) { setError(apiErrorMessage(reason)) }
@@ -166,6 +171,12 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     setAccount(value)
     if (value.runtimeChatError) setError(runtimeStatusError(value.runtimeChatError))
   })
+  const controlCommandPilot = (disarm: boolean) => void run(async () => {
+    commandRevision.current++
+    if (disarm) await api.disarmTwitchCommandPilot()
+    else await api.armTwitchCommandPilot()
+    setAccount(await api.getTwitchAccount())
+  }, disarm)
   const confirmAction = () => {
     if (pendingRef.current || pending || applyingRef.current || runtimeChecking) return
     if (confirm === 'unlink') { void run(async () => {
@@ -190,6 +201,14 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
       finally { applyingRef.current = false; setApplying(false); setPending(false) }
     })()
   }
+  const commandArmed = Boolean(account?.commandPilotArmed || account?.commandPilotEnabled)
+  const commandPilotControls = !presentationMode && account?.eligible && (account.commandPilotCapabilityEnabled || commandArmed) && <div className="account-twitch-runtime" aria-busy={pending}>
+    <h4>Pilote commandes Twitch</h4>
+    <p className={account.commandPilotEnabled ? 'account-twitch-active' : undefined}>{account.commandPilotEnabled ? '● Activé' : commandArmed ? 'Armé · inactif' : !account.runtimeChatActive ? 'Préparation requise' : 'Non activé'}</p>
+    <p>{account.commandPilotCapabilityEnabled ? 'Disponible sur ce serveur.' : 'Indisponible sur ce serveur.'} Armement : {account.commandPilotArmed ? 'ON' : 'OFF'} · État effectif : {account.commandPilotEnabled ? 'ON' : 'OFF'}.</p>
+    <p className="account-twitch-description">{account.runtimeChatActive ? 'La réception du chat Twitch est active. Le pilote s’active uniquement sur votre demande.' : commandArmed ? 'Le statut du chat Twitch est dégradé. Le pilote peut être désactivé.' : 'Autorisez d’abord la réception du chat Twitch.'}</p>
+    <AppButton disabled={pending || applying || !commandArmed && (runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : 'Activer le pilote commandes'}</AppButton>
+  </div>
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
@@ -201,6 +220,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             <p className="account-twitch-description">{account.runtimeChatActive ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.'}</p>
             <AppButton disabled={pending || runtimeChecking || account.runtimeChatPending} aria-busy={pending} onClick={account.runtimeChatActive ? disableRuntime : activateRuntime}>{account.runtimeChatActive ? 'Désactiver' : 'Autoriser et activer'}</AppButton>
           </div>}
+          {commandPilotControls}
           {account.eligible && account.favorSubscriptionAvailable && <div className="account-twitch-runtime account-twitch-favor" aria-busy={pending || runtimeChecking}>
             <h4>Faveur de l’Astre</h4>
             <p className={account.favorSubscriptionActive ? 'account-twitch-active' : undefined}>{account.favorSubscriptionPending ? 'Vérification en cours…' : account.favorSubscriptionActive ? '● Activée' : 'Non activée'}</p>
@@ -217,7 +237,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
           <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
-          : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}</>}
+          : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
       </section>}
       {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
         <div className="account-actions"><label>Choisir le dossier Data<input ref={folderRef} type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label><label>Ou choisir 17 fichiers JSON<input type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label></div>
