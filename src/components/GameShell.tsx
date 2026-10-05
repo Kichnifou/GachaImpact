@@ -102,6 +102,8 @@ type GameShellProps = {
 
   onRefreshChatScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>
   onRefreshPlayerState?: () => Promise<void>
+  canRefreshPlayerState?: () => boolean
+  playerStateReadRevision?: number
   player: PlayerDto
   onRefreshPlayer?: () => Promise<void>
   resources: PlayerResourcesDto
@@ -231,7 +233,7 @@ type GameShellProps = {
   onSaveNavigationPreferences: (value: NavigationMenuPreferenceDto) => Promise<NavigationMenuPreferenceDto>
 }
 
-function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
+function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMutation, onRefreshResources, externalFeedbackPending = false, onRefreshChatScopes, onRefreshPlayerState, canRefreshPlayerState, playerStateReadRevision = 0, player, onRefreshPlayer, resources, progression, levelUpFeedbacks, onLevelUpFeedbackFinished, wheelToday, onSpinWheel, dailyRewardToday, onClaimDailyReward, dailyChallenge, onPurchaseDailyChallenge, onSwitchDailyChallenge, dailyCombat, onLoadMissions, monthlyBoss, onLoadMonthlyBoss, contest, event, onLoadEvent, onLoadEventRanking, onJoinEvent, onClaimEventCalendar, onClaimEventDailyBonus, onConvertEventShop, onPurchaseEventCollection, onAttemptEventGameA, onAttemptEventGameB, onSearchEventGameCRecipients, onSendEventGameC, onConsultEventGameCMessages, onRefreshContest, onLoadContestHistory, onLoadContestHistoryDetail, onOpenContest, onJoinContest, onSelectContestLegend, onSetContestReady, onStartContest, onSpectateContest, onLeaveContest, onCancelContest, onPlayContest, onSupportContest, onRemoveContestParticipant, onRemoveContestSpectator, expedition, expeditionMonotonicNow, notifications, onLoadExpedition, onStartExpedition, onClaimExpedition, onLoadNotifications, onReadNotification, onArchiveNotification, onReadAllNotifications, onArchiveReadNotifications, onLoadDailyCombat, onSetDailyCombatSlot, onRemoveDailyCombatSlot, onCopyActiveTeamToDailyCombat, onAutoSelectDailyCombat, onClearDailyCombatLoadout, onFightDailyCombat, onSetMonthlyBossSlot, onRemoveMonthlyBossSlot, onCopyActiveTeamToMonthlyBoss, onClearMonthlyBossLoadout, onAttackMonthlyBoss, onLoadMonthlyBossHistory, onSignOut, gacha, characters, bannerVoteActions, socialActions, tradeActions, onTradeSnapshot, teams, onLoadTeams, onActivateTeam, onRenameTeam, onCreateNextTeam, onDeleteTeam, onReorderTeams, onSetTeamSlot, onReorderTeamSlots, onRemoveTeamSlot, onClearTeam, onSetGachaTarget, onPullGacha, pendingGachaPullCount, onGachaPresentationDisclosed, onGachaPresentationAbandoned, onGetGachaHistory, onLoadBox, onSetBoxFavorite, onSetBoxSortPreference, onUseStella, onLoadBank, onLoadBankHistory, onDepositBank, onWithdrawBank, onLoadShop, onLoadShopHistory, onPurchaseShop, onLoadGiftCodes, onClaimGiftCode, onLoadInventory, onLoadInventoryItemDetail, onConvertParticles, permissions, onLoadModeration, onListModerationPlayers, onModerationResource, onModerationXp, onModerationGacha, onModerationStella, onModerationApplied, onLoadAdminGiftCodes, onCreateGiftCode, onPublishGiftCode, onUpdateGiftCode, onGiftCodeClaimants, onLoadNavigationPreferences, onSaveNavigationPreferences, onLoadRanking, onLoadHistory }: GameShellProps) {
   const [socialTab, setSocialTab] = useState<SocialTab>('friends')
   const [historyIntent, setHistoryIntent] = useState<{ category: HistoryCategory; token: string } | null>(null)
   const { close: closePresence, ...presence } = usePresence(player.id, socialActions)
@@ -277,6 +279,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const [tutorialUnavailable, setTutorialUnavailable] = useState('')
   const [isParticleConversionOpen, setIsParticleConversionOpen] = useState(false)
   const previousDailyChallengeStatus = useRef(dailyChallenge.status)
+  const previousPlayerStateReadRevision = useRef(playerStateReadRevision)
   const [completedChallengeFeedback, setCompletedChallengeFeedback] = useState<NonNullable<DailyChallengeDto['challenge']> | null>(null)
   const [menuPage, setMenuPage] = useState(1)
   const [menuPreference, setMenuPreference] = useState<NavigationMenuPreferenceDto>(defaultNavigationPreference)
@@ -312,8 +315,10 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   useEffect(() => {
     const previous = previousDailyChallengeStatus.current
     previousDailyChallengeStatus.current = dailyChallenge.status
-    if (isDailyChallengeCompletionTransition(previous, dailyChallenge)) setCompletedChallengeFeedback(dailyChallenge.challenge)
-  }, [dailyChallenge])
+    const reread = previousPlayerStateReadRevision.current !== playerStateReadRevision
+    previousPlayerStateReadRevision.current = playerStateReadRevision
+    if (!reread && isDailyChallengeCompletionTransition(previous, dailyChallenge)) setCompletedChallengeFeedback(dailyChallenge.challenge)
+  }, [dailyChallenge, playerStateReadRevision])
   useEffect(() => { let active = true; void onLoadNavigationPreferences().then((value) => { if (active) setMenuPreference(value) }).catch(() => undefined); return () => { active = false } }, [onLoadNavigationPreferences, player.id])
   const finishLevelUpModal = useCallback((id: string) => {
     const event = levelUpFeedbacks.find((candidate) => candidate.id === id)
@@ -375,7 +380,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
       : onWithdrawBank(amount, idempotencyKey))),
   ), [bankCache, bankTransferIntents, onDepositBank, onWithdrawBank, player.id])
   const loadShop = useCallback(() => shopCache.revalidate(player.id, onLoadShop), [onLoadShop, player.id, shopCache])
-  const refreshAfterSnapshotImport = useCallback(async () => {
+  const refreshSharedPlayerState = useCallback(async () => {
     if (!onRefreshPlayerState) return
     await onRefreshPlayerState()
     boxCache.clear()
@@ -384,8 +389,11 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
     shopCache.clear()
     voteCache.clear()
     setChatOwnerRevision(value => value + 1)
-    setAppearanceRequestToken(value => value + 1)
   }, [onRefreshPlayerState, boxCache, inventoryCache, bankCache, shopCache, voteCache])
+  const refreshAfterSnapshotImport = useCallback(async () => {
+    await refreshSharedPlayerState()
+    setAppearanceRequestToken(value => value + 1)
+  }, [refreshSharedPlayerState])
   const refreshChatScopes = useCallback(async (scopes: readonly ChatRefreshScope[]) => {
     const results = await Promise.allSettled([onRefreshChatScopes(scopes), runChatRefreshScopes(scopes, {
       box: loadBox,
@@ -505,7 +513,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const dailyClaim = useDailyClaim(onClaimDailyReward, player.id)
   const tutorialBusy = Boolean(pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || isParticleConversionOpen)
   useTutorialAutostart(player.id, Boolean(player.elementKey), tutorialApi, tutorial, tutorialBusy, beforeTutorialLaunch)
-  useDailyRevalidation(player.id, dailyRefresh?.refresh ?? (() => Promise.resolve()), () => friendship.refresh())
+  useDailyRevalidation(player.id, dailyRefresh?.refresh ?? (() => Promise.resolve()), () => friendship.refresh(), onRefreshPlayerState ? { refresh: refreshSharedPlayerState, canRefresh: canRefreshPlayerState } : undefined)
   const openDailies = (tab: 'overview' | 'wheel' | 'challenge') => { setDailiesRequestedTab(tab); setDailiesOverviewRequestToken(value => value + 1); navigate('activities-dailies') }
   const openDailiesOverview = () => openDailies('overview')
   const openDaily = (item: DailyItem) => {
@@ -523,7 +531,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   const compactDailyProps = { items: dailyItems, tracker: dailyTracker, claim: dailyClaim, onOpen: openDaily, onOverview: openDailiesOverview, refreshing: dailyRefresh?.refreshing }
 
   const renderScreen = () => {
-    if (activeScreen === 'activities-missions') return <MissionsScreen onLoad={onLoadMissions} />
+    if (activeScreen === 'activities-missions') return <MissionsScreen onLoad={onLoadMissions} refreshToken={chatOwnerRevision} />
     switch (activeScreen) {
       case 'invocation':
         return <InvocationScreen gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
@@ -554,7 +562,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
       case 'social':
         return socialActions ? <SocialScreen actions={socialActions} onProfile={openProfile} controller={friendship} selectedTab={socialTab} onTabChange={setSocialTab} /> : null
       case 'profile':
-        return socialActions ? <ProfileScreen key={`${tutorialState.active ? player.id : profileId}:${appearanceRequestToken}`} initialTab={appearanceRequestToken ? 'Personnalisation' : 'Aperçu'} playerId={tutorialState.active ? player.id : profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onRankings={() => navigate('rankings')} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} onAppearanceChanged={onRefreshPlayer} /> : null
+        return socialActions ? <ProfileScreen key={`${tutorialState.active ? player.id : profileId}:${appearanceRequestToken}`} refreshToken={chatOwnerRevision} initialTab={appearanceRequestToken ? 'Personnalisation' : 'Aperçu'} playerId={tutorialState.active ? player.id : profileId} ownerPlayerId={player.id} actions={socialActions} controller={friendship} onMessage={openDirectMessage} onTrade={partner => { setTradeIntent({ token: crypto.randomUUID(), partner }); navigate('trades') }} onDirectory={() => { setSocialTab('players'); navigate('social') }} onRankings={() => navigate('rankings')} onPrivacy={() => { setConfigurationTab('privacy'); navigate('configuration') }} onAppearanceChanged={onRefreshPlayer} /> : null
       case 'rankings':
         return <RankingsScreen onLoad={onLoadRanking} onProfile={openProfile} />
       case 'history':

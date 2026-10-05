@@ -30,10 +30,20 @@ function actions(): SocialActions {
 async function mount(element: React.ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root!.render(element)); return container }
 const click = async (container: HTMLElement, label: string) => act(async () => { Array.from(container.querySelectorAll('button')).find(b => b.textContent === label)!.click() })
 function Directory({ api, open }: { api: SocialActions; open: (id: string) => void }) { const controller = useFriendships(api); return <SocialScreen actions={api} onProfile={open} initialTab="players" controller={controller} /> }
-function ProfileSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="owner" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
+function ProfileSurface({ api, refreshToken = 0 }: { api: SocialActions; refreshToken?: number }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="owner" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} refreshToken={refreshToken} /> }
 function ProfileVisitorSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="other" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
 function PlayersSurface({ api, onProfile, onDirectory, onClose }: { api: SocialActions; onProfile: (id: string) => void; onDirectory: () => void; onClose: () => void }) { const controller = useFriendships(api); const [value, setValue] = useState<Awaited<ReturnType<SocialActions['connected']>> | null>(null); useEffect(() => { void api.connected().then(setValue) }, [api]); return <OnlinePlayersPanel value={value} error={false} ownerPlayerId="owner" controller={controller} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} /> }
 describe('Social UI', () => {
+  it('rereads the profile on external refresh while keeping its selected tab', async () => {
+    const api = actions(), container = await mount(<ProfileSurface api={api} />)
+    await click(container, 'Box')
+    vi.mocked(api.profile).mockResolvedValueOnce({ ...profile, player: { ...player, displayName: 'Nom actualisé' } })
+    await act(async () => root!.render(<ProfileSurface api={api} refreshToken={1} />))
+    expect(api.profile).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('Nom actualisé')
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Box')?.getAttribute('aria-pressed')).toBe('true')
+    expect(container.textContent).toContain('Aucun personnage possédé.')
+  })
   it('shows owner personalization with honest empty titles and hides controls from visitors', async () => {
     const api = actions()
     api.profile = vi.fn(async () => ({ ...profile, own: true, player: { ...player, title: null } }))

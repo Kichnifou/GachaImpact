@@ -37,6 +37,13 @@ function AppBootstrap() {
   const sessionUserId = session?.user.id
   const notificationSessionRef = useRef(sessionUserId)
   useLayoutEffect(() => { notificationSessionRef.current = sessionUserId }, [sessionUserId])
+  const playerReadOwner = useRef({ active: false })
+  useLayoutEffect(() => {
+    const owner = { active: true }
+    playerReadOwner.current = owner
+    return () => { owner.active = false }
+  }, [sessionUserId, authStatus])
+  const [playerStateReadRevision, setPlayerStateReadRevision] = useState(0)
   const [player, setPlayer] = useState<PlayerDto | null>(null)
   const [resources, setResources] = useState<PlayerResourcesDto | null>(null)
   const [progression, setProgression] = useState<PlayerProgressionDto | null>(null)
@@ -245,6 +252,7 @@ function AppBootstrap() {
   const loadGiftCodeClaimants = useCallback((codeId: string, query: Parameters<ReturnType<typeof getGameApiClient>['getGiftCodeClaimants']>[1]) => getGameApiClient().getGiftCodeClaimants(codeId, query), [])
 
   const loadGameState = useCallback(async () => {
+    const owner = playerReadOwner.current
     const api = getGameApiClient()
     const next = await loadBootstrapGameState({
       resources: api.getResources,
@@ -263,6 +271,7 @@ function AppBootstrap() {
       teams: api.getTeams,
       permissions: api.getPermissions,
     })
+    if (!owner.active || owner !== playerReadOwner.current) return
     setResources(next.resources)
     progressionRef.current = next.progression
     setProgression(next.progression)
@@ -279,13 +288,22 @@ function AppBootstrap() {
     setCharacters(next.catalog.characters)
     setTeams(next.teams)
     setPermissions(next.permissions)
+    setPlayerStateReadRevision(value => value + 1)
   }, [acceptDaily, eventRequests, loadContest, publishExpedition])
 
-  const refreshPlayerState = useCallback(async () => {
-    const nextPlayer = await getGameApiClient().getCurrentPlayer()
-    await loadGameState()
-    setPlayer(nextPlayer)
-  }, [loadGameState])
+  const playerRefreshFlight = useRef<{ owner: { active: boolean }; promise: Promise<void> } | null>(null)
+  const refreshPlayerState = useCallback(() => {
+    const owner = playerReadOwner.current
+    if (playerRefreshFlight.current?.owner === owner) return playerRefreshFlight.current.promise
+    const promise = (async () => {
+      const nextPlayer = await getGameApiClient().getCurrentPlayer()
+      if (!owner.active || owner !== playerReadOwner.current) return
+      await Promise.all([loadGameState(), loadFavor().catch(() => undefined)])
+      if (owner.active && owner === playerReadOwner.current) setPlayer(nextPlayer)
+    })().finally(() => { if (playerRefreshFlight.current?.promise === promise) playerRefreshFlight.current = null })
+    playerRefreshFlight.current = { owner, promise }
+    return promise
+  }, [loadGameState, loadFavor])
 
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
     const published = publishProgressionUpdate(progressionRef.current, next, options)
@@ -446,6 +464,7 @@ function AppBootstrap() {
   }, [authStatus, loadGameState, sessionUserId, signOut])
 
   const playerResolved = Boolean(sessionUserId && resolvedUserId === sessionUserId)
+  const canRefreshPlayerState = useCallback(() => gachaPresentation.current?.getSnapshot().phase === 'idle', [])
   const stage = resolveBootstrapStage(
     authStatus,
     player,
@@ -506,6 +525,8 @@ function AppBootstrap() {
       externalFeedbackPending={milestoneFeedbacks.length > 0}
       onRefreshChatScopes={refreshChatScopes}
       onRefreshPlayerState={refreshPlayerState}
+      canRefreshPlayerState={canRefreshPlayerState}
+      playerStateReadRevision={playerStateReadRevision}
       onRefreshPlayer={async () => setPlayer(await getGameApiClient().getCurrentPlayer())}
       key={player.id}
       socialActions={socialActions}

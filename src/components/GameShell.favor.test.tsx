@@ -15,8 +15,8 @@ const control = vi.hoisted(() => ({ finish: vi.fn() }))
 vi.mock('../favor/use-favor-presence', () => ({ useFavorPresence: () => ({ favor: null, error: false, feedbacks: [{ id: 'today' }], finish: control.finish }) }))
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 let root: ReturnType<typeof createRoot>, container: HTMLDivElement
-beforeEach(() => { vi.useFakeTimers(); window.location.hash = hashForScreen('activities-dailies'); container = document.createElement('div'); document.body.append(container); root = createRoot(container); control.finish.mockClear() })
-afterEach(() => { act(() => root.unmount()); document.body.replaceChildren(); vi.useRealTimers() })
+beforeEach(() => { vi.useFakeTimers(); vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('Network disabled in component tests') })); window.location.hash = hashForScreen('activities-dailies'); container = document.createElement('div'); document.body.append(container); root = createRoot(container); control.finish.mockClear() })
+afterEach(() => { act(() => root.unmount()); document.body.replaceChildren(); vi.useRealTimers(); vi.unstubAllGlobals() })
 function makeProps() {
     const keqing: BoxCharacterDto = { id: 'keqing-id', externalKey: 'keqing', name: 'Keqing', rarity: 5, elementKey: 'electro', weaponType: 'Épée', region: 'Liyue', iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null, constellation: 0, copies: 1, firstObtainedAt: '2026-09-12T12:00:00Z', favorite: false, c6CompetitionStats: null }
     const box: PlayerBoxDto = { characters: [keqing], summary: { totalOwned: 1, fiveStars: 1, fourStars: 0, c6: 0 }, preference: { sortKey: 'alphabetical', direction: 'asc' }, stella: { quantity: '0' } }
@@ -71,3 +71,29 @@ it('waits behind conversion and resumes after it closes', async () => {
  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Fermer la conversion"]')!.click()); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).not.toBeNull()
 })
 it('defers behind global event feedback', async () => { await render({ ...makeProps(), externalFeedbackPending: true }); expect(container.querySelector('[aria-label="Faveur de l’Astre — récompense quotidienne"]')).toBeNull() })
+
+it('refreshes the shared Player on return and reloads the mounted Box without resetting its search', async () => {
+  window.location.hash = hashForScreen('characters-box')
+  const props = makeProps(), refresh = vi.fn(async () => undefined)
+  await render({ ...props, onRefreshPlayerState: refresh })
+  const before = vi.mocked(props.onLoadBox).mock.calls.length
+  const box = await props.onLoadBox()
+  vi.mocked(props.onLoadBox).mockResolvedValue({ ...box, characters: box.characters.map(character => ({ ...character, constellation: 1 })) })
+  const search = container.querySelector<HTMLInputElement>('input[type="search"]')!
+  act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(search, 'Keq'); search.dispatchEvent(new Event('input', { bubbles: true })) })
+  expect(container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('Keq')
+  await act(async () => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
+  expect(refresh).toHaveBeenCalledOnce()
+  expect(props.onLoadBox).toHaveBeenCalledTimes(before + 2)
+  expect(container.querySelector('.character-card-meta strong')?.textContent).toBe('C1')
+  expect(container.querySelector<HTMLInputElement>('input[type="search"]')?.value).toBe('Keq')
+  expect(props.onPullGacha).not.toHaveBeenCalled()
+})
+
+it('does not replay Challenge completion feedback after an authoritative shared reread', async () => {
+  const props = makeProps()
+  const challenge = { ...props.dailyChallenge, status: 'ACTIVE' as const, assigned: true, challenge: { externalKey: 'daily', type: 'pulls' as const, displayName: 'Vœux', description: '', progressLabel: 'Invocations', progress: '0', target: '5', rewardPrimogems: '800' } }
+  await render({ ...props, dailyChallenge: challenge, playerStateReadRevision: 0 })
+  await render({ ...props, dailyChallenge: { ...challenge, status: 'COMPLETED', challenge: { ...challenge.challenge, progress: '5' } }, playerStateReadRevision: 1 })
+  expect(container.querySelector('[aria-label="Défi du jour terminé"]')).toBeNull()
+})

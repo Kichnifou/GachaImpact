@@ -11,6 +11,14 @@ export const characterLabel = (character: { name: string; elementKey: string }) 
 /** Presentation uses the recorded transaction, including each gain and triggered passive. */
 export function pullChatResult(actorName: string, result: GachaPullResult): readonly string[] {
   return result.results.map(row => {
+    const prefixes: string[] = [];
+    if (row.pity5AtPull === 74) prefixes.push('⚠️ Tu entres en soft pity...');
+    if (row.pity5AtPull === 80) prefixes.push('💀 Outch la hard...');
+    if (row.rarity === 5) {
+      if (row.pity5AtPull != null && row.pity5AtPull >= 2 && row.pity5AtPull <= 35) prefixes.push('🔥 WOW EARLY !!');
+      if (row.backToBack) prefixes.push('💥 INCROYABLE BACK-TO-BACK !!!');
+      if (row.captureTriggered) prefixes.push('✨ CAPTURE DE BRILLANCE !');
+    }
     const render = (compact: boolean) => {
       const number = (amount: bigint | number) => compact ? amount.toString() : chatNumber(amount);
       const marker = result.operation.pullCount > 1 ? `[${row.index}/${result.operation.pullCount}] ` : '';
@@ -24,20 +32,18 @@ export function pullChatResult(actorName: string, result: GachaPullResult): read
       };
       const refund = row.bonusRewards.find(reward => reward.causeKey === 'gacha.c6-duplicate-refund');
       const principal = row.character
-        ? `🎉 ${marker}${actorName} obtient ${'⭐'.repeat(row.rarity ?? 0)} ${characterLabel(row.character)} ! ${refund ? 'Déjà C6 : remboursement ' + compactGain(refund.resourceKey, refund.amount, true) : row.wasNewCharacter ? 'Nouveau personnage : C0' : 'Doublon : passe C' + row.constellationAfter}.`
+        ? `🎉 ${marker}${actorName} obtient ${'⭐'.repeat(row.rarity ?? 0)} ${characterLabel(row.character)} ! ${refund ? (compact ? 'C6 : ' : 'Déjà C6 : remboursement ') + compactGain(refund.resourceKey, refund.amount, true) : row.wasNewCharacter ? 'Nouveau personnage : C0' : 'Doublon : passe C' + row.constellationAfter}.`
         : `✅ ${marker}${actorName} obtient +${number(row.resourceAmount ?? 0n)} ${row.resourceKey === 'moras' ? '💰 moras' : isElementKey(row.resourceKey?.replace(/^particles_/u, '') ?? '') ? 'particules ' + chatElementEmojis[row.resourceKey!.replace(/^particles_/u, '') as keyof typeof chatElementEmojis] + ' ' + chatElementNames[row.resourceKey!.replace(/^particles_/u, '') as keyof typeof chatElementNames] : 'primos'}${total(row.resourceKey ?? '')}.`;
       const suffix: string[] = [];
       if (row.rarity === 5) {
         const facts: string[] = [];
         if (row.pity5AtPull != null) {
           facts.push(`pity ${row.pity5AtPull}/90`);
-          if (row.pity5AtPull >= 2 && row.pity5AtPull <= 35) facts.push('Early');
-          if (row.pity5AtPull >= 80) facts.push('Hard');
         }
-        if (row.backToBack) facts.push('B2B');
-        if (row.captureTriggered) facts.push('✨ Capture');
-        else if (row.guaranteeConsumed) facts.push('🎯 Garantie');
-        else if (row.wasFiftyFifty) facts.push(`50/50 ${row.wonFiftyFifty ? 'gagné' : 'perdu'}`);
+        if (!row.captureTriggered) {
+          if (row.guaranteeConsumed) facts.push('🎯 Garantie');
+          else if (row.wasFiftyFifty) facts.push(`50/50 ${row.wonFiftyFifty ? 'gagné' : 'perdu'}`);
+        }
         if (facts.length) suffix.push(facts.join(' · '));
       }
       if (row.c6Progression && !(compact && row.c6Progression.type === 'maxed')) suffix.push(row.c6Progression.type === 'stat'
@@ -75,7 +81,7 @@ export function pullChatResult(actorName: string, result: GachaPullResult): read
           }
         }
       }
-      return [principal, ...suffix].join(compact ? ' |' : ' | ');
+      return [...prefixes, [principal, ...suffix].join(compact ? '|' : ' | ')].join(' ');
     };
     const message = render(false);
     // Compact only numeric typography and labels, keeping player/character names intact.

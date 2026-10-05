@@ -43,7 +43,7 @@ function LastActivity({ value }: { value: Access<string | null> }) {
   return <details className="profile-last-activity"><summary title={date.toLocaleString('fr-FR')}>Dernière activité : {relative}</summary><time dateTime={value.data}>{date.toLocaleString('fr-FR')}</time></details>
 }
 const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques', 'Missions', 'Personnalisation'] as const
-export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu' }: { playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
+export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu', refreshToken = 0 }: { refreshToken?: number; playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
   const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [normalTab, setTab] = useState<typeof tabs[number]>(initialTab)
   const presentation = useTutorialPresentation()
   const guidedTab = useTutorialView('profile', normalTab, tabs)
@@ -61,7 +61,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
       finally { if (active) timer = window.setTimeout(() => void load(), 30_000) }
     }
     void load(); return () => { active = false; window.clearTimeout(timer) }
-  }, [actions, playerId])
+  }, [actions, playerId, refreshToken])
   useEffect(() => {
     if (tab !== 'Missions') return
     let active = true
@@ -70,7 +70,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
       : actions.playerMissions(playerId)
     void load.then(next => { if (active) { setMissions(next); setMissionsError(''); setMissionsTarget(playerId) } }).catch(reason => { if (active) { setMissions(null); setMissionsError(apiErrorMessage(reason)); setMissionsTarget(playerId) } })
     return () => { active = false }
-  }, [actions, missionsRequest, ownerPlayerId, playerId, tab])
+  }, [actions, missionsRequest, ownerPlayerId, playerId, tab, refreshToken])
   const currentMissions = missionsTarget === playerId ? missions : null
   const currentMissionsError = missionsTarget === playerId ? missionsError : ''
   const refreshAppearance = async () => { const next = await actions.profile(playerId); setValue(next); await onAppearanceChanged() }

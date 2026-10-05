@@ -5,9 +5,9 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage } from '../utils/formatters'
 import MissionProjectionView from '../missions/MissionProjectionView'
 
-type MissionsScreenProps = Readonly<{ onLoad: () => Promise<PlayerMissionsDto> }>
+type MissionsScreenProps = Readonly<{ onLoad: () => Promise<PlayerMissionsDto>; refreshToken?: number }>
 
-function MissionsScreen({ onLoad }: MissionsScreenProps) {
+function MissionsScreen({ onLoad, refreshToken = 0 }: MissionsScreenProps) {
   const [value, setValue] = useState<PlayerMissionsDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -16,14 +16,14 @@ function MissionsScreen({ onLoad }: MissionsScreenProps) {
   useEffect(() => {
     let active = true
     void onLoad().then((next) => {
-      if (active) setValue(next)
+      if (active) { setValue(next); setError(null) }
     }).catch((cause: unknown) => {
       if (active) setError(apiErrorMessage(cause))
     }).finally(() => {
       if (active) setLoading(false)
     })
     return () => { active = false }
-  }, [onLoad, requestToken])
+  }, [onLoad, requestToken, refreshToken])
 
   const retry = useCallback(() => {
     setError(null)

@@ -16,12 +16,12 @@ describe('Authoritative Gacha chat presentation', () => {
       expect(parts.filter(part => part.includes(`🎉 [${i}/10] Axel obtient ⭐⭐⭐⭐⭐ 🔥 Étoile Royale`))).toHaveLength(1);
       expect(parts[i - 1]).toContain('Déjà C6 : remboursement +160 primos');
     }
-    expect(text).toContain('100 000 💰 moras'); expect(text).toContain('Early · B2B · 50/50 gagné'); expect(text).toContain('niveaux 1'); expect(text).toContain('⚡ +1 pity'); expect(text).toContain('🌪️ +80 primos'); expect(text).toContain('+5 🌿 chacun');
+    expect(text).toContain('100 000 💰 moras'); expect(text).toContain('🔥 WOW EARLY !! 💥 INCROYABLE BACK-TO-BACK !!!'); expect(text).toContain('pity 30/90 · 50/50 gagné'); expect(text).toContain('niveaux 1'); expect(text).toContain('⚡ +1 pity'); expect(text).toContain('🌪️ +80 primos'); expect(text).toContain('+5 🌿 chacun');
     expect(pullChatResult('Axel', { ...result([row]), operation: { ...result([row]).operation, alreadyProcessed: true } })).toEqual(pullChatResult('Axel', result([row])));
   });
-  it('shows recorded C6 statistics, Capture/guarantee and Hard, with secondary amounts unchanged', () => {
+  it('shows recorded C6 statistics and Capture without repeating Hard above its entry, with secondary amounts unchanged', () => {
     const text = pullChatResult('Axel', result([{ ...base, pity5AtPull: 85, captureTriggered: true, c6Progression: { type: 'stat', stat: 'strength', valueAfter: 12 } }, { ...base, index: 2, rarity: null, character: null, resourceKey: 'moras', resourceAmount: 9007199254740993n, passiveEffects: [{ elementKey: 'geo', type: 'secondary_reward_multiplier', numerator: 3, denominator: 2, amountBefore: 2n, amountAfter: 3n }] }])).join(' ');
-    expect(text).toContain('Hard'); expect(text).toContain('✨ Capture'); expect(text).not.toContain('50/50 gagné'); expect(text).toContain('Force (12/20)'); expect(text).toContain('9 007 199 254 740 993 💰 moras');
+    expect(text).not.toContain('Hard'); expect(text).not.toContain('Outch'); expect(text).toContain('✨ CAPTURE DE BRILLANCE !'); expect(text).not.toContain('50/50 gagné'); expect(text).toContain('Force (12/20)'); expect(text).toContain('9 007 199 254 740 993 💰 moras');
   });
   it.each([1, 3, 10])('publishes exactly %i logical results in order without an aggregate header', count => {
     const rows = Array.from({ length: count }, (_, index) => ({ ...base, index: index + 1, wasNewCharacter: true, constellationAfter: 0 }));
@@ -37,9 +37,40 @@ describe('Authoritative Gacha chat presentation', () => {
     [{ wasFiftyFifty: true, wonFiftyFifty: false }, '50/50 perdu'],
     [{ wasFiftyFifty: true, wonFiftyFifty: true }, '50/50 gagné'],
     [{ guaranteeConsumed: true }, '🎯 Garantie'],
-    [{ captureTriggered: true }, '✨ Capture'],
+    [{ captureTriggered: true }, '✨ CAPTURE DE BRILLANCE !'],
   ])('uses recorded five-star facts %j', (facts, expected) => {
     expect(pullChatResult('Axel', result([{ ...base, ...facts }])).join(' ')).toContain(expected);
+  });
+  it.each([74, 80])('announces the pity %i entry even on a resource or four-star result', pity => {
+    const prefix = pity === 74 ? '⚠️ Tu entres en soft pity...' : '💀 Outch la hard...';
+    for (const facts of [{ character: null, rarity: null, resultType: 'resource', resourceKey: 'moras', resourceAmount: 100n }, { rarity: 4 }] as const) {
+      const message = pullChatResult('Axel', result([{ ...base, ...facts, pity5AtPull: pity }]))[0]!;
+      expect(message.startsWith(prefix + ' ')).toBe(true);
+      expect(message).not.toMatch(/WOW EARLY|BACK-TO-BACK|CAPTURE DE BRILLANCE/u);
+    }
+  });
+  it.each([1, 2, 35, 36, 73, 74, 79, 80, 81, 90, null, undefined])('uses only recorded five-star Early/zone facts at pity %s', pity => {
+    const message = pullChatResult('Axel', result([{ ...base, pity5AtPull: pity, backToBack: false }]))[0]!;
+    expect(message.includes('🔥 WOW EARLY !!')).toBe(pity != null && pity >= 2 && pity <= 35);
+    expect(message.includes('⚠️ Tu entres en soft pity...')).toBe(pity === 74);
+    expect(message.includes('💀 Outch la hard...')).toBe(pity === 80);
+    if (pity != null) expect(message).toContain(`pity ${pity}/90`);
+    expect(message).not.toMatch(/\bEarly\b|\bB2B\b|\bHard\b|✨ Capture/u);
+  });
+  it('orders zone, Early/B2B/Capture and result phrases without losing distinct facts or changing a replay', () => {
+    const rows = [
+      { ...base, pity5AtPull: 74, captureTriggered: true },
+      { ...base, index: 2, pity5AtPull: 80, guaranteeConsumed: true },
+      { ...base, index: 3, pity5AtPull: 2, captureTriggered: true },
+    ];
+    const recorded = result(rows), messages = pullChatResult('Axel', recorded);
+    expect(messages[0]).toMatch(/^⚠️ Tu entres en soft pity\.\.\. 💥 INCROYABLE BACK-TO-BACK !!! ✨ CAPTURE DE BRILLANCE ! 🎉 \[1\/3\]/u);
+    expect(messages[1]).toMatch(/^💀 Outch la hard\.\.\. 💥 INCROYABLE BACK-TO-BACK !!! 🎉 \[2\/3\]/u);
+    expect(messages[1]).toContain('pity 80/90 · 🎯 Garantie');
+    expect(messages[2]).toMatch(/^🔥 WOW EARLY !! 💥 INCROYABLE BACK-TO-BACK !!! ✨ CAPTURE DE BRILLANCE ! 🎉 \[3\/3\]/u);
+    expect(messages[2]).toContain('pity 2/90');
+    for (const message of messages) expect(message).not.toMatch(/\bEarly\b|\bB2B\b|\bHard\b|✨ Capture/u);
+    expect(pullChatResult('Axel', { ...recorded, operation: { ...recorded.operation, alreadyProcessed: true } })).toEqual(messages);
   });
   it('shows secondary totals and modern C6 refunds from each recorded step, without Number conversion', () => {
     const rows: PullResultRecord[] = [
@@ -120,5 +151,12 @@ describe('Authoritative Gacha chat presentation', () => {
     expect(Array.from(compact).length).toBeLessThanOrEqual(500);
     expect(compact).toContain(actorName); expect(compact).toContain(characterName);
     expect(compact).toContain('🌟 Stats max : +100000 💰 moras');
+    for (const pity of [2, 74, 80, 85]) {
+      const rare = pullChatResult(actorName, { ...result([{ ...row, pity5AtPull: pity, captureTriggered: true, character: { ...row.character!, name: characterName } }]), operation: { ...result([row]).operation, pullCount: 10 } })[0]!;
+      expect(Array.from(rare).length).toBeLessThanOrEqual(500);
+      expect(rare).toContain(actorName); expect(rare).toContain(characterName);
+      expect(rare).toContain('✨ CAPTURE DE BRILLANCE !');
+      expect(rare).toContain('9223372036854775807');
+    }
   });
 });

@@ -122,6 +122,16 @@ describe('MissionsScreen', () => {
     expect(onLoad).toHaveBeenCalledTimes(2)
   })
 
+  it('rereads external progression while retaining the chosen rank', async () => {
+    const { container, root, onLoad } = await mount()
+    await act(async () => Array.from(container.querySelectorAll<HTMLButtonElement>('.missions-rank-tabs button')).find(button => button.textContent === 'S')!.click())
+    onLoad.mockResolvedValueOnce({ ...locked, ranks: { ...locked.ranks, S: locked.ranks.S.map(row => ({ ...row, progress: '8' })) } })
+    await act(async () => root.render(<MissionsScreen onLoad={onLoad} refreshToken={1} />))
+    expect(onLoad).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('[data-mission-rank="S"]')).not.toBeNull()
+    expect(container.textContent).toContain('8 / 10')
+  })
+
   it('computes lossless, clamped progress percentages', () => {
     expect(progressPercent('5', '10')).toBe(50)
     expect(progressPercent('9007199254740993', '9007199254740994')).toBe(99.99)
