@@ -1,0 +1,81 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
+import type { ChatCommandServices } from './chat-command-dispatcher.js';
+import { getBusinessDate } from '../../domain/time/business-date.js';
+import { isElementKey } from '../../domain/economy/resources.js';
+import { chatElementEmojis } from './chat-list-result.js';
+import { entryParts, durationText, sacCommand } from './chat-command-format.js';
+import { pullChatResult } from './gacha-command-result.js';
+import { viewTeam } from './team-command.js';
+import { BusinessError } from '../errors.js';
+import { AppError } from '../../api/errors.js';
+export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
+export type PlayerCommandHandler = 'pity' | 'banniere' | 'pull' | 'team' | 'sac' | 'expedition' | 'quotis';
+const syntax = (usage: string) => `Syntaxe : ${usage}.`;
+const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
+export function playerCommandError(error: unknown, handler: string): string | undefined {
+  if (handler === 'banniere' && error instanceof BusinessError && error.code === 'GACHA_BANNER_UNAVAILABLE') return '⚠️ Aucune bannière n’est active pour le moment.';
+  const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
+  if (error instanceof BusinessError && !error.code.includes('IDEMPOTENCY')) return /^(No |A |The |Player |Could )/u.test(error.message) ? 'Action impossible pour le moment.' : oneLine(error.message);
+  if (error instanceof AppError && !error.code.includes('IDEMPOTENCY')) return oneLine(error.message);
+  return undefined;
+}
+export function expeditionCommandSummary(view: Awaited<ReturnType<PlayerCommandServices['expeditionService']['getState']>>) {
+  return view.operationalStatus === 'IDLE' ? `Expédition : ${view.departureUsedToday ? 'départ utilisé aujourd’hui' : 'prête à partir'}.` :
+            `Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer avec !expedition retour' : `en cours, retour dans ${durationText(view.remainingSeconds)}`}.`;
+}
+
+export async function resolvePlayerCommand(identity: PlayerExecutionActor, handler: PlayerCommandHandler, args: readonly string[], usage: string, commandMessageId: string, services: PlayerCommandServices, rememberName: (name: string) => Promise<string> = async name => name): Promise<string | readonly string[]> {
+  const definition = { syntax: usage };
+  switch (handler) {
+    case 'pity': {
+      const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
+      const { playerState: p } = await services.getCurrentGacha.execute(identity);
+      const actor = await services.socialService.actor(identity);
+      return `✅ ${actor.displayName}, pity : 5★ ${p.pity5}/90 | 4★ ${p.pity4}/10 | 🎯 Garantie 5★ : ${p.guaranteedFeatured5 ? 'oui' : 'non'} | ✨ Capture : ${p.captureProgress}/3.`;
+    }
+    case 'banniere': {
+      const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
+      const { banner, playerState } = await services.getCurrentGacha.execute(identity);
+      const characterText = (character: { elementKey: string; name: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] : ''} ${character.name}`.trim();
+      const dateText = (instant: Date) => { const [, month, day] = getBusinessDate(instant).split('-'); return `${day}/${month}`; };
+      // endsAt is exclusive; use the last covered instant for the inclusive Paris date, including DST weeks.
+      const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
+      const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
+      return `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.'}`;
+    }
+    case 'pull': {
+      if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return syntax(definition.syntax);
+      const count = args[0] ? Number(args[0]) : 1;
+      const actor = await services.socialService.actor(identity);
+      const actorName = await rememberName(actor.displayName);
+      const result = await services.performGachaPullChat.execute(identity, count, commandMessageId);
+      return pullChatResult(actorName, result);
+    }
+    case 'quotis': {
+      const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
+      const actor = await services.socialService.actor(identity);
+      const [wheel, challenge, combat, expedition, reward, friends, event, favor] = await Promise.all([
+        services.getTodayWheelState.execute(identity), services.getDailyChallenge.execute(identity),
+        services.dailyCombatService.getDaily(identity), services.expeditionService.getState(identity),
+        services.getTodayDailyReward.execute(identity), services.socialService.friends(identity),
+        services.eventService.getCurrent(identity), services.socialService.favor(identity, actor.id),
+      ]);
+      return entryParts('Quotidiennes :', [
+        `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
+        `Défi ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
+        `Expédition ${expedition.operationalStatus === 'IDLE' && expedition.departureUsedToday && expedition.todayReward ? '✅' : '⏳'}`,
+        `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
+        `Festival ${event.participation.joined && event.dailyBonus.claimedToday ? '✅' : '⏳' + (event.participation.joined ? '' : ' · non inscrit')}`,
+        `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
+      ], 'Quotidiennes (suite) :');
+    }
+    case 'team': {
+      if (args.length) return syntax(usage);
+      const [actor, state] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerTeams.execute(identity)]);
+      const team = state.teams.find(row => row.active);
+      return team ? viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`;
+    }
+    case 'sac': return args.length ? syntax(usage) : sacCommand(identity, services);
+    case 'expedition': return args.length ? syntax(usage) : expeditionCommandSummary(await services.expeditionService.getState(identity));
+  }
+}

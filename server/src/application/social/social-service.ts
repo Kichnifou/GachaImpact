@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { FavorService } from '../favor/favor-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
@@ -33,7 +34,7 @@ export class SocialService {
     this.presence = new PresenceService(database, clock);
     this.friendship = new FriendshipService(database, clock);
   }
-  async actor(identity: AuthenticatedIdentity) {
+  async actor(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     if (player.status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
     return player;
@@ -62,7 +63,7 @@ export class SocialService {
     const rows = identities.slice((page - 1) * 20, page * 20);
     return { players: rows.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden, relation: relation(p.id), requestId: social.requests.find(r => r.playerId === p.id)?.id ?? null })), page, pageSize: 20, total: identities.length, totalPages };
   }
-  async friends(identity: AuthenticatedIdentity) {
+  async friends(identity: PlayerExecutionActor) {
     const viewer = await this.actor(identity);
     const state = await this.friendship.snapshot(viewer.id);
     const ids = new Set([...state.friends.map(f => f.playerId), ...state.requests.map(r => r.playerId)]);
@@ -78,7 +79,7 @@ export class SocialService {
     players.sort((a, b) => Number(a.status === 'AWAY') - Number(b.status === 'AWAY') || a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }));
     return { players, total: players.length };
   }
-  async favor(identity: AuthenticatedIdentity, playerId: string): Promise<Access<ProfileFavor>> {
+  async favor(identity: PlayerExecutionActor, playerId: string): Promise<Access<ProfileFavor>> {
     const viewer = await this.actor(identity);
     if (!await this.database.player.count({ where: { id: playerId, status: 'ACTIVE' } })) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
     if (!(await this.privacy.permissions(playerId, viewer.id)).FAVOR) return hidden;

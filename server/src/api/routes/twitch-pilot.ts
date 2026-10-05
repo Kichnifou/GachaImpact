@@ -7,6 +7,7 @@ import type { SnapshotPilotService } from '../../application/migration/snapshot-
 import { SnapshotParseError } from '../../application/migration/streamerbot-snapshot.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
+import type { TwitchCommandPilot } from '../../application/twitch/twitch-command-pilot.js';
 
 const filesSchema = z.object({ files: z.record(z.string(), z.string().max(4_000_000)) }).strict();
 const applySchema = filesSchema.extend({ previewId: z.string().length(94) });
@@ -19,9 +20,25 @@ function parseFiles(body: unknown) {
 
 export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   authenticate: preHandlerHookHandler; twitch: TwitchPilotService; snapshot: SnapshotPilotService; config: AppConfig;
+  commandPilot?: TwitchCommandPilot;
 }) {
   const authenticated = { preHandler: options.authenticate };
-  app.get('/api/v1/me/twitch', authenticated, request => options.twitch.status(requireAuthenticatedIdentity(request)));
+  app.get('/api/v1/me/twitch', authenticated, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const identity = requireAuthenticatedIdentity(request);
+    const status = await options.twitch.status(identity);
+    if (!options.commandPilot || !status.eligible) return status;
+    const player = await options.twitch.requirePilot(identity);
+    return { ...status, commandPilotResponse: await options.commandPilot.responseStatus(player.id) };
+  });
+  if (options.commandPilot) app.post('/api/v1/me/twitch/commands/:receiptId/response/retry', authenticated, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const params = z.object({ receiptId: z.uuid() }).strict().safeParse(request.params);
+    if (!params.success || !z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
+      throw new AppError('Paramètres de reprise Twitch invalides.', 400, 'VALIDATION_ERROR');
+    const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
+    return options.commandPilot!.retryResponses(player.id, params.data.receiptId);
+  });
   app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/twitch/runtime/start', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success) throw new AppError('Paramètres runtime Twitch invalides.', 400, 'VALIDATION_ERROR');

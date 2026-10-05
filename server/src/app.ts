@@ -99,6 +99,7 @@ import type { ArcadeRecords } from './application/arcade/arcade-records.js';
 import type { GiveawayService } from './application/giveaway/giveaway-service.js';
 import type { TwitchGiveawayManager } from './application/twitch/twitch-giveaway-manager.js';
 import type { TwitchGiveawayConsumer } from './application/twitch/twitch-giveaway-consumer.js';
+import type { TwitchCommandPilot } from './application/twitch/twitch-command-pilot.js';
 
 export type AppDependencies = Readonly<{
   globalChatService?: GlobalChatService;
@@ -118,6 +119,7 @@ export type AppDependencies = Readonly<{
   twitchGiftSupreme?: TwitchGiftSupremeRuntime;
   twitchGiveawayManager?: TwitchGiveawayManager;
   twitchGiveawayConsumer?: TwitchGiveawayConsumer;
+  twitchCommandPilot?: TwitchCommandPilot;
   giveawayService?: GiveawayService;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
@@ -219,7 +221,7 @@ export async function buildApp(
       await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
         favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts, favorResubs: dependencies.twitchFavorResubs, favorChatPresence: dependencies.twitchFavorChatPresence,
         giftSupreme: config.twitchGiftSupreme?.enabled && config.twitchGiftSupreme.credentialKey ? dependencies.twitchGiftSupreme : undefined,
-        giveaway: dependencies.twitchGiveawayConsumer });
+        giveaway: dependencies.twitchGiveawayConsumer, commandPilot: dependencies.twitchCommandPilot });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {
@@ -229,7 +231,7 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
-    if (dependencies.twitchPilot && dependencies.snapshotPilot) await app.register(registerTwitchPilotRoutes, { authenticate, twitch: dependencies.twitchPilot, snapshot: dependencies.snapshotPilot, config });
+    if (dependencies.twitchPilot && dependencies.snapshotPilot) await app.register(registerTwitchPilotRoutes, { authenticate, twitch: dependencies.twitchPilot, snapshot: dependencies.snapshotPilot, config, commandPilot: dependencies.twitchCommandPilot });
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.appearanceService) await app.register(registerAppearanceRoutes, { authenticate, service: dependencies.appearanceService });

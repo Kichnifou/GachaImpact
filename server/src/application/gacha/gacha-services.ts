@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -15,7 +16,7 @@ export class GetCharacters {
 
 export class GetCurrentGacha {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     const current = await this.store.getCurrent(player.id);
     if (!current) throw new BusinessError('GACHA_BANNER_UNAVAILABLE', 'No active Gacha banner is available.');
@@ -44,7 +45,7 @@ export class PerformGachaPull {
     private readonly sourceChannel: SourceChannel = SourceChannel.UI,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity, count: number, idempotencyKey: string) {
+  public async execute(identity: PlayerExecutionActor, count: number, idempotencyKey: string) {
     if (!Number.isInteger(count) || count < 1 || count > 10) throw new BusinessError('GACHA_PULL_COUNT_INVALID', 'Une Invocation doit contenir entre 1 et 10 vœux.');
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'A permanent element is required to perform a pull.');

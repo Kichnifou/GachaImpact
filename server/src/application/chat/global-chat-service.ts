@@ -1,3 +1,4 @@
+import { commandMissionFeedback } from './command-mission-feedback.js';
 import { createHash } from 'node:crypto';
 import { GlobalChatDeletionState, GlobalChatMessageType, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
@@ -279,19 +280,7 @@ export class GlobalChatService {
       where: { id: commandMessageId }, select: { authorPlayerId: true, messageType: true, sourceChannel: true },
     });
     if (command?.messageType !== 'COMMAND' || command.sourceChannel !== 'INTERNAL_CHAT' || !command.authorPlayerId) return [];
-    const rows = await this.database.playerPermanentMissionProgress.findMany({
-      where: { playerId: command.authorPlayerId, status: 'COMPLETED', completionTriggerOperation: {
-        sourceChannel: 'INTERNAL_CHAT',
-        OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }],
-      } },
-      include: { definition: true },
-    });
-    const dailyRewards = await this.database.resourceMovement.findMany({ where: {
-      playerId: command.authorPlayerId, causeKey: 'daily-challenge.completion', delta: { gt: 0n },
-      operation: { sourceChannel: 'INTERNAL_CHAT', OR: [{ idempotencyKey: commandMessageId }, { idempotencyKey: { endsWith: `:${commandMessageId}` } }] },
-    }, orderBy: { createdAt: 'asc' } });
-    return [...rows.map(row => `Mission terminée : ${row.definition.displayName} (+${row.definition.rewardPrimogems} Primogemmes).`),
-      ...dailyRewards.map(row => `✅ Défi terminé : +💠${row.delta} Primogemmes.`)];
+    return commandMissionFeedback(this.database, command.authorPlayerId, 'INTERNAL_CHAT', commandMessageId);
   }
 
   async findGameResult(commandMessageId: string) {

@@ -1,4 +1,4 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import type { WheelTodayState } from '../../domain/wheel/wheel.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -11,7 +11,7 @@ export class GetTodayWheelState {
     private readonly clock: Clock,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity): Promise<WheelTodayState> {
+  public async execute(identity: PlayerExecutionActor): Promise<WheelTodayState> {
     const player = await this.getCurrentPlayer.execute(identity);
     const businessDate = getBusinessDate(this.clock.now());
     const persistedResult = await this.store.findByDate(player.id, businessDate);

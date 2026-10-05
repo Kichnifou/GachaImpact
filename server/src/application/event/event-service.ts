@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { EventEditionStatus, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { activeEventGameAWindow, computeEventRefreshAfterMs, EVENT_GAME_A_COOLDOWN_MS, eventGameASucceeded, generateEventGameAState, parseEventGameAState } from '../../domain/event/game-a.js';
@@ -96,7 +97,7 @@ export class EventService {
     private readonly giftCodes?: Pick<GiftCodeService, 'festivalAvailability'>,
   ) {}
 
-  public async getCurrent(identity: AuthenticatedIdentity) {
+  public async getCurrent(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     const now = this.clock.now();
     const context = await this.resolveCurrentEdition(this.database, now);

@@ -4,13 +4,17 @@ import { AppError } from '../src/api/errors.js';
 import type { TwitchPilotService } from '../src/application/twitch/twitch-pilot-service.js';
 import type { SnapshotPilotService } from '../src/application/migration/snapshot-pilot-service.js';
 import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
+import type { TwitchCommandPilot } from '../src/application/twitch/twitch-command-pilot.js';
 
 const state = 'A'.repeat(43);
 const runtimeState = `runtime_${state}`;
 const apps: Awaited<ReturnType<typeof buildApp>>[] = [];
 afterEach(async () => { await Promise.all(apps.splice(0).map(app => app.close())); });
-async function setup() {
-  const twitch = { status: vi.fn(async () => ({ runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
+async function setup(withCommands = false) {
+  const commandPilot = { responseStatus: vi.fn(async () => ({ receiptId: 'fixture', state: 'FAILED', responses: ['FAILED'], error: 'HTTP_429' })),
+    retryResponses: vi.fn(async () => ({ state: 'PROCESSED' })) };
+  const twitch = { status: vi.fn(async () => ({ eligible: withCommands, commandPilotAvailable: withCommands, commandPilotEnabled: false, runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
+    requirePilot: vi.fn(async () => ({ id: 'verified-player' })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
     startGiftSupreme: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
@@ -24,10 +28,38 @@ async function setup() {
     authIdentityVerifier: { verify: async () => ({ subject: 'operator' }) }, getOrProvisionCurrentPlayer: {} as never,
     twitchPilot: twitch as unknown as TwitchPilotService, snapshotPilot: {} as SnapshotPilotService,
     twitchSubscriptions: subscriptions as unknown as TwitchEventSubSubscriptionManager,
+    twitchCommandPilot: withCommands ? commandPilot as unknown as TwitchCommandPilot : undefined,
   });
-  apps.push(app); return { app, twitch, subscriptions };
+  apps.push(app); return { app, twitch, subscriptions, commandPilot };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it('authenticates response recovery and accepts only the receipt UUID and verified operator', async () => {
+    const { app, twitch, commandPilot } = await setup(true);
+    const receiptId = '22222222-2222-4222-8222-222222222222';
+    const url = `/api/v1/me/twitch/commands/${receiptId}/response/retry`, headers = { authorization: 'Bearer test' };
+    expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+    for (const payload of [{ playerId: 'other' }, { command: '!pull 1' }, null, []])
+      expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `${url}?playerId=other`, headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: url.replace(receiptId, 'invalid'), headers })).statusCode).toBe(400);
+    expect(commandPilot.retryResponses).not.toHaveBeenCalled();
+    twitch.requirePilot.mockRejectedValueOnce(new AppError('Forbidden', 403, 'TWITCH_PILOT_FORBIDDEN'));
+    expect((await app.inject({ method: 'POST', url, headers })).statusCode).toBe(403);
+    expect(commandPilot.retryResponses).not.toHaveBeenCalled();
+    expect((await app.inject({ method: 'POST', url, headers })).json()).toEqual({ state: 'PROCESSED' });
+    expect(commandPilot.retryResponses).toHaveBeenCalledExactlyOnceWith('verified-player', receiptId);
+    expect(twitch.requirePilot).toHaveBeenCalledWith({ subject: 'operator' });
+    expect(twitch.startRuntime).not.toHaveBeenCalled();
+  });
+  it('exposes only response diagnostics to an eligible authenticated operator without activating the gate', async () => {
+    const { app, commandPilot } = await setup(true);
+    expect((await app.inject({ method: 'GET', url: '/api/v1/me/twitch' })).statusCode).toBe(401);
+    const result = await app.inject({ method: 'GET', url: '/api/v1/me/twitch', headers: { authorization: 'Bearer test' } });
+    expect(result.statusCode).toBe(200);
+    expect(result.json()).toMatchObject({ commandPilotAvailable: true, commandPilotEnabled: false, commandPilotResponse: { state: 'FAILED', error: 'HTTP_429' } });
+    expect(commandPilot.responseStatus).toHaveBeenCalledExactlyOnceWith('verified-player');
+    expect(commandPilot.retryResponses).not.toHaveBeenCalled();
+  });
   it('authenticates Faveur start, accepts only an empty body/no query and only returns its URL', async () => {
     const { app, twitch, subscriptions } = await setup(), url = '/api/v1/me/twitch/favor/start';
     expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);

@@ -231,6 +231,20 @@ describe('separate Twitch Chat runtime authorization', () => {
     const value = setup(playerId, true); value.db.twitchIdentity.findUnique.mockResolvedValue(linked); return value;
   }
 
+  it.each([false, true])('projects command pilot availability separately from enabled=%s without activating runtime', async enabled => {
+    const { db, subscriptions } = runtimeSetup();
+    const service = new TwitchPilotService(db as unknown as PrismaClient,
+      { execute: async () => ({ id: playerId }) } as unknown as GetCurrentPlayer,
+      { ...config, twitchCommandPilot: { enabled }, twitchEventSub: { enabled: true, secret: 'fixture-secret', callbackUrl: 'https://api.example/eventsub' } },
+      keys, subscriptions as unknown as TwitchEventSubSubscriptionManager);
+    expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: true, commandPilotEnabled: enabled, runtimeChatActive: false });
+    expect(subscriptions.ensurePilotChatSubscription).not.toHaveBeenCalled();
+    db.twitchIdentity.findUnique.mockResolvedValue({ ...linked, login: 'other' });
+    expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: false, commandPilotEnabled: false });
+    db.twitchIdentity.findUnique.mockResolvedValue(null);
+    expect(await service.status(identity)).toMatchObject({ commandPilotAvailable: false, commandPilotEnabled: false });
+  });
+
   it('requires an allowlisted Player, configured OAuth and an existing TwitchIdentity', async () => {
     await expect(setup(otherId).service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
     const { service, db } = setup(playerId, true);
@@ -239,11 +253,11 @@ describe('separate Twitch Chat runtime authorization', () => {
     const off = new TwitchPilotService(db as unknown as PrismaClient, { execute: async () => ({ id: playerId }) } as unknown as GetCurrentPlayer, { ...config, twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' } }, keys);
     await expect(off.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_RUNTIME_UNAVAILABLE' });
   });
-  it('requests exactly the four runtime scopes with 256-bit state/nonce, purpose in the full hash and ten-minute expiry', async () => {
+  it('requests exactly the five runtime scopes with 256-bit state/nonce, purpose in the full hash and ten-minute expiry', async () => {
     const { service, db } = runtimeSetup();
     const now = Date.now();
     const url = new URL((await service.startRuntime(identity)).url);
-    expect(url.searchParams.get('scope')?.split(' ')).toEqual([...TWITCH_RUNTIME_SCOPES]);
+    expect(url.searchParams.get('scope')?.split(' ')).toEqual(['openid', 'user:read:chat', 'user:write:chat', 'user:bot', 'channel:bot']);
     expect(url.searchParams.get('state')).toMatch(/^runtime_[A-Za-z0-9_-]{43}$/);
     expect(url.searchParams.get('nonce')).toMatch(/^[A-Za-z0-9_-]{43}$/);
     const stored = db.twitchLinkState.create.mock.calls[0]![0].data;

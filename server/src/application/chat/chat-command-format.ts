@@ -1,4 +1,4 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { elementKeys, isElementKey } from '../../domain/economy/resources.js';
 import { listTeamPassiveDefinitions } from '../../domain/team/team-passives.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
@@ -29,7 +29,7 @@ export function passifsCommand(args: readonly string[], syntax: string): string 
   return entryParts('🧩 Passifs :', definitions.map(row => `${chatElementEmojis[row.elementKey]} ${row.displayName} : 1 perso — ${row.levelOne} ; 2 persos — ${row.levelTwo}`), '🧩 Passifs suite :');
 }
 
-export async function sacCommand(identity: AuthenticatedIdentity, services: ChatCommandServices): Promise<readonly string[]> {
+export async function sacCommand(identity: PlayerExecutionActor, services: { socialService: Pick<ChatCommandServices['socialService'], 'actor'>; getCurrentPlayerInventory: ChatCommandServices['getCurrentPlayerInventory'] }): Promise<readonly string[]> {
   const [actor, inventory] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerInventory.execute(identity)]);
   const amount = (key: string) => inventory.resources.find(row => row.key === key)?.amount ?? 0n;
   const primogems = amount('primogems');

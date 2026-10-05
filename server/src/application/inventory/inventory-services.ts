@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { InventoryStore } from './inventory-store.js';
@@ -9,7 +10,7 @@ export class GetCurrentPlayerInventory {
     private readonly store: InventoryStore,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     return this.store.getInventory(player.id);
   }

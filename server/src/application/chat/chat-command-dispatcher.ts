@@ -1,10 +1,9 @@
+import { resolvePlayerCommand, expeditionCommandSummary, playerCommandError } from './player-command-core.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { elementKeys } from '../../domain/economy/resources.js';
-import { getBusinessDate } from '../../domain/time/business-date.js';
 import { EVENT_GAME_B_MAX_ATTEMPTS } from '../../domain/event/game-b.js';
 import { shopChatSummary } from './shop-command-summary.js';
 import { tradeEligibilityText } from './trade-eligibility-result.js';
-import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import type { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../gacha/gacha-services.js';
 import type { BannerVoteService } from '../gacha/banner-vote-service.js';
@@ -35,7 +34,7 @@ import { normalizePlayerSearch } from '../social/social-service.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { findRanking, rankingRegistry, type RankingService } from '../ranking/ranking-service.js';
 import { boxCommand } from './box-command.js';
-import { characterLabel, pullChatResult, stellaChatResult } from './gacha-command-result.js';
+import { characterLabel, stellaChatResult } from './gacha-command-result.js';
 import { entryParts } from './chat-command-format.js';
 import { chatNumber, durationText } from './chat-command-format.js';
 import { teamCommand } from './team-command.js';
@@ -248,22 +247,8 @@ export class ChatCommandDispatcher {
           return result.alreadySelected ? `⚠️ ${actor.displayName}, tu as déjà choisi ton élément : ${chatElementEmojis[element]} ${chatElementNames[element]}.`
             : `✅ ${actor.displayName} a choisi l’élément ${chatElementEmojis[element]} ${chatElementNames[element]}. Utilise !banniere pour voir les personnages disponibles.`;
         }
-        case 'pity': {
-          const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-          const { playerState: p } = await this.services.getCurrentGacha.execute(identity);
-          const actor = await this.services.socialService.actor(identity);
-          return `✅ ${actor.displayName}, pity : 5★ ${p.pity5}/90 | 4★ ${p.pity4}/10 | 🎯 Garantie 5★ : ${p.guaranteedFeatured5 ? 'oui' : 'non'} | ✨ Capture : ${p.captureProgress}/3.`;
-        }
-        case 'banniere': {
-          const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-          const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
-          const characterText = (character: { elementKey: string; name: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] : ''} ${character.name}`.trim();
-          const dateText = (instant: Date) => { const [, month, day] = getBusinessDate(instant).split('-'); return `${day}/${month}`; };
-          // endsAt is exclusive; use the last covered instant for the inclusive Paris date, including DST weeks.
-          const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
-          const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
-          return `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.'}`;
-        }
+        case 'pity': return await resolvePlayerCommand(identity, 'pity', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));
+        case 'banniere': return await resolvePlayerCommand(identity, 'banniere', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));
         case 'select': {
           const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
           if (!args.length) {
@@ -299,14 +284,7 @@ export class ChatCommandDispatcher {
           await this.chat.rememberCommandRefreshScopes(commandMessageId, ['bannerVotes']);
           return `✅ Vote enregistré pour ${intent.name ?? catalog.find(entry => entry.id === characterId)?.name ?? args.join(' ')}.`;
         }
-        case 'pull': {
-          if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return syntax(definition.syntax);
-          const count = args[0] ? Number(args[0]) : 1;
-          const actor = await this.services.socialService.actor(identity);
-          const actorName = await this.chat.rememberCommandText(commandMessageId, 'action', actor.displayName);
-          const result = await this.services.performGachaPullChat.execute(identity, count, commandMessageId);
-          return pullChatResult(actorName, result);
-        }
+        case 'pull': return await resolvePlayerCommand(identity, 'pull', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));
         case 'box': return await boxCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         case 'obtention': {
           if (!args.length) return syntax(definition.syntax);
@@ -325,6 +303,7 @@ export class ChatCommandDispatcher {
           return stellaChatResult(actor.displayName, result);
         }
         case 'team': {
+          if (!args.length) return await resolvePlayerCommand(identity, 'team', args, definition.syntax, commandMessageId, this.services);
           return teamCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
         }
         case 'passifs': {
@@ -559,8 +538,7 @@ export class ChatCommandDispatcher {
             await this.services.expeditionService.start(identity, characterId, commandMessageId, SourceChannel.INTERNAL_CHAT);
             return `Expédition lancée avec ${character?.name ?? target}. Retour dans 20 heures.`;
           }
-          return view.operationalStatus === 'IDLE' ? `Expédition : ${view.departureUsedToday ? 'départ utilisé aujourd’hui' : 'prête à partir'}.` :
-            `Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer avec !expedition retour' : `en cours, retour dans ${durationText(view.remainingSeconds)}`}.`;
+          return expeditionCommandSummary(view);
         }
         case 'concours': {
           if (args.length) return 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.';
@@ -615,24 +593,7 @@ export class ChatCommandDispatcher {
           const actions = [activePreview ? '!combat go' : null, combat.status !== 'COMPLETED' && combat.availableCharacterCount >= 4 ? '!combat auto' : null].filter(Boolean);
           return entryParts(`Combat du jour : ${statusLabel(combat.status)} · ${actions.length ? `actions : ${actions.join(', ')}` : 'aucune tentative disponible'} · ennemis :`, combat.encounter.enemies.map(enemy => characterLabel(enemy.character)), 'Combat du jour · ennemis (suite) :');
         }
-        case 'quotis': {
-          const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-          const actor = await this.services.socialService.actor(identity);
-          const [wheel, challenge, combat, expedition, reward, friends, event, favor] = await Promise.all([
-            this.services.getTodayWheelState.execute(identity), this.services.getDailyChallenge.execute(identity),
-            this.services.dailyCombatService.getDaily(identity), this.services.expeditionService.getState(identity),
-            this.services.getTodayDailyReward.execute(identity), this.services.socialService.friends(identity),
-            this.services.eventService.getCurrent(identity), this.services.socialService.favor(identity, actor.id),
-          ]);
-          return entryParts('Quotidiennes :', [
-            `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
-            `Défi ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
-            `Expédition ${expedition.operationalStatus === 'IDLE' && expedition.departureUsedToday && expedition.todayReward ? '✅' : '⏳'}`,
-            `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
-            `Festival ${event.participation.joined && event.dailyBonus.claimedToday ? '✅' : '⏳' + (event.participation.joined ? '' : ' · non inscrit')}`,
-            `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
-          ], 'Quotidiennes (suite) :');
-        }
+        case 'quotis': return await resolvePlayerCommand(identity, 'quotis', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));
         case 'mission': {
           if (args.length > 1) return syntax(definition.syntax);
           const rawRank = normalizePlayerSearch(args[0] ?? '').toLocaleUpperCase('fr-FR');
@@ -654,9 +615,8 @@ export class ChatCommandDispatcher {
       }
     } catch (error) {
       if (await this.chat.hasConfirmedCommandMutation(commandMessageId)) throw error;
-      if (definition.handler === 'banniere' && error instanceof BusinessError && error.code === 'GACHA_BANNER_UNAVAILABLE') return '⚠️ Aucune bannière n’est active pour le moment.';
-      if (error instanceof BusinessError && !error.code.includes('IDEMPOTENCY')) return /^(No |A |The |Player |Could )/u.test(error.message) ? 'Action impossible pour le moment.' : oneLine(error.message);
-      if (error instanceof AppError && !error.code.includes('IDEMPOTENCY')) return oneLine(error.message);
+      const text = playerCommandError(error, definition.handler);
+      if (text !== undefined) return text;
       throw error;
     }
   }

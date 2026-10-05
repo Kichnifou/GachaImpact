@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { SourceChannel } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
@@ -9,7 +10,7 @@ import type { DailyChallengeStore } from './daily-challenge-store.js';
 
 abstract class DailyChallengePlayerService {
   protected constructor(protected readonly getPlayer: GetCurrentPlayer, protected readonly store: DailyChallengeStore, protected readonly clock: Clock) {}
-  protected async context(identity: AuthenticatedIdentity) {
+  protected async context(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
     const now = this.clock.now();
@@ -19,7 +20,7 @@ abstract class DailyChallengePlayerService {
 
 export class GetDailyChallenge extends DailyChallengePlayerService {
   public constructor(getPlayer: GetCurrentPlayer, store: DailyChallengeStore, clock: Clock) { super(getPlayer, store, clock); }
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const { player, businessDate } = await this.context(identity);
     return this.store.getView(player.id, businessDate);
   }

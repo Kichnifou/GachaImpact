@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -5,7 +6,7 @@ import type { TeamStore } from './team-store.js';
 
 export class GetCurrentPlayerTeams {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     return this.store.getOrProvision(player.id);
   }

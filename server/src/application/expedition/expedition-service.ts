@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { EXPEDITION_DURATION_MS, selectExpeditionReward, type ExpeditionReward } from '../../domain/expedition/expedition.js';
@@ -44,7 +45,7 @@ export class ExpeditionService {
     this.permanentMissions = permanentMissions ?? new PermanentMissionService(economy);
   }
 
-  public async getState(identity: AuthenticatedIdentity): Promise<ExpeditionView> {
+  public async getState(identity: PlayerExecutionActor): Promise<ExpeditionView> {
     const player = await this.getPlayer.execute(identity); const now = this.clock.now(); const businessDate = getBusinessDate(now);
     await this.reconcile(player.id, now);
     return readView(this.database, player.id, businessDate, now);

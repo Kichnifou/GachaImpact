@@ -25,7 +25,7 @@ function compactPassive(passive: PlayerTeam['passives'][number]): string {
     case 'dendro': { const bundle = effects.dendroBundle!; return `${emoji} 1/${bundle.oneIn} : +${bundle.primogems} primos, +${bundle.moras} moras, +${bundle.particlesPerElement} particules/élément`; }
   }
 }
-function viewTeam(player: string, team: PlayerTeam): readonly string[] {
+export function viewTeam(player: string, team: PlayerTeam): readonly string[] {
   return entryParts(`✅ Team ${player} :`, [composition(team).join(' - ') || 'vide',
     team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif',
   ], '✅ Team suite :');

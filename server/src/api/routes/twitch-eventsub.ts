@@ -9,6 +9,7 @@ import { isFavorEligibleTwitchChatMessage, type TwitchFavorChatPresenceConsumer 
 import { twitchGiftSupremeRedemption } from '../../application/twitch/twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeRuntime } from '../../application/twitch/twitch-gift-supreme-runtime.js';
 import type { TwitchGiveawayConsumer } from '../../application/twitch/twitch-giveaway-consumer.js';
+import type { TwitchCommandPilot } from '../../application/twitch/twitch-command-pilot.js';
 import { GiftSupremeIdempotencyConflict, GIFT_SUPREME_EVENT_TYPE } from '../../application/gift-supreme/gift-supreme-service.js';
 
 const MAX_AGE_MS = 10 * 60 * 1000;
@@ -61,6 +62,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
   favorChatPresence: TwitchFavorChatPresenceConsumer;
   giftSupreme?: TwitchGiftSupremeRuntime;
   giveaway?: TwitchGiveawayConsumer;
+  commandPilot?: TwitchCommandPilot;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -155,6 +157,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
           text: parsed.data.event.message.text, messageType: parsed.data.event.message_type ?? 'text',
           observedAt: new Date(timestamp), badges: parsed.data.event.badges }) : false;
       if (normalMessage && !giveawayOutbound) await options.favorChatPresence.consume(observed.receipt.id);
+      if (!giveawayOutbound) await options.commandPilot?.consumeAuthenticated(body, observed.receipt.id);
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();

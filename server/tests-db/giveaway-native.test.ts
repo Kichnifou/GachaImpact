@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { readdirSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { GiveawayService } from '../src/application/giveaway/giveaway-service.js';
@@ -38,9 +39,12 @@ const message = (twitchUserId: string, twitchMessageId = randomUUID()) => servic
 const close = (sessionId: string) => service.close(adminId, 'ADMIN', sessionId, `admin:${randomUUID()}`);
 
 describe('Giveaway native runtime, private PostgreSQL schema', () => {
-  it('has 56 tracked migrations, RLS/revoke and one OPEN constraint', async () => {
+  it('tracks exactly the repository migrations, RLS/revoke and one OPEN constraint', async () => {
     const migrations = await fixture.admin.query('SELECT migration_name FROM _prisma_migrations ORDER BY migration_name');
-    expect(migrations.rows).toHaveLength(56); expect(migrations.rows.at(-1).migration_name).toContain('_056_');
+    const expected = readdirSync(new URL('../prisma/migrations/', import.meta.url), { withFileTypes: true })
+      .filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
+    expect(migrations.rows.map(row => row.migration_name)).toEqual(expected);
+    expect(expected.some(name => name.includes('_056_'))).toBe(true);
     expect(fixture.migrationStatus).toContain('Database schema is up to date');
     for (const table of ['twitch_giveaway_credentials', 'giveaway_counted_messages', 'giveaway_deferred_messages', 'giveaway_rewards', 'giveaway_announcements', 'giveaway_command_receipts']) {
       const qualified = `${fixture.schema}.${table}`;

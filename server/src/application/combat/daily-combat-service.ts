@@ -1,3 +1,4 @@
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { SourceChannel } from '../../../generated/prisma/client.js';
 import { isElementKey } from '../../domain/economy/resources.js';
@@ -9,14 +10,14 @@ import type { DailyCombatStore } from './daily-combat-store.js';
 export class CombatService {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: DailyCombatStore, private readonly clock: Clock) {}
 
-  private async context(identity: AuthenticatedIdentity) {
+  private async context(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
     const now = this.clock.now();
     return { playerId: player.id, playerElementKey: player.elementKey, now, businessDate: getBusinessDate(now) } as const;
   }
 
-  public async getDaily(identity: AuthenticatedIdentity) { return this.store.getView(await this.context(identity)); }
+  public async getDaily(identity: PlayerExecutionActor) { return this.store.getView(await this.context(identity)); }
   public async previewActiveTeam(identity: AuthenticatedIdentity) { return this.store.previewActiveTeam(await this.context(identity)); }
   public async getElementMatrix() { return this.store.getElementMatrix(); }
   public async setSlot(identity: AuthenticatedIdentity, position: number, characterId: string) { return this.store.setSlot({ ...await this.context(identity), position, characterId }); }

@@ -17,6 +17,7 @@ const environmentSchema = z.object({
   TWITCH_PILOT_PLAYER_IDS: z.string().default(''),
   TWITCH_PILOT_LOGIN: z.string().trim().default('kichnifou'),
   TWITCH_EVENTSUB_WEBHOOK_ENABLED: z.enum(['true', 'false']).default('false'),
+  TWITCH_COMMAND_PILOT_ENABLED: z.enum(['true', 'false']).default('false'),
   TWITCH_EVENTSUB_SECRET: z.string().optional(),
   TWITCH_EVENTSUB_CALLBACK_URL: optionalUrl,
   TWITCH_GIFT_SUPREME_ENABLED: z.enum(['true', 'false']).default('false'),
@@ -35,6 +36,7 @@ export type AppConfig = Readonly<{
   }>;
   twitch?: Readonly<{ clientId?: string; clientSecret?: string; redirectUri?: string; pilotPlayerIds: readonly string[]; pilotLogin: string }>;
   twitchEventSub?: Readonly<{ enabled: boolean; secret?: string; callbackUrl?: string }>;
+  twitchCommandPilot?: Readonly<{ enabled: boolean }>;
   twitchGiftSupreme?: Readonly<{ enabled: boolean; credentialKey?: string }>;
 }>;
 
@@ -75,6 +77,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
       pilotLogin: parsed.data.TWITCH_PILOT_LOGIN.toLowerCase(),
     },
     twitchEventSub: { enabled: eventSubEnabled, secret: eventSubSecret, callbackUrl },
+    twitchCommandPilot: { enabled: parsed.data.TWITCH_COMMAND_PILOT_ENABLED === 'true' },
     twitchGiftSupreme: { enabled: parsed.data.TWITCH_GIFT_SUPREME_ENABLED === 'true', credentialKey: parsed.data.TWITCH_OAUTH_CREDENTIAL_KEY },
   };
 }

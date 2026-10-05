@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : étape 30 — arbitrage final des identités et rehearsal réelle R1041.
+Version : pilote commandes Twitch Kichnifou-only R1042 — candidat technique non activé.
 Date : 2026-10-05
-Statut : **29 CLÔTURÉE ; 30 TERMINÉE / FOUNDATION ET REHEARSAL PRIVÉE VALIDÉES R1041.** 26/28 validées et 27 clôturée par périmètre. Prochaine mission : **pilote réel Kichnifou-only transport/commandes, NON COMMENCÉ**, puis 31A Ceo → 31B batch → 32. Checkpoint de clôture publié sur review puis promu sur main par fast-forward strict sous l'autorisation spéciale R1041 ; déploiements et validation publique restent distincts, non contrôlés dans ce lot. Autorisation payante limitée à Railway Hobby.
+Statut : **29 et 30 CLÔTURÉES R1039/R1041 ; PILOTE KICHNIFOU-ONLY R1042, CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ.** Main stable db6d542 ; review uniquement dans ce lot. Review indépendante ChatGPT puis promotion/déploiement/recette propriétaire séparés avant 31A Ceo → 31B batch → 32. Streamer.bot autoritatif. Autorisation payante limitée à Railway Hobby.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — arbitrage final étape 30 du 05/10/2026
+## Point courant — pilote commandes Twitch Kichnifou-only R1042, 05/10/2026
+
+**Baseline certifiée après fetch :** HEAD/review/main/origin/main/origin/review = **db6d542604b91c15cffdb2dcea5dcd971d9af02a**, divergence 0/0, worktree/index propres. Déploiement Railway SUCCESS rapporté par le propriétaire, non revérifié en direct dans ce lot. Étape 30 clôturée R1041 ; aucune réouverture de la rehearsal ni de 29.
+
+**CANDIDAT TECHNIQUE À REVIEW — NON ACTIVÉ.** Mission [R1042](../specifications/decisions-log.md) : transport générique temporaire, uniquement le Player actif réellement lié à Kichnifou et allowlisté. `TWITCH_COMMAND_PILOT_ENABLED` OFF par défaut, distinct de l'observation EventSub. HMAC puis consumers existants, gate auteur par User ID avant parser ; broadcaster/receiver identiques, pas de matching par nom d'affichage. Six lectures sans arguments !pity/!banniere/!team/!sac/!quotis/!exp, aliases canoniques et !pull/!pull 1 seulement ; toute autre commande/argument silencieusement ignoré. Giveaway exclusif écarte le chemin générique ; Faveur/Giveaway/Gift préservés.
+
+**Architecture :** noyau de présentation partagé avec le Chat, acteur Player serveur opaque sans faux subject ni WebIdentity, mêmes services et moteur Pull avec SourceChannel.TWITCH. R1040 et calculs inchangés ; aucun message Twitch/résultat copié dans GlobalChat. Scope runtime user:write:chat ajouté, réautorisation propriétaire future nécessaire ; aucun token utilisateur persistant. App token à la demande, envoi Helix au message parent avec segments ≤500 caractères Unicode et validation de l'ack, sans secrets. [Architecture](../architecture/backend-architecture-v1.md), [commandes](../commands/command-reference.md).
+
+**Preuve durable / limites :** receipt exempté de la rétention avant métier, verrou de ligne et clé stable du moteur commun pour éviter tout double Pull/dépense/récompense. Réponses sauvegardées séparément ; retry opérateur authentifié limité à la réponse, sans parser/métier. Refus certain récupérable ; SENDING/AMBIGUOUS bloque le résend automatique. Crash après succès Twitch avant stockage local reste incertain, aucune prétention exactly-once externe. Status minimal, aucune certification outboundReady inventée. Aucun DDL/migration ajouté.
+
+**Contrôles du candidat PASS :** 365 tests ciblés / 8 fichiers ; verify:full 8/8 (1 296 tests frontend / 122 fichiers, 1 677 tests backend / 121 fichiers, builds, typechecks, lint et diff-check). PostgreSQL privé, sept fichiers exécutés séquentiellement : nouveau pilote 5, webhook 9, observer 4, runtime 3, Faveur présence 15, Giveaway 9, Gacha 30 cas distincts validés. Nouveau pilote via vrai webhook signé, vrai Player Twitch-only et moteur Pull : concurrence, replay final, réponse-only, reprise après commit, source TWITCH, aucune WebIdentity/GlobalChatMessage créé. Assertion Giveaway périmée 56 remplacée par la comparaison exacte du registre aux dossiers versionnés ; contrôle RLS/grants maintenu. Gacha : 29/30 au premier run, un timeout d'historique à 25 s, puis cas isolé PASS 1/1 (29 skipped), sans modifier timeout/code jeu ; aucune panne fonctionnelle restante. Avertissement existant pg de requêtes concurrentes observé dans les tests privés, non corrigé dans ce périmètre.
+
+**DB / confidentialité :** Prisma validate PASS, migrate status à jour, 60 migrations inchangées. Aucun DDL/migration appliqué. Écritures de fixtures uniquement dans les schémas privés du lot, tous nettoyés ; le schéma privé préexistant conservé. Comptages et empreintes JSONB avant/après identiques sur huit tables publiques (Players, WebIdentity, TwitchIdentity, MigrationBatch/Run, ResourceMovement, BusinessOperation, GlobalChatMessage) ; inventaire/empreinte des schémas privés identiques. Aucun token, JSON privé ou ID réel ajouté au diff.
+
+**Publication / reprise :** un commit dédié sur review uniquement ; main doit rester db6d542604b91c15cffdb2dcea5dcd971d9af02a, review ahead 1/behind 0. Prochaine action : **review indépendante ChatGPT**, puis promotion/déploiement/recette propriétaire dans des missions séparées. Aucun flag Railway ON, aucun consentement ni appel Twitch réel, aucun arrêt Streamer.bot, aucun Pull public, aucune migration Ceo/43 Players ni 31A. Streamer.bot reste autoritatif. [Runbook futur](../process/legacy-cutover-runbook.md#gate-distinct--futur-pilote-réel-kichnifou-only-r1040-non-exécuté).
+
+## Historique — arbitrage final étape 30 du 05/10/2026
 
 **Baseline réelle :** fetch ; HEAD/review/origin/review = **d4e2b666d2859c11566b5c73d7d850175466c5a2**, main/origin/main = **32bf76dbef8eebfecc790f4e407514c25f56b937**, review ahead 3/behind 0, index/worktree propres. Les trois commits antérieurs ont reçu les reviews indépendantes ChatGPT rapportées par le propriétaire.
 

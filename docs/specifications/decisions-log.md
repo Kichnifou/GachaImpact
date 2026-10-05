@@ -2,6 +2,18 @@
 
 Statut : évolutif.
 
+## Pilote commandes Twitch Kichnifou-only, préparation sans activation — R1042 (2026-10-05)
+
+VALIDÉ PAR LE PROPRIÉTAIRE AVANT CODE : préparer un candidat technique sur `review` uniquement après clôture 30 R1041 ; review indépendante ChatGPT avant promotion et recette propriétaire séparées. `main` reste `db6d542604b91c15cffdb2dcea5dcd971d9af02a`. Aucun consentement, abonnement, envoi Twitch réel, arrêt Streamer.bot, migration publique ou début de 31A dans ce lot.
+
+`TWITCH_COMMAND_PILOT_ENABLED` est distinct du webhook, OFF par défaut et absent = OFF. Après HMAC/observation/consumers spécialisés, vérifier le Player actif allowlisté et sa TwitchIdentity par User ID immuable, avec broadcaster/receiver identiques et login lié Kichnifou ; seulement ensuite classifier la commande. Les autres auteurs ne passent jamais dans le parser générique. Autoriser uniquement les lectures sans arguments `!pity`, `!banniere`, `!team`, `!sac`, `!quotis`, `!exp`, leurs aliases canoniques et `!pull`/`!pull 1`. Tout autre argument/commande est ignoré silencieusement pour éviter de concurrencer Streamer.bot. Giveaway exclusif écarte ce consumer ; Faveur/Gift/Giveaway gardent leurs gates.
+
+Noyau de présentation partagé avec le Chat standalone et services métier existants ; acteur Player opaque créé côté serveur après vérification, sans subject Supabase ni WebIdentity artificielle. Pull utilise le même moteur et `SourceChannel.TWITCH`, sans changement des règles ou de R1040. Aucun message Twitch/résultat n'est copié dans GlobalChat.
+
+AUTHORIZE_RUNTIME ajoute `user:write:chat` aux scopes existants ; une nouvelle autorisation propriétaire sera nécessaire après déploiement, sans token utilisateur persistant. Envoi Helix avec app access token obtenu à la demande, sender/broadcaster liés identiques, réponse au message source, `for_source_only: true` et segments ≤500 caractères Unicode. Réponse validée (`is_sent`, message_id, data unique), erreurs sans secrets. [Contrat officiel Twitch](https://dev.twitch.tv/docs/api/reference/#send-chat-message).
+
+Receipt EventSub existant protégé de la rétention observation-only avant métier, clé d'opération stable et verrou PostgreSQL ; économie idempotente, réponses durablement suivies. Refus certain : reprise de réponse seule ; issue ambiguë ou réservation SENDING après crash : aucune reprise automatique. Succès Twitch et persistance locale ne forment pas une transaction distribuée : une réponse peut manquer ou rester incertaine, jamais justifier un nouveau Pull. Aucun DDL nécessaire. [Architecture](../architecture/backend-architecture-v1.md), [recette future](../process/legacy-cutover-runbook.md#gate-distinct--futur-pilote-réel-kichnifou-only-r1040-non-exécuté). Statut : **CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ** ; Streamer.bot reste autoritatif.
+
 ## Quarantaine propriétaire des identités introuvables et clôture 30 — R1041 (2026-10-05)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : les profils dont le Twitch User ID est vérifié restent éligibles ; les profils réellement NOT_FOUND peuvent être explicitement mis en quarantaine / migration différée, sans Player, TwitchIdentity, MigrationRun, gameplay ni ID inventé. Pour la capture du 04/10 : 43 vérifiés et deux différés. Le snapshot local ignoré est conservé intégralement comme preuve ; une migration complémentaire dédiée reste possible après vérification ultérieure d'un ID immuable, jamais par pseudo.

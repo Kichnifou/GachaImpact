@@ -1,4 +1,7 @@
 import { ArcadeInvitations } from '../application/arcade/arcade-invitations.js';
+import { TwitchCommandPilot } from '../application/twitch/twitch-command-pilot.js';
+import { twitchPlayerCommandExecutor } from '../application/twitch/twitch-player-command-executor.js';
+import { TwitchCommandChatClient } from './twitch/twitch-command-chat-client.js';
 import { TwitchFavorChatPresenceConsumer } from '../application/twitch/twitch-favor-chat-presence-consumer.js';
 import { SocialService } from '../application/social/social-service.js';
 import { AppearanceService } from '../application/appearance/appearance-service.js';
@@ -104,10 +107,12 @@ export function createRuntimeDependencies(config: AppConfig) {
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const twitchEventObserver = new TwitchEventObserver(database);
+  const twitchAppTokens = config.twitch?.clientId && config.twitch.clientSecret
+    ? new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret) : undefined;
   // Construction is inert. Only explicit pilot actions and configured status reads invoke the manager.
   const twitchSubscriptions = config.twitch?.clientId && config.twitch.clientSecret
     ? new TwitchEventSubSubscriptionManager(database, config, new TwitchEventSubClient(config.twitch.clientId,
-      new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret))) : undefined;
+      twitchAppTokens!)) : undefined;
   const twitchGiftSupremeManager = twitchSubscriptions ? new TwitchGiftSupremeManager(database, config, twitchSubscriptions) : undefined;
   const twitchGiveawayManager = new TwitchGiveawayManager(database, config, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
@@ -257,6 +262,10 @@ export function createRuntimeDependencies(config: AppConfig) {
   return {
     ...dependencies,
     chatCommandDispatcher: new ChatCommandDispatcher(globalChatService, { ...dependencies, useMasterlessStella: useMasterlessStellaChat }),
+    twitchCommandPilot: twitchAppTokens && config.twitch?.clientId ? new TwitchCommandPilot(database, config,
+      twitchPlayerCommandExecutor(database, { ...dependencies,
+        performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.TWITCH) }),
+      new TwitchCommandChatClient(config.twitch.clientId, twitchAppTokens)) : undefined,
   };
 }
 
