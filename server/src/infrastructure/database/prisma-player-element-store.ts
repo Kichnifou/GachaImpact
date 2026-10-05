@@ -1,3 +1,4 @@
+import { commandSettingMutation } from './command-setting-mutation.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { PlayerElementStore } from '../../application/player/player-element-store.js';
 import type { ElementKey } from '../../domain/economy/resources.js';
@@ -5,8 +6,8 @@ import type { ElementKey } from '../../domain/economy/resources.js';
 export class PrismaPlayerElementStore implements PlayerElementStore {
   public constructor(private readonly database: PrismaClient) {}
 
-  public async chooseElement(playerId: string, elementKey: ElementKey) {
-    return this.database.$transaction(async (transaction) => {
+  public async chooseElement(playerId: string, elementKey: ElementKey, key?: string) {
+    return commandSettingMutation(this.database, playerId, 'player.element', key, elementKey, async (transaction) => {
       const element = await transaction.element.findUnique({
         where: { key: elementKey },
         select: { isActive: true },

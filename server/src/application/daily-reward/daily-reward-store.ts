@@ -6,7 +6,8 @@ export type DailyRewardClaimInput = Readonly<{
   playerElementKey: ElementKey;
   businessDate: string;
   claimedAt: Date;
-  sourceChannel: 'UI';
+  sourceChannel: 'UI' | 'TWITCH' | 'INTERNAL_CHAT';
+  triggerKey?: string;
 }>;
 
 export interface DailyRewardStore {

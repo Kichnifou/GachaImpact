@@ -1,8 +1,8 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { elementKeys } from '../../domain/economy/resources.js';
 import { BusinessError } from '../errors.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
-import type { GlobalChatService } from './global-chat-service.js';
+import type { PlayerCommandContext } from './player-command-context.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { chatElementEmojis, chatElementNames, logicalChatParts } from './chat-list-result.js';
 
@@ -12,7 +12,7 @@ const collectionEmojis: Readonly<Record<string, string>> = {
   gerbe_de_recolte: '🌾', citrouille_hantee: '🎃', feuille_ancienne: '🍁', flocon_enchante: '❄️',
 };
 
-export async function coffreCommand(identity: AuthenticatedIdentity, services: ChatCommandServices): Promise<string | readonly string[]> {
+export async function coffreCommand(identity: PlayerExecutionActor, services: ChatCommandServices): Promise<string | readonly string[]> {
   const [actor, inventory] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerInventory.execute(identity)]);
   const items = inventory.items.filter(i => i.section === 'collection' && i.quantity > 0n)
     .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.externalKey.localeCompare(b.externalKey));
@@ -20,8 +20,8 @@ export async function coffreCommand(identity: AuthenticatedIdentity, services: C
   return logicalChatParts(`🏆 Coffre de ${actor.displayName} |`, items.map(item => ({ text: `${collectionEmojis[item.externalKey] ?? '❔'} ${item.displayName} (x${item.quantity})`, separator: ' | ' })), '🏆 Coffre suite |', 450);
 }
 
-export async function bankCommand(identity: AuthenticatedIdentity, args: readonly string[], commandId: string,
-  services: ChatCommandServices, chat: GlobalChatService, syntax: string): Promise<string> {
+export async function bankCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string,
+  services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string> {
   const action = normalizePlayerSearch(args[0] ?? '');
   const deposit = ['deposer', 'depose'].includes(action), withdraw = ['retirer', 'retire', 'retiree'].includes(action);
   if (args.length && (args.length !== 2 || !deposit && !withdraw || !/^(?:[1-9]\d*|max)$/iu.test(args[1]!))) return syntax;
@@ -30,7 +30,12 @@ export async function bankCommand(identity: AuthenticatedIdentity, args: readonl
     const bank = await services.getCurrentPlayerBank.execute(identity);
     return `🏦 Banque ${actor.displayName} : ${bank.bankMoras} Moras | 💰 Portefeuille : ${bank.walletMoras} | Intérêt estimé (3%) : +${bank.estimatedInterest} | 📥 !banque deposer X | 📤 !banque retirer X`;
   }
-  const amount = args[1]!.toLowerCase() === 'max' ? 'max' : BigInt(args[1]!);
+  let amount: bigint | 'max' = args[1]!.toLowerCase() === 'max' ? 'max' : BigInt(args[1]!);
+  if (amount === 'max' && chat.sourceChannel === 'TWITCH') {
+    const bank = await services.getCurrentPlayerBank.execute(identity);
+    amount = await chat.rememberCommandQuantity(commandId, deposit ? bank.walletMoras : bank.bankMoras);
+    if (!amount) return `⚠️ ${actor.displayName}, tu n’as aucun Mora à ${deposit ? 'déposer' : 'retirer'}.`;
+  }
   try {
     const result = await (deposit ? services.depositPlayerBankChat : services.withdrawPlayerBankChat).execute(identity, amount, commandId);
     return `✅ ${actor.displayName} ${deposit ? 'dépose' : 'retire'} ${result.resolvedAmount} Moras ${deposit ? 'à la' : 'de la'} banque. Banque : ${result.bankMoras} | Sur toi : ${result.walletMoras}`;
@@ -48,8 +53,8 @@ export async function bankCommand(identity: AuthenticatedIdentity, args: readonl
 }
 
 const numberText = (value: string) => BigInt(value).toLocaleString('fr-FR').replace(/[\u00a0\u202f]/gu, ' ');
-export async function codeCommand(identity: AuthenticatedIdentity, args: readonly string[], commandId: string,
-  services: ChatCommandServices, chat: GlobalChatService, syntax: string): Promise<string | readonly string[]> {
+export async function codeCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string,
+  services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string | readonly string[]> {
   if (args.length > 1) return syntax;
   const codes = await services.giftCodeService.listForPlayer(identity);
   if (!args.length) {
@@ -70,7 +75,7 @@ export async function codeCommand(identity: AuthenticatedIdentity, args: readonl
   if (code.available === false && !confirmed) return '⚠️ Ce code cadeau n’est pas disponible.';
   if (code.claimed && !confirmed) return already();
   try {
-    const result = await services.giftCodeService.claim(identity, editionId, commandId, 'INTERNAL_CHAT');
+    const result = await services.giftCodeService.claim(identity, editionId, commandId, chat.sourceChannel ?? 'INTERNAL_CHAT');
     if (result.operation.alreadyProcessed && !confirmed) return already();
     const claimed = result.claimed.find(entry => entry.editionId === editionId) ?? code;
     const rewards = new Map(claimed.rewards.filter(reward => BigInt(reward.amount) > 0n).map(reward => [reward.resourceKey, reward.amount]));

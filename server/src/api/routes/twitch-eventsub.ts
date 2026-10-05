@@ -151,13 +151,14 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
         contentHash: createHash('sha256').update(parsed.data.event.message.text).digest('hex'),
         transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
       });
-      const giveawayOutbound = options.giveaway && parsed.data.event.broadcaster_user_id && parsed.data.event.message_id
+      const nativeOutbound = await options.commandPilot?.isNativeOutboundMessage?.(body) ?? false;
+      const giveawayOutbound = !nativeOutbound && options.giveaway && parsed.data.event.broadcaster_user_id && parsed.data.event.message_id
         ? await options.giveaway.consume({ broadcasterUserId: parsed.data.event.broadcaster_user_id,
           chatterUserId: parsed.data.event.chatter_user_id, messageId: parsed.data.event.message_id,
           text: parsed.data.event.message.text, messageType: parsed.data.event.message_type ?? 'text',
           observedAt: new Date(timestamp), badges: parsed.data.event.badges }) : false;
-      if (normalMessage && !giveawayOutbound) await options.favorChatPresence.consume(observed.receipt.id);
-      if (!giveawayOutbound) await options.commandPilot?.consumeAuthenticated(body, observed.receipt.id);
+      if (normalMessage && !giveawayOutbound && !nativeOutbound) await options.favorChatPresence.consume(observed.receipt.id);
+      await options.commandPilot?.consumeAuthenticated(body, observed.receipt.id, !giveawayOutbound && !nativeOutbound);
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();

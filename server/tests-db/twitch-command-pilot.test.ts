@@ -16,7 +16,7 @@ import { twitchPlayerCommandExecutor } from '../src/application/twitch/twitch-pl
 import { TwitchCommandSendError } from '../src/infrastructure/twitch/twitch-command-chat-client.js';
 import { findChatCommand } from '../src/application/chat/chat-command-registry.js';
 import { harness } from '../tests/helpers/chat-command-harness.js';
-import type { PlayerCommandServices } from '../src/application/chat/player-command-core.js';
+import type { ChatCommandServices } from '../src/application/chat/player-command-resolver.js';
 import { TwitchFavorChatPresenceConsumer } from '../src/application/twitch/twitch-favor-chat-presence-consumer.js';
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
@@ -51,9 +51,9 @@ beforeAll(async () => {
   const clock = { now: () => new Date((current.banner.startsAt.getTime() + current.banner.endsAt.getTime()) / 2) };
   const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No Supabase identity allowed in Twitch'); }, provision: async () => { throw new Error('No web provisioning allowed'); } });
   const services = { ...harness().services, getCurrentGacha: new GetCurrentGacha(getPlayer, store),
-    socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as PlayerCommandServices;
-  core = twitchPlayerCommandExecutor(db, services); business.mockImplementation((...args) => core.execute(...args));
-  pilot = new TwitchCommandPilot(db, config, { execute: business }, outbound, parser, subscriptions);
+    socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as ChatCommandServices;
+  core = twitchPlayerCommandExecutor(db, services, clock); business.mockImplementation((...args) => core.execute(...args));
+  pilot = new TwitchCommandPilot(db, config, { execute: business, prepare: core.prepare, capturedAt: core.capturedAt }, outbound, parser, subscriptions);
   await pilot.arm(playerId);
   presence = new TwitchFavorChatPresenceConsumer(db, clock); vi.spyOn(presence, 'consume');
   app = await buildApp(config, { getOrProvisionCurrentPlayer: {} as never, authIdentityVerifier: { verify: async () => ({ subject: 'HTTP-only-fixture' }) },
@@ -64,7 +64,7 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await fixture.cleanup(); }, 60_000);
 function event(text = '!pull 1', chatter = '123') { return { subscription: { id: 'private-subscription', type: 'channel.chat.message', version: '1', status: 'enabled',
   condition: { broadcaster_user_id: '123', user_id: '123' }, transport: { method: 'webhook', callback: config.twitchEventSub.callbackUrl } },
-  event: { chatter_user_id: chatter, chatter_user_login: 'not-authoritative', chatter_user_name: 'not-authoritative', broadcaster_user_id: '123', message_id: randomUUID(), message: { text } } }; }
+  event: { chatter_user_id: chatter, chatter_user_login: 'not-authoritative', chatter_user_name: 'not-authoritative', broadcaster_user_id: '123', message_id: randomUUID() as string, message: { text } } }; }
 function signed(body: object, id = randomUUID(), timestamp = new Date().toISOString(), kind = 'notification') {
   const payload = JSON.stringify(body);
   return { payload, headers: { 'content-type': 'application/json', 'twitch-eventsub-message-id': id, 'twitch-eventsub-message-timestamp': timestamp,
@@ -99,11 +99,11 @@ describe('signed command pilot in private PostgreSQL', () => {
   it('executes one real TWITCH Pull under concurrent deliveries; no Chat mirroring or repeated spend/reward', async () => {
     const before = await state(); const request = signed(event());
     const deliveries = await Promise.all([post(request), post(request)]);
-    expect(deliveries.map(row => row.statusCode)).toEqual([204, 204]); expect((await post(request)).statusCode).toBe(204);
+    expect(deliveries.map(row => row.statusCode), deliveries.map(row => row.body).join(' ')).toEqual([204, 204]); expect((await post(request)).statusCode).toBe(204);
     const after = await state(); expect(after.pulls - before.pulls).toBe(1); expect(after.operations - before.operations).toBe(1);
     expect(after.wallet).toBe(before.wallet - 160n); expect(after.gacha.totalPulls).toBe(before.gacha.totalPulls + 1n);
     expect(business).toHaveBeenCalledTimes(1); expect(outbound.send).toHaveBeenCalledTimes(1);
-    const operation = await db.businessOperation.findFirstOrThrow({ where: { idempotencyKey: { endsWith: `:twitch-command:${request.headers['twitch-eventsub-message-id']}` } } });
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { idempotencyKey: { endsWith: `:twitch-command:123:${JSON.parse(request.payload).event.message_id}` } } });
     expect(operation.sourceChannel).toBe(SourceChannel.TWITCH); expect(operation.playerId).toBe(playerId);
     const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
     expect(receipt.state).toBe('PROCESSED'); expect(receipt.processedAt).not.toBeNull(); expect(receipt.externalReference).not.toBeNull();
@@ -130,7 +130,7 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(await state()).toEqual(committed); expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
     expect((await post(request)).statusCode).toBe(204); expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
-    const operation = await db.businessOperation.findFirstOrThrow({ where: { idempotencyKey: { endsWith: `:twitch-command:${request.headers['twitch-eventsub-message-id']}` } } });
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { idempotencyKey: { endsWith: `:twitch-command:123:${JSON.parse(request.payload).event.message_id}` } } });
     expect(operation.sourceChannel).toBe(SourceChannel.TWITCH);
     expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
   }, 60_000);
@@ -157,6 +157,58 @@ describe('signed command pilot in private PostgreSQL', () => {
 });
 
 describe('real multi-pull idempotence and segmented delivery', () => {
+  it('excludes a proven Gift echo by ID but accepts the same text as an independent viewer message', async () => {
+    const messageId = randomUUID(), text = '🎁 Annonce Gift privée';
+    await db.twitchEventReceipt.create({ data: { externalEventId: 'gift-supreme:' + randomUUID(), twitchUserId: '999',
+      eventType: 'channel.channel_points_custom_reward_redemption.add', payloadHash: 'a'.repeat(64), state: 'PROCESSED',
+      payloadMinimal: { remote: { broadcasterId: '123', announcementState: 'SENT', messageId, announcementText: text } } } });
+    const favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length;
+    const echo = event(text); echo.event.message_id = messageId;
+    expect((await post(signed(echo))).statusCode).toBe(204);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways);
+    expect((await post(signed(event(text)))).statusCode).toBe(204);
+    expect(presence.consume).toHaveBeenCalledTimes(favors + 1); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways + 1);
+  }, 60_000);
+  it('recovers a committed R1042/R1043 key without an intent, and refuses to reinterpret an unstarted legacy receipt', async () => {
+    const player = await db.player.findUniqueOrThrow({ where: { id: playerId } });
+    const key = 'twitch-command:' + randomUUID(), before = await state();
+    const intent = await core.prepare!(player, 'pull', ['1'], '!pull', key);
+    const result = await core.execute(player, 'pull', ['1'], '!pull', key, intent);
+    expect(await core.execute(player, 'pull', ['1'], '!pull', key)).toEqual(result);
+    expect((await state()).pulls).toBe(before.pulls + 1);
+    const committed = await state();
+    await expect(core.execute(player, 'pull', ['1'], '!pull', 'twitch-command:' + randomUUID())).rejects.toMatchObject({ code: 'TWITCH_COMMAND_LEGACY_INTENT_REQUIRED' });
+    expect(await state()).toEqual(committed);
+  }, 60_000);
+  it('excludes proven native outbound echoes before Giveaway and Favor, without classifying viewers by a prefix', async () => {
+    const request = signed(event('!pity')); expect((await post(request)).statusCode).toBe(204);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const response = (receipt.payloadMinimal as { commandPilot: { responses: { text: string; messageId: string }[] } }).commandPilot.responses[0]!;
+    const echo = event(response.text); echo.event.message_id = response.messageId;
+    const favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length, sends = outbound.send.mock.calls.length;
+    expect((await post(signed(echo))).statusCode).toBe(204);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways); expect(outbound.send).toHaveBeenCalledTimes(sends);
+    const viewer = event('🎁 Un message ordinaire du joueur'); expect((await post(signed(viewer))).statusCode).toBe(204);
+    expect(presence.consume).toHaveBeenCalledTimes(favors + 1); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways + 1);
+  }, 60_000);
+  it('accepts two identical !pull texts with distinct message IDs, but not a redelivery of either message', async () => {
+    const before = await state(), sends = outbound.send.mock.calls.length, executions = business.mock.calls.length;
+    const first = event('!pull'), second = event('!pull');
+    const requests = [signed(first), signed(second)];
+    for (const request of requests) expect((await post(request)).statusCode).toBe(204);
+    const after = await state();
+    expect(after.pulls).toBe(before.pulls + 2); expect(after.wallet).toBe(before.wallet - 320n);
+    expect(business).toHaveBeenCalledTimes(executions + 2); expect(outbound.send).toHaveBeenCalledTimes(sends + 2);
+    const receipts = await db.twitchEventReceipt.findMany({ where: { externalEventId: { in: requests.map(row => row.headers['twitch-eventsub-message-id']) } } });
+    expect(receipts).toHaveLength(2);
+    expect(new Set(receipts.map(row => row.externalReference)).size).toBe(2);
+    for (const request of requests) expect((await post(request)).statusCode).toBe(204);
+    expect((await post(signed(first))).statusCode).toBe(204); // New transport delivery, same actual chat message.
+    const conflict = structuredClone(first); conflict.event.message.text = '!pull 2';
+    expect((await post(signed(conflict))).statusCode).toBe(409);
+    expect(await state()).toEqual(after); expect(outbound.send).toHaveBeenCalledTimes(sends + 2);
+    expect(business).toHaveBeenCalledTimes(executions + 2);
+  }, 60_000);
   it.each([false, true])('executes x3 once with certain partial rejection=%s', async partial => {
     const before = await state(), executions = business.mock.calls.length, parses = parser.mock.calls.length, sends = outbound.send.mock.calls.length;
     if (partial) outbound.send.mockResolvedValueOnce(randomUUID()).mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
@@ -166,7 +218,7 @@ describe('real multi-pull idempotence and segmented delivery', () => {
     expect(committed.pulls).toBe(before.pulls + 1); expect(committed.operations).toBe(before.operations + 1);
     expect(committed.wallet).toBe(before.wallet - PULL_COST[3]); expect(committed.gacha.totalPulls).toBe(before.gacha.totalPulls + 3n);
     expect(business).toHaveBeenCalledTimes(executions + 1); expect(parser).toHaveBeenCalledTimes(parses + 1);
-    const key = { idempotencyKey: { endsWith: ':twitch-command:' + request.headers['twitch-eventsub-message-id'] } };
+    const key = { idempotencyKey: { endsWith: ':twitch-command:123:' + JSON.parse(request.payload).event.message_id } };
     expect(await db.businessOperation.count({ where: key })).toBe(1);
     const operation = await db.businessOperation.findFirstOrThrow({ where: key });
     expect(operation).toMatchObject({ operationType: 'gacha.pull', sourceChannel: SourceChannel.TWITCH, playerId });

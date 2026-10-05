@@ -1,4 +1,6 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import { commandSource } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { SourceChannel } from '../../../generated/prisma/client.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
@@ -8,7 +10,7 @@ import type { ShopStore } from './shop-store.js';
 
 export class GetCurrentPlayerShop {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: ShopStore) {}
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     return this.store.getView(player.id);
   }
@@ -16,7 +18,7 @@ export class GetCurrentPlayerShop {
 
 export class GetPlayerShopHistory {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: ShopStore) {}
-  public async execute(identity: AuthenticatedIdentity, page: number) {
+  public async execute(identity: PlayerExecutionActor, page: number) {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('SHOP_HISTORY_PAGE_INVALID', 'La page d’historique Boutique doit être un entier positif.');
     const player = await this.getPlayer.execute(identity);
     return this.store.getHistory(player.id, page);
@@ -25,10 +27,10 @@ export class GetPlayerShopHistory {
 
 export class PurchaseShopItem {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: ShopStore, private readonly clock: Clock, private readonly sourceChannel: SourceChannel = SourceChannel.UI) {}
-  public async execute(identity: AuthenticatedIdentity, itemId: string, quantity: bigint, idempotencyKey: string) {
+  public async execute(identity: PlayerExecutionActor, itemId: string, quantity: bigint, idempotencyKey: string) {
     if (quantity <= 0n) throw new BusinessError('SHOP_QUANTITY_INVALID', 'La quantité doit être un entier strictement positif.');
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis pour acheter cet article.');
-    return this.store.purchase({ playerId: player.id, playerElementKey: player.elementKey, itemId, quantity, idempotencyKey, occurredAt: this.clock.now(), sourceChannel: this.sourceChannel });
+    return this.store.purchase({ playerId: player.id, playerElementKey: player.elementKey, itemId, quantity, idempotencyKey, occurredAt: commandNow(this.clock), sourceChannel: commandSource(this.sourceChannel) });
   }
 }

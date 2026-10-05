@@ -1,3 +1,5 @@
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import {
   ContestCancellationKind,
   ContestParticipantKind,
@@ -34,7 +36,6 @@ import {
   type ContestThemeKey,
 } from '../../domain/contest/contest.js';
 import { isElementKey } from '../../domain/economy/resources.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { BusinessError } from '../errors.js';
@@ -112,7 +113,7 @@ export class ContestService {
     private readonly economy = new PrismaEconomyService(),
   ) {}
 
-  public async getCurrent(identity: AuthenticatedIdentity) {
+  public async getCurrent(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     try { await this.reconcile(); }
     catch (error) {
@@ -122,12 +123,12 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async createLobby(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
+  public async createLobby(identity: PlayerExecutionActor, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.reconcile();
     const replay = await this.findReplay(player.id, 'LOBBY_CREATED', idempotencyKey, { characterId });
     if (replay) return this.readView(player.id);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const businessDate = getBusinessDate(now);
     try {
       await withSerializableRetry(this.database, async (tx) => {
@@ -156,10 +157,10 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async joinAsParticipant(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
+  public async joinAsParticipant(identity: PlayerExecutionActor, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'PARTICIPANT_JOINED', idempotencyKey, { characterId }, async (tx, contest) => {
-      assertLobbyOpen(contest, this.clock.now());
+      assertLobbyOpen(contest, commandNow(this.clock));
       await assertDailyAvailable(tx, player.id, databaseDateToBusinessDate(contest.businessDate));
       await findLegend(tx, player.id, characterId);
       const current = contest.participants.find((item) => item.playerId === player.id);
@@ -176,16 +177,16 @@ export class ContestService {
         originalPlayerId: player.id, characterId, playerNameSnapshot: player.displayName,
         characterNameSnapshot: legend.character.name, avatarSnapshot: legend.character.iconPath,
       } });
-      await touchLobbyDeadline(tx, contest.id, this.clock.now());
+      await touchLobbyDeadline(tx, contest.id, commandNow(this.clock));
       await createEvent(tx, contest.id, 'PARTICIPANT_JOINED', idempotencyKey, player.id, { slot, characterId });
     });
     return this.readView(player.id);
   }
 
-  public async joinAsSpectator(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async joinAsSpectator(identity: PlayerExecutionActor, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'SPECTATOR_JOINED', idempotencyKey, {}, async (tx, contest) => {
-      if (contest.status === ContestStatus.LOBBY) assertLobbyOpen(contest, this.clock.now());
+      if (contest.status === ContestStatus.LOBBY) assertLobbyOpen(contest, commandNow(this.clock));
       if (contest.participants.some((item) => item.playerId === player.id)) throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un participant ne peut pas être spectateur actif.');
       if (await wasContestParticipant(tx, contest, player.id)) {
         throw new BusinessError('CONTEST_ALREADY_JOINED', 'Un ancien participant ne peut pas devenir spectateur pendant ce Concours.');
@@ -198,39 +199,39 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async selectLegend(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
+  public async selectLegend(identity: PlayerExecutionActor, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'LEGEND_SELECTED', idempotencyKey, { characterId }, async (tx, contest) => {
-      assertLobbyOpen(contest, this.clock.now());
+      assertLobbyOpen(contest, commandNow(this.clock));
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       const legend = await findLegend(tx, player.id, characterId);
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: {
         characterId, characterNameSnapshot: legend.character.name, avatarSnapshot: legend.character.iconPath, ready: false,
       } });
-      await touchLobbyDeadline(tx, contest.id, this.clock.now());
+      await touchLobbyDeadline(tx, contest.id, commandNow(this.clock));
       await createEvent(tx, contest.id, 'LEGEND_SELECTED', idempotencyKey, player.id, { characterId, slot: participant.slot });
     });
     return this.readView(player.id);
   }
 
-  public async setReady(identity: AuthenticatedIdentity, ready: boolean, idempotencyKey: string) {
+  public async setReady(identity: PlayerExecutionActor, ready: boolean, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'READINESS_CHANGED', idempotencyKey, { ready }, async (tx, contest) => {
-      assertLobbyOpen(contest, this.clock.now());
+      assertLobbyOpen(contest, commandNow(this.clock));
       const participant = contest.participants.find((item) => item.playerId === player.id && item.kind === ContestParticipantKind.HUMAN);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous ne participez pas à ce lobby.');
       await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } }, data: { ready } });
-      await touchLobbyDeadline(tx, contest.id, this.clock.now());
+      await touchLobbyDeadline(tx, contest.id, commandNow(this.clock));
       await createEvent(tx, contest.id, 'READINESS_CHANGED', idempotencyKey, player.id, { ready, slot: participant.slot });
     });
     return this.readView(player.id);
   }
 
-  public async start(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async start(identity: PlayerExecutionActor, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'CONTEST_STARTED', idempotencyKey, {}, async (tx, contest) => {
-      assertLobbyOpen(contest, this.clock.now());
+      assertLobbyOpen(contest, commandNow(this.clock));
       if (contest.organizerPlayerId !== player.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'Seul l’organisateur peut lancer le Concours.');
       const humans = contest.participants.filter((item) => item.kind === ContestParticipantKind.HUMAN && item.playerId);
       if (humans.length === 0 || humans.some((item) => !item.ready)) throw new BusinessError('CONTEST_NOT_READY', 'Tous les participants humains doivent être prêts.');
@@ -243,7 +244,7 @@ export class ContestService {
         await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: item.slot } }, data: {
           themeStatSnapshot: stat, basePointsSnapshot: base, titleRankSnapshot: titleRank,
         } });
-        await consumeDaily(tx, item.playerId!, databaseDateToBusinessDate(contest.businessDate), contest.id, this.clock.now());
+        await consumeDaily(tx, item.playerId!, databaseDateToBusinessDate(contest.businessDate), contest.id, commandNow(this.clock));
       }
       const humanStats = snapshots.map(({ stat }) => stat);
       const occupied = new Set(humans.map(({ slot }) => slot));
@@ -262,7 +263,7 @@ export class ContestService {
       for (let index = 0; index < order.length; index += 1) {
         await tx.contestParticipant.update({ where: { contestId_slot: { contestId: contest.id, slot: order[index]! } }, data: { turnOrder: index + 1 } });
       }
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       await tx.contest.update({ where: { id: contest.id }, data: {
         status: ContestStatus.RUNNING, phase: ContestPhase.TURNS, startedAt: now,
         lobbyDeadlineAt: null, currentTurnOrder: 1, currentRound: 1,
@@ -273,11 +274,11 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async play(identity: AuthenticatedIdentity, action: ContestAction, idempotencyKey: string) {
+  public async play(identity: PlayerExecutionActor, action: ContestAction, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'TURN_PLAYED', idempotencyKey, { action }, async (tx, contest) => {
       assertRunningTurns(contest);
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       if (contest.turnDeadlineAt && contest.turnDeadlineAt <= now) throw new BusinessError('CONTEST_NOT_YOUR_TURN', 'Le délai de ce tour est écoulé. Actualisez le Concours.');
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant || participant.turnOrder !== contest.currentTurnOrder) throw new BusinessError('CONTEST_NOT_YOUR_TURN', 'Ce n’est pas votre tour.');
@@ -286,13 +287,13 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async support(identity: AuthenticatedIdentity, targetSlot: number, idempotencyKey: string) {
+  public async support(identity: PlayerExecutionActor, targetSlot: number, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'SUPPORT_PLAYED', idempotencyKey, { targetSlot }, async (tx, contest) => {
       if (contest.status !== ContestStatus.RUNNING || contest.phase !== ContestPhase.SUPPORT || contest.selectedSpectatorPlayerId !== player.id) {
         throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Aucun soutien ne vous est proposé actuellement.');
       }
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       if (contest.supportDeadlineAt && contest.supportDeadlineAt <= now) throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Le délai de soutien est écoulé. Actualisez le Concours.');
       const target = contest.participants.find((item) => item.slot === targetSlot);
       if (!target) throw new BusinessError('CONTEST_SUPPORT_UNAVAILABLE', 'Cette cible de soutien est invalide.');
@@ -305,59 +306,59 @@ export class ContestService {
     return this.readView(player.id);
   }
 
-  public async leave(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async leave(identity: PlayerExecutionActor, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'MEMBER_LEFT', idempotencyKey, {}, async (tx, contest) => {
       const spectator = contest.spectators.find((item) => item.playerId === player.id);
       if (spectator) {
         await tx.contestSpectator.delete({ where: { contestId_playerId: { contestId: contest.id, playerId: player.id } } });
-        if (contest.selectedSpectatorPlayerId === player.id) await beginNextRound(tx, contest.id, contest.currentRound, this.clock.now());
+        if (contest.selectedSpectatorPlayerId === player.id) await beginNextRound(tx, contest.id, contest.currentRound, commandNow(this.clock));
         await createEvent(tx, contest.id, 'SPECTATOR_LEFT', idempotencyKey, player.id);
         return;
       }
       const participant = contest.participants.find((item) => item.playerId === player.id);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Vous n’êtes pas membre actif de ce Concours.');
       if (contest.status === ContestStatus.LOBBY) {
-        const now = this.clock.now();
+        const now = commandNow(this.clock);
         await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
         await transferOrganizerOrCancel(tx, contest.id, player.id, now);
         await touchLobbyDeadline(tx, contest.id, now);
       } else {
-        await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.LEFT, this.clock.now());
-        await transferOrganizerOrCancel(tx, contest.id, player.id, this.clock.now());
+        await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.LEFT, commandNow(this.clock));
+        await transferOrganizerOrCancel(tx, contest.id, player.id, commandNow(this.clock));
       }
       await createEvent(tx, contest.id, 'MEMBER_LEFT', idempotencyKey, player.id, { slot: participant.slot });
     });
     return this.readView(player.id);
   }
 
-  public async cancel(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async cancel(identity: PlayerExecutionActor, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
     await this.mutateActive(player.id, 'CONTEST_CANCELLED', idempotencyKey, {}, async (tx, contest) => {
       if (contest.organizerPlayerId !== player.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'Seul l’organisateur peut annuler le Concours.');
-      await cancelContest(tx, contest, ContestCancellationKind.ORGANIZER, 'Annulation par l’organisateur', player.id, contest.status === ContestStatus.RUNNING, this.clock.now());
+      await cancelContest(tx, contest, ContestCancellationKind.ORGANIZER, 'Annulation par l’organisateur', player.id, contest.status === ContestStatus.RUNNING, commandNow(this.clock));
       await createEvent(tx, contest.id, 'CONTEST_CANCELLED', idempotencyKey, player.id);
     });
     return this.readView(player.id);
   }
 
-  public async removeFromLobby(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
+  public async removeFromLobby(identity: PlayerExecutionActor, targetPlayerId: string, idempotencyKey: string) {
     const organizer = await this.getPlayer.execute(identity);
     await this.mutateActive(organizer.id, 'LOBBY_PARTICIPANT_REMOVED', idempotencyKey, { targetPlayerId }, async (tx, contest) => {
-      assertLobbyOpen(contest, this.clock.now());
+      assertLobbyOpen(contest, commandNow(this.clock));
       if (contest.organizerPlayerId !== organizer.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'Seul l’organisateur peut retirer un participant du lobby.');
       if (targetPlayerId === organizer.id) throw new BusinessError('CONTEST_NOT_ORGANIZER', 'L’organisateur doit quitter le lobby pour céder sa place.');
       const participant = contest.participants.find((item) => item.playerId === targetPlayerId);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Ce joueur ne participe pas au lobby.');
       await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
       await tx.contestLobbyRemoval.upsert({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } }, create: { contestId: contest.id, playerId: targetPlayerId, count: 1 }, update: { count: { increment: 1 } } });
-      await touchLobbyDeadline(tx, contest.id, this.clock.now());
+      await touchLobbyDeadline(tx, contest.id, commandNow(this.clock));
       await createEvent(tx, contest.id, 'LOBBY_PARTICIPANT_REMOVED', idempotencyKey, organizer.id, { slot: participant.slot, targetPlayerId }, targetPlayerId, participant.slot);
     });
     return this.readView(organizer.id);
   }
 
-  public async removeSpectator(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
+  public async removeSpectator(identity: PlayerExecutionActor, targetPlayerId: string, idempotencyKey: string) {
     const actor = await this.getPlayer.execute(identity);
     await this.mutateActive(actor.id, 'SPECTATOR_REMOVED', idempotencyKey, { targetPlayerId }, async (tx, contest) => {
       const authorizedAdmin = contest.organizerPlayerId === actor.id ? null : await tx.playerRoleAssignment.findFirst({
@@ -372,12 +373,12 @@ export class ContestService {
       const selectedForSupport = contest.phase === ContestPhase.SUPPORT && contest.selectedSpectatorPlayerId === targetPlayerId;
       await tx.contestSpectator.delete({ where: { contestId_playerId: { contestId: contest.id, playerId: targetPlayerId } } });
       await createEvent(tx, contest.id, 'SPECTATOR_REMOVED', idempotencyKey, actor.id, { targetPlayerId, spectatorName: spectator.player.displayName, selectedForSupport, round: contest.currentRound }, targetPlayerId);
-      if (selectedForSupport) await beginNextRound(tx, contest.id, contest.currentRound, this.clock.now());
+      if (selectedForSupport) await beginNextRound(tx, contest.id, contest.currentRound, commandNow(this.clock));
     });
     return this.readView(actor.id);
   }
 
-  public async adminRemove(identity: AuthenticatedIdentity, targetPlayerId: string, idempotencyKey: string) {
+  public async adminRemove(identity: PlayerExecutionActor, targetPlayerId: string, idempotencyKey: string) {
     const actor = await this.getPlayer.execute(identity);
     const isAdmin = await this.database.playerRoleAssignment.findFirst({ where: { playerId: actor.id, role: 'ADMIN', revokedAt: null }, select: { id: true } });
     if (!isAdmin) throw new BusinessError('CONTEST_ADMIN_FORBIDDEN', 'Cette action est réservée à l’administration.');
@@ -385,13 +386,13 @@ export class ContestService {
       const participant = contest.participants.find((item) => item.playerId === targetPlayerId);
       if (!participant) throw new BusinessError('CONTEST_NOT_JOINED', 'Ce joueur ne participe pas au Concours.');
       if (contest.status === ContestStatus.LOBBY) {
-        const now = this.clock.now();
+        const now = commandNow(this.clock);
         await tx.contestParticipant.delete({ where: { contestId_slot: { contestId: contest.id, slot: participant.slot } } });
         await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, now);
         await touchLobbyDeadline(tx, contest.id, now);
       } else {
-        await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.ADMIN_REMOVAL, this.clock.now());
-        await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, this.clock.now());
+        await replaceWithBot(tx, contest, participant.slot, ContestReplacementReason.ADMIN_REMOVAL, commandNow(this.clock));
+        await transferOrganizerOrCancel(tx, contest.id, targetPlayerId, commandNow(this.clock));
       }
       await createEvent(tx, contest.id, 'ADMIN_REMOVAL', idempotencyKey, actor.id, { slot: participant.slot, targetPlayerId }, targetPlayerId, participant.slot);
     });
@@ -423,14 +424,14 @@ export class ContestService {
 
   private async runReconciliation(): Promise<void> {
     for (let step = 0; step < 4; step += 1) {
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       const candidate = await findReconciliationCandidate(this.database);
       if (!candidate || !reconciliationIsDue(candidate, now)) return;
       const outcome = await withSerializableRetry(this.database, async (tx) => {
         if (!await tryLockContest(tx)) return 'STOP' as const;
         const active = await findActive(tx);
         if (!active) return 'STOP' as const;
-        const lockedNow = this.clock.now();
+        const lockedNow = commandNow(this.clock);
         if (!reconciliationIsDue(active, lockedNow)) return 'STOP' as const;
         if (active.status === ContestStatus.LOBBY) {
           if (databaseDateToBusinessDate(active.businessDate) !== getBusinessDate(lockedNow)) {
@@ -505,7 +506,7 @@ export class ContestService {
   }
 
   private async readView(playerId: string) {
-    const businessDate = getBusinessDate(this.clock.now());
+    const businessDate = getBusinessDate(commandNow(this.clock));
     const [theme, active, legends, daily, ownedC6, legacyDaily] = await Promise.all([
       readOrCreateDailyTheme(this.database, businessDate, this.random),
       this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude }),
@@ -521,7 +522,7 @@ export class ContestService {
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
     const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
     const recentScoreEvents = active ? await this.database.contestEvent.findMany(recentScoreEventQuery(active.id)) : [];
-    const resultCutoff = new Date(this.clock.now().getTime() - LAST_RESULT_WINDOW_MS);
+    const resultCutoff = new Date(commandNow(this.clock).getTime() - LAST_RESULT_WINDOW_MS);
     const lastResult = active ? null : await this.database.contest.findFirst({
       where: { status: ContestStatus.FINISHED, finishedAt: { gt: resultCutoff } },
       include: historyContestInclude,

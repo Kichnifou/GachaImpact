@@ -1,5 +1,4 @@
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { TeamStore } from './team-store.js';
@@ -14,7 +13,7 @@ export class GetCurrentPlayerTeams {
 
 export class ActivatePlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, chatKey?: string) {
     const player = await this.getPlayer.execute(identity);
     return chatKey ? this.store.activate(player.id, teamId, chatKey) : this.store.activate(player.id, teamId);
   }
@@ -22,7 +21,7 @@ export class ActivatePlayerTeam {
 
 export class RenamePlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, rawName: string | null, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, rawName: string | null, chatKey?: string) {
     const name = normalizeTeamName(rawName);
     const player = await this.getPlayer.execute(identity);
     return chatKey ? this.store.rename(player.id, teamId, name, chatKey) : this.store.rename(player.id, teamId, name);
@@ -31,7 +30,7 @@ export class RenamePlayerTeam {
 
 export class CreateNextPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, expectedPosition: number, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, expectedPosition: number, chatKey?: string) {
     if (!Number.isInteger(expectedPosition) || expectedPosition < 11) {
       throw new BusinessError('TEAM_CREATE_POSITION_INVALID', 'La prochaine Team supplémentaire demandée est invalide.');
     }
@@ -42,7 +41,7 @@ export class CreateNextPlayerTeam {
 
 export class DeleteExtraPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string) {
     const player = await this.getPlayer.execute(identity);
     return this.store.deleteExtra(player.id, teamId);
   }
@@ -50,7 +49,7 @@ export class DeleteExtraPlayerTeam {
 
 export class ReorderPlayerTeams {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamIds: readonly string[]) {
+  public async execute(identity: PlayerExecutionActor, teamIds: readonly string[]) {
     const player = await this.getPlayer.execute(identity);
     return this.store.reorderTeams(player.id, teamIds);
   }
@@ -58,7 +57,7 @@ export class ReorderPlayerTeams {
 
 export class SetPlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number, characterId: string, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, position: number, characterId: string, chatKey?: string) {
     assertSlotPosition(position);
     const player = await this.getPlayer.execute(identity);
     return chatKey ? this.store.setSlot(player.id, teamId, position, characterId, chatKey) : this.store.setSlot(player.id, teamId, position, characterId);
@@ -67,7 +66,7 @@ export class SetPlayerTeamSlot {
 
 export class ReorderPlayerTeamSlots {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, characterIds: readonly (string | null)[]) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, characterIds: readonly (string | null)[]) {
     if (characterIds.length !== 4) {
       throw new BusinessError('TEAM_SLOT_ORDER_INVALID', 'L’ordre d’une Team doit contenir exactement quatre emplacements.');
     }
@@ -78,7 +77,7 @@ export class ReorderPlayerTeamSlots {
 
 export class RemovePlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, position: number, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, position: number, chatKey?: string) {
     assertSlotPosition(position);
     const player = await this.getPlayer.execute(identity);
     return chatKey ? this.store.removeSlot(player.id, teamId, position, chatKey) : this.store.removeSlot(player.id, teamId, position);
@@ -87,7 +86,7 @@ export class RemovePlayerTeamSlot {
 
 export class ClearPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: AuthenticatedIdentity, teamId: string, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, chatKey?: string) {
     const player = await this.getPlayer.execute(identity);
     return chatKey ? this.store.clear(player.id, teamId, chatKey) : this.store.clear(player.id, teamId);
   }

@@ -1,5 +1,6 @@
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { GiftCodeStatus, GiftCodeType, NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { isElementKey, isResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
 import { getBusinessDate, getBusinessDayStartAt, type Clock } from '../../domain/time/business-date.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
@@ -60,9 +61,9 @@ export class GiftCodeService {
 
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly maintenanceScope: GiftCodeMaintenanceScope = {}) {}
 
-  public async listForPlayer(identity: AuthenticatedIdentity) {
+  public async listForPlayer(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     await this.materializeAnnualEditions(this.database, now);
     await this.reconcileNotificationsForPlayer(player.id, now);
     return this.playerSnapshot(player.id, now);
@@ -77,9 +78,9 @@ export class GiftCodeService {
     return { available: Boolean(edition) };
   }
 
-  public async claim(identity: AuthenticatedIdentity, editionId: string, idempotencyKey: string, sourceChannel: 'UI' | 'INTERNAL_CHAT' = SourceChannel.UI) {
+  public async claim(identity: PlayerExecutionActor, editionId: string, idempotencyKey: string, sourceChannel: 'UI' | 'INTERNAL_CHAT' | 'TWITCH' = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     await this.materializeAnnualEditions(this.database, now);
     let alreadyProcessed = false;
     let operationId = '';
@@ -127,7 +128,7 @@ export class GiftCodeService {
     return { ...codes, resources, operation: { id: operationId, alreadyProcessed } };
   }
 
-  public async reconcileNotificationsForPlayer(playerId: string, now = this.clock.now(), materialize = true): Promise<void> {
+  public async reconcileNotificationsForPlayer(playerId: string, now = commandNow(this.clock), materialize = true): Promise<void> {
     if (materialize) await this.materializeAnnualEditions(this.database, now);
     await this.database.$transaction(async (tx) => {
       await tx.$queryRaw`
@@ -166,9 +167,9 @@ export class GiftCodeService {
     });
   }
 
-  public async listAdmin(identity: AuthenticatedIdentity, query: GiftCodeAdminQuery = { page: 1, sort: 'createdAt', direction: 'desc' }) {
+  public async listAdmin(identity: PlayerExecutionActor, query: GiftCodeAdminQuery = { page: 1, sort: 'createdAt', direction: 'desc' }) {
     const actor = await this.requireAdmin(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     await this.materializeAnnualEditions(this.database, now);
     const pageSize = 20;
     const page = Math.max(1, query.page);
@@ -207,11 +208,11 @@ export class GiftCodeService {
     return { actorPlayerId: actor.id, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), codes: ids.map((id) => serializeAdminCode(byId.get(id)!)) };
   }
 
-  public async createDraft(identity: AuthenticatedIdentity, input: GiftCodeDraftInput) {
+  public async createDraft(identity: PlayerExecutionActor, input: GiftCodeDraftInput) {
     const actor = await this.requireAdmin(identity);
     validateDraft(input);
     const token = normalizeToken(input.token || `CADEAU-${input.idempotencyKey.replace(/-/g, '').slice(0, 8)}`);
-    const oneOffStartsAt = input.startsAt ?? this.clock.now();
+    const oneOffStartsAt = input.startsAt ?? commandNow(this.clock);
     const oneOffEndsAt = input.endsAt ?? noExpiry;
     const codeId = await this.adminMutation(actor.id, 'create', input.idempotencyKey, { ...input, token, rewards: input.rewards.map(stringifyReward) }, async (tx, operationId) => {
       const code = await tx.giftCode.create({ data: { token, title: input.title.trim(), description: input.description.trim(), type: input.type, status: GiftCodeStatus.DRAFT, recurringMonth: input.type === 'ANNUAL' ? input.recurringMonth : null, startsAt: input.type === 'ONE_OFF' ? oneOffStartsAt : null, endsAt: input.type === 'ONE_OFF' ? oneOffEndsAt : null, createdById: actor.id, updatedById: actor.id, rewards: { create: input.rewards.filter(({ amount }) => amount > 0n).map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount })) } } });
@@ -220,8 +221,8 @@ export class GiftCodeService {
     return { code: await this.adminCodeById(codeId) };
   }
 
-  public async publish(identity: AuthenticatedIdentity, codeId: string, idempotencyKey: string) {
-    const actor = await this.requireAdmin(identity); const now = this.clock.now();
+  public async publish(identity: PlayerExecutionActor, codeId: string, idempotencyKey: string) {
+    const actor = await this.requireAdmin(identity); const now = commandNow(this.clock);
     const affectedCodeId = await this.adminMutation(actor.id, 'publish', idempotencyKey, { codeId }, async (tx, operationId) => {
       const before = await tx.giftCode.findUnique({ where: { id: codeId }, include: { rewards: true } });
       if (!before) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
@@ -234,7 +235,7 @@ export class GiftCodeService {
     return { code: await this.adminCodeById(affectedCodeId) };
   }
 
-  public async update(identity: AuthenticatedIdentity, codeId: string, input: GiftCodeUpdateInput) {
+  public async update(identity: PlayerExecutionActor, codeId: string, input: GiftCodeUpdateInput) {
     const actor = await this.requireAdmin(identity);
     const request = { codeId, ...input, rewards: input.rewards?.map(stringifyReward) };
     const affectedCodeId = await this.adminMutation(actor.id, input.disabled === true ? 'disable' : 'update', input.idempotencyKey, request, async (tx, operationId) => {
@@ -248,7 +249,7 @@ export class GiftCodeService {
       if (input.rewards) validateRewards(input.rewards);
       const type = input.type ?? before.type;
       const recurringMonth = type === GiftCodeType.ANNUAL ? input.recurringMonth ?? (before.type === GiftCodeType.ANNUAL ? before.recurringMonth : null) : null;
-      const startsAt = type === GiftCodeType.ONE_OFF ? input.startsAt ?? (before.type === GiftCodeType.ONE_OFF ? before.startsAt : this.clock.now()) : null;
+      const startsAt = type === GiftCodeType.ONE_OFF ? input.startsAt ?? (before.type === GiftCodeType.ONE_OFF ? before.startsAt : commandNow(this.clock)) : null;
       const endsAt = type === GiftCodeType.ONE_OFF ? input.endsAt ?? (before.type === GiftCodeType.ONE_OFF ? before.endsAt : noExpiry) : null;
       if (type === GiftCodeType.ANNUAL && (!Number.isInteger(recurringMonth) || recurringMonth! < 1 || recurringMonth! > 12)) throw invalidConfiguration();
       if (type === GiftCodeType.ONE_OFF && (!startsAt || !endsAt || endsAt <= startsAt)) throw invalidConfiguration();
@@ -266,8 +267,8 @@ export class GiftCodeService {
           title: input.title?.trim(), description: input.description?.trim(), type, recurringMonth, startsAt, endsAt,
           rewards: input.rewards ? { deleteMany: {}, create: input.rewards.filter(({ amount }) => amount > 0n).map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount })) } : undefined,
           status: input.disabled === undefined ? undefined : input.disabled ? GiftCodeStatus.DISABLED : GiftCodeStatus.PUBLISHED,
-          disabledAt: input.disabled === undefined ? undefined : input.disabled ? this.clock.now() : null,
-          publishedAt: input.disabled === false ? before.publishedAt ?? this.clock.now() : undefined,
+          disabledAt: input.disabled === undefined ? undefined : input.disabled ? commandNow(this.clock) : null,
+          publishedAt: input.disabled === false ? before.publishedAt ?? commandNow(this.clock) : undefined,
           updatedById: actor.id,
         },
         include: { rewards: true },
@@ -278,17 +279,17 @@ export class GiftCodeService {
       if (input.disabled === true && before.editions.length > 0) {
         await tx.notification.updateMany({
           where: { domainKey: 'gift-codes', actionKey: 'OPEN_GIFT_CODE', actionTargetId: { in: before.editions.map(({ id }) => id) }, state: { in: [...activeNotificationStates] } },
-          data: { state: NotificationState.RESOLVED, resolvedAt: this.clock.now() },
+          data: { state: NotificationState.RESOLVED, resolvedAt: commandNow(this.clock) },
         });
       }
       const snapshot = (code: typeof before | typeof after) => ({ token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, rewards: code.rewards.map(({ resourceKey, amount }) => ({ resourceKey, amount: amount.toString() })) });
       return [snapshot(before), snapshot(after), codeId, operationId];
     });
-    await this.materializeAnnualEditionForCode(this.database, affectedCodeId, this.clock.now());
+    await this.materializeAnnualEditionForCode(this.database, affectedCodeId, commandNow(this.clock));
     return { code: await this.adminCodeById(affectedCodeId) };
   }
 
-  public async claimants(identity: AuthenticatedIdentity, codeId: string, query: GiftCodeClaimantQuery = { page: 1 }) {
+  public async claimants(identity: PlayerExecutionActor, codeId: string, query: GiftCodeClaimantQuery = { page: 1 }) {
     await this.requireAdmin(identity);
     const code = await this.database.giftCode.findUnique({ where: { id: codeId }, select: { id: true, token: true, title: true } });
     if (!code) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
@@ -301,7 +302,7 @@ export class GiftCodeService {
     return { code, page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)), claimants: claims.map((claim) => ({ playerId: claim.player.id, displayName: claim.player.displayName, editionKey: claim.edition.editionKey, claimedAt: claim.claimedAt?.toISOString() ?? null })) };
   }
 
-  public async reconcileAllActivePlayers(now = this.clock.now()): Promise<void> {
+  public async reconcileAllActivePlayers(now = commandNow(this.clock)): Promise<void> {
     await this.materializeAnnualEditions(this.database, now);
     const players = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(this.maintenanceScope.activePlayerIds ? { id: { in: [...this.maintenanceScope.activePlayerIds] } } : {}) }, select: { id: true } });
     for (let offset = 0; offset < players.length; offset += GIFT_CODE_RECONCILIATION_CONCURRENCY) {
@@ -346,7 +347,7 @@ export class GiftCodeService {
     return serializeAdminCode(code);
   }
 
-  private async requireAdmin(identity: AuthenticatedIdentity) {
+  private async requireAdmin(identity: PlayerExecutionActor) {
     const actor = await this.getPlayer.execute(identity);
     const admin = await this.database.playerRoleAssignment.findFirst({ where: { playerId: actor.id, role: 'ADMIN', revokedAt: null }, select: { id: true } });
     if (!admin) throw new BusinessError('GIFT_CODE_ADMIN_FORBIDDEN', 'Seuls les administrateurs peuvent gérer les codes cadeaux.');
@@ -368,7 +369,7 @@ export class GiftCodeService {
       const operation = await tx.businessOperation.create({ data: { playerId: actorPlayerId, operationType: `gift-code.admin.${action}`, sourceChannel: SourceChannel.ADMIN, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: jsonSafe(request) } } });
       const [before, after, codeId] = await change(tx, operation.id);
       await tx.adminAuditEntry.create({ data: { actorPlayerId, targetPlayerId: actorPlayerId, action, domain: 'gift-codes', before, after, operationId: operation.id } });
-      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: this.clock.now(), resultSummary: { request: jsonSafe(request), codeId } } });
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: commandNow(this.clock), resultSummary: { request: jsonSafe(request), codeId } } });
       return codeId;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {

@@ -1,4 +1,6 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import { commandSource } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import { calculateDailyBankInterest } from '../../domain/banking/bank-interest.js';
 import { getBusinessDate, getNextBusinessResetAt } from '../../domain/time/business-date.js';
@@ -16,16 +18,16 @@ export type BankingTransferView = BankingView & Pick<BankTransferResult, 'operat
 
 export class GetCurrentPlayerBank {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore, private readonly clock: Clock) {}
-  public async execute(identity: AuthenticatedIdentity): Promise<BankingView> {
+  public async execute(identity: PlayerExecutionActor): Promise<BankingView> {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     return decorate(await this.store.getState(player.id, getBusinessDate(now), now), now);
   }
 }
 
 export class GetPlayerBankHistory {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore) {}
-  public async execute(identity: AuthenticatedIdentity, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'): Promise<BankHistoryPage> {
+  public async execute(identity: PlayerExecutionActor, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'): Promise<BankHistoryPage> {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('BANK_HISTORY_PAGE_INVALID', 'La page d’historique Banque doit être un entier positif.');
     const player = await this.getPlayer.execute(identity);
     return this.store.getHistory(player.id, page, type);
@@ -34,11 +36,11 @@ export class GetPlayerBankHistory {
 
 export class TransferPlayerBank {
   public constructor(private readonly direction: BankTransferDirection, private readonly getPlayer: GetCurrentPlayer, private readonly store: BankingStore, private readonly clock: Clock, private readonly sourceChannel: BankSourceChannel = 'UI') {}
-  public async execute(identity: AuthenticatedIdentity, amount: BankTransferAmount, idempotencyKey: string): Promise<BankingTransferView> {
+  public async execute(identity: PlayerExecutionActor, amount: BankTransferAmount, idempotencyKey: string): Promise<BankingTransferView> {
     if (amount !== 'max' && amount <= 0n) throw new BusinessError('BANK_AMOUNT_INVALID', 'Le montant doit être un entier strictement positif.');
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
-    const result = await this.store.transfer({ playerId: player.id, direction: this.direction, amount, idempotencyKey, businessDate: getBusinessDate(now), occurredAt: now, sourceChannel: this.sourceChannel });
+    const now = commandNow(this.clock);
+    const result = await this.store.transfer({ playerId: player.id, direction: this.direction, amount, idempotencyKey, businessDate: getBusinessDate(now), occurredAt: now, sourceChannel: commandSource(this.sourceChannel) === 'INTERNAL_CHAT' ? 'CHAT' : commandSource(this.sourceChannel) as BankSourceChannel });
     return { ...decorate(result, now), operation: result.operation, resolvedAmount: result.resolvedAmount };
   }
 }
@@ -46,7 +48,7 @@ export class TransferPlayerBank {
 export class BankInterestProcessor {
   public constructor(private readonly store: BankingStore, private readonly clock: Clock) {}
   public processCurrentDate(): Promise<{ playersProcessed: number; daysProcessed: number }> {
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     return this.store.accrueAllInterestThrough(getBusinessDate(now), now);
   }
 }

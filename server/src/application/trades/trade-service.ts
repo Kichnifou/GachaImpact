@@ -1,3 +1,5 @@
+import { commandTargets } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
 import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import { BusinessError } from '../errors.js';
@@ -36,7 +38,7 @@ export class TradeService {
       try {
         return await this.database.$transaction(async tx => {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('particles:trades'))`;
-          await expireTrades(tx, this.clock.now());
+          await expireTrades(tx, commandNow(this.clock));
           return run(tx);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000, maxWait: 30_000 });
       } catch (error) { if (attempt < 5 && isPrismaConcurrencyCollision(error)) continue; throw error; }
@@ -70,15 +72,15 @@ export class TradeService {
       if (existing.playerId !== playerId || existing.operationType !== `trades.${action}` || summary?.target !== target) throw new AppError('Cette clé appartient à une autre action.', 409, 'TRADE_IDEMPOTENCY_CONFLICT');
       return { row: existing, summary };
     }
-    const row = await tx.businessOperation.create({ data: { playerId, operationType: `trades.${action}`, sourceChannel: source, idempotencyKey: key, resultSummary: { target }, startedAt: this.clock.now() } });
+    const row = await tx.businessOperation.create({ data: { playerId, operationType: `trades.${action}`, sourceChannel: source, idempotencyKey: key, resultSummary: { target }, startedAt: commandNow(this.clock) } });
     return { row, summary: { target } as { target: string; result?: Result; ids?: string[]; results?: Result[] } };
   }
   private async complete(tx: Prisma.TransactionClient, operationId: string, target: string, result: Result) {
-    await tx.businessOperation.update({ where: { id: operationId }, data: { status: 'COMPLETED', completedAt: this.clock.now(), resultSummary: { target, result } } });
+    await tx.businessOperation.update({ where: { id: operationId }, data: { status: 'COMPLETED', completedAt: commandNow(this.clock), resultSummary: { target, result } } });
     return result;
   }
   private async record(tx: Prisma.TransactionClient, id: string, source: TradeSource) {
-    await this.activity.record(tx, id, this.clock.now(), source === 'TWITCH' ? 'TWITCH' : source === 'INTERNAL_CHAT' ? 'INTERNAL_CHAT' : 'APPLICATION');
+    await this.activity.record(tx, id, commandNow(this.clock), source === 'TWITCH' ? 'TWITCH' : source === 'INTERNAL_CHAT' ? 'INTERNAL_CHAT' : 'APPLICATION');
   }
   async create(senderId: string, recipientId: string, amount: bigint | undefined, key: string, source: TradeSource = 'UI'): Promise<Result> {
     if (senderId === recipientId || (amount !== undefined && amount <= 0n)) throw unavailable();
@@ -95,7 +97,7 @@ export class TradeService {
       const maximum = a.available < b.available ? a.available : b.available;
       const quantity = amount ?? maximum;
       if (quantity <= 0n || quantity > maximum) throw new AppError('Le stock disponible est insuffisant.', 409, 'TRADE_INSUFFICIENT_STOCK');
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       const request = await tx.tradeRequest.create({ data: { senderPlayerId: senderId, recipientPlayerId: recipientId, senderResourceKey: pair.senderResource, recipientResourceKey: pair.recipientResource, originalAmount: quantity, currentAmount: quantity, sourceChannel: source, operationId: operation.row.id, createdAt: now, updatedAt: now, expiresAt: getNextBusinessResetAt(now) } });
       // A new outgoing reservation can reduce incoming offers to its sender.
       await reconcileParticleTrades(tx, [senderId], now);
@@ -113,7 +115,7 @@ export class TradeService {
       const operation = await this.operation(tx, playerId, key, source, action, requestId);
       if (operation.summary.result) return operation.summary.result;
       if (request.state !== 'PENDING') return this.complete(tx, operation.row.id, requestId, { requestId, state: 'UNAVAILABLE', amount: '0' });
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       const state = action === 'accept' ? 'ACCEPTED' : action === 'refuse' ? 'REFUSED' : 'CANCELLED';
       if (action === 'accept') {
         const pair = await this.pair(tx, request.senderPlayerId, request.recipientPlayerId);
@@ -145,7 +147,7 @@ export class TradeService {
       await this.lockPlayers(tx, [playerId]); await this.actor(tx, playerId);
       const op = await this.operation(tx, playerId, key, source, `${action}-all`, 'all');
       if (op.summary.ids) return { id: op.row.id, ids: op.summary.ids, results: op.summary.results };
-      const ids = (await tx.tradeRequest.findMany({ where: { ...(action === 'cancel' ? { senderPlayerId: playerId } : { recipientPlayerId: playerId }), state: 'PENDING' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { id: true } })).map(r => r.id);
+      const ids = commandTargets()?.tradeIds ?? (await tx.tradeRequest.findMany({ where: { ...(action === 'cancel' ? { senderPlayerId: playerId } : { recipientPlayerId: playerId }), state: 'PENDING' }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }], select: { id: true } })).map(r => r.id);
       await tx.businessOperation.update({ where: { id: op.row.id }, data: { resultSummary: { target: 'all', ids } } });
       return { id: op.row.id, ids, results: undefined };
     });
@@ -166,7 +168,7 @@ export class TradeService {
       const existing = await tx.businessOperation.findUniqueOrThrow({ where: { id: batch.id } });
       const saved = (existing.resultSummary as { results?: Result[] }).results;
       if (saved) return { results: saved };
-      await tx.businessOperation.update({ where: { id: batch.id }, data: { status: 'COMPLETED', completedAt: this.clock.now(), resultSummary: { target: 'all', ids: batch.ids, results } } });
+      await tx.businessOperation.update({ where: { id: batch.id }, data: { status: 'COMPLETED', completedAt: commandNow(this.clock), resultSummary: { target: 'all', ids: batch.ids, results } } });
       return { results };
     });
   }
@@ -174,7 +176,7 @@ export class TradeService {
   /** Read only: ignore expired reservations without mutating them; create still validates atomically. */
   async eligibility(playerId: string, requestedName: string): Promise<TradeEligibility> {
     return this.database.$transaction(async tx => {
-      const now = this.clock.now();
+      const now = commandNow(this.clock);
       const players = await tx.player.findMany({ select: { id: true, displayName: true } });
       const found = players.find(player => normalizePlayerSearch(player.displayName) === normalizePlayerSearch(requestedName));
       const failure = (reason: TradeEligibility['reason'], player: TradeEligibility['player'] = null, resourceKey?: string): TradeEligibility =>

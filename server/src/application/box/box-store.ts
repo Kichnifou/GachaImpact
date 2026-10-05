@@ -33,9 +33,9 @@ export type BoxCharacter = Readonly<{
 
 export interface BoxStore {
   listVisiblePossessions(playerId: string): Promise<readonly BoxCharacter[]>;
-  setFavorite(playerId: string, characterId: string, favorite: boolean): Promise<BoxCharacter | null>;
+  setFavorite(playerId: string, characterId: string, favorite: boolean, key?: string): Promise<BoxCharacter | null>;
   getSortPreference(playerId: string): Promise<BoxSortPreference>;
-  setSortPreference(playerId: string, preference: BoxSortPreference): Promise<BoxSortPreference>;
+  setSortPreference(playerId: string, preference: BoxSortPreference, key?: string): Promise<BoxSortPreference>;
   getStellaQuantity(playerId: string): Promise<bigint>;
   useStella(input: UseStellaInput): Promise<StellaUseResult>;
 }

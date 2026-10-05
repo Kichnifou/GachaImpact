@@ -1,8 +1,8 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { PlayerTeam, PlayerTeams } from '../team/team-store.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
-import type { GlobalChatService } from './global-chat-service.js';
+import type { PlayerCommandContext } from './player-command-context.js';
 import { chatElementEmojis } from './chat-list-result.js';
 import { deriveActiveTeamGachaEffects } from '../../domain/team/team-passives.js';
 import { entryParts } from './chat-command-format.js';
@@ -30,7 +30,7 @@ export function viewTeam(player: string, team: PlayerTeam): readonly string[] {
     team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif',
   ], '✅ Team suite :');
 }
-export async function teamCommand(identity: AuthenticatedIdentity, args: readonly string[], commandId: string, services: ChatCommandServices, chat: GlobalChatService, syntax: string): Promise<string | readonly string[]> {
+export async function teamCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string, services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string | readonly string[]> {
   const first = normalizePlayerSearch(args[0] ?? '');
   if (['save', 'help', 'helps', 'tuto', 'info', 'infos'].includes(first)) return syntax;
   const numbered = /^[1-9]\d*$/u.test(first);

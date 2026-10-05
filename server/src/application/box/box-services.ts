@@ -1,4 +1,7 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import { commandKey } from '../player/player-command-execution.js';
+import { commandSource } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { BusinessError } from '../errors.js';
@@ -9,7 +12,7 @@ import { SourceChannel } from '../../../generated/prisma/client.js';
 export class GetCurrentPlayerBox {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BoxStore) {}
 
-  public async execute(identity: AuthenticatedIdentity) {
+  public async execute(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     const [characters, preference, stellaQuantity] = await Promise.all([
       this.store.listVisiblePossessions(player.id),
@@ -33,9 +36,10 @@ export class GetCurrentPlayerBox {
 export class SetBoxSortPreference {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BoxStore) {}
 
-  public async execute(identity: AuthenticatedIdentity, preference: BoxSortPreference) {
+  public async execute(identity: PlayerExecutionActor, preference: BoxSortPreference) {
     const player = await this.getPlayer.execute(identity);
-    return this.store.setSortPreference(player.id, preference);
+    const key = commandKey();
+    return key ? this.store.setSortPreference(player.id, preference, key) : this.store.setSortPreference(player.id, preference);
   }
 }
 
@@ -48,18 +52,19 @@ export class UseMasterlessStella {
     private readonly sourceChannel: SourceChannel = SourceChannel.UI,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity, characterId: string, idempotencyKey: string) {
+  public async execute(identity: PlayerExecutionActor, characterId: string, idempotencyKey: string) {
     const player = await this.getPlayer.execute(identity);
-    return this.store.useStella({ playerId: player.id, characterId, idempotencyKey, now: this.clock.now(), random: this.random, sourceChannel: this.sourceChannel });
+    return this.store.useStella({ playerId: player.id, characterId, idempotencyKey, now: commandNow(this.clock), random: this.random, sourceChannel: commandSource(this.sourceChannel) });
   }
 }
 
 export class SetBoxCharacterFavorite {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: BoxStore) {}
 
-  public async execute(identity: AuthenticatedIdentity, characterId: string, favorite: boolean) {
+  public async execute(identity: PlayerExecutionActor, characterId: string, favorite: boolean) {
     const player = await this.getPlayer.execute(identity);
-    const character = await this.store.setFavorite(player.id, characterId, favorite);
+    const key = commandKey();
+    const character = await (key ? this.store.setFavorite(player.id, characterId, favorite, key) : this.store.setFavorite(player.id, characterId, favorite));
     if (!character) {
       throw new BusinessError('BOX_CHARACTER_NOT_OWNED', 'Ce personnage actif ne fait pas partie de votre Box.');
     }

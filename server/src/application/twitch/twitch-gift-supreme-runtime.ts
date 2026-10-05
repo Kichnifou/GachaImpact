@@ -72,17 +72,17 @@ export class TwitchGiftSupremeRuntime {
       }
       if (result.action === 'FULFILL') {
         stage('announcement');
+        const gifter = typeof journal['gifterDisplayName'] === 'string' ? journal['gifterDisplayName'] : input.gifterDisplayName;
+        const element = result.elementKey[0]!.toUpperCase() + result.elementKey.slice(1);
+        const message = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1600 particules ${element} (${result.balanceAfterParticles})`;
         let reserved = false;
         await this.journal(receipt.id, value => {
           if (value['announcementState'] === undefined || value['announcementState'] === 'NONE') {
-            reserved = true; return { ...value, announcementState: 'RESERVED', reservedAt: this.clock.now().toISOString() };
+            reserved = true; return { ...value, announcementState: 'RESERVED', announcementText: message, reservedAt: this.clock.now().toISOString() };
           }
           return value;
         });
         if (reserved) {
-          const gifter = typeof journal['gifterDisplayName'] === 'string' ? journal['gifterDisplayName'] : input.gifterDisplayName;
-          const element = result.elementKey[0]!.toUpperCase() + result.elementKey.slice(1);
-          const message = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1600 particules ${element} (${result.balanceAfterParticles})`;
           let messageId: string;
           try { messageId = await helix.announce(row.playerId, row.twitchUserId, message); }
           catch (error) {

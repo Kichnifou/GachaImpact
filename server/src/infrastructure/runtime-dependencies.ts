@@ -1,3 +1,4 @@
+import { TwitchMessageActivity } from '../application/twitch/twitch-message-activity.js';
 import { ArcadeInvitations } from '../application/arcade/arcade-invitations.js';
 import { TwitchCommandPilot } from '../application/twitch/twitch-command-pilot.js';
 import { twitchPlayerCommandExecutor } from '../application/twitch/twitch-player-command-executor.js';
@@ -264,8 +265,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     chatCommandDispatcher: new ChatCommandDispatcher(globalChatService, { ...dependencies, useMasterlessStella: useMasterlessStellaChat }),
     twitchCommandPilot: twitchAppTokens && config.twitch?.clientId ? new TwitchCommandPilot(database, config,
       twitchPlayerCommandExecutor(database, { ...dependencies,
-        performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.TWITCH) }),
-      new TwitchCommandChatClient(config.twitch.clientId, twitchAppTokens), undefined, twitchSubscriptions) : undefined,
+        performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.TWITCH) }, clock),
+      new TwitchCommandChatClient(config.twitch.clientId, twitchAppTokens), undefined, twitchSubscriptions, new TwitchMessageActivity(database, clock, random, dependencies.claimDailyReward, eventService)) : undefined,
   };
 }
 

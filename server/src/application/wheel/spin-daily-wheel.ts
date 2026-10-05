@@ -1,4 +1,6 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import { commandSource } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import { selectWheelReward, type RandomSource, type WheelSpinResult } from '../../domain/wheel/wheel.js';
@@ -13,10 +15,10 @@ export class SpinDailyWheel {
     private readonly store: WheelStore,
     private readonly clock: Clock,
     private readonly randomSource: RandomSource,
-    private readonly sourceChannel: 'UI' | 'INTERNAL_CHAT' = SourceChannel.UI,
+    private readonly sourceChannel: 'UI' | 'INTERNAL_CHAT' | 'TWITCH' = SourceChannel.UI,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity, idempotencyKey?: string): Promise<WheelSpinResult> {
+  public async execute(identity: PlayerExecutionActor, idempotencyKey?: string): Promise<WheelSpinResult> {
     const player = await this.getCurrentPlayer.execute(identity);
 
     if (!player.elementKey || !isElementKey(player.elementKey)) {
@@ -26,13 +28,13 @@ export class SpinDailyWheel {
       );
     }
 
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
 
     return this.store.spin({
       playerId: player.id,
       businessDate: getBusinessDate(now),
       spunAt: now,
-      sourceChannel: this.sourceChannel,
+      sourceChannel: commandSource(this.sourceChannel),
       idempotencyKey,
       roll: () => selectWheelReward(this.randomSource.nextInt(100)),
     });

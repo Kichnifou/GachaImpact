@@ -1,5 +1,7 @@
+import { assertCommandTargets } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { elementKeys, isElementKey, resourceKeys, type ElementKey } from '../../domain/economy/resources.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDate, getBusinessDayStartAt, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
@@ -108,7 +110,7 @@ export class MonthlyBossService {
     private readonly economy = new PrismaEconomyService(),
   ) {}
 
-  public async ensureCurrentBoss(now = this.clock.now()): Promise<string> {
+  public async ensureCurrentBoss(now = commandNow(this.clock)): Promise<string> {
     const monthStart = getBusinessMonth(now);
     return this.database.$transaction(async (transaction) => {
       await transaction.$queryRaw`SELECT true AS locked FROM pg_advisory_xact_lock(hashtext(${`monthly-boss:${monthStart}`}))`;
@@ -138,14 +140,14 @@ export class MonthlyBossService {
     }, { timeout: 20_000 });
   }
 
-  public async getCurrent(identity: AuthenticatedIdentity): Promise<MonthlyBossView> {
+  public async getCurrent(identity: PlayerExecutionActor): Promise<MonthlyBossView> {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.clearInactiveSlots(context.playerId);
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async getCurrentForChat(identity: AuthenticatedIdentity): Promise<MonthlyBossView> {
+  public async getCurrentForChat(identity: PlayerExecutionActor): Promise<MonthlyBossView> {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     const [view, team] = await Promise.all([
@@ -160,7 +162,7 @@ export class MonthlyBossService {
     return { ...view, preview: calculateBossDamage(ids.map(id => toCombatMember(byId.get(id)!)), view.boss.resistanceElementKey), canAttack: view.attackState === 'AVAILABLE' };
   }
 
-  public async setSlot(identity: AuthenticatedIdentity, position: number, characterId: string): Promise<MonthlyBossView> {
+  public async setSlot(identity: PlayerExecutionActor, position: number, characterId: string): Promise<MonthlyBossView> {
     if (!Number.isInteger(position) || position < 1 || position > 4) throw new BusinessError('BOSS_LOADOUT_INCOMPLETE', 'Cet emplacement de Boss est invalide.');
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
@@ -181,7 +183,7 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async removeSlot(identity: AuthenticatedIdentity, position: number): Promise<MonthlyBossView> {
+  public async removeSlot(identity: PlayerExecutionActor, position: number): Promise<MonthlyBossView> {
     if (!Number.isInteger(position) || position < 1 || position > 4) throw new BusinessError('BOSS_LOADOUT_INCOMPLETE', 'Cet emplacement de Boss est invalide.');
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
@@ -193,7 +195,7 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async copyActiveTeam(identity: AuthenticatedIdentity): Promise<MonthlyBossView> {
+  public async copyActiveTeam(identity: PlayerExecutionActor): Promise<MonthlyBossView> {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
@@ -207,7 +209,7 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async clearLoadout(identity: AuthenticatedIdentity): Promise<MonthlyBossView> {
+  public async clearLoadout(identity: PlayerExecutionActor): Promise<MonthlyBossView> {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
@@ -218,7 +220,7 @@ export class MonthlyBossService {
     return readView(this.database, context.playerId, context.businessDate, bossId);
   }
 
-  public async attack(identity: AuthenticatedIdentity, bossId: string, idempotencyKey: string, copyActiveTeam = false, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async attack(identity: PlayerExecutionActor, bossId: string, idempotencyKey: string, copyActiveTeam = false, sourceChannel: SourceChannel = SourceChannel.UI) {
     const context = await this.context(identity);
     const currentBossId = await this.ensureCurrentBoss(context.now);
     if (bossId !== currentBossId) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Le Boss mensuel a changé. Rechargez sa fiche.');
@@ -236,6 +238,7 @@ export class MonthlyBossService {
             const prior = await transaction.bossAttack.findUniqueOrThrow({ where: { operationId: existing.id } });
             return { operationId: existing.id, alreadyProcessed: true, damage: prior.damage, defeated: Boolean((existing.resultSummary as { defeated?: boolean } | null)?.defeated) };
           }
+          await assertCommandTargets(transaction, context.playerId, 'team');
           const boss = await transaction.monthlyBoss.findUniqueOrThrow({ where: { id: bossId } });
           if (databaseDateToBusinessDate(boss.monthStart) !== getBusinessMonth(context.now)) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Le Boss mensuel a changé. Rechargez sa fiche.');
           if (boss.defeatedAt) throw new BusinessError('BOSS_DEFEATED', 'Le Boss de ce mois est déjà vaincu.');
@@ -323,7 +326,7 @@ export class MonthlyBossService {
     throw new Error('monthly-boss.attack exhausted all retry attempts.');
   }
 
-  public async attackWithActiveTeam(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.INTERNAL_CHAT) {
+  public async attackWithActiveTeam(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.INTERNAL_CHAT) {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     return this.attack(identity, bossId, idempotencyKey, true, sourceChannel);
@@ -337,7 +340,7 @@ export class MonthlyBossService {
 
   public async getHistory(page: number) {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Cette page d’historique est invalide.');
-    const currentMonth = businessDateToDatabaseDate(getBusinessMonth(this.clock.now()));
+    const currentMonth = businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));
     const total = await this.database.monthlyBoss.count({ where: { monthStart: { lt: currentMonth } } });
     const bosses = await this.database.monthlyBoss.findMany({
       where: { monthStart: { lt: currentMonth } },
@@ -369,10 +372,10 @@ export class MonthlyBossService {
     }) };
   }
 
-  private async context(identity: AuthenticatedIdentity) {
+  private async context(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     return { playerId: player.id, playerElementKey: player.elementKey, now, businessDate: getBusinessDate(now) } as const;
   }
 
@@ -430,7 +433,7 @@ export class MonthlyBossScheduler {
   public async start(): Promise<void> { await this.service.ensureCurrentBoss(); this.schedule(); }
   public stop(): void { if (this.timer) clearTimeout(this.timer); this.timer = undefined; }
   private schedule(): void {
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const next = getBusinessDayStartAt(nextBusinessMonth(getBusinessMonth(now)));
     const delay = Math.max(1_000, Math.min(next.getTime() - now.getTime() + 1_000, 2_147_000_000));
     this.timer = setTimeout(() => void this.start(), delay);

@@ -1,9 +1,9 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import type { BoxCharacter, BoxSortKey, BoxSortPreference } from '../box/box-store.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
-import type { GlobalChatService } from './global-chat-service.js';
+import type { PlayerCommandContext } from './player-command-context.js';
 import { chatElementEmojis, chatElementNames, logicalChatParts } from './chat-list-result.js';
 
 const sortKeys: Readonly<Record<string, BoxSortKey>> = { a: 'alphabetical', d: 'obtainedAt', c: 'constellation', e: 'element' };
@@ -27,8 +27,8 @@ function grouped(characters: readonly BoxCharacter[]) {
   });
 }
 
-export async function boxCommand(identity: AuthenticatedIdentity, args: readonly string[], commandId: string,
-  services: ChatCommandServices, chat: GlobalChatService, syntax: string): Promise<string | readonly string[]> {
+export async function boxCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string,
+  services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string | readonly string[]> {
   const option = normalizePlayerSearch(args[0] ?? '');
   if (args.length > 1 && option !== 'favoris') return syntax;
   if (option && !Object.hasOwn(sortKeys, option) && !['5', '4', '6', 'favoris'].includes(option) && !isElementKey(option) && !/^p[1-9]\d*$/u.test(option)) return syntax;

@@ -1,6 +1,7 @@
+import { commandTargets } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { EventEditionStatus, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { activeEventGameAWindow, computeEventRefreshAfterMs, EVENT_GAME_A_COOLDOWN_MS, eventGameASucceeded, generateEventGameAState, parseEventGameAState } from '../../domain/event/game-a.js';
 import { EVENT_GAME_B_CODES, EVENT_GAME_B_MAX_ATTEMPTS, generateEventGameBSolution, isEventGameBCode, parseEventGameBTestedCodes } from '../../domain/event/game-b.js';
 import { businessDateToDatabaseDate, getBusinessDate, getBusinessDayStartAt, getBusinessMinuteAt, getNextBusinessResetAt, type Clock } from '../../domain/time/business-date.js';
@@ -99,7 +100,7 @@ export class EventService {
 
   public async getCurrent(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -116,9 +117,9 @@ export class EventService {
     throw new Error('Current Event state could not be loaded.');
   }
 
-  public async getRanking(identity: AuthenticatedIdentity) {
+  public async getRanking(identity: PlayerExecutionActor) {
     const viewer = await this.getPlayer.execute(identity);
-    const context = await this.resolveCurrentEdition(this.database, this.clock.now());
+    const context = await this.resolveCurrentEdition(this.database, commandNow(this.clock));
     const participants = await this.database.eventParticipant.findMany({
       where: { eventEditionId: context.edition.id },
       orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
@@ -134,11 +135,11 @@ export class EventService {
     };
   }
 
-  public async join(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async join(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.join');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, creditedCurrency: Number(replay.summary.creditedCurrency ?? 0) };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     let operationId = '';
@@ -225,11 +226,11 @@ export class EventService {
     };
   }
 
-  public async attemptGameA(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async attemptGameA(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-a.attempt');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { succeeded: replay.summary.succeeded === true, reward: { points: replay.summary.succeeded === true ? 1 : 0, currency: replay.summary.succeeded === true ? 1 : 0 } } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     let retainedRoll: number | null = null;
@@ -280,12 +281,12 @@ export class EventService {
     throw new Error('Event Game A attempt could not be completed.');
   }
 
-  public async attemptGameB(identity: AuthenticatedIdentity, code: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async attemptGameB(identity: PlayerExecutionActor, code: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     if (!isEventGameBCode(code)) throw new BusinessError('EVENT_GAME_B_INVALID_CODE', 'Le code doit contenir exactement cinq chiffres 0 ou 1.');
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-b.attempt', { code });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { kind: parseGameBResultKind(replay.summary.kind), reward: { points: replay.summary.kind === 'CORRECT' ? 1 : 0, currency: replay.summary.kind === 'CORRECT' ? 1 : 0 } } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     const key = { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) };
@@ -339,12 +340,12 @@ export class EventService {
     throw new Error('Event Game B attempt could not be completed.');
   }
 
-  public async searchGameCRecipients(identity: AuthenticatedIdentity, query: Readonly<{ q: string; elementKey?: 'pyro' | 'hydro' | 'cryo' | 'electro' | 'anemo' | 'geo' | 'dendro'; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>) {
+  public async searchGameCRecipients(identity: PlayerExecutionActor, query: Readonly<{ q: string; elementKey?: 'pyro' | 'hydro' | 'cryo' | 'electro' | 'anemo' | 'geo' | 'dendro'; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>) {
     const player = await this.getPlayer.execute(identity);
     if (player.status !== 'ACTIVE') throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
     const q = query.q.trim();
     if (q.length > 100 || !Number.isInteger(query.page) || query.page < 1 || query.page > 50) throw new BusinessError('EVENT_GAME_C_INVALID_SEARCH', 'La recherche de joueur est invalide.');
-    const context = await this.resolveCurrentEdition(this.database, this.clock.now());
+    const context = await this.resolveCurrentEdition(this.database, commandNow(this.clock));
     const participant = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
     if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
     const rows = await this.database.player.findMany({
@@ -365,14 +366,14 @@ export class EventService {
     return { page, pageSize, total, totalPages, recipients: recipients.slice((page - 1) * pageSize, page * pageSize) };
   }
 
-  public async sendGameC(identity: AuthenticatedIdentity, recipientPlayerId: string, message: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async sendGameC(identity: PlayerExecutionActor, recipientPlayerId: string, message: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const content = message.trim();
     if (!content || content.length > 500) throw new BusinessError('EVENT_GAME_C_INVALID_MESSAGE', 'Le message doit contenir entre 1 et 500 caractères.');
     const player = await this.getPlayer.execute(identity);
     if (player.id === recipientPlayerId) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-c.send', { recipientPlayerId, content });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, reward: { points: 1, currency: 1 } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     const request = { editionId: context.edition.id, businessDate: context.period.businessDate, recipientPlayerId, content };
@@ -412,9 +413,9 @@ export class EventService {
     throw new Error('Event Game C send could not be completed.');
   }
 
-  public async consultGameCMessages(identity: AuthenticatedIdentity) {
+  public async consultGameCMessages(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     return this.database.$transaction(async (tx) => {
@@ -425,11 +426,11 @@ export class EventService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  public async claimCalendar(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async claimCalendar(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.calendar.claim');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, calendarClaim: { day: Number(replay.summary.day), reward: Number(replay.summary.reward) } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     let retainedReward: number | null = null;
@@ -447,7 +448,7 @@ export class EventService {
             return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true }, calendarClaim: { day: claim.calendarDay, reward: claim.rewardAmount } };
           }
           const editions = await tx.$queryRaw<Array<{ status: EventEditionStatus }>>`SELECT status FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
-          const date = getBusinessDate(this.clock.now());
+          const date = getBusinessDate(commandNow(this.clock));
           const day = Number(date.slice(8, 10));
           if (date !== context.period.businessDate || date.slice(5, 7) !== '12' || day > 25 || context.editionSnapshot.externalKey !== 'christmas' || editions[0]?.status !== EventEditionStatus.ACTIVE || now < context.edition.startsAt || now >= context.edition.endsAt) {
             throw new BusinessError('EVENT_CALENDAR_UNAVAILABLE', 'Aucune case du calendrier ne peut être ouverte actuellement.');
@@ -472,31 +473,33 @@ export class EventService {
     throw new Error('Calendar claim could not complete.');
   }
 
-  public async claimDailyBonus(identity: AuthenticatedIdentity, idempotencyKey: string) {
+  public async claimDailyBonus(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     for (let retry = 0; retry < 4; retry += 1) {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
-          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey } });
+          const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const request = readRecord(readRecord(previous.resultSummary)?.request);
             if (previous.playerId !== player.id || previous.operationType !== 'event.daily-bonus.claim' || previous.status !== OperationStatus.COMPLETED || request?.editionId !== context.edition.id || request.businessDate !== context.period.businessDate) throw new BusinessError('EVENT_DAILY_BONUS_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre réclamation.');
-            return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: previous.id, alreadyProcessed: true } };
+            const summary = readRecord(previous.resultSummary);
+            return { ...((summary?.snapshot ?? await this.snapshot(tx, player.id, context, now, false)) as Awaited<ReturnType<EventService['snapshot']>>), operation: { id: previous.id, alreadyProcessed: true } };
           }
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de réclamer le bonus.');
           const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
           if (daily.dailyBonusClaimed) throw new BusinessError('EVENT_DAILY_BONUS_ALREADY_CLAIMED', 'Le bonus du Festival est déjà réclamé aujourd’hui.');
           const request = { editionId: context.edition.id, businessDate: context.period.businessDate };
-          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.daily-bonus.claim', sourceChannel: SourceChannel.UI, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
+          const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'event.daily-bonus.claim', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request } } });
           await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } }, data: { dailyBonusClaimed: true, updatedAt: now } });
           await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: player.id, eventDefinitionId: context.definition.id } }, create: { playerId: player.id, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request } } });
-          return { ...await this.snapshot(tx, player.id, context, now, false), operation: { id: operation.id, alreadyProcessed: false } };
+          const snapshot = await this.snapshot(tx, player.id, context, now, false);
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request, snapshot } } });
+          return { ...snapshot, operation: { id: operation.id, alreadyProcessed: false } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         if (retry < 3 && isPrismaConcurrencyCollision(error)) continue;
@@ -506,12 +509,12 @@ export class EventService {
     throw new Error('Event daily bonus claim could not be completed.');
   }
 
-  public async convertShop(identity: AuthenticatedIdentity, target: EventShopTarget, quantity: number, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async convertShop(identity: PlayerExecutionActor, target: EventShopTarget, quantity: number, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const units = eventShopQuantity(quantity);
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.convert', { target, quantity });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, conversion: { resourceKey: target === 'PRIMOGEMS' ? 'primogems' : 'moras', amount: String(replay.summary.amount), quantity } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     const request = { editionId: context.edition.id, target, quantity };
@@ -545,11 +548,11 @@ export class EventService {
     throw new Error('Event Shop conversion could not be completed.');
   }
 
-  public async purchaseCollection(identity: AuthenticatedIdentity, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async purchaseCollection(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.collection');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true } };
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     const request = { editionId: context.edition.id, itemKey: collectionItemExternalKey(context.editionSnapshot.config.collection.key) };
@@ -645,6 +648,12 @@ export class EventService {
 
   public async resolveCurrentEdition(database: Database, now: Date) {
     const period = resolveCurrentEventPeriod(now);
+    const frozenId = commandTargets()?.eventEditionId;
+    if (frozenId) {
+      const edition = await database.eventEdition.findUniqueOrThrow({ where: { id: frozenId } });
+      const definition = await database.eventDefinition.findUniqueOrThrow({ where: { id: edition.eventDefinitionId } });
+      return { period, definition, edition, editionSnapshot: parseEditionSnapshot(edition.snapshot) };
+    }
     const definition = await database.eventDefinition.findFirst({
       where: { calendarMonth: period.month, isActive: true },
     });

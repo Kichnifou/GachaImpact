@@ -4,7 +4,7 @@ export type WheelStoreInput = Readonly<{
   playerId: string;
   businessDate: string;
   spunAt: Date;
-  sourceChannel: 'UI' | 'INTERNAL_CHAT';
+  sourceChannel: 'UI' | 'INTERNAL_CHAT' | 'TWITCH';
   idempotencyKey?: string;
   roll: () => WheelReward;
 }>;

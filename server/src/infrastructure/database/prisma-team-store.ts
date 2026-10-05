@@ -1,3 +1,4 @@
+import { commandSource } from '../../application/player/player-command-execution.js';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import type { PlayerTeams, TeamCharacter, TeamStore } from '../../application/team/team-store.js';
@@ -194,10 +195,10 @@ async function runTeamTransaction(database: PrismaClient, operation: (transactio
         if (!receipt) return operation(transaction);
         await lockPlayer(transaction, receipt.playerId);
         const key = `chat.team:${receipt.chatKey}`;
-        const existing = await transaction.businessOperation.findFirst({ where: { idempotencyKey: key, sourceChannel: 'INTERNAL_CHAT' } });
+        const existing = await transaction.businessOperation.findFirst({ where: { idempotencyKey: key, sourceChannel: commandSource('INTERNAL_CHAT') } });
         if (existing) {
           const summary = existing.resultSummary as { request?: unknown; state?: PlayerTeams } | null;
-          if (existing.playerId !== receipt.playerId || existing.operationType !== 'team.command' || existing.sourceChannel !== 'INTERNAL_CHAT'
+          if (existing.playerId !== receipt.playerId || existing.operationType !== 'team.command' || existing.sourceChannel !== commandSource('INTERNAL_CHAT')
             || existing.status !== 'COMPLETED' || JSON.stringify(summary?.request) !== JSON.stringify(receipt.request)) {
             throw new BusinessError('TEAM_IDEMPOTENCY_CONFLICT', 'Cette intention Team ne correspond pas à son premier traitement.');
           }
@@ -206,7 +207,7 @@ async function runTeamTransaction(database: PrismaClient, operation: (transactio
         }
         const state = await operation(transaction);
         await transaction.businessOperation.create({ data: {
-          playerId: receipt.playerId, idempotencyKey: key, operationType: 'team.command', sourceChannel: 'INTERNAL_CHAT',
+          playerId: receipt.playerId, idempotencyKey: key, operationType: 'team.command', sourceChannel: commandSource('INTERNAL_CHAT'),
           status: 'COMPLETED', completedAt: new Date(), resultSummary: { request: [...receipt.request], state: state as unknown as Prisma.InputJsonValue },
         } });
         return state;

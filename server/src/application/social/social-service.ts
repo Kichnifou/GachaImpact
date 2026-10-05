@@ -1,7 +1,6 @@
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { FavorService } from '../favor/favor-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { derivePlayerLevel } from '../../domain/player/player-progression.js';
@@ -45,7 +44,7 @@ export class SocialService {
       .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
   }
   private visiblePresence(viewer: string, ids: string[]) { return this.presence.visibleFor(viewer, ids); }
-  async directory(identity: AuthenticatedIdentity, query: SocialQuery) {
+  async directory(identity: PlayerExecutionActor, query: SocialQuery) {
     const viewer = await this.actor(identity);
     // Same accent/case/substring semantics as the existing Player browser. Only identities
     // are scanned; authorized presence is batched before status filtering/pagination.
@@ -71,7 +70,7 @@ export class SocialService {
     const presence = await this.visiblePresence(viewer.id, identities.map(p => p.id));
     return { ...state, players: identities.map(p => ({ ...p, presence: presence.has(p.id) ? allowed(presence.get(p.id)!) : hidden })) };
   }
-  async connected(identity: AuthenticatedIdentity) {
+  async connected(identity: PlayerExecutionActor) {
     const viewer = await this.actor(identity);
     const rows = await this.identities();
     const statuses = await this.visiblePresence(viewer.id, rows.map(p => p.id));
@@ -88,7 +87,7 @@ export class SocialService {
     return allowed(viewer.id === playerId ? { ...publicState, dailyPrimogems: state.dailyPrimogems, claimedToday: state.claimedToday, claimStatus: state.claimStatus } : publicState);
   }
   /** R565: Box controls the list; details additionally require General Statistics. Read only. */
-  async legends(identity: AuthenticatedIdentity, playerId: string, detailed: boolean) {
+  async legends(identity: PlayerExecutionActor, playerId: string, detailed: boolean) {
     const viewer = await this.actor(identity);
     if (!await this.database.player.count({ where: { id: playerId, status: 'ACTIVE' } })) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
     const permissions = await this.privacy.permissions(playerId, viewer.id);
@@ -102,7 +101,7 @@ export class SocialService {
     const progress = await this.database.c6CompetitionProgress.findMany({ where: { playerId, characterId: { in: possessions.map(row => row.characterId) } }, include: { character: true } });
     return allowed({ characters: possessions.map(row => row.character), legends: progress.map(presentLegend) });
   }
-  async profile(identity: AuthenticatedIdentity, playerId: string) {
+  async profile(identity: PlayerExecutionActor, playerId: string) {
     const viewer = await this.actor(identity);
     const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, ...appearanceSelect, progression: { select: { xp: true } } } });
     if (!row) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');

@@ -1,11 +1,10 @@
+import { progressPlayerMessage } from './message-progression.js';
 import { commandMissionFeedback } from './command-mission-feedback.js';
 import { createHash } from 'node:crypto';
 import { GlobalChatDeletionState, GlobalChatMessageType, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
-import { isElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
-import { getBusinessDate } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-player-xp-service.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
@@ -219,28 +218,11 @@ export class GlobalChatService {
       const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'chat.send', sourceChannel: 'INTERNAL_CHAT', idempotencyKey, status: 'PENDING', startedAt: now, resultSummary: { fingerprint } } });
       const message = await tx.globalChatMessage.create({ data: { authorPlayerId: player.id, sourceChannel: 'INTERNAL_CHAT', messageType: normalized.type, content: normalized.value, operationId: operation.id, replyToMessageId: replyId, createdAt: now, submissionOrder, generation }, include: messageInclude });
       if (resolvedMentions.length) await tx.globalChatMention.createMany({ data: resolvedMentions.map(mentionedPlayerId => ({ messageId: message.id, mentionedPlayerId })) });
-      const progression = await tx.playerProgression.findUniqueOrThrow({ where: { playerId: player.id } });
-      await tx.playerProgression.update({ where: { playerId: player.id }, data: { totalMessages: { increment: 1n } } });
-      let xpGranted = 0;
-      let dailyChallengeCompleted = false;
+      const { xpGranted, dailyChallengeCompleted, xpPlan } = await progressPlayerMessage(tx,
+        { playerId: player.id, elementKey: actor.element_key, normal: normalized.type === GlobalChatMessageType.PLAYER, length: normalized.length, now, operationId: operation.id, source: 'INTERNAL_CHAT' },
+        { xp: this.xp, dailyChallenges: this.dailyChallenges, missions: this.permanentMissions, random: this.random });
       const refreshScopes: string[] = missionCatchUp.alreadyProcessed ? [] : ['resources'];
-      if (normalized.type === GlobalChatMessageType.PLAYER && actor.element_key && isElementKey(actor.element_key)
-        && (!progression.lastXpMessageAt || now.getTime() - progression.lastXpMessageAt.getTime() >= 2_000)) {
-        xpGranted = normalized.length <= 100 ? 1 : normalized.length <= 200 ? 2 : 3;
-        const xpPlan = await this.xp.grant(tx, { playerId: player.id, playerElementKey: actor.element_key, amount: BigInt(xpGranted), source: 'chat.message', now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT', random: this.random });
-        await tx.playerProgression.update({ where: { playerId: player.id }, data: { countedMessages: { increment: 1n }, lastXpMessageAt: now } });
-        await this.permanentMissions.reconcileMetrics(tx, {
-          playerId: player.id,
-          sourceChannel: 'INTERNAL_CHAT',
-          now,
-          triggerOperationId: operation.id,
-          metrics: ['COUNTED_MESSAGES'],
-        });
-        const businessDate = getBusinessDate(now);
-        const challengeBefore = await tx.playerDailyChallenge.findUnique({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } }, select: { status: true } });
-        await this.dailyChallenges.progress(tx, { playerId: player.id, playerElementKey: actor.element_key, businessDate, type: 'messages', amount: 1n, now, operationId: operation.id, sourceChannel: 'INTERNAL_CHAT' });
-        const challengeAfter = await tx.playerDailyChallenge.findUnique({ where: { playerId_businessDate: { playerId: player.id, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } }, select: { status: true } });
-        dailyChallengeCompleted = challengeBefore?.status === 'ACTIVE' && challengeAfter?.status === 'COMPLETED';
+      if (xpPlan) {
         refreshScopes.push('progression', 'dailyChallenge');
         if (xpPlan.rewards.length || dailyChallengeCompleted) refreshScopes.push('resources');
         if (xpPlan.levelsReached.length || xpPlan.overflowRewardsGranted) {

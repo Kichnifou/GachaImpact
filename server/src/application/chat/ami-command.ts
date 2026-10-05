@@ -1,7 +1,7 @@
 import { AppError } from '../../api/errors.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
-import type { GlobalChatService } from './global-chat-service.js';
+import type { PlayerCommandContext } from './player-command-context.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { friendshipTier, type FriendAction } from '../social/friendship-service.js';
 import { friendshipPhrases } from '../social/friendship-phrases.js';
@@ -11,8 +11,8 @@ type Friend = Awaited<ReturnType<ChatCommandServices['socialService']['friends']
 const detail = (actor: string, target: string, friend: Friend) => `🤝 Amitié ${actor} ↔ ${target} | Statut : ami | Niveau d’amitié : ${levelText(friend.level)} | 💖💖✨ échangés : ${friend.totalHearts} | Cœur aujourd’hui : ${friend.heartSent ? 'déjà envoyé' : 'disponible'}`;
 
 /** Chat presentation only: FriendshipService owns transitions, rewards and receipts. */
-export async function amiCommand(identity: AuthenticatedIdentity, args: readonly string[], commandMessageId: string,
-  social: ChatCommandServices['socialService'], chat: GlobalChatService,
+export async function amiCommand(identity: PlayerExecutionActor, args: readonly string[], commandMessageId: string,
+  social: ChatCommandServices['socialService'], chat: PlayerCommandContext,
   findPlayer: (name: string) => Promise<{ id: string; displayName: string } | null>,
   compact: (values: readonly string[], limit?: number) => string, syntax: string): Promise<string> {
   const actor = await social.actor(identity), state = await social.friends(identity);
@@ -57,7 +57,7 @@ export async function amiCommand(identity: AuthenticatedIdentity, args: readonly
       // Preserve the original decision across a retry, even after the relation changes.
       const eligible = await chat.rememberCommandText(commandMessageId, 'action', all || friend ? 'SEND' : 'NOT_FRIEND');
       if (eligible === 'NOT_FRIEND') return warning(`tu n’es pas encore ami avec ${targetName}. Utilise : !ami ${targetName}`);
-      const result = await social.friendship.sendHearts(actor.id, targetId, commandMessageId, 'INTERNAL_CHAT');
+      const result = await social.friendship.sendHearts(actor.id, targetId, commandMessageId, chat.sourceChannel ?? 'INTERNAL_CHAT');
       if (result.sent > 0) {
         await chat.rememberCommandRefreshScopes(commandMessageId, ['social', 'resources', 'notifications']);
         if (all) return `💖💖✨ ${actor.displayName} envoie des cœurs cœurs paillettes à tous ses amis ! | ${result.sent} envoyé(s), ${result.alreadySent} déjà fait(s), ${result.unavailable} indisponible(s) | +💠${result.senderReward} Primos pour ${actor.displayName}`;
@@ -87,7 +87,7 @@ export async function amiCommand(identity: AuthenticatedIdentity, args: readonly
     if (intent === 'NO_CANCEL') return warning(`aucune demande d’ami envoyée à ${targetName} à annuler.`);
     if (intent === 'NO_REMOVE') return warning(`tu n’es pas ami avec ${targetName}.`);
     if (!['ADD', 'ACCEPT', 'REFUSE', 'CANCEL', 'REMOVE'].includes(intent)) throw new Error('Invalid remembered friendship action');
-    const result = await social.friendship.mutate(actor.id, targetId, intent as FriendAction, commandMessageId, 'INTERNAL_CHAT');
+    const result = await social.friendship.mutate(actor.id, targetId, intent as FriendAction, commandMessageId, chat.sourceChannel ?? 'INTERNAL_CHAT');
     await chat.rememberCommandRefreshScopes(commandMessageId, ['social', 'notifications']);
     if (result.state === 'ACTIVE' || result.state === 'ACCEPTED') return accepted();
     if (result.state === 'PENDING') return `✅ ${actor.displayName} envoie une demande d’ami à ${targetName} | ${targetName} peut accepter avec !ami ${actor.displayName}`;

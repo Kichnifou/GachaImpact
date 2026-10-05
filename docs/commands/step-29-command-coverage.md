@@ -69,6 +69,30 @@ Les moteurs A/B/C restent uniques. Les noms suivants routent vers la configurati
 
 Jeu A : créneaux et cooldown serveur, 20 % ; +1 point/+1 monnaie uniquement si réussi. Jeu B : trois essais, un code déjà testé ne consomme rien, solution cachée avant découverte, gain collectif puis rattrapage à l'inscription. Jeu C : un envoi réussi, permissions de contact et anti-auto-ciblage conservés, gain pour l'expéditeur seulement ; le contenu privé n'est pas recopié dans la réponse du jeu. Le calendrier garde ses jours 1–25 et les cases manquées ne sont pas rattrapées.
 
+## Parité des messages ordinaires Twitch R1047
+
+Le relevé croise XP.txt (orchestrateur, Execute et helpers pertinents), les audits XP/Event et les owners physiques modernes. La qualification décrit le mécanisme legacy, pas une décision de supprimer un effet joueur. Gate pilote inchangé ; une absence d’identité reste sans mutation selon la mission. Les branches `!` comptent comme messages totaux, sans XP/countées ; bot/système natif prouvé exclu avant tout effet.
+
+| Trigger legacy | Classification / état R1047 | Propriétaire et preuve |
+| --- | --- | --- |
+| XP longueur, cooldown 2 s, totalMessages/countées, dernière activité, niveaux/overflow | TO_IMPLEMENT → implémenté | progressPlayerMessage partagé Chat/Twitch ; PrismaPlayerXpService, PlayerActivityRecorder ; tests twitch-native-bridge privés |
+| Première récompense quotidienne sur message normal | TO_IMPLEMENT → implémenté | ClaimDailyReward/PrismaDailyRewardStore ; claim Player/jour partagé UI/Twitch, trigger original restitué, aucune seconde récompense |
+| Mission messages et missions longues | TO_IMPLEMENT → intégration implémentée | PrismaDailyChallengeStore et PermanentMissionService existants ; même transaction progression, feedback de vraie complétion |
+| Bonus quotidien Event R602 | TO_IMPLEMENT → implémenté | EventService.claimDailyBonus, jour/édition préparés, snapshot durable et source TWITCH |
+| Messages sociaux Event R612/R613, anciens et éventuellement vus dans l’UI | TO_IMPLEMENT → implémenté | EventChatPresence, IDs figés, clé de livraison par message ; viewedAt et changements de jour ne perdent pas le backlog |
+| Annonce mensuelle et dernier jour R641/R643 | TO_IMPLEMENT → implémenté | Clés Notification event-delivery partagées avec EventLifecycleNotificationReconciler ; aucune répétition transcanal |
+| Compteur Giveaway ; wish/stat/giveaway | ALREADY_NATIVE | GiveawayService/TwitchGiveawayConsumer ; message ID et protections spécialisés conservés, exclusion des échos génériques avant compteur |
+| Faveur présence/quotidien et événements Sub/Gift/Resub | ALREADY_NATIVE | Consumers Twitch Faveur ; R1047 ne duplique pas l’acquisition |
+| Gift Suprême | ALREADY_NATIVE | GiftSupremeService/Runtime ; journal d’annonce complète la provenance des sorties, matching/économie/gates inchangés |
+| Intérêts Banque, expiration trades/Défis, cleanup Concours, rotation bannière/votes | ALREADY_NATIVE | Schedulers/catch-ups Banking, Trades, Défis, Contest et Gacha ; aucune orchestration XP.txt restaurée |
+| Sync fichiers C6 depuis la Box | ALREADY_NATIVE | Owners possession/C6/Missions modernes atomiques ; plus de resync opportuniste au message |
+| Création/defaults de fichiers viewer par pseudo | OBSOLETE_V1 (mécanisme fichier/matching) | Provisionnement/migration et TwitchIdentity immuable propriétaires ; aucune création d’un viewer inconnu dans ce pilote, aucune anticipation 31A/31B ou onboarding |
+| Heuristiques de messages système par préfixe/emoji et écriture JSON globale | OBSOLETE_V1 (mécanisme legacy) | Provenance des sorties natives et transactions/receipts modernes ; un message joueur avec emoji reste ordinaire |
+
+L’exhaustivité des **commandes** est une preuve générée depuis le registre, dans [twitch-command-coverage.test.ts](../../server/tests/twitch-command-coverage.test.ts), avec la [revendication physique](../../server/src/application/twitch/twitch-command-coverage.ts) ; ce document n’entretient pas une seconde liste de racines. Chaque famille est exercée par le résolveur partagé, avec aliases/parser et suites standalone communes, cas invalides et owners/source/intent PostgreSQL représentatifs. Outbound, spécialisation et gates ne valent toujours pas validation publique.
+
+**Diagnostic !pull identique :** deux événements distincts de même texte passent sur le code de baseline 7118740 et sur R1047, PostgreSQL réel privé ; deux effets/réponses et replay sans doublon. Aucune correction de déduplication textuelle justifiée. La cause live est probablement amont, non démontrée faute de delivery live inspectée ; non bloquante, workaround utilisateur existant accepté sans modification serveur.
+
 ## Recette propriétaire essentielle après contrôle du SHA et du déploiement
 
 Référence historique R1038 : recette publique représentative acquise selon déclaration propriétaire R1039. Ce tableau ne crée pas un nouveau gate de clôture 29 ; dernières corrections automatisées, déploiement du nouveau SHA à vérifier séparément. Prochaine étape 30, non commencée.

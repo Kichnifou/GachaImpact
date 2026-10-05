@@ -1,3 +1,4 @@
+import { assertCommandTargets, commandBannerId } from '../../application/player/player-command-execution.js';
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPassiveEffect, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
@@ -70,7 +71,7 @@ export class PrismaGachaStore implements GachaStore {
           return tx.playerGachaState.findUniqueOrThrow({ where: { playerId }, select: stateSelection });
         }
       }
-      const featured = await tx.bannerFeaturedCharacter.findFirst({ where: { characterId, rarity: 5, bannerRotation: { status: 'ACTIVE' }, character: { isActive: true } }, select: { characterId: true } });
+      const featured = await tx.bannerFeaturedCharacter.findFirst({ where: { characterId, rarity: 5, bannerRotation: { status: 'ACTIVE', ...(commandBannerId() ? { id: commandBannerId() } : {}) }, character: { isActive: true } }, select: { characterId: true } });
       if (!featured) throw new BusinessError('GACHA_TARGET_INVALID', 'The selected character is not a featured five-star character.');
       const state = await tx.playerGachaState.update({ where: { playerId }, data: { selectedBannerCharacterId: characterId }, select: stateSelection });
       if (idempotencyKey) await tx.businessOperation.create({ data: {
@@ -173,10 +174,11 @@ export class PrismaGachaStore implements GachaStore {
         throw new BusinessError('GACHA_IDEMPOTENCY_CONFLICT', 'Cette intention d’Invocation est déjà en cours.');
       }
 
+      await assertCommandTargets(transaction, input.playerId, 'gacha');
       await this.permanentMissions.catchUpStandalone(transaction, { playerId: input.playerId, now: input.now });
 
       const bannerRow = await transaction.bannerRotation.findFirst({
-        where: { status: 'ACTIVE', startsAt: { lte: input.now }, endsAt: { gt: input.now } },
+        where: { status: 'ACTIVE', ...(commandBannerId() ? { id: commandBannerId() } : {}), startsAt: { lte: input.now }, endsAt: { gt: input.now } },
         include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } },
       });
       if (!bannerRow) throw new BusinessError('GACHA_BANNER_UNAVAILABLE', 'Aucune bannière Gacha active n’est disponible.');

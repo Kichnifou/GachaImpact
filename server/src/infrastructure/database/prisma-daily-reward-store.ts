@@ -1,4 +1,4 @@
-import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
+import { OperationStatus, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { DailyRewardClaimInput, DailyRewardStore } from '../../application/daily-reward/daily-reward-store.js';
 import { BusinessError } from '../../application/errors.js';
 import { DAILY_REWARDS, type DailyRewardClaimResult } from '../../domain/daily-reward/daily-reward.js';
@@ -42,13 +42,15 @@ export class PrismaDailyRewardStore implements DailyRewardStore {
         throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'A permanent element is required to claim the daily reward.');
       }
 
+      const prior = await transaction.businessOperation.findFirst({ where: { playerId: input.playerId, operationType: 'daily-reward.claim', idempotencyKey: `daily-reward:${input.playerId}:${input.businessDate}`, status: 'COMPLETED' } });
+      if (prior) return this.result(input.businessDate, !input.triggerKey || (prior.resultSummary as { triggerKey?: string } | null)?.triggerKey !== input.triggerKey);
       const state = await transaction.playerDailyRewardState.findUnique({ where: { playerId: input.playerId } });
       if (state?.lastClaimDate && databaseDateToBusinessDate(state.lastClaimDate) === input.businessDate) {
         return this.result(input.businessDate, true);
       }
 
       const operation = await transaction.businessOperation.create({ data: {
-        playerId: input.playerId, operationType: 'daily-reward.claim', sourceChannel: SourceChannel.UI,
+        playerId: input.playerId, operationType: 'daily-reward.claim', sourceChannel: input.sourceChannel,
         idempotencyKey: `daily-reward:${input.playerId}:${input.businessDate}`,
       }, select: { id: true } });
 
@@ -58,7 +60,7 @@ export class PrismaDailyRewardStore implements DailyRewardStore {
         ['moras', DAILY_REWARDS.moras],
       ] as const;
       for (const [resourceKey, amount] of credits) {
-        await this.economy.credit(transaction, { playerId: input.playerId, playerElementKey: player.elementKey, resourceKey, amount, causeKey: 'daily-reward.claim', domainKey: 'daily-reward', operationId: operation.id, sourceChannel: SourceChannel.UI });
+        await this.economy.credit(transaction, { playerId: input.playerId, playerElementKey: player.elementKey, resourceKey, amount, causeKey: 'daily-reward.claim', domainKey: 'daily-reward', operationId: operation.id, sourceChannel: input.sourceChannel });
       }
 
       const databaseDate = businessDateToDatabaseDate(input.businessDate);
@@ -69,7 +71,7 @@ export class PrismaDailyRewardStore implements DailyRewardStore {
       } });
       await transaction.businessOperation.update({ where: { id: operation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.claimedAt,
-        resultSummary: { businessDate: input.businessDate, primogems: '160', mainElementParticles: '160', elementKey: player.elementKey, moras: '10000' },
+        resultSummary: { ...(input.triggerKey ? { triggerKey: input.triggerKey } : {}), businessDate: input.businessDate, primogems: '160', mainElementParticles: '160', elementKey: player.elementKey, moras: '10000' },
       } });
       return this.result(input.businessDate, false);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

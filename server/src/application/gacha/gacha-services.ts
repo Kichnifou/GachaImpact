@@ -1,5 +1,6 @@
+import { commandSource } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { GachaStore } from './gacha-store.js';
@@ -26,7 +27,7 @@ export class GetCurrentGacha {
 
 export class SetGachaTarget {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
-  public async execute(identity: AuthenticatedIdentity, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async execute(identity: PlayerExecutionActor, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const player = await this.getPlayer.execute(identity);
     try { return await (idempotencyKey ? this.store.setTarget(player.id, characterId, idempotencyKey, sourceChannel) : this.store.setTarget(player.id, characterId)); }
     catch (error) {
@@ -49,14 +50,14 @@ export class PerformGachaPull {
     if (!Number.isInteger(count) || count < 1 || count > 10) throw new BusinessError('GACHA_PULL_COUNT_INVALID', 'Une Invocation doit contenir entre 1 et 10 vœux.');
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'A permanent element is required to perform a pull.');
-    return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: this.clock.now(), random: this.random, sourceChannel: this.sourceChannel });
+    return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: commandNow(this.clock), random: this.random, sourceChannel: commandSource(this.sourceChannel) });
   }
 }
 
 export class GetGachaHistory {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
 
-  public async execute(identity: AuthenticatedIdentity, page: number) {
+  public async execute(identity: PlayerExecutionActor, page: number) {
     if (!Number.isInteger(page) || page < 1) {
       throw new BusinessError('GACHA_HISTORY_PAGE_INVALID', 'La page d’historique doit être un entier supérieur ou égal à 1.');
     }

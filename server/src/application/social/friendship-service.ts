@@ -1,3 +1,5 @@
+import { commandTargets } from '../player/player-command-execution.js';
+import { commandNow } from '../player/player-command-execution.js';
 import { NotificationState, Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import { businessDateToDatabaseDate, getBusinessDate, type Clock } from '../../domain/time/business-date.js';
@@ -72,7 +74,7 @@ export class FriendshipService {
       if (action === 'ADD' || action === 'ACCEPT') {
         if (!await tx.player.findFirst({ where: { AND: [{ id: target }, unblockedRecipient(playerId)] }, select: { id: true } })) throw unavailable();
       }
-      const now = this.clock.now(), playerPair = pair(playerId, target);
+      const now = commandNow(this.clock), playerPair = pair(playerId, target);
       const friendship = await tx.friendship.findUnique({ where: { playerAId_playerBId: playerPair } });
       const pending = await tx.friendRequest.findFirst({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId, recipientPlayerId: target }, { senderPlayerId: target, recipientPlayerId: playerId }] } });
       let result: FriendMutationResult;
@@ -113,14 +115,14 @@ export class FriendshipService {
     if (!['UI', 'INTERNAL_CHAT', 'TWITCH'].includes(source)) throw unavailable();
     if (target === playerId) throw unavailable();
     return this.transaction(async tx => {
-      const relations = await tx.friendship.findMany({ where: { ...relationWhere(playerId), state: 'ACTIVE', ...(target === 'all' ? {} : { AND: [{ OR: [{ playerAId: target }, { playerBId: target }] }] }) }, orderBy: { id: 'asc' } });
+      const relations = await tx.friendship.findMany({ where: { ...relationWhere(playerId), state: 'ACTIVE', ...(target === 'all' ? commandTargets()?.friendIds ? { AND: [{ OR: [{ playerAId: { in: commandTargets()!.friendIds } }, { playerBId: { in: commandTargets()!.friendIds } }] }] } : {} : { AND: [{ OR: [{ playerAId: target }, { playerBId: target }] }] }) }, orderBy: { id: 'asc' } });
       await this.lockPlayers(tx, [playerId, ...relations.flatMap(r => [r.playerAId, r.playerBId])]);
       await this.requireActor(tx, playerId);
       const type = 'friendship.hearts';
       const replay = await this.replay<HeartResult>(tx, playerId, key, source, type, target);
       if (replay) return replay;
       if (target !== 'all' && !relations.length) throw unavailable();
-      const now = this.clock.now(), date = businessDateToDatabaseDate(getBusinessDate(now));
+      const now = commandNow(this.clock), date = businessDateToDatabaseDate(getBusinessDate(now));
       const eligible = new Set((await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { id: { in: relations.map(r => r.playerAId === playerId ? r.playerBId : r.playerAId) } }] }, select: { id: true } })).map(p => p.id));
       const nativeHearts = await tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
       const legacyHearts = await tx.friendshipLegacyHeartState.findMany({ where: { senderPlayerId: playerId, lastHeartSentDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
@@ -178,7 +180,7 @@ export class FriendshipService {
   }
 
   async snapshot(playerId: string) {
-    const now = this.clock.now(), date = businessDateToDatabaseDate(getBusinessDate(now));
+    const now = commandNow(this.clock), date = businessDateToDatabaseDate(getBusinessDate(now));
     return this.database.$transaction(async tx => {
       const [relations, requests, hearts, legacyHearts, eligible, stats, preference] = await Promise.all([
         tx.friendship.findMany({ where: { ...relationWhere(playerId), state: 'ACTIVE' } }),

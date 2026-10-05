@@ -47,6 +47,7 @@ export type DailyCombatView = Readonly<{
 export type DailyCombatContext = Readonly<{ playerId: string; playerElementKey: ElementKey; businessDate: string; now: Date }>;
 
 export interface DailyCombatStore {
+  prepareCommand?(context: DailyCombatContext, selection: 'ACTIVE_TEAM' | 'AUTO'): Promise<{ encounterId: string; characterIds: string[] }>;
   getView(context: DailyCombatContext): Promise<DailyCombatView>;
   previewActiveTeam(context: DailyCombatContext): Promise<DailyCombatView['preview']>;
   getElementMatrix(): Promise<readonly Readonly<{ element: ElementKey; weakAgainstElements: readonly ElementKey[]; resistantAgainstElements: readonly ElementKey[] }>[] >;

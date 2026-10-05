@@ -1,4 +1,5 @@
 import type { Prisma, SourceChannel } from '../../../generated/prisma/client.js';
+import { commandNow } from '../../application/player/player-command-execution.js';
 import { getEconomyEarnedIncrement, getEconomySpentIncrement } from '../../application/economy/economy-stats.js';
 import { BusinessError } from '../../application/errors.js';
 import type { ElementKey, ResourceKey } from '../../domain/economy/resources.js';
@@ -24,7 +25,9 @@ export type InternalMorasWalletTransferInput = Omit<CreditResourceInput, 'player
 export class PrismaEconomyService {
   private readonly permanentMissions: PermanentMissionService;
 
-  constructor(private readonly now: () => Date = () => new Date(), permanentMissions?: PermanentMissionService) {
+  private readonly now: () => Date;
+  constructor(now: () => Date = () => new Date(), permanentMissions?: PermanentMissionService) {
+    this.now = () => commandNow({ now });
     this.permanentMissions = permanentMissions ?? new PermanentMissionService(this);
   }
 

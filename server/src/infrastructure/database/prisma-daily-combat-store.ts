@@ -1,3 +1,4 @@
+import { assertCommandTargets, commandTargets } from '../../application/player/player-command-execution.js';
 import { CombatAttemptMode, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import type { DailyCombatCharacter, DailyCombatContext, DailyCombatRandoms, DailyCombatStore, DailyCombatView } from '../../application/combat/daily-combat-store.js';
@@ -38,6 +39,16 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
     const encounterId = await this.ensureEncounter(context.businessDate);
     await this.clearInactiveSlots(context.playerId);
     return readView(this.database, context.playerId, context.businessDate, encounterId);
+  }
+
+  public async prepareCommand(context: DailyCombatContext, selection: 'ACTIVE_TEAM' | 'AUTO') {
+    const encounterId = await this.ensureEncounter(context.businessDate);
+    if (selection === 'ACTIVE_TEAM') {
+      const team = await this.database.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { orderBy: { position: 'asc' } } } });
+      return { encounterId, characterIds: (team?.members ?? []).map(member => member.characterId) };
+    }
+    const encounter = await loadEncounter(this.database, encounterId);
+    return { encounterId, characterIds: await selectAutoIds(this.database, context.playerId, encounter) };
   }
 
   public async previewActiveTeam(context: DailyCombatContext): Promise<DailyCombatView['preview']> {
@@ -114,22 +125,10 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
     await this.database.$transaction(async (transaction) => {
       await lockPlayer(transaction, context.playerId);
       const encounter = await loadEncounter(transaction, encounterId);
-      const [possessions, kos, matchups] = await Promise.all([
-        transaction.playerCharacter.findMany({ where: { playerId: context.playerId, character: { isActive: true } }, select: possessionSelection }),
-        transaction.playerDailyCombatKo.findMany({ where: { playerId: context.playerId, encounterId }, select: { characterId: true } }),
-        transaction.elementCombatMatchup.findMany(),
-      ]);
-      const koIds = new Set(kos.map(({ characterId }) => characterId));
-      const eligible = possessions.filter(({ characterId }) => !koIds.has(characterId));
-      if (eligible.length < 4) throw new BusinessError('DAILY_COMBAT_NOT_ENOUGH_AVAILABLE', 'Vous n’avez plus assez de personnages disponibles aujourd’hui.');
-      const relations = relationMap(matchups);
-      const enemyElements = encounter.enemies.map(({ elementKeySnapshot }) => elementKey(elementKeySnapshot));
-      const ranked = eligible.map((possession) => ({ possession, score: calculateDailyCombatPreview([combatMember(possession)], enemyElements, relations).memberContributions[0]!.halfPoints }))
-        .sort((left, right) => right.score - left.score || (left.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) - (right.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) || left.possession.characterId.localeCompare(right.possession.characterId))
-        .slice(0, 4);
+      const ids = await selectAutoIds(transaction, context.playerId, encounter);
       await ensureLoadout(transaction, context.playerId);
       await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
-      await transaction.playerDailyCombatLoadoutSlot.createMany({ data: ranked.map(({ possession }, index) => ({ playerId: context.playerId, position: index + 1, characterId: possession.characterId })) });
+      await transaction.playerDailyCombatLoadoutSlot.createMany({ data: ids.map((characterId, index) => ({ playerId: context.playerId, position: index + 1, characterId })) });
       await transaction.playerDailyCombatLoadout.update({ where: { playerId: context.playerId }, data: { nextAttemptMode: CombatAttemptMode.AUTO } });
     });
     return readView(this.database, context.playerId, context.businessDate, encounterId);
@@ -162,31 +161,24 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
             const prior = await transaction.dailyCombatAttempt.findUniqueOrThrow({ where: { operationId: existing.id } });
             return { operationId: existing.id, alreadyProcessed: true, won: prior.won, mode: prior.mode, chanceHalfPoints: prior.chanceHalfPoints };
           }
+          await assertCommandTargets(transaction, context.playerId, 'team');
           const encounter = await loadEncounter(transaction, encounterId);
           const state = await transaction.playerDailyCombatState.findUnique({ where: { playerId_encounterId: { playerId: context.playerId, encounterId } } });
           if (state?.wonAt || state?.legacyWon) throw new BusinessError('DAILY_COMBAT_ALREADY_COMPLETED', 'Le Combat quotidien est déjà terminé.');
           if (context.selection) {
             let ids: string[];
-            if (context.selection === 'ACTIVE_TEAM') {
+            const frozen = commandTargets()?.combat;
+            if (frozen) {
+              if (frozen.encounterId !== encounterId) throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Le Combat préparé appartient à une autre journée.');
+              ids = frozen.characterIds;
+            } else if (context.selection === 'ACTIVE_TEAM') {
               const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
               const members = team?.members ?? [];
               if (members.length !== 4 || new Set(members.map(member => member.characterId)).size !== 4) throw new BusinessError('DAILY_COMBAT_LOADOUT_INCOMPLETE', 'La Team active doit contenir 4 personnages.');
               if (members.some(member => !member.character.isActive)) throw new BusinessError('DAILY_COMBAT_CHARACTER_INACTIVE', 'Un personnage de la Team active n’est plus disponible.');
               ids = members.map(member => member.characterId);
             } else {
-              const [possessions, koRows, matchups] = await Promise.all([
-                transaction.playerCharacter.findMany({ where: { playerId: context.playerId, character: { isActive: true } }, select: possessionSelection }),
-                transaction.playerDailyCombatKo.findMany({ where: { playerId: context.playerId, encounterId }, select: { characterId: true } }),
-                transaction.elementCombatMatchup.findMany(),
-              ]);
-              const koIds = new Set(koRows.map(row => row.characterId));
-              const eligible = possessions.filter(possession => !koIds.has(possession.characterId));
-              if (eligible.length < 4) throw new BusinessError('DAILY_COMBAT_NOT_ENOUGH_AVAILABLE', 'Vous n’avez plus assez de personnages disponibles aujourd’hui.');
-              const relations = relationMap(matchups);
-              const enemies = encounter.enemies.map(enemy => elementKey(enemy.elementKeySnapshot));
-              ids = eligible.map(possession => ({ possession, score: calculateDailyCombatPreview([combatMember(possession)], enemies, relations).memberContributions[0]!.halfPoints }))
-                .sort((a, b) => b.score - a.score || (a.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) || a.possession.characterId.localeCompare(b.possession.characterId))
-                .slice(0, 4).map(entry => entry.possession.characterId);
+              ids = await selectAutoIds(transaction, context.playerId, encounter);
             }
             await ensureLoadout(transaction, context.playerId);
             await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
@@ -370,4 +362,17 @@ async function readBalances(client: Client, playerId: string): Promise<PlayerRes
   const values = new Map(rows.map(({ resourceKey, amount }) => [resourceKey, amount]));
   if (!resourceKeys.every((key) => values.has(key))) throw new BusinessError('RESOURCE_STATE_INCOMPLETE', 'L’état des ressources du joueur est incomplet.');
   return Object.fromEntries(resourceKeys.map((key) => [key, values.get(key)!])) as PlayerResourceBalances;
+}
+
+async function selectAutoIds(client: Client, playerId: string, encounter: Awaited<ReturnType<typeof loadEncounter>>): Promise<string[]> {
+  const [possessions, kos, matchups] = await Promise.all([
+    client.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: possessionSelection }),
+    client.playerDailyCombatKo.findMany({ where: { playerId, encounterId: encounter.id }, select: { characterId: true } }), client.elementCombatMatchup.findMany(),
+  ]);
+  const koIds = new Set(kos.map(row => row.characterId)); const eligible = possessions.filter(row => !koIds.has(row.characterId));
+  if (eligible.length < 4) throw new BusinessError('DAILY_COMBAT_NOT_ENOUGH_AVAILABLE', 'Vous n’avez plus assez de personnages disponibles aujourd’hui.');
+  const relations = relationMap(matchups), enemies = encounter.enemies.map(row => elementKey(row.elementKeySnapshot));
+  return eligible.map(possession => ({ possession, score: calculateDailyCombatPreview([combatMember(possession)], enemies, relations).memberContributions[0]!.halfPoints }))
+    .sort((a, b) => b.score - a.score || (a.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) - (b.possession.character.displayOrder ?? Number.MAX_SAFE_INTEGER) || a.possession.characterId.localeCompare(b.possession.characterId))
+    .slice(0, 4).map(row => row.possession.characterId);
 }

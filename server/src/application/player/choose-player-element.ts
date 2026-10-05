@@ -1,4 +1,5 @@
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
+import { commandKey } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { isElementKey, type ElementKey } from '../../domain/economy/resources.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from './get-current-player.js';
@@ -16,7 +17,7 @@ export class ChoosePlayerElement {
   ) {}
 
   public async execute(
-    identity: AuthenticatedIdentity,
+    identity: PlayerExecutionActor,
     requestedElementKey: string,
   ): Promise<ChoosePlayerElementResult> {
     if (!isElementKey(requestedElementKey)) {
@@ -27,7 +28,8 @@ export class ChoosePlayerElement {
     }
 
     const player = await this.getCurrentPlayer.execute(identity);
-    const result = await this.store.chooseElement(player.id, requestedElementKey);
+    const key = commandKey();
+    const result = await (key ? this.store.chooseElement(player.id, requestedElementKey, key) : this.store.chooseElement(player.id, requestedElementKey));
 
     if (result === 'inactive') {
       throw new BusinessError(

@@ -1,3 +1,4 @@
+import { commandSettingMutation } from './command-setting-mutation.js';
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import {
@@ -58,10 +59,11 @@ export class PrismaBoxStore implements BoxStore {
     return rows.map(toProfileBoxCharacter);
   }
 
-  public async setFavorite(playerId: string, characterId: string, favorite: boolean): Promise<BoxCharacter | null> {
-    const updated = await this.database.playerCharacter.updateMany({ where: { playerId, characterId, character: { isActive: true } }, data: { favorite } });
-    if (updated.count === 0) return null;
-    return this.readCharacter(this.database, playerId, characterId);
+  public async setFavorite(playerId: string, characterId: string, favorite: boolean, key?: string): Promise<BoxCharacter | null> {
+    return commandSettingMutation(this.database, playerId, 'box.favorite', key, { characterId, favorite }, async tx => {
+      const updated = await tx.playerCharacter.updateMany({ where: { playerId, characterId, character: { isActive: true } }, data: { favorite } });
+      return updated.count ? this.readCharacter(tx, playerId, characterId) : null;
+    });
   }
 
   public async getSortPreference(playerId: string): Promise<BoxSortPreference> {
@@ -71,13 +73,15 @@ export class PrismaBoxStore implements BoxStore {
     return parseSortPreference(row?.value) ?? defaultBoxSortPreference;
   }
 
-  public async setSortPreference(playerId: string, preference: BoxSortPreference): Promise<BoxSortPreference> {
-    await this.database.playerPreference.upsert({
-      where: { playerId_preferenceKey: { playerId, preferenceKey: BOX_SORT_PREFERENCE_KEY } },
-      create: { playerId, preferenceKey: BOX_SORT_PREFERENCE_KEY, value: preference },
-      update: { value: preference },
+  public async setSortPreference(playerId: string, preference: BoxSortPreference, key?: string): Promise<BoxSortPreference> {
+    return commandSettingMutation(this.database, playerId, 'box.sort', key, preference, async tx => {
+      await tx.playerPreference.upsert({
+        where: { playerId_preferenceKey: { playerId, preferenceKey: BOX_SORT_PREFERENCE_KEY } },
+        create: { playerId, preferenceKey: BOX_SORT_PREFERENCE_KEY, value: preference },
+        update: { value: preference },
     });
     return preference;
+    });
   }
 
   public async getStellaQuantity(playerId: string): Promise<bigint> {

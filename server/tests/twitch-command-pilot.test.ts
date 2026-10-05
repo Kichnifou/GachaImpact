@@ -20,6 +20,7 @@ async function fixture(enabled = true, arm = true) {
   const identityRead = vi.fn(async ({ where }: { where: { twitchUserId?: string; playerId?: string } }) => where.twitchUserId === '123' || where.playerId === playerId ? identity : null);
   const tx = { $queryRaw: vi.fn(async () => []), twitchEventReceipt: {
     findUnique: vi.fn(async () => structuredClone(receipt)),
+    findFirst: vi.fn(async () => null),
     update: vi.fn(async ({ data }: { data: object }) => { Object.assign(receipt, structuredClone(data)); return receipt; }),
   } };
   let pending: Promise<unknown> = Promise.resolve();
@@ -132,12 +133,11 @@ describe('Kichnifou-only command pilot', () => {
     expect(loadConfig({ TWITCH_EVENTSUB_WEBHOOK_ENABLED: 'true', TWITCH_EVENTSUB_SECRET: 'fixture-secret-long' }).twitchCommandPilot?.enabled).toBe(false);
     expect(() => loadConfig({ TWITCH_COMMAND_PILOT_ENABLED: 'yes' })).toThrow();
   });
-  it.each(['OFF', 'other author', 'unlinked', 'outside allowlist', 'wrong linked login', 'ordinary', 'bad subscription', 'wrong channel', 'wrong receiver', 'shared other channel', 'inactive Player'])(
+  it.each(['OFF', 'other author', 'unlinked', 'outside allowlist', 'ordinary', 'bad subscription', 'wrong channel', 'wrong receiver', 'shared other channel', 'inactive Player'])(
     'eliminates %s before command parsing', async gate => {
       const f = await fixture(gate !== 'OFF'); const body = commandEnvelope(gate === 'ordinary' ? 'hello' : '!pull 1', gate === 'other author' ? '456' : '123');
       if (gate === 'unlinked') f.identityRead.mockResolvedValue(null);
       if (gate === 'outside allowlist') f.config.twitch.pilotPlayerIds = [];
-      if (gate === 'wrong linked login') f.identity.login = 'different';
       if (gate === 'bad subscription') body.subscription.status = 'verification_pending';
       if (gate === 'wrong channel') body.event.broadcaster_user_id = '456';
       if (gate === 'wrong receiver') body.subscription.condition.user_id = '456';
@@ -153,13 +153,17 @@ describe('Kichnifou-only command pilot', () => {
       expect(f.executor.execute).toHaveBeenCalledTimes(1);
       expect(f.executor.execute.mock.calls[0]?.[0]).not.toHaveProperty('subject');
       expect(f.outbound.send).toHaveBeenCalledWith({ broadcasterId: '123', senderId: '123', message: 'Réponse validée.', replyParentMessageId: 'chat-message' }, expect.any(Function));
-      expect(f.receipt.state).toBe('PROCESSED'); expect(f.receipt.externalReference).toContain('twitch-command:network-id');
+      expect(f.receipt.state).toBe('PROCESSED'); expect(f.receipt.externalReference).toContain('twitch-command:123:chat-message');
     });
-  it.each(['!pull 0', '!pull 11', '!pull -1', '!pull 01', '!pull 1.5', '!pull abc', '!pull 2 extra', '!pull 1 extra', '!select A', '!banque', '!shop', '!conversion 1', '!ami', '!trade', '!combat', '!combat boss go', '!event join', '!concours', '!code X', '!daily claim', '!roue', '!exp A', '!exp retour', '!team 1 apply', '!sac extra', '!unknown'])(
-    'silently ignores command outside the exact recipe: %s', async text => {
-      const f = await fixture(); await f.pilot.consumeAuthenticated(commandEnvelope(text), 'receipt');
-      expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
-    });
+  it.each(['!conversion 1', '!trade', '!unknown', '!clear', '!wish', '!giveaway stats'])('keeps unknown/internal/specialized commands out of the generic bridge: %s', async text => {
+    const f = await fixture(); await f.pilot.consumeAuthenticated(commandEnvelope(text), 'receipt');
+    expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
+  });
+  it('uses the immutable User ID even after a linked login changes', async () => {
+    const f = await fixture(); f.identity.login = 'renamed';
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pity'), 'receipt');
+    expect(f.executor.execute).toHaveBeenCalledTimes(1);
+  });
   it('serializes duplicates and emits neither a second business call nor a second completed response', async () => {
     const f = await fixture(); const body = commandEnvelope('!pull 1');
     await Promise.all([f.pilot.consumeAuthenticated(body, 'receipt'), f.pilot.consumeAuthenticated(body, 'receipt')]);
@@ -229,7 +233,7 @@ describe('multi-pull transport', () => {
     const body = commandEnvelope('!pull 3');
     await f.pilot.consumeAuthenticated(body, 'receipt');
     expect(f.parser).toHaveBeenCalledExactlyOnceWith('pull');
-    expect(f.executor.execute).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: playerId }), 'pull', ['3'], expect.any(String), 'twitch-command:network-id');
+    expect(f.executor.execute).toHaveBeenCalledExactlyOnceWith(expect.objectContaining({ id: playerId }), 'pull', ['3'], expect.any(String), 'twitch-command:123:chat-message', undefined);
     expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: results.map(text => ({ text, status: 'SENT' })) } });
     expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(results);
     await f.pilot.consumeAuthenticated(body, 'receipt');

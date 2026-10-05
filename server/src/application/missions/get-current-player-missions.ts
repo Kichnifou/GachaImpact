@@ -1,5 +1,6 @@
+import { commandNow } from '../player/player-command-execution.js';
+import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
-import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { PermanentMissionProjection, PermanentMissionService } from './permanent-mission-service.js';
@@ -17,9 +18,9 @@ export class GetCurrentPlayerMissions {
     private readonly missions: MissionReader,
   ) {}
 
-  public async execute(identity: AuthenticatedIdentity): Promise<CurrentPlayerMissions> {
+  public async execute(identity: PlayerExecutionActor): Promise<CurrentPlayerMissions> {
     const player = await this.getCurrentPlayer.execute(identity);
-    const now = this.clock.now();
+    const now = commandNow(this.clock);
     return this.database.$transaction(async transaction => {
       const catchUp = await this.missions.catchUpStandalone(transaction, { playerId: player.id, now });
       const projection = await this.missions.project(transaction, player.id);
