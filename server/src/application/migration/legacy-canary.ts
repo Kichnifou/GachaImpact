@@ -12,6 +12,7 @@ import type { PlannedPlayer } from './legacy-global-plan.js';
 import { planDeferredIdentityFacts } from './legacy-identity-deferrals.js';
 import { captureTargetedPlayerRows, assertTargetedDeletionSafe, deleteTargetedRows, personalReplacementTables, restoreTargetedRows, type RowGraph } from './targeted-player-rows.js';
 import { TwitchNativeAuthority, STREAMERBOT_PATH_DISABLED } from '../twitch/twitch-native-authority.js';
+import { assessTwitchOperationsInFlight } from '../twitch/twitch-operations-in-flight.js';
 import type { AppConfig } from '../../config/environment.js';
 
 export type CanaryPlan = { snapshot: Snapshot; report: VerifiedTwitchReport; identityReportHash: string; cutoverAt: Date; player: PlannedPlayer;
@@ -62,14 +63,9 @@ export const canarySummary = (plan: CanaryPlan) => ({ snapshotHash: plan.snapsho
   blockers: [...new Set(plan.blockers)], phases: ['DATA_IMPORTED', 'AUTHORITY_TRANSFERRED_SEPARATELY'] });
 
 async function assertCanaryIdle(db: Prisma.TransactionClient, twitchUserId: string, playerId?: string) {
-  if (playerId && await db.businessOperation.count({ where: { playerId, status: 'PENDING' } })
-    || await db.twitchEventReceipt.count({ where: { twitchUserId, OR: [{ state: 'RECEIVED' }, { payloadMinimal: { path: ['commandPilot', 'stage'], equals: 'EXECUTING' } }] } }))
-    throw new Error('CANARY_OPERATIONS_IN_FLIGHT');
-  const receipts = await db.twitchEventReceipt.findMany({ where: { twitchUserId }, select: { payloadMinimal: true } });
-  for (const receipt of receipts) {
-    const pilot = (receipt.payloadMinimal as { commandPilot?: { responses?: { status?: string }[] } })?.commandPilot;
-    if (pilot?.responses?.some(response => response.status === 'SENDING' || response.status === 'AMBIGUOUS')) throw new Error('CANARY_OUTBOUND_UNRESOLVED');
-  }
+  const operations = await assessTwitchOperationsInFlight(db, twitchUserId, playerId);
+  if (operations.unresolvedOutbound) throw new Error('CANARY_OUTBOUND_UNRESOLVED');
+  if (operations.blocked) throw new Error('CANARY_OPERATIONS_IN_FLIGHT');
 }
 
 /** Callable from the guarded local CLI/private fixtures only. No public HTTP application endpoint. */

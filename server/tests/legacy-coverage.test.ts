@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { parseStreamerbotSnapshot, snapshotFileNames } from '../src/application/migration/streamerbot-snapshot.js';
 import { normalizeCoverageKey, scanLegacyCoverage } from '../src/application/migration/legacy-coverage.js';
+import { buildLegacyGlobalPlan } from '../src/application/migration/legacy-global-plan.js';
 
 function fixture(viewers: Record<string, unknown>, extra?: { name: string; value: unknown }) {
   const files: Record<string, string> = Object.fromEntries(snapshotFileNames.map(name => [name, name === 'monthly_events.json' ? '' : '{}']));
@@ -23,6 +24,19 @@ describe('legacy coverage gate', () => {
 
   it('rejects an additional source file before inspection', () => {
     expect(() => parseStreamerbotSnapshot(fixture({}, { name: 'new_source.json', value: {} }))).toThrow();
+  });
+
+  it('classifies the six known legacy trade fields as dropped while blocking a future property', () => {
+    const trade = { type: 'sent', otherUser: 'private_peer', amount: 10, myElement: 'geo', otherElement: 'cryo', createdAt: '2026-10-06 10:00:00' };
+    const known = scanLegacyCoverage(parseStreamerbotSnapshot(fixture({ eligible: { tradeRequests: [trade] } })));
+    expect(known.unknown).toEqual([]);
+    expect(known.byDisposition.INTENTIONALLY_DROPPED).toBe(8);
+    const changedSnapshot = parseStreamerbotSnapshot(fixture({ eligible: { tradeRequests: [{ ...trade, futureUnexpectedField: true }] } }));
+    const changed = scanLegacyCoverage(changedSnapshot);
+    expect(changed.unknown).toEqual([{ file: 'viewers_data.json', path: '*.tradeRequests[].futureUnexpectedField' }]);
+    expect(buildLegacyGlobalPlan(changedSnapshot, [], [], new Set()).issues).toContainEqual({
+      code: 'UNKNOWN_SOURCE_PATH', severity: 'BLOCKER', source: 'viewers_data.json', path: '*.tradeRequests[].futureUnexpectedField',
+    });
   });
 
   it('recognizes a dynamic character ID but blocks a new nested field', () => {

@@ -1,6 +1,7 @@
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
+import { assessTwitchOperationsInFlight } from './twitch-operations-in-flight.js';
 
 export const STREAMERBOT_PATH_DISABLED = 'STREAMERBOT_PATH_DISABLED';
 export type NativeAuthorityMode = 'OFF' | 'CANARY' | 'GLOBAL';
@@ -42,12 +43,11 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       if (control?.desiredMode && control.desiredMode !== 'OFF' || !target?.playerId || target.dataAuthority === 'MIGRATION_PENDING')
         throw new AppError('Kill switch OFF et cible inactive requis avant rollback.', 409, 'TWITCH_NATIVE_ROLLBACK_OFF_REQUIRED');
       await tx.$queryRaw`SELECT id FROM players WHERE id=${target.playerId}::uuid FOR UPDATE`;
-      const receipts = await tx.twitchEventReceipt.findMany({ where: { twitchUserId }, select: { payloadMinimal: true } });
-      if (receipts.some(receipt => (receipt.payloadMinimal as { commandPilot?: { responses?: { status?: string }[] } })?.commandPilot?.responses?.some(response => response.status === 'SENDING' || response.status === 'AMBIGUOUS')))
+      const operations = await assessTwitchOperationsInFlight(tx, twitchUserId, target.playerId);
+      if (operations.unresolvedOutbound)
         throw new AppError('Réponse Twitch incertaine : contrôle opérateur requis avant rollback.', 409, 'TWITCH_NATIVE_ROLLBACK_BLOCKED');
       if (!await tx.twitchCanaryImport.findFirst({ where: { twitchUserId, playerId: target.playerId, backupHash, status: 'DATA_IMPORTED' } })
-        || await tx.businessOperation.count({ where: { playerId: target.playerId, status: 'PENDING' } })
-        || await tx.twitchEventReceipt.count({ where: { twitchUserId, OR: [{ state: 'RECEIVED' }, { payloadMinimal: { path: ['commandPilot', 'stage'], equals: 'EXECUTING' } }] } }))
+        || operations.blocked)
         throw new AppError('Provenance ou opérations en cours à contrôler.', 409, 'TWITCH_NATIVE_ROLLBACK_BLOCKED');
       await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { dataAuthority: 'LEGACY', canary: false, acknowledgement: null, transferredAt: null } });
       if (control) await tx.twitchNativeAuthority.update({ where: { id: key }, data: { revision: { increment: 1 } } });
