@@ -2,6 +2,8 @@
 
 Statut : évolutif.
 
+**Checkpoint de promotion, 06/10/2026 :** R1048 et correction b728d13 approuvés indépendamment sans finding bloquant, code promu sur main par fast-forward strict. Aucune nouvelle décision Rxxx ni modification des règles R1049–R1054 ; déploiement et statut Prisma 061 à vérifier par ChatGPT, aucun canary réel/import public/autorité activée. Streamer.bot reste autoritatif ; état et prochaine reprise au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Migration et récupération sans élément — R1049 (2026-10-06)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : l'élément personnel est nullable, indépendamment du niveau 0/1/2 ou supérieur. Propriété absente, null ou chaîne vide = ABSENT_ELEMENT ; vraie valeur inconnue/typo = INVALID_ELEMENT, blocker explicite, jamais converti silencieusement en null. Aucun autre sentinel non choisi n'est inventé sans observation source. Migration/récupération conservent XP, messages, ressources et tous les états certains sans élément ; les domaines nécessitant un élément gardent leurs gates. Le standalone présente son choix normal sur le même Player, sans reset. Le niveau ne conditionne jamais R1046. La résolution canary cible un login explicite, le batch cible les 43 historiques fixés par R1048, sans dépendre de l'élément frais ; le filtre ancien est seulement HISTORICAL_ELEMENT_REHEARSAL. Les 171 et deux quarantaines restent hors import. Garde-fou associé à la review : déliaison de l'identité opérateur/transport interdite tant que le désir natif est différent de OFF ; kill séparé, explicite et auditable, erreur DB fail-closed. Aucun élargissement aux déliaisons ordinaires.

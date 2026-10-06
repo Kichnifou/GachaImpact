@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correction de review R1048 et consolidation de fin de projet R1049–R1054.
+Version : promotion approuvée R1048 et correction R1049–R1054.
 Date : 2026-10-06
-Statut : **ARCHITECTURE R1048 APPROUVÉE CONCEPTUELLEMENT PAR REVIEW INDÉPENDANTE REÇUE ; CORRECTION DES DEUX FINDINGS CANDIDATE REVIEW ; FIN PRODUIT R1049–R1054 DÉCIDÉE MAIS NON IMPLÉMENTÉE ; STREAMER.BOT AUTORITATIF.** Prochaine action : nouvelle review indépendante ChatGPT du commit correction. Aucune promotion main ni mise en service/migration/activation publique autorisée dans cette mission.
+Statut : **R1048 ET CORRECTION R1049–R1054 APPROUVÉS PAR REVIEW INDÉPENDANTE ; CODE PROMU SUR MAIN ; DÉPLOIEMENT ET STATUT PRISMA 061 À VÉRIFIER PAR CHATGPT ; STREAMER.BOT AUTORITATIF.** Aucun canary réel, Player public migré ni autorité native publique activée. Les travaux futurs de fin de produit restent décidés mais non implémentés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correction R1048 et fin de projet décidée, 06/10/2026
+## Point courant — promotion approuvée R1048 et correction, 06/10/2026
+
+**Approbation et baseline :** verdict indépendant ChatGPT du vrai GitHub reçu : APPROUVÉ, aucun finding bloquant restant sur les deux commits. Fetch exécuté, main initial = `908403bf59b7d39cf7b72be32dd6c84da659db36`, review initial = `b728d13b1ada93e127940a205803e2956c1daa00`, chaîne exacte 908403b → 97e05f4 → b728d13, ahead 2/behind 0 et worktree/index propres. Un seul checkpoint Markdown actualise le statut avant promotion ; aucun changement du code approuvé, de 061 ou des anciennes migrations, aucune nouvelle décision Rxxx.
+
+**État de sortie :** R1048 et sa correction présents sur main par fast-forward strict du HEAD review incluant ce checkpoint documentaire, sans squash/rebase/force-push. Le rapport final porte le SHA commun et le contrôle distant main == review/divergence 0/0/worktree-index propres ; branche de travail revenue sur review. Les preuves automatisées de b728d13 ci-dessous restent acquises ; contrôles proportionnés du seul Markdown : diff-check, périmètre exact et liens locaux, sans relancer la campagne produit.
+
+**Production et données :** le push main déclenche seulement les mécanismes normaux de déploiement du dépôt. Railway/Cloudflare, healthcheck et registre Prisma 061 restent à contrôler après déploiement par ChatGPT ; aucune réussite de déploiement ni application de 061 présumée. Aucune application manuelle DB, donnée publique modifiée, identité/OAuth/EventSub/bridge/autorité activés, changement manuel Railway/env/service ou chemin Streamer.bot touché. Aucun Player réel migré par ces lots ; Streamer.bot reste autoritatif.
+
+**Prochaine action :** STOP pour les contrôles ChatGPT de déploiement, statut Prisma 061 et healthcheck. Après leur validation seulement, préparer le canary réel Kichni_Test, créé côté propriétaire mais non importé : snapshot frais des 17 fichiers, identité Twitch fraîchement vérifiée avec scope canary explicite, plan read-only puis rehearsal privée ; apply public ciblé uniquement après review/autorisation distinctes. Kichnifou puis Ceo viennent après validation de Kichni_Test, aucun batch global avant ces canaries. [Guide](../process/twitch-native-foundations.md), [runbook](../process/legacy-cutover-runbook.md). Cette séquence n'est pas exécutée dans la promotion.
+
+## Historique — correction R1048 et fin de projet décidée, 06/10/2026
 
 **Baseline vérifiée :** fetch initial exécuté ; HEAD/local review/origin review = `97e05f4f2cd107a5e025e920477189a826e3fbf5`, main = `908403bf59b7d39cf7b72be32dd6c84da659db36`, review ahead 1/behind 0, worktree/index propres. La review indépendante du vrai GitHub reçue dans la mission approuve conceptuellement l'architecture R1048 et exige deux corrections. Aucun travail parallèle Story n'est écrasé. Le présent lot reste un commit séparé directement au-dessus du candidat, review uniquement ; aucune promotion.
 
