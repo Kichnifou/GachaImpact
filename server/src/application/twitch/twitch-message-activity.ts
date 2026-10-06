@@ -18,6 +18,7 @@ import type { EventService } from '../event/event-service.js';
 import { EventChatPresence, type EventChatPresenceIntent } from '../event/event-chat-presence.js';
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
+import { firstDailyMessageResult } from '../chat/daily-reward-chat-result.js';
 
 type MessagePresenceIntent = { daily: boolean; event: EventChatPresenceIntent | null };
 
@@ -73,7 +74,8 @@ export class TwitchMessageActivity {
           const output: string[] = [];
           if (presence.daily && this.dailyReward) {
             const daily = await this.dailyReward.execute(actor, 'TWITCH', key);
-            if (!daily.alreadyClaimed) output.push(`🎁 ${player.displayName}, récompense quotidienne : +160 Primogemmes, +160 particules ${player.elementKey}, +10 000 Moras.`);
+            const element = player.elementKey;
+            if (!daily.alreadyClaimed && element && isElementKey(element)) output.push(firstDailyMessageResult(player.displayName, element, daily));
           }
           if (presence.event && this.events) {
             if (presence.event.bonus) {

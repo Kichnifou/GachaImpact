@@ -55,7 +55,7 @@ describe('Remaining command aliases and simple presentation', () => {
   it('converts via conv using the same owner, bigint amount, key and authoritative total', async () => {
     const h = remainingHarness(); const result = await h.send('!CONV 100');
     expect(h.services.convertPersonalParticlesChat.execute).toHaveBeenCalledWith(identity, 100n, commandId);
-    expect(result.result?.content).toBe('✅ Axel convertit 100 particules ☄️ Geo en 💠100 Primogemmes (12345678901234567890).');
+    expect(result.result?.content).toBe('✅ Axel convertit 100 particules ☄️ Geo en 💠100 Primogemmes (12 345 678 901 234 567 890).');
     expect((await h.send('!conv 2m')).result?.content).toBe('Syntaxe : !convertir <montant>.');
   });
   it('shows modern Capture rather than legacy loss streak', async () => {

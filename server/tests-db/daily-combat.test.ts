@@ -153,9 +153,12 @@ describe('Daily Combat persistence', () => {
     expect(await database.playerDailyCombatLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
     const key = randomUUID();
     const first = await store.fight({ ...context(player.id, dates[1]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: 'INTERNAL_CHAT' });
+    await database.playerCharacter.updateMany({ where: { playerId: player.id }, data: { constellation: 6, copies: 7 } });
     const replay = await store.fight({ ...context(player.id, dates[1]), idempotencyKey: key, selection: 'ACTIVE_TEAM', sourceChannel: 'INTERNAL_CHAT' });
     expect(first.result).toMatchObject({ won: true, mode: 'MANUAL', chanceHalfPoints: preview!.finalHalfPoints });
     expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+    expect(first.result.characters).toHaveLength(4);
+    expect(replay.result.characters).toEqual(first.result.characters);
     expect(await database.dailyCombatAttempt.count({ where: { playerId: player.id } })).toBe(1);
     expect((await database.team.findUniqueOrThrow({ where: { id: team.id }, include: { members: true } })).members).toHaveLength(4);
     expect(await database.playerDailyCombatLoadoutSlot.count({ where: { playerId: player.id } })).toBe(4);

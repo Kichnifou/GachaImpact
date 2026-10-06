@@ -158,7 +158,7 @@ describe('R1047 ordinary messages on private PostgreSQL', () => {
     now = new Date('2026-09-28T12:00:00Z'); const player = await createPlayer();
     const activity = new TwitchMessageActivity(db, clock, random, daily), id = randomUUID();
     const output = await activity.consume(player, id, '123', 101, true);
-    expect(output.join(' ')).toContain('récompense quotidienne');
+    expect(output).toContain(`✅ Premier message du jour ${player.displayName} ! +💠160 Primogemmes | +160 particules 💧 Hydro | +🪙10 000 Moras`);
     now = new Date('2026-09-28T12:00:01Z');
     // The shared standalone progression owner sees exactly the same cooldown timestamp.
     await db.$transaction(async tx => {

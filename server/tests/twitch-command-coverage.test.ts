@@ -38,6 +38,24 @@ describe('R1047 registry ownership', () => {
 });
 
 describe('R1047 shared resolver and frozen effects', () => {
+  it.each(['!combat auto', '!event go', '!expedition A', '!shop mission', '!shop switch'])('executes an old frozen %s intent without requiring a new actor read', async text => {
+    const f = fixture();
+    const challenge = { execute: vi.fn(async () => ({ view: { challenge: { displayName: 'Mission', description: 'Faire 50 Pulls', progress: 0n, target: 50n, rewardPrimogems: 811n }, nextSwitchCost: 30000n }, resources: { moras: 12345n }, spentMoras: 10000n })) };
+    Object.assign(f.services, { purchaseDailyChallenge: challenge, switchDailyChallenge: challenge });
+    const { definition, args } = parseChatCommand(text);
+    const saved = await f.executor.prepare!(player, definition!.handler!, args, definition!.syntax, 'old-key');
+    // Pre-corrective intents had no actor read nor presentation name for these effects.
+    delete saved.reads['socialService.actor'];
+    if (definition!.handler === 'event') {
+      const context = JSON.parse(saved.memory.eventContext!); delete context.player;
+      saved.memory.eventContext = JSON.stringify(context);
+    } else delete saved.memory.eventContext;
+    const mutation = structuredClone(saved.mutation);
+    f.services.socialService.actor.mockRejectedValue(new Error('new actor read must not be required'));
+    const output = await f.executor.execute(player, definition!.handler!, args, definition!.syntax, 'old-key', saved);
+    expect(output.length).toBeGreaterThan(0); expect(saved.mutation).toEqual(mutation);
+    expect(f.services.socialService.actor).not.toHaveBeenCalled();
+  });
   it.each([
     '!help', '!element pyro', '!convertir 1', '!echanger Autre 3', '!banniere', '!select A', '!vote Candidat', '!pity',
     '!pull', '!box', '!obtention A', '!stella A', '!legende', '!concours', '!top xp', '!code CODE', '!event go',
@@ -86,7 +104,7 @@ describe('R1047 shared resolver and frozen effects', () => {
     const f = fixture();
     const saved = await f.executor.prepare!(player, 'event', ['feu'], '!event', 'event-key');
     const current = await f.services.eventService.getCurrent();
-    f.services.eventService.getCurrent.mockResolvedValue({ ...current, gameA: { theme: { key: 'different', label: 'Other' } } });
+    f.services.eventService.getCurrent.mockResolvedValue({ ...current, gameA: { ...current.gameA, theme: { key: 'different', label: 'Other' } } });
     await f.executor.execute(player, 'event', ['feu'], '!event', 'event-key', saved);
     expect(f.services.eventService.attemptGameA).toHaveBeenCalledWith(expect.any(Object), 'event-key', 'TWITCH');
     expect(f.services.eventService.getCurrent).toHaveBeenCalledTimes(2); // one explicit test inspection, one original preparation

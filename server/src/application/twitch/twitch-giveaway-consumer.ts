@@ -3,6 +3,7 @@ import { AppError } from '../../api/errors.js';
 import { classifyGiveawayText } from '../../domain/giveaway/giveaway.js';
 import type { GiveawayService } from '../giveaway/giveaway-service.js';
 import type { TwitchGiveawayManager } from './twitch-giveaway-manager.js';
+import { wishChatResult } from '../../domain/giveaway/wish-chat-result.js';
 
 export type GiveawayChatEvent = {
   broadcasterUserId: string; chatterUserId: string; messageId: string; text: string;
@@ -28,6 +29,13 @@ export class TwitchGiveawayConsumer {
       return false;
     }
     const key = `twitch:${event.messageId}`;
+    // Use the persisted reply on replay; names, counts and live stats may have changed.
+    const saved = command === 'WISH' || command === 'STATS'
+      ? await this.db.giveawayAnnouncement.findUnique({ where: { sourceEventId: key } }) : null;
+    if (saved && (command === 'WISH' && saved.kind === 'WISH' || command === 'STATS' && saved.kind === 'STATS')) {
+      await this.bridge.sendAnnouncement(saved.id);
+      return false;
+    }
     const sendReply = async (text: string, kind: 'WISH' | 'STATS' | 'COMMAND', sessionId?: string | null) => {
       const id = await this.bridge.queueReply(key, kind, text, sessionId);
       if (id) await this.bridge.sendAnnouncement(id);
@@ -35,14 +43,14 @@ export class TwitchGiveawayConsumer {
     if (command === 'STATS') { await sendReply(await this.core.publicStats(), 'STATS'); return false; }
     if (command === 'WISH') {
       const result = await this.core.wish(event.chatterUserId, key);
-      const identity = result.playerId ? await this.db.player.findUnique({ where: { id: result.playerId }, select: { displayName: true } }) : null;
+      const announcement = await this.db.giveawayAnnouncement.findUnique({ where: { sourceEventId: key } });
+      if (announcement) { await this.bridge.sendAnnouncement(announcement.id); return false; }
+      // Compatibility with an old participation receipt interrupted before its announcement was queued.
+      const identity = result.playerId ? await this.db.player.findUnique({ where: { id: result.playerId }, select: { displayName: true } })
+        : (await this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatterUserId }, select: { player: { select: { displayName: true } } } }))?.player;
       const name = identity?.displayName ?? 'Voyageur';
       const count = result.sessionId ? await this.db.giveawayParticipant.count({ where: { sessionId: result.sessionId } }) : 0;
-      const reply = result.outcome === 'JOINED' ? `🌠 ${name} formule un vœu auprès de Célestia ! ${count} participant(s).`
-        : result.outcome === 'ALREADY_JOINED' ? `⚠️ ${name}, tu participes déjà au Giveaway.`
-          : result.outcome === 'NO_OPEN' ? '⚠️ Aucun Giveaway n’est actuellement ouvert.'
-            : result.outcome === 'NO_ELEMENT' ? '⚠️ Choisis ton élément dans GachaImpact avant !wish.'
-              : '⚠️ Ton profil GachaImpact actif et lié à Twitch est requis pour !wish.';
+      const reply = wishChatResult(result.outcome, name, count);
       await sendReply(reply, 'WISH', result.sessionId);
       return false;
     }

@@ -58,7 +58,7 @@ export interface DailyCombatStore {
   clearLoadout(context: DailyCombatContext): Promise<DailyCombatView>;
   fight(context: DailyCombatContext & Readonly<{ idempotencyKey: string; selection?: 'ACTIVE_TEAM' | 'AUTO'; sourceChannel?: SourceChannel }>): Promise<Readonly<{
     operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
-    result: Readonly<{ won: boolean; mode: CombatAttemptMode; chanceHalfPoints: number }>;
+    result: Readonly<{ won: boolean; mode: CombatAttemptMode; chanceHalfPoints: number; characters?: readonly Readonly<{ name: string; elementKey: string; constellation: number }>[] }>;
     view: DailyCombatView;
     resources: PlayerResourceBalances;
   }>>;

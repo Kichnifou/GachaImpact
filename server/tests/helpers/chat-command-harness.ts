@@ -21,6 +21,15 @@ export function harness() {
     rememberCommandText: vi.fn(async (_id: string, _field: string, value: string) => value),
   };
   const execute = <T>(value: T) => ({ execute: vi.fn(async () => value) });
+  const eventView = {
+    festival: { key: 'hearts', emoji: '🎊', title: 'Festival', currency: { label: 'Monnaies', emoji: '💖' } },
+    edition: { endsAt: '2026-03-01T00:00:00Z' }, milestones: { thresholds: [{ points: 10, reached: false }] },
+    dailyBonus: { claimedToday: false, canClaim: false }, canJoin: true, participation: { joined: false, points: 0 },
+    currency: { amount: '3' }, shop: { rates: { primogems: 160, moras: 20000 }, collection: { label: 'Souvenir', cost: 80, obtainedThisEdition: false } },
+    gameA: { theme: { key: 'feu', label: 'Feu' }, windows: [], completedToday: false, canAttempt: false, cooldownRemainingMs: 0 },
+    gameB: { theme: { label: 'Coffre' }, solvedToday: false, attemptsRemaining: 3, canAttempt: false, remainingCodes: ['00000', '00001'], resolvedCode: null },
+    gameC: { theme: { label: 'Mot doux' }, sentToday: false, canSend: false, unviewedCount: 0 },
+  };
   const services = {
     getCurrentGacha: execute({ banner: { startsAt: new Date('2026-09-27T22:00:00Z'), endsAt: new Date('2026-10-04T22:00:00Z'), featuredFiveStars: [{ id: 'five', name: 'A', elementKey: 'pyro' }], featuredFourStars: [{ id: 'four', name: 'B', elementKey: 'hydro' }] }, playerState: { pity5: 9, pity4: 2, guaranteedFeatured5: true, captureProgress: 1, selectedBannerCharacterId: 'five' } }),
     getCharacters: execute([{ id: 'five', name: 'A' }, { id: 'candidate', name: 'Candidat' }]),
@@ -62,19 +71,19 @@ export function harness() {
     choosePlayerElement: execute({ elementKey: 'pyro' }),
     giftCodeService: { listForPlayer: vi.fn(async () => ({ available: [{ token: 'CODE', editionId: 'edition', rewards: [{ amount: '1600', displayName: 'Primogemmes', resourceKey: 'primogems' }] }], claimed: [{ token: 'OTHER', editionId: 'other', claimed: true }] })), claim: vi.fn(async () => ({ claimed: [], resources: { primogems: '1800', moras: '0', particles: {} }, operation: { alreadyProcessed: false } })) },
     eventService: {
-      getCurrent: vi.fn(async () => ({ festival: { key: 'hearts', emoji: '🎊', title: 'Festival', currency: { label: 'Monnaies', emoji: '💖' } }, edition: { endsAt: '2026-03-01T00:00:00Z' }, milestones: { thresholds: [{ points: 10, reached: false }] }, dailyBonus: { claimedToday: false }, participation: { joined: false, points: 0 }, currency: { amount: '3' }, shop: { rates: { primogems: 160, moras: 20000 }, collection: { label: 'Souvenir', cost: 80, obtainedThisEdition: false } }, gameA: { theme: { key: 'feu', label: 'Feu' } }, gameB: { theme: { label: 'Coffre' } }, gameC: { theme: { label: 'Mot doux' } } })),
+      getCurrent: vi.fn(async () => eventView),
       getRanking: vi.fn(async () => ({ entries: [{ rank: 1, displayName: 'Autre', points: 10 }] })),
-      join: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, currency: { amount: '4' } })),
-      attemptGameA: vi.fn(async () => ({ attempt: { succeeded: true, reward: { points: 1, currency: 1 } } })), attemptGameB: vi.fn(async () => ({ attempt: { kind: 'CORRECT', reward: { points: 1, currency: 1 } } })),
+      join: vi.fn(async () => ({ ...eventView, creditedCurrency: 1, currency: { amount: '4' } })),
+      attemptGameA: vi.fn(async () => ({ ...eventView, attempt: { succeeded: true, reward: { points: 1, currency: 1 } } })), attemptGameB: vi.fn(async () => ({ ...eventView, attempt: { kind: 'CORRECT', reward: { points: 1, currency: 1 } } })),
       searchGameCRecipients: vi.fn(async () => ({ recipients: [{ playerId: 'other', displayName: 'Autre' }], totalPages: 1 })), sendGameC: vi.fn(async () => ({ reward: { points: 1, currency: 1 } })),
-      claimCalendar: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, calendarClaim: { day: 1, reward: 2 } })),
+      claimCalendar: vi.fn(async () => ({ ...eventView, calendarClaim: { day: 1, reward: 2 } })),
       convertShop: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies', emoji: '💖' } }, currency: { amount: '2' }, conversion: { resourceKey: 'moras', amount: '60000' } })),
-      purchaseCollection: vi.fn(async () => ({ festival: { title: 'Festival', currency: { label: 'Monnaies' } }, shop: { collection: { label: 'Souvenir', cost: 80 } } })),
+      purchaseCollection: vi.fn(async () => eventView),
     },
-    expeditionService: { getState: vi.fn(async () => ({ operationalStatus: 'IDLE', departureUsedToday: false })), start: vi.fn(async () => ({})), claim: vi.fn(async () => ({ reward: { amount: 5n, resourceKey: 'primogems' } })) },
+    expeditionService: { getState: vi.fn(async () => ({ operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true })), start: vi.fn(async () => ({ view: { departedAt: null, readyAt: null } })), claim: vi.fn(async () => ({ reward: { amount: 5n, resourceKey: 'primogems' }, resources: { primogems: 165n, moras: 50n, particles: {} } })) },
     contestService: { getCurrent: vi.fn(async () => ({ active: null, theme: { label: 'Force' }, dailyUsed: false })) },
-    dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, chanceHalfPoints: 140 }, view: { reward: { primogems: 800n, moras: 20000n } } })) },
-    monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss' } } })) },
+    dailyCombatService: { getDaily: vi.fn(async () => ({ status: 'TODO', loadout: { slots: [] }, preview: null, playerStats: { totalFights: 0n, totalWins: 0n, totalManualWins: 0n, totalLosses: 0n }, encounter: { enemies: [{ character: { name: 'Ennemi', elementKey: 'cryo' }, weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }] }, canFight: false })), previewActiveTeam: vi.fn(async () => ({ finalHalfPoints: 140 })), getElementMatrix: vi.fn(async () => [{ element: 'cryo', weakAgainstElements: ['pyro'], resistantAgainstElements: ['hydro'] }]), fight: vi.fn(async () => ({ result: { won: true, mode: 'ACTIVE_TEAM', chanceHalfPoints: 140, characters: [{ name: 'A', elementKey: 'pyro', constellation: 0 }] }, view: { reward: { primogems: 800n, moras: 20000n } } })) },
+    monthlyBossService: { getCurrentForChat: vi.fn(async () => ({ boss: { id: 'boss', name: 'Boss', currentHp: 10n, maxHp: 20n, resistanceElementKey: 'pyro' }, status: 'ALIVE', attackState: 'AVAILABLE', availableCharacters: Array(4).fill({}), preview: null, playerStats: { totalDamage: 0n, totalAttacks: 0n, totalParticipated: 0n, totalRewarded: 0n, finalBlows: 0n, bestHit: 0n } })), attackWithActiveTeam: vi.fn(async () => ({ result: { damage: 5n, defeated: false }, view: { boss: { name: 'Boss', currentHp: 5n, maxHp: 20n } } })) },
     getDailyChallenge: execute({ status: 'AVAILABLE', challenge: null, purchaseCost: 10000n }),
     getCurrentPlayerMissions: execute({
       catchUpApplied: false,

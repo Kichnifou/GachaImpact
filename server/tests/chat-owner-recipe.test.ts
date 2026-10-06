@@ -15,35 +15,37 @@ describe('Final owner recipe, step 29', () => {
     h.services.dailyCombatService.getDaily.mockResolvedValue({ status: 'COMPLETED' } as never);
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'IDLE', departureUsedToday: true, todayReward: { amount: '5' } } as never);
     h.services.socialService.friends.mockResolvedValue({ summary: { available: 0 } } as never);
-    h.services.eventService.getCurrent.mockResolvedValue({ participation: { joined: true }, dailyBonus: { claimedToday: true } } as never);
+    const event = await h.services.eventService.getCurrent();
+    h.services.eventService.getCurrent.mockResolvedValue({ ...event, canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: true, canClaim: false }, gameA: { completedToday: true }, gameB: { solvedToday: true, canAttempt: false }, gameC: { canSend: false, unviewedCount: 0 } } as never);
+    h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState: 'USED' } as never);
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: true } } as never);
-    expect(await h.send('!quotis')).toBe('Quotidiennes : Récompense ✅ | Roue ✅ | Défi ✅ | Combat ✅ | Expédition ✅ | Amitié ✅ | Festival ✅ | Faveur ✅');
+    expect(await h.send('!quotis')).toBe('📅 Quotidiennes : 🎁 Récompense ✅ | 🎡 Roue ✅ | 🛒 Shop ✅ | ⚔️ Combat ✅ | 👹 Boss ✅ | 🧭 Expédition ✅ | 💖 Amitié ✅ | 🎪 Event ✅ | ✧ Faveur ✅');
   });
   it.each(['RUNNING', 'READY', 'IDLE'])('keeps an unfinished expedition %s pending and inactive Favor unavailable', async status => {
     const h = harness();
-    h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: status, departureUsedToday: status !== 'IDLE' });
+    h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: status, departureUsedToday: status !== 'IDLE', canStartToday: status === 'IDLE' });
     const text = await h.send('!quotis');
-    for (const fragment of ['Récompense ⏳', 'Roue ⏳', 'Défi ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Festival ⏳ · non inscrit', 'Faveur ➖']) expect(text).toContain(fragment);
+    for (const fragment of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit', 'Faveur ➖']) expect(text).toContain(fragment);
     expect(h.services.expeditionService.claim).not.toHaveBeenCalled();
     expect(h.services.eventService.join).not.toHaveBeenCalled();
   });
   it('keeps active Favor and joined Festival claims pending', async () => {
     const h = harness();
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: false } } as never);
-    h.services.eventService.getCurrent.mockResolvedValue({ participation: { joined: true }, dailyBonus: { claimedToday: false } } as never);
-    expect(await h.send('!quotis')).toContain('Festival ⏳ | Faveur ⏳');
+    h.services.eventService.getCurrent.mockResolvedValue({ ...await h.services.eventService.getCurrent(), canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: false, canClaim: true } } as never);
+    expect(await h.send('!quotis')).toContain('Event ⏳ | ✧ Faveur ⏳');
   });
   it.each(['!exp', '!exp Skirk', '!exp Autre'])('reports the real ongoing expedition and remaining time for %s', async command => {
     const h = harness();
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'RUNNING', activeCharacter: { name: 'Skirk' }, remainingSeconds: 44760 } as never);
     const text = await h.send(command);
-    expect(text).toContain('Skirk'); expect(text).toContain('retour dans 12 h 26 min');
+    expect(text).toContain('Skirk'); expect(text?.toLowerCase()).toContain('retour dans 12 h 26 min');
     expect(h.services.expeditionService.start).not.toHaveBeenCalled();
   });
   it('gives the READY claim help for another name but retains the exact-name shortcut', async () => {
     const h = harness();
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'READY', activeCharacter: { name: 'Skirk' } } as never);
-    expect(await h.send('!exp Autre')).toBe('⚠️ L’expédition de Skirk est prête à être récupérée avec !expedition retour.');
+    expect(await h.send('!exp Autre')).toBe('⚠️ 🧭 Moi, l’expédition de Skirk est prête à être récupérée avec !expedition retour.');
     await h.send('!exp Skirk'); expect(h.services.expeditionService.claim).toHaveBeenCalledWith(actor, commandId, 'INTERNAL_CHAT');
     expect(h.services.expeditionService.start).not.toHaveBeenCalled();
   });
@@ -96,8 +98,8 @@ describe('Final owner recipe, step 29', () => {
   });
   it.each([false, true])('renders the exact Event root with Paris time and owner attempt limit, completed=%s', async completed => {
     const h = harness(); const original = await h.services.eventService.getCurrent();
-    h.services.eventService.getCurrent.mockResolvedValue({ ...original, festival: { key: 'shadows', emoji: '🎃', title: 'Festival des Ombres', currency: { emoji: '🎃', label: 'Bonbons Maudits' } }, edition: { endsAt: '2026-10-31T23:00:00Z' }, participation: { joined: true, points: 7 }, currency: { amount: '11' }, gameA: { theme: { key: 'fantome', label: 'Fantôme' }, completedToday: completed, canAttempt: true }, gameB: { theme: { label: 'Crypte' }, attemptsRemaining: completed ? 0 : 2 }, gameC: { theme: { label: 'Sort' }, sentToday: completed }, dailyBonus: { claimedToday: completed } } as never);
-    expect(await h.send('!event')).toBe(`🎃 Festival des Ombres : 7 points · 11 Bonbons Maudits | Fin : 01/11/2026 00:00 | Prochain palier : 10 points | Fantôme ${completed ? '✅' : '⏳'} | Crypte : ${completed ? 0 : 2}/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants | Sort : ${completed ? 'envoyé ✅' : 'à envoyer'} | Bonus quotidien ${completed ? '✅' : 'à récupérer'} | Jeux : !event Fantôme ; !event Crypte <code> ; !event Sort <pseudo> "message" | !event boutique · !event top`);
+    h.services.eventService.getCurrent.mockResolvedValue({ ...original, festival: { key: 'shadows', emoji: '🎃', title: 'Festival des Ombres', currency: { emoji: '🎃', label: 'Bonbons Maudits' } }, edition: { endsAt: '2026-10-31T23:00:00Z' }, participation: { joined: true, points: 7 }, currency: { amount: '11' }, gameA: { ...original.gameA, theme: { key: 'fantome', label: 'Fantôme' }, completedToday: completed, canAttempt: true }, gameB: { ...original.gameB, theme: { label: 'Crypte' }, solvedToday: completed, attemptsRemaining: completed ? 0 : 2 }, gameC: { ...original.gameC, theme: { label: 'Sort' }, sentToday: completed }, dailyBonus: { claimedToday: completed } } as never);
+    expect(await h.send('!event')).toBe(`🎃 Festival des Ombres : ⭐ 7 points · 🎒 11 🎃 Bonbons Maudits | 🕒 Fin : 01/11/2026 00:00 | 🎁 Prochain palier : 10 points | Fantôme ${completed ? '✅' : '⏳'} | Crypte : ${completed ? '✅ code découvert' : `2/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants`} | Sort : ${completed ? 'envoyé ✅' : 'à envoyer'} | 🎁 Bonus quotidien ${completed ? '✅' : '💬 premier message du jour'} | Jeux : !event Fantôme ; !event Crypte <code> ; !event Sort <pseudo> "message" | 🛒 !event boutique · 🏆 !event top`);
     for (const action of ['join', 'attemptGameA', 'attemptGameB', 'sendGameC'] as const) expect(h.services.eventService[action]).not.toHaveBeenCalled();
   });
   it.each([

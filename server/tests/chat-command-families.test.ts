@@ -26,7 +26,7 @@ describe('Complete remaining command families', () => {
     const owner = { execute: vi.fn(async () => ({ view: { challenge: { displayName: 'Conversion personnelle', progress: 3n, target: 900n, rewardPrimogems: 801n }, nextSwitchCost: 80000n }, resources: { moras: 12345678901234567890n }, spentMoras: 40000n })) };
     Object.assign(h.services, { [action === 'mission' ? 'purchaseDailyChallenge' : 'switchDailyChallenge']: owner });
     const text = await h.send(`!shop ${action}`);
-    for (const term of ['Conversion personnelle', '3/900', '💠801', '🪙40 000', '12 345 678 901 234 567 890', '🪙80 000']) expect(text).toContain(term);
+    for (const term of ['Conversion personnelle', '3/900', '💠801', '💰40 000', '12 345 678 901 234 567 890', '💰80 000']) expect(text).toContain(term);
     expect(owner.execute).toHaveBeenCalledWith(actor, commandId, 'INTERNAL_CHAT');
     expect(h.chat.rememberCommandRefreshScopes).toHaveBeenCalledWith(commandId, ['dailyChallenge', 'resources', 'shop']);
   });
@@ -121,6 +121,7 @@ describe('Complete remaining command families', () => {
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'READY', activeCharacter: { name: 'A' } } as never);
     const first = await h.send('!exp A');
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: 'IDLE' } as never);
+    h.chat.hasConfirmedCommandMutation.mockResolvedValue(true);
     expect(await h.send('!expedition A')).toBe(first);
     expect(h.services.expeditionService.claim).toHaveBeenLastCalledWith(actor, commandId, 'INTERNAL_CHAT'); expect(h.services.expeditionService.start).not.toHaveBeenCalled();
   });
@@ -168,7 +169,7 @@ const themes = [
 describe('All twelve Event themes', () => {
   it.each(themes)('connects %s games, aliases and exact composed recipients to the shared owner', async (key, a, b, c, oldC) => {
     const h = harness(); const view = await h.services.eventService.getCurrent();
-    h.services.eventService.getCurrent.mockResolvedValue({ ...view, festival: { ...view.festival, key }, gameA: { theme: { key: a!.normalize('NFD').replace(/\p{M}/gu, '').replace('Œ', 'oe').toLowerCase(), label: a } }, gameB: { theme: { label: b } }, gameC: { theme: { label: c } } } as never);
+    h.services.eventService.getCurrent.mockResolvedValue({ ...view, festival: { ...view.festival, key }, gameA: { ...view.gameA, theme: { key: a!.normalize('NFD').replace(/\p{M}/gu, '').replace('Œ', 'oe').toLowerCase(), label: a } }, gameB: { ...view.gameB, theme: { label: b } }, gameC: { ...view.gameC, theme: { label: c } } } as never);
     await h.send(`!event ${a}`); expect(h.services.eventService.attemptGameA).toHaveBeenCalledWith(actor, commandId, 'INTERNAL_CHAT');
     await h.send(`!event ${b} 01101`); expect(h.services.eventService.attemptGameB).toHaveBeenCalledWith(actor, '01101', commandId, 'INTERNAL_CHAT');
     const text = await h.send(`!event ${oldC} @Autre "Message privé exact"`);
@@ -188,6 +189,6 @@ describe('All twelve Event themes', () => {
   });
   it('reports already joined from the actual owner receipt and never advertises a second bonus', async () => {
     const h = harness(); h.services.eventService.join.mockResolvedValue({ festival: { title: 'Festival', currency: { label: 'Monnaies', emoji: '💖' } }, currency: { amount: '4' }, creditedCurrency: 0 } as never);
-    expect(await h.send('!event go')).toContain('Déjà inscrit'); expect(await h.send('!event go')).not.toContain('+');
+    expect(await h.send('!event go')).toContain('déjà inscrit'); expect(await h.send('!event go')).not.toContain('+');
   });
 });

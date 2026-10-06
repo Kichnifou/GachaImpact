@@ -189,7 +189,7 @@ describe('Chat command adapters', () => {
   it('formats daily states as player-facing text', async () => {
     const { send } = harness();
     const output = await send('!quotis');
-    for (const text of ['Récompense ⏳', 'Roue ⏳', 'Défi ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Festival ⏳ · non inscrit', 'Faveur ➖']) expect(output).toContain(text);
+    for (const text of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit', 'Faveur ➖']) expect(output).toContain(text);
   });
 
   it('formats mission summary, compatibility alias and canonical ranks without leaking locked Z', async () => {
@@ -307,7 +307,7 @@ describe('Chat command adapters', () => {
   it('passes Game C the resolved recipient, exact message and durable command ID, then replays without another send', async () => {
     const { chat, services, send } = harness();
     const first = await send('!event Mot doux Autre "Bonjour exact !"');
-    expect(first).toBe('Mot doux envoyé à Autre · +1 point(s) et +1 💖 Monnaies.');
+    expect(first).toBe('✅ 💌 Moi envoie un mot doux à Autre ! Gain : +1 point(s) | +1 💖 Monnaies');
     expect(services.eventService.searchGameCRecipients).toHaveBeenCalledWith(actor, { q: 'Autre', sort: 'name', direction: 'asc', page: 1 });
     expect(services.eventService.sendGameC).toHaveBeenCalledExactlyOnceWith(actor, 'other', 'Bonjour exact !', commandId, 'INTERNAL_CHAT');
     chat.findGameResult.mockResolvedValue({ id: 'answer', content: first, messageType: 'GAME_RESULT' } as never);
@@ -320,7 +320,7 @@ describe('Chat command adapters', () => {
   it('publishes a Game C business refusal without a second domain send', async () => {
     const { chat, services, send } = harness();
     services.eventService.sendGameC.mockRejectedValue(new BusinessError('EVENT_GAME_C_ALREADY_SENT', 'Message Event déjà envoyé aujourd’hui.'));
-    expect(await send('!event Mot doux Autre "bonjour"')).toBe('Message Event déjà envoyé aujourd’hui.');
+    expect(await send('!event Mot doux Autre "bonjour"')).toBe('⚠️ Moi, tu as déjà envoyé ton mot doux du jour. Reviens demain !');
     expect(services.eventService.sendGameC).toHaveBeenCalledOnce();
     expect(chat.publishGameResult).toHaveBeenCalledOnce();
   });
@@ -377,12 +377,12 @@ describe('Chat command adapters', () => {
   it('accepts the Event theme name from the owner with French ligatures', async () => {
     const { services, send } = harness();
     const view = await services.eventService.getCurrent();
-    services.eventService.getCurrent.mockResolvedValue({ ...view, gameC: { theme: { label: 'Vœu' } } } as never);
-    expect(await send('!event voeu Autre "bonjour"')).toContain('Vœu envoyé');
+    services.eventService.getCurrent.mockResolvedValue({ ...view, festival: { ...view.festival, key: 'new-year' }, gameC: { ...view.gameC, theme: { label: 'Vœu' } } } as never);
+    expect(await send('!event voeu Autre "bonjour"')).toContain('envoie un vœu du Nouvel An à Autre');
     expect(services.eventService.sendGameC).toHaveBeenCalledWith(actor, 'other', 'bonjour', commandId, 'INTERNAL_CHAT');
   });
 
-  it.each(['!combat boss non', '!combat auto encore', '!event Coffre 01234', '!event Mot doux Autre bonjour', '!ami ajouter', '!stella', '!element inconnu'])('publishes syntax for malformed %s', async command => {
+  it.each(['!combat boss non', '!combat auto encore', '!ami ajouter', '!stella', '!element inconnu'])('publishes syntax for malformed %s', async command => {
     const { send } = harness();
     expect(await send(command)).toContain('Syntaxe :');
   });

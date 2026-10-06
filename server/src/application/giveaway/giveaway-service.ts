@@ -5,6 +5,7 @@ import { isElementKey, particleResourceKey } from '../../domain/economy/resource
 import { giveawayRanked, oneLine, rankingText, resultText } from '../../domain/giveaway/giveaway.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
+import { wishChatResult } from '../../domain/giveaway/wish-chat-result.js';
 
 type Transaction = Prisma.TransactionClient;
 type CommandAction = 'OPEN' | 'CLOSE' | 'WISH';
@@ -72,20 +73,25 @@ export class GiveawayService {
       const session = await tx.giveawaySession.findFirst({ where: { status: 'OPEN' }, select: { id: true, openedAt: true } });
       let outcome = 'NO_OPEN';
       let playerId: string | undefined;
+      let name = 'Voyageur';
       if (session) {
         const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId }, select: {
-          playerId: true, player: { select: { status: true, elementKey: true } },
+          playerId: true, player: { select: { status: true, elementKey: true, displayName: true } },
         } });
         if (!identity) outcome = 'NO_IDENTITY';
         else if (identity.player.status !== 'ACTIVE') outcome = 'INACTIVE';
         else if (!identity.player.elementKey || !isElementKey(identity.player.elementKey)) outcome = 'NO_ELEMENT';
         else {
           playerId = identity.playerId;
+          name = identity.player.displayName;
           const inserted = await tx.giveawayParticipant.createMany({ data: [{ sessionId: session.id, playerId }], skipDuplicates: true });
           outcome = inserted.count ? 'JOINED' : 'ALREADY_JOINED';
         }
       }
       await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'WISH', sessionId: session?.id, outcome } });
+      const count = session ? await tx.giveawayParticipant.count({ where: { sessionId: session.id } }) : 0;
+      await tx.giveawayAnnouncement.create({ data: { sourceEventId: commandId, kind: 'WISH', sessionId: session?.id,
+        text: wishChatResult(outcome, name, count) } });
       return { outcome, sessionId: session?.id ?? null, playerId, duplicate: false };
     });
   }

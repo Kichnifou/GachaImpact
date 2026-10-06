@@ -8,6 +8,7 @@ import { dailyChallengeProgressSentence } from '../daily-challenge/presentation'
 import { formatDailyRewardDetails } from '../daily-reward/presentation'
 import { elementLabels, formatResourceAmount, formatWheelOverviewResult } from '../utils/formatters'
 import type { ElementKey } from '../api/types'
+import { bossDailyState, expeditionDailyState } from '../../server/src/domain/dailies/daily-completion'
 
 export const dailyIds = ['favor', 'reward', 'wheel', 'challenge', 'combat', 'boss', 'expedition', 'friendship', 'event'] as const
 export type DailyId = typeof dailyIds[number]
@@ -77,7 +78,7 @@ export function projectDailies(source: DailySources): DailyItem[] {
   const b = source.boss
   let boss = row('boss', b?.businessDate, { kind: 'boss' })
   if (b && known('boss', b.businessDate)) boss = b.attackState === 'AVAILABLE'
-    ? b.availableCharacters.length < 4 ? update(boss, 'ineligible', 'Formation indisponible.', 'Moins de 4 personnages éligibles.') : update(boss, 'available', b.canAttack ? 'À faire' : 'Formation à préparer', 'Une attaque disponible.')
+    ? bossDailyState(b) === 'ineligible' ? update(boss, 'ineligible', 'Formation indisponible.', 'Moins de 4 personnages éligibles.') : update(boss, 'available', b.canAttack ? 'À faire' : 'Formation à préparer', 'Une attaque disponible.')
     : update(boss, 'completed', '✅ Terminé', b.attackState === 'DEFEATED' ? 'Boss vaincu ce mois-ci.' : 'Attaque effectuée.')
   if (b?.todayDamage != null && known('boss', b.businessDate)) boss = { ...boss, damage: formatResourceAmount(b.todayDamage) }
   const x = source.expedition, xv = x?.value
@@ -85,7 +86,7 @@ export function projectDailies(source: DailySources): DailyItem[] {
   if (x && xv && known('expedition', xv.businessDate)) {
     const presentation = expeditionOverview(xv, 0)
     expedition = xv.operationalStatus === 'RUNNING'
-      ? { ...update(expedition, xv.startedOnCurrentBusinessDate ? 'completed' : 'in_progress', xv.startedOnCurrentBusinessDate ? '✅ Terminé' : 'En cours', `${xv.activeCharacter?.name ?? 'Personnage'} · ${formatRemainingSeconds(expeditionRemainingSeconds(x, source.monotonicNow ?? x.observedAt))}`, false), deadline: xv.readyAt ?? undefined }
+      ? { ...update(expedition, expeditionDailyState(xv), xv.startedOnCurrentBusinessDate ? '✅ Terminé' : 'En cours', `${xv.activeCharacter?.name ?? 'Personnage'} · ${formatRemainingSeconds(expeditionRemainingSeconds(x, source.monotonicNow ?? x.observedAt))}`, false), deadline: xv.readyAt ?? undefined }
       : xv.operationalStatus === 'READY' ? update(expedition, 'available', 'À récupérer', presentation.detail)
         : xv.departureUsedToday ? update(expedition, 'completed', presentation.status, presentation.detail)
           : xv.canStartToday ? update(expedition, 'available', presentation.status, presentation.detail)

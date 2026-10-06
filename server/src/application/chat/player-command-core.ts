@@ -8,7 +8,8 @@ import { pullChatResult } from './gacha-command-result.js';
 import { viewTeam } from './team-command.js';
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
-export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
+import { bossDailyState, expeditionDailyState, eventHasActionableContentToday } from '../../domain/dailies/daily-completion.js';
+export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'monthlyBossService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
 export type PlayerCommandHandler = 'pity' | 'banniere' | 'pull' | 'team' | 'sac' | 'expedition' | 'quotis';
 const syntax = (usage: string) => `Syntaxe : ${usage}.`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
@@ -24,8 +25,8 @@ export function playerCommandError(error: unknown, handler: string): string | un
   return undefined;
 }
 export function expeditionCommandSummary(view: Awaited<ReturnType<PlayerCommandServices['expeditionService']['getState']>>) {
-  return view.operationalStatus === 'IDLE' ? `Expédition : ${view.departureUsedToday ? 'départ utilisé aujourd’hui' : 'prête à partir'}.` :
-            `Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer avec !expedition retour' : `en cours, retour dans ${durationText(view.remainingSeconds)}`}.`;
+  return view.operationalStatus === 'IDLE' ? `🧭 Expédition : ${view.departureUsedToday ? 'départ utilisé aujourd’hui. Reviens demain !' : 'Envoie un personnage avec !expedition NomPerso. Retour : !expedition retour.'}` :
+            `🧭 Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer avec !expedition retour' : `en cours, retour dans ${durationText(view.remainingSeconds)}`}.`;
 }
 
 export async function resolvePlayerCommand(identity: PlayerExecutionActor, handler: PlayerCommandHandler, args: readonly string[], usage: string, commandMessageId: string, services: PlayerCommandServices, rememberName: (name: string) => Promise<string> = async name => name): Promise<string | readonly string[]> {
@@ -58,20 +59,22 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
     case 'quotis': {
       const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
       const actor = await services.socialService.actor(identity);
-      const [wheel, challenge, combat, expedition, reward, friends, event, favor] = await Promise.all([
+      const [wheel, challenge, combat, expedition, reward, friends, event, favor, boss] = await Promise.all([
         services.getTodayWheelState.execute(identity), services.getDailyChallenge.execute(identity),
         services.dailyCombatService.getDaily(identity), services.expeditionService.getState(identity),
         services.getTodayDailyReward.execute(identity), services.socialService.friends(identity),
         services.eventService.getCurrent(identity), services.socialService.favor(identity, actor.id),
+        services.monthlyBossService.getCurrentForChat(identity),
       ]);
-      return entryParts('Quotidiennes :', [
-        `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
-        `Défi ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
-        `Expédition ${expedition.operationalStatus === 'IDLE' && expedition.departureUsedToday && expedition.todayReward ? '✅' : '⏳'}`,
-        `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
-        `Festival ${event.participation.joined && event.dailyBonus.claimedToday ? '✅' : '⏳' + (event.participation.joined ? '' : ' · non inscrit')}`,
-        `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
-      ], 'Quotidiennes (suite) :');
+      const mark = (state: string) => state === 'completed' ? '✅' : state === 'ineligible' ? '➖' : '⏳';
+      return entryParts('📅 Quotidiennes :', [
+        `🎁 Récompense ${reward.claimed ? '✅' : '⏳'}`, `🎡 Roue ${wheel.spun ? '✅' : '⏳'}`,
+        `🛒 Shop ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `⚔️ Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
+        `👹 Boss ${mark(bossDailyState(boss))}`, `🧭 Expédition ${mark(expeditionDailyState(expedition))}`,
+        `💖 Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
+        `🎪 Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}`,
+        `✧ Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
+      ], '📅 Quotidiennes (suite) :');
     }
     case 'team': {
       if (args.length) return syntax(usage);

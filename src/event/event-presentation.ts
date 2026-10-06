@@ -1,4 +1,7 @@
 import type { EventDto } from '../api/types'
+export { eventNextDailyDestination, eventHasActionableContentToday } from '../../server/src/domain/dailies/daily-completion'
+import type { EventDailyDestination } from '../../server/src/domain/dailies/daily-completion'
+export type { EventDailyDestination } from '../../server/src/domain/dailies/daily-completion'
 
 export type EventPresentation = Readonly<{
   games: readonly [string, string, string]
@@ -38,17 +41,4 @@ export function eventGameAExpiredToday(event: EventDto): boolean {
   return event.participation.joined && !event.gameA.completedToday && !eventGameAHasRemainingWindow(event)
 }
 
-export type EventDailyDestination = { section: 'registration' } | { section: 'games'; game: 0 | 1 | 2 }
 export type EventDailyOpenIntent = Readonly<EventDailyDestination & { token: string }>
-
-export function eventNextDailyDestination(event: EventDto): EventDailyDestination | null {
-  if (event.canJoin || event.calendar?.canClaimToday || event.dailyBonus.canClaim) return { section: 'registration' }
-  if (event.participation.joined && !event.gameA.completedToday) return { section: 'games', game: 0 }
-  if (event.participation.joined && !event.gameB.solvedToday && event.gameB.canAttempt) return { section: 'games', game: 1 }
-  if (event.gameC.canSend || event.gameC.unviewedCount > 0) return { section: 'games', game: 2 }
-  return null
-}
-
-export function eventHasActionableContentToday(event: EventDto): boolean {
-  return eventNextDailyDestination(event) !== null
-}

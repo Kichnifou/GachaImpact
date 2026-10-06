@@ -7,6 +7,7 @@ import { resourceKeys } from '../src/domain/economy/resources.js';
 import { TwitchGiveawayCredentialCipher } from '../src/infrastructure/twitch/twitch-giveaway-credential-cipher.js';
 import { TwitchGiveawaySendError } from '../src/infrastructure/twitch/twitch-giveaway-chat-client.js';
 import { TwitchGiveawayManager } from '../src/application/twitch/twitch-giveaway-manager.js';
+import { TwitchGiveawayConsumer } from '../src/application/twitch/twitch-giveaway-consumer.js';
 import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 import { giftConfig, giftKey } from '../tests/helpers/twitch-gift-fixture.js';
 
@@ -130,7 +131,7 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
     const notifications = await db.notification.findMany({ where: { playerId: winnerPlayerId, domainKey: 'giveaway' } });
     expect(notifications).toHaveLength(1); expect(notifications[0]?.payload).toMatchObject({ message: expect.stringContaining('Primogemmes') });
     expect(await db.giveawayWin.count({ where: { sessionId: opened.sessionId!, origin: 'NATIVE' } })).toBe(1);
-    expect((await db.giveawayAnnouncement.findMany({ where: { sessionId: opened.sessionId! } })).map(row => row.kind).sort()).toEqual(['OPEN', 'RANKING', 'RESULT']);
+    expect((await db.giveawayAnnouncement.findMany({ where: { sessionId: opened.sessionId!, kind: { in: ['OPEN', 'RANKING', 'RESULT'] } } })).map(row => row.kind).sort()).toEqual(['OPEN', 'RANKING', 'RESULT']);
     expect(await close(opened.sessionId!)).toMatchObject({ duplicate: true });
     expect(await db.giveawayReward.count({ where: { sessionId: opened.sessionId! } })).toBe(5);
   });
@@ -176,5 +177,76 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
     expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: ranking.id } })).attempts).toBe(1);
     expect(send).toHaveBeenCalledTimes(3);
     vi.restoreAllMocks();
+  });
+  it('keeps all specialized commands silent for an absent or disabled credential', async () => {
+    const manager = new TwitchGiveawayManager(db, giftConfig);
+    const send = vi.spyOn(manager, 'sendAnnouncement');
+    const consumer = new TwitchGiveawayConsumer(db, service, manager);
+    const receipts = await db.giveawayCommandReceipt.count(), announcements = await db.giveawayAnnouncement.count();
+    await db.twitchGiveawayCredential.update({ where: { playerId: adminId }, data: { enabled: false } });
+    try {
+      for (const broadcasterUserId of [adminTwitchId, 'absent-broadcaster']) for (const text of ['!giveaway stats', '!ga stat', '!giveaway open', '!ga ouvrir', '!giveaway close', '!ga fermer', '!wish']) {
+        expect(await consumer.consume({ broadcasterUserId, chatterUserId: adminTwitchId, messageId: randomUUID(), text, messageType: 'text', observedAt: new Date() })).toBe(false);
+      }
+      expect(await db.giveawayCommandReceipt.count()).toBe(receipts); expect(await db.giveawayAnnouncement.count()).toBe(announcements);
+      expect(send).not.toHaveBeenCalled();
+    } finally { await db.twitchGiveawayCredential.update({ where: { playerId: adminId }, data: { enabled: true } }); vi.restoreAllMocks(); }
+  });
+  it('uses active stats/open/close aliases and the same session as the Admin panel', async () => {
+    const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn().mockResolvedValue('ACTIVE') };
+    const manager = new TwitchGiveawayManager(db, giftConfig, subscriptions as unknown as TwitchEventSubSubscriptionManager);
+    vi.spyOn(manager.tokens!, 'getToken').mockResolvedValue('private-token');
+    const send = vi.spyOn(manager.chat!, 'send').mockImplementation(async () => randomUUID());
+    const consumer = new TwitchGiveawayConsumer(db, service, manager);
+    const consume = (text: string, messageId = randomUUID()) => consumer.consume({ broadcasterUserId: adminTwitchId, chatterUserId: adminTwitchId, messageId, text, messageType: 'text', observedAt: new Date() });
+    try {
+      for (const text of ['!giveaway stats', '!giveaway stat', '!ga stats', '!ga stat']) await consume(text);
+      const open = ['!giveaway open', '!giveaway ouvrir', '!ga open', '!ga ouvrir'], shut = ['!giveaway close', '!giveaway fermer', '!ga close', '!ga fermer'];
+      for (let index = 0; index < open.length; index++) {
+        await consume(open[index]!);
+        const state = await service.state(); expect(state.session?.status).toBe('OPEN');
+        await consume(shut[index]!);
+        expect((await db.giveawaySession.findUniqueOrThrow({ where: { id: state.session!.id } })).status).toBe('CLOSED');
+      }
+      const before = send.mock.calls.length, receipts = await db.giveawayCommandReceipt.count();
+      for (const text of ['!ga', '!giveaway', '!ga reroll', '!giveaway reroll']) await consume(text);
+      expect(send).toHaveBeenCalledTimes(before); expect(await db.giveawayCommandReceipt.count()).toBe(receipts);
+    } finally { vi.restoreAllMocks(); }
+  });
+  it('freezes Wish atomically with its receipt, replays after name/count changes, and excludes outbound echoes', async () => {
+    const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn().mockResolvedValue('ACTIVE') };
+    const manager = new TwitchGiveawayManager(db, giftConfig, subscriptions as unknown as TwitchEventSubSubscriptionManager);
+    vi.spyOn(manager.tokens!, 'getToken').mockResolvedValue('private-token');
+    const send = vi.spyOn(manager.chat!, 'send').mockImplementation(async () => randomUUID());
+    const consumer = new TwitchGiveawayConsumer(db, service, manager);
+    const consume = (chatterUserId: string, messageId = randomUUID(), text = '!wish') => consumer.consume({ broadcasterUserId: adminTwitchId, chatterUserId, messageId, text, messageType: 'text', observedAt: new Date() });
+    try {
+      const valid = await player('Wish Presentation'), noElement = await player('Wish Empty Element', null), inactive = await player('Wish Archived', 'pyro', undefined, 'ARCHIVED');
+      const noOpenId = randomUUID(); await consume(valid.twitchUserId, noOpenId);
+      expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { sourceEventId: `twitch:${noOpenId}` } })).text).toContain('Aucun Giveaway');
+      const opened = await service.open(adminId, 'ADMIN');
+      for (const chatter of ['unlinked', noElement.twitchUserId, inactive.twitchUserId]) await consume(chatter);
+      expect(await db.giveawayParticipant.count({ where: { sessionId: opened.sessionId! } })).toBe(0);
+      const messageId = randomUUID(); await consume(valid.twitchUserId, messageId);
+      const saved = await db.giveawayAnnouncement.findUniqueOrThrow({ where: { sourceEventId: `twitch:${messageId}` } });
+      expect(saved).toMatchObject({ state: 'SENT', attempts: 1, text: '🌠 Wish Presentation formule un vœu auprès de Célestia... | 🎁 1 participant(s)' });
+      await db.player.update({ where: { id: valid.id }, data: { displayName: 'Wish Renamed' } });
+      const another = await player('Wish Second'); await service.wish(another.twitchUserId, `twitch:${randomUUID()}`);
+      const sent = send.mock.calls.length; await consume(valid.twitchUserId, messageId); await consume(valid.twitchUserId, noOpenId);
+      expect(send).toHaveBeenCalledTimes(sent);
+      expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: saved.id } })).text).toBe(saved.text);
+      expect(await db.giveawayParticipant.count({ where: { sessionId: opened.sessionId! } })).toBe(2);
+      // A pre-corrective receipt may lack its announcement; use the immutable Twitch identity once.
+      const oldId = randomUUID();
+      await db.giveawayCommandReceipt.create({ data: { commandId: `twitch:${oldId}`, action: 'WISH', outcome: 'JOINED', sessionId: opened.sessionId! } });
+      await consume(another.twitchUserId, oldId);
+      const oldReply = await db.giveawayAnnouncement.findUniqueOrThrow({ where: { sourceEventId: `twitch:${oldId}` } });
+      expect(oldReply.text).toBe('🌠 Wish Second formule un vœu auprès de Célestia... | 🎁 2 participant(s)');
+      const sentAfterOld = send.mock.calls.length; await consume(another.twitchUserId, oldId); expect(send).toHaveBeenCalledTimes(sentAfterOld);
+      await consume(valid.twitchUserId); expect(send.mock.calls.at(-1)![2]).toContain('tu participes déjà');
+      expect(await consumer.consume({ broadcasterUserId: adminTwitchId, chatterUserId: adminTwitchId, messageId: saved.twitchMessageId!, text: saved.text, messageType: 'text', observedAt: new Date() })).toBe(true);
+      expect(await db.giveawayCountedMessage.count({ where: { twitchMessageId: saved.twitchMessageId! } })).toBe(0);
+      await close(opened.sessionId!);
+    } finally { vi.restoreAllMocks(); }
   });
 });

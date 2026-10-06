@@ -20,7 +20,7 @@ Réponses Helix au message source, segments ≤500 caractères Unicode ; receipt
 
 Les messages ordinaires réutilisent les owners XP/Défis/Missions/quotidien/Event et leur propre plan durable. Giveaway/Faveur déjà natifs restent spécialisés ; les échos de sorties natifs prouvés sont exclus des effets joueur. [Audit de parité](step-29-command-coverage.md#parité-des-messages-ordinaires-twitch-r1047), distinct de la couverture des racines.
 
-**État acquis :** R1042/R1043 puis R1044/R1045 promus/déployés et validés publiquement par le propriétaire. R1045 conserve les cinq phrases et hard 80 sans 5★ observé. **R1047 approuvé en review indépendante puis promu techniquement sur main** : d1760bcc + 9703811e, contenu produit inchangé. Prochaine action : contrôle ChatGPT du SHA/déploiements Railway/Cloudflare/healthcheck puis recette Kichnifou par familles et messages ordinaires ; aucune validation publique R1047 acquise. Streamer.bot reste autoritatif et le pilote demeure désarmé hors future recette autorisée ; aucun changement d’env, armement réel, cutover, R1046 ou 31A/31B dans cette promotion.
+**État acquis au 06/10/2026 :** R1042/R1043 puis R1044/R1045 restent publiquement validés. Le propriétaire confirme que le générique R1047 et tout le reste de sa recette fonctionnent sur main `4403eed`. Le correctif post-recette de présentation/Quotis est publié sur **review seulement**, sans validation publique anticipée. Giveaway/Wish restent à recetter : autorisation spécialisée Kichnifou présente mais `enabled=false` lors du diagnostic read-only ; l’armement générique ne remplace pas ce gate. Parcours **Modération > Giveaway > Autoriser Twitch / Activer le bridge**, puis preuve ACTIVE et recette dédiée ; aucune activation exécutée ici. Les annonces Wish figent le nom et le nombre dès la transaction de participation ; leur replay réutilise le texte enregistré et ne renvoie pas une annonce SENT. Prochaine action : review indépendante ChatGPT → promotion dédiée → courte recette messages corrigés + Giveaway/Wish. Streamer.bot reste autoritatif ; main inchangé, aucun env/cutover/R1046/31A/31B.
 
 ### `!clear` — modération interne R886
 
@@ -48,7 +48,7 @@ Ces présentations remplacent les formulations R1038 concernées, sans changer l
 
 | Commande | Contrat final |
 | --- | --- |
-| Quotis | ✅ = activité terminée/claim effectué ; ⏳ = action restante ; ➖ = Faveur inactive ou Combat bloqué. Expédition RUNNING/READY reste ⏳ ; IDLE après départ du jour et récompense récupérée = ✅. Amitié : zéro cœur restant ✅, sinon ⏳ avec nombre. Festival non inscrit ⏳. |
+| Quotis | `📅 Quotidiennes : 🎁 Récompense … \| 🎡 Roue … \| 🛒 Shop … \| ⚔️ Combat … \| 👹 Boss … \| 🧭 Expédition … \| 💖 Amitié … \| 🎪 Event … \| ✧ Faveur …`. Boss AVAILABLE avec ≥4 éligibles ⏳, moins de 4 ➖, USED/DEFEATED ✅. Expédition RUNNING partie aujourd’hui ✅, départ ancien ⏳, READY ⏳, IDLE départ utilisé ✅ même sans todayReward ; sinon canStartToday ⏳ / ➖. Event ⏳ tant qu’inscription/calendrier/bonus/A/B/C/messages non lus ont une destination dans le prédicat UI commun, sinon ✅. Shop est un libellé Chat ; Défi UI reste inchangé. |
 | Échanges | Nom exact avec/sans @, montant/MAX. Projection TradeService read-only : introuvable, indisponible opaque (aucune divulgation de blocage/statut), même élément, demande PENDING, stock acteur nul, stock partenaire nul. Maximum après réservations non expirées ; create reste autoritatif. Cas Mynonyme : aucune particule ❄️ Cryo disponible à échanger chez le partenaire. |
 | Expédition | Tentative de départ RUNNING : vrai personnage et remainingSeconds via durationText ; READY : aide !expedition retour. Nom READY exact conserve le claim. Rejeu confirmé conserve branche/ID. |
 | Passifs | Alias exact !passif, Help canonique !passifs [element]. |
@@ -954,7 +954,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Distinction :** `!quotis` n'est pas la mission quotidienne payante ; il est l'équivalent texte compact du hub `Quotidiennes`
 - **Réponse :** état dynamique des activités pertinentes, avec présentation compacte
 - **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
-- **Évolution :** le Combat quotidien possède désormais ses états À faire / En cours / Terminé / Bloqué ; Roue, Ami et Event continueront à préciser leurs états lors de leurs audits
+- **Évolution :** neuf rubriques modernes, dont Boss séparé ; états Expédition/Event partagés avec le hub, selon le contrat Quotis ci-dessus.
 
 **Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, état/récupération Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
 
@@ -1102,7 +1102,7 @@ Boss vaincu :
 - **Coup final :** honorifique/statistique, sans bonus économique
 - **Classements :** publics
 - **Historique :** player-facing avec fiches détaillées par mois
-- **Quotidiennes :** sous-indicateur dans la carte Combat, jamais une carte séparée
+- **Quotidiennes :** rubrique Boss séparée dans le hub moderne et `!quotis`, lue chez MonthlyBoss (attaque du jour et personnages éligibles).
 
 ### `!combat stat`
 

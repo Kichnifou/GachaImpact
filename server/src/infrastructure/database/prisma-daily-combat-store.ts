@@ -158,8 +158,9 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           if (existing) {
             if (existing.playerId !== context.playerId || existing.operationType !== 'daily-combat.fight') throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à l’action attendue.');
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Cette tentative est encore en cours. Réessayez dans un instant.');
-            const prior = await transaction.dailyCombatAttempt.findUniqueOrThrow({ where: { operationId: existing.id } });
-            return { operationId: existing.id, alreadyProcessed: true, won: prior.won, mode: prior.mode, chanceHalfPoints: prior.chanceHalfPoints };
+            const prior = await transaction.dailyCombatAttempt.findUniqueOrThrow({ where: { operationId: existing.id }, include: { members: { orderBy: { position: 'asc' }, include: { character: { select: { name: true } } } } } });
+            return { operationId: existing.id, alreadyProcessed: true, won: prior.won, mode: prior.mode, chanceHalfPoints: prior.chanceHalfPoints,
+              characters: prior.members.map(member => ({ name: member.character.name, elementKey: member.elementKeySnapshot, constellation: member.constellationSnapshot })) };
           }
           await assertCommandTargets(transaction, context.playerId, 'team');
           const encounter = await loadEncounter(transaction, encounterId);
@@ -252,10 +253,11 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
           }
           await transaction.playerDailyCombatLoadout.update({ where: { playerId: context.playerId }, data: { nextAttemptMode: CombatAttemptMode.MANUAL } });
           await transaction.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: context.now } });
-          return { operationId: operation.id, alreadyProcessed: false, won, mode, chanceHalfPoints: preview.finalHalfPoints, attemptId: combatAttempt.id };
+          return { operationId: operation.id, alreadyProcessed: false, won, mode, chanceHalfPoints: preview.finalHalfPoints, attemptId: combatAttempt.id,
+            characters: ordered.map(possession => ({ name: possession.character.name, elementKey: possession.character.elementKey, constellation: possession.constellation })) };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
         const [view, resources] = await Promise.all([readView(this.database, context.playerId, context.businessDate, encounterId), readBalances(this.database, context.playerId)]);
-        return { operation: { id: committed.operationId, alreadyProcessed: committed.alreadyProcessed }, result: { won: committed.won, mode: committed.mode, chanceHalfPoints: committed.chanceHalfPoints }, view, resources };
+        return { operation: { id: committed.operationId, alreadyProcessed: committed.alreadyProcessed }, result: { won: committed.won, mode: committed.mode, chanceHalfPoints: committed.chanceHalfPoints, characters: committed.characters }, view, resources };
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attemptNumber === MAX_ATTEMPTS) throw error;
       }
