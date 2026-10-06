@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : dernier correctif temporel après review de fcde9509, candidat review seulement.
+Version : promotion approuvée du correctif post-recette R1047.
 Date : 2026-10-06
-Statut : **29 ET 30 CLÔTURÉES ; R1047 GÉNÉRIQUE ET RESTE DE LA RECETTE VALIDÉS PAR LE PROPRIÉTAIRE SUR 4403eed ; DAILYREWARD STANDALONE VALIDÉ PAR REVIEW DE fcde9509 SAUF ROLLOVER, CORRIGÉ DANS CE LOT ; CANDIDAT REVIEW ; GIVEAWAY/WISH NON ENCORE VALIDÉS PUBLIQUEMENT ; STREAMER.BOT AUTORITATIF.** Prochaine action : nouvelle review indépendante ChatGPT du commit correction. R1047 reste à finaliser avant R1046, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
+Statut : **29 ET 30 CLÔTURÉES ; LES TROIS COMMITS POST-RECETTE R1047 APPROUVÉS EN REVIEW INDÉPENDANTE ET PROMUS SUR MAIN ; DÉPLOIEMENT EXACT ET COURTE RECETTE PUBLIQUE ENCORE À VÉRIFIER ; GIVEAWAY/WISH NON ENCORE VALIDÉS PUBLIQUEMENT ; STREAMER.BOT AUTORITATIF.** Prochaine action : contrôle ChatGPT du déploiement, puis courte recette propriétaire des messages corrigés et Giveaway/Wish. R1046 seulement après validation publique finale de ce correctif, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — dernier correctif rollover après review de fcde9509, 06/10/2026
+## Point courant — promotion approuvée du correctif post-recette R1047, 06/10/2026
+
+**Baseline et autorisation :** fetch exécuté ; main initial `4403eed38ce4a62954d2d1e09b724d887f864c71`, HEAD/local review/origin review `c43a98a91b6c6349ef88b74ff9f145b9d3bdb977`, review ahead 3 / behind 0 ; worktree/index propres avant écriture. Ancestry et parents exacts vérifiés : `4403eed → b5256f083722ee5a397883bac58a54919e32a9c7 → fcde95097abec1f31afc9fd8ab3f0abb6c37ad2a → c43a98a91b6c6349ef88b74ff9f145b9d3bdb977`. Review indépendante ChatGPT du vrai GitHub terminée : APPROUVÉ, aucun finding bloquant restant ; promotion des trois commits explicitement autorisée par le propriétaire.
+
+**Promotion technique :** checkpoint uniquement documentaire sur review, push normal, puis main fast-forward strict jusqu'au HEAD exact de review et push normal. Le correctif post-recette R1047 est ainsi présent sur main, sans squash/rebase/force-push ni modification de code : présentation/Quotis et annonces Wish figées, DailyReward standalone après commit avec clés durables et renderer partagé, correction fresh/replay du rollover. Un message fraîchement accepté avant minuit garde sa vraie journée ; aucun rattrapage historique. Les preuves du candidat restent conservées ci-dessous, dont PostgreSQL privé et verify:full final 8/8 avec deux workers. Diff-checks et contrôles documentaires suffisent pour ce checkpoint ; suites non relancées, aucun résultat nouveau de code revendiqué.
+
+**Déploiement et recette :** le push main déclenche uniquement les déploiements normaux ; déploiement du SHA final encore à vérifier après push, aucun Railway SUCCESS ni recette réussie présumé. Nouvelle courte recette publique nécessaire. Giveaway/Wish restent spécialisés et à tester avec leur bridge activé dans la fenêtre autorisée : Modération > Giveaway → Autoriser Twitch si nécessaire → Activer le bridge → vérifier ACTIVE → recette → Désactiver ensuite. Diagnostic antérieur autorisé mais `enabled=false` conservé ; aucune activation dans cette mission. Streamer.bot reste autoritatif, pilote natif désarmé hors fenêtre de recette, aucune bascule globale.
+
+**Contrôles documentaires :** six propriétaires de suivi actualisés ; 244 liens locaux contrôlés, aucune cible absente. Diff-checks verts et périmètre exclusivement documentaire vérifié par les chemins modifiés/indexés avant commit ; aucun fichier de code produit, test, schéma, migration, configuration ou Story changé dans ce checkpoint.
+
+**Sortie et reprise :** refs distantes main/review du même checkpoint à contrôler après fetch, divergence 0/0, ancestry et worktree/index propres. Aucun changement Railway/service/env, DB, OAuth/EventSub ou flag ; aucune migration/DDL, commande Twitch réelle ni arrêt Streamer.bot. Aucune nouvelle Rxxx. STOP après promotion pour contrôle ChatGPT du déploiement et courte recette propriétaire ; aucun R1046/31A/31B/32 commencé. R1046 ne s'ouvre qu'après validation publique finale de ce correctif.
+
+## Historique — dernier correctif rollover après review de fcde9509, 06/10/2026
 
 **Baseline vérifiée :** fetch exécuté ; HEAD/local review/origin review = `fcde95097abec1f31afc9fd8ab3f0abb6c37ad2a`, origin main = `4403eed38ce4a62954d2d1e09b724d887f864c71`, review ahead 2 / behind 0 ; worktree/index propres avant écriture. Review indépendante : raccord standalone validé, sauf le traitement frais franchissant minuit avant son claim secondaire.
 
