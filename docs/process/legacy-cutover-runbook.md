@@ -1,8 +1,14 @@
 # Cutover legacy — runbook opératoire
 
+## Point courant — réarmement de la canary NATIVE après OFF
+
+Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--réarmement-canary-native-après-off-06102026) porte le hotfix du 06/10/2026 et ses gates de promotion/déploiement. Le bouton actuel sans IDs retombait sur l’identité de Kichnifou, sans DATA_IMPORTED, et refusait donc l’activation. La correction reprend exactement l’ensemble canary NATIVE persisté par l’[owner de reprise](twitch-native-foundations.md#autorité-et-mise-en-service-future), sans nouveau transfert, import ni modification des targets/gameplay. Kichni_Test reste la seule canary ; le garde DATA_IMPORTED des transferts est conservé.
+
+Référence publique READ ONLY : contrôle OFF révision 3, pilote désarmé, Kichni_Test ACTIVE/NATIVE/canary et DATA_IMPORTED, aucun traitement engagé/outbound incertain ; Streamer.bot OFF. Les deux receipts ci-dessous sont déjà réconciliés : ne pas les relancer. Après tests verts, promotion stricte et SHA Railway/health/migrations contrôlés, vérifier l’état inchangé puis **STOP sans appeler arm/configure**. Le propriétaire clique « Activer le pilote commandes » ; ChatGPT vérifie desired CANARY/effective CANARY/transportValid=true et target unique avant smoke !quotis / !quoti / !roue. Les preuves et résultats de déploiement sont consignés au Master, sans revendiquer la recette avant ce clic et ce test.
+
 ## Réconciliation locale Quotis — échec de PREPARE read-only
 
-Point courant : [hotfix Roue inconnue / Quotis](../master/PROJECT_MASTER_PLAN.md#point-courant--hotfix-roue-inconnue--quotis-06102026). Le premier smoke propriétaire a confirmé les autres commandes mais deux Quotis/Quoti ont échoué pendant PREPARE sur une Roue importée consommée dont le résultat historique est inconnu. Le correctif conserve cet état et ne donne aucune seconde Roue. Streamer.bot reste OFF. La target Kichni_Test reste NATIVE/canary, seule canary ; après le désarmement manuel propriétaire, contrôle OFF révision 3 confirmé et accepté, à préserver sans écriture.
+Historique : [hotfix Roue inconnue / Quotis](../master/PROJECT_MASTER_PLAN.md#historique--hotfix-roue-inconnue--quotis-06102026). Le premier smoke propriétaire a confirmé les autres commandes mais deux Quotis/Quoti ont échoué pendant PREPARE sur une Roue importée consommée dont le résultat historique est inconnu. Le correctif conserve cet état et ne donne aucune seconde Roue. Streamer.bot reste OFF. La target Kichni_Test reste NATIVE/canary, seule canary ; après le désarmement manuel propriétaire, contrôle OFF révision 3 confirmé et accepté, à préserver sans écriture.
 
 Le script `server/scripts/reconcile-quotis-preparation.mts` est LOCAL-ONLY, sans route HTTP. **Exécution réalisée le 06/10/2026** après 77/77 tests DB privés, verify:full 8/8 et déploiement Railway `2f9ab632-ea84-490c-9e34-ef531f8ce953` du SHA `cb9ae09c0191862cef250964871a966ae4f20eaa` SUCCESS, /health 200, 62 migrations à jour/aucune pending à appliquer. Commande exécutée depuis server avec les valeurs privées vérifiées et l’allowlist opérateur existante injectée seulement dans le processus local ; exemple historique, ne pas relancer les deux receipts déjà terminaux :
 
@@ -18,7 +24,7 @@ Résultat : FAILED/RESPONSES avec tableau de réponses toujours vide, processedA
 
 ## Historique — fenêtre réelle Kichni_Test du 06/10/2026, apply et NATIVE/CANARY vérifiés
 
-Cet historique du premier cutover est supersédé par le [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--hotfix-roue-inconnue--quotis-06102026) pour le statut runtime et la recette. Le snapshot `preflight-kichni-test-2026-10-06`, 17/17 + manifest et hash `d3ee8d88582300ca6006fb85afe0801bea7c866bcce7b05ff444edd39590baf0`, reste final pour Kichni_Test uniquement, jamais pour le batch global. Aucun dossier live lu ni nouvelle copie identique nécessaire.
+Cet historique du premier cutover est supersédé par le [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--réarmement-canary-native-après-off-06102026) pour le statut runtime et la recette. Le snapshot `preflight-kichni-test-2026-10-06`, 17/17 + manifest et hash `d3ee8d88582300ca6006fb85afe0801bea7c866bcce7b05ff444edd39590baf0`, reste final pour Kichni_Test uniquement, jamais pour le batch global. Aucun dossier live lu ni nouvelle copie identique nécessaire.
 
 Gates avant apply : coverage fraîche 29 918/29 918, unknown=0 ; Helix CANARY VERIFIED, un utilisateur/zéro anomalie ; cible absente et contrôle OFF ; plan CLI TWITCH_ONLY/ABSENT, blockers=[], shared=0 ; deux rehearsals privés PASS, rollback EXACT_PREIMAGE, aucun nouveau schéma résiduel. Valeurs opérateur existantes fournies par le propriétaire et utilisées seulement dans les processus locaux : requireOperator ACTIVE/ADMIN/identité conforme, capacité active. Promotion stricte 081ab57, backend Railway du SHA exact SUCCESS et /health 200 avant apply ; aucun fichier .env/Railway modifié.
 

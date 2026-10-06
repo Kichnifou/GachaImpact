@@ -117,7 +117,7 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(await db.resourceMovement.count({ where: { operationId: operation.id, resourceKey: 'primogems', delta: -160n } })).toBe(1);
     const completed = await state(); await post(request); expect(await state()).toEqual(completed);
   }, 60_000);
-  it('disarms after the real Pull commit, suppresses outbound and resumes only the response after re-arm', async () => {
+  it('disarms after the real Pull commit, suppresses outbound and resumes only the response after explicit targeted re-arm', async () => {
     const before = await state(), sends = outbound.send.mock.calls.length, executions = business.mock.calls.length;
     business.mockImplementationOnce(async (...args) => {
       const result = await core.execute(...args); pilot.disarm(playerId); return result;
@@ -131,7 +131,8 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(receipt.payloadMinimal).toMatchObject({ commandPilot: { stage: 'RESPONSES', responses: [{ status: 'PENDING' }] } });
     await expect(pilot.retryResponses(playerId, receipt.id)).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
     expect((await post(signed(event()))).statusCode).toBe(204); expect(await state()).toEqual(committed);
-    await pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED'); expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+    await expect(pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED')).rejects.toMatchObject({ code: 'TWITCH_NATIVE_CANARY_RESUME_BLOCKED' });
+    await pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED', ['123']); expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
     expect(await state()).toEqual(committed); expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
     expect((await post(request)).statusCode).toBe(204); expect(outbound.send).toHaveBeenCalledTimes(sends + 1);

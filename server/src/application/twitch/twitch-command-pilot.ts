@@ -119,7 +119,11 @@ export class TwitchCommandPilot {
     if (!transport || transport.broadcasterId !== identity.twitchUserId || !twitchId.safeParse(transport.receiverId).success
       || this.config.twitchEventSub?.callbackUrl && transport.callback !== this.config.twitchEventSub.callbackUrl)
       throw new AppError('Une subscription Chat active compatible est nécessaire.', 409, 'TWITCH_COMMAND_SUBSCRIPTION_INACTIVE');
-    await this.authority.configure(playerId, 'CANARY', ids ?? [identity.twitchUserId], acknowledgement, state.revision);
+    if (ids === undefined && await this.authority.hasPersistedCanary()) {
+      await this.authority.resumePersistedCanary(playerId, acknowledgement, state.revision);
+    } else {
+      await this.authority.configure(playerId, 'CANARY', ids ?? [identity.twitchUserId], acknowledgement, state.revision);
+    }
     this.transport = undefined;
     return this.status();
   }

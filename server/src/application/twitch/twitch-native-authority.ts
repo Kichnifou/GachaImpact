@@ -9,6 +9,8 @@ export type NativeAuthorityState = { desiredMode: NativeAuthorityMode; revision:
 export interface NativeAuthorityStore {
   read(): Promise<NativeAuthorityState>;
   covers(twitchUserId: string): Promise<boolean>;
+  hasPersistedCanary(): Promise<boolean>;
+  resumePersistedCanary(actor: string, acknowledgement: string | undefined, expectedRevision: number): Promise<NativeAuthorityState>;
   configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number): Promise<NativeAuthorityState>;
 }
 const key = 'twitch-commands';
@@ -20,6 +22,43 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
   async read(): Promise<NativeAuthorityState> {
     const row = await this.db.twitchNativeAuthority.findUnique({ where: { id: key } });
     return { desiredMode: row?.desiredMode as NativeAuthorityMode ?? 'OFF', revision: row?.revision ?? 0, operatorPlayerId: row?.operatorPlayerId ?? null };
+  }
+  async hasPersistedCanary() {
+    return await this.db.twitchNativeTarget.count({ where: { canary: true } }) > 0;
+  }
+  /** Resume the exact persisted set after OFF; this is not a data authority transfer. */
+  async resumePersistedCanary(actor: string, acknowledgement: string | undefined, expectedRevision: number) {
+    if (this.config.twitchCommandPilot?.enabled !== true)
+      throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
+    if (acknowledgement !== STREAMERBOT_PATH_DISABLED)
+      throw new AppError('Confirmez la désactivation réelle des chemins Streamer.bot concernés.', 409, 'TWITCH_NATIVE_ACK_REQUIRED');
+    if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)
+      throw new AppError('Révision d’autorité invalide.', 400, 'VALIDATION_ERROR');
+    return this.db.$transaction(async tx => {
+      await this.requireOperator(tx, actor);
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = ${key} FOR UPDATE`;
+      const control = await tx.twitchNativeAuthority.findUnique({ where: { id: key } });
+      if (!control || control.revision !== expectedRevision)
+        throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
+      if (control.desiredMode !== 'OFF')
+        throw new AppError('Désactivez le pilote avant de reprendre la canary.', 409, 'TWITCH_NATIVE_CANARY_RESUME_OFF_REQUIRED');
+      await tx.$queryRaw`SELECT twitch_user_id FROM twitch_native_targets WHERE canary = true ORDER BY twitch_user_id FOR UPDATE`;
+      const targets = await tx.twitchNativeTarget.findMany({ where: { canary: true }, orderBy: { twitchUserId: 'asc' } });
+      const blocked = () => new AppError('Canary existante ou opérations en cours à contrôler.', 409, 'TWITCH_NATIVE_CANARY_RESUME_BLOCKED');
+      if (!targets.length || targets.length > 100) throw blocked();
+      for (const target of targets) {
+        if (target.dataAuthority !== 'NATIVE' || target.acknowledgement !== STREAMERBOT_PATH_DISABLED || !target.transferredAt) throw blocked();
+        if (target.playerId) await tx.$queryRaw`SELECT id FROM players WHERE id = ${target.playerId}::uuid FOR UPDATE`;
+        const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: target.twitchUserId }, include: { player: true } });
+        if (target.playerId ? identity?.playerId !== target.playerId || identity.player.status !== 'ACTIVE' : identity !== null) throw blocked();
+        const operations = await assessTwitchOperationsInFlight(tx, target.twitchUserId, target.playerId ?? undefined);
+        if (operations.blocked || operations.unresolvedOutbound) throw blocked();
+      }
+      const row = await tx.twitchNativeAuthority.update({ where: { id: key }, data: { desiredMode: 'CANARY', operatorPlayerId: actor,
+        revision: { increment: 1 }, acknowledgement, acknowledgedAt: new Date() } });
+      await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: 'DESIRED_AUTHORITY_CHANGED', mode: 'CANARY', revision: row.revision, acknowledgement } });
+      return { desiredMode: row.desiredMode as NativeAuthorityMode, revision: row.revision, operatorPlayerId: row.operatorPlayerId };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
   }
   async covers(twitchUserId: string) {
     if (this.config.twitchCommandPilot?.enabled !== true) return false;

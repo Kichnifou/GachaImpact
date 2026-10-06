@@ -40,11 +40,18 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
   const authority: NativeAuthorityStore = {
     read: async () => ({ ...state }),
     covers: async id => enabled && state.desiredMode === 'CANARY' && canaries.has(id),
+    hasPersistedCanary: async () => canaries.size > 0,
+    resumePersistedCanary: async (actor, acknowledgement, revision) => {
+      if (actor !== playerId || !config.twitch.pilotPlayerIds.includes(actor)) throw Object.assign(new Error(), { statusCode: 403, code: 'TWITCH_COMMAND_PILOT_FORBIDDEN' });
+      if (revision !== state.revision) throw Object.assign(new Error(), { statusCode: 409, code: 'TWITCH_NATIVE_AUTHORITY_CHANGED' });
+      if (state.desiredMode !== 'OFF' || acknowledgement !== 'STREAMERBOT_PATH_DISABLED' || !canaries.size) throw new Error('RESUME_BLOCKED');
+      state = { desiredMode: 'CANARY', revision: state.revision + 1, operatorPlayerId: actor }; return { ...state };
+    },
     configure: async (actor, mode, ids, acknowledgement, revision) => {
       if (actor !== playerId || !config.twitch.pilotPlayerIds.includes(actor)) throw Object.assign(new Error(), { statusCode: 403, code: 'TWITCH_COMMAND_PILOT_FORBIDDEN' });
       if (revision !== undefined && revision !== state.revision) throw Object.assign(new Error(), { statusCode: 409, code: 'TWITCH_NATIVE_AUTHORITY_CHANGED' });
       if (mode !== 'OFF' && acknowledgement !== 'STREAMERBOT_PATH_DISABLED') throw new Error('ACK_REQUIRED');
-      canaries.clear(); ids.forEach(id => canaries.add(id));
+      if (mode === 'CANARY') { canaries.clear(); ids.forEach(id => canaries.add(id)); }
       state = { desiredMode: mode, revision: state.revision + 1, operatorPlayerId: actor }; return { ...state };
     },
   };
@@ -193,7 +200,7 @@ describe('Kichnifou-operated command pilot with independent viewer actors', () =
     expect((f.receipt.payloadMinimal.commandPilot as { responses: { status: string }[] }).responses.map(row => row.status)).toEqual(['SENT', 'PENDING', 'PENDING']);
     expect(f.receipt.errorMessage).toBeNull();
     await expect(f.pilot.retryResponses(playerId, 'receipt')).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
-    await f.pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED'); await f.pilot.retryResponses(playerId, 'receipt');
+    await f.pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED', ['123']); await f.pilot.retryResponses(playerId, 'receipt');
     expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(['A', 'B', 'C']);
     expect(f.executor.execute).toHaveBeenCalledTimes(1); expect(f.parser).toHaveBeenCalledTimes(1);
   });
@@ -205,7 +212,7 @@ describe('Kichnifou-operated command pilot with independent viewer actors', () =
     await f.pilot.consumeAuthenticated(commandEnvelope('!pull 1'), 'receipt');
     expect(f.receipt.state).toBe('RECEIVED'); expect(f.receipt.errorMessage).toBeNull();
     expect((f.receipt.payloadMinimal.commandPilot as { responses: { status: string }[] }).responses[0]?.status).toBe('PENDING');
-    await f.pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED'); await f.pilot.retryResponses(playerId, 'receipt');
+    await f.pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED', ['123']); await f.pilot.retryResponses(playerId, 'receipt');
     expect(f.receipt.state).toBe('PROCESSED'); expect(f.executor.execute).toHaveBeenCalledTimes(1);
   });
   it('defaults OFF independently of EventSub and rejects invalid flag values', () => {

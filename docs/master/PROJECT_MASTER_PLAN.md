@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : hotfix Roue historique inconnue / Quotis après premier smoke Kichni_Test.
+Version : hotfix de réarmement d’une canary NATIVE persistée après OFF.
 Date : 2026-10-06
-Statut : **HOTFIX QUOTIS PROMU/DÉPLOYÉ ; DEUX RECEIPTS RÉCONCILIÉS SANS EFFET MÉTIER ; KICHNI_TEST NATIVE/CANARY.** Pilote toujours désarmé, contrôle OFF révision 3 inchangé, une seule canary. Streamer.bot reste OFF. STOP : prochain gate propriétaire = réarmement manuel puis smoke !quotis / !quoti ; aucune recette corrigée publique revendiquée avant ce test.
+Statut : **HOTFIX DE RÉARMEMENT VALIDÉ TECHNIQUEMENT ; DÉPLOIEMENT À CONTRÔLER ; KICHNI_TEST TOUJOURS NATIVE/CANARY.** Pilote public désarmé, contrôle OFF révision 3, une seule canary. Checkpoint de production autorisé par promotion directe review → main ; reprise au contrôle du déploiement puis STOP avant le clic propriétaire « Activer le pilote commandes ». Streamer.bot reste OFF ; smoke !quotis / !quoti / !roue encore à réaliser.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — hotfix Roue inconnue / Quotis, 06/10/2026
+## Point courant — réarmement canary NATIVE après OFF, 06/10/2026
+
+**Mission et baseline :** main/review/origin main/origin review `db069882ef3108388a3ab9a22a4e2c71be852922`, fetch exécuté, divergence 0/0, index/worktree initialement propres. Promotion directe par fast-forward strict autorisée dans cette mission si tous les gates sont verts. Aucun réarmement public par Codex, transfert supplémentaire, import Kichnifou, rollback, GLOBAL ou changement Railway/env/OAuth/EventSub.
+
+**Défaut et correction :** le vrai client API du bouton envoie seulement l’ACK ; avant correction, ce POST tente de transférer l’identité de l’opérateur Kichnifou et refuse correctement faute de DATA_IMPORTED. Test PostgreSQL privé RED reproduit ce refus, puis GREEN. Sans IDs explicites, arm reprend désormais exactement l’ensemble canary persisté via un owner dédié : contrôle OFF/révision exacte, opérateur/capacité/ACK, targets NATIVE cohérentes sans migration pending ni opération engagée. Seuls le contrôle et son audit DESIRED_AUTHORITY_CHANGED changent ; aucune target/import/Player/gameplay, aucun nouvel AUTHORITY_TRANSFERRED. Ensemble multiple accepté intégralement, membre invalide refusé atomiquement. Chemin explicite et fallback sans canary gardent leurs protections existantes, dont DATA_IMPORTED. [Contrat opérateur](../process/twitch-native-foundations.md#autorité-et-mise-en-service-future).
+
+**Contrôles ciblés et PostgreSQL exécutés :** 22/22 nouveaux tests PostgreSQL privés PASS, 54/54 régressions privées fondations/pilote/sécurité receipts PASS, soit **76/76 sur quatre fichiers exécutés séquentiellement** ; 173/173 tests backend ciblés pilote/routes/service et 118/118 tests UI/API PASS. Le test intégré utilise le véritable client API, la route et les owners PostgreSQL avec payload ACK seulement. Il vérifie targets inchangées, audit unique, aucune nouvelle provenance de transfert ni exécution/envoi. Refus atomiques : révision stale, OFF/capacité/ACK/opérateur/transport invalides, LEGACY/MIGRATION_PENDING, incohérence d’identité/Player, opérations engagées et outbound incertain. Le scénario existant de réponse PENDING vérifie désormais le refus de reprise implicite, puis la récupération par réarmement explicitement ciblé inchangé, sans rejouer le Pull.
+
+**Isolement et migrations :** seules les fixtures privées ont écrit ; leur cleanup est exécuté et l’inventaire read-only confirme aucun nouveau schéma résiduel. Unique schéma historique vide conservé, 123 tables/zéro ligne. Prisma migrate status public : **62 migrations, schéma à jour**, aucune migration ajoutée ou appliquée. Logs complets TEMP kichni-canary-resume-* ; valeurs publiques privées/provenance conservées dans local-data ignoré.
+
+**Validation complète :** verify:full standard **8/8 PASS**, frontend **1 349/1 349**, backend hors DB **1 922/1 922**, builds/typechecks/lint/diff-checks verts, logs gachaimpact-verify-full-QFcLRD. Première passe sous charge simultanée avec PostgreSQL : deux timeouts hors périmètre (historical-twitch-evidence et ChatPanel) et une assertion TTL DirectMessagePanel ; les 34 tests de preuves historiques et 156 Chat/MP repassent isolément, puis la suite complète standard seule passe sans aucune modification de code, fixture ou timeout pour ces échecs.
+
+**État public de référence :** lecture en transaction explicitement READ ONLY : OFF révision 3, commandPilotArmed=false/commandPilotEnabled=false, Kichni_Test ACTIVE unique NATIVE/canary, DATA_IMPORTED présent, aucun import pour l’opérateur, blocked=false/unresolvedOutbound=false. Préimage et empreintes de 54 tables publiques sauvegardées localement hors Git pour comparaison après déploiement. Aucune écriture publique exécutée dans cette mission.
+
+**Reprise après publication et fast-forward strict autorisés dans cette mission :** contrôler SHA Railway SUCCESS/Online, /health et 62 migrations à jour, puis comparer l’état public sans mutation. STOP : le propriétaire clique lui-même « Activer le pilote commandes » ; ChatGPT vérifie desired CANARY/effective CANARY/transportValid=true et Kichni_Test toujours seule target NATIVE/canary avant smoke !quotis / !quoti / !roue. Aucune recette publique corrigée revendiquée avant ce test.
+
+## Historique — hotfix Roue inconnue / Quotis, 06/10/2026
 
 **Mission :** baseline main/review `c357fe8fa78ad9eb8a2e43df4d1434ed84c06b50`, fetch exact, divergence 0/0 et worktree/index initialement propres. Correctif borné, CLI local-only et promotion directe review → main autorisés dans la même mission si tous les gates sont verts. Pas de nouvel import, rollback, GLOBAL ou changement infra/env/OAuth/EventSub.
 
