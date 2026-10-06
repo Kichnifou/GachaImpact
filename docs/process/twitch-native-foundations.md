@@ -4,7 +4,21 @@
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) consignent désormais le réarmement réussi du propriétaire et le smoke final !quotis / !quoti / !roue validé. Contrôle public READ ONLY de reprise : CANARY révision 4, Kichni_Test seule NATIVE/canary ACTIVE avec DATA_IMPORTED, trois receipts terminaux SENT, Roue quotidienne/statistiques inchangées et aucune opération engagée/outbound incertain. Streamer.bot reste OFF. Ne pas refaire l’import ni le transfert de Kichni_Test.
 
-Avant Kichnifou : vérifier un chemin local durable d’extension gardée de l’ensemble canary. Le CLI de transfert initial ci-dessous exige zéro canary et ne convient pas tel quel. Toute modification du mécanisme d’autorité requiert un candidat review testé puis STOP pour review indépendante avant promotion/import. Ceo et le batch restent soumis aux validations Twitch réelles successives ; GLOBAL non activé.
+Avant Kichnifou : l’extension locale gardée ci-dessous est candidate sur review, sans exécution publique. Le CLI de transfert initial exige zéro canary et ne convient pas tel quel ; configure avec IDs remplace l’ensemble et audite un transfert pour chaque membre, donc ne garantit pas la préservation exacte requise ici. STOP pour review indépendante avant promotion/import. Ceo et le batch restent soumis aux validations Twitch réelles successives ; GLOBAL non activé.
+
+## Extension locale d’un ensemble canary importé
+
+Chemin LOCAL-ONLY `TwitchNativeAuthority.extendImportedCanary`, distinct du transfert initial et de la reprise sans transfert. Aucune route HTTP nouvelle, aucun mode GLOBAL, capability/env ou DDL modifié. Commande depuis `server/`, à utiliser seulement après review/promotion, préflight et DATA_IMPORTED validés :
+
+```text
+npm.cmd run migration:legacy:canary:extend -- --schema public --operator-player <UUID-ADMIN-autorisé> --twitch-id <ID-Helix-exact> --expected-player <UUID-Player-importé> --confirm-backup-hash <SHA-backup-durable> --acknowledgement STREAMERBOT_PATH_DISABLED --expected-revision <révision-OFF-lue>
+```
+
+Arguments stricts partagés avec le transfert : inconnus/doublons, pseudo, ABSENT, schéma privé et flag GLOBAL refusés ; sortie agrégée sans ID privé. requireOperator impose l’opérateur ACTIVE/ADMIN/allowlist/identité existants ; capacité commandes ON et ACK exact obligatoires. Contrôle existant verrouillé OFF/révision strictement exacte positive ; aucune création implicite de contrôle. Transaction Serializable, verrous contrôle/targets concernées/Players dans un ordre stable, puis identités et journaux d’import.
+
+L’ensemble existant non vide doit contenir au plus 99 membres avant ajout : chaque target NATIVE/canary possède ACK/date de transfert, Player ACTIVE et identité numérique cohérents, dernière provenance DATA_IMPORTED de ce Player et aucune migration pending. La nouvelle target doit exister, être LEGACY/non-canary avec le Player attendu exact, identité numérique exacte/ACTIVE et dernier import DATA_IMPORTED avec backupHash exact. Une provenance remplacée ou ROLLED_BACK refuse ; le caller ne peut choisir un ancien import conforme à la place de la provenance courante. Pour tous les membres concernés : BusinessOperation PENDING, receipt engagé/EXECUTING/réservation native, réponse PENDING, SENDING ou AMBIGUOUS refusent. Les observations Chat brutes passives et réponses terminales SENT saines restent admises.
+
+Après tous les gates seulement : modifier la nouvelle target vers NATIVE/canary/ACK/date ; conserver intégralement chaque ancienne target, dont updatedAt, ainsi que Players/identités/gameplay/imports. Ajouter un seul AUTHORITY_TRANSFERRED pour la nouvelle target et DESIRED_AUTHORITY_CHANGED pour CANARY/révision +1. Tout échec annule l’ensemble de la transaction ; répétition refuse sans mutation. Le transport reste une preuve séparée à revalider avant le vrai smoke Twitch ; aucun import ni transfert public exécuté dans le lot candidat.
 
 ## Historique — reprise de la canary NATIVE après OFF
 

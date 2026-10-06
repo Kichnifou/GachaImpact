@@ -106,6 +106,65 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
     acknowledgement: string, expectedRevision: number) {
     return this.configure(actor, 'CANARY', [twitchUserId], acknowledgement, expectedRevision, { expectedPlayerId, backupHash });
   }
+  /** Local-only extension: preserve every existing native canary and transfer exactly one imported target. */
+  async extendImportedCanary(actor: string, twitchUserId: string, expectedPlayerId: string, backupHash: string,
+    acknowledgement: string, expectedRevision: number): Promise<NativeAuthorityState> {
+    if (this.config.twitchCommandPilot?.enabled !== true)
+      throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
+    if (acknowledgement !== STREAMERBOT_PATH_DISABLED)
+      throw new AppError('Confirmez la désactivation réelle des chemins Streamer.bot concernés.', 409, 'TWITCH_NATIVE_ACK_REQUIRED');
+    if (!/^[1-9][0-9]{0,127}$/.test(twitchUserId) || !/^[a-f0-9]{64}$/.test(backupHash)
+      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(expectedPlayerId)
+      || !Number.isSafeInteger(expectedRevision) || expectedRevision < 1 || expectedRevision >= 2_147_483_647)
+      throw new AppError('Paramètres d’extension invalides.', 400, 'VALIDATION_ERROR');
+    return this.db.$transaction(async tx => {
+      await this.requireOperator(tx, actor);
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = ${key} FOR UPDATE`;
+      const control = await tx.twitchNativeAuthority.findUnique({ where: { id: key } });
+      if (!control || control.revision !== expectedRevision)
+        throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
+      if (control.desiredMode !== 'OFF')
+        throw new AppError('Désactivez le pilote avant d’étendre la canary.', 409, 'TWITCH_NATIVE_CANARY_EXTENSION_OFF_REQUIRED');
+      await tx.$queryRaw`SELECT twitch_user_id FROM twitch_native_targets
+        WHERE canary = true OR twitch_user_id = ${twitchUserId} ORDER BY twitch_user_id FOR UPDATE`;
+      const targets = await tx.twitchNativeTarget.findMany({ where: { OR: [{ canary: true }, { twitchUserId }] }, orderBy: { twitchUserId: 'asc' } });
+      const existing = targets.filter(target => target.canary), added = targets.find(target => target.twitchUserId === twitchUserId);
+      const blocked = () => new AppError('Cibles, imports ou opérations incompatibles : extension refusée.', 409, 'TWITCH_IMPORTED_CANARY_EXTENSION_BLOCKED');
+      if (!existing.length || existing.length >= 100 || !added || added.canary || added.dataAuthority !== 'LEGACY'
+        || added.playerId !== expectedPlayerId) throw blocked();
+      const playerIds = [...new Set([actor, ...targets.flatMap(target => target.playerId ? [target.playerId] : [])])].sort();
+      for (const playerId of playerIds) await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+      await this.requireOperator(tx, actor);
+      for (const target of targets) {
+        if (!target.playerId || target.canary && (target.dataAuthority !== 'NATIVE'
+          || target.acknowledgement !== STREAMERBOT_PATH_DISABLED || !target.transferredAt)) throw blocked();
+        await tx.$queryRaw`SELECT twitch_user_id FROM twitch_identities WHERE twitch_user_id = ${target.twitchUserId} FOR UPDATE`;
+        const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: target.twitchUserId }, include: { player: true } });
+        if (identity?.playerId !== target.playerId || identity.player.status !== 'ACTIVE') throw blocked();
+        await tx.$queryRaw`SELECT id FROM twitch_canary_imports WHERE twitch_user_id = ${target.twitchUserId} FOR UPDATE`;
+        const imported = await tx.twitchCanaryImport.findFirst({ where: { twitchUserId: target.twitchUserId }, orderBy: [{ importedAt: 'desc' }, { id: 'desc' }] });
+        if (!imported || imported.status !== 'DATA_IMPORTED' || imported.rolledBackAt !== null || imported.playerId !== target.playerId
+          || target.twitchUserId === twitchUserId && imported.backupHash !== backupHash) throw blocked();
+        const operations = await assessTwitchOperationsInFlight(tx, target.twitchUserId, target.playerId);
+        if (operations.blocked || operations.unresolvedOutbound) throw blocked();
+        // A committed result still waiting to send is not idle, even when outbound is not yet uncertain.
+        const receipts = await tx.twitchEventReceipt.findMany({ where: { twitchUserId: target.twitchUserId }, select: { payloadMinimal: true } });
+        if (receipts.some(receipt => {
+          const pilot = (receipt.payloadMinimal as Prisma.JsonObject | null)?.commandPilot as Prisma.JsonObject | undefined;
+          return Array.isArray(pilot?.responses) && pilot.responses.some(response =>
+            response !== null && typeof response === 'object' && !Array.isArray(response) && response.status === 'PENDING');
+        })) throw blocked();
+      }
+      // No updateMany/re-import: existing targets (including updatedAt) and all imports stay byte-for-byte intact.
+      await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { dataAuthority: 'NATIVE', canary: true,
+        acknowledgement, transferredAt: new Date() } });
+      await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: 'AUTHORITY_TRANSFERRED', twitchUserId, acknowledgement } });
+      const row = await tx.twitchNativeAuthority.update({ where: { id: key }, data: { desiredMode: 'CANARY', revision: { increment: 1 },
+        operatorPlayerId: actor, acknowledgement, acknowledgedAt: new Date() } });
+      await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: 'DESIRED_AUTHORITY_CHANGED', mode: 'CANARY', revision: row.revision, acknowledgement } });
+      return { desiredMode: 'CANARY', revision: row.revision, operatorPlayerId: row.operatorPlayerId };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
+  }
   async configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number,
     importedTarget?: { expectedPlayerId: string; backupHash: string }) {
     if (!['OFF', 'CANARY', 'GLOBAL'].includes(mode) || new Set(ids).size !== ids.length || ids.length > 100
