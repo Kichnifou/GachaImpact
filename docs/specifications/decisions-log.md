@@ -1,8 +1,20 @@
 # Journal des décisions validées
 
+## R1055 — Liaison Twitch unifiée et progression définitive (2026-10-06)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : un seul parcours joueur « Lier mon compte Twitch », après OAuth et vérification serveur du Twitch User ID immuable. Aucun Player Twitch connu → TwitchIdentity attachée au Player web courant, gameplay conservé ; Twitch-only existant + web strictement disposable → owner R1046 partagé, même WebIdentity déplacée vers le même Player Twitch, seul web vide supprimé ; déjà même Player → idempotent ; deux progressions significatives compatibles → comparaison privée et choix définitif, jamais écrasement automatique.
+
+Libellés : **Conserver ma progression de l’application Web** / **Utiliser ma progression Twitch**. Comparatif : niveau, élément ou Non choisi, Primos/Moras, personnages, messages, activité récente. Confirmation explicite : une seule progression principale, aucune fusion additive et aucune bascule ultérieure côté joueur. Le gagnant garde tout son graphe et reçoit l’autre identité ; le perdant devient ARCHIVED sans identité d’accès, graphe conservé comme sauvegarde interne. Aucun écran de restauration/bascule. Choix audité et reprise idempotente du même résultat, choix opposé refusé ; résumé modifié → nouvelle confirmation avant mutation. Preuve OAuth limitée à 15 minutes et liée à la WebIdentity authentifiée, aucun Player ID fourni par le navigateur.
+
+Garde-fous conservés : autre WebIdentity déjà propriétaire, autre TwitchIdentity, migration en cours, opérateur/credentials spécialisés ou activité vivante du Player à écarter → blocage explicite/résolution opérateur. Choix Web pour une target native exige autorité OFF ; retarget du Player sans activation ni changement de dataAuthority, preuve d’import historique conservée. Le futur purge/import protège les deux graphes des choix terminés. R1055 supersède le refus systématique des web significatifs de R1046/R918/R1050 pour ces deux Players compatibles ; les autres protections et le migrateur canary ciblé restent distincts.
+
+État lié : Twitch et l’application web utilisent la même progression ; aucun bouton de récupération ni de déliaison self-service. Rename login/display name ne change pas l’identité numérique. Ancien endpoint unlink strictement pilote reste protégé pour compatibilité opérateur ; aucun accès normal élargi, aucune UI unlink. Retirer Configuration > Apparence réalise ce seul volet de R1052 ; nouveautés/date/recherche Personnalisation restent futures. Écran élément authentifié : aide de récupération avant le choix, Compte et Déconnexion ; logique permanente inchangée. Notifications « Tout supprimer » archive logiquement les états visibles du Player, sans supprimer les objets métier.
+
+Implémentation candidate sur review, nouvelle migration additive 062 testée uniquement en schémas privés. Aucune activation/canary/donnée publique modifiée, aucun déploiement ou test OAuth réel dans ce lot. [Architecture](../architecture/backend-architecture-v1.md), [guide](../process/twitch-native-foundations.md), état/preuves au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 Statut : évolutif.
 
-**Checkpoint de promotion, 06/10/2026 :** R1048 et correction b728d13 approuvés indépendamment sans finding bloquant, code promu sur main par fast-forward strict. Aucune nouvelle décision Rxxx ni modification des règles R1049–R1054 ; déploiement et statut Prisma 061 à vérifier par ChatGPT, aucun canary réel/import public/autorité activée. Streamer.bot reste autoritatif ; état et prochaine reprise au [Master](../master/PROJECT_MASTER_PLAN.md).
+**Checkpoint de promotion historique, 06/10/2026 (avant R1055) :** R1048 et correction b728d13 approuvés indépendamment sans finding bloquant, code promu sur main par fast-forward strict. Aucune nouvelle décision Rxxx ni modification des règles R1049–R1054 ; déploiement et statut Prisma 061 à vérifier par ChatGPT, aucun canary réel/import public/autorité activée. Streamer.bot reste autoritatif ; état et prochaine reprise au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Migration et récupération sans élément — R1049 (2026-10-06)
 

@@ -39,6 +39,8 @@ export class NotificationService {
     if (!result.count) { const exists = await this.database.notification.findFirst({ where: { id: notificationId, playerId: player.id } }); if (!exists) throw new BusinessError('NOTIFICATION_NOT_FOUND', 'Cette notification n’existe plus.'); }
     return this.snapshot(player.id, now);
   }
+  public async archiveAll(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, data: { state: NotificationState.ARCHIVED, archivedAt: now } }); return this.snapshot(player.id, now); }
+
   public async archiveRead(identity: AuthenticatedIdentity) { const player = await this.getPlayer.execute(identity); const now = this.clock.now(); await this.database.notification.updateMany({ where: { playerId: player.id, state: NotificationState.READ }, data: { state: NotificationState.ARCHIVED, archivedAt: now } }); return this.snapshot(player.id, now); }
 
   private async snapshot(playerId: string, now: Date) {

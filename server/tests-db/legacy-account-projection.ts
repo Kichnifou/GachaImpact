@@ -20,8 +20,10 @@ export async function readLegacyAccountProjection(client: pg.Client): Promise<Ac
       LEFT JOIN public.twitch_identities t ON t.player_id=p.id ORDER BY p.id`)).rows;
     const foundation = (await client.query<{ present: boolean }>(`SELECT to_regclass('public.twitch_native_targets') IS NOT NULL AS present`)).rows[0]!.present;
     if (foundation) {
+      const resolutions = (await client.query<{ present: boolean }>(`SELECT to_regclass('public.twitch_link_resolutions') IS NOT NULL AS present`)).rows[0]!.present;
+      const replacedNativeProof = resolutions ? ` OR EXISTS (SELECT 1 FROM public.twitch_link_resolutions resolution JOIN public.twitch_canary_imports imported ON imported.player_id=resolution.twitch_player_id AND imported.twitch_user_id=resolution.twitch_user_id AND imported.status='DATA_IMPORTED' WHERE resolution.web_player_id=target.player_id AND resolution.twitch_user_id=target.twitch_user_id AND resolution.choice='WEB' AND resolution.completed_at IS NOT NULL)` : '';
       const ownership = (await client.query<{ player_id: string; data_authority: string; imported: boolean }>(`SELECT target.player_id,target.data_authority,
-        EXISTS (SELECT 1 FROM public.twitch_canary_imports imported WHERE imported.player_id=target.player_id AND imported.twitch_user_id=target.twitch_user_id AND imported.status='DATA_IMPORTED') imported
+        EXISTS (SELECT 1 FROM public.twitch_canary_imports imported WHERE imported.player_id=target.player_id AND imported.twitch_user_id=target.twitch_user_id AND imported.status='DATA_IMPORTED')${replacedNativeProof} imported
         FROM public.twitch_native_targets target WHERE target.player_id IS NOT NULL`)).rows;
       for (const player of players) { const own = ownership.find(row => row.player_id === player.id); player.dataAuthority = own?.data_authority ?? 'LEGACY'; player.canaryImported = own?.imported ?? false; }
     }

@@ -1,5 +1,11 @@
 # Administration et modération V1 — étape 22
 
+## Identités et choix de progression — R1055
+
+Le parcours joueur [R1055](decisions-log.md) ne propose aucune déliaison Twitch self-service ni restauration/bascule entre Players. Deux progressions significatives compatibles sont comparées puis départagées définitivement : identité déplacée vers gagnant, perdant ARCHIVED sans identité d’accès, audit privé et graphe sauvegardé en interne ; aucune fusion additive. Cas tiers/opérateur/migration/activité en cours restent fail-closed et nécessitent une résolution opérateur. La target native d’un choix Web ne peut être retargetée qu’à OFF, sans activation ; operator/credential owner à écarter reste bloqué même OFF.
+
+Ancien endpoint DELETE /api/v1/me/twitch reste strictement pilote pour compatibilité, avec les guards R1049/R1048 existants ; aucune nouvelle UI opérateur/unlink ou restauration ajoutée. Configuration > Compte conserve les outils Runtime/Faveur/Gift/Giveaway distincts. Migration 062/audit privé, aucune action opérateur publique dans cette mission ; statut au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Lots Character / Assets pré-release — R1051
 
 [R1051](decisions-log.md) précise le futur lot Modération > Personnages, encore non implémenté : réévaluer l'inline actuel, Ajouter/Modifier en modale dédiée, métadonnées et portrait/icon/splash/seuls assets utilisés, upload manuel ADMIN, présence/manques visibles. Même owner/catalogue que l'import automatique, aucun système parallèle. Audit exhaustif DB/public catalogue, assets disponibles et fallbacks réellement utilisés ; filtre Assets manquants, aucune conclusion production tirée du seed seul. La phrase de report de l'import d'assets sera retirée à la livraison. Stockage/formats/dimensions/validation/compression/versioning/cache restent à définir dans le lot.

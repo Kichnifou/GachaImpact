@@ -378,6 +378,8 @@ model Player {
   twitchIdentity        TwitchIdentity?
   twitchGiftSupremeCredential TwitchGiftSupremeCredential?
   twitchGiveawayCredential TwitchGiveawayCredential?
+  twitchLinkResolutionsWeb TwitchLinkResolution[] @relation("LinkResolutionWeb")
+  twitchLinkResolutionsTwitch TwitchLinkResolution[] @relation("LinkResolutionTwitch")
   twitchLinkStates      TwitchLinkState[]
   twitchNativeTargets   TwitchNativeTarget[]
   twitchNativeAuthorities TwitchNativeAuthority[]
@@ -850,6 +852,7 @@ model WebIdentity {
   providerSubject String   @map("provider_subject") @db.Text
   linkedAt        DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
   state           String   @default("ACTIVE") @db.Text
+  twitchResolutions TwitchLinkResolution[]
   twitchClaims TwitchLinkState[]
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   player          Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
@@ -2907,4 +2910,27 @@ model ArcadeInvitation {
   @@index([guestPlayerId, status], map: "arcade_invitations_guest_status_idx")
   @@index([status, expiresAt], map: "arcade_invitations_expiry_idx")
   @@map("arcade_invitations")
+}
+
+model TwitchLinkResolution {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webIdentityId String @map("web_identity_id") @db.Uuid
+  webPlayerId String @map("web_player_id") @db.Uuid
+  twitchPlayerId String @map("twitch_player_id") @db.Uuid
+  twitchUserId String @map("twitch_user_id") @db.Text
+  login String @db.Text
+  displayName String? @map("display_name") @db.Text
+  comparedState Json @map("compared_state") @db.JsonB
+  choice String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  webIdentity WebIdentity @relation(fields: [webIdentityId], references: [id], onDelete: Restrict)
+  webPlayer Player @relation("LinkResolutionWeb", fields: [webPlayerId], references: [id], onDelete: Restrict)
+  twitchPlayer Player @relation("LinkResolutionTwitch", fields: [twitchPlayerId], references: [id], onDelete: Restrict)
+  @@index([webIdentityId, expiresAt], map: "twitch_link_resolutions_owner_expiry_idx")
+  @@index([webPlayerId], map: "twitch_link_resolutions_web_player_idx")
+  @@index([twitchPlayerId], map: "twitch_link_resolutions_twitch_player_idx")
+  @@index([twitchUserId, completedAt], map: "twitch_link_resolutions_twitch_completed_idx")
+  @@map("twitch_link_resolutions")
 }

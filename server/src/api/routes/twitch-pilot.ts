@@ -59,6 +59,16 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
     return options.commandPilot!.retryResponses(player.id, params.data.receiptId);
   });
+  app.get('/api/v1/me/twitch/resolution', authenticated, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    return options.twitch.linkResolution(requireAuthenticatedIdentity(request));
+  });
+  app.post('/api/v1/me/twitch/resolution', authenticated, async (request, reply) => {
+    reply.header('cache-control', 'no-store');
+    const input = z.object({ resolutionId: z.uuid(), choice: z.enum(['WEB','TWITCH']), confirmation: z.literal('ONE_PROGRESSION_NO_MERGE') }).strict().safeParse(request.body);
+    if (!input.success || Object.keys(request.query as object).length) throw new AppError('Confirmation de progression requise.', 400, 'VALIDATION_ERROR');
+    return options.twitch.resolveLink(requireAuthenticatedIdentity(request), input.data.resolutionId, input.data.choice);
+  });
   app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/twitch/recover/start', authenticated, request => {
     commandControlParameters(request);
@@ -109,8 +119,8 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
       gift = purpose === 'AUTHORIZE_GIFT_SUPREME';
       giveaway = purpose === 'AUTHORIZE_GIVEAWAY';
       claim = purpose === 'CLAIM_TWITCH_PROFILE';
-      await options.twitch.callback(query.data);
-      outcome = claim ? 'profile-recovered' : giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
+      const result = await options.twitch.callback(query.data);
+      outcome = 'resolutionRequired' in result && result.resolutionRequired ? 'progression-choice' : claim ? 'profile-recovered' : giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
     catch (error) { outcome = giveaway ? 'giveaway-error' : gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');

@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## TwitchLinkResolution — R1055
+
+Entité privée de résolution OAuth, liée à WebIdentity et aux deux Players, ID Twitch immuable vérifié et métadonnées de nom, résumé comparé, expiration 15 minutes, choix WEB/TWITCH et horodatage terminal. Aucune preuve/token OAuth exposé au client ; aucun Player ID choisi par lui. Gagnant conserve tout son gameplay et reçoit l’identité manquante ; perdant ARCHIVED, graphe interne sans identité d’accès, sauvegarde/audit préservés au futur purge. Aucun état alternatif jouable, fusion, switch ou restauration joueur.
+
+Les quatre issues et protections sont définies par [R1055](decisions-log.md). Player.elementKey nullable et owner strict disposable R1046 restent acquis. Schéma physique additif 062 candidat, privé testé seulement, statut au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Correction R1049 et besoins futurs de pré-release
 
 PlannedPlayer.elementKey / faits personnels = ElementKey | null, comme Player déjà nullable ; niveau/XP ne conditionnent pas import/claim. ABSENT_ELEMENT et INVALID_ELEMENT sont distincts, avec erreur explicite pour l'invalide. Même Player/WebIdentity/ressources/progression après récupération, puis choix normal si null. [R1049](decisions-log.md) et [guide](../process/twitch-native-foundations.md).

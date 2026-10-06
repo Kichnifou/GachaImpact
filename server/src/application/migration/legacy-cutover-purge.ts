@@ -9,7 +9,7 @@ export const referenceTables = [
 ] as const;
 export const preservedTables = [
   '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
-  'privacy_settings', 'player_role_assignments',
+  'privacy_settings', 'player_role_assignments', 'twitch_link_resolutions',
   // Operational authorizations are not gameplay; rehearsal never enables or refreshes them.
   'twitch_gift_supreme_credentials', 'twitch_giveaway_credentials',
   'twitch_native_authorities', 'twitch_native_targets', 'twitch_native_audit', 'twitch_canary_imports',
@@ -89,7 +89,8 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
     ? (await db.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM "${schema}"."${table}"`))[0]?.count ?? 0n : 0n;
   // Native ownership is a mandatory guard even when a caller omitted its explicit preservation list.
   const nativeTargets = await db.twitchNativeTarget.findMany({ where: { dataAuthority: 'NATIVE', playerId: { not: null } }, select: { playerId: true } });
-  const protectedIds = [...new Set([...protectedPlayerIds, ...nativeTargets.map(target => target.playerId!)])];
+  const resolutions = await db.twitchLinkResolution.findMany({ where: { completedAt: { not: null } }, select: { webPlayerId: true, twitchPlayerId: true } });
+  const protectedIds = [...new Set([...protectedPlayerIds, ...nativeTargets.map(target => target.playerId!), ...resolutions.flatMap(record => [record.webPlayerId, record.twitchPlayerId])])];
   const retainedRows = protectedIds.length ? await captureTargetedPlayerRows(db, protectedIds, ['players', ...clearTables], true) : undefined;
   if (retainedRows && retainedRows.schema !== schema) throw new Error('Cutover protected rows escaped requested schema.');
   return { schema, deleteOrder: counts, retainedRows, retainedPlayers: await preserved('players'), retainedWebIdentities: await preserved('web_identities'),

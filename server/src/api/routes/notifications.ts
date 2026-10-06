@@ -9,6 +9,10 @@ type Options = Readonly<{ authenticate: preHandlerHookHandler; service: Notifica
 const paramsSchema = z.object({ notificationId: z.string().uuid() }).strict();
 export const registerNotificationRoutes: FastifyPluginAsync<Options> = async (app, options) => {
   app.get('/api/v1/me/notifications', { preHandler: options.authenticate }, async request => serialize(await options.service.list(requireAuthenticatedIdentity(request))));
+  app.post('/api/v1/me/notifications/archive-all', { preHandler: options.authenticate }, async request => {
+    if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length) throw new AppError('Paramètres invalides.', 400, 'VALIDATION_ERROR');
+    return serialize(await options.service.archiveAll(requireAuthenticatedIdentity(request)));
+  });
   app.post('/api/v1/me/notifications/read-all', { preHandler: options.authenticate }, async request => serialize(await options.service.readAll(requireAuthenticatedIdentity(request))));
   app.post('/api/v1/me/notifications/archive-read', { preHandler: options.authenticate }, async request => serialize(await options.service.archiveRead(requireAuthenticatedIdentity(request))));
   app.post('/api/v1/me/notifications/:notificationId/read', { preHandler: options.authenticate }, async request => { const parsed = paramsSchema.safeParse(request.params); if (!parsed.success) throw new AppError('La notification demandée est invalide.', 400, 'VALIDATION_ERROR'); return serialize(await options.service.readOne(requireAuthenticatedIdentity(request), parsed.data.notificationId)); });

@@ -19,6 +19,7 @@ async function setup(withCommands = false) {
     disarm: vi.fn((_playerId: string) => { armed = false; return commandStatus(); }) };
   const twitch = { status: vi.fn(async () => ({ eligible: withCommands, commandPilotAvailable: withCommands, commandPilotEnabled: false, runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
     requirePilot: vi.fn(async () => ({ id: 'verified-player' })),
+    linkResolution: vi.fn(async () => ({ resolution:null })), resolveLink: vi.fn(async () => ({linked:true,resolutionRequired:false})),
     startClaim: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?state=claim_' })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
@@ -38,6 +39,19 @@ async function setup(withCommands = false) {
   apps.push(app); return { app, twitch, subscriptions, commandPilot };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it('authenticates definitive choices and accepts only a server challenge with explicit consent', async () => {
+    const { app,twitch } = await setup(); const url='/api/v1/me/twitch/resolution', headers={authorization:'Bearer test'};
+    const payload={resolutionId:'22222222-2222-4222-8222-222222222222',choice:'WEB',confirmation:'ONE_PROGRESSION_NO_MERGE'};
+    for(const method of ['GET','POST'] as const) expect((await app.inject({method,url,...(method==='POST'?{payload}:{})})).statusCode).toBe(401);
+    for(const invalid of [{...payload,playerId:'other'},{...payload,choice:'MERGE'},{...payload,confirmation:'YES'},{...payload,resolutionId:'invalid'},{}])
+      expect((await app.inject({method:'POST',url,headers,payload:invalid})).statusCode).toBe(400);
+    expect((await app.inject({method:'POST',url:url+'?playerId=other',headers,payload})).statusCode).toBe(400);
+    expect(twitch.resolveLink).not.toHaveBeenCalled();
+    const pending=await app.inject({method:'GET',url,headers});expect(pending.statusCode).toBe(200);expect(pending.headers['cache-control']).toBe('no-store');
+    expect(twitch.linkResolution).toHaveBeenCalledWith({subject:'operator'});
+    const result=await app.inject({method:'POST',url,headers,payload});expect(result.statusCode).toBe(200);
+    expect(twitch.resolveLink).toHaveBeenCalledWith({subject:'operator'},payload.resolutionId,'WEB');
+  });
   it('authenticates recovery for a non-pilot account, rejects caller identity fields, and redirects success', async () => {
     const { app, twitch } = await setup();
     const url = '/api/v1/me/twitch/recover/start', headers = { authorization: 'Bearer test' };

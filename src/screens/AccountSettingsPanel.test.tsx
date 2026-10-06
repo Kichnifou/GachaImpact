@@ -7,14 +7,14 @@ import ElementChoiceScreen from '../components/ElementChoiceScreen'
 const api = vi.hoisted(() => ({
   startTwitchGiftSupreme: vi.fn(), ensureTwitchGiftSupreme: vi.fn(), disableTwitchGiftSupreme: vi.fn(),
   startTwitchProfileRecovery: vi.fn(), armTwitchCommandPilot: vi.fn(), disarmTwitchCommandPilot: vi.fn(),
-  getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
+  getTwitchLinkResolution: vi.fn().mockResolvedValue(null), resolveTwitchLink: vi.fn(), getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
 import AccountSettingsPanel from './AccountSettingsPanel'
 
 const roots: ReturnType<typeof createRoot>[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks(); vi.restoreAllMocks(); vi.useRealTimers(); history.replaceState(null, '', '/') })
+afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); vi.clearAllMocks(); api.getTwitchLinkResolution.mockReset().mockResolvedValue(null); vi.restoreAllMocks(); vi.useRealTimers(); history.replaceState(null, '', '/') })
 const mount = async (onRefreshPlayerState?: () => Promise<void>) => { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); await act(async () => root.render(<AccountSettingsPanel onRefreshPlayerState={onRefreshPlayerState} />)); return container }
 const linkedAccount = { pilotAvailable: true, eligible: true, linked: { login: 'kichnifou', displayName: 'Kichnifou', linkedAt: '2026-09-26T00:00:00Z' }, snapshotAvailable: true, lastImport: null }
 const button = (container: HTMLElement, label: string) => Array.from(container.querySelectorAll('button')).find(element => element.textContent === label)!
@@ -35,7 +35,7 @@ describe('Configuration > Compte', () => {
     await act(async () => root.render(<ElementChoiceScreen onChoose={choose} onRefreshPlayerState={vi.fn()} />));
     const opener = button(container, 'Configuration › Compte'); opener.focus();
     await act(async () => opener.click());
-    expect(button(container.querySelector('[role="dialog"]')!, 'Récupérer mon profil Twitch')).toBeDefined();
+    expect(button(container.querySelector('[role="dialog"]')!, 'Lier mon compte Twitch')).toBeDefined();
     expect(choose).not.toHaveBeenCalled();
     await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     expect(container.querySelector('[role="dialog"]')).toBeNull();
@@ -44,9 +44,9 @@ describe('Configuration > Compte', () => {
   it('offers explicit recovery to non-pilot accounts without silently linking or merging', async () => {
     api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, eligible: false, linked: null, profileRecoveryAvailable: true });
     const container = await mount();
-    expect(button(container, 'Récupérer mon profil Twitch').disabled).toBe(false);
+    expect(button(container, 'Lier mon compte Twitch').disabled).toBe(false);
     expect(api.startTwitchProfileRecovery).not.toHaveBeenCalled();
-    expect(container.textContent).toContain('résolution opérateur');
+    expect(container.textContent).not.toContain('Récupérer mon profil Twitch');
   });
   it('reloads the entire authoritative Player after recovery without a logout', async () => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount);
@@ -70,20 +70,19 @@ describe('Configuration > Compte', () => {
     api.getTwitchAccount.mockResolvedValue({ pilotAvailable: false, eligible: false, linked: null, snapshotAvailable: false, lastImport: null })
     const container = await mount()
     expect(container.textContent).toContain('Compte Twitch')
-    expect(Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Connecter Twitch')?.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Lier mon compte Twitch')?.disabled).toBe(true)
     expect(container.textContent).toContain('indisponible')
   })
-  it('shows a linked pilot and asks confirmation before unlinking', async () => {
+  it('shows one linked progression without self-service unlink', async () => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount)
     const container = await mount()
     expect(container.textContent).toContain('Kichnifou · Connecté')
-    const unlink = Array.from(container.querySelectorAll('button')).find(button => button.textContent === 'Délier Twitch')!
-    await act(async () => unlink.click())
+    expect(container.textContent).toContain('même progression')
+    expect(button(container, 'Délier Twitch')).toBeUndefined()
+    expect(button(container, 'Lier mon compte Twitch')).toBeUndefined()
     expect(api.unlinkTwitch).not.toHaveBeenCalled()
-    expect(container.querySelector('[role="dialog"]')?.textContent).toContain('Votre Player')
-    await act(async () => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })))
-    expect(container.querySelector('[role="dialog"]')).toBeNull()
   })
+
   it('shows an OAuth callback error and clears the query marker', async () => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount)
     history.replaceState(null, '', '/?twitch=TWITCH_IDENTITY_CONFLICT')
@@ -91,16 +90,13 @@ describe('Configuration > Compte', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('identité web')
     expect(location.search).not.toContain('twitch=')
   })
-  it('unlinks after confirmation and shows the updated account state', async () => {
-    api.getTwitchAccount.mockResolvedValueOnce(linkedAccount).mockResolvedValueOnce({ ...linkedAccount, linked: null, snapshotAvailable: false })
-    api.unlinkTwitch.mockResolvedValue({ linked: false })
+  it('also hides unlink for an ordinary linked Player', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, eligible: false, snapshotAvailable: false })
     const container = await mount()
-    await act(async () => button(container, 'Délier Twitch').click())
-    await act(async () => button(container.querySelector('[role="dialog"]')!, 'Confirmer').click())
-    expect(api.unlinkTwitch).toHaveBeenCalledTimes(1)
-    expect(container.textContent).toContain('Non connecté')
-    expect(container.textContent).not.toContain('Snapshot Streamer.bot')
+    expect(button(container, 'Délier Twitch')).toBeUndefined()
+    expect(api.unlinkTwitch).not.toHaveBeenCalled()
   })
+
   it('allows confirmation when only documented cross-player domains are deferred', async () => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount)
     api.previewTwitchSnapshot.mockResolvedValue({ previewId: 'preview-a', snapshotHash: 'a'.repeat(64), viewerFound: true, files: 17,
@@ -196,7 +192,7 @@ describe('pilot chat reception', () => {
     expect(block.textContent).toContain(active ? '● Activée' : 'Non activée');
     expect(block.textContent).toContain(active ? 'GachaImpact reçoit les messages du chat Twitch.' : 'Permet à GachaImpact de recevoir les messages du chat Twitch pendant le pilote.');
     expect(button(block as HTMLElement, active ? 'Désactiver' : 'Autoriser et activer')).toBeDefined();
-    expect(block.nextElementSibling?.textContent).toBe('Délier Twitch');
+    expect(button(container, 'Délier Twitch')).toBeUndefined();
     expect(block.previousElementSibling?.textContent).toContain('Lié le');
     expect(block.textContent).not.toMatch(/EventSub|webhook|scope|token/i);
     expect(container.textContent).toContain('Snapshot Streamer.bot');
@@ -311,7 +307,7 @@ describe('independent Faveur subscription controls', () => {
     const container = await mount(), favorBlock = block(container), chatBlock = container.querySelector('.account-twitch-runtime')!;
     expect(favorBlock.textContent).toContain(favor ? '● Activée' : 'Non activée');
     expect(chatBlock.textContent).toContain(chat ? '● Activée' : 'Non activée');
-    expect(favorBlock.previousElementSibling).toBe(chatBlock); expect(favorBlock.nextElementSibling?.textContent).toBe('Délier Twitch');
+    expect(favorBlock.previousElementSibling).toBe(chatBlock); expect(button(container, 'Délier Twitch')).toBeUndefined();
     expect(container.textContent).toContain('Snapshot Streamer.bot'); expect(favorBlock.textContent).not.toMatch(/EventSub|webhook|scope|token/i);
   });
   it('starts only Faveur once and locks buttons while redirect is pending', async () => {
@@ -319,7 +315,7 @@ describe('independent Faveur subscription controls', () => {
     api.startTwitchFavor.mockReturnValue(new Promise(resolve => { release = resolve; }));
     const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined), container = await mount();
     act(() => { button(block(container), 'Autoriser et activer').click(); button(block(container), 'Autoriser et activer').click(); });
-    expect(api.startTwitchFavor).toHaveBeenCalledOnce(); expect(api.startTwitchRuntime).not.toHaveBeenCalled(); expect(button(container, 'Délier Twitch').disabled).toBe(true);
+    expect(api.startTwitchFavor).toHaveBeenCalledOnce(); expect(api.startTwitchRuntime).not.toHaveBeenCalled(); expect(button(container, 'Délier Twitch')).toBeUndefined();
     await act(async () => release({ url: 'https://id.twitch.tv/oauth2/authorize?state=private-favor' }));
     expect(navigate).toHaveBeenCalledWith('https://id.twitch.tv/oauth2/authorize?state=private-favor');
   });
@@ -396,14 +392,14 @@ describe('Gift Suprême account controls', () => {
     const container = await mount(); expect(api.ensureTwitchGiftSupreme).not.toHaveBeenCalled();
     await act(async () => button(container, 'Réactiver').click()); expect(api.ensureTwitchGiftSupreme).toHaveBeenCalledOnce(); expect(container.textContent).toContain('● Activé');
   });
-  it('keeps the linked account after blocked unlink and refreshes its partial shutdown status', async () => {
-    api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true })
-      .mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeDisabling: true });
-    api.unlinkTwitch.mockRejectedValueOnce(Object.assign(Error('pending'), { code: 'TWITCH_GIFT_PENDING_REDEMPTIONS' }));
-    const container = await mount(); await act(async () => button(container, 'Délier Twitch').click()); await act(async () => button(container, 'Confirmer').click());
-    expect(container.textContent).toContain('Kichnifou · Connecté'); expect(container.textContent).toContain('Désactivation en cours');
-    expect(container.querySelector('[role="dialog"]')).toBeNull(); expect(container.querySelector('[role="alert"]')?.textContent).toContain('encore en cours de traitement');
+  it('keeps Gift controls without exposing identity unlink', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true })
+    const container = await mount()
+    expect(button(container, 'Délier Twitch')).toBeUndefined()
+    expect(button(container, 'Désactiver')).toBeDefined()
+    expect(api.unlinkTwitch).not.toHaveBeenCalled()
   });
+
   it('preserves the pending cleanup error if its authoritative status refresh fails', async () => {
     api.getTwitchAccount.mockResolvedValueOnce({ ...giftAccount, giftSupremeAuthorized: true, giftSupremeActive: true }).mockRejectedValueOnce(Error('read failed'));
     api.disableTwitchGiftSupreme.mockRejectedValueOnce(Object.assign(Error('pending'), { code: 'TWITCH_GIFT_PENDING_REDEMPTIONS' }));
@@ -476,7 +472,7 @@ describe('explicit Twitch command pilot controls', () => {
     await act(async () => container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
     await act(async () => { button(container, armLabel).click(); button(container, armLabel).click() })
     expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith('STREAMERBOT_PATH_DISABLED')
-    expect(button(container, 'D\u00e9lier Twitch').disabled).toBe(true)
+    expect(button(container, 'Délier Twitch')).toBeUndefined()
     await act(async () => release())
     expect(api.getTwitchAccount).toHaveBeenCalledTimes(2)
     expect(container.textContent).toContain('\u25cf Activ\u00e9')
@@ -539,3 +535,46 @@ describe('explicit Twitch command pilot controls', () => {
     expect(api.startTwitchGiftSupreme).not.toHaveBeenCalled()
   })
 })
+
+const conflictSummary = { displayName: 'Private profile', level: 2, totalXp: '60', elementKey: null, resources: { primogems: '777', moras: '1000' }, characters: 3, totalMessages: '55', recentActivityAt: null }
+it.each(['WEB','TWITCH'] as const)('presents a verified comparison and confirms the final %s progression without unlink', async choice => {
+  const resolution = { id: 'private-resolution', expiresAt: '2099-01-01T00:00:00Z', web: { ...conflictSummary, level: 3, resources: { primogems: '100', moras: '50' } }, twitch: conflictSummary }
+  api.getTwitchAccount.mockResolvedValueOnce({ ...linkedAccount, eligible: false, linked: null }).mockResolvedValueOnce(linkedAccount)
+  api.getTwitchLinkResolution.mockResolvedValueOnce(resolution)
+  api.resolveTwitchLink.mockResolvedValueOnce({ linked: true, resolutionRequired: false })
+  const refresh = vi.fn(async () => undefined), container = await mount(refresh)
+  expect(container.textContent).toContain('Choisis la progression à conserver')
+  expect(container.textContent).toContain('Ce choix est définitif')
+  expect(container.textContent).not.toContain('Standalone')
+  const label = choice === 'WEB' ? 'Conserver ma progression de l’application Web' : 'Utiliser ma progression Twitch'
+  expect(button(container,label).disabled).toBe(true)
+  const checkbox = container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!
+  await act(async () => checkbox.click())
+  await act(async () => button(container,label).click())
+  expect(api.resolveTwitchLink).toHaveBeenCalledExactlyOnceWith(resolution.id, choice)
+  expect(refresh).toHaveBeenCalledOnce()
+  expect(container.textContent).not.toContain('Choisis la progression à conserver')
+  expect(button(container,'Délier Twitch')).toBeUndefined()
+})
+it('offers account access and sign-out before choosing an element, without showing account actions to visitors', async () => {
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  const logout = vi.fn(async () => undefined), choose = vi.fn()
+  await act(async () => root.render(<ElementChoiceScreen onChoose={choose} onRefreshPlayerState={vi.fn()} onSignOut={logout} />))
+  expect(button(container,'Configuration › Compte')).toBeDefined()
+  await act(async () => button(container,'Déconnexion').click())
+  expect(logout).toHaveBeenCalledOnce(); expect(choose).not.toHaveBeenCalled()
+  await act(async () => root.render(<ElementChoiceScreen onChoose={choose} />))
+  expect(button(container,'Déconnexion')).toBeUndefined()
+  expect(button(container,'Configuration › Compte')).toBeUndefined()
+})
+
+it('offers a new link after an expired verified choice without switching any Player', async () => {
+  api.getTwitchAccount.mockResolvedValue({...linkedAccount,linked:null,eligible:false,identityLinkAvailable:true});
+  api.getTwitchLinkResolution.mockResolvedValueOnce({id:'expired',expiresAt:'2026-01-01T00:00:00Z',web:conflictSummary,twitch:conflictSummary});
+  api.resolveTwitchLink.mockRejectedValueOnce({code:'TWITCH_RESOLUTION_EXPIRED',message:'Expired'});
+  const refresh=vi.fn(),container=await mount(refresh);
+  await act(async()=>container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.click());
+  await act(async()=>button(container,'Utiliser ma progression Twitch').click());
+  expect(button(container,'Lier mon compte Twitch')).toBeDefined();expect(refresh).not.toHaveBeenCalled();
+  expect(container.querySelector('[role=alert]')?.textContent).toContain('expiré');
+});

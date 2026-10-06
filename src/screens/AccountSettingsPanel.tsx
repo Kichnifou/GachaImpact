@@ -1,3 +1,5 @@
+import TwitchProgressionChoice from './TwitchProgressionChoice'
+import type { TwitchLinkResolutionDto } from '../api/types'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
@@ -7,7 +9,7 @@ import type { SnapshotApplyDto, SnapshotPreviewDto, TwitchAccountDto } from '../
 import { apiErrorMessage } from '../utils/formatters'
 
 const expected = new Set(['banner_votes.json', 'c6_characters.json', 'combat_config.json', 'combat_data.json', 'contests_data.json', 'element_passives.json', 'friendships_data.json', 'genshin_characters.json', 'gift_codes.json', 'giveaway.json', 'long_missions.json', 'missions_pool.json', 'monthly_boss.json', 'monthly_events.json', 'monthly_events_data.json', 'shop_items.json', 'viewers_data.json'])
-type ConfirmAction = 'unlink' | 'apply' | null
+type ConfirmAction = 'apply' | null
 const runtimeStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CONFLICT'
   ? 'La réception du chat Twitch nécessite un contrôle opérateur.'
   : 'Le statut du chat Twitch est temporairement indisponible. Réessayez plus tard.'
@@ -23,6 +25,8 @@ const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.giftSupr
 
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
+  const [resolution, setResolution] = useState<TwitchLinkResolutionDto | null>(null)
+  const [success, setSuccess] = useState('')
   const [account, setAccount] = useState<TwitchAccountDto | null>(null)
   const presentationMode = useTutorialPresentation().active
   const [files, setFiles] = useState<Record<string, string> | null>(null)
@@ -51,8 +55,9 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const url = new URL(location.href)
     const outcome = presentationMode ? null : url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
-      if (outcome !== 'connected' && outcome !== 'profile-recovered' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' || outcome === 'TWITCH_PROFILE_WEB_CONFLICT' ? 'Ce compte Twitch possède déjà une identité web. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_DISPOSABLE' ? 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_FOUND' ? 'Aucun profil Twitch existant à récupérer.' : 'La liaison Twitch a échoué ou a été annulée.') }
+      if (outcome !== 'connected' && outcome !== 'progression-choice' && outcome !== 'profile-recovered' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_PROFILE_WEB_CONFLICT' ? apiErrorMessage({ code: outcome }) : outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch possède déjà une identité web. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_DISPOSABLE' ? 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_FOUND' ? 'Aucun profil Twitch existant à récupérer.' : 'La liaison Twitch a échoué ou a été annulée.') }
     // OAuth returns through a full page bootstrap; the authenticated subject now resolves the recovered Player.
+    if (outcome === 'connected' || outcome === 'profile-recovered') setSuccess('Compte Twitch lié. Twitch et l’application web utilisent la même progression.')
     if (outcome === 'profile-recovered') void onRefreshPlayerState().catch(reason => setError(apiErrorMessage(reason)))
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
     if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
@@ -66,6 +71,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         if (!active) return
         if (revision !== commandRevision.current) return
         setAccount(value)
+        if (!value.linked && !presentationMode) { const next = await api.getTwitchLinkResolution(controller.signal); if (active) setResolution(next) }
         checkingFavor = Boolean(value.favorSubscriptionPending)
         checkingGift = Boolean(value.giftSupremePending)
         if (!presentationMode && awaitingSubscription(value)) {
@@ -108,7 +114,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (pendingRef.current || applyingRef.current || runtimeChecking && !allowDuringRuntimeCheck) return
     pendingRef.current = true
     setPending(true); setError('')
-    try { await action() } catch (reason) { setError(apiErrorMessage(reason)) }
+    try { await action() } catch (reason) { if (reason && typeof reason === 'object' && 'code' in reason && ['TWITCH_RESOLUTION_EXPIRED','TWITCH_PROFILE_CHANGED'].includes(String(reason.code))) setResolution(null); setError(apiErrorMessage(reason)) }
     finally { pendingRef.current = false; setPending(false) }
   }
   const select = async (list: FileList | null) => {
@@ -125,11 +131,13 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
   const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) })
-  const recover = () => void run(async () => {
-    const { url } = await api.startTwitchProfileRecovery()
-    const target = new URL(url)
-    if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
-    location.assign(target.toString())
+  const resolve = (choice: 'WEB' | 'TWITCH') => void run(async () => {
+    if (!resolution) return
+    const next = await api.resolveTwitchLink(resolution.id, choice)
+    if (next.resolutionRequired) { setResolution(next.resolution ?? null); setError('La progression a changé. Vérifie le nouveau résumé avant de confirmer.'); return }
+    setResolution(null); setSuccess('Compte Twitch lié. Twitch et l’application web utilisent la même progression.')
+    setAccount(await api.getTwitchAccount())
+    try { await onRefreshPlayerState() } catch { setError('Liaison réussie. Recharge la page pour actualiser ta progression.') }
   })
   const activateRuntime = () => void run(async () => {
     const { url } = await api.startTwitchRuntime()
@@ -188,11 +196,6 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   }, disarm)
   const confirmAction = () => {
     if (pendingRef.current || pending || applyingRef.current || runtimeChecking) return
-    if (confirm === 'unlink') { void run(async () => {
-      try { await api.unlinkTwitch() }
-      catch (reason) { try { await refreshGift() } catch { /* Preserve the original cleanup error. */ } setConfirm(null); throw reason }
-      setAccount(await api.getTwitchAccount()); setPreview(null); setFiles(null); setConfirm(null)
-    }); return }
     if (confirm !== 'apply' || !preview || !files) return
     applyingRef.current = true
     setApplying(true)
@@ -223,7 +226,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     <div data-business-pending={pending} className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
       {!account ? <p data-tutorial-state={!error ? "loading" : undefined}>Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
-        {account.linked ? <><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
+        {account.linked ? <><p>Twitch et l’application web utilisent la même progression. Un changement de pseudo Twitch conserve cette liaison.</p><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
           {!presentationMode && account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
             <h4>Réception du chat Twitch</h4>
             <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking && account.runtimeChatPending ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>
@@ -246,9 +249,9 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             {account.giftSupremeDisabling && account.giftSupremeAuthorized && <AppButton disabled={pending || runtimeChecking} onClick={retryGift}>Réactiver</AppButton>}
             {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
-          {account.eligible && <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button>}</>
-          : <><p>Non connecté</p><button type="button" disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} onClick={connect}>Connecter Twitch</button>{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
-        {!presentationMode && account.profileRecoveryAvailable && <div className="account-twitch-runtime"><h4>Retrouver votre progression Twitch</h4><p>Récupérez votre profil Twitch existant après vérification de votre compte. Un profil web contenant déjà des données nécessite une résolution opérateur.</p><AppButton disabled={pending || applying || runtimeChecking} onClick={recover}>Récupérer mon profil Twitch</AppButton></div>}
+</>
+          : <><p>Non connecté</p>{!resolution && <AppButton disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} onClick={connect}>Lier mon compte Twitch</AppButton>}{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
+        {!presentationMode && resolution && <TwitchProgressionChoice key={JSON.stringify(resolution)} resolution={resolution} pending={pending} onChoose={resolve} />}
       </section>}
       {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
         <div className="account-actions"><label>Choisir le dossier Data<input ref={folderRef} type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label><label>Ou choisir 17 fichiers JSON<input type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label></div>
@@ -258,6 +261,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         {account.lastImport && <p>Dernier import : {new Date(account.lastImport.at).toLocaleString('fr-FR')}</p>}
       </section>}
     </div>
-    {confirm && <div className="account-confirm-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !applyingRef.current) setConfirm(null) }}><div ref={dialogRef} className="account-confirm" role="dialog" aria-modal="true" aria-labelledby="account-confirm-title" aria-busy={applying}><h3 id="account-confirm-title">{confirm === 'unlink' ? 'Délier Twitch ?' : 'Confirmer le rafraîchissement ?'}</h3><p>{confirm === 'unlink' ? 'La liaison Twitch sera retirée. Votre Player, votre compte web et votre progression seront conservés.' : preview?.warning}</p>{applying && <p className="account-apply-progress" role="status"><span className="account-apply-spinner" aria-hidden="true" />{account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…'}</p>}<div><button type="button" disabled={applying} onClick={() => setConfirm(null)}>Annuler</button><button ref={confirmRef} type="button" disabled={pending} onClick={confirmAction}>{applying ? account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…' : 'Confirmer'}</button></div></div></div>}
+    {success && <p className="account-link-success" role="status">{success}</p>}
+    {confirm && <div className="account-confirm-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !applyingRef.current) setConfirm(null) }}><div ref={dialogRef} className="account-confirm" role="dialog" aria-modal="true" aria-labelledby="account-confirm-title" aria-busy={applying}><h3 id="account-confirm-title">Confirmer le rafraîchissement ?</h3><p>{preview?.warning}</p>{applying && <p className="account-apply-progress" role="status"><span className="account-apply-spinner" aria-hidden="true" />{account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…'}</p>}<div><button type="button" disabled={applying} onClick={() => setConfirm(null)}>Annuler</button><button ref={confirmRef} type="button" disabled={pending} onClick={confirmAction}>{applying ? account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…' : 'Confirmer'}</button></div></div></div>}
   </ScrollableScreenPanel>
 }

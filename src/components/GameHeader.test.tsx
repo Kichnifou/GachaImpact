@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { renderToStaticMarkup } from 'react-dom/server'
-import { act } from 'react'
+import { act, useState } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -16,6 +16,28 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
   act(() => root.render(<GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} {...props} />))
   return container
 }
+
+it('archives all notifications through the server and immediately clears list, button and badge', async () => {
+  const initial = { unreadCount: 1, notifications: [{ id: 'private-bulk', domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', payload: { count: 1 }, state: 'UNREAD' as const, createdAt: '2026-10-06T10:00:00Z', readAt: null, resolvedAt: null, archivedAt: null, actionKey: null, actionTargetId: null }] }
+  const archiveAll = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+  function Harness() { const [value, setValue] = useState(initial); return <GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={value} onArchiveAllNotifications={async () => { const next = await archiveAll(); setValue(next); return next }} /> }
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  await act(async () => root.render(<Harness />))
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+  const clear = [...container.querySelectorAll('button')].find(button => button.textContent === 'Tout supprimer')!
+  expect(clear).toBeDefined(); expect(container.querySelector('.header-count')?.textContent).toBe('1')
+  await act(async () => clear.click())
+  expect(archiveAll).toHaveBeenCalledOnce()
+  expect(container.textContent).toContain('Aucune notification.')
+  expect(container.querySelector('.header-count')).toBeNull()
+  expect([...container.querySelectorAll('button')].some(button => button.textContent === 'Tout supprimer')).toBe(false)
+})
+
+it('does not offer bulk deletion for an empty list', async () => {
+  const container = mount()
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+  expect(container.textContent).not.toContain('Tout supprimer')
+})
 
 describe('GameHeader moderation capability', () => {
   it('opens character avatars before archiving and keeps navigation when archive fails', async () => {

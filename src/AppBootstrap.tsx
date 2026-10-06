@@ -190,11 +190,13 @@ function AppBootstrap() {
     return request
   }, [loadDailyReward, loadWheel, loadDailyChallenge, loadDailyCombat, loadMonthlyBoss, loadExpedition, loadEvent, loadFavor])
   useLayoutEffect(() => { refreshDailyFlight.current = null }, [sessionUserId])
+  const notificationRevision = useRef(0)
   const notificationFlight = useRef<{ userId: string | undefined; promise: Promise<NotificationsDto> } | null>(null)
   const loadNotifications = useCallback(() => {
     if (notificationFlight.current && notificationFlight.current.userId === sessionUserId) return notificationFlight.current.promise
     const requestedFor = sessionUserId
-    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor) { setNotifications(next); if (next.expedition) acceptDaily('expedition', next.expedition, publishExpedition) } return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
+    const revision = notificationRevision.current
+    const promise = getGameApiClient().getNotifications().then(next => { if (notificationSessionRef.current === requestedFor && revision === notificationRevision.current) { setNotifications(next); if (next.expedition) acceptDaily('expedition', next.expedition, publishExpedition) } return next }).finally(() => { if (notificationFlight.current?.promise === promise) notificationFlight.current = null })
     notificationFlight.current = { userId: sessionUserId, promise }
     return promise
   }, [acceptDaily, publishExpedition, sessionUserId])
@@ -500,6 +502,7 @@ function AppBootstrap() {
   if (stage === 'elementRequired' && player) {
     return (
       <ElementChoiceScreen
+        onSignOut={signOut}
         onRefreshPlayerState={refreshPlayerState}
         onChoose={async (elementKey: ElementKey) => {
           try {
@@ -591,6 +594,7 @@ function AppBootstrap() {
       onReadNotification={async (id) => { const next = await getGameApiClient().readNotification(id); setNotifications(next); return next }}
       onArchiveNotification={async (id) => { const next = await getGameApiClient().archiveNotification(id); setNotifications(next); return next }}
       onReadAllNotifications={async () => { const next = await getGameApiClient().readAllNotifications(); setNotifications(next); return next }}
+      onArchiveAllNotifications={async () => { const owner = notificationSessionRef.current; ++notificationRevision.current; notificationFlight.current = null; const next = await getGameApiClient().archiveAllNotifications(); if (owner === notificationSessionRef.current) { ++notificationRevision.current; notificationFlight.current = null; setNotifications(next) } return next }}
       onArchiveReadNotifications={async () => { const next = await getGameApiClient().archiveReadNotifications(); setNotifications(next); return next }}
       onLoadDailyCombat={loadDailyCombat}
       onSetDailyCombatSlot={async (position, characterId) => { return dailyReads.mutate('combat', () => getGameApiClient().setDailyCombatSlot(position, characterId), next => acceptDaily('combat', next, setDailyCombat)) }}

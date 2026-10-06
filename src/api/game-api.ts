@@ -1,3 +1,4 @@
+import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
 import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
 import type { TutorialAutostartDto, TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
@@ -221,6 +222,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getTutorial: () => request<TutorialPreferenceDto>('/api/v1/me/tutorial'),
     putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
+    getTwitchLinkResolution: (signal?: AbortSignal) => request<TwitchLinkResolutionDto | null>('/api/v1/me/twitch/resolution', { signal }),
+    resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH') => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
     armTwitchCommandPilot: (acknowledgement: 'STREAMERBOT_PATH_DISABLED') => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'POST', body: JSON.stringify({ acknowledgement }) }),
     startTwitchProfileRecovery: () => request<{ url: string }>('/api/v1/me/twitch/recover/start', { method: 'POST' }),
@@ -370,6 +373,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     readNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/read`, { method: 'POST' }),
     archiveNotification: (notificationId: string) => request<NotificationsDto>(`/api/v1/me/notifications/${notificationId}/archive`, { method: 'POST' }),
     readAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/read-all', { method: 'POST' }),
+    archiveAllNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-all', { method: 'POST' }),
     archiveReadNotifications: () => request<NotificationsDto>('/api/v1/me/notifications/archive-read', { method: 'POST' }),
     getBank: () => request<PlayerBankDto>('/api/v1/me/bank'),
     getBankHistory: (page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST') => request<BankHistoryDto>(`/api/v1/me/bank/history?page=${page}${type ? `&type=${type}` : ''}`),

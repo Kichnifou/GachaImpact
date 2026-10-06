@@ -1,5 +1,11 @@
 # Migration legacy V1 — contrat canonique
 
+## Liaison joueur et sauvegardes internes — R1055
+
+[R1055](../specifications/decisions-log.md) remplace l’ancien refus systématique du web significatif : OAuth privé → choix explicite entre deux progressions compatibles ; aucune fusion/import gameplay. R1046 strict continue pour web disposable et préserve le Player Twitch entier, même sans élément. Le choix Web retargete TwitchIdentity et la target native seulement à autorité OFF ; import historique et dataAuthority restent intacts. Choix Twitch déplace WebIdentity ; perdant ARCHIVED, graphe interne conservé.
+
+Le propriétaire purge/batch préserve twitch_link_resolutions et les deux graphes de chaque choix terminé, en plus des Native et standalone déjà protégés. Projection read-only opérateur reconnaît la provenance historique Twitch d’un gagnant Web via la résolution terminée et l’import d’origine. Aucun Player public migré par la mission ; migration 062 candidate privée uniquement. Cette liaison normale ne remplace pas le canary/migrateur opérateur Ceo ni les gates R1050. État courant et prochaine action au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Correction de review : absence d’élément et résolution ciblée
 
 [R1049](../specifications/decisions-log.md) rend l'élément personnel nullable sans gate de niveau. Absence réelle → null et conservation du gameplay ; typo → LEGACY_ELEMENT_INVALID, jamais null par défaut. Résolution canary explicite et population fixe finale indépendante de l'élément ; ancien filtre uniquement en mode historique de répétition. Les domaines nécessitant un élément gardent leurs propriétaires, et R1046 conserve le même Player avant le choix standalone normal. Le garde unlink lit l'autorité persistante avant toute suppression/arrêt : opérateur actif bloqué, OFF explicite/audité requis, erreur DB fail-closed.

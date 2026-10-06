@@ -1,5 +1,13 @@
 # GachaImpact — Architecture backend V1
 
+## Owner de liaison Twitch unifiée — R1055
+
+TwitchAccountLink porte les quatre issues OAuth vérifiées et réutilise la fonction stricte disposable/move de R1046. start/startClaim capturent la WebIdentity serveur ; nonce/state/scopes et preuve OIDC/Helix restent chez TwitchPilotService. Aucune identity numérique ni Player ID client acceptés. GET/POST authentifiés /api/v1/me/twitch/resolution exposent seulement challenge opaque et résumés privés ; consentement strict, expiresAt 15 minutes et ownership revalidés.
+
+Transaction SERIALIZABLE/retry borné, verrou advisory twitch-provision partagé avec R1048 et Players verrouillés dans l’ordre ; comparaison fraîche avant confirmation. Même choix terminal idempotent, opposé refusé. Aucun gameplay copié/fusionné ; déplacement d’identité, archive du perdant, invalidation des sessions de présence et audit atomiques. Autre identité/migration/owner opérateur/activité active bloque ; target native retargetée vers Web uniquement OFF, sans changement de dataAuthority. Purge future préserve les deux graphes audités. RLS/no grants navigateur sur twitch_link_resolutions (062). [Décision](../specifications/decisions-log.md), [schéma](postgresql-schema-v1.md).
+
+POST /api/v1/me/notifications/archive-all exige une session et corps vide/query vide ; updateMany scoped Player sur UNREAD/READ, state ARCHIVED/archivedAt et snapshot. Payload et objets métier conservés. Frontend ignore les réponses de polling antérieures à cette mutation.
+
 ## Correction R1049 et trajectoire de fin R1050–R1054
 
 [R1049](../specifications/decisions-log.md) rend l'élément personnel nullable sans gate de niveau. Absence réelle → null et conservation du gameplay ; typo → LEGACY_ELEMENT_INVALID, jamais null par défaut. Résolution canary explicite et population fixe finale indépendante de l'élément ; ancien filtre uniquement en mode historique de répétition. Les domaines nécessitant un élément gardent leurs propriétaires, et R1046 conserve le même Player avant le choix standalone normal. Le garde unlink lit l'autorité persistante avant toute suppression/arrêt : opérateur actif bloqué, OFF explicite/audité requis, erreur DB fail-closed.

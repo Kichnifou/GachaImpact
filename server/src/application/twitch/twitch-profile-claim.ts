@@ -89,6 +89,11 @@ export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, player
   return true;
 }
 
+export async function moveDisposableWebIdentity(tx: Prisma.TransactionClient, webIdentityId: string, sourcePlayerId: string, targetPlayerId: string) {
+  await tx.webIdentity.update({ where: { id: webIdentityId }, data: { playerId: targetPlayerId } });
+  await tx.player.delete({ where: { id: sourcePlayerId } });
+}
+
 export class TwitchProfileClaim {
   constructor(private readonly db: PrismaClient) {}
   async execute(webIdentityId: string, expectedPlayerId: string, twitchUserId: string) {
@@ -108,8 +113,7 @@ export class TwitchProfileClaim {
             throw new AppError('Ce profil Twitch possède déjà une identité web. Résolution opérateur nécessaire.', 409, 'TWITCH_PROFILE_WEB_CONFLICT');
           if (!await isDisposableWebPlayer(tx, web.playerId))
             throw new AppError('Votre profil web contient des données ou une identité à préserver. Résolution opérateur nécessaire.', 409, 'TWITCH_PROFILE_NOT_DISPOSABLE');
-          await tx.webIdentity.update({ where: { id: web.id }, data: { playerId: current.playerId } });
-          await tx.player.delete({ where: { id: web.playerId } });
+          await moveDisposableWebIdentity(tx, web.id, web.playerId, current.playerId);
           return { claimed: true, playerId: current.playerId };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
       } catch (error) { if (retry < 4 && isPrismaConcurrencyCollision(error)) continue; throw error; }

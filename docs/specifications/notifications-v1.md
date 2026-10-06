@@ -1,5 +1,9 @@
 # Notifications V1 — contrat transverse
 
+## Archive bulk joueur — candidat UI/UX avant canary
+
+« Tout supprimer » est un bouton texte discret sans flèche dans le heading droit, absent si la liste est vide. POST authentifié /api/v1/me/notifications/archive-all, sans paramètres d’identité, archive toutes les UNREAD/READ du Player courant en une updateMany et conserve leurs payloads et les objets métier. États déjà ARCHIVED/RESOLVED et autres Players intacts. Snapshot retourné : liste/badge actualisés ; frontend neutralise les polls périmés. Échec visible et bouton réessayable ; pas de suppression frontend seule ni de nouvelle migration Notifications. Tests vide/non vide/clic et isolation Player PostgreSQL privés ; preuve et statut au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Raccord Arcade R982–R984
 
 Le **solo Arcade étape 23, R982–R984 (historique)** n'ajoute aucun producteur persistant Arcade, level-up ou tutoriel. L'étape 28 ajoute uniquement le producteur ARCADE_INVITE décrit plus bas ; elle ne réécrit pas ces décisions solo. Le bilan de partie est inline ; niveaux et overflow empruntent `LevelUpFeedback` existant. Les vraies complétions Missions provoquées par le propriétaire XP conservent leurs notifications normales R954–R955. Les anciennes intentions de découverte/notifications XP interface ne sont pas implémentées ici : Tutoriel attend son lot dédié. Aucun nouvel actionKey, typeKey ou canal Chat.

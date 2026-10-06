@@ -890,3 +890,7 @@ export type FavorDto = Readonly<{ businessDate: string; active: boolean; daysRem
 export type FavorPresenceDto = Readonly<{ status: 'CLAIMED' | 'ALREADY_CLAIMED' | 'INACTIVE'; businessDate: string; creditedPrimogems: string; favor: FavorDto }>
 
 export type TutorialAutostartDto = { shouldLaunch: false } | { shouldLaunch: true; preference: TutorialPreferenceDto & { status: 'IN_PROGRESS' } }
+
+export type TwitchProgressionSummary = Readonly<{ displayName: string; level: number; totalXp: string; elementKey: string | null; resources: Record<string, string>; totalMessages: string; characters: number; recentActivityAt: string | null }>
+export type TwitchLinkResolutionDto = Readonly<{ id: string; expiresAt: string; web: TwitchProgressionSummary; twitch: TwitchProgressionSummary }>
+export type TwitchLinkResultDto = Readonly<{ linked: boolean; resolutionRequired: boolean; playerId?: string; resolution?: TwitchLinkResolutionDto }>

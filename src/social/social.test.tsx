@@ -84,11 +84,11 @@ describe('Social UI', () => {
     expect(container.textContent).toContain('Aucun personnage possédé.')
     for (const label of ['Stella', 'Favori', 'Bloquer', 'Ajouter', 'Messages']) expect(container.textContent).not.toContain(label)
   })
-  it('activates privacy, keeps Appearance disabled, persists confirmed values and reports errors', async () => {
+  it('activates privacy, hides Appearance, persists confirmed values and reports errors', async () => {
     const api = actions(), container = await mount(<ConfigurationScreen preference={defaultNavigationPreference} onSave={vi.fn()} onReset={vi.fn()} socialActions={api} />)
     expect(container.querySelector('.configuration-tabs button')?.textContent).toBe('Menu')
     await click(container, 'Confidentialité')
-    expect((Array.from(container.querySelectorAll('button')).find(b => b.textContent === 'Apparence'))!.disabled).toBe(true)
+    expect(Array.from(container.querySelectorAll('button')).find(b => b.textContent === 'Apparence')).toBeUndefined()
     const select = container.querySelector('select')!
     await act(async () => { select.value = 'PRIVATE'; select.dispatchEvent(new Event('change', { bubbles: true })) })
     expect(api.savePrivacy).toHaveBeenCalledWith('BOX', 'PRIVATE')

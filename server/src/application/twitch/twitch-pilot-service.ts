@@ -12,7 +12,7 @@ import type { TwitchGiftSupremeRuntime } from './twitch-gift-supreme-runtime.js'
 import { TWITCH_GIFT_SUPREME_SCOPES } from './twitch-gift-supreme-contract.js';
 import { TWITCH_GIVEAWAY_SCOPES } from './twitch-giveaway-contract.js';
 import type { TwitchGiveawayManager } from './twitch-giveaway-manager.js';
-import { TwitchProfileClaim } from './twitch-profile-claim.js';
+import { TwitchAccountLink, type ProgressionChoice } from './twitch-account-link.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
@@ -136,8 +136,19 @@ export class TwitchPilotService {
     };
   }
 
+  private async accountWeb(identity: AuthenticatedIdentity) {
+    const player = await this.getPlayer.execute(identity);
+    const web = await this.db.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: identity.subject } } });
+    if (!web || web.playerId !== player.id || web.state !== 'ACTIVE') throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
+    return web;
+  }
+  async linkResolution(identity: AuthenticatedIdentity) { return new TwitchAccountLink(this.db).pending((await this.accountWeb(identity)).id); }
+  async resolveLink(identity: AuthenticatedIdentity, resolutionId: string, choice: ProgressionChoice) {
+    return new TwitchAccountLink(this.db).resolve((await this.accountWeb(identity)).id, resolutionId, choice);
+  }
+
   async start(identity: AuthenticatedIdentity) {
-    return this.startForPurpose(identity, 'LINK_IDENTITY');
+    return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE');
   }
   async startClaim(identity: AuthenticatedIdentity) { return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE'); }
 
@@ -200,8 +211,8 @@ export class TwitchPilotService {
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
     const state = (purpose === 'CLAIM_TWITCH_PROFILE' ? 'claim_' : purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url');
     const nonce = randomBytes(32).toString('base64url');
-    const web = purpose === 'CLAIM_TWITCH_PROFILE' ? await this.db.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: identity.subject } } }) : null;
-    if (purpose === 'CLAIM_TWITCH_PROFILE' && (!web || web.playerId !== player.id)) throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
+    const web = accountPurpose ? await this.db.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: identity.subject } } }) : null;
+    if (accountPurpose && (!web || web.playerId !== player.id)) throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
     await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id,
       ...(web ? { webIdentityId: web.id } : {}), expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const url = new URL('https://id.twitch.tv/oauth2/authorize');
@@ -302,14 +313,14 @@ export class TwitchPilotService {
     if (user?.id !== twitchUserId || typeof user.login !== 'string' || normalizeLogin(user.login) !== login) {
       throw new AppError('Profil Twitch incohÃ©rent.', 502, 'TWITCH_PROFILE_FAILED');
     }
-    if (purpose === 'CLAIM_TWITCH_PROFILE') {
+    if (accountPurpose) {
       const webIdentityId = consumed[0]!.web_identity_id;
       if (!webIdentityId) throw new AppError('Identité web absente du consentement.', 409, 'TWITCH_PROFILE_CHANGED');
-      return new TwitchProfileClaim(this.db).execute(webIdentityId, playerId, twitchUserId);
+      return new TwitchAccountLink(this.db).verified(webIdentityId, playerId, twitchUserId, user.login, typeof user.display_name === 'string' ? user.display_name : null);
     }
     const owner = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
     if (owner && owner.playerId !== playerId) throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');
-    if (purpose !== 'LINK_IDENTITY') {
+    {
       // Recheck after network calls; authorization must not recreate an unlinked identity.
       const current = await this.db.twitchIdentity.findUnique({ where: { playerId } });
       if (!current || current.twitchUserId !== twitchUserId || normalizeLogin(current.login) !== login
@@ -335,16 +346,7 @@ export class TwitchPilotService {
       const subscription = await this.subscriptions!.ensurePilotChatSubscription(playerId, twitchUserId);
       return { runtimeActivated: true, runtimeChatPending: subscription.status === 'webhook_callback_verification_pending' };
     }
-    try {
-      await this.db.twitchIdentity.upsert({ where: { playerId }, create: {
-        playerId, twitchUserId, login, displayName: typeof user.display_name === 'string' ? user.display_name : null,
-      }, update: { login, displayName: typeof user.display_name === 'string' ? user.display_name : null } });
-    } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002')
-        throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');
-      throw error;
-    }
-    return { linked: true };
+
   }
 
   async unlink(identity: AuthenticatedIdentity) {

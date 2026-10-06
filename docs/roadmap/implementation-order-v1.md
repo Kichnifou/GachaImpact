@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## Intercalaire UI/UX avant canary — R1055
+
+Lot A–E livré en candidat review au-dessus de 0fd2413 : « Tout supprimer », Configuration sans Apparence, accès Compte/Déconnexion avant élément, liaison Twitch unifiée et choix définitif Web/Twitch ([R1055](../specifications/decisions-log.md)). Prochaine étape : review indépendante, puis promotion/déploiement et application autorisée de 062 avant tout usage réel. La préparation Kichni_Test est différée après ces contrôles ; aucun canary préparé/exécuté dans ce lot. R1052 retrait Apparence est implémenté ; nouveautés, unlockedAt/tri/date/recherche restent futurs. Ordre des canaries/population/cutover/gate de révélation ci-dessous inchangé ; preuves au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Clôture produit et gate de révélation — R1050–R1054
 
 31A conserve les canaries ciblés et leur rollback : Kichni_Test (création seule déjà faite), Kichnifou refresh LEGACY/transfert NATIVE, Ceo vraie standalone liée/identifiée avec remplacement volontaire sans fusion. Puis rehearsal finale, 31B des membres encore LEGACY parmi les 43 historiques, préservation de chaque Native, deux quarantaines/171 owner-discarded exclus, transfert GLOBAL contrôlé. Les 43 ne deviennent pas 44 avec Kichni_Test ; ID fraîchement vérifié requis et conservation de ce test après recette à décider.

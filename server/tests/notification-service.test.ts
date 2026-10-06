@@ -25,6 +25,13 @@ function harness() {
 }
 
 describe('NotificationService lightweight mutation snapshots', () => {
+  it('archives unread and read notifications with one authenticated Player update and no business reconciliation', async () => {
+    const { service, notification, expeditions, giftCodes } = harness();
+    notification.findMany.mockResolvedValue([]);
+    expect(await service.archiveAll(identity)).toEqual({ unreadCount: 0, notifications: [] });
+    expect(notification.updateMany).toHaveBeenNthCalledWith(1, { where: { playerId: 'player-1', state: { in: ['UNREAD','READ'] } }, data: { state: 'ARCHIVED', archivedAt: now } });
+    expect(expeditions.getState).not.toHaveBeenCalled(); expect(giftCodes.reconcileNotificationsForPlayer).not.toHaveBeenCalled();
+  });
   it('keeps GET list as the full reconciliation entry point', async () => {
     const { service, notification, expeditions, giftCodes } = harness();
 

@@ -41,10 +41,10 @@ describe('ConfigurationScreen', () => {
     await act(async () => root.render(<ConfigurationScreen preference={defaultNavigationPreference} onSave={onSave} onReset={onReset} />))
 
     const tabs = Array.from(container.querySelectorAll<HTMLButtonElement>('.configuration-tabs button'))
-    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Menu', 'Confidentialité', 'Compte', 'Apparence'])
-    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false, true])
+    expect(tabs.map(({ textContent }) => textContent)).toEqual(['Menu', 'Confidentialité', 'Compte'])
+    expect(tabs.map(({ disabled }) => disabled)).toEqual([false, true, false])
     const style = document.createElement('style'); style.textContent = globalCssSource; document.head.append(style)
-    expect(tabs.map((tab) => window.getComputedStyle(tab).cursor)).toEqual(['pointer', 'not-allowed', 'pointer', 'not-allowed'])
+    expect(tabs.map((tab) => window.getComputedStyle(tab).cursor)).toEqual(['pointer', 'not-allowed', 'pointer'])
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .screen-header')).toBeNull()
     expect(container.querySelector('.configuration-frame .scrollable-screen-panel-body .configuration-tabs')).toBeNull()
     expect(container.querySelector('.menu-scroll-frame .menu-configuration-list')).not.toBeNull()

@@ -1,8 +1,14 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Liaison unifiée — migration additive 062
+
+[20261006180000_062_add_twitch_link_resolutions](../../server/prisma/migrations/20261006180000_062_add_twitch_link_resolutions/migration.sql) ajoute TwitchLinkResolution : UUID, WebIdentity FK, deux Players FK RESTRICT, Twitch User ID numérique vérifié, login/displayName, comparedState JSONB, choice nullable WEB/TWITCH, createdAt/expiresAt/completedAt. CHECK Players distincts, ID numérique, état pending/terminal cohérent et expiration après création ; index owner/expiry, deux Players et Twitch/completion. RLS activée, tous droits PUBLIC/anon/authenticated révoqués, aucune policy navigateur/token stocké.
+
+Choix terminé : l’ancien Player reste ARCHIVED avec graphe interne et preuve, le gagnant reste actif avec identités ; aucune nouvelle table de gameplay/fusion. Les migrations 001–061 restent inchangées. 062 appliquée/testée uniquement en schéma privé ; registre public contrôlé en lecture seule : 061 appliquée, seule 062 pending. Déploiement/application publique ultérieurs explicitement autorisés avant usage du nouveau code. [R1055](../specifications/decisions-log.md), état au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Correction sans nouvelle DDL
 
-R1049 utilise la nullabilité physique existante de Player.element_key : aucune modification de 061 ni des migrations antérieures. Unlink consulte twitch_native_authorities avant suppression opérateur ; aucune mutation automatique OFF. R1046 déplace toujours WebIdentity sans copier le gameplay. Les besoins futurs PlayerCosmetic.unlockedAt/DTO et résultat mensuel par EventEdition relèvent de [R1052/R1053](../specifications/decisions-log.md) : colonne cosmétique existante, projection à étendre et schéma Event futur à définir, aucun modèle nouveau appliqué ici. 061 reste non appliquée publiquement, preuves au [Master](../master/PROJECT_MASTER_PLAN.md).
+R1049 utilise la nullabilité physique existante de Player.element_key : aucune modification de 061 ni des migrations antérieures. Unlink consulte twitch_native_authorities avant suppression opérateur ; aucune mutation automatique OFF. R1046 déplace toujours WebIdentity sans copier le gameplay. Les besoins futurs PlayerCosmetic.unlockedAt/DTO et résultat mensuel par EventEdition relèvent de [R1052/R1053](../specifications/decisions-log.md) : colonne cosmétique existante, projection à étendre et schéma Event futur à définir, aucun modèle nouveau appliqué ici. Cette preuve de 061 pending est historique ; statut courant au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Fondations Twitch — migration additive 061
 

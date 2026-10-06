@@ -10,6 +10,7 @@ import { useModalDialog } from './useModalDialog'
 import AccountSettingsPanel from '../screens/AccountSettingsPanel'
 
 type ElementChoiceScreenProps = {
+  onSignOut?: () => Promise<void>
   onChoose: (elementKey: ElementKey) => Promise<void>
   onRefreshPlayerState?: () => Promise<void>
 }
@@ -24,7 +25,7 @@ function PreElementAccount({ onClose, onRefreshPlayerState }: { onClose: () => v
   </div>
 }
 
-function ElementChoiceScreen({ onChoose, onRefreshPlayerState }: ElementChoiceScreenProps) {
+function ElementChoiceScreen({ onChoose, onRefreshPlayerState, onSignOut }: ElementChoiceScreenProps) {
   const [selected, setSelected] = useState<ElementKey | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -49,7 +50,7 @@ function ElementChoiceScreen({ onChoose, onRefreshPlayerState }: ElementChoiceSc
         <span className="entry-step">Affinité élémentaire</span>
         <h1 id="element-title">Choisis ton élément</h1>
         <p className="permanent-choice">Ce choix est permanent.</p>
-        {onRefreshPlayerState && <p>Tu joues déjà sur Twitch ? <AppButton disabled={isSubmitting} onClick={() => setAccountOpen(true)}>Configuration › Compte</AppButton> permet de récupérer ton profil avant de choisir un nouvel élément.</p>}
+        {onRefreshPlayerState && <div className="element-account-help"><p>Si tu jouais déjà sur Twitch, récupère d’abord ta progression via Configuration &gt; Compte, avant de choisir ton élément.</p><div className="element-account-actions"><AppButton disabled={isSubmitting} onClick={() => setAccountOpen(true)}>Configuration › Compte</AppButton>{onSignOut && <AppButton disabled={isSubmitting} onClick={() => void onSignOut().catch(() => setErrorMessage("Impossible de vous déconnecter. Réessayez."))}>Déconnexion</AppButton>}</div></div>}
         <div className="element-choice-grid">
           {elementKeys.map((elementKey) => (
             <button
