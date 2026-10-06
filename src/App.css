@@ -9252,8 +9252,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .element-account-help { margin: 22px 0 24px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .element-account-help p { margin: 0 0 12px; }
 .element-account-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.notification-bulk-actions { display: grid; justify-items: stretch; gap: 3px; margin-left: auto; }
-.notifications-panel .notification-bulk-action { min-height: 28px; background: transparent; border-color: transparent; box-shadow: none; color: #9cddff; padding: 3px 5px; font-size: 11px; white-space: nowrap; }
+.notification-bulk-actions { display: grid; flex: 1; align-self: flex-end; justify-content: start; grid-template-columns: max-content; justify-items: stretch; gap: 1px; margin-left: 12px; }
+.notifications-panel .notification-bulk-action { min-height: 18px; line-height: 1.1; background: transparent; border-color: transparent; box-shadow: none; color: #9cddff; padding: 1px 3px; font-size: 9px; white-space: nowrap; }
 .notifications-panel .notification-bulk-action:hover:not(:disabled) { background: rgba(94,211,255,.08); color: #effbff; }
 .notifications-panel .notification-bulk-action:focus-visible { outline: 2px solid #5ed3ff; outline-offset: 2px; }
 

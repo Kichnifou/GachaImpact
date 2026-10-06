@@ -1,6 +1,22 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Préflight réel Kichni_Test — PASS approuvé, candidat promu techniquement, 06/10/2026
+## Reprise réelle Kichni_Test — configuration opérateur en attente
+
+Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) portent le statut courant. Streamer.bot est OFF depuis la capture selon confirmation explicite du propriétaire, supersédant les états ON historiques ci-dessous. Le snapshot de préflight est maintenant final pour Kichni_Test uniquement : même hash revalidé, Helix CANARY frais, plan public READ ONLY TWITCH_ONLY/ABSENT sans blocker/fait partagé et deux rehearsals privés PASS/rollback exact. Aucun apply public ni NATIVE activé. La configuration locale n’a ni allowlist opérateur ni capacité commandes active ; valeurs existantes du déploiement requises avant requireOperator. Aucun fichier .env ni variable Railway modifié ; aucune autorisation déduite d’un UUID trouvé en base.
+
+## Transfert local d’un import canary exact
+
+Après promotion et apply ciblé validés, utiliser depuis `server/` le CLI local-only suivant. Les placeholders désignent les preuves privées de cet import, jamais un pseudo ou un ID publié :
+
+```text
+npm.cmd run migration:legacy:canary:transfer -- --schema public --operator-player <UUID-ADMIN-autorisé> --twitch-id <ID-Helix-exact> --expected-player <UUID-Player-importé> --confirm-backup-hash <SHA-backup-durable> --acknowledgement STREAMERBOT_PATH_DISABLED --expected-revision <révision-lue>
+```
+
+Tous les arguments sont obligatoires ; inconnus/doublons, ABSENT, login, schéma privé ou flag GLOBAL sont refusés. Le script appelle TwitchNativeAuthority.transferImportedCanary, qui utilise configure dans la transaction Serializable existante. Il vérifie ADMIN ACTIVE/allowlist/identité opérateur, capacité commandes, révision exacte, autorité OFF et zéro canary préexistante ; target LEGACY inactive et même Player ACTIVE que l’identité numérique ; journal DATA_IMPORTED avec même Player/backupHash ; aucune opération native engagée. Les protections des observations passives restent celles de l’owner commun. Refus atomique avant changement d’autorité ; succès : une target NATIVE/canary avec ACK/date, desired CANARY, audit AUTHORITY_TRANSFERRED. Aucun nouveau endpoint, provisioning implicite ou mode global dans ce CLI.
+
+La sortie partagée est agrégée, sans UUID/ID. Après transfert, vérifier en lecture seule identité, target, import, audit, absence d’autre canary et statut transport ; desired CANARY ne prouve pas effective CANARY. Transport invalide → effective OFF et STOP avant test propriétaire, sans changement OAuth/EventSub. Le rollback existant reste séparé et exige OFF, backup durable/provenance exacte et absence d’opérations engagées/incertaines ; aucune commande de rollback n’est exécutée sur un import conforme.
+
+## Historique de préflight Kichni_Test — PASS approuvé, candidat promu techniquement, 06/10/2026
 
 Review indépendante de 47c08a5 : UI/données/Helix/rehearsal approuvés, deux faux blockers de tooling. Owner commun assessTwitchOperationsInFlight pour canary et relinquishForRollback : 71 observations Chat brutes RECEIVED sans réservation/commandPilot/outbound incertain sont passives ; EXECUTING, commandPilot reçu/RESPONSES-PENDING, message-native non terminal, SENDING/AMBIGUOUS et BusinessOperation PENDING restent bloquants. OFF/provenance et terminal FAILED/PROCESSED existants conservés, aucune modification des receipts publics. Les six champs connus de tradeRequests sont explicitement INTENTIONALLY_DROPPED ; propriété future inconnue toujours bloquée, aucun wildcard large.
 

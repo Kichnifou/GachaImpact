@@ -21,6 +21,7 @@
     "migration:legacy:canary:rehearse": "tsx scripts/legacy-canary.mts rehearse",
     "migration:legacy:canary:apply": "tsx scripts/legacy-canary.mts apply",
     "migration:legacy:canary:rollback": "tsx scripts/legacy-canary.mts rollback",
+    "migration:legacy:canary:transfer": "tsx scripts/transfer-imported-canary.mts",
     "migration:legacy:verify-ddl": "tsx scripts/verify-legacy-ddl.mts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",

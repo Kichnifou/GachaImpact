@@ -34,6 +34,21 @@ it('archives all notifications through the server and immediately clears list an
   expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Tout marquer comme lu')!.disabled).toBe(true)
 })
 
+it('renders a compact pair with shared sizing at the bottom-left of its header zone', async () => {
+  const style = document.createElement('style'); style.textContent = appCss; document.body.append(style)
+  const container = mount()
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+  const group = container.querySelector<HTMLElement>('.notification-bulk-actions')!
+  const groupStyle = getComputedStyle(group)
+  expect(groupStyle.alignSelf).toBe('flex-end'); expect(groupStyle.justifyContent).toBe('start')
+  expect(Number.parseFloat(groupStyle.gap)).toBeLessThanOrEqual(1)
+  const buttons = [...group.querySelectorAll<HTMLButtonElement>('button')].map(button => getComputedStyle(button))
+  expect(buttons).toHaveLength(2)
+  for (const property of ['minHeight', 'fontSize', 'lineHeight', 'padding'] as const) expect(buttons[0]![property]).toBe(buttons[1]![property])
+  expect(Number.parseFloat(buttons[0]!.minHeight)).toBeLessThanOrEqual(20)
+  expect(Number.parseFloat(buttons[0]!.fontSize)).toBeLessThanOrEqual(10)
+})
+
 it.each(['EMPTY', 'READ', 'UNREAD'] as const)('keeps both bulk actions visible and correctly disabled for %s', async state => {
   const onReadAllNotifications = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
   const onArchiveAllNotifications = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))

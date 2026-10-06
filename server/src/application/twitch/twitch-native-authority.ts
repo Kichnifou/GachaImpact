@@ -62,7 +62,13 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       || !this.config.twitch?.pilotPlayerIds.includes(playerId) || this.config.twitch.pilotLogin !== 'kichnifou'
       || identity.login.toLowerCase() !== 'kichnifou') throw forbidden();
   }
-  async configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number) {
+  /** Local operator path: transfer one exact imported Player; never replace another canary. */
+  async transferImportedCanary(actor: string, twitchUserId: string, expectedPlayerId: string, backupHash: string,
+    acknowledgement: string, expectedRevision: number) {
+    return this.configure(actor, 'CANARY', [twitchUserId], acknowledgement, expectedRevision, { expectedPlayerId, backupHash });
+  }
+  async configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number,
+    importedTarget?: { expectedPlayerId: string; backupHash: string }) {
     if (!['OFF', 'CANARY', 'GLOBAL'].includes(mode) || new Set(ids).size !== ids.length || ids.length > 100
       || ids.some(id => !/^[1-9][0-9]{0,127}$/.test(id)) || mode !== 'CANARY' && ids.length)
       throw new AppError('Paramètres d’autorité invalides.', 400, 'VALIDATION_ERROR');
@@ -74,11 +80,25 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       throw new AppError('Confirmez la désactivation réelle des chemins Streamer.bot concernés.', 409, 'TWITCH_NATIVE_ACK_REQUIRED');
     return this.db.$transaction(async tx => {
       await this.requireOperator(tx, actor);
+      const before = importedTarget ? await tx.twitchNativeAuthority.findUnique({ where: { id: key } }) : null;
       await tx.twitchNativeAuthority.upsert({ where: { id: key }, create: { id: key }, update: {} });
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = ${key} FOR UPDATE`;
       const previous = await tx.twitchNativeAuthority.findUniqueOrThrow({ where: { id: key } });
       if (expectedRevision !== undefined && previous.revision !== expectedRevision && !(expectedRevision === 0 && previous.revision === 1))
         throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
+      if (importedTarget) {
+        const twitchUserId = ids[0]!;
+        const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
+        const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId }, include: { player: true } });
+        if (mode !== 'CANARY' || ids.length !== 1 || expectedRevision !== (before?.revision ?? 0)
+          || previous.desiredMode !== 'OFF' || await tx.twitchNativeTarget.count({ where: { canary: true } })
+          || !target || target.canary || target.dataAuthority !== 'LEGACY' || target.playerId !== importedTarget.expectedPlayerId
+          || identity?.playerId !== importedTarget.expectedPlayerId || identity.player.status !== 'ACTIVE'
+          || !await tx.twitchCanaryImport.findFirst({ where: { twitchUserId, playerId: importedTarget.expectedPlayerId,
+            backupHash: importedTarget.backupHash, status: 'DATA_IMPORTED' } })
+          || (await assessTwitchOperationsInFlight(tx, twitchUserId, importedTarget.expectedPlayerId)).blocked)
+          throw new AppError('Cible importée ou autorité incompatible : transfert refusé.', 409, 'TWITCH_IMPORTED_CANARY_TRANSFER_BLOCKED');
+      }
       if (mode === 'CANARY') {
         await tx.twitchNativeTarget.updateMany({ where: { canary: true }, data: { canary: false } });
         for (const twitchUserId of ids) {

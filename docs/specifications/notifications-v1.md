@@ -2,6 +2,8 @@
 
 ## Archive bulk joueur — micro-polish avant canary
 
+Dernier retour propriétaire : les deux actions partagent une hauteur de 18 px, une police de 9 px et un espacement vertical de 1 px ; leur bloc de 37 px s’aligne au bas et à gauche de la zone droite du heading. Le panneau conserve sa largeur, les états métier ci-dessous sont inchangés. Rendu contrôlé dans le GameShell avec CSS de production aux quatre viewports du contrat, trois états par viewport, focus/hover et transitions lecture/archive ; aucune recette publique présumée.
+
 La colonne droite du heading rend toujours « Tout marquer comme lu » au-dessus de « Tout supprimer », deux AppButton texte discrets de mêmes dimensions/poids/style sans flèche. Liste vide : deux disabled ; READ seulement : lecture disabled, suppression active ; UNREAD : deux actifs. Action indisponible toujours visible et non cliquable ; suppression en cours disabled/aria-busy. POST authentifié /api/v1/me/notifications/archive-all, sans paramètres d’identité, archive toutes les UNREAD/READ du Player courant en une updateMany et conserve leurs payloads et les objets métier. États déjà ARCHIVED/RESOLVED et autres Players intacts. Snapshot retourné : liste/badge actualisés ; frontend neutralise les polls périmés. Échec visible et bouton réessayable ; pas de suppression frontend seule ni de nouvelle migration Notifications. Tests des trois états visibles/disabled, lecture/archive et isolation Player PostgreSQL privée ; preuve et statut au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Raccord Arcade R982–R984
