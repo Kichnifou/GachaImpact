@@ -1,5 +1,12 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Fondations Twitch pré-cutover — R1048
+
+[Décisions R1048](decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06). TwitchNativeAuthority porte le singleton de désir OFF/CANARY/GLOBAL, révision, opérateur, acknowledgement et dates. TwitchNativeTarget porte User ID numérique, Player facultatif/unique, LEGACY/MIGRATION_PENDING/NATIVE, canary et preuve déclarative du transfert. TwitchNativeAudit conserve les actions opérateur ; TwitchCanaryImport conserve Player/User ID, hashes snapshot/rapport/backup, état et dates, sans JSON source brut. TwitchLinkState lie facultativement WebIdentity au consentement CLAIM_TWITCH_PROFILE.
+
+WebIdentity reste 0..1 par Player ; Twitch-only n'en reçoit aucune au bootstrap. R1046 déplace une identité authentifiée vers le Player Twitch existant seulement si son web temporaire est disposable ; aucun modèle de fusion ni faux subject. Les quatre tables sont backend-only, RLS sans policy/grant navigateur ; détails physiques dans [le schéma](../architecture/postgresql-schema-v1.md). Les modalités de backup/local population et la séparation des phases sont dans [le guide](../process/twitch-native-foundations.md).
+
+
 ## Arcade — étape 23
 
 `ArcadeSession` conserve jeu/difficulté/versions, premier participant, état moteur privé et RNG, version de concurrence, cadence et résultat terminal unique (points, XP, date métier, opération). `ArcadeReceipt` lie Player, session, clé, intent et réponse publique immuable. `ArcadeDailyGrant` protège la première fin par Player/jeu/jour Paris, toutes difficultés confondues. `ArcadeStat` conserve score BigInt, compteurs et meilleur résultat par Player/jeu/difficulté. Scores par jeu et total sont dérivés des mêmes agrégats, sans second total autoritatif.

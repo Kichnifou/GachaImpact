@@ -379,6 +379,10 @@ model Player {
   twitchGiftSupremeCredential TwitchGiftSupremeCredential?
   twitchGiveawayCredential TwitchGiveawayCredential?
   twitchLinkStates      TwitchLinkState[]
+  twitchNativeTargets   TwitchNativeTarget[]
+  twitchNativeAuthorities TwitchNativeAuthority[]
+  twitchNativeAudits    TwitchNativeAudit[]
+  twitchCanaryImports   TwitchCanaryImport[]
   migrationPreviews     MigrationPreview[]
   migrationRuns         MigrationRun[]
   migrationIssues       MigrationIssue[]
@@ -846,6 +850,7 @@ model WebIdentity {
   providerSubject String   @map("provider_subject") @db.Text
   linkedAt        DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
   state           String   @default("ACTIVE") @db.Text
+  twitchClaims TwitchLinkState[]
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   player          Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
 
@@ -900,10 +905,68 @@ model TwitchLinkState {
   nonceHash String   @map("nonce_hash") @db.Text
   playerId  String   @map("player_id") @db.Uuid
   expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  webIdentityId String? @map("web_identity_id") @db.Uuid
+  webIdentity WebIdentity? @relation(fields: [webIdentityId], references: [id], onDelete: Cascade)
   player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
 
   @@index([playerId, expiresAt], map: "twitch_link_states_player_expiry_idx")
+  @@index([webIdentityId], map: "twitch_link_states_web_identity_id_idx")
   @@map("twitch_link_states")
+}
+
+model TwitchNativeAuthority {
+  id String @id @db.Text
+  desiredMode String @default("OFF") @map("desired_mode") @db.Text
+  revision Int @default(1)
+  operatorPlayerId String? @map("operator_player_id") @db.Uuid
+  acknowledgement String? @db.Text
+  acknowledgedAt DateTime? @map("acknowledged_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  operator Player? @relation(fields: [operatorPlayerId], references: [id], onDelete: Restrict)
+  @@map("twitch_native_authorities")
+}
+
+model TwitchNativeTarget {
+  twitchUserId String @id @map("twitch_user_id") @db.Text
+  playerId String? @unique @map("player_id") @db.Uuid
+  dataAuthority String @default("LEGACY") @map("data_authority") @db.Text
+  canary Boolean @default(false)
+  acknowledgement String? @db.Text
+  transferredAt DateTime? @map("transferred_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player? @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  imports TwitchCanaryImport[]
+  @@map("twitch_native_targets")
+}
+
+model TwitchNativeAudit {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorPlayerId String @map("actor_player_id") @db.Uuid
+  action String @db.Text
+  twitchUserId String? @map("twitch_user_id") @db.Text
+  mode String? @db.Text
+  revision Int?
+  acknowledgement String? @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor Player @relation(fields: [actorPlayerId], references: [id], onDelete: Restrict)
+  @@index([createdAt])
+  @@map("twitch_native_audit")
+}
+
+model TwitchCanaryImport {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  twitchUserId String @map("twitch_user_id") @db.Text
+  playerId String @map("player_id") @db.Uuid
+  snapshotHash String @map("snapshot_hash") @db.Text
+  identityReportHash String @map("identity_report_hash") @db.Text
+  backupHash String @map("backup_hash") @db.Text
+  status String @default("DATA_IMPORTED") @db.Text
+  importedAt DateTime @default(now()) @map("imported_at") @db.Timestamptz(6)
+  rolledBackAt DateTime? @map("rolled_back_at") @db.Timestamptz(6)
+  target TwitchNativeTarget @relation(fields: [twitchUserId], references: [twitchUserId], onDelete: Restrict)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Restrict)
+  @@index([twitchUserId, importedAt(sort: Desc)])
+  @@map("twitch_canary_imports")
 }
 
 model MigrationPreview {

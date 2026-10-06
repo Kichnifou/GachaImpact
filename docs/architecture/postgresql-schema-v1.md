@@ -1,5 +1,12 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Fondations Twitch — migration additive 061
+
+Candidat [20261006120000_061_add_twitch_native_foundations](../../server/prisma/migrations/20261006120000_061_add_twitch_native_foundations/migration.sql), suivant 060 sans modification historique. Ajoute twitch_native_authorities (singleton, révision positive, modes contrôlés, ACK/opérateur/date obligatoires hors OFF), twitch_native_targets (User ID numérique PK, Player FK unique facultative, états contrôlés, ACK/date obligatoires en NATIVE), twitch_native_audit (acteur FK, dates/index, actions), twitch_canary_imports (FK Player/target, trois hashes SHA-256, statut/date cohérents, index target/date). TwitchLinkState gagne web_identity_id nullable, FK CASCADE et index.
+
+RLS activée sur les quatre tables, REVOKE ALL PUBLIC/anon/authenticated, aucune policy navigateur ni token Runtime. Aucun insert d'autorité/Player dans la migration. Application publique interdite dans ce lot ; statut d'exécution et contrôles isolés au [Master](../master/PROJECT_MASTER_PLAN.md). [R1048](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06) porte l'autorité produit.
+
+
 ## Arcade — migration additive 057
 
 `20261001010000_057_add_arcade` ajoute quatre tables privées : `arcade_sessions`, `arcade_receipts`, `arcade_daily_grants`, `arcade_stats`. L'état JSONB moteur/RNG appartient uniquement à la session ; sa projection masque les cartes Memory cachées. Le résultat terminal est stocké dans la session, avec opération finale unique. Index partiel `(player_id, game) WHERE status = 'ACTIVE'`, unicité receipt `(player_id, idempotency_key)` et opération, grant PK `(player_id, game, business_date)` et session/opération uniques, stats PK `(player_id, game, difficulty)` avec référence du meilleur résultat. Score et compteurs sont BIGINT, sérialisés en décimal ; pas de total Arcade stocké séparément.

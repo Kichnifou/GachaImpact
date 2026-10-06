@@ -51,6 +51,7 @@ beforeAll(async () => {
   const store = new PrismaGachaStore(db); const current = await store.getCurrent(playerId);
   if (!current) throw new Error('Private banner unavailable');
   await db.playerGachaState.update({ where: { playerId }, data: { selectedBannerCharacterId: current.banner.featuredFiveStars[0]!.id } });
+  await db.playerRoleAssignment.create({ data: { playerId, role: 'ADMIN', source: 'private-authority-fixture' } });
   config.twitch.pilotPlayerIds = [playerId];
   const clock = { now: () => new Date((current.banner.startsAt.getTime() + current.banner.endsAt.getTime()) / 2) };
   const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No Supabase identity allowed in Twitch'); }, provision: async () => { throw new Error('No web provisioning allowed'); } });
@@ -58,7 +59,7 @@ beforeAll(async () => {
     socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as ChatCommandServices;
   core = twitchPlayerCommandExecutor(db, services, clock); business.mockImplementation((...args) => core.execute(...args));
   pilot = new TwitchCommandPilot(db, config, { execute: business, prepare: core.prepare, capturedAt: core.capturedAt }, outbound, parser, subscriptions);
-  await pilot.arm(playerId);
+  await pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED');
   presence = new TwitchFavorChatPresenceConsumer(db, clock); vi.spyOn(presence, 'consume');
   app = await buildApp(config, { getOrProvisionCurrentPlayer: {} as never, authIdentityVerifier: { verify: async () => ({ subject: 'HTTP-only-fixture' }) },
     twitchEventObserver: new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0)), twitchCommandPilot: pilot,
@@ -91,8 +92,8 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(parser).not.toHaveBeenCalled(); expect(business).not.toHaveBeenCalled(); expect(await state()).toEqual(before);
   });
   it('observes OFF/other authors and preserves specialized consumers without native business effects', async () => {
-    const before = await state(); pilot.disarm(playerId);
-    expect((await post(signed(event()))).statusCode).toBe(204); await pilot.arm(playerId);
+    const before = await state(); await pilot.disarm(playerId);
+    expect((await post(signed(event()))).statusCode).toBe(204); await pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED');
     expect((await post(signed(event('!pull 1', '456')))).statusCode).toBe(204);
     expect((await post(signed(event('ordinary message', '456')))).statusCode).toBe(204);
     expect(presence.consume).toHaveBeenCalledTimes(1); expect(giveaway.consume).toHaveBeenCalledTimes(3);
@@ -130,7 +131,7 @@ describe('signed command pilot in private PostgreSQL', () => {
     expect(receipt.payloadMinimal).toMatchObject({ commandPilot: { stage: 'RESPONSES', responses: [{ status: 'PENDING' }] } });
     await expect(pilot.retryResponses(playerId, receipt.id)).rejects.toMatchObject({ code: 'TWITCH_COMMAND_PILOT_OFF' });
     expect((await post(signed(event()))).statusCode).toBe(204); expect(await state()).toEqual(committed);
-    await pilot.arm(playerId); expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+    await pilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED'); expect(await pilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
     expect(await state()).toEqual(committed); expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
     expect((await post(request)).statusCode).toBe(204); expect(outbound.send).toHaveBeenCalledTimes(sends + 1);
@@ -277,7 +278,7 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     // Authorized server contract is deliberately distinct from both the Player and channel.
     const transport = { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'viewer-subscription', broadcasterId: '123', receiverId: receiver, callback: config.twitchEventSub.callbackUrl }) };
     viewerPilot = new TwitchCommandPilot(db, viewerConfig, executor, { send }, undefined, transport, activity);
-    await viewerPilot.arm(playerId);
+    await viewerPilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED', ['123', chatter]);
     viewerApp = await buildApp(viewerConfig, { getOrProvisionCurrentPlayer: {} as never, authIdentityVerifier: { verify: async () => ({ subject: 'HTTP-only-fixture' }) },
       twitchEventObserver: new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0)), twitchCommandPilot: viewerPilot,
       twitchFavorChatPresence: presence, twitchFavorSubscriptions: specialized as never, twitchFavorGifts: specialized as never,

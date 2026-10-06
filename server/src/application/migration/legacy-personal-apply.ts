@@ -8,6 +8,8 @@ type PlayerMapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']
 /** Writes only current, proven personal state. No synthetic BusinessOperation, movement or acquisition. */
 export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, player: PlannedPlayer,
   mapping: PlayerMapping, batchId: string, snapshotHash: string, cutoverAt: Date) {
+  const authority = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: player.twitchUserId } });
+  if (player.personalImport === false || authority?.dataAuthority === 'NATIVE') throw new Error('NATIVE_PLAYER_LEGACY_IMPORT_FORBIDDEN');
   const blockers = mapping.domains.filter(domain => domain.category === 'BLOCKED_AMBIGUOUS' || domain.action === 'PENDING_MAPPING');
   if (blockers.length) throw new Error(`Personal mapping blocked in ${blockers.map(domain => domain.name).join(', ')}.`);
   const viewer = player.viewer;
@@ -18,7 +20,7 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   if (isExisting) await tx.player.update({ where: { id: player.playerId }, data: { elementKey: player.elementKey, legacyUsername: player.legacyUsername,
     equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null } });
   else await tx.player.create({ data: { id: player.playerId, displayName: player.displayName, elementKey: player.elementKey,
-    legacyUsername: player.legacyUsername } });
+    legacyUsername: player.legacyUsername, privacySettings: { create: { categoryKey: 'PRIVATE_MESSAGES', level: 'PUBLIC' } } } });
   const anomalies = mapping.domains.flatMap(domain => domain.anomalies.map(note => ({ domain: domain.name, note })));
   if (anomalies.length) await tx.migrationIssue.createMany({ data: anomalies.map(({ domain, note }) => ({ batchId,
     sourceName: 'viewers_data.json', legacyKey: player.legacyUsername, playerId: player.playerId,

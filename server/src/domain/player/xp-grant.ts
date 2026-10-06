@@ -19,7 +19,7 @@ export type PlayerXpGrantPlan = Readonly<{
 export function planPlayerXpGrant(
   state: PlayerProgressionState,
   amount: bigint,
-  playerElementKey: ElementKey,
+  playerElementKey: ElementKey | null,
   now: Date,
   random: RandomSource,
 ): PlayerXpGrantPlan {
@@ -28,6 +28,7 @@ export function planPlayerXpGrant(
   const before = derivePlayerProgression(state);
   const xpAfter = state.xp + amount;
   const after = derivePlayerProgression({ ...state, xp: xpAfter });
+  if (playerElementKey === null && after.level > 2) throw new RangeError('Choose an element before progressing beyond onboarding.');
   const levelsReached = before.level < MAX_PLAYER_LEVEL
     ? Array.from({ length: after.level - before.level }, (_, index) => before.level + index + 1)
     : [];
@@ -41,7 +42,7 @@ export function planPlayerXpGrant(
   for (const level of rewardLevels) {
     addReward(rewardTotals, 'primogems', 800n);
     addReward(rewardTotals, 'moras', 10_000n);
-    if (level >= 5) addReward(rewardTotals, particleResourceKey(playerElementKey), 80n);
+    if (level >= 5 && playerElementKey) addReward(rewardTotals, particleResourceKey(playerElementKey), 80n);
     if (level >= 10) {
       const otherElements = elementKeys.filter((element) => element !== playerElementKey);
       addReward(rewardTotals, particleResourceKey(otherElements[random.nextInt(otherElements.length)]!), 40n);

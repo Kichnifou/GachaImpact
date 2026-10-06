@@ -398,11 +398,11 @@ it('uses the personal Favor contract without browser identity, date or source', 
  expect(fetchImplementation.mock.calls[1]?.[1]?.body).toBeUndefined()
 })
 
-it('sends empty authenticated command pilot mutations without client identities', async () => {
+it('sends explicit acknowledgement for arm and an empty authenticated kill switch', async () => {
   const flags = { commandPilotCapabilityEnabled: true, commandPilotArmed: true, commandPilotEnabled: true }
   const fetchImplementation = vi.fn().mockImplementation(async () => new Response(JSON.stringify(flags)))
   const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-test-token', fetchImplementation })
-  expect(await client.armTwitchCommandPilot()).toEqual(flags)
+  expect(await client.armTwitchCommandPilot('STREAMERBOT_PATH_DISABLED')).toEqual(flags)
   expect(await client.disarmTwitchCommandPilot()).toEqual(flags)
-  expect(fetchImplementation.mock.calls.map(([url, init]) => ({ url, method: init.method, body: init.body, authorization: new Headers(init.headers).get('authorization') }))).toEqual(['POST', 'DELETE'].map(method => ({ url: 'https://api.example/api/v1/me/twitch/commands/pilot', method, body: undefined, authorization: 'Bearer private-test-token' })))
+  expect(fetchImplementation.mock.calls.map(([url, init]) => ({ url, method: init.method, body: init.body, authorization: new Headers(init.headers).get('authorization') }))).toEqual(['POST', 'DELETE'].map(method => ({ url: 'https://api.example/api/v1/me/twitch/commands/pilot', method, body: method === 'POST' ? JSON.stringify({ acknowledgement: 'STREAMERBOT_PATH_DISABLED' }) : undefined, authorization: 'Bearer private-test-token' })))
 })

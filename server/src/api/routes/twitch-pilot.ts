@@ -29,7 +29,7 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     const status = await options.twitch.status(identity);
     if (!options.commandPilot || !status.eligible) return status;
     const player = await options.twitch.requirePilot(identity);
-    return { ...status, ...options.commandPilot.status(), commandPilotResponse: await options.commandPilot.responseStatus(player.id) };
+    return { ...status, ...await options.commandPilot.status(), commandPilotResponse: await options.commandPilot.responseStatus(player.id) };
   });
   const commandControlParameters = (request: { body: unknown; query: unknown }) => {
     if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
@@ -37,9 +37,13 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   };
   if (options.commandPilot) {
     app.post('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
-      reply.header('cache-control', 'no-store'); commandControlParameters(request);
+      reply.header('cache-control', 'no-store');
+      const parameters = z.object({ acknowledgement: z.literal('STREAMERBOT_PATH_DISABLED'),
+        twitchUserIds: z.array(z.string().regex(/^[1-9][0-9]{0,127}$/)).min(1).max(100).optional() }).strict().safeParse(request.body);
+      if (!parameters.success || Object.keys(request.query as object).length)
+        throw new AppError('Confirmation Streamer.bot et paramètres canary requis.', 400, 'VALIDATION_ERROR');
       const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
-      return options.commandPilot!.arm(player.id);
+      return options.commandPilot!.arm(player.id, parameters.data.acknowledgement, parameters.data.twitchUserIds);
     });
     app.delete('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
       reply.header('cache-control', 'no-store'); commandControlParameters(request);
@@ -56,6 +60,10 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     return options.commandPilot!.retryResponses(player.id, params.data.receiptId);
   });
   app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
+  app.post('/api/v1/me/twitch/recover/start', authenticated, request => {
+    commandControlParameters(request);
+    return options.twitch.startClaim(requireAuthenticatedIdentity(request));
+  });
   app.post('/api/v1/me/twitch/runtime/start', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success) throw new AppError('Paramètres runtime Twitch invalides.', 400, 'VALIDATION_ERROR');
     return options.twitch.startRuntime(requireAuthenticatedIdentity(request));
@@ -93,14 +101,16 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     let favor = false;
     let gift = false;
     let giveaway = false;
+    let claim = false;
     try { if (query.success) {
       const purpose = twitchOAuthPurpose(query.data.state);
       runtime = purpose === 'AUTHORIZE_RUNTIME';
       favor = purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
       gift = purpose === 'AUTHORIZE_GIFT_SUPREME';
       giveaway = purpose === 'AUTHORIZE_GIVEAWAY';
+      claim = purpose === 'CLAIM_TWITCH_PROFILE';
       await options.twitch.callback(query.data);
-      outcome = giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
+      outcome = claim ? 'profile-recovered' : giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
     catch (error) { outcome = giveaway ? 'giveaway-error' : gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
     const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');

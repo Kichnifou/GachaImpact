@@ -79,6 +79,7 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
   }
   let divergences = 0;
   for (const player of plan.players) {
+    if (player.personalImport === false) continue;
     const stats = object(player.viewer.stats), known = cumulative.get(player.playerId) ?? empty();
     const viewerDamage = count(stats.totalBossDamage ?? 0, 'viewer damage');
     const viewerAttacks = count(stats.totalBossAttacks ?? 0, 'viewer attacks');

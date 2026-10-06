@@ -32,6 +32,8 @@ export async function applyLegacySocial(tx: Prisma.TransactionClient, snapshot: 
     if (!first || !second) continue; // R933: no ghost Player.
     if (first === second) throw new Error('Self friendship in legacy source.');
     const [playerAId, playerBId] = [first, second].sort() as [string, string];
+    const retained = await tx.friendship.findUnique({ where: { playerAId_playerBId: { playerAId, playerBId } } });
+    if (retained) { friendships++; continue; }
     const level = friendship.level;
     const totalHearts = friendship.sparkleHearts;
     if (!Number.isSafeInteger(level) || Number(level) < 1 || Number(level) > 1000 || !Number.isSafeInteger(totalHearts) || Number(totalHearts) < 0)
@@ -56,6 +58,7 @@ export async function applyLegacySocial(tx: Prisma.TransactionClient, snapshot: 
     const recipientPlayerId = typeof request.to === 'string' ? playerByName.get(normalizeLegacyName(request.to)) : null;
     if (!senderPlayerId || !recipientPlayerId) continue;
     if (senderPlayerId === recipientPlayerId) throw new Error('Self friend request in legacy source.');
+    if (await tx.friendRequest.findFirst({ where: { senderPlayerId, recipientPlayerId, state: 'PENDING' } })) { requests++; continue; }
     const createdAt = knownDate(request.createdAt);
     if (!createdAt) throw new Error('Friend request date unknown.');
     await tx.friendRequest.create({ data: { senderPlayerId, recipientPlayerId, state: 'PENDING', sourceChannel: 'MIGRATION', createdAt } });

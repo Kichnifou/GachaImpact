@@ -24,6 +24,7 @@ export async function applyLegacyDailyCombat(tx: Prisma.TransactionClient, snaps
   }
   let states = 0, won = 0, kos = 0;
   for (const player of plan.players) {
+    if (player.personalImport === false) continue;
     const combat = object(player.viewer.combat), wonToday = combat.lastWinDate === businessDate,
       foughtToday = combat.lastFightDate === businessDate;
     if (wonToday || foughtToday) {

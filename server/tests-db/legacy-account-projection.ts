@@ -18,6 +18,13 @@ export async function readLegacyAccountProjection(client: pg.Client): Promise<Ac
       p.element_key AS "elementKey", t.twitch_user_id AS "twitchUserId", (w.player_id IS NOT NULL) AS "hasWebAccount"
       FROM public.players p LEFT JOIN public.web_identities w ON w.player_id=p.id
       LEFT JOIN public.twitch_identities t ON t.player_id=p.id ORDER BY p.id`)).rows;
+    const foundation = (await client.query<{ present: boolean }>(`SELECT to_regclass('public.twitch_native_targets') IS NOT NULL AS present`)).rows[0]!.present;
+    if (foundation) {
+      const ownership = (await client.query<{ player_id: string; data_authority: string; imported: boolean }>(`SELECT target.player_id,target.data_authority,
+        EXISTS (SELECT 1 FROM public.twitch_canary_imports imported WHERE imported.player_id=target.player_id AND imported.twitch_user_id=target.twitch_user_id AND imported.status='DATA_IMPORTED') imported
+        FROM public.twitch_native_targets target WHERE target.player_id IS NOT NULL`)).rows;
+      for (const player of players) { const own = ownership.find(row => row.player_id === player.id); player.dataAuthority = own?.data_authority ?? 'LEGACY'; player.canaryImported = own?.imported ?? false; }
+    }
     const identities = (await client.query<AccountProjection['identities'][number]>(`SELECT player_id AS "playerId", twitch_user_id AS "twitchUserId", login,
       display_name AS "displayName" FROM public.twitch_identities ORDER BY player_id`)).rows;
     const preferences = (await client.query<AccountProjection['preferences'][number]>(`SELECT player_id AS "playerId", preference_key AS "preferenceKey", value
@@ -43,6 +50,12 @@ export async function seedLegacyAccountProjection(db: Prisma.TransactionClient, 
   await db.playerPreference.createMany({ data: accounts.preferences });
   await db.privacySetting.createMany({ data: accounts.privacy });
   await db.playerRoleAssignment.createMany({ data: accounts.roles });
+  for (const row of accounts.players.filter(row => row.dataAuthority === 'NATIVE' && row.twitchUserId)) {
+    await db.twitchNativeTarget.create({ data: { twitchUserId: row.twitchUserId!, playerId: row.id, dataAuthority: 'NATIVE',
+      acknowledgement: 'STREAMERBOT_PATH_DISABLED', transferredAt: new Date() } });
+    if (row.canaryImported) await db.twitchCanaryImport.create({ data: { twitchUserId: row.twitchUserId!, playerId: row.id,
+      snapshotHash: '0'.repeat(64), identityReportHash: '0'.repeat(64), backupHash: '0'.repeat(64) } });
+  }
 }
 
 export async function assertLegacyAccountPreservation(db: Prisma.TransactionClient, accounts: AccountProjection, importedPlayerIds: readonly string[] = []) {
@@ -64,7 +77,8 @@ export async function assertLegacyAccountPreservation(db: Prisma.TransactionClie
     const retained = await db.privacySetting.findUniqueOrThrow({ where: { playerId_categoryKey: { playerId: row.playerId, categoryKey: row.categoryKey } } });
     if (retained.level !== row.level) throw new Error('PRIVATE_PRIVACY_PRESERVATION_FAILED');
   }
-  if (await db.playerPreference.count({ where: { preferenceKey: { not: 'box.sort' } } }) !== accounts.preferences.filter(row => row.preferenceKey !== 'box.sort').length || await db.privacySetting.count() !== accounts.privacy.length ||
+  const preservedIds = accounts.players.map(player => player.id);
+  if (await db.playerPreference.count({ where: { preferenceKey: { not: 'box.sort' } } }) !== accounts.preferences.filter(row => row.preferenceKey !== 'box.sort').length || await db.privacySetting.count({ where: { playerId: { in: preservedIds } } }) !== accounts.privacy.length ||
       await db.playerRoleAssignment.count() !== accounts.roles.length) throw new Error('PRIVATE_PRESERVATION_COUNTS_FAILED');
   for (const row of accounts.roles) {
     if (!await db.playerRoleAssignment.findFirst({ where: { playerId: row.playerId, role: row.role, source: row.source,

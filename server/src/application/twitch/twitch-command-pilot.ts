@@ -1,3 +1,5 @@
+import { TwitchNativeAuthority, type NativeAuthorityStore, type NativeAuthorityState, type NativeAuthorityMode } from './twitch-native-authority.js';
+import { PrismaTwitchPlayerStore } from '../../infrastructure/database/prisma-twitch-player-store.js';
 import type { TwitchMessageActivity } from './twitch-message-activity.js';
 import { AppError } from '../../api/errors.js';
 import { z } from 'zod';
@@ -17,7 +19,7 @@ const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type
   condition: z.object({ broadcaster_user_id: twitchId, user_id: twitchId }).strict(),
   transport: z.object({ method: z.literal('webhook'), callback: z.string().optional() }),
 }), event: z.object({ chatter_user_id: twitchId, broadcaster_user_id: twitchId,
-  source_broadcaster_user_id: twitchId.nullish(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string() }).nullish(),
+  source_broadcaster_user_id: twitchId.nullish(), chatter_user_login: z.string().max(128).optional(), chatter_user_name: z.string().max(128).optional(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string() }).nullish(),
 }) });
 const response = z.object({ text: z.string(), status: z.enum(['PENDING', 'SENDING', 'SENT', 'FAILED', 'AMBIGUOUS']),
   messageId: z.string().optional(), error: z.string().optional() });
@@ -47,56 +49,82 @@ export function twitchResponseSegments(value: string | readonly string[]): strin
 
 
 export class TwitchCommandPilot {
-  private armed = false;
   private transport?: PilotChatTransport;
-  private operatorPlayerId?: string;
-  private controlVersion = 0;
+  private transportRevision = -1;
+  private readonly authority: NativeAuthorityStore;
+  private readonly players: PrismaTwitchPlayerStore;
   constructor(private readonly db: PrismaClient, private readonly config: AppConfig,
     private readonly executor: TwitchCommandExecutor, private readonly outbound: Pick<TwitchCommandChatClient, 'send'>,
     private readonly parser: typeof findChatCommand = findChatCommand,
     private readonly subscriptions?: TwitchCommandSubscriptionInspector,
-    private readonly messageActivity?: TwitchMessageActivity) {}
-
-  status() {
-    const capability = this.config.twitchCommandPilot?.enabled === true;
-    return { commandPilotCapabilityEnabled: capability, commandPilotArmed: this.armed,
-      commandPilotEnabled: capability && this.armed };
+    private readonly messageActivity?: TwitchMessageActivity, authority?: NativeAuthorityStore, players?: PrismaTwitchPlayerStore) {
+    this.authority = authority ?? new TwitchNativeAuthority(db, config);
+    this.players = players ?? new PrismaTwitchPlayerStore(db, this.authority);
   }
 
-  private enabled() { return this.status().commandPilotEnabled; }
+  private async validateTransport(state: NativeAuthorityState) {
+    if (state.desiredMode === 'OFF' || !state.operatorPlayerId || !this.config.twitch?.pilotPlayerIds.includes(state.operatorPlayerId)
+      || this.config.twitch.pilotLogin !== 'kichnifou' || !this.config.twitchCommandPilot?.enabled
+      || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled !== true) {
+      this.transport = undefined; return false;
+    }
+    if (this.transport && this.transportRevision === state.revision && this.subscriptions?.activationAvailable) return true;
+    this.transport = undefined;
+    if (!this.subscriptions?.activationAvailable) return false;
+    const identity = await this.db.twitchIdentity.findUnique({ where: { playerId: state.operatorPlayerId }, include: { player: true } });
+    if (!identity || identity.player.status !== 'ACTIVE') return false;
+    const transport = await this.subscriptions.inspectPilotChatTransport(state.operatorPlayerId, AbortSignal.timeout(3_000));
+    if (!transport || transport.broadcasterId !== identity.twitchUserId || !twitchId.safeParse(transport.receiverId).success
+      || this.config.twitchEventSub?.callbackUrl && transport.callback !== this.config.twitchEventSub.callbackUrl) return false;
+    const latest = await this.authority.read();
+    if (latest.revision !== state.revision || latest.desiredMode !== state.desiredMode) return false;
+    this.transport = { ...transport }; this.transportRevision = state.revision;
+    return true;
+  }
 
-  async arm(playerId: string) {
-    if (this.config.twitchCommandPilot?.enabled !== true)
-      throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
-    const version = this.controlVersion;
-    const identity = await this.db.twitchIdentity.findUnique({ where: { playerId }, include: { player: true } });
-    if (!identity || identity.player.status !== 'ACTIVE' || !this.config.twitch?.pilotPlayerIds.includes(playerId)
-      || this.config.twitch.pilotLogin !== 'kichnifou' || identity.login.toLowerCase() !== 'kichnifou'
-      || !twitchId.safeParse(identity.twitchUserId).success)
-      throw new AppError('Armement du pilote Twitch interdit.', 403, 'TWITCH_COMMAND_PILOT_FORBIDDEN');
-    this.operatorPlayerId = playerId;
-    if (!this.subscriptions?.activationAvailable)
-      throw new AppError('Transport Twitch indisponible.', 409, 'TWITCH_COMMAND_TRANSPORT_UNAVAILABLE');
-    let transport: PilotChatTransport | null;
-    try { transport = await this.subscriptions.inspectPilotChatTransport(playerId, AbortSignal.timeout(3_000)); }
-    catch { throw new AppError('Inspection Twitch indisponible.', 409, 'TWITCH_COMMAND_TRANSPORT_UNAVAILABLE'); }
-    if (!transport) throw new AppError('Une subscription Chat active est nécessaire.', 409, 'TWITCH_COMMAND_SUBSCRIPTION_INACTIVE');
-    if (transport.broadcasterId !== identity.twitchUserId || !twitchId.safeParse(transport.receiverId).success
-      || this.config.twitchEventSub?.callbackUrl && transport.callback !== this.config.twitchEventSub.callbackUrl)
-      throw new AppError('Transport Twitch incompatible.', 409, 'TWITCH_COMMAND_TRANSPORT_UNAVAILABLE');
-    if (version !== this.controlVersion)
-      throw new AppError('Armement annulé par le désarmement.', 409, 'TWITCH_COMMAND_PILOT_OFF');
-    this.transport = { ...transport }; this.armed = true;
+  async status() {
+    const capability = this.config.twitchCommandPilot?.enabled === true;
+    try {
+      const state = await this.authority.read();
+      const valid = capability && await this.validateTransport(state);
+      return { commandPilotCapabilityEnabled: capability, commandPilotArmed: state.desiredMode !== 'OFF',
+        commandPilotEnabled: valid, desiredAuthority: state.desiredMode, effectiveAuthority: valid ? state.desiredMode : 'OFF', transportValid: valid };
+    } catch {
+      this.transport = undefined;
+      return { commandPilotCapabilityEnabled: capability, commandPilotArmed: false, commandPilotEnabled: false,
+        desiredAuthority: 'OFF', effectiveAuthority: 'OFF', transportValid: false, authorityUnavailable: true };
+    }
+  }
+  private async enabled(twitchUserId?: string) {
+    if (!(await this.status()).commandPilotEnabled) return false;
+    try { return twitchUserId === undefined || await this.authority.covers(twitchUserId); } catch { return false; }
+  }
+
+  async configureAuthority(playerId: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string) {
+    await this.authority.configure(playerId, mode, ids, acknowledgement);
+    this.transport = undefined;
     return this.status();
   }
-
-  /** Process-local emergency stop: no Twitch inspection or mutation, no cancellation of committed work. */
-  disarm(playerId: string) {
-    if (!this.config.twitch?.pilotPlayerIds.includes(playerId) || this.config.twitch.pilotLogin !== 'kichnifou'
-      || this.operatorPlayerId !== undefined && playerId !== this.operatorPlayerId)
-      throw new AppError('Pilote Twitch non autorisé.', 403, 'TWITCH_COMMAND_PILOT_FORBIDDEN');
-    this.controlVersion++;
-    this.armed = false;
+  async arm(playerId: string, acknowledgement?: string, ids?: readonly string[]) {
+    if (this.config.twitchCommandPilot?.enabled !== true)
+      throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
+    const state = await this.authority.read();
+    const identity = await this.db.twitchIdentity.findUnique({ where: { playerId }, include: { player: true } });
+    if (!identity || identity.player.status !== 'ACTIVE' || !this.config.twitch?.pilotPlayerIds.includes(playerId)
+      || this.config.twitch.pilotLogin !== 'kichnifou' || identity.login.toLowerCase() !== 'kichnifou')
+      throw new AppError('Armement du pilote Twitch interdit.', 403, 'TWITCH_COMMAND_PILOT_FORBIDDEN');
+    if (!this.subscriptions?.activationAvailable)
+      throw new AppError('Transport Twitch indisponible.', 409, 'TWITCH_COMMAND_TRANSPORT_UNAVAILABLE');
+    const transport = await this.subscriptions.inspectPilotChatTransport(playerId, AbortSignal.timeout(3_000)).catch(() => null);
+    if (!transport || transport.broadcasterId !== identity.twitchUserId || !twitchId.safeParse(transport.receiverId).success
+      || this.config.twitchEventSub?.callbackUrl && transport.callback !== this.config.twitchEventSub.callbackUrl)
+      throw new AppError('Une subscription Chat active compatible est nécessaire.', 409, 'TWITCH_COMMAND_SUBSCRIPTION_INACTIVE');
+    await this.authority.configure(playerId, 'CANARY', ids ?? [identity.twitchUserId], acknowledgement, state.revision);
+    this.transport = undefined;
+    return this.status();
+  }
+  async disarm(playerId: string) {
+    await this.authority.configure(playerId, 'OFF', []);
     this.transport = undefined;
     return this.status();
   }
@@ -123,7 +151,7 @@ export class TwitchCommandPilot {
 
   /** Only the authenticated EventSub route calls this; observation/specialized consumers run first. */
   async consumeAuthenticated(raw: unknown, receiptId: string, executeCommands = true): Promise<void> {
-    if (!this.enabled() || this.config.twitch?.pilotLogin !== 'kichnifou') return;
+    if (!await this.enabled() || this.config.twitch?.pilotLogin !== 'kichnifou') return;
     const parsed = envelope.safeParse(raw);
     if (!parsed.success) return;
     const { subscription, event } = parsed.data;
@@ -135,11 +163,14 @@ export class TwitchCommandPilot {
       || subscription.condition.user_id !== transport.receiverId
       || subscription.transport.callback !== transport.callback
       || event.source_broadcaster_user_id && event.source_broadcaster_user_id !== transport.broadcasterId) return;
-    const identity = await this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } });
-    // No command classification/registry lookup occurs before every author/transport gate succeeds.
-    if (!this.enabled() || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
-      || !this.config.twitch.pilotPlayerIds.includes(identity.playerId) || identity.twitchUserId !== event.chatter_user_id) return;
-    if (!executeCommands) return; // Specialized outbound echo remains excluded from all generic effects.
+    // Authority precedes identity/provisioning, parser and every business effect.
+    if (!executeCommands || !await this.enabled(event.chatter_user_id) || !event.message.text.trim()) return;
+    const existing = await this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } });
+    if (!existing && await this.isNativeOutboundMessage(raw)) return;
+    const identity = existing ?? await this.players.resolve({ twitchUserId: event.chatter_user_id,
+      login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt: this.executor.capturedAt?.() ?? new Date() });
+    if (!await this.enabled(event.chatter_user_id) || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
+      || identity.twitchUserId !== event.chatter_user_id) return;
     if (!event.message.text.trim()) return;
     if (this.messageActivity) {
       const output = await this.consumeMessageActivity(identity.player, event, receiptId);
@@ -186,13 +217,13 @@ export class TwitchCommandPilot {
     // Preparation has no explicit command effect; commit the resolved invocation before execution.
     await this.locked(receiptId, async tx => {
       const { minimal, saved } = await read(tx);
-      if (!saved || saved.stage !== 'EXECUTING' || saved.intent || saved.args === undefined || !this.enabled() || !this.executor.prepare) return;
+      if (!saved || saved.stage !== 'EXECUTING' || saved.intent || saved.args === undefined || !await this.enabled(event.chatter_user_id) || !this.executor.prepare) return;
       const intent = await this.executor.prepare({ ...identity.player, displayName: saved.actorName }, saved.handler, saved.args ?? args, definition.syntax, saved.commandKey, saved.businessAt);
       await save(tx, minimal, { ...saved, intent: frozenIntent.parse(intent) });
     });
     await this.locked(receiptId, async tx => {
       const { minimal, saved } = await read(tx);
-      if (!saved || saved.stage !== 'EXECUTING' || !this.enabled()) return;
+      if (!saved || saved.stage !== 'EXECUTING' || !await this.enabled(event.chatter_user_id)) return;
       const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler, saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
       const segments = twitchResponseSegments(output);
       if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
@@ -254,7 +285,7 @@ export class TwitchCommandPilot {
       }
       return prior;
     });
-    if (!this.enabled()) return [];
+    if (!await this.enabled(event.chatter_user_id)) return [];
     return this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan);
   }
 
@@ -277,7 +308,7 @@ export class TwitchCommandPilot {
 
   /** Authenticated pilot operator only; no parser or business service is reachable from this recovery path. */
   async retryResponses(playerId: string, receiptId: string) {
-    if (!this.enabled()) throw new AppError('Pilote de commandes inactif.', 409, 'TWITCH_COMMAND_PILOT_OFF');
+    if (!await this.enabled()) throw new AppError('Pilote de commandes inactif.', 409, 'TWITCH_COMMAND_PILOT_OFF');
     const identity = await this.db.twitchIdentity.findUnique({ where: { playerId }, include: { player: true } });
     if (!identity || identity.player.status !== 'ACTIVE' || !this.config.twitch?.pilotPlayerIds.includes(playerId)
       || this.config.twitch.pilotLogin !== 'kichnifou' || identity.login.toLowerCase() !== 'kichnifou')
@@ -287,7 +318,7 @@ export class TwitchCommandPilot {
       const { saved } = await this.read(tx, receiptId, receipt?.twitchUserId ?? '');
       const actor = await tx.twitchIdentity.findUnique({ where: { twitchUserId: receipt!.twitchUserId! }, include: { player: true } });
       if (!this.transport || this.transport.broadcasterId !== identity.twitchUserId || !saved || !actor || actor.player.status !== 'ACTIVE'
-        || !this.config.twitch?.pilotPlayerIds.includes(actor.playerId) || saved.playerId !== actor.playerId
+        || !await this.authority.covers(actor.twitchUserId) || saved.playerId !== actor.playerId
         || saved.senderId !== this.transport.receiverId || saved.broadcasterId !== this.transport.broadcasterId)
         throw new AppError('Réponse Twitch introuvable.', 404, 'TWITCH_COMMAND_RESPONSE_NOT_FOUND');
       if (saved.stage !== 'RESPONSES' || saved.responses.some(row => row.status === 'SENDING' || row.status === 'AMBIGUOUS'))
@@ -302,15 +333,15 @@ export class TwitchCommandPilot {
   }
 
   private async deliver(receiptId: string, target: { senderId: string; chatterId: string; broadcasterId: string; replyParentMessageId: string }) {
-    const canSend = () => this.enabled() && this.transport?.broadcasterId === target.broadcasterId && this.transport.receiverId === target.senderId;
+    const canSend = async () => await this.enabled(target.chatterId) && this.transport?.broadcasterId === target.broadcasterId && this.transport.receiverId === target.senderId;
     const read = (tx: Prisma.TransactionClient) => this.read(tx, receiptId, target.chatterId);
     const save = (tx: Prisma.TransactionClient, minimal: Record<string, Prisma.JsonValue>, state: Execution, final = false, error?: string) => this.save(tx, receiptId, minimal, state, final, error);
     // Persist SENDING before HTTP. Unknown outcomes never auto-retry; certain rejection retries response only.
     for (let index = 0; ; index++) {
-      if (!canSend()) return;
+      if (!await canSend()) return;
       const text = await this.locked(receiptId, async tx => {
         const { receipt, minimal, saved } = await read(tx);
-        if (!canSend() || !saved || receipt.state === 'PROCESSED') return null;
+        if (!await canSend() || !saved || receipt.state === 'PROCESSED') return null;
         if (saved.senderId !== target.senderId || saved.broadcasterId !== target.broadcasterId || saved.replyParentMessageId !== target.replyParentMessageId)
           throw new AppError('Transport de réponse modifié : contrôle opérateur requis.', 409, 'TWITCH_COMMAND_RESPONSE_TRANSPORT_CHANGED');
         const segment = saved.responses[index];
@@ -325,7 +356,7 @@ export class TwitchCommandPilot {
       if (text === '') continue;
       let sentId: string | undefined, failure: TwitchCommandSendError | undefined;
       try {
-        if (!canSend()) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
+        if (!await canSend()) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
         sentId = await this.outbound.send({ broadcasterId: target.broadcasterId, senderId: target.senderId,
           message: text, replyParentMessageId: target.replyParentMessageId }, canSend);
       } catch (error) {

@@ -8,7 +8,7 @@ import { PermanentMissionService } from '../../application/missions/permanent-mi
 
 export type GrantPlayerXpInput = Readonly<{
   playerId: string;
-  playerElementKey: ElementKey;
+  playerElementKey: ElementKey | null;
   amount: bigint;
   source: string;
   now: Date;

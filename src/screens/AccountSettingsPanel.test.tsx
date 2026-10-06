@@ -2,10 +2,11 @@
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import ElementChoiceScreen from '../components/ElementChoiceScreen'
 
 const api = vi.hoisted(() => ({
   startTwitchGiftSupreme: vi.fn(), ensureTwitchGiftSupreme: vi.fn(), disableTwitchGiftSupreme: vi.fn(),
-  armTwitchCommandPilot: vi.fn(), disarmTwitchCommandPilot: vi.fn(),
+  startTwitchProfileRecovery: vi.fn(), armTwitchCommandPilot: vi.fn(), disarmTwitchCommandPilot: vi.fn(),
   getTwitchAccount: vi.fn(), startTwitchLink: vi.fn(), startTwitchFavor: vi.fn(), disableTwitchFavor: vi.fn(), startTwitchRuntime: vi.fn(), disableTwitchRuntime: vi.fn(), unlinkTwitch: vi.fn(), previewTwitchSnapshot: vi.fn(), applyTwitchSnapshot: vi.fn(),
 }))
 vi.mock('../api/game-api', () => ({ getGameApiClient: () => api }))
@@ -26,6 +27,36 @@ async function selectSnapshot(container: HTMLElement) {
 }
 
 describe('Configuration > Compte', () => {
+  it('opens recovery before element choice and restores focus on Escape', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, eligible: false, linked: null, profileRecoveryAvailable: true });
+    const container = document.createElement('div'); document.body.append(container);
+    const root = createRoot(container); roots.push(root);
+    const choose = vi.fn();
+    await act(async () => root.render(<ElementChoiceScreen onChoose={choose} onRefreshPlayerState={vi.fn()} />));
+    const opener = button(container, 'Configuration › Compte'); opener.focus();
+    await act(async () => opener.click());
+    expect(button(container.querySelector('[role="dialog"]')!, 'Récupérer mon profil Twitch')).toBeDefined();
+    expect(choose).not.toHaveBeenCalled();
+    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(container.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+  });
+  it('offers explicit recovery to non-pilot accounts without silently linking or merging', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, eligible: false, linked: null, profileRecoveryAvailable: true });
+    const container = await mount();
+    expect(button(container, 'Récupérer mon profil Twitch').disabled).toBe(false);
+    expect(api.startTwitchProfileRecovery).not.toHaveBeenCalled();
+    expect(container.textContent).toContain('résolution opérateur');
+  });
+  it('reloads the entire authoritative Player after recovery without a logout', async () => {
+    api.getTwitchAccount.mockResolvedValue(linkedAccount);
+    history.replaceState(null, '', '/?twitch=profile-recovered');
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    const container = await mount(refresh);
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(container.querySelector('[role="alert"]')).toBeNull();
+    expect(location.search).not.toContain('twitch=');
+  });
   it.each(['runtime-activated', 'runtime-authorized', 'runtime-future'])('clears the %s outcome without reporting a failed identity link', async outcome => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount);
     history.replaceState(null, '', `/?twitch=${outcome}`);
@@ -57,7 +88,7 @@ describe('Configuration > Compte', () => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount)
     history.replaceState(null, '', '/?twitch=TWITCH_IDENTITY_CONFLICT')
     const container = await mount()
-    expect(container.querySelector('[role="alert"]')?.textContent).toContain('déjà lié')
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('identité web')
     expect(location.search).not.toContain('twitch=')
   })
   it('unlinks after confirmation and shows the updated account state', async () => {
@@ -442,8 +473,9 @@ describe('explicit Twitch command pilot controls', () => {
     api.armTwitchCommandPilot.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve }))
     const container = await mount()
     expect(container.textContent).toContain('Non activ\u00e9')
+    await act(async () => container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
     await act(async () => { button(container, armLabel).click(); button(container, armLabel).click() })
-    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith()
+    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith('STREAMERBOT_PATH_DISABLED')
     expect(button(container, 'D\u00e9lier Twitch').disabled).toBe(true)
     await act(async () => release())
     expect(api.getTwitchAccount).toHaveBeenCalledTimes(2)
@@ -469,7 +501,7 @@ describe('explicit Twitch command pilot controls', () => {
     api.getTwitchAccount.mockResolvedValueOnce({ ...commandAccount, runtimeChatActive: false, runtimeChatPending: true, runtimeSubscriptionAvailable: true }).mockResolvedValue(commandAccount)
     const container = await mount()
     await act(async () => vi.advanceTimersByTimeAsync(1000))
-    expect(button(container, armLabel).disabled).toBe(false)
+    expect(button(container, armLabel).disabled).toBe(true)
     await mount()
     expect(api.armTwitchCommandPilot).not.toHaveBeenCalled()
     expect(api.disarmTwitchCommandPilot).not.toHaveBeenCalled()
@@ -497,6 +529,7 @@ describe('explicit Twitch command pilot controls', () => {
     api.getTwitchAccount.mockResolvedValue({ ...commandAccount, favorSubscriptionAvailable: true, giftSupremeAvailable: true })
     api.armTwitchCommandPilot.mockRejectedValueOnce({ code, message: 'private upstream details' })
     const container = await mount()
+    await act(async () => container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
     await act(async () => button(container, armLabel).click())
     expect(container.querySelector('[role="alert"]')?.textContent).toContain(message)
     expect(container.textContent).not.toContain('private upstream details')

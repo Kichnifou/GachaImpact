@@ -298,7 +298,7 @@ function AppBootstrap() {
     const promise = (async () => {
       const nextPlayer = await getGameApiClient().getCurrentPlayer()
       if (!owner.active || owner !== playerReadOwner.current) return
-      await Promise.all([loadGameState(), loadFavor().catch(() => undefined)])
+      if (nextPlayer.elementKey) await Promise.all([loadGameState(), loadFavor().catch(() => undefined)])
       if (owner.active && owner === playerReadOwner.current) setPlayer(nextPlayer)
     })().finally(() => { if (playerRefreshFlight.current?.promise === promise) playerRefreshFlight.current = null })
     playerRefreshFlight.current = { owner, promise }
@@ -500,6 +500,7 @@ function AppBootstrap() {
   if (stage === 'elementRequired' && player) {
     return (
       <ElementChoiceScreen
+        onRefreshPlayerState={refreshPlayerState}
         onChoose={async (elementKey: ElementKey) => {
           try {
             await getGameApiClient().chooseElement(elementKey)

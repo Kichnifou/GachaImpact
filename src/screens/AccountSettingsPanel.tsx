@@ -29,6 +29,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const [preview, setPreview] = useState<SnapshotPreviewDto | null>(null)
   const [result, setResult] = useState<SnapshotApplyDto | null>(null)
   const [pending, setPending] = useState(false)
+  const [streamerbotAcknowledged, setStreamerbotAcknowledged] = useState(false)
   const pendingRef = useRef(false)
   const commandRevision = useRef(0)
   const [runtimeChecking, setRuntimeChecking] = useState(false)
@@ -50,7 +51,9 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     const url = new URL(location.href)
     const outcome = presentationMode ? null : url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
-      if (outcome !== 'connected' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch est déjà lié à un autre joueur.' : 'La liaison Twitch a échoué ou a été annulée.') }
+      if (outcome !== 'connected' && outcome !== 'profile-recovered' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_IDENTITY_CONFLICT' || outcome === 'TWITCH_PROFILE_WEB_CONFLICT' ? 'Ce compte Twitch possède déjà une identité web. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_DISPOSABLE' ? 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_FOUND' ? 'Aucun profil Twitch existant à récupérer.' : 'La liaison Twitch a échoué ou a été annulée.') }
+    // OAuth returns through a full page bootstrap; the authenticated subject now resolves the recovered Player.
+    if (outcome === 'profile-recovered') void onRefreshPlayerState().catch(reason => setError(apiErrorMessage(reason)))
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
     if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
     if (outcome === 'gift-supreme-error') setError('L’autorisation ou l’activation Gift Suprême a échoué ou a été annulée.')
@@ -122,6 +125,12 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
   const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) })
+  const recover = () => void run(async () => {
+    const { url } = await api.startTwitchProfileRecovery()
+    const target = new URL(url)
+    if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.')
+    location.assign(target.toString())
+  })
   const activateRuntime = () => void run(async () => {
     const { url } = await api.startTwitchRuntime()
     const target = new URL(url)
@@ -174,7 +183,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const controlCommandPilot = (disarm: boolean) => void run(async () => {
     commandRevision.current++
     if (disarm) await api.disarmTwitchCommandPilot()
-    else await api.armTwitchCommandPilot()
+    else { if (!streamerbotAcknowledged) return; await api.armTwitchCommandPilot('STREAMERBOT_PATH_DISABLED') }
     setAccount(await api.getTwitchAccount())
   }, disarm)
   const confirmAction = () => {
@@ -207,7 +216,8 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     <p className={account.commandPilotEnabled ? 'account-twitch-active' : undefined}>{account.commandPilotEnabled ? '● Activé' : commandArmed ? 'Armé · inactif' : !account.runtimeChatActive ? 'Préparation requise' : 'Non activé'}</p>
     <p>{account.commandPilotCapabilityEnabled ? 'Disponible sur ce serveur.' : 'Indisponible sur ce serveur.'} Armement : {account.commandPilotArmed ? 'ON' : 'OFF'} · État effectif : {account.commandPilotEnabled ? 'ON' : 'OFF'}.</p>
     <p className="account-twitch-description">{account.runtimeChatActive ? 'La réception du chat Twitch est active. Le pilote s’active uniquement sur votre demande.' : commandArmed ? 'Le statut du chat Twitch est dégradé. Le pilote peut être désactivé.' : 'Autorisez d’abord la réception du chat Twitch.'}</p>
-    <AppButton disabled={pending || applying || !commandArmed && (runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : 'Activer le pilote commandes'}</AppButton>
+    {!commandArmed && <label><input type="checkbox" checked={streamerbotAcknowledged} disabled={pending || applying} onChange={event => setStreamerbotAcknowledged(event.target.checked)} /> J’ai désactivé les chemins Streamer.bot concernés.</label>}
+    <AppButton disabled={pending || applying || !commandArmed && (!streamerbotAcknowledged || runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : 'Activer le pilote commandes'}</AppButton>
   </div>
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">
@@ -236,8 +246,9 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             {account.giftSupremeDisabling && account.giftSupremeAuthorized && <AppButton disabled={pending || runtimeChecking} onClick={retryGift}>Réactiver</AppButton>}
             {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
-          <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button></>
-          : <><p>Non connecté</p><button type="button" disabled={!account.pilotAvailable || pending} onClick={connect}>Connecter Twitch</button>{!account.pilotAvailable && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
+          {account.eligible && <button type="button" disabled={pending || runtimeChecking} onClick={event => { openerRef.current = event.currentTarget; setConfirm('unlink') }}>Délier Twitch</button>}</>
+          : <><p>Non connecté</p><button type="button" disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} onClick={connect}>Connecter Twitch</button>{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
+        {!presentationMode && account.profileRecoveryAvailable && <div className="account-twitch-runtime"><h4>Retrouver votre progression Twitch</h4><p>Récupérez votre profil Twitch existant après vérification de votre compte. Un profil web contenant déjà des données nécessite une résolution opérateur.</p><AppButton disabled={pending || applying || runtimeChecking} onClick={recover}>Récupérer mon profil Twitch</AppButton></div>}
       </section>}
       {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
         <div className="account-actions"><label>Choisir le dossier Data<input ref={folderRef} type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label><label>Ou choisir 17 fichiers JSON<input type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label></div>

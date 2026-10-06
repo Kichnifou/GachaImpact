@@ -60,6 +60,8 @@ export class TwitchMessageActivity {
             { xp: new PrismaPlayerXpService(economy, missions), missions, dailyChallenges: new PrismaDailyChallengeStore(this.db, economy), random: this.random });
           await new PlayerActivityRecorder().record(tx, player.id, now, 'TWITCH');
           const responses: string[] = [];
+          if (active.elementKey === null && result.xpPlan?.levelsReached.includes(2))
+            responses.push(`✨ ${player.displayName}, niveau 2 : choisis ton élément avec !element pyro (hydro, anemo, electro, dendro, cryo ou geo).`);
           if (result.dailyChallengeCompleted) responses.push('🎯 Défi quotidien messages terminé !');
           if (result.xpPlan && (result.xpPlan.levelsReached.length || result.xpPlan.overflowRewardsGranted)) {
             const levels = result.xpPlan.levelsReached.length ? `niveau ${result.xpPlan.levelsReached.join(', ')}` : `${result.xpPlan.overflowRewardsGranted} récompense(s) de niveau 100`;

@@ -19,6 +19,7 @@ vi.mock('./components/GameShell', () => ({ default: (props: ComponentProps<typeo
   return <output>{JSON.stringify({ player: props.player, resources: props.resources, progression: props.progression, teams: props.teams, gacha: props.gacha, challenge: props.dailyChallenge, combat: props.dailyCombat, revision: props.playerStateReadRevision, feedbacks: props.levelUpFeedbacks })}</output>
 } }))
 let root: ReturnType<typeof createRoot>, container: HTMLDivElement
+vi.mock('./screens/AccountSettingsPanel', () => ({ default: ({ onRefreshPlayerState }: { onRefreshPlayerState: () => Promise<void> }) => <button onClick={() => void onRefreshPlayerState()}>Retour OAuth vérifié</button> }))
 const player: PlayerDto = { id: 'player', displayName: 'Fixture', status: 'ACTIVE', elementKey: 'hydro' }
 const resources = { primogems: '1000', moras: '50', particles: {} }
 const event = { businessDate: '2026-10-05', edition: { id: 'edition', startsAt: '2026-10-01' }, gameB: { solvedToday: false }, gameA: { completedToday: false }, participation: { joined: false } }
@@ -38,6 +39,28 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); mocks.shell = null })
 const mount = () => act(async () => root.render(<AppBootstrap />))
+
+it('recovers the actual Twitch Player from the pre-element account panel and reloads every bootstrap domain', async () => {
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'temporary-web-player', elementKey: null });
+  await mount();
+  expect(mocks.shell).toBeNull();
+  expect(mocks.api.getResources).not.toHaveBeenCalled();
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'recovered-twitch-player', elementKey: 'pyro' });
+  mocks.api.getResources.mockResolvedValue({ ...resources, primogems: '8800' });
+  mocks.api.getProgression.mockResolvedValue({ totalXp: '900', level: 30 });
+  mocks.api.getTeams.mockResolvedValue({ teams: [{ id: 'twitch-team' }] });
+  mocks.api.getCurrentGacha.mockResolvedValue({ playerState: { pity5: 73 } });
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Retour OAuth vérifié')!.click());
+  const shell = mocks.shell as ComponentProps<typeof GameShell> | null;
+  expect(shell?.player.id).toBe('recovered-twitch-player');
+  expect(shell?.resources.primogems).toBe('8800');
+  expect(shell?.progression.totalXp).toBe('900');
+  expect(shell?.teams.teams[0]?.id).toBe('twitch-team');
+  expect(shell?.gacha.playerState.pity5).toBe(73);
+  for (const domain of ['getCharacters', 'getFavor', 'getPermissions', 'getExpedition', 'getContest', 'getEvent', 'getNotifications']) expect(mocks.api[domain]).toHaveBeenCalled();
+  expect(mocks.signOut).not.toHaveBeenCalled();
+});
 
 it('refreshes balances and the daily reward card together through the existing Chat resources scope', async () => {
   await mount()

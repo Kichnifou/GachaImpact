@@ -1,7 +1,7 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
-import { isIdentityQuarantined, type LegacyGlobalPlan } from './legacy-global-plan.js';
+import { isIdentityQuarantined, isOwnerDiscarded, type LegacyGlobalPlan } from './legacy-global-plan.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function knownInstant(value: unknown): Date | null {
@@ -25,13 +25,14 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   if (source.status !== 'closed') throw new Error('Open Giveaway requires a dedicated cutover contract.');
   const winnerId = typeof source.winner === 'string' ? byName.get(normalizeLegacyName(source.winner)) : null;
   const winnerQuarantined = isIdentityQuarantined(plan, source.winner);
-  if (source.winner && !winnerId && !winnerQuarantined) throw new Error('Giveaway winner is outside the migrable population.');
+  const winnerDiscarded = isOwnerDiscarded(plan, source.winner);
+  if (source.winner && !winnerId && !winnerQuarantined && !winnerDiscarded) throw new Error('Giveaway winner is outside the migrable population.');
   const hasPreviousWinner = Object.hasOwn(source, 'previousWinner');
   const previousWinnerId = hasPreviousWinner && typeof source.previousWinner === 'string' && source.previousWinner.trim()
     ? byName.get(normalizeLegacyName(source.previousWinner)) : null;
-  if (hasPreviousWinner && !previousWinnerId && !isIdentityQuarantined(plan, source.previousWinner))
+  if (hasPreviousWinner && !previousWinnerId && !isIdentityQuarantined(plan, source.previousWinner) && !isOwnerDiscarded(plan, source.previousWinner))
     throw new Error('Giveaway previousWinner is outside the migrable population or invalid.');
-  if (previousWinnerId && ((!winnerId && !winnerQuarantined) || previousWinnerId === winnerId))
+  if (previousWinnerId && ((!winnerId && !winnerQuarantined && !winnerDiscarded) || previousWinnerId === winnerId))
     throw new Error('Giveaway previousWinner contradicts the current winner.');
   const hasRerolledAt = Object.hasOwn(source, 'rerolledAt');
   const rerolledAt = hasRerolledAt ? knownInstant(source.rerolledAt) : null;
@@ -51,9 +52,9 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
       lastParticipantId: typeof source.lastParticipant === 'string' ? byName.get(normalizeLegacyName(source.lastParticipant)) ?? null : null,
       lastWishAt: knownInstant(source.lastWishAt)?.toISOString() ?? null,
     }, legacyProvenance: { source: 'giveaway.json', batchId, snapshotHash: snapshot.hash,
-      openedByLegacy: typeof source.openedBy === 'string' ? source.openedBy : null,
-      closedByLegacy: typeof source.closedBy === 'string' ? source.closedBy : null,
-      previousWinnerLegacy: hasPreviousWinner && typeof source.previousWinner === 'string' ? source.previousWinner : null,
+      openedByLegacy: typeof source.openedBy === 'string' && !isOwnerDiscarded(plan, source.openedBy) ? source.openedBy : null,
+      closedByLegacy: typeof source.closedBy === 'string' && !isOwnerDiscarded(plan, source.closedBy) ? source.closedBy : null,
+      previousWinnerLegacy: hasPreviousWinner && typeof source.previousWinner === 'string' && !isOwnerDiscarded(plan, source.previousWinner) ? source.previousWinner : null,
       previousWinnerRole: previousWinnerId ? 'IMMEDIATE_PREDECESSOR_ONLY' : null } } });
   // Index 0 means the sole result proven by this snapshot, not a reconstructed initial draw.
   if (winnerId) await tx.giveawayWin.create({ data: { sessionId: session.id, drawIndex: 0,
@@ -72,6 +73,7 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   for (const [login, raw] of Object.entries(messageCounts)) {
     const playerId = byName.get(normalizeLegacyName(login));
     if (!playerId) continue;
+    if (plan.players.some(player => player.playerId === playerId && player.personalImport === false)) continue;
     if (!Number.isSafeInteger(raw) || Number(raw) < 0) throw new Error('Invalid Giveaway chat count.');
     await tx.giveawayChatStat.create({ data: { sessionId: session.id, playerId, messageCount: BigInt(Number(raw)),
       legacyProvenance: { source: 'giveaway.json.messageCounts', batchId } } });

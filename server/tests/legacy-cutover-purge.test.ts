@@ -6,7 +6,7 @@ function database(extra: string[] = [], fks: { child: string; parent: string }[]
   const query = vi.fn(async (sql: string) => sql.includes('pg_tables')
     ? [...referenceTables, ...preservedTables, ...clearTables, ...extra].map(tablename => ({ tablename }))
     : sql.includes('pg_constraint') ? fks : [{ count: 1n }]);
-  return { $queryRawUnsafe: query, $executeRawUnsafe: vi.fn() } as unknown as PrismaClient;
+  return { $queryRawUnsafe: query, $executeRawUnsafe: vi.fn(), twitchNativeTarget: { findMany: vi.fn(async () => []) } } as unknown as PrismaClient;
 }
 
 describe('exhaustive cutover purge contract', () => {

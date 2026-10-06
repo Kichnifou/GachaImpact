@@ -17,6 +17,7 @@ export async function applyLegacyContest(tx: Prisma.TransactionClient, snapshot:
     if (lock.date !== businessDate || lock.used !== true) { staleLocks++; continue; }
     const playerId = byName.get(normalizeLegacyName(username));
     if (!playerId) { excludedLocks++; continue; }
+    if (plan.players.some(player => player.playerId === playerId && player.personalImport === false)) continue;
     if (lock.characterId != null && !Number.isSafeInteger(lock.characterId)) throw new Error('Invalid legacy Contest daily lock character ID.');
     await tx.contestLegacyDailyLock.create({ data: { playerId, businessDate: new Date(`${businessDate}T00:00:00.000Z`),
       legacyCharacterId: lock.characterId == null ? null : Number(lock.characterId), batchId,

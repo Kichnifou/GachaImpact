@@ -5,9 +5,10 @@ const object = (value: unknown): Record<string, unknown> => value && typeof valu
 export type DeferredIdentityFact = { domain: string; source: string; path: string; count: number };
 
 /** Source facts deferred by R1041, counted before purge without rewriting the immutable snapshot. */
-export function planDeferredIdentityFacts(snapshot: Snapshot, quarantined: ReadonlySet<string>, cutoverAt?: Date) {
+export function planDeferredIdentityFacts(snapshot: Snapshot, quarantined: ReadonlySet<string>, cutoverAt?: Date, discarded: ReadonlySet<string> = new Set()) {
   const facts: DeferredIdentityFact[] = [];
   const isQuarantined = (name: unknown) => typeof name === 'string' && quarantined.has(normalizeLegacyName(name));
+  const isDiscarded = (name: unknown) => typeof name === 'string' && discarded.has(normalizeLegacyName(name));
   const add = (domain: string, source: string, path: string, count: number) => {
     if (!count) return;
     const existing = facts.find(row => row.domain === domain && row.source === source && row.path === path);
@@ -16,14 +17,14 @@ export function planDeferredIdentityFacts(snapshot: Snapshot, quarantined: Reado
   const social = object(snapshot.sources['friendships_data.json']);
   for (const raw of Object.values(object(social.friendships))) {
     const row = object(raw);
-    if (Array.isArray(row.users) && row.users.some(isQuarantined)) {
+    if (Array.isArray(row.users) && !row.users.some(isDiscarded) && row.users.some(isQuarantined)) {
       add('SOCIAL', 'friendships_data.json', 'friendships.*', 1);
       add('SOCIAL', 'friendships_data.json', 'friendships.*.lastHeartSent.*', Object.keys(object(row.lastHeartSent)).length);
     }
   }
   for (const raw of Array.isArray(social.requests) ? social.requests : []) {
     const row = object(raw);
-    if ([row.from, row.to].some(isQuarantined)) add('SOCIAL', 'friendships_data.json', 'requests[]', 1);
+    if (![row.from, row.to].some(isDiscarded) && [row.from, row.to].some(isQuarantined)) add('SOCIAL', 'friendships_data.json', 'requests[]', 1);
   }
   const boss = object(snapshot.sources['monthly_boss.json']);
   for (const raw of [...(Array.isArray(boss.history) ? boss.history : []), boss.currentBoss].filter(Boolean)) {
@@ -42,7 +43,7 @@ export function planDeferredIdentityFacts(snapshot: Snapshot, quarantined: Reado
       if ((!day || date === day) && isQuarantined(object(raw).foundBy)) add('EVENT', 'monthly_events_data.json', 'gameB.*', 1);
     for (const [recipient, rows] of Object.entries(object(event.messages))) for (const raw of Array.isArray(rows) ? rows : []) {
       const row = object(raw);
-      if (row.read !== true && [recipient, row.sender].some(isQuarantined)) add('EVENT', 'monthly_events_data.json', 'messages.*[]', 1);
+      if (row.read !== true && ![recipient, row.sender].some(isDiscarded) && [recipient, row.sender].some(isQuarantined)) add('EVENT', 'monthly_events_data.json', 'messages.*[]', 1);
     }
   }
   const giveaway = object(snapshot.sources['giveaway.json']);
@@ -50,7 +51,12 @@ export function planDeferredIdentityFacts(snapshot: Snapshot, quarantined: Reado
     if (isQuarantined(giveaway[field])) add('GIVEAWAY', 'giveaway.json', field, 1);
   add('GIVEAWAY', 'giveaway.json', 'participants[]', (Array.isArray(giveaway.participants) ? giveaway.participants : []).filter(isQuarantined).length);
   add('GIVEAWAY', 'giveaway.json', 'messageCounts.*', Object.keys(object(giveaway.messageCounts)).filter(isQuarantined).length);
-  add('BANNER', 'banner_votes.json', 'votes.*', Object.keys(object(object(snapshot.sources['banner_votes.json']).votes)).filter(isQuarantined).length);
+  const bannerVotes = object(snapshot.sources['banner_votes.json']);
+  add('BANNER', 'banner_votes.json', 'votes.*', Object.keys(object(bannerVotes.voters ?? bannerVotes.votes)).filter(isQuarantined).length);
+  for (const [name, raw] of Object.entries(object(snapshot.sources['viewers_data.json']))) {
+    const codes = object(raw).usedCodes;
+    if (isQuarantined(name)) add('CODES', 'viewers_data.json', '*.usedCodes[]', Array.isArray(codes) ? codes.length : Object.keys(object(codes)).length);
+  }
   for (const [name, raw] of Object.entries(object(object(snapshot.sources['contests_data.json']).dailyLocks))) {
     const row = object(raw);
     if (isQuarantined(name) && row.used === true && (!day || row.date === day)) add('CONTEST', 'contests_data.json', 'dailyLocks.*', 1);

@@ -1,5 +1,10 @@
 # Pilote Kichnifou — correspondance du snapshot figé
 
+## Amendement R1048 — frontière personnelle et procédures ciblées
+
+Le pilote historique ci-dessous demeure une référence de mapping, pas un droit de refresh NATIVE. [R1048](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06) et [le guide opératoire](../process/twitch-native-foundations.md) s'appliquent aux nouvelles fondations : import seulement LEGACY, canary CLI sans purge globale, backup/compare/rollback ciblés, DATA_IMPORTED séparé du transfert. L'ancien apply snapshot HTTP refuse désormais les cibles NATIVE ou MIGRATION_PENDING. Le claim R1046 et le remplacement opérateur du vrai compte web Ceo sont des procédures distinctes, toutes deux par ID vérifié.
+
+
 > **Supplanté pour le cutover global par [Migration legacy V1](legacy-migration-v1.md).** Cette matrice décrit le pilote temporaire R916–R926, désormais aligné sur les faits personnels du contrat global R927–R938. Utiliser le contrat canonique et le [runbook](../process/legacy-cutover-runbook.md) pour toute préparation de cutover.
 
 Cette matrice décrit le pilote R916–R926 et le snapshot local figé du 26 septembre 2026, hash `1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba`. Le premier import pilote Kichnifou a ensuite été exécuté publiquement : un MigrationRun `COMPLETED`, 15 domaines personnels importés, dix globaux différés, zéro anomalie. Le dossier source Streamer.bot reste en lecture seule et autoritatif jusqu'au cutover ; ses modifications après la copie n'invalident pas la copie. Aucun cutover global n'a été exécuté. Les audits propriétaires, du [XP](../legacy/04-xp-audit.md) au [Giveaway](../legacy/21-giveaway-wish-audit.md), restent les références de chaque domaine.

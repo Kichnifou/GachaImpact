@@ -7,6 +7,7 @@ import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated
 import { AppError } from '../src/api/errors.js';
 import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, TWITCH_FAVOR_SCOPES, twitchOAuthPurpose, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
 import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
+import { TwitchProfileClaim } from '../src/application/twitch/twitch-profile-claim.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
 const otherId = '22222222-2222-4222-8222-222222222222';
@@ -26,6 +27,7 @@ beforeAll(async () => {
 });
 function setup(id = playerId, runtime = false) {
   const db = {
+    webIdentity: { findUnique: vi.fn().mockResolvedValue({ id: otherId, playerId: id }) },
     twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn().mockResolvedValue({}), deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     twitchLinkState: { create: vi.fn().mockResolvedValue({}) },
     twitchGiveawayCredential: { findUnique: vi.fn().mockResolvedValue(null), deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -60,6 +62,41 @@ async function mockTwitch(login = 'kichnifou', userId = '12345', scopes: readonl
   fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ data: [{ id: userId, login, display_name: 'Kichnifou' }] }) } as Response);
 }
 afterEach(() => vi.restoreAllMocks());
+
+describe('R1046 verified OAuth purpose', () => {
+  it('binds a non-pilot authenticated WebIdentity to a distinct claim consent', async () => {
+    const { service, db } = setup(otherId);
+    const url = new URL((await service.startClaim(identity)).url);
+    expect(url.searchParams.get('state')).toMatch(/^claim_[A-Za-z0-9_-]{43}$/);
+    expect(url.searchParams.get('scope')).toBe('openid');
+    expect(db.twitchLinkState.create.mock.calls[0]![0].data).toMatchObject({ playerId: otherId, webIdentityId: otherId });
+    expect(twitchOAuthPurpose(url.searchParams.get('state')!)).toBe('CLAIM_TWITCH_PROFILE');
+    db.webIdentity.findUnique.mockResolvedValueOnce(null as never);
+    await expect(service.startClaim(identity)).rejects.toMatchObject({ code: 'TWITCH_PROFILE_CHANGED' });
+  });
+  it('claims by the cryptographically verified numeric ID, never a login, and stores no tokens', async () => {
+    const { service, db } = setup(otherId);
+    db.$queryRaw.mockResolvedValue([{ player_id: otherId, web_identity_id: playerId, nonce_hash: nonceHash }]);
+    const claim = vi.spyOn(TwitchProfileClaim.prototype, 'execute').mockResolvedValue({ claimed: true, playerId });
+    await mockTwitch('renamed_viewer');
+    expect(await service.callback({ state: `claim_${state}`, code: 'private-code' })).toEqual({ claimed: true, playerId });
+    expect(claim).toHaveBeenCalledExactlyOnceWith(playerId, otherId, '12345');
+    expect(db.twitchIdentity.upsert).not.toHaveBeenCalled();
+    expect(JSON.stringify([db.twitchLinkState.create.mock.calls, db.$queryRaw.mock.calls])).not.toMatch(/transient|discarded|private-code/);
+  });
+  it('rejects a false OIDC nonce before any ownership move', async () => {
+    const { service } = setup(otherId);
+    const claim = vi.spyOn(TwitchProfileClaim.prototype, 'execute');
+    await mockTwitch('renamed_viewer', '12345', ['openid'], { nonce: 'C'.repeat(43) });
+    await expect(service.callback({ state: `claim_${state}`, code: 'test' })).rejects.toMatchObject({ code: 'TWITCH_NONCE_INVALID' });
+    expect(claim).not.toHaveBeenCalled();
+  });
+  it('rejects claim state used as plain LINK before consuming it', async () => {
+    const { service, db } = setup(otherId);
+    await expect(service.callback({ state: `claim_${state}`, code: 'test' }, 'LINK_IDENTITY')).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    expect(db.$queryRaw).not.toHaveBeenCalled();
+  });
+});
 
 describe('separate Faveur OAuth purpose', () => {
   const linked = { playerId, twitchUserId: '12345', login: 'kichnifou', displayName: 'Original', linkedAt: new Date() };
@@ -154,9 +191,10 @@ describe('separate Faveur OAuth purpose', () => {
 });
 
 describe('Twitch identity pilot', () => {
-  it('gates non-pilot Players on the backend', async () => {
+  it('allows verified account linking for non-pilot Players while gating runtime operations', async () => {
     const { service } = setup(otherId);
-    await expect(service.start(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
+    expect(new URL((await service.start(identity)).url).searchParams.get('scope')).toBe('openid');
+    await expect(service.startRuntime(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
     await expect(service.unlink(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
   });
   it('starts a code grant with distinct fresh state and nonce', async () => {
@@ -206,9 +244,9 @@ describe('Twitch identity pilot', () => {
     expect(db.twitchIdentity.upsert.mock.calls[0]?.[0]?.create.twitchUserId).toBe('12345');
     expect(JSON.stringify(db.twitchIdentity.upsert.mock.calls)).not.toMatch(/transient|discarded|server-secret/);
   });
-  it('blocks other Twitch accounts and conflicts', async () => {
+  it('links any cryptographically verified Twitch account and blocks ID ownership conflicts', async () => {
     const wrong = setup(); await mockTwitch('someone_else');
-    await expect(wrong.service.callback({ state, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_ACCOUNT_MISMATCH' });
+    expect(await wrong.service.callback({ state, code: 'code' })).toEqual({ linked: true });
     vi.restoreAllMocks();
     const conflict = setup(); conflict.db.twitchIdentity.findUnique.mockResolvedValueOnce(null).mockResolvedValueOnce({ playerId: otherId }); await mockTwitch();
     await expect(conflict.service.callback({ state, code: 'code' })).rejects.toMatchObject({ code: 'TWITCH_IDENTITY_CONFLICT' });
@@ -410,7 +448,7 @@ describe('runtime account status, activation and safe unlink', () => {
     expect(await service.unlink(identity)).toEqual({ linked: false });
     expect(order).toEqual(['disable', 'identity']);
     expect(db.twitchIdentity.deleteMany).toHaveBeenCalledWith({ where: { playerId } });
-    expect(Object.keys(db)).toEqual(['twitchIdentity', 'twitchLinkState', 'twitchGiveawayCredential', 'giveawaySession', 'migrationRun', '$queryRaw']);
+    expect(db.webIdentity.findUnique).not.toHaveBeenCalled();
   });
   it('preserves identity when deletion cannot be guaranteed', async () => {
     const { service, subscriptions, db } = runtimeSetup();

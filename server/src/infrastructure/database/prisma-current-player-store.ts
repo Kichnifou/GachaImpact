@@ -6,15 +6,8 @@ import type {
 } from '../../application/player/current-player-store.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
+import { bootstrapPlayer, currentPlayerSelection } from './player-bootstrap.js';
 
-const currentPlayerSelection = {
-  id: true,
-  displayName: true,
-  elementKey: true,
-  status: true,
-} satisfies Prisma.PlayerSelect;
-
-const EXPECTED_INITIAL_RESOURCE_COUNT = 9;
 const MAX_PROVISION_ATTEMPTS = 2;
 
 export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
@@ -78,45 +71,8 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
           return { player: existingIdentity.player, created: false };
         }
 
-        const resources = await transaction.resourceDefinition.findMany({
-          where: { isActive: true },
-          select: { key: true },
-          orderBy: { key: 'asc' },
-        });
-
-        if (resources.length !== EXPECTED_INITIAL_RESOURCE_COUNT) {
-          throw new Error(
-            `Player provisioning requires exactly ${EXPECTED_INITIAL_RESOURCE_COUNT} active resource definitions.`,
-          );
-        }
-
-        const initializedAt = new Date();
-        const player = await transaction.player.create({
-          data: {
-            displayName: input.displayName,
-            webIdentity: {
-              create: {
-                provider: input.provider,
-                providerSubject: input.providerSubject,
-              },
-            },
-            economyStats: { create: {} },
-            wheelStats: { create: {} },
-            dailyRewardState: { create: {} },
-            progression: { create: {} },
-            gachaState: { create: {} },
-            privacySettings: { create: [{ categoryKey: 'PRIVATE_MESSAGES', level: 'PUBLIC' }] },
-            resourceBalances: {
-              create: resources.map(({ key }) => ({
-                resourceKey: key,
-                amount: 0n,
-              })),
-            },
-          },
-          select: currentPlayerSelection,
-        });
-        // A newly provisioned Player has no pre-wiring career to catch up.
-        await this.permanentMissions.initializePlayer(transaction, player.id, initializedAt, true);
+        const player = await bootstrapPlayer(transaction, { displayName: input.displayName,
+          webIdentity: { provider: input.provider, providerSubject: input.providerSubject } }, new Date(), this.permanentMissions);
 
         return { player, created: true };
       },

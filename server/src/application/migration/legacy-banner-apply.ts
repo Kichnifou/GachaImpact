@@ -46,6 +46,7 @@ export async function applyLegacyBanner(tx: Prisma.TransactionClient, snapshot: 
   for (const [username, rawChoice] of Object.entries(object(votes.voters))) {
     const playerId = byName.get(normalizeLegacyName(username));
     if (!playerId) { excludedVotes++; continue; }
+    if (plan.players.some(player => player.playerId === playerId && player.personalImport === false)) continue;
     if (!Number.isSafeInteger(rawChoice)) throw new Error('Invalid legacy vote choice.');
     const character = byExternal.get(`legacy:${rawChoice}`);
     if (!character || character.rarity !== 5) throw new Error('Legacy vote choice is missing from the 5-star catalog.');
@@ -57,6 +58,7 @@ export async function applyLegacyBanner(tx: Prisma.TransactionClient, snapshot: 
   const fiveStars = new Set(rows.filter(row => row.rarity === 5).map(row => row.characterId));
   let validTargets = 0, invalidTargets = 0;
   for (const player of plan.players) {
+    if (player.personalImport === false) continue;
     const rawTarget = player.viewer.selectedBannerCharacterId;
     if (rawTarget == null) continue;
     const target = byExternal.get(`legacy:${rawTarget}`);

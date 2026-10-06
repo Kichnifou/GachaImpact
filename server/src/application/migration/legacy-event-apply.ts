@@ -5,7 +5,7 @@ import { generateEventGameAState } from '../../domain/event/game-a.js';
 import { collectionItemExternalKey } from '../../domain/event/shop.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
-import { isIdentityQuarantined, type LegacyGlobalPlan } from './legacy-global-plan.js';
+import { isIdentityQuarantined, isOwnerDiscarded, type LegacyGlobalPlan } from './legacy-global-plan.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function number(value: unknown, label: string): number {
@@ -33,6 +33,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
   const definition = await tx.eventDefinition.findUnique({ where: { calendarMonth: month } });
   if (!definition) throw new Error('Legacy Event definition is missing.');
   const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
+  const nativeIds = new Set(plan.players.filter(player => player.personalImport === false).map(player => player.playerId));
   let editionId: string | null = null;
   if (active) {
     const editionData = { ...editionWindow(year, month), status: 'ACTIVE' as const, snapshot: snapshotConfig(definition) };
@@ -43,7 +44,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
   let participants = 0, balances = 0, milestoneClaims = 0, dailyStates = 0, gameB = 0, collection = 0, messages = 0, generatedWindows = 0;
   for (const [username, raw] of Object.entries(object(source.participants))) {
     const playerId = byName.get(normalizeLegacyName(username));
-    if (!playerId) continue;
+    if (!playerId || nativeIds.has(playerId)) continue;
     const row = object(raw), currency = number(row.currency, 'currency');
     await tx.playerEventCurrencyBalance.create({ data: { playerId, eventDefinitionId: definition.id, amount: BigInt(currency) } });
     balances++;
@@ -87,7 +88,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
   }
   if (active && editionId) {
     const today = object(object(source.gameB)[businessDate]);
-    if (Object.keys(today).length && !isIdentityQuarantined(plan, today.foundBy)) {
+    if (Object.keys(today).length && !isIdentityQuarantined(plan, today.foundBy) && !isOwnerDiscarded(plan, today.foundBy)) {
       const solutionCode = today.winningCode;
       if (typeof solutionCode !== 'string' || !Array.isArray(today.testedCodes)) throw new Error('Invalid legacy Event Game B state.');
       const discovererPlayerId = typeof today.foundBy === 'string' ? byName.get(normalizeLegacyName(today.foundBy)) ?? null : null;
@@ -105,7 +106,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
     if (!Number.isInteger(collectionYear) || collectionYear < 2000 || collectionYear > year) throw new Error('Invalid legacy Collection year.');
     for (const [username, rawItems] of Object.entries(object(buyers))) {
       const playerId = byName.get(normalizeLegacyName(username));
-      if (!playerId) continue;
+      if (!playerId || nativeIds.has(playerId)) continue;
       if (!Array.isArray(rawItems)) throw new Error('Invalid legacy Collection purchases.');
       for (const rawItem of rawItems) {
         if (typeof rawItem !== 'string') throw new Error('Invalid legacy Collection item.');
@@ -136,7 +137,7 @@ export async function applyLegacyEvent(tx: PrismaType.TransactionClient, snapsho
       for (const raw of rawMessages) {
         const message = object(raw);
         if (message.read === true) continue;
-        if (isIdentityQuarantined(plan, message.sender)) continue; // R1041: defer the whole source fact, never invent its sender.
+        if (isIdentityQuarantined(plan, message.sender) || isOwnerDiscarded(plan, message.sender)) continue;
         const senderPlayerId = typeof message.sender === 'string' ? byName.get(normalizeLegacyName(message.sender)) : null;
         const createdAt = parseLegacyParisInstant(message.createdAt);
         if (!senderPlayerId || !createdAt || typeof message.text !== 'string') throw new Error('Undelivered legacy Event message cannot be mapped.');

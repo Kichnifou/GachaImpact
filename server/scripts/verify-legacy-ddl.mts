@@ -43,14 +43,25 @@ try {
     if (/"public"\.|\bpublic\./.test(sql)) throw new Error(`${migration} addresses public.`);
     await client.query(sql);
   }
-  const tables = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relkind='r' AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts')`, [schema]);
-  if (tables.rows[0]?.count !== '16') throw new Error('Expected 16 private foundation tables.');
+  const tables = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relkind='r' AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts','twitch_native_authorities','twitch_native_targets','twitch_native_audit','twitch_canary_imports')`, [schema]);
+  if (tables.rows[0]?.count !== '20') throw new Error('Expected 20 private foundation tables.');
   const security = await client.query<{ relname: string; relrowsecurity: boolean; anon: boolean; authenticated: boolean }>(`
     SELECT c.relname, c.relrowsecurity, has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,
       has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname=$1 AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts')`, [schema]);
+    WHERE n.nspname=$1 AND c.relname IN ('migration_batches','migration_source_files','migration_mappings','migration_issues','boss_legacy_contributions','boss_legacy_aggregates','contest_legacy_daily_locks','friendship_legacy_heart_state','player_favor_states','favor_grants','favor_daily_claims','giveaway_sessions','giveaway_participants','giveaway_chat_stats','giveaway_wins','twitch_event_receipts','twitch_native_authorities','twitch_native_targets','twitch_native_audit','twitch_canary_imports')`, [schema]);
   if (security.rows.some(row => !row.relrowsecurity || row.anon || row.authenticated)) throw new Error('Private table security mismatch.');
+  const policies = await client.query(`SELECT count(*)::text count FROM pg_policies WHERE schemaname=$1 AND tablename IN ('twitch_native_authorities','twitch_native_targets','twitch_native_audit','twitch_canary_imports')`, [schema]);
+  if (policies.rows[0]?.count !== '0') throw new Error('Native browser policies are forbidden.');
+  const rejectCheck = async (sql: string) => {
+    await client.query('BEGIN');
+    try { await client.query(sql); throw new Error('Expected CHECK rejection.'); }
+    catch (error) { if (!(error && typeof error === 'object' && 'code' in error && error.code === '23514')) throw error; }
+    finally { await client.query('ROLLBACK'); }
+  };
+  await rejectCheck(`INSERT INTO twitch_native_authorities (id,desired_mode) VALUES ('twitch-commands','CANARY')`);
+  await rejectCheck(`INSERT INTO twitch_native_targets (twitch_user_id,data_authority,transferred_at) VALUES ('900001','NATIVE',now())`);
+  await rejectCheck(`INSERT INTO twitch_native_targets (twitch_user_id) VALUES ('not-numeric')`);
   const provenance = await client.query<{ count: string }>(`SELECT count(*)::text AS count FROM information_schema.columns WHERE table_schema=$1 AND column_name='legacy_provenance'`, [schema]);
   const expectedDdl = execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-empty', '--to-schema', 'prisma/schema.prisma', '--script'], { encoding: 'utf8' })
     .replace('CREATE SCHEMA IF NOT EXISTS "public";', '');

@@ -48,6 +48,15 @@ export function apiErrorMessage(error: unknown): string {
 
   const code = error.code
   const messages: Record<string, string> = {
+    TWITCH_NATIVE_ACK_REQUIRED: 'Confirmez la désactivation des chemins Streamer.bot concernés.',
+    TWITCH_NATIVE_GLOBAL_UNAVAILABLE: 'Le mode Twitch global est indisponible.',
+    TWITCH_NATIVE_AUTHORITY_CHANGED: 'Le statut Twitch a changé. Actualisez avant de réessayer.',
+    TWITCH_NATIVE_TARGET_CONFLICT: 'Ce profil Twitch nécessite un contrôle opérateur.',
+    TWITCH_NATIVE_DATA_IMPORT_REQUIRED: 'Un import validé est requis avant le transfert Twitch.',
+    TWITCH_PROFILE_CHANGED: 'Votre identité a changé. Recommencez la récupération.',
+    TWITCH_PROFILE_NOT_DISPOSABLE: 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.',
+    TWITCH_PROFILE_WEB_CONFLICT: 'Ce profil Twitch possède déjà une identité web. Résolution opérateur nécessaire.',
+    TWITCH_PROFILE_NOT_FOUND: 'Aucun profil Twitch existant à récupérer.',
     ARCADE_OPPONENT_UNAVAILABLE: 'Ce joueur est indisponible. Choisissez un autre adversaire.',
     ARCADE_INVITATION_STALE: 'Cette invitation est terminée. Actualisez Arcade.',
     TWITCH_GIFT_PENDING_REDEMPTIONS: 'Des Gifts Suprêmes sont encore en cours de traitement. Réessayez dans quelques instants.',

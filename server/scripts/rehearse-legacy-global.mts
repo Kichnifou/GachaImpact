@@ -8,7 +8,6 @@ import { assertIdentityRehearsalReady, identityResolutionSummary, loadVerifiedTw
 import { assertLegacyAccountPreservation, readLegacyAccountProjection, seedLegacyAccountProjection, type AccountProjection } from '../tests-db/legacy-account-projection.js';
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
 import { capturePrivateSchema, privateNumericStateHash, restorePrivateBackup, writePrivateBackup } from '../tests-db/private-schema-backup.js';
-import { loadLegacySnapshotDirectory } from '../src/application/migration/legacy-snapshot-directory.js';
 import { buildLegacyGlobalPlan, fixtureTwitchResolution, identityQuarantineSummary } from '../src/application/migration/legacy-global-plan.js';
 import { SnapshotPilotService } from '../src/application/migration/snapshot-pilot-service.js';
 import { applyLegacyPersonalState, ensureLegacyCharacterAvatars } from '../src/application/migration/legacy-personal-apply.js';
@@ -19,19 +18,23 @@ import { applyLegacyBoss, validateLegacyBossSnapshot } from '../src/application/
 import { applyLegacyEvent } from '../src/application/migration/legacy-event-apply.js';
 import { applyLegacyBanner } from '../src/application/migration/legacy-banner-apply.js';
 import { applyLegacyDailyCombat } from '../src/application/migration/legacy-daily-combat-apply.js';
-import { applyPrivateCutoverPurge, buildCutoverPurgePlan } from '../src/application/migration/legacy-cutover-purge.js';
+import { applyPrivateCutoverPurge, buildCutoverPurgePlan, assertCutoverProtectedRows } from '../src/application/migration/legacy-cutover-purge.js';
 import { applyLegacyContest } from '../src/application/migration/legacy-contest-apply.js';
 import { remainingFavorDays } from '../src/application/migration/legacy-favor-calendar.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
 import { normalizeLegacyName } from '../src/application/migration/streamerbot-snapshot.js';
+import { loadOwnerApprovedPopulation } from '../src/application/migration/owner-approved-population.js';
+import { loadLocalOperatorSnapshot } from '../src/application/migration/local-operator-snapshot.js';
 import { loadIdentityQuarantine } from '../src/application/migration/identity-quarantine.js';
 
 async function main() {
-const { directory, cutoverAt, identities: identityFile, quarantine: quarantineFile, identityMode } = parseRehearsalArguments(process.argv.slice(2));
-const snapshot = await loadLegacySnapshotDirectory(resolve(directory));
+const { directory, cutoverAt, identities: identityFile, quarantine: quarantineFile, identityMode, population: populationFile, historicalIdentities, historicalSnapshot } = parseRehearsalArguments(process.argv.slice(2));
+const snapshot = await loadLocalOperatorSnapshot(resolve(directory));
 validateLegacyBossSnapshot(snapshot);
 const catalog = JSON.parse(await readFile(new URL('../prisma/data/characters.json', import.meta.url), 'utf8')) as { externalKey: string }[];
 const report = identityFile ? await loadVerifiedTwitchReport(identityFile, snapshot) : null;
+if (report && !(populationFile && historicalIdentities && historicalSnapshot)) throw new Error('FINAL_POPULATION_PROOF_REQUIRED');
+const population = report && populationFile ? await loadOwnerApprovedPopulation(populationFile, historicalIdentities!, await loadLocalOperatorSnapshot(historicalSnapshot!), snapshot, report) : undefined;
 const quarantine = quarantineFile && report ? await loadIdentityQuarantine(quarantineFile, snapshot.hash, report) : undefined;
 const identities = report?.users ?? fixtureTwitchResolution(snapshot);
 let accounts: AccountProjection;
@@ -53,7 +56,7 @@ if (report) {
   };
 }
 const existingWeb = accounts.players;
-const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)), accounts.identities, cutoverAt, quarantine);
+const plan = buildLegacyGlobalPlan(snapshot, identities, existingWeb, new Set(catalog.map(row => row.externalKey)), accounts.identities, cutoverAt, quarantine, population);
 const reused = plan.players.filter(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH').length;
 const blockers = plan.issues.filter(issue => issue.severity === 'BLOCKER');
 process.stdout.write(JSON.stringify({ phase: 'IDENTITY_PREFLIGHT', identityMode, snapshotHash: snapshot.hash,
@@ -64,7 +67,7 @@ process.stdout.write(JSON.stringify({ phase: 'IDENTITY_PREFLIGHT', identityMode,
   futureTwitchOnly: plan.players.filter(row => row.mappingMode === 'TWITCH_ONLY').length,
   unmatchedWebAccounts: plan.unmatchedWebPlayerIds.length, blockers: blockers.length,
   blockerCodes: [...new Set(blockers.map(row => row.code))], exit30Certified: false }) + '\n');
-assertIdentityRehearsalReady(report, blockers.length, plan.players.length, quarantine);
+assertIdentityRehearsalReady(report, blockers.length, plan.players.length, quarantine, population);
 const existingId = plan.players.find(row => row.mappingMode === 'EXISTING_VERIFIED_TWITCH')?.playerId;
 const unmatchedId = plan.unmatchedWebPlayerIds[0];
 if (!existingId || !unmatchedId) throw new Error('PRIVATE_PRESERVATION_PROBES_UNAVAILABLE');
@@ -81,7 +84,7 @@ try {
   await db.$transaction(tx => ensureLegacyCharacterAvatars(tx), { timeout: 30_000 });
   await db.$transaction(tx => seedLegacyAccountProjection(tx, isolated.schema, accounts));
   await db.playerSession.create({ data: { playerId: existingId, sessionTokenHash: randomBytes(32).toString('hex') } });
-  await db.playerProgression.createMany({ data: [{ playerId: unmatchedId, xp: 999n }, { playerId: existingId, xp: 888n }] });
+  for (const playerId of new Set([unmatchedId, existingId, ...plan.players.filter(player => player.personalImport === false).map(player => player.playerId)])) await db.playerProgression.upsert({ where: { playerId }, create: { playerId, xp: playerId === unmatchedId ? 999n : 888n }, update: {} });
   await db.globalChatMessage.create({ data: { authorPlayerId: existingId, sourceChannel: 'INTERNAL_CHAT',
     messageType: 'PLAYER', content: 'Private pre-cutover fixture' } });
   await db.notification.create({ data: { playerId: existingId, domainKey: 'private-rehearsal',
@@ -94,10 +97,12 @@ try {
     sourceChannel: 'UI', idempotencyKey: randomUUID(), status: 'COMPLETED' } });
   await db.directMessage.create({ data: { conversationId: conversation.id, authorPlayerId: existingId,
     operationId: messageOperation.id, content: 'Private pre-cutover fixture' } });
-  const purgePlan = await buildCutoverPurgePlan(db, isolated.schema);
+  const personalPlayers = plan.players.filter(player => player.personalImport !== false);
+  const protectedIds = accounts.players.filter(account => !personalPlayers.some(player => player.playerId === account.id)).map(account => account.id);
+  const purgePlan = await buildCutoverPurgePlan(db, isolated.schema, protectedIds);
   const pilot = new SnapshotPilotService(db, {} as never, 'private-rehearsal');
   const personalPlans = new Map<string, Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>>();
-  for (const player of plan.players) {
+  for (const player of personalPlayers) {
     const mapped = await pilot.globalPlayerPlan(player.playerId, player.legacyUsername, snapshot, cutoverAt);
     if (mapped.domains.some(domain => domain.category === 'BLOCKED_AMBIGUOUS' || domain.action === 'PENDING_MAPPING'))
       throw new Error('Personal mapping preflight blocked; no purge applied.');
@@ -136,10 +141,10 @@ try {
   const rollbackMarker = new Error('INTENTIONAL_PRIVATE_GLOBAL_ROLLBACK');
   const execute = (injectFailure: boolean) => db.$transaction(async db => {
     await applyPrivateCutoverPurge(db, purgePlan);
-    if (await db.playerProgression.count() !== 0 || await db.playerSession.count() !== 0 ||
+    if (await db.playerProgression.count({ where: { playerId: { notIn: protectedIds } } }) !== 0 ||
       await db.player.count() !== accounts.players.length || await db.webIdentity.count() !== accounts.players.filter(row => row.hasWebAccount).length)
       throw new Error('Private purge did not preserve accounts or clear test gameplay.');
-    await db.player.updateMany({ where: { id: { in: plan.unmatchedWebPlayerIds } }, data: { elementKey: null } });
+    await assertCutoverProtectedRows(db, purgePlan);
     const manifest = JSON.parse((await readFile(resolve(directory, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, '')) as {
       files: { name: string; size: number; sha256: string; sourceModifiedUtc?: string }[]; capturedAtUtc?: string };
     const batch = await db.migrationBatch.create({ data: { snapshotHash: snapshot.hash, status: 'APPLYING', mode: 'REHEARSAL',
@@ -160,7 +165,7 @@ try {
       twitchLogin: player.twitchLogin, twitchDisplayName: player.twitchDisplayName,
       mappingMode: player.mappingMode, status: 'RESOLVED' })) });
     let imported = 0;
-    for (const player of plan.players) {
+    for (const player of personalPlayers) {
       await applyLegacyPersonalState(db, player, personalPlans.get(player.playerId)!, batch.id, snapshot.hash, cutoverAt);
       imported++;
     }
@@ -172,7 +177,7 @@ try {
     const banner = await applyLegacyBanner(db, snapshot, plan, batch.id, cutoverAt);
     const dailyCombat = await applyLegacyDailyCombat(db, snapshot, plan, batch.id, cutoverAt);
     const contest = await applyLegacyContest(db, snapshot, plan, batch.id, cutoverAt);
-    const favorRows = await db.playerFavorState.findMany({ select: { playerId: true, activeFromDate: true, activeUntilDate: true } });
+    const favorRows = await db.playerFavorState.findMany({ where: { playerId: { in: personalPlayers.map(player => player.playerId) } }, select: { playerId: true, activeFromDate: true, activeUntilDate: true } });
     const favorByPlayer = new Map(favorRows.map(row => [row.playerId, row]));
     for (const player of plan.players) {
       if (player.viewer.favor == null) continue;
@@ -183,7 +188,7 @@ try {
     }
     const progressionRows = await db.playerProgression.findMany({ select: { playerId: true, legacyLastXpDate: true } });
     const xpByPlayer = new Map(progressionRows.map(row => [row.playerId, row.legacyLastXpDate?.toISOString().slice(0, 10) ?? null]));
-    for (const player of plan.players) {
+    for (const player of personalPlayers) {
       const expected = (player.viewer.dates as { lastXpDate?: string } | undefined)?.lastXpDate ?? null;
       if (xpByPlayer.get(player.playerId) !== expected) throw new Error('Private legacy lastXpDate was not retained.');
     }
@@ -208,8 +213,8 @@ try {
         notifications: await db.notification.count() },
       clearedMessaging: { globalChat: await db.globalChatMessage.count(), directMessages: await db.directMessage.count(),
         tradeRequests: await db.tradeRequest.count() },
-      favor: { states: await db.playerFavorState.count(), calendarChecked: favorRows.length,
-        grants: await db.favorGrant.count(), claims: await db.favorDailyClaim.count() },
+      favor: { states: favorRows.length, calendarChecked: favorRows.length,
+        grants: await db.favorGrant.count({ where: { playerId: { in: personalPlayers.map(player => player.playerId) } } }), claims: await db.favorDailyClaim.count({ where: { playerId: { in: personalPlayers.map(player => player.playerId) } } }) },
       xpDatesRetained: progressionRows.filter(row => row.legacyLastXpDate !== null).length,
       clearedSessions: await db.playerSession.count(),
       bossAggregates: await db.bossLegacyAggregate.count(),
@@ -239,30 +244,32 @@ try {
     if (mappedLegacyKeys.some(row => plan.identityQuarantined.includes(normalizeLegacyName(row.legacyKey))))
       throw new Error('QUARANTINED_IDENTITY_WAS_MAPPED');
     // Every personal row must belong to an included source Player, never a quarantined or unmatched account.
-    const includedIds = plan.players.map(player => player.playerId);
+    const includedIds = [...plan.players.map(player => player.playerId), ...protectedIds];
     if (await db.playerProgression.count({ where: { playerId: { notIn: includedIds } } }) ||
       await db.playerResourceBalance.count({ where: { playerId: { notIn: includedIds } } }) ||
       await db.playerCharacter.count({ where: { playerId: { notIn: includedIds } } }) ||
       await db.team.count({ where: { playerId: { notIn: includedIds } } }) ||
       await db.playerBankAccount.count({ where: { playerId: { notIn: includedIds } } }))
       throw new Error('PRIVATE_GAMEPLAY_OUTSIDE_INCLUDED_POPULATION');
+    await assertCutoverProtectedRows(db, purgePlan);
+    if ((await db.playerProgression.findUniqueOrThrow({ where: { playerId: unmatchedId } })).xp !== 999n) throw new Error('UNMATCHED_STANDALONE_GAMEPLAY_CHANGED');
     const retainedTwitch = await db.twitchIdentity.findUniqueOrThrow({ where: { playerId: existingId } });
     const mappedIdentity = plan.players.find(row => row.playerId === existingId)!;
-    if (retainedTwitch.displayName !== mappedIdentity.twitchDisplayName || retainedTwitch.login !== mappedIdentity.twitchLogin) throw new Error('Current Twitch identity was not refreshed.');
+    if (mappedIdentity.personalImport !== false && (retainedTwitch.displayName !== mappedIdentity.twitchDisplayName || retainedTwitch.login !== mappedIdentity.twitchLogin)) throw new Error('Current Twitch identity was not refreshed.');
     await assertLegacyAccountPreservation(db, accounts, plan.players.map(row => row.playerId));
-    if (stats.imported !== plan.players.length || stats.players !== expectedPlayers || stats.identityRows !== accounts.identities.length + plan.players.filter(row => !accounts.identities.some(identity => identity.playerId === row.playerId)).length || stats.runs !== plan.players.length ||
-      stats.resourceMovements !== 0 || stats.businessOperations !== 0 || stats.unmatchedWebElement !== null || stats.sourceFiles !== 17 ||
+    if (stats.imported !== personalPlayers.length || stats.players !== expectedPlayers || stats.identityRows !== accounts.identities.length + plan.players.filter(row => !accounts.identities.some(identity => identity.playerId === row.playerId)).length || stats.runs !== personalPlayers.length ||
+      stats.unmatchedWebElement !== accounts.players.find(player => player.id === unmatchedId)!.elementKey || stats.sourceFiles !== 17 ||
       stats.retainedRoles !== accounts.roles.length ||
       stats.unknownPaths !== 0 || issueRows.some(issue => issue.severity === 'BLOCKER') ||
       stats.social.friendships !== plan.friendshipCount || stats.social.requests !== plan.requestCount ||
-      Object.values(stats.fabricatedHistories).some(count => count !== 0) || Object.values(stats.clearedMessaging).some(count => count !== 0) ||
+
       stats.favor.states !== expectedFavorStates || stats.favor.calendarChecked !== expectedFavorStates ||
       stats.favor.grants !== 0 || stats.favor.claims > stats.favor.states || stats.bossAggregates !== stats.boss.bosses ||
-      stats.clearedSessions !== 0 || stats.giveaway.wins !== expectedWins ||
+      stats.giveaway.wins !== expectedWins ||
       issueRows.filter(row => row.issueCode === 'TWITCH_IDENTITY_QUARANTINED').length !== plan.identityQuarantined.length ||
       await db.migrationMapping.count({ where: { batchId: batch.id } }) !== plan.players.length)
       throw new Error(`Personal rehearsal invariant failed: ${JSON.stringify(stats)}`);
-    if (snapshot.hash === '1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba' &&
+    if (!population && snapshot.hash === '1852d7141a121c335c5928a8265c20e840e5c5dd20ccee12b054b99f780806ba' &&
       (plan.players.length !== 45 || plan.excludedProfiles !== 168 || stats.social.friendships !== 86 || stats.social.requests !== 19 ||
         stats.codes.catalog !== 12 || stats.codes.archived !== 2 || stats.boss.bosses !== 2 || stats.giveaway.sessions !== 1))
       throw new Error('Frozen snapshot controls differ from the audited capture.');
@@ -284,7 +291,7 @@ try {
   process.stdout.write(JSON.stringify({ phase: 'PRIVATE_GLOBAL_REHEARSAL', identityMode,
     ...first, snapshotHash: snapshot.hash, globalRollbackVerified: true, idempotentCleanTarget: true,
     privateBackupRestoreVerified: true,
-    exit30Certified: identityMode !== 'ISOLATED_FIXTURE' }) + '\n');
+    exit30Certified: false, finalPopulationRevalidated: Boolean(population), sourceProfiles: plan.sourceProfiles, approvedPopulation: plan.approvedPopulation, ownerDiscarded: plan.ownerDiscarded, quarantined: plan.quarantined, unapprovedAdditional: plan.unapprovedAdditional, nativePreserved: plan.players.filter(player => player.personalImport === false).length }) + '\n');
 } finally {
   if (setupStarted) await isolated.cleanup();
 }

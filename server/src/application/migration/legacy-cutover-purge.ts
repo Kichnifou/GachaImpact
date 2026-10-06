@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
+import { captureTargetedPlayerRows, type RowGraph } from './targeted-player-rows.js';
 
 // The contract is deliberately exhaustive. A new table blocks cutover until assigned here.
 export const referenceTables = [
@@ -11,6 +12,7 @@ export const preservedTables = [
   'privacy_settings', 'player_role_assignments',
   // Operational authorizations are not gameplay; rehearsal never enables or refreshes them.
   'twitch_gift_supreme_credentials', 'twitch_giveaway_credentials',
+  'twitch_native_authorities', 'twitch_native_targets', 'twitch_native_audit', 'twitch_canary_imports',
 ] as const;
 export const clearTables = [
   'admin_audit_entries', 'player_sessions', 'trade_requests', 'trade_executions', 'player_cosmetics', 'player_permanent_mission_states',
@@ -50,9 +52,9 @@ export const clearTables = [
 export type PurgeTable = { table: string; rows: bigint };
 export type CutoverPurgePlan = { schema: string; deleteOrder: PurgeTable[]; retainedPlayers: bigint;
   retainedWebIdentities: bigint; retainedRoles: bigint; retainedPreferences: bigint; retainedPrivacy: bigint;
-  deletedRows: bigint; tablesWithRows: number };
+  deletedRows: bigint; tablesWithRows: number; retainedRows?: RowGraph };
 
-export async function buildCutoverPurgePlan(db: PrismaClient, schema: string): Promise<CutoverPurgePlan> {
+export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, protectedPlayerIds: string[] = []): Promise<CutoverPurgePlan> {
   if (!/^[a-z][a-z0-9_]*$/.test(schema)) throw new Error('Invalid cutover plan schema.');
   const [tables, fks] = await Promise.all([
     db.$queryRawUnsafe<{ tablename: string }[]>(`SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`, schema),
@@ -85,7 +87,12 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string): P
   }
   const preserved = async (table: string) => actual.has(table)
     ? (await db.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint AS count FROM "${schema}"."${table}"`))[0]?.count ?? 0n : 0n;
-  return { schema, deleteOrder: counts, retainedPlayers: await preserved('players'), retainedWebIdentities: await preserved('web_identities'),
+  // Native ownership is a mandatory guard even when a caller omitted its explicit preservation list.
+  const nativeTargets = await db.twitchNativeTarget.findMany({ where: { dataAuthority: 'NATIVE', playerId: { not: null } }, select: { playerId: true } });
+  const protectedIds = [...new Set([...protectedPlayerIds, ...nativeTargets.map(target => target.playerId!)])];
+  const retainedRows = protectedIds.length ? await captureTargetedPlayerRows(db, protectedIds, ['players', ...clearTables], true) : undefined;
+  if (retainedRows && retainedRows.schema !== schema) throw new Error('Cutover protected rows escaped requested schema.');
+  return { schema, deleteOrder: counts, retainedRows, retainedPlayers: await preserved('players'), retainedWebIdentities: await preserved('web_identities'),
     retainedRoles: await preserved('player_role_assignments'), retainedPreferences: await preserved('player_preferences'),
     retainedPrivacy: await preserved('privacy_settings'), deletedRows: counts.reduce((sum, row) => sum + row.rows, 0n),
     tablesWithRows: counts.filter(row => row.rows > 0n).length };
@@ -96,6 +103,21 @@ export async function applyPrivateCutoverPurge(db: Prisma.TransactionClient, pla
   if (!/^batch_test_[0-9a-f]{32}$/.test(plan.schema)) throw new Error('Public cutover mutation is unavailable.');
   for (const { table, rows } of plan.deleteOrder) {
     if (rows === 0n) continue;
-    await db.$executeRawUnsafe(`DELETE FROM "${plan.schema}"."${table}"`);
+    const retained = plan.retainedRows?.tables[table];
+    if (retained?.length) await db.$executeRawUnsafe(`DELETE FROM "${plan.schema}"."${table}" c WHERE NOT EXISTS
+      (SELECT 1 FROM json_populate_recordset(NULL::"${plan.schema}"."${table}",$1::json) p WHERE to_jsonb(c)=to_jsonb(p))`, `[${retained.join(',')}]`);
+    else await db.$executeRawUnsafe(`DELETE FROM "${plan.schema}"."${table}"`);
+  }
+}
+
+/** Shared imports can add facts with a Native endpoint, but may never change any retained preimage row. */
+export async function assertCutoverProtectedRows(db: Prisma.TransactionClient, plan: CutoverPurgePlan) {
+  if (!plan.retainedRows) return;
+  for (const [table, rows] of Object.entries(plan.retainedRows.tables)) {
+    if (!rows.length) continue;
+    const result = await db.$queryRawUnsafe<{ count: bigint }[]>(`SELECT count(*)::bigint count
+      FROM json_populate_recordset(NULL::"${plan.schema}"."${table}",$1::json) p WHERE EXISTS
+      (SELECT 1 FROM "${plan.schema}"."${table}" c WHERE to_jsonb(c)=to_jsonb(p))`, `[${rows.join(',')}]`);
+    if (result[0]!.count !== BigInt(rows.length)) throw new Error('CUTOVER_PROTECTED_PLAYER_CHANGED');
   }
 }

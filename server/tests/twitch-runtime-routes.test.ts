@@ -19,6 +19,7 @@ async function setup(withCommands = false) {
     disarm: vi.fn((_playerId: string) => { armed = false; return commandStatus(); }) };
   const twitch = { status: vi.fn(async () => ({ eligible: withCommands, commandPilotAvailable: withCommands, commandPilotEnabled: false, runtimeAuthorizationAvailable: true, runtimeSubscriptionAvailable: false })),
     requirePilot: vi.fn(async () => ({ id: 'verified-player' })),
+    startClaim: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?state=claim_' })),
     start: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
     startRuntime: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid' })),
     startGiftSupreme: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
@@ -37,6 +38,22 @@ async function setup(withCommands = false) {
   apps.push(app); return { app, twitch, subscriptions, commandPilot };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it('authenticates recovery for a non-pilot account, rejects caller identity fields, and redirects success', async () => {
+    const { app, twitch } = await setup();
+    const url = '/api/v1/me/twitch/recover/start', headers = { authorization: 'Bearer test' };
+    expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+    for (const payload of [{ playerId: 'other' }, { twitchUserId: '123' }, null, []])
+      expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `${url}?playerId=other`, headers })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url, headers })).statusCode).toBe(200);
+    expect(twitch.startClaim).toHaveBeenCalledExactlyOnceWith({ subject: 'operator' });
+    expect(twitch.requirePilot).not.toHaveBeenCalled();
+    twitch.callback.mockResolvedValueOnce({ claimed: true, playerId: 'private-target' });
+    const response = await app.inject({ method: 'GET', url: `/api/v1/me/twitch/callback?state=claim_${state}&code=private-code` });
+    expect(response.statusCode).toBe(302);
+    expect(response.headers.location).toContain('twitch=profile-recovered');
+    expect(response.headers.location).not.toMatch(/private-target|private-code/);
+  });
   it.each(['POST', 'DELETE'] as const)('strictly authenticates %s command arm/disarm without changing specialized runtimes', async method => {
     const { app, twitch, subscriptions, commandPilot } = await setup(true);
     const url = '/api/v1/me/twitch/commands/pilot', headers = { authorization: 'Bearer test' };
@@ -46,12 +63,13 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     expect((await app.inject({ method, url: `${url}?playerId=other`, headers })).statusCode).toBe(400);
     expect(commandPilot.arm).not.toHaveBeenCalled(); expect(commandPilot.disarm).not.toHaveBeenCalled();
     twitch.requirePilot.mockRejectedValueOnce(new AppError('Forbidden', 403, 'TWITCH_PILOT_FORBIDDEN'));
-    expect((await app.inject({ method, url, headers })).statusCode).toBe(403);
+    expect((await app.inject({ method, url, headers, ...(method === 'POST' ? { payload: { acknowledgement: 'STREAMERBOT_PATH_DISABLED' } } : {}) })).statusCode).toBe(403);
     expect(commandPilot.arm).not.toHaveBeenCalled(); expect(commandPilot.disarm).not.toHaveBeenCalled();
-    const result = await app.inject({ method, url, headers });
+    const result = await app.inject({ method, url, headers, ...(method === 'POST' ? { payload: { acknowledgement: 'STREAMERBOT_PATH_DISABLED' } } : {}) });
     expect(result.statusCode).toBe(200); expect(result.headers['cache-control']).toBe('no-store');
     expect(result.json()).toMatchObject({ commandPilotCapabilityEnabled: true, commandPilotArmed: method === 'POST', commandPilotEnabled: method === 'POST' });
-    expect(method === 'POST' ? commandPilot.arm : commandPilot.disarm).toHaveBeenCalledExactlyOnceWith('verified-player');
+    if (method === 'POST') expect(commandPilot.arm).toHaveBeenCalledExactlyOnceWith('verified-player', 'STREAMERBOT_PATH_DISABLED', undefined);
+    else expect(commandPilot.disarm).toHaveBeenCalledExactlyOnceWith('verified-player');
     expect(twitch.startRuntime).not.toHaveBeenCalled(); expect(twitch.start).not.toHaveBeenCalled();
     expect(twitch.unlink).not.toHaveBeenCalled(); expect(twitch.disableRuntime).not.toHaveBeenCalled();
     expect(twitch.disableFavor).not.toHaveBeenCalled(); expect(twitch.disableGiftSupreme).not.toHaveBeenCalled();
@@ -61,7 +79,7 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     const { app } = await setup(true), headers = { authorization: 'Bearer test' };
     const status = () => app.inject({ method: 'GET', url: '/api/v1/me/twitch', headers });
     expect((await status()).json()).toMatchObject({ commandPilotCapabilityEnabled: true, commandPilotArmed: false, commandPilotEnabled: false });
-    await app.inject({ method: 'POST', url: '/api/v1/me/twitch/commands/pilot', headers });
+    await app.inject({ method: 'POST', url: '/api/v1/me/twitch/commands/pilot', headers, payload: { acknowledgement: 'STREAMERBOT_PATH_DISABLED' } });
     expect((await status()).json()).toMatchObject({ commandPilotArmed: true, commandPilotEnabled: true });
     await app.inject({ method: 'DELETE', url: '/api/v1/me/twitch/commands/pilot', headers });
     expect((await status()).json()).toMatchObject({ commandPilotArmed: false, commandPilotEnabled: false });

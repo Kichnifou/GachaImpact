@@ -12,14 +12,16 @@ import type { TwitchGiftSupremeRuntime } from './twitch-gift-supreme-runtime.js'
 import { TWITCH_GIFT_SUPREME_SCOPES } from './twitch-gift-supreme-contract.js';
 import { TWITCH_GIVEAWAY_SCOPES } from './twitch-giveaway-contract.js';
 import type { TwitchGiveawayManager } from './twitch-giveaway-manager.js';
+import { TwitchProfileClaim } from './twitch-profile-claim.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
 const twitchKeys = createRemoteJWKSet(new URL('https://id.twitch.tv/oauth2/keys'));
 export const TWITCH_RUNTIME_SCOPES = ['openid', 'user:read:chat', 'user:write:chat', 'user:bot', 'channel:bot'] as const;
 export const TWITCH_FAVOR_SCOPES = ['openid', 'channel:read:subscriptions'] as const;
-export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' | 'AUTHORIZE_GIFT_SUPREME' | 'AUTHORIZE_GIVEAWAY';
+export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'CLAIM_TWITCH_PROFILE' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' | 'AUTHORIZE_GIFT_SUPREME' | 'AUTHORIZE_GIVEAWAY';
 export function twitchOAuthPurpose(state: string | undefined): TwitchOAuthPurpose {
+  if (state && /^claim_[A-Za-z0-9_-]{43}$/.test(state)) return 'CLAIM_TWITCH_PROFILE';
   if (state && /^runtime_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_RUNTIME';
   if (state && /^favor_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
   if (state && /^gift_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_GIFT_SUPREME';
@@ -76,7 +78,7 @@ export class TwitchPilotService {
   async status(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     const eligible = this.settings.pilotPlayerIds.includes(player.id);
-    const linked = eligible ? await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }) : null;
+    const linked = await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } });
     const lastRun = linked ? await this.db.migrationRun.findFirst({ where: { playerId: player.id }, orderBy: { completedAt: 'desc' }, select: { completedAt: true, snapshotHash: true } }) : null;
     const available = eligible && Boolean(linked) && this.runtimeReady();
     // Both queued inspections share one deadline; a slow Chat read cannot add another three seconds for Faveur.
@@ -114,11 +116,13 @@ export class TwitchPilotService {
     ]);
     return {
       pilotAvailable: eligible && this.oauthReady(),
+      profileRecoveryAvailable: this.oauthReady(),
+      identityLinkAvailable: this.oauthReady(),
       eligible,
       commandPilotAvailable: available && this.commandPilotConfigured && linked?.login.toLowerCase() === this.settings.pilotLogin,
       commandPilotCapabilityEnabled: this.commandPilotCapabilityEnabled,
       commandPilotArmed: false,
-      // The route overlays the process-local command pilot's actual runtime state.
+      // The route overlays the DB desired authority and independently validated transport.
       commandPilotEnabled: false,
       linked: linked ? { login: linked.login, displayName: linked.displayName, linkedAt: linked.linkedAt.toISOString() } : null,
       snapshotAvailable: eligible && Boolean(linked) && this.oauthReady(),
@@ -135,6 +139,7 @@ export class TwitchPilotService {
   async start(identity: AuthenticatedIdentity) {
     return this.startForPurpose(identity, 'LINK_IDENTITY');
   }
+  async startClaim(identity: AuthenticatedIdentity) { return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE'); }
 
   async startRuntime(identity: AuthenticatedIdentity) {
     await this.pilot(identity);
@@ -188,13 +193,17 @@ export class TwitchPilotService {
   }
 
   private async startForPurpose(identity: AuthenticatedIdentity, purpose: TwitchOAuthPurpose) {
-    const player = await this.pilot(identity);
+    const accountPurpose = purpose === 'LINK_IDENTITY' || purpose === 'CLAIM_TWITCH_PROFILE';
+    const player = await (accountPurpose ? this.getPlayer.execute(identity) : this.pilot(identity));
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
-    if (purpose !== 'LINK_IDENTITY' && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
+    if (!accountPurpose && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
-    const state = (purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url');
+    const state = (purpose === 'CLAIM_TWITCH_PROFILE' ? 'claim_' : purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url');
     const nonce = randomBytes(32).toString('base64url');
-    await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id, expiresAt: new Date(Date.now() + 10 * 60_000) } });
+    const web = purpose === 'CLAIM_TWITCH_PROFILE' ? await this.db.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: identity.subject } } }) : null;
+    if (purpose === 'CLAIM_TWITCH_PROFILE' && (!web || web.playerId !== player.id)) throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
+    await this.db.twitchLinkState.create({ data: { stateHash: hash(state), nonceHash: hash(nonce), playerId: player.id,
+      ...(web ? { webIdentityId: web.id } : {}), expiresAt: new Date(Date.now() + 10 * 60_000) } });
     const url = new URL('https://id.twitch.tv/oauth2/authorize');
     url.searchParams.set('response_type', 'code');
     url.searchParams.set('client_id', this.settings.clientId!);
@@ -212,13 +221,14 @@ export class TwitchPilotService {
     if (expectedPurpose && purpose !== expectedPurpose) throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
     if (purpose === 'AUTHORIZE_GIFT_SUPREME' && !this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
     if (purpose === 'AUTHORIZE_GIVEAWAY' && !this.giveaway?.available) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
-    const consumed = await this.db.$queryRaw<{ player_id: string; nonce_hash: string }[]>`
-      DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state!)} AND expires_at > now() RETURNING player_id, nonce_hash`;
+    const consumed = await this.db.$queryRaw<{ player_id: string; nonce_hash: string; web_identity_id: string | null }[]>`
+      DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state!)} AND expires_at > now() RETURNING player_id, nonce_hash, web_identity_id`;
     if (consumed.length !== 1) throw new AppError('Ã‰tat OAuth expirÃ© ou dÃ©jÃ  utilisÃ©.', 400, 'TWITCH_STATE_INVALID');
     const playerId = consumed[0]!.player_id;
     if (purpose === 'AUTHORIZE_GIVEAWAY' && !await this.db.playerRoleAssignment.findFirst({ where: { playerId, role: 'ADMIN', revokedAt: null }, select: { id: true } }))
       throw new AppError('Activation Giveaway réservée à l’administration.', 403, 'GIVEAWAY_ADMIN_REQUIRED');
-    if (!this.settings.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote non autorisÃ©.', 403, 'TWITCH_PILOT_FORBIDDEN');
+    const accountPurpose = purpose === 'LINK_IDENTITY' || purpose === 'CLAIM_TWITCH_PROFILE';
+    if (!accountPurpose && !this.settings.pilotPlayerIds.includes(playerId)) throw new AppError('Pilote non autorisÃ©.', 403, 'TWITCH_PILOT_FORBIDDEN');
     if (input.error || !input.code || input.code.length > 512) throw new AppError('Autorisation Twitch annulÃ©e.', 400, 'TWITCH_AUTH_DENIED');
     const giftIdentity = purpose === 'AUTHORIZE_GIFT_SUPREME' ? await this.db.twitchIdentity.findUnique({ where: { playerId } }) : null;
     const giveawayIdentity = purpose === 'AUTHORIZE_GIVEAWAY' ? await this.db.twitchIdentity.findUnique({ where: { playerId } }) : null;
@@ -275,9 +285,9 @@ export class TwitchPilotService {
       || !Number.isSafeInteger(validation.expires_in) || (validation.expires_in as number) <= 0))
       throw new AppError('Permissions Giveaway Twitch incomplètes.', 403, 'TWITCH_GIVEAWAY_SCOPES_MISSING');
     const existing = await this.db.twitchIdentity.findUnique({ where: { playerId } });
-    if (purpose !== 'LINK_IDENTITY' && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
+    if (!accountPurpose && (!existing || existing.twitchUserId !== twitchUserId || normalizeLogin(existing.login) !== login))
       throw new AppError('Ce compte Twitch ne correspond pas à l’identité liée.', 409, 'TWITCH_ACCOUNT_MISMATCH');
-    if (existing ? existing.twitchUserId !== twitchUserId : login !== normalizeLogin(this.settings.pilotLogin)) {
+    if (purpose !== 'CLAIM_TWITCH_PROFILE' && (existing ? existing.twitchUserId !== twitchUserId : !accountPurpose && login !== normalizeLogin(this.settings.pilotLogin))) {
       throw new AppError('Ce compte Twitch ne correspond pas au pilote.', 409, 'TWITCH_ACCOUNT_MISMATCH');
     }
     const usersResponse = await oauthFetch('https://api.twitch.tv/helix/users', {
@@ -291,6 +301,11 @@ export class TwitchPilotService {
     const user = users.data?.[0];
     if (user?.id !== twitchUserId || typeof user.login !== 'string' || normalizeLogin(user.login) !== login) {
       throw new AppError('Profil Twitch incohÃ©rent.', 502, 'TWITCH_PROFILE_FAILED');
+    }
+    if (purpose === 'CLAIM_TWITCH_PROFILE') {
+      const webIdentityId = consumed[0]!.web_identity_id;
+      if (!webIdentityId) throw new AppError('Identité web absente du consentement.', 409, 'TWITCH_PROFILE_CHANGED');
+      return new TwitchProfileClaim(this.db).execute(webIdentityId, playerId, twitchUserId);
     }
     const owner = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
     if (owner && owner.playerId !== playerId) throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');

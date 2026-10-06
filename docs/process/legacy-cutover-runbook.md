@@ -1,5 +1,12 @@
 # Cutover legacy — runbook opératoire
 
+## Reprise courante — fondations pré-cutover R1048
+
+Le [guide R1048](twitch-native-foundations.md) remplace les anciennes procédures de sélection dynamique et de gate en mémoire ci-dessous pour la prochaine préparation. La [décision propriétaire](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06) fixe 43 autorisés/171 owner-discarded/deux quarantaines et l'autorité LEGACY → NATIVE. Le prochain checkpoint est review uniquement, STOP pour review indépendante ; aucune migration/DDL publique, activation, modification des chemins Streamer.bot ou 31A/31B dans cette mission. La nouvelle migration 061 exige une mission de mise en service distincte avant usage public.
+
+Ordre de recette préparé : nouveau compte test Twitch-only à créer par le propriétaire avant Ceo (conservation décidée après test), refresh Kichnifou encore LEGACY puis transfert/barrière NATIVE, Ceo standalone via OAuth vérifié et remplacement opérateur, puis batch historique strict et 32. Les recettes ne sont pas déclenchées par la présence de ces scripts. R1046 ne fusionne pas le gameplay significatif du compte Ceo.
+
+
 Statut : **préparation et répétition uniquement**. Ce runbook décrit le futur cutover ; aucun passage public n'est autorisé par sa seule présence. Le [contrat canonique](../architecture/legacy-migration-v1.md) fixe les mappings et les blocages. La branche de travail est `review` ; `main` exige une promotion distincte validée.
 
 ## Préparer le socle — procédure historique du 27/09/2026

@@ -7971,6 +7971,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 .dailies-frame,
 .configuration-frame { min-height: 0; }
+.pre-element-account { width: min(760px, calc(100vw - 28px)); height: min(740px, calc(100dvh - 28px)); display: flex; flex-direction: column; overflow: hidden; }
+.pre-element-account .configuration-frame { flex: 1; }
 .activity-inner-tabs { min-width: 0; padding-block: 6px; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; }
 .activity-inner-tabs button { flex: 0 0 auto; }
 .activity-inner-tabs button:hover:not(:disabled) { color: #f4fbff; border-color: rgba(108, 195, 255, .42); background: rgba(55, 121, 183, .28); }

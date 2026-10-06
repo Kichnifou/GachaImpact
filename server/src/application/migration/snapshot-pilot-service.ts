@@ -428,6 +428,9 @@ export class SnapshotPilotService {
       throw new AppError('Le mapping du snapshot est incomplet ; aucun import ne peut être confirmé.', 409, 'SNAPSHOT_MAPPING_INCOMPLETE');
     const applyOnce = () => this.db.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+      const nativeTarget = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: linked.twitchUserId } });
+      if (nativeTarget && nativeTarget.dataAuthority !== 'LEGACY')
+        throw new AppError('Ce profil ne peut plus être remplacé par un snapshot.', 409, 'NATIVE_PLAYER_LEGACY_IMPORT_FORBIDDEN');
       const completedInTransaction = await tx.migrationRun.findUnique({ where: { previewId: previewToken.id } });
       if (completedInTransaction && completedInTransaction.playerId === player.id && completedInTransaction.snapshotHash === snapshot.hash && completedInTransaction.batchId === null)
         return replayResult(completedInTransaction.summary);
