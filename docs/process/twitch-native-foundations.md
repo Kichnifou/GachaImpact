@@ -1,8 +1,8 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Reprise réelle Kichni_Test — configuration opérateur en attente
+## Reprise réelle Kichni_Test — configuration opérateur vérifiée
 
-Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) portent le statut courant. Streamer.bot est OFF depuis la capture selon confirmation explicite du propriétaire, supersédant les états ON historiques ci-dessous. Le snapshot de préflight est maintenant final pour Kichni_Test uniquement : même hash revalidé, Helix CANARY frais, plan public READ ONLY TWITCH_ONLY/ABSENT sans blocker/fait partagé et deux rehearsals privés PASS/rollback exact. Aucun apply public ni NATIVE activé. La configuration locale n’a ni allowlist opérateur ni capacité commandes active ; valeurs existantes du déploiement requises avant requireOperator. Aucun fichier .env ni variable Railway modifié ; aucune autorisation déduite d’un UUID trouvé en base.
+Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) portent le statut courant. Streamer.bot est OFF depuis la capture selon confirmation explicite du propriétaire, supersédant les états ON historiques ci-dessous. Le snapshot de préflight est final pour Kichni_Test uniquement : même hash revalidé, nouveau Helix CANARY frais de reprise, plan CLI public READ ONLY TWITCH_ONLY/ABSENT sans blocker/fait partagé et deux rehearsals privés relancés PASS/rollback exact. Aucun apply public ni NATIVE à ce checkpoint technique. Les valeurs existantes du déploiement, fournies après vérification propriétaire, sont injectées uniquement dans les processus locaux : allowlist exacte et capacité commandes true. requireOperator accepte l’opérateur existant ACTIVE/ADMIN/identité conforme. Aucun fichier .env ni variable Railway modifié ; aucune autorisation déduite d’un UUID trouvé en base.
 
 ## Transfert local d’un import canary exact
 
