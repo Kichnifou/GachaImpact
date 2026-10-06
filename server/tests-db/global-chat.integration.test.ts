@@ -9,7 +9,7 @@ import { PrismaBankingStore } from '../src/infrastructure/database/prisma-bankin
 import { ConvertPersonalParticles, GetDailyChallenge } from '../src/application/daily-challenge/daily-challenge-services.js';
 import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
 import { SocialService } from '../src/application/social/social-service.js';
-import { SourceChannel } from '../generated/prisma/client.js';
+import { SourceChannel, type Prisma } from '../generated/prisma/client.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { PlayerActivityRecorder } from '../src/application/player/player-activity-recorder.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
@@ -77,6 +77,48 @@ const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where:
 const migrationChecksum = (path: string) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n')).digest('hex');
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
+  it('claims the accepted day for a freshly accepted message across Paris midnight', async () => {
+    const id = await player(0n), key = randomUUID();
+    const acceptedAt = new Date('2097-03-01T22:59:59.999Z');
+    const afterMidnight = new Date('2097-03-01T23:00:00.001Z');
+    now = acceptedAt;
+    expect(getBusinessDate(acceptedAt)).toBe('2097-03-01');
+    expect(getBusinessDate(afterMidnight)).toBe('2097-03-02');
+    const controlled = new GlobalChatService(db, getPlayer, clock, random);
+    // Test-only interception: advance the clock after the real transaction commits,
+    // before send resumes secondary work. No timer or product hook is needed.
+    const transactionHost = controlled as unknown as {
+      transaction: (run: (tx: Prisma.TransactionClient) => Promise<unknown>) => Promise<unknown>;
+    };
+    const commit = transactionHost.transaction.bind(controlled);
+    const rollover = vi.spyOn(transactionHost, 'transaction').mockImplementationOnce(async run => {
+      const result = await commit(run);
+      expect(await db.globalChatMessage.count({ where: { authorPlayerId: id } })).toBe(1);
+      now = afterMidnight;
+      return result;
+    });
+    try {
+      const sent = await controlled.send(as(id), 'Juste avant minuit', key);
+      expect(sent).toMatchObject({ replayed: false, message: { createdAt: acceptedAt.toISOString() } });
+      expect(now).toEqual(afterMidnight);
+      const operation = await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'daily-reward.claim' } });
+      expect(operation).toMatchObject({ sourceChannel: 'INTERNAL_CHAT', status: 'COMPLETED',
+        resultSummary: { businessDate: '2097-03-01', triggerKey: `chat-message:${sent.message.id}` } });
+      const movements = await db.resourceMovement.findMany({ where: { playerId: id, causeKey: 'daily-reward.claim' } });
+      expect(movements).toHaveLength(3);
+      expect(Object.fromEntries(movements.map(row => [row.resourceKey, row.delta]))).toEqual({
+        primogems: DAILY_REWARDS.primogems, particles_pyro: DAILY_REWARDS.mainElementParticles, moras: DAILY_REWARDS.moras,
+      });
+      expect(sent.refreshScopes).toContain('resources');
+      const feedback = await db.globalChatMessage.findFirstOrThrow({ where: { externalMessageId: `daily-reward:${sent.message.id}` } });
+      expect(feedback.content).toBe(firstDailyMessageResult(sent.message.author!.displayName, 'pyro', { rewards: DAILY_REWARDS }));
+      await controlled.send(as(id), 'Juste avant minuit', key);
+      expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(1);
+      expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(1);
+    } finally { rollover.mockRestore(); }
+  });
+
   it('claims the daily reward after the first accepted standalone PLAYER message', async () => {
     const id = await player(0n);
     const key = randomUUID();
@@ -203,9 +245,14 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
       expect(sent.refreshScopes).toContain('resources');
       expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
       expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(0);
+      const acceptedDay = getBusinessDate(now);
+      advance(86_400_000);
       await Promise.all([service.send(as(id), 'Paiement conservé', key), service.send(as(id), 'Paiement conservé', key)]);
       expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(1);
       expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+      expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(1);
+      expect((await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'daily-reward.claim' } })).resultSummary)
+        .toMatchObject({ businessDate: acceptedDay, triggerKey: `chat-message:${sent.message.id}` });
     } finally { failure.mockRestore(); }
   });
 

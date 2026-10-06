@@ -269,7 +269,9 @@ export class GlobalChatService {
     try {
       const triggerKey = `chat-message:${result.message.id}`;
       const acceptedAt = new Date(result.message.createdAt);
-      if (getBusinessDate(acceptedAt) !== getBusinessDate(this.clock.now())) {
+      // A fresh message keeps its accepted day even when secondary work crosses midnight.
+      // Only a historical POST replay needs proof that this trigger already paid that day.
+      if (result.replayed && getBusinessDate(acceptedAt) !== getBusinessDate(this.clock.now())) {
         const prior = await this.database.businessOperation.findFirst({ where: {
           playerId: player.id, operationType: 'daily-reward.claim', status: 'COMPLETED',
           idempotencyKey: `daily-reward:${player.id}:${getBusinessDate(acceptedAt)}`,
