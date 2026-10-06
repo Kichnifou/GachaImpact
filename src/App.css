@@ -4658,6 +4658,9 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   width: min(280px, 100%);
 }
 
+.element-confirm:disabled { cursor: not-allowed; }
+.element-confirm[aria-busy="true"]:disabled { cursor: wait; }
+
 @media (max-width: 760px) {
   .entry-shell { padding: 14px; }
   .entry-panel, .element-entry-panel { padding: 22px 17px; }
@@ -9249,9 +9252,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .element-account-help { margin: 22px 0 24px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .element-account-help p { margin: 0 0 12px; }
 .element-account-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.notifications-panel .notification-clear-all { background: transparent; border-color: transparent; box-shadow: none; color: #9cddff; padding: 3px 5px; font-size: 11px; white-space: nowrap; margin-left: auto; }
-.notifications-panel .notification-clear-all:hover:not(:disabled) { background: rgba(94,211,255,.08); color: #effbff; }
-.notifications-panel .notification-clear-all:focus-visible { outline: 2px solid #5ed3ff; outline-offset: 2px; }
+.notification-bulk-actions { display: grid; justify-items: stretch; gap: 3px; margin-left: auto; }
+.notifications-panel .notification-bulk-action { min-height: 28px; background: transparent; border-color: transparent; box-shadow: none; color: #9cddff; padding: 3px 5px; font-size: 11px; white-space: nowrap; }
+.notifications-panel .notification-bulk-action:hover:not(:disabled) { background: rgba(94,211,255,.08); color: #effbff; }
+.notifications-panel .notification-bulk-action:focus-visible { outline: 2px solid #5ed3ff; outline-offset: 2px; }
 
 .twitch-progression-choice { margin-top: 20px; }
 .twitch-progression-comparison { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }

@@ -1,8 +1,8 @@
 # Notifications V1 — contrat transverse
 
-## Archive bulk joueur — candidat UI/UX avant canary
+## Archive bulk joueur — micro-polish avant canary
 
-« Tout supprimer » est un bouton texte discret sans flèche dans le heading droit, absent si la liste est vide. POST authentifié /api/v1/me/notifications/archive-all, sans paramètres d’identité, archive toutes les UNREAD/READ du Player courant en une updateMany et conserve leurs payloads et les objets métier. États déjà ARCHIVED/RESOLVED et autres Players intacts. Snapshot retourné : liste/badge actualisés ; frontend neutralise les polls périmés. Échec visible et bouton réessayable ; pas de suppression frontend seule ni de nouvelle migration Notifications. Tests vide/non vide/clic et isolation Player PostgreSQL privés ; preuve et statut au [Master](../master/PROJECT_MASTER_PLAN.md).
+La colonne droite du heading rend toujours « Tout marquer comme lu » au-dessus de « Tout supprimer », deux AppButton texte discrets de mêmes dimensions/poids/style sans flèche. Liste vide : deux disabled ; READ seulement : lecture disabled, suppression active ; UNREAD : deux actifs. Action indisponible toujours visible et non cliquable ; suppression en cours disabled/aria-busy. POST authentifié /api/v1/me/notifications/archive-all, sans paramètres d’identité, archive toutes les UNREAD/READ du Player courant en une updateMany et conserve leurs payloads et les objets métier. États déjà ARCHIVED/RESOLVED et autres Players intacts. Snapshot retourné : liste/badge actualisés ; frontend neutralise les polls périmés. Échec visible et bouton réessayable ; pas de suppression frontend seule ni de nouvelle migration Notifications. Tests des trois états visibles/disabled, lecture/archive et isolation Player PostgreSQL privée ; preuve et statut au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Raccord Arcade R982–R984
 

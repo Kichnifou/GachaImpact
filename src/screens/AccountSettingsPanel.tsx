@@ -226,7 +226,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     <div data-business-pending={pending} className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
       {!account ? <p data-tutorial-state={!error ? "loading" : undefined}>Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
-        {account.linked ? <><p>Twitch et l’application web utilisent la même progression. Un changement de pseudo Twitch conserve cette liaison.</p><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
+        {account.linked ? <><p>Twitch et l’application web utilisent la même progression.</p><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
           {!presentationMode && account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
             <h4>Réception du chat Twitch</h4>
             <p className={account.runtimeChatActive ? 'account-twitch-active' : undefined}>{runtimeChecking && account.runtimeChatPending ? 'Chargement du compte…' : account.runtimeChatActive ? '● Activée' : 'Non activée'}</p>

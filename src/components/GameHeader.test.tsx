@@ -17,7 +17,7 @@ function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {
   return container
 }
 
-it('archives all notifications through the server and immediately clears list, button and badge', async () => {
+it('archives all notifications through the server and immediately clears list and badge while disabling visible actions', async () => {
   const initial = { unreadCount: 1, notifications: [{ id: 'private-bulk', domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', payload: { count: 1 }, state: 'UNREAD' as const, createdAt: '2026-10-06T10:00:00Z', readAt: null, resolvedAt: null, archivedAt: null, actionKey: null, actionTargetId: null }] }
   const archiveAll = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
   function Harness() { const [value, setValue] = useState(initial); return <GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} notifications={value} onArchiveAllNotifications={async () => { const next = await archiveAll(); setValue(next); return next }} /> }
@@ -30,13 +30,22 @@ it('archives all notifications through the server and immediately clears list, b
   expect(archiveAll).toHaveBeenCalledOnce()
   expect(container.textContent).toContain('Aucune notification.')
   expect(container.querySelector('.header-count')).toBeNull()
-  expect([...container.querySelectorAll('button')].some(button => button.textContent === 'Tout supprimer')).toBe(false)
+  expect(clear.disabled).toBe(true)
+  expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Tout marquer comme lu')!.disabled).toBe(true)
 })
 
-it('does not offer bulk deletion for an empty list', async () => {
-  const container = mount()
+it.each(['EMPTY', 'READ', 'UNREAD'] as const)('keeps both bulk actions visible and correctly disabled for %s', async state => {
+  const onReadAllNotifications = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+  const onArchiveAllNotifications = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+  const notification = { id: 'bulk-state', domainKey: 'appearance', typeKey: 'CHARACTER_AVATARS_UNLOCKED', payload: { count: 1 }, state: state === 'UNREAD' ? 'UNREAD' as const : 'READ' as const, createdAt: '2026-10-06T10:00:00Z', readAt: null, actionKey: null, actionTargetId: null }
+  const container = mount({ notifications: { unreadCount: state === 'UNREAD' ? 1 : 0, notifications: state === 'EMPTY' ? [] : [notification] }, onReadAllNotifications, onArchiveAllNotifications })
   await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
-  expect(container.textContent).not.toContain('Tout supprimer')
+  const actions = [...container.querySelectorAll<HTMLButtonElement>('.notification-bulk-actions button')]
+  expect(actions.map(button => button.textContent)).toEqual(['Tout marquer comme lu', 'Tout supprimer'])
+  expect(actions[0]!.disabled).toBe(state !== 'UNREAD')
+  expect(actions[1]!.disabled).toBe(state === 'EMPTY')
+  if (state !== 'UNREAD') { await act(async () => actions[0]!.click()); expect(onReadAllNotifications).not.toHaveBeenCalled() }
+  if (state === 'EMPTY') { await act(async () => actions[1]!.click()); expect(onArchiveAllNotifications).not.toHaveBeenCalled() }
 })
 
 describe('GameHeader moderation capability', () => {

@@ -66,7 +66,7 @@ function ElementChoiceScreen({ onChoose, onRefreshPlayerState, onSignOut }: Elem
           ))}
         </div>
         {errorMessage && <p className="form-feedback error" role="alert">{errorMessage}</p>}
-        <button type="button" className="entry-primary-button element-confirm" disabled={!selected || isSubmitting} onClick={confirm}>
+        <button type="button" className="entry-primary-button element-confirm" disabled={!selected || isSubmitting} aria-busy={isSubmitting} onClick={confirm}>
           {isSubmitting ? 'Validation…' : selected ? `Choisir ${elementLabels[selected]}` : 'Sélectionne un élément'}
         </button>
       </section>

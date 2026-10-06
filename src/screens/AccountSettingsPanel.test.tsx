@@ -78,6 +78,7 @@ describe('Configuration > Compte', () => {
     const container = await mount()
     expect(container.textContent).toContain('Kichnifou · Connecté')
     expect(container.textContent).toContain('même progression')
+    expect(container.textContent).not.toContain('Un changement de pseudo Twitch conserve cette liaison.')
     expect(button(container, 'Délier Twitch')).toBeUndefined()
     expect(button(container, 'Lier mon compte Twitch')).toBeUndefined()
     expect(api.unlinkTwitch).not.toHaveBeenCalled()
