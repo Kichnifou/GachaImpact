@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correction de review de la canonicalisation R1055, avant canary.
+Version : promotion approuvée R1055 et correction, avant canary.
 Date : 2026-10-06
-Statut : **CORRECTIF REVIEW R1055 — NOUVELLE REVIEW INDÉPENDANTE CHATGPT ATTENDUE.** Main reste au checkpoint 0fd2413. Streamer.bot autoritatif ; aucun canary ni Player public migré. Le lot UI/UX approuvé est conservé ; seules les deux corrections de canonicalisation et leurs preuves sont ajoutées.
+Statut : **R1055 ET CORRECTION APPROUVÉS INDÉPENDAMMENT, PROMUS TECHNIQUEMENT SUR MAIN PAR FAST-FORWARD STRICT.** Déploiements, migration 062 et healthcheck à vérifier après le push main ; aucune validation publique présumée. Streamer.bot reste autoritatif, aucun Player réel migré ni autorité native activée.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correction de review de 0c865b4, 06/10/2026
+## Point courant — promotion approuvée R1055 et correction, 06/10/2026
+
+**Approbation et baseline :** review indépendante ChatGPT du vrai GitHub terminée, verdict APPROUVÉ sans finding bloquant. Fetch exécuté, main/origin main initial = `0fd241310f09758d1d7e6dcafbf71c1376f0bdd3`, HEAD/local review/origin review initial = `897db93c6f6331d55ddbbf5f76053e2400e10a7e`. Chaîne exacte 0fd2413 → 0c865b4 → 897db93, review ahead 2/behind 0, worktree/index propres. Les deux commits constituent ensemble le candidat approuvé.
+
+**Promotion :** un seul petit checkpoint Markdown de statut sur review, puis fast-forward strict de main vers ce même HEAD et push normal, sans squash/rebase/force-push. Le rapport final porte le SHA promu et la vérification distante origin/main == origin/review, divergence 0/0, ancestry conservée et worktree/index propres ; branche de travail revenue sur review. Code de 0c865b4 + 897db93, schéma Prisma, 062 et migrations antérieures inchangés ; aucune nouvelle décision Rxxx.
+
+**Contrôles :** preuves du candidat ci-dessous conservées : verify:full 8/8, 1 345 tests frontend, 1 899 backend hors DB, 31 PostgreSQL privés, Prisma/RLS et captures desktop/mobile. Seul le Markdown est modifié pour cette promotion : contrôles du diff/index, destinations documentaires locales et périmètre exact ; aucune nouvelle campagne produit ni réussite de déploiement prétendue.
+
+**Infrastructure et données :** le push main déclenche uniquement le déploiement normal et son mécanisme habituel de migration. 062 était non appliquée lors du dernier contrôle public du candidat ; son application reste à vérifier après déploiement via le registre Prisma et migrate status. Aucune application DB manuelle, aucun Player réel migré, aucune autorité CANARY/GLOBAL activée, aucun changement manuel Railway/env/OAuth/EventSub/Streamer.bot. Streamer.bot reste autoritatif. Kichni_Test n'est pas encore préparé par Codex ; aucun préflight, snapshot, import ou test canary exécuté.
+
+**Prochaine action :** STOP pour ChatGPT : vérifier Railway et Cloudflare, le SHA déployé, l'application de 062 et le healthcheck ; fournir ensuite la courte recette publique UX R1055. Après ces vérifications et cette recette seulement, préparer le préflight Kichni_Test selon le [guide](../process/twitch-native-foundations.md) et le [runbook](../process/legacy-cutover-runbook.md), dans une mission distincte. Aucune préparation canary automatique à la suite de cette promotion.
+
+## Historique — correction de review de 0c865b4, 06/10/2026
 
 **Baseline :** fetch et état propre initiaux vérifiés ; HEAD/local review/origin review = `0c865b468c770bdc7bd2bd074d0b26c6998da7f6`, main/origin main = `0fd241310f09758d1d7e6dcafbf71c1376f0bdd3`, review ahead 1/behind 0. Correction dédiée directement au-dessus de 0c865b4 ; aucune promotion ni réécriture du lot approuvé.
 
