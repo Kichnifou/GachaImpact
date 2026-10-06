@@ -24,11 +24,15 @@ describe('Chat command registry', () => {
     expect(chatHelp('inconnue')).toBe('Aide inconnue. Utilise !help pour voir les catégories.');
   });
 
-  it('offers only the read-only Contest command in internal Chat help', () => {
+  it('keeps Contest help opaque before the public reveal', () => {
     expect(findChatCommand('concours')).toMatchObject({ internalChat: 'READY', syntax: '!concours' });
     expect(chatHelp('concours')).toContain('!concours');
     expect(chatHelp('events')).toContain('!concours');
     expect(chatHelp('concours')).not.toContain('open');
+    expect(chatHelp('concours')).toContain('prochainement disponible');
+    for (const help of [chatHelp('concours'), chatHelp('events')]) {
+      expect(help).not.toMatch(/interface|standalone|https?:\/\/|#activities|Activités >/iu);
+    }
   });
 
   it('publishes the canonical Mission help without advertising the resume alias', () => {

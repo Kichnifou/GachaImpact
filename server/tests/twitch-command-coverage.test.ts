@@ -22,6 +22,18 @@ function fixture() {
 }
 
 describe('R1047 registry ownership', () => {
+  it.each([false, true])('keeps Twitch Contest invocations opaque without preparing state reads, active=%s', async active => {
+    const f = fixture();
+    if (active) f.services.contestService.getCurrent.mockResolvedValue({ active: { status: 'LOBBY', participants: [{}, {}] },
+      theme: { label: 'Force' }, dailyUsed: true } as never);
+    for (const text of ['!concours', '!concours xxx', '!concours rejoindre A']) {
+      const { saved, output } = await f.run(text);
+      expect(output).toEqual(['🏆 Concours : prochainement disponible.']);
+      expect(saved.mutation).toBeUndefined();
+      expect(saved.reads).not.toHaveProperty('contestService.getCurrent');
+    }
+    expect(f.services.contestService.getCurrent).not.toHaveBeenCalled();
+  });
   it('classifies every Player Twitch entry exactly once, with no stale or overlapping claim', () => {
     const eligible = chatCommandRegistry.filter(entry => entry.permission === 'PLAYER' && entry.twitch);
     const claims = [...genericTwitchCommands, ...specializedTwitchCommands];

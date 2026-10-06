@@ -92,9 +92,22 @@ describe('Final owner recipe, step 29', () => {
     expect(h.services.socialService.directory).not.toHaveBeenCalled();
     expect(chatHelp('liste')).toContain('!liste <pyro|hydro|cryo|electro|anemo|geo|dendro|online> [page]');
   });
-  it.each([false, true])('adds the standalone Contest link, active=%s', async active => {
+  it.each([false, true])('keeps Contest opaque before the public reveal, active=%s', async active => {
     const h = harness(); if (active) h.services.contestService.getCurrent.mockResolvedValue({ active: { status: 'LOBBY', participants: [] }, theme: { label: 'Force' } } as never);
-    expect(await h.send('!concours')).toContain('Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest');
+    for (const command of ['!concours', '!concours xxx', '!concours rejoindre A']) {
+      expect(await h.send(command)).toBe('🏆 Concours : prochainement disponible.');
+    }
+    expect(h.services.contestService.getCurrent).not.toHaveBeenCalled();
+  });
+  it.each([false, true])('keeps Event calendar and received messages free of interface hints, canClaimToday=%s', async canClaimToday => {
+    const h = harness(), event = await h.services.eventService.getCurrent();
+    h.services.eventService.getCurrent.mockResolvedValue({ ...event, calendar: { canClaimToday },
+      gameC: { ...event.gameC, unviewedCount: 2 } } as never);
+    const text = await h.send('!event');
+    expect(text).toContain(`🎄 Calendrier : ${canClaimToday ? '⏳ !event calendrier' : 'indisponible actuellement'}`);
+    expect(text).toContain('📬 2 message(s) à lire');
+    expect(text).not.toMatch(/interface|standalone|https?:\/\/|#activities|Activités >/iu);
+    for (const action of ['claimCalendar', 'sendGameC', 'join'] as const) expect(h.services.eventService[action]).not.toHaveBeenCalled();
   });
   it.each([false, true])('renders the exact Event root with Paris time and owner attempt limit, completed=%s', async completed => {
     const h = harness(); const original = await h.services.eventService.getCurrent();

@@ -353,12 +353,12 @@ describe('Chat command adapters', () => {
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 10, commandId);
   });
 
-  it('reads the standalone Contest projection without requesting a mutation', async () => {
+  it('publishes the same neutral Contest response regardless of current state without consulting its owner', async () => {
     const { chat, services, send } = harness();
-    expect(await send('!concours')).toContain('participation du jour non utilisée');
-    expect(services.contestService.getCurrent).toHaveBeenCalledExactlyOnceWith(actor);
+    expect(await send('!concours')).toBe('🏆 Concours : prochainement disponible.');
     services.contestService.getCurrent.mockResolvedValue({ active: { status: 'LOBBY', participants: [{}, {}] }, theme: { label: 'Force' }, dailyUsed: true } as never);
-    expect(await send('!concours')).toContain('2/4 participants');
+    expect(await send('!concours')).toBe('🏆 Concours : prochainement disponible.');
+    expect(services.contestService.getCurrent).not.toHaveBeenCalled();
     expect(chat.publishGameResult).toHaveBeenCalledTimes(2);
   });
 
@@ -367,11 +367,11 @@ describe('Chat command adapters', () => {
     '!concours spectateur', '!concours quitter', '!concours pret', '!concours start', '!concours lancer',
     '!concours annuler', '!concours cancel', '!concours basique', '!concours basic', '!concours risque',
     '!concours risqué', '!concours risk', '!concours soutenir Autre', '!concours autre',
-  ])('redirects %s to standalone without any Contest call', async command => {
+  ])('keeps %s neutral without any Contest call', async command => {
     const { chat, services, send } = harness();
-    expect(await send(command)).toBe('Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.');
+    expect(await send(command)).toBe('🏆 Concours : prochainement disponible.');
     expect(services.contestService.getCurrent).not.toHaveBeenCalled();
-    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.');
+    expect(chat.publishGameResult).toHaveBeenCalledWith(commandId, '🏆 Concours : prochainement disponible.');
   });
 
   it('accepts the Event theme name from the owner with French ligatures', async () => {

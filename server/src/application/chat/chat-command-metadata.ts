@@ -43,7 +43,7 @@ const summaries: Readonly<Record<string, string>> = {
   "infos": "Consultez les informations autorisées d’un joueur.",
   "liste": "Recherchez les joueurs par élément ou présence.",
   "event": "Consultez et jouez le Festival en cours.",
-  "concours": "Consultez le Concours ; il se joue dans Activités > Concours.",
+  "concours": "Concours : prochainement disponible.",
   "code": "Consultez ou utilisez un Code cadeau.",
   "top": "Consultez les classements ; pour le taux de 5★, utilisez !top taux5.",
   "faveur": "Consultez la Faveur de l’Astre selon la confidentialité.",

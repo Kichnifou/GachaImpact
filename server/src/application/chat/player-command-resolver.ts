@@ -98,11 +98,6 @@ const syntax = (usage: string) => `Syntaxe : ${usage}.`;
 const names = (values: readonly string[], limit = 8, separator = ', ') =>
   `${values.slice(0, limit).join(separator) || 'aucun'}${values.length > limit ? `${separator}et ${values.length - limit} autres` : ''}`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
-const statusLabel = (status: string) => ({
-  AVAILABLE: 'disponible', ACTIVE: 'en cours', COMPLETED: 'terminé',
-  TODO: 'à faire', IN_PROGRESS: 'en cours', BLOCKED: 'bloqué',
-  IDLE: 'à faire', RUNNING: 'en cours', READY: 'prêt', LOBBY: 'salon ouvert',
-}[status] ?? status.toLocaleLowerCase('fr-FR'));
 const orderedMissions = (missions: readonly PermanentMissionProjectionEntry[]) => [
   ...missions.filter(mission => mission.status !== 'COMPLETED'),
   ...missions.filter(mission => mission.status === 'COMPLETED'),
@@ -512,8 +507,8 @@ export class PlayerCommandResolver {
               `${event.gameB.theme.label} : ${event.gameB.solvedToday ? '✅ code découvert' : `${event.gameB.attemptsRemaining}/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants`}`,
               `${event.gameC.theme.label} : ${event.gameC.sentToday ? 'envoyé ✅' : 'à envoyer'}`,
               `🎁 Bonus quotidien ${event.dailyBonus.claimedToday ? '✅' : '💬 premier message du jour'}`] : []),
-            ...(event.calendar ? [`🎄 Calendrier : ${event.calendar.canClaimToday ? '⏳ !event calendrier' : 'consulter dans l’interface'}`] : []),
-            ...(event.gameC.unviewedCount > 0 ? [`📬 ${event.gameC.unviewedCount} message(s) à lire dans l’interface`] : []),
+            ...(event.calendar ? [`🎄 Calendrier : ${event.calendar.canClaimToday ? '⏳ !event calendrier' : 'indisponible actuellement'}`] : []),
+            ...(event.gameC.unviewedCount > 0 ? [`📬 ${event.gameC.unviewedCount} message(s) à lire`] : []),
             `Jeux : !event ${event.gameA.theme.label} ; !event ${event.gameB.theme.label} <code> ; !event ${event.gameC.theme.label} <pseudo> "message"`,
             '🛒 !event boutique · 🏆 !event top',
           ], `${event.festival.emoji} ${event.festival.title} (suite) :`);
@@ -551,12 +546,8 @@ export class PlayerCommandResolver {
           }
           return expeditionCommandSummary(view);
         }
-        case 'concours': {
-          if (args.length) return 'Le Concours se joue dans l’interface. Utilise !concours pour consulter son état.';
-          const view = await this.services.contestService.getCurrent(identity);
-          return view.active ? `🏆 Concours : ${statusLabel(view.active.status)} · ${view.active.participants.length}/4 participants · thème ${view.theme.label}. Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest` :
-            `🏆 Concours : aucun en cours · thème ${view.theme.label}${view.dailyUsed ? ' · participation du jour utilisée' : ' · participation du jour non utilisée'}. Participation dans Activités > Concours : https://gachaimpact.pages.dev/#activities/contest`;
-        }
+        // Keep every invocation opaque until the owner authorizes the public reveal.
+        case 'concours': return '🏆 Concours : prochainement disponible.';
         case 'combat': {
           if (args.length > 2) return syntax(definition.syntax);
           const rawMode = normalizePlayerSearch(args[0] ?? '');
