@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : anti-spoiler Concours avant cutover, préflight Kichni_Test PASS approuvé.
+Version : promotion pré-cutover Kichni_Test, micro-polish et anti-spoiler approuvés.
 Date : 2026-10-06
-Statut : **PRÉFLIGHT KICHNI_TEST PASS APPROUVÉ, AUCUN CUTOVER.** Correctif anti-spoiler Concours sur review avant promotion : réponse neutre unique et aide sans lieu d'accès. Corrections 47c08a5/7a315ed approuvées et conservées, main inchangé. Streamer.bot reste ON/autoritatif, aucun Player public migré ni autorité native activée.
+Statut : **PRÉFLIGHT KICHNI_TEST PASS APPROUVÉ ; CANDIDAT PROMU TECHNIQUEMENT SUR MAIN, AUCUN CUTOVER.** Micro-polish 47c08a5, tooling 7a315ed et anti-spoiler a3eb8c2 approuvés et inchangés. Déploiements/healthcheck et courte recette publique restent à vérifier. Streamer.bot reste ON/autoritatif, Kichni_Test non migré, aucune autorité native activée.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — anti-spoiler Concours avant cutover Kichni_Test, 06/10/2026
+## Point courant — promotion pré-cutover Kichni_Test, 06/10/2026
+
+**Approbation et chaîne :** review indépendante ChatGPT APPROUVÉE, aucun finding bloquant restant. Baseline fetch vérifiée : main/origin main = `0de60e9ee3db2022ac5aeea0e61087ca0cd32ac7`, review/origin review/HEAD = `a3eb8c254896c3619728e4495282bb6e0ec7170b`, ahead 3/behind 0, index/worktree propres. Chaîne exacte : 0de60e9 → `47c08a518347c16cffc3a82142f44a7a7fc064ce` → `7a315ed786ac5caa41ae8484dc9e5f09bb694789` → a3eb8c2. Ces trois commits constituent ensemble le candidat approuvé ; un seul checkpoint Markdown de statut les accompagne, sans modification de code/migration ni nouvelle Rxxx. Promotion par fast-forward strict et push normal, sans squash/rebase/force-push ; mêmes contenus fonctionnels sur main et review, reprise sur review.
+
+**État acquis :** Notifications avec deux actions empilées toujours visibles/disabled, CTA élément cursor not-allowed et phrase rename retirée ; owner commun des opérations en cours, observations passives non bloquantes et véritables opérations natives toujours protégées ; six champs tradeRequests explicitement dropped et futur champ inconnu bloquant. Préflight Kichni_Test **PASS approuvé**, TWITCH_ONLY/ABSENT, blockers=[], shared facts=0, Helix VERIFIED lors du préflight, deux rehearsals privés PASS et rollback exact. `!concours` avec ou sans arguments répond exactement **🏆 Concours : prochainement disponible.**, sans ContestService ; aide neutre et deux directives Event neutralisées. Aucun Player public migré, apply public, target ou autorité CANARY/NATIVE/GLOBAL activée ; aucun receipt public modifié, snapshot/rapports de préflight conservés et non relancés. Streamer.bot reste ON/autoritatif.
+
+**Contrôles de promotion :** preuves approuvées conservées : 20 tests PostgreSQL privés receipts/canary, backend 1 900 PASS sur 7a315ed puis 1 904 PASS sur a3eb8c2, 282 tests ciblés anti-spoiler, verify:quick 5/5 et build/typecheck/lint PASS. Timeouts sous charge et reprises PASS documentés dans les historiques ci-dessous, non bloquants selon la review. Aucun code ne change : pas de nouvelle campagne de tests/DB/Helix ; contrôles limités au diff Markdown, destinations documentaires, fichiers indexés, chaîne/ancestry et refs Git. Aucune nouvelle migration DB ajoutée par le candidat. Le push main déclenche seulement le déploiement normal ; aucune action manuelle Railway/env/OAuth/EventSub/DB/Players/autorité/Streamer.bot, aucune preuve de déploiement ou healthcheck présumée.
+
+**Prochaine action :** STOP après promotion technique et retour sur review. ChatGPT vérifie Railway/Cloudflare et le healthcheck du SHA promu, puis fournit la courte recette publique du micro-polish/anti-spoiler. Après ces contrôles, mission distincte pour guider la fenêtre de cutover réel Kichni_Test avec **NOUVEAU snapshot frais**, Helix/plan et autorisation propriétaire avant tout apply ciblé puis transfert séparé. Kichni_Test reste non migré ; la capture actuelle est uniquement celle du préflight, jamais la capture finale de cutover. Aucun batch ni révélation publique du standalone autorisé ici.
+
+## Historique — anti-spoiler Concours approuvé avant cutover Kichni_Test, 06/10/2026
 
 **Approbation et baseline :** review indépendante ChatGPT de `7a315ed786ac5caa41ae8484dc9e5f09bb694789` APPROUVÉE ; préflight Kichni_Test PASS (TWITCH_ONLY/ABSENT, zéro blocker/fait partagé, Helix VERIFIED, répétitions privées et rollback exact). Fetch : HEAD/review/origin review = 7a315ed, main/origin main = `0de60e9ee3db2022ac5aeea0e61087ca0cd32ac7`, review ahead 2/behind 0, index/worktree propres. Mission limitée à un correctif anti-spoiler séparé ; aucune promotion ni nouvelle Rxxx.
 
