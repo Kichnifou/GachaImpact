@@ -1,6 +1,12 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — reprise de la canary NATIVE après OFF
+## Point courant — Kichni_Test validé ; prochaine cible Kichnifou
+
+Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) consignent désormais le réarmement réussi du propriétaire et le smoke final !quotis / !quoti / !roue validé. Contrôle public READ ONLY de reprise : CANARY révision 4, Kichni_Test seule NATIVE/canary ACTIVE avec DATA_IMPORTED, trois receipts terminaux SENT, Roue quotidienne/statistiques inchangées et aucune opération engagée/outbound incertain. Streamer.bot reste OFF. Ne pas refaire l’import ni le transfert de Kichni_Test.
+
+Avant Kichnifou : vérifier un chemin local durable d’extension gardée de l’ensemble canary. Le CLI de transfert initial ci-dessous exige zéro canary et ne convient pas tel quel. Toute modification du mécanisme d’autorité requiert un candidat review testé puis STOP pour review indépendante avant promotion/import. Ceo et le batch restent soumis aux validations Twitch réelles successives ; GLOBAL non activé.
+
+## Historique — reprise de la canary NATIVE après OFF
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md) et le [runbook](legacy-cutover-runbook.md) portent les contrôles et le déploiement du hotfix du 06/10/2026. Après désarmement propriétaire et réconciliation des deux receipts Quotis, le contrôle public reste OFF révision 3 ; Kichni_Test reste la seule target NATIVE/canary, ACTIVE et DATA_IMPORTED. Le bouton sans IDs doit reprendre cet ensemble, sans tenter d’importer ou transférer Kichnifou. Aucun réarmement public automatique : le propriétaire clique « Activer le pilote commandes » après déploiement vérifié, puis ChatGPT contrôle CANARY/CANARY/transportValid=true et la target unique avant !quotis / !quoti / !roue. Streamer.bot reste OFF.
 

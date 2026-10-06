@@ -1,11 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : hotfix de réarmement d’une canary NATIVE persistée après OFF.
+Version : validation finale Kichni_Test ; reprise 31A vers Kichnifou.
 Date : 2026-10-06
-Statut : **HOTFIX DE RÉARMEMENT PROMU ET DÉPLOYÉ ; KICHNI_TEST TOUJOURS NATIVE/CANARY.** Pilote public désarmé, contrôle OFF révision 3, une seule canary. STOP avant le clic propriétaire « Activer le pilote commandes », puis contrôle CANARY/CANARY/transport et smoke !quotis / !quoti / !roue. Streamer.bot reste OFF ; aucune recette publique corrigée revendiquée.
+Statut : **KICHNI_TEST VALIDÉ DE BOUT EN BOUT PAR LE PROPRIÉTAIRE.** Réarmement réussi, autorité CANARY révision 4, seule target NATIVE/canary et smoke final !quotis / !quoti / !roue réussi. Streamer.bot reste OFF. Prochaine étape : vérifier le mécanisme local d’extension gardée avant préparation Kichnifou.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — réarmement canary NATIVE après OFF, 06/10/2026
+## Point courant — Kichni_Test validé ; préparation Kichnifou, 06/10/2026
+
+**Validation propriétaire acquise :** après le checkpoint `83eee14a1167019beb08664462807e6d3e9408d2`, le propriétaire a réarmé le pilote et exécuté le smoke final Twitch `!quotis / !quoti / !roue` avec succès. Kichni_Test est validé de bout en bout ; ne pas refaire son cutover ni son import. Le propriétaire confirme la réception Chat Twitch active et Streamer.bot toujours OFF depuis la capture.
+
+**Contrôle public de reprise exécuté :** transaction PostgreSQL explicitement READ ONLY, contrôle CANARY révision 4/ACK STREAMERBOT_PATH_DISABLED, Kichni_Test ACTIVE avec identité Twitch exacte, WebIdentity 0, DATA_IMPORTED et seule target NATIVE/canary. Les trois derniers receipts sont PROCESSED/RESPONSES avec une réponse SENT chacun (deux handler quotis et un roue). Aucune opération engagée ni outbound incertain ; aucune importation Kichnifou pour le réarmement. Empreintes complètes des tables Roue quotidienne/statistiques strictement identiques à la préimage du hotfix : aucun nouveau résultat/récompense Roue. Preuves privées ignorées dans local-data/identity-resolutions/multi-canary-2026-10-06/public-before.json ; aucun ID Twitch publié.
+
+**Prochaine étape autorisée :** Kichnifou, puis Ceo seulement après validation Twitch réelle Kichnifou, puis 31B seulement après validation réelle Ceo. Vérifier d’abord le code et une surface locale durable permettant d’ajouter exactement une target DATA_IMPORTED tout en préservant Kichni_Test. Si un correctif d’autorité est nécessaire : tests PostgreSQL privés et contrôles pertinents, publication review puis STOP pour review indépendante, sans promotion main ni import Kichnifou dans ce lot. GLOBAL reste non activé ; aucun autre joueur migré, aucun changement Railway/env/OAuth/EventSub.
+
+## Historique — réarmement canary NATIVE après OFF, 06/10/2026
 
 **Mission et baseline :** main/review/origin main/origin review `db069882ef3108388a3ab9a22a4e2c71be852922`, fetch exécuté, divergence 0/0, index/worktree initialement propres. Promotion directe par fast-forward strict autorisée dans cette mission si tous les gates sont verts. Aucun réarmement public par Codex, transfert supplémentaire, import Kichnifou, rollback, GLOBAL ou changement Railway/env/OAuth/EventSub.
 
