@@ -1,8 +1,24 @@
 # Cutover legacy — runbook opératoire
 
-## Fenêtre réelle Kichni_Test du 06/10/2026 — apply et NATIVE/CANARY vérifiés
+## Réconciliation locale Quotis — échec de PREPARE read-only
 
-Le [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--premier-cutover-kichni_test-fenêtre-du-06102026) supersède les anciennes consignes de capture/reprise ci-dessous : le propriétaire confirme Streamer.bot OFF sans interruption depuis la capture. Le snapshot `preflight-kichni-test-2026-10-06`, 17/17 + manifest et hash `d3ee8d88582300ca6006fb85afe0801bea7c866bcce7b05ff444edd39590baf0`, est final pour Kichni_Test uniquement, jamais pour le batch global. Aucun dossier live lu ni nouvelle copie identique nécessaire.
+Point courant : [hotfix Roue inconnue / Quotis](../master/PROJECT_MASTER_PLAN.md#point-courant--hotfix-roue-inconnue--quotis-06102026). Le premier smoke propriétaire a confirmé les autres commandes mais deux Quotis/Quoti ont échoué pendant PREPARE sur une Roue importée consommée dont le résultat historique est inconnu. Le correctif conserve cet état et ne donne aucune seconde Roue. Streamer.bot reste OFF. La target Kichni_Test reste NATIVE/canary, seule canary ; après le désarmement manuel propriétaire, contrôle OFF révision 3 confirmé et accepté, à préserver sans écriture.
+
+Le nouveau script `server/scripts/reconcile-quotis-preparation.mts` est LOCAL-ONLY, sans route HTTP. Après tests privés verts et déploiement Railway du SHA exact SUCCESS/health/migrations à jour, lancer depuis server avec les valeurs privées vérifiées, allowlist opérateur existante injectée seulement dans le processus local :
+
+```powershell
+node_modules/.bin/tsx.cmd scripts/reconcile-quotis-preparation.mts --schema public --operator-player <UUID-opérateur-vérifié> --twitch-id <ID-immuable-vérifié> --expected-player <UUID-Kichni_Test-vérifié> --expected-revision 3 --receipt-1 c7b9def3-c553-4723-a02d-cb827414dda0 --receipt-2 a346c4bf-6318-48c6-b8c4-fde76a0a0344
+```
+
+Ne pas déduire l’allowlist ni modifier .env/Railway. L’owner utilise requireOperator (ACTIVE/ADMIN/identité opérateur et allowlist), verrouille contrôle OFF/révision et Player exact, exige target NATIVE/canary unique. Les deux IDs distincts sont validés atomiquement : channel.chat.message, identité/Player exacts, RECEIVED/EXECUTING, handler canonique quotis, args vides, intent réellement absent, réponses vides, processedAt/error absents, référence et commandKey cohérents. Toute opération métier liée ou PENDING refuse ; tout autre receipt encore bloquant fait annuler la transaction.
+
+Résultat : FAILED/RESPONSES avec tableau de réponses toujours vide, processedAt, raison fixe assainie QUOTIS_READ_ONLY_PREPARATION_FAILED_RECONCILED. Source originale conservée, métadonnées d’audit du précédent état/stage dans chaque receipt et audit opérateur en DB. Aucun resolver, spin, gain ni réponse Twitch ; aucune suppression ni écriture d’autorité. Le retry RESPONSES existant reste distinct et ne reprend jamais EXECUTING. Une seconde réconciliation des mêmes receipts refuse.
+
+Capturer une nouvelle préimage après désarmement, puis recontrôler toutes les empreintes métier/Player/target/contrôle, les autres receipts et la source des deux receipts après opération ; exiger operations-in-flight false. Aucun rollback. Déploiement et réconciliation publique restent à exécuter au checkpoint technique ; leur preuve sera ajoutée après contrôles. Ne pas réarmer : prochain gate propriétaire = réarmement manuel puis smoke !quotis / !quoti.
+
+## Historique — fenêtre réelle Kichni_Test du 06/10/2026, apply et NATIVE/CANARY vérifiés
+
+Cet historique du premier cutover est supersédé par le [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--hotfix-roue-inconnue--quotis-06102026) pour le statut runtime et la recette. Le snapshot `preflight-kichni-test-2026-10-06`, 17/17 + manifest et hash `d3ee8d88582300ca6006fb85afe0801bea7c866bcce7b05ff444edd39590baf0`, reste final pour Kichni_Test uniquement, jamais pour le batch global. Aucun dossier live lu ni nouvelle copie identique nécessaire.
 
 Gates avant apply : coverage fraîche 29 918/29 918, unknown=0 ; Helix CANARY VERIFIED, un utilisateur/zéro anomalie ; cible absente et contrôle OFF ; plan CLI TWITCH_ONLY/ABSENT, blockers=[], shared=0 ; deux rehearsals privés PASS, rollback EXACT_PREIMAGE, aucun nouveau schéma résiduel. Valeurs opérateur existantes fournies par le propriétaire et utilisées seulement dans les processus locaux : requireOperator ACTIVE/ADMIN/identité conforme, capacité active. Promotion stricte 081ab57, backend Railway du SHA exact SUCCESS et /health 200 avant apply ; aucun fichier .env/Railway modifié.
 

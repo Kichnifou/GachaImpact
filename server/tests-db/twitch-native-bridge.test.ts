@@ -150,6 +150,7 @@ describe('R1047 ordinary messages on private PostgreSQL', () => {
   it('persists the ordinary-message plan before effects and uses the same message ID across transport receipts', async () => {
     now = new Date('2026-09-28T12:00:00Z'); const player = await createPlayer();
     const identity = await db.twitchIdentity.update({ where: { playerId: player.id }, data: { login: 'kichnifou' } });
+    await db.playerRoleAssignment.create({ data: { playerId: player.id, role: 'ADMIN', source: 'private-bridge-pilot' } });
     const userId = identity.twitchUserId, text = 'Message ordinaire';
     const body = { subscription: { id: 'private', type: 'channel.chat.message', version: '1', status: 'enabled',
       condition: { broadcaster_user_id: userId, user_id: userId }, transport: { method: 'webhook', callback: 'https://api.example/api/v1/twitch/eventsub' } },
@@ -159,7 +160,7 @@ describe('R1047 ordinary messages on private PostgreSQL', () => {
     const consume = vi.spyOn(activity, 'consume');
     const pilot = new TwitchCommandPilot(db, { host: 'localhost', port: 3001, supabase: {}, twitch: { pilotPlayerIds: [player.id], pilotLogin: 'kichnifou' }, twitchCommandPilot: { enabled: true } },
       core, outbound, undefined, { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'private', broadcasterId: userId, receiverId: userId, callback: 'https://api.example/api/v1/twitch/eventsub' }) }, activity);
-    await pilot.arm(player.id);
+    await pilot.arm(player.id, 'STREAMERBOT_PATH_DISABLED');
     const observer = new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0));
     const observe = () => observer.observeTwitchEvent({ externalEventId: randomUUID(), eventType: 'channel.chat.message', twitchUserId: userId,
       contentHash: createHash('sha256').update(text).digest('hex') });

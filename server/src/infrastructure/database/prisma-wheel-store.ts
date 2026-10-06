@@ -14,6 +14,7 @@ import {
   getWheelStatsIncrement,
   type WheelResultType,
   type WheelSpinResult,
+  type WheelTodayState,
 } from '../../domain/wheel/wheel.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
@@ -92,7 +93,7 @@ export class PrismaWheelStore implements WheelStore {
         if (prior.status !== OperationStatus.COMPLETED) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est encore en cours.');
         const state = await transaction.playerWheelDailyState.findFirst({ where: { operationId: prior.id } });
         if (!state) throw new BusinessError('WHEEL_IDEMPOTENCY_CONFLICT', 'Ce tirage est indisponible.');
-        return { ...this.toResult(state), alreadySpun: true, alreadyProcessed: true };
+        return { ...this.knownResult(state), alreadySpun: true, alreadyProcessed: true };
       }
 
       const databaseBusinessDate = businessDateToDatabaseDate(input.businessDate);
@@ -106,7 +107,7 @@ export class PrismaWheelStore implements WheelStore {
       });
 
       if (existing) {
-        return { ...this.toResult(existing), alreadySpun: true, alreadyProcessed: false };
+        return { ...this.knownResult(existing), alreadySpun: true, alreadyProcessed: false };
       }
 
       const reward = input.roll();
@@ -184,7 +185,24 @@ export class PrismaWheelStore implements WheelStore {
       },
     });
 
-    return state ? this.toResult(state) : null;
+    return state ? this.knownResult(state) : null;
+  }
+
+  public async getDailyState(playerId: string, businessDate: string): Promise<WheelTodayState> {
+    const state = await this.database.playerWheelDailyState.findUnique({
+      where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } },
+    });
+    if (!state) return { spun: false, businessDate, result: null };
+    if (!state.resultKnown) return { spun: true, businessDate, result: null };
+    const result = this.toResult(state);
+    return { spun: true, businessDate, result: { resultType: result.resultType, resourceKey: result.resourceKey, amount: result.amount } };
+  }
+
+  private knownResult(state: PlayerWheelDailyState): Omit<WheelSpinResult, 'alreadySpun'> {
+    if (!state.resultKnown) {
+      throw new BusinessError('WHEEL_LEGACY_RESULT_UNKNOWN', 'La Roue a déjà été utilisée aujourd’hui ; son résultat historique n’est pas disponible.');
+    }
+    return this.toResult(state);
   }
 
   private toResult(state: PlayerWheelDailyState): Omit<WheelSpinResult, 'alreadySpun'> {

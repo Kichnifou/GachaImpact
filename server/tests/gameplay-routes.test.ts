@@ -49,6 +49,10 @@ class RouteResourceStore implements PlayerResourceStore {
 }
 
 class RouteWheelStore implements WheelStore {
+  public async getDailyState(playerId: string, businessDate: string) {
+    const result = await this.findByDate(playerId, businessDate);
+    return { spun: result !== null, businessDate, result: result ? { resultType: result.resultType, resourceKey: result.resourceKey, amount: result.amount } : null };
+  }
   public persisted = false;
 
   public async spin(input: WheelStoreInput) {

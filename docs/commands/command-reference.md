@@ -951,6 +951,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 **Amendement Chat R1038 :** Récompense réelle et durées lisibles ; spin déjà consommé par une autre intention = avertissement sans nouveau gain. Rejeu du propre reçu = résultat initial, une seule récompense malgré concurrence UI.
 
+**Correctif post-cutover du 06/10/2026 :** une Roue historique consommée sans résultat connu répond `⚠️ Roue déjà utilisée aujourd’hui · résultat historique indisponible. Prochaine Roue demain.` avant tout appel au spin. Aucun gain inventé ou second tirage. L’appel direct au spin refuse ce cas par une erreur métier contrôlée ; le résultat connu et le lendemain gardent leur comportement normal. Voir [la source Roue](../legacy/17-roue-quotidien-audit.md#correctif-post-cutover--résultat-historique-inconnu-06102026).
+
 ## `!quotis`
 
 - **Statut audit :** Principe transverse validé R355 ; contenu enrichi progressivement avec les domaines quotidiens
@@ -968,6 +970,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 - **Évolution :** neuf rubriques modernes, dont Boss séparé ; états Expédition/Event partagés avec le hub, selon le contrat Quotis ci-dessus.
 
 **Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, état/récupération Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
+
+**Correctif post-cutover du 06/10/2026 :** `!quotis`, `!quoti` et `!daily` affichent tous `Roue ✅` pour une tentative historique consommée, même si son résultat est indisponible. L’existence du spin et le détail de son résultat sont des informations distinctes ; aucun gain n’est reconstruit.
 
 ## `!expedition`
 

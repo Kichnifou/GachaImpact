@@ -15,18 +15,6 @@ export class GetTodayWheelState {
   public async execute(identity: PlayerExecutionActor): Promise<WheelTodayState> {
     const player = await this.getCurrentPlayer.execute(identity);
     const businessDate = getBusinessDate(commandNow(this.clock));
-    const persistedResult = await this.store.findByDate(player.id, businessDate);
-
-    return {
-      spun: persistedResult !== null,
-      businessDate,
-      result: persistedResult
-        ? {
-            resultType: persistedResult.resultType,
-            resourceKey: persistedResult.resourceKey,
-            amount: persistedResult.amount,
-          }
-        : null,
-    };
+    return this.store.getDailyState(player.id, businessDate);
   }
 }

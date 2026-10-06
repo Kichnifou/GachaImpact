@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : premier cutover public Kichni_Test réalisé ; NATIVE/CANARY vérifié, statut runtime de production à contrôler avant recette.
+Version : hotfix Roue historique inconnue / Quotis après premier smoke Kichni_Test.
 Date : 2026-10-06
-Statut : **APPLY PUBLIC KICHNI_TEST PASS ; NATIVE/CANARY PASS ; TRANSPORT HELIX EXISTANT ACTIF, STATUT RUNTIME RAILWAY NON VÉRIFIÉ.** Player Twitch-only ACTIVE créé, WebIdentity 0, DATA_IMPORTED/gameplay/isolation vérifiés. Streamer.bot toujours OFF selon confirmation propriétaire ; états ON historiques supersédés. Micro-polish/CLI promus et backend du SHA technique déployé SUCCESS. Configuration opérateur utilisée seulement via variables de processus temporaires ; aucun changement .env/Railway/OAuth/EventSub. STOP avant test joueur jusqu’à lecture du statut runtime de production.
+Statut : **KICHNI_TEST NATIVE/CANARY ; HOTFIX QUOTIS PRÉPARÉ, DÉPLOIEMENT ET RÉCONCILIATION PUBLIQUE RESTANTS.** Le propriétaire a réalisé le premier smoke : les autres commandes sont PASS, Quotis/Quoti ont révélé le résultat Roue historique inconnu. Pilote désarmé manuellement, contrôle OFF révision 3 confirmé en lecture seule et accepté comme référence par le propriétaire ; aucune écriture d’autorité par Codex. Streamer.bot reste OFF.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — premier cutover Kichni_Test, fenêtre du 06/10/2026
+## Point courant — hotfix Roue inconnue / Quotis, 06/10/2026
+
+**Mission :** baseline main/review `c357fe8fa78ad9eb8a2e43df4d1434ed84c06b50`, fetch exact, divergence 0/0 et worktree/index initialement propres. Correctif borné, CLI local-only et promotion directe review → main autorisés dans la même mission si tous les gates sont verts. Pas de nouvel import, rollback, GLOBAL ou changement infra/env/OAuth/EventSub.
+
+**Défaut reproduit :** la vraie fixture PostgreSQL privée ACTIVE avec Roue du 06/10 `resultKnown=false` reproduit « The persisted native Wheel result is incomplete. » dans GetTodayWheelState → findByDate → toResult. La représentation importée est correcte : tentative consommée, résultat NULL, provenance du snapshot final conservée. Deux receipts live reconnus `quotis`, args vides, restent RECEIVED/EXECUTING sans intent ni réponses ni BusinessOperation liée ; les lectures publiques ne les ont pas modifiés. Le propriétaire rapporte PASS pour banniere, box, team, mission, expedition, combat, event, faveur, concours, ami et combat boss.
+
+**Correctif :** [source Roue](../legacy/17-roue-quotidien-audit.md#correctif-post-cutover--résultat-historique-inconnu-06102026), lecture quotidienne distincte du résultat strict ; consommée/inconnue = spun true/result null. Quotis/Quoti/Daily répondent normalement avec Roue ✅. Roue répond avant spin ; appels directs refusés par BusinessError contrôlée, aucun RNG/gain/effet ni réécriture historique. Native connue, absence de ligne et lendemain restent valides ; aucune migration ni changement économie/probabilités.
+
+**Désarmement réel :** le bouton Compte actuel appelle disarm qui persiste OFF, et non un flag runtime indépendant. Lecture après action du propriétaire : OFF révision 3, target toujours NATIVE/canary, une seule canary. Le propriétaire a explicitement confirmé de conserver cette référence sans écriture d’autorité. La réconciliation exige cet état OFF et sa révision exacte ; elle ne réarme ni ne configure aucune autorité.
+
+**Contrôles techniques exécutés :** 284 tests backend ciblés sur neuf fichiers PASS ; verify:full standard 8/8 PASS, frontend 1 349 et backend hors DB 1 922, builds/typechecks/lint/diff-checks verts. Typecheck dédié du CLI .mts PASS puis typecheck backend final PASS. PostgreSQL privé : Roue inconnue 10/10, réconciliation 20/20, bridge natif 9/9, pilote commandes 18/18, sécurité receipts 11/11 et legacy-canary 9/9 PASS, soit 77/77 sur six fichiers. Cleanup exécuté et inventaire READ ONLY contrôlé : aucun nouveau schéma résiduel, unique schéma vide historique conservé. Première passe attendue RED sur le bug réel ; ensuite omissions de fixtures corrigées (enveloppe Twitch/send mock, résultat natif des reminders, ACK/date de l’état armé et rôle ADMIN/ACK du bridge), sans affaiblir les protections produit ni modifier les timeouts. Prisma public READ ONLY : 62 migrations, schéma à jour, aucune migration appliquée. Logs complets TEMP kichni-wheel-hotfix-*, kichni-quotis-*, kichni-hotfix-db-* et gachaimpact-verify-full-0E41pY.
+
+**Reprise opératoire :** [procédure locale bornée](../process/legacy-cutover-runbook.md#réconciliation-locale-quotis--échec-de-prepare-read-only). Déployer le SHA exact et vérifier Railway SUCCESS/health/migrations à jour avant d’exécuter le CLI pour les seuls receipts `c7b9def3-c553-4723-a02d-cb827414dda0` et `a346c4bf-6318-48c6-b8c4-fde76a0a0344`. Contrôles avant/après : ressources, pity/totalPulls, Player/target/contrôle inchangés, source des receipts intacte, terminalisation auditée sans resolver ni réponse et operations-in-flight false. À ce checkpoint, ces étapes publiques restent à exécuter. STOP ensuite sans réarmement ; prochaine recette propriétaire !quotis / !quoti.
+
+## Historique — premier cutover Kichni_Test, fenêtre du 06/10/2026
 
 **Mission et baseline :** autorisation explicite de cutover Kichni_Test uniquement, avec promotion review → main dans la même mission sans review ChatGPT intermédiaire, sous réserve de tous les gates verts. Fetch initial : main/review/origin main/origin review = `281d355922099926da072666de8d984477e0117a`, divergence 0/0, worktree/index propres. Aucun batch, autre joueur, GLOBAL, nouvelle migration ou changement OAuth/EventSub autorisé.
 

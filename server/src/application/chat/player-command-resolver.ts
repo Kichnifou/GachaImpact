@@ -283,6 +283,7 @@ export class PlayerCommandResolver {
         case 'roue': {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
           const today = await this.services.getTodayWheelState.execute(identity);
+          if (today.spun && !today.result) return '⚠️ Roue déjà utilisée aujourd’hui · résultat historique indisponible. Prochaine Roue demain.';
           const action = await this.chat.rememberCommandText(commandMessageId, 'action', today.spun ? 'reminder' : 'spin');
           const actor = playerFromServerActor(identity) ?? await this.services.socialService.actor(identity);
           const playerName = await this.chat.rememberCommandText(commandMessageId, 'eventContext', actor.displayName);

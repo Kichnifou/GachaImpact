@@ -112,7 +112,7 @@ describe('Complete remaining command families', () => {
   });
   it('replays the successful Wheel result before publication using its receipt', async () => {
     const h = harness(); remember(h); const first = await h.send('!roue');
-    h.services.getTodayWheelState.execute.mockResolvedValue({ spun: true });
+    h.services.getTodayWheelState.execute.mockResolvedValue({ spun: true, businessDate: '2026-10-06', result: { resultType: 'primogems', resourceKey: 'primogems', amount: 160n } } as never);
     h.services.spinDailyWheelChat.execute.mockResolvedValue({ resultType: 'primogems', resourceKey: 'primogems', amount: 160n, alreadySpun: true, alreadyProcessed: true } as never);
     expect(await h.send('!roue')).toBe(first);
   });

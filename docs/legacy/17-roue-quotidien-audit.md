@@ -1033,3 +1033,9 @@ Le domaine ne doit être rouvert que si :
 # 33. Sweep final obligatoire du projet
 
 Même après clôture de Roue / quotidien et des audits restants, le projet devra toujours effectuer le sweep exhaustif final des 37 scripts `.txt` et 17 JSON avant la conception finale du modèle de données et le passage à la V1.
+
+## Correctif post-cutover — résultat historique inconnu, 06/10/2026
+
+Le premier smoke Kichni_Test a révélé une lecture incorrecte de l’état importé `resultKnown=false` : GetTodayWheelState demandait un résultat natif complet et levait une erreur pendant PREPARE Twitch. La ligne importée est correcte et reste intacte : tentative consommée, détail historique absent, provenance conservée.
+
+La lecture quotidienne est séparée de la conversion stricte du résultat : aucune ligne = `spun=false/result=null`, ligne native connue = `spun=true/result réel`, ligne historique inconnue = `spun=true/result=null`. La conversion native reste stricte. Les résumés Quotis et leurs aliases marquent la Roue faite sans gain fictif. `!roue` répond explicitement que le résultat historique est indisponible avant tout spin ; un appel direct refuse avec `WHEEL_LEGACY_RESULT_UNKNOWN` et le message « La Roue a déjà été utilisée aujourd’hui ; son résultat historique n’est pas disponible. » Aucun RNG, opération métier, mouvement, statistique ou remplacement de ligne n’est permis dans ce cas. Le lendemain conserve une nouvelle tentative réelle. Probabilités et économie inchangées ; aucune migration.

@@ -34,7 +34,7 @@ describe('R1047 final owner polish', () => {
   });
   it('keeps the already-spun result and tomorrow explicit', async () => {
     const h = harness();
-    h.services.getTodayWheelState.execute.mockResolvedValue({ spun: true } as never);
+    h.services.getTodayWheelState.execute.mockResolvedValue({ spun: true, businessDate: '2026-10-06', result: { resultType: 'moras', resourceKey: 'moras', amount: 4567n } } as never);
     h.services.spinDailyWheelChat.execute.mockResolvedValue({ resultType: 'moras', resourceKey: 'moras', amount: 4567n, alreadySpun: true } as never);
     expect(await h.send('!roue')).toBe('⚠️ Roue déjà utilisée aujourd’hui · résultat : 🪙4 567 Moras. Prochaine Roue demain.');
   });

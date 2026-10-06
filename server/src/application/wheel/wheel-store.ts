@@ -1,4 +1,4 @@
-import type { WheelReward, WheelSpinResult } from '../../domain/wheel/wheel.js';
+import type { WheelReward, WheelSpinResult, WheelTodayState } from '../../domain/wheel/wheel.js';
 
 export type WheelStoreInput = Readonly<{
   playerId: string;
@@ -10,6 +10,7 @@ export type WheelStoreInput = Readonly<{
 }>;
 
 export interface WheelStore {
+  getDailyState(playerId: string, businessDate: string): Promise<WheelTodayState>;
   spin(input: WheelStoreInput): Promise<WheelSpinResult>;
   findByDate(
     playerId: string,

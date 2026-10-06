@@ -67,6 +67,10 @@ class SequenceRandom implements RandomSource {
 }
 
 class MemoryWheelStore implements WheelStore {
+  public async getDailyState(playerId: string, businessDate: string) {
+    const result = await this.findByDate(playerId, businessDate);
+    return { spun: result !== null, businessDate, result: result ? { resultType: result.resultType, resourceKey: result.resourceKey, amount: result.amount } : null };
+  }
   private readonly states = new Map<string, Omit<WheelSpinResult, 'alreadySpun'>>();
   public spinCalls = 0;
   public findCalls = 0;
