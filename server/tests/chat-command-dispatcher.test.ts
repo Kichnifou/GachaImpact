@@ -327,7 +327,7 @@ describe('Chat command adapters', () => {
 
   it('replays a published command without a second domain mutation', async () => {
     const { chat, services, send } = harness();
-    expect(await send('!roue')).toContain('Roue du jour');
+    expect(await send('!roue')).toContain('La roue tourne pour');
     chat.findGameResult.mockResolvedValue({ id: 'answer', content: 'Roue du jour : 160 primogems.', messageType: 'GAME_RESULT' } as never);
     chat.findGameResults.mockResolvedValue([{ id: 'answer', content: 'Roue du jour : 160 primogems.', messageType: 'GAME_RESULT' }] as never);
     expect(await send('!roue')).toContain('Roue du jour');

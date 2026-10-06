@@ -19,7 +19,7 @@ describe('Final owner recipe, step 29', () => {
     h.services.eventService.getCurrent.mockResolvedValue({ ...event, canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: true, canClaim: false }, gameA: { completedToday: true }, gameB: { solvedToday: true, canAttempt: false }, gameC: { canSend: false, unviewedCount: 0 } } as never);
     h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState: 'USED' } as never);
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: true } } as never);
-    expect(await h.send('!quotis')).toBe('📅 Quotidiennes : 🎁 Récompense ✅ | 🎡 Roue ✅ | 🛒 Shop ✅ | ⚔️ Combat ✅ | 👹 Boss ✅ | 🧭 Expédition ✅ | 💖 Amitié ✅ | 🎪 Event ✅ | ✧ Faveur ✅');
+    expect(await h.send('!quotis')).toBe('📅 Quotidiennes : Récompense ✅ | Roue ✅ | Shop ✅ | Combat ✅ | Boss ✅ | Expédition ✅ | Amitié ✅ | Event ✅ | Faveur ✅');
   });
   it.each(['RUNNING', 'READY', 'IDLE'])('keeps an unfinished expedition %s pending and inactive Favor unavailable', async status => {
     const h = harness();
@@ -33,7 +33,7 @@ describe('Final owner recipe, step 29', () => {
     const h = harness();
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: false } } as never);
     h.services.eventService.getCurrent.mockResolvedValue({ ...await h.services.eventService.getCurrent(), canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: false, canClaim: true } } as never);
-    expect(await h.send('!quotis')).toContain('Event ⏳ | ✧ Faveur ⏳');
+    expect(await h.send('!quotis')).toContain('Event ⏳ | Faveur ⏳');
   });
   it.each(['!exp', '!exp Skirk', '!exp Autre'])('reports the real ongoing expedition and remaining time for %s', async command => {
     const h = harness();

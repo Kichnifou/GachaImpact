@@ -68,12 +68,12 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       ]);
       const mark = (state: string) => state === 'completed' ? '✅' : state === 'ineligible' ? '➖' : '⏳';
       return entryParts('📅 Quotidiennes :', [
-        `🎁 Récompense ${reward.claimed ? '✅' : '⏳'}`, `🎡 Roue ${wheel.spun ? '✅' : '⏳'}`,
-        `🛒 Shop ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `⚔️ Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
-        `👹 Boss ${mark(bossDailyState(boss))}`, `🧭 Expédition ${mark(expeditionDailyState(expedition))}`,
-        `💖 Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
-        `🎪 Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}`,
-        `✧ Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
+        `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
+        `Shop ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
+        `Boss ${mark(bossDailyState(boss))}`, `Expédition ${mark(expeditionDailyState(expedition))}`,
+        `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
+        `Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}`,
+        `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
       ], '📅 Quotidiennes (suite) :');
     }
     case 'team': {

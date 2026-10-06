@@ -9,6 +9,8 @@
 
 > **Recette publique R947 et limite R953.** Une session native a été ouverte depuis Twitch puis fermée depuis le standalone : un participant `!wish`, refus de la réinscription, un gagnant, +1 600 Primogemmes, +2 000 particules Cryo au rang 1, statistiques Economy, une notification agrégée et deux annonces `RESULT`/`RANKING` envoyées et visibles. Le classement final indique 7 messages sous Kichnifou : 4 humains et 3 réponses automatiques Streamer.bot émises sous le même Twitch User ID. Faute de preuve d'origine distincte, ces trois sorties tierces sont comptées conformément au comportement accepté par le propriétaire ; aucun filtre par texte n'est ajouté. Le bridge est revenu OFF, Streamer.bot Giveaway/Wish ON, sans cutover global. Les chemins Standalone Open et Twitch Close restent implémentés et couverts par les suites automatisées, sans validation publique lors de ce pilote.
 
+> **Micro-polish R1047, 06/10/2026 :** les racines exactes giveaway/ga seules ou invalides (reroll inclus) rendent une aide compacte ; aliases valides conservés, étrangères ignorées. Open/close exigent toujours Player ACTIVE avec ADMIN/MODERATOR actif, stats publics et Wish selon prérequis modernes. Ouverture/stats/tirage reprennent le ton historique avec 1 600 primos modernes, sans RNG de texte au replay ; Wish figé inchangé. [Contrats courants](../commands/command-reference.md#giveaway), [preuves PostgreSQL privées](../../server/tests-db/giveaway-native.test.ts). La validation publique R1047 et de ses correctifs est reçue ; l’état ancien OFF des pilotes ci-dessous est historique, aucune activation opérateur changée dans cette mission. Déploiement du nouveau micro-polish encore à vérifier au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ---
 
 # 1. Objectif du domaine

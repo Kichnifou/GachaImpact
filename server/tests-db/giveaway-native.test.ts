@@ -65,6 +65,32 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
     await expect(service.open(adminId, 'ADMIN')).rejects.toMatchObject({ code: 'GIVEAWAY_ALREADY_OPEN' });
     await close(opened.sessionId!);
   });
+  it.each(['ADMIN', 'MODERATOR'] as const)('allows an active %s to open and close through the authoritative Player role', async role => {
+    const actor = await player(`Authorized ${role}`, 'hydro', role);
+    const opened = await service.open(actor.id, 'TWITCH', `twitch:${randomUUID()}`);
+    expect((await db.giveawaySession.findUniqueOrThrow({ where: { id: opened.sessionId! } })).status).toBe('OPEN');
+    const announcement = await db.giveawayAnnouncement.findFirstOrThrow({ where: { sessionId: opened.sessionId!, kind: 'OPEN' } });
+    expect(announcement.text).toBe('🎁 Un cadeau venu de Célestia est apparu ! Utilisez !wish pour tenter votre chance de remporter 1 600 primos à la fin du live.');
+    await service.close(actor.id, 'TWITCH', opened.sessionId!, `twitch:${randomUUID()}`);
+    expect((await db.giveawaySession.findUniqueOrThrow({ where: { id: opened.sessionId! } })).status).toBe('CLOSED');
+  });
+  it('refuses normal Players for open and close without changing sessions, rewards or receipts', async () => {
+    const actor = await player('No moderation role');
+    const before = await db.giveawaySession.count();
+    await expect(service.open(actor.id, 'TWITCH', `twitch:${randomUUID()}`)).rejects.toMatchObject({ code: 'GIVEAWAY_FORBIDDEN' });
+    expect(await db.giveawaySession.count()).toBe(before);
+    const opened = await service.open(adminId, 'ADMIN');
+    const receipts = await db.giveawayCommandReceipt.count(), rewards = await db.giveawayReward.count(), announcements = await db.giveawayAnnouncement.count();
+    await expect(service.close(actor.id, 'TWITCH', opened.sessionId!, `twitch:${randomUUID()}`)).rejects.toMatchObject({ code: 'GIVEAWAY_FORBIDDEN' });
+    expect((await db.giveawaySession.findUniqueOrThrow({ where: { id: opened.sessionId! } })).status).toBe('OPEN');
+    expect(await db.giveawayReward.count()).toBe(rewards);
+    expect(await db.giveawayCommandReceipt.count()).toBe(receipts);
+    expect(await db.giveawayAnnouncement.count()).toBe(announcements);
+    expect(await service.publicStats()).toBe('🎁 Giveaway ouvert | 👥 0 participant(s) | Commande : !wish');
+    expect((await service.wish(actor.twitchUserId, `twitch:${randomUUID()}`)).outcome).toBe('JOINED');
+    await close(opened.sessionId!);
+    expect(await service.publicStats()).toBe('🎁 Giveaway fermé | 👥 1 participant(s) | 🏆 Dernier gagnant : No moderation role');
+  });
   it('requires a linked active Player and element, deduplicates wish and counts normal messages separately', async () => {
     const opened = await service.open(adminId, 'ADMIN');
     const valid = await player('Wish Valid'); const noElement = await player('Wish No Element', null);
@@ -209,8 +235,14 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
         expect((await db.giveawaySession.findUniqueOrThrow({ where: { id: state.session!.id } })).status).toBe('CLOSED');
       }
       const before = send.mock.calls.length, receipts = await db.giveawayCommandReceipt.count();
-      for (const text of ['!ga', '!giveaway', '!ga reroll', '!giveaway reroll']) await consume(text);
-      expect(send).toHaveBeenCalledTimes(before); expect(await db.giveawayCommandReceipt.count()).toBe(receipts);
+      for (const text of ['!ga', '!giveaway', '!ga xxx', '!giveaway xxx', '!ga reroll', '!giveaway reroll', '!ga open extra']) {
+        const id = randomUUID(); await consume(text, id);
+        expect(send.mock.calls.at(-1)![2]).toBe('ℹ️ Commandes giveaway : !giveaway open | !giveaway close | !giveaway stats | Participation : !wish');
+        const sent = send.mock.calls.length; await consume(text, id); expect(send).toHaveBeenCalledTimes(sent);
+      }
+      expect(send).toHaveBeenCalledTimes(before + 7); expect(await db.giveawayCommandReceipt.count()).toBe(receipts);
+      for (const text of ['!foo', '!giveawayx', '!wish extra']) await consume(text);
+      expect(send).toHaveBeenCalledTimes(before + 7);
     } finally { vi.restoreAllMocks(); }
   });
   it('freezes Wish atomically with its receipt, replays after name/count changes, and excludes outbound echoes', async () => {

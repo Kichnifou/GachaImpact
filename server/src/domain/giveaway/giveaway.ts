@@ -1,4 +1,4 @@
-export type GiveawayCommand = 'WISH' | 'STATS' | 'OPEN' | 'CLOSE' | 'OTHER_COMMAND' | 'MESSAGE';
+export type GiveawayCommand = 'WISH' | 'STATS' | 'OPEN' | 'CLOSE' | 'HELP' | 'OTHER_COMMAND' | 'MESSAGE';
 
 /** Twitch text is classified only in memory. A leading ! always excludes activity counting. */
 export function classifyGiveawayText(text: string): GiveawayCommand {
@@ -11,7 +11,7 @@ export function classifyGiveawayText(text: string): GiveawayCommand {
   if (parts.length === 2 && (parts[1] === 'stats' || parts[1] === 'stat')) return 'STATS';
   if (parts.length === 2 && (parts[1] === 'open' || parts[1] === 'ouvrir')) return 'OPEN';
   if (parts.length === 2 && (parts[1] === 'close' || parts[1] === 'fermer')) return 'CLOSE';
-  return 'OTHER_COMMAND';
+  return 'HELP';
 }
 
 export function giveawayRanked<T extends { messageCount: bigint; playerId: string; displayName: string }>(rows: readonly T[]) {
@@ -32,8 +32,8 @@ export function oneLine(text: string): string {
 }
 
 export function resultText(winner: string | null): string {
-  return winner ? oneLine(`🌠 Célestia a choisi ${winner} ! Son vœu est exaucé : +1 600 Primogemmes.`)
-    : '🎁 Giveaway terminé : aucun participant !wish éligible pour le tirage.';
+  return winner ? oneLine(`🌠 Célestia a choisi ${winner} parmi tous les voyageurs ! +💠1 600 primos !`)
+    : 'ℹ️ Le giveaway est terminé. Aucun joueur éligible n’a participé au tirage !wish.';
 }
 
 export function rankingText(ranked: readonly { displayName: string; rank: number; messageCount: bigint; amount: bigint; elementKey: string }[]): string {

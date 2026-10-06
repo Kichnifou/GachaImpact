@@ -3,6 +3,7 @@ import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { playerFromServerActor } from '../player/player-execution-actor.js';
 import type { PlayerCommandContext } from './player-command-context.js';
 import { elementKeys } from '../../domain/economy/resources.js';
+import { wheelChatResult } from './wheel-chat-result.js';
 import { EVENT_GAME_B_MAX_ATTEMPTS } from '../../domain/event/game-b.js';
 import { shopChatSummary } from './shop-command-summary.js';
 import { tradeEligibilityText } from './trade-eligibility-result.js';
@@ -288,9 +289,11 @@ export class PlayerCommandResolver {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
           const today = await this.services.getTodayWheelState.execute(identity);
           const action = await this.chat.rememberCommandText(commandMessageId, 'action', today.spun ? 'reminder' : 'spin');
+          const actor = playerFromServerActor(identity) ?? await this.services.socialService.actor(identity);
+          const playerName = await this.chat.rememberCommandText(commandMessageId, 'eventContext', actor.displayName);
           const result = await this.services.spinDailyWheelChat.execute(identity, commandMessageId);
           const reward = result.resultType === 'nothing' ? 'aucun gain' : resourceText(result.resourceKey!, result.amount!);
-          return action === 'reminder' || result.alreadySpun && !result.alreadyProcessed ? `⚠️ Roue déjà utilisée aujourd’hui · résultat : ${reward}. Prochaine Roue demain.` : `🎡 Roue du jour : ${result.resultType === 'nothing' ? '' : '+'}${reward}.`;
+          return action === 'reminder' || result.alreadySpun && !result.alreadyProcessed ? `⚠️ Roue déjà utilisée aujourd’hui · résultat : ${reward}. Prochaine Roue demain.` : wheelChatResult(playerName, result);
         }
         case 'sac': {
           const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
@@ -569,9 +572,9 @@ export class PlayerCommandResolver {
             const boss = await this.services.monthlyBossService.getCurrentForChat(identity);
             if (boss.status === 'DEFEATED') {
               const summary = boss.defeatedSummary;
-              return entryParts(`👑 👹 Boss ${boss.boss.name} · ${boss.boss.monthStart} :`, [`vaincu au jour ${summary?.victoryDayCount ?? '—'} · ${summary?.daysRemainingAfterVictory ?? '—'} jours restants`, `🛡️ RES ${characterLabel({ name: chatElementNames[boss.boss.resistanceElementKey], elementKey: boss.boss.resistanceElementKey })}`, ...(boss.boss.defeatedAt ? [`Victoire le ${boss.boss.defeatedAt.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}`] : []), ...(summary ? [`${summary.community.participantCount} participants · ${chatNumber(summary.community.attackCount)} attaques · ${chatNumber(summary.community.totalDamage)} dégâts`, `Coup final : ${summary.records.finalBlow?.displayName ?? 'indisponible'}`] : []), ...(boss.participation ? [`Votre contribution : ${chatNumber(boss.participation.totalDamage)} dégâts · rang ${boss.participation.rank} · meilleur coup ${chatNumber(boss.participation.bestHit)}`] : ['Vous n’avez pas participé à ce Boss'])], '👑 👹 Boss vaincu (suite) :');
+              return entryParts(`👑 👹 Boss ${boss.boss.name} · ${boss.boss.monthStart} :`, [`vaincu au jour ${summary?.victoryDayCount ?? '—'} · ${summary?.daysRemainingAfterVictory ?? '—'} jours restants`, `🛡️ RES : ${characterLabel({ name: chatElementNames[boss.boss.resistanceElementKey], elementKey: boss.boss.resistanceElementKey })}`, ...(boss.boss.defeatedAt ? [`Victoire le ${boss.boss.defeatedAt.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' })}`] : []), ...(summary ? [`${summary.community.participantCount} participants · ${chatNumber(summary.community.attackCount)} attaques · ${chatNumber(summary.community.totalDamage)} dégâts`, `Coup final : ${summary.records.finalBlow?.displayName ?? 'indisponible'}`] : []), ...(boss.participation ? [`Votre contribution : ${chatNumber(boss.participation.totalDamage)} dégâts · rang ${boss.participation.rank} · meilleur coup ${chatNumber(boss.participation.bestHit)}`] : ['Vous n’avez pas participé à ce Boss'])], '👑 👹 Boss vaincu (suite) :');
             }
-            return `👹 ${boss.boss.name} | ❤️ ${chatNumber(boss.boss.currentHp)}/${chatNumber(boss.boss.maxHp)} PV | 🛡️ RES ${characterLabel({ name: chatElementNames[boss.boss.resistanceElementKey], elementKey: boss.boss.resistanceElementKey })} | ${boss.attackState === 'AVAILABLE' ? 'Attaque disponible : !combat boss go' : 'Attaque du jour déjà utilisée'}${boss.preview ? ` | ⚔️ Dégâts prévus : ${chatNumber(boss.preview.totalDamage)}` : ''}.`;
+            return `👹 ${boss.boss.name} | ❤️ ${chatNumber(boss.boss.currentHp)}/${chatNumber(boss.boss.maxHp)} PV | 🛡️ RES : ${characterLabel({ name: chatElementNames[boss.boss.resistanceElementKey], elementKey: boss.boss.resistanceElementKey })} | ${boss.attackState === 'AVAILABLE' ? 'Attaque disponible : !combat boss go' : 'Attaque du jour déjà utilisée'}${boss.preview ? ` | ⚔️ Dégâts prévus : ${chatNumber(boss.preview.totalDamage)}` : ''}.`;
           }
           if (args.length > 1 && mode !== 'elements' || mode && !['info', 'stat', 'stats', 'go', 'auto', 'elements'].includes(mode)) return syntax(definition.syntax);
           if (mode === 'info') {
@@ -606,7 +609,8 @@ export class PlayerCommandResolver {
           }
           const activePreview = combat.status === 'COMPLETED' ? null : await this.services.dailyCombatService.previewActiveTeam(identity);
           const actions = [activePreview ? '!combat go' : null, combat.status !== 'COMPLETED' && combat.availableCharacterCount >= 4 ? '!combat auto' : null].filter(Boolean);
-          return entryParts(`ℹ️ ⚔️ Combat du jour : ${statusLabel(combat.status)} | ${actions.length ? `Lance : ${actions.join(' | ')}` : 'aucune tentative disponible'} | Ennemis :`, combat.encounter.enemies.map(enemy => characterLabel(enemy.character)), '⚔️ Ennemis (suite) :');
+          const marker = combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳';
+          return entryParts(`ℹ️ ⚔️ Combat du jour : ${marker} | ${actions.length ? `Lance : ${actions.join(' | ')}` : 'aucune tentative disponible'} | Ennemis :`, combat.encounter.enemies.map(enemy => characterLabel(enemy.character)), '⚔️ Ennemis (suite) :', ' - ');
         }
         case 'quotis': return await resolvePlayerCommand(identity, 'quotis', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));
         case 'mission': {

@@ -59,7 +59,7 @@ export class GiveawayService {
         throw new AppError('Un Giveaway est déjà ouvert.', 409, 'GIVEAWAY_ALREADY_OPEN');
       const now = this.now();
       const session = await tx.giveawaySession.create({ data: { status: 'OPEN', origin: 'NATIVE', openedByPlayerId: actorPlayerId, openedAt: now, rewardStatus: 'PENDING' } });
-      await tx.giveawayAnnouncement.create({ data: { sessionId: session.id, kind: 'OPEN', text: '🎁 Giveaway ouvert ! Écris !wish pour tenter de gagner +1 600 Primogemmes.' } });
+      await tx.giveawayAnnouncement.create({ data: { sessionId: session.id, kind: 'OPEN', text: '🎁 Un cadeau venu de Célestia est apparu ! Utilisez !wish pour tenter votre chance de remporter 1 600 primos à la fin du live.' } });
       if (commandId) await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'OPEN', sessionId: session.id, outcome: 'OPENED' } });
       return { sessionId: session.id, duplicate: false, source };
     });
@@ -254,8 +254,9 @@ export class GiveawayService {
 
   async publicStats() {
     const { session } = await this.state();
-    if (!session) return '🎁 Aucun Giveaway terminé pour le moment.';
-    return session.status === 'OPEN' ? oneLine(`🎁 Giveaway ouvert | 👥 ${session.participantCount} participant(s) | Écris !wish pour tenter +1 600 Primogemmes.`)
-      : oneLine(`🎁 Giveaway fermé | 👥 ${session.participantCount} participant(s)${session.winner ? ` | 🏆 Gagnant : ${session.winner}` : ' | Aucun gagnant'}`);
+    if (!session) return 'ℹ️ Aucun giveaway ouvert | 👥 0 participant(s)';
+    return session.status === 'OPEN' ? oneLine(`🎁 Giveaway ouvert | 👥 ${session.participantCount} participant(s) | Commande : !wish`)
+      : oneLine(session.winner ? `🎁 Giveaway fermé | 👥 ${session.participantCount} participant(s) | 🏆 Dernier gagnant : ${session.winner}`
+        : `ℹ️ Aucun giveaway ouvert | 👥 ${session.participantCount} participant(s)`);
   }
 }

@@ -156,7 +156,7 @@ describe('Complete remaining command families', () => {
   it.each(['!ga open', '!GA ouvrir', '!ga close', '!ga fermer', '!ga stats', '!ga stat'])('classifies Twitch alias %s without bypassing standalone gates', async text => {
     expect(classifyGiveawayText(text)).toBe(text.toLowerCase().includes('stat') ? 'STATS' : /close|fermer/u.test(text) ? 'CLOSE' : 'OPEN');
     const h = harness(); expect(await h.send(text)).toBe('Cette commande est réservée à Twitch.'); expect(h.services.socialService.actor).not.toHaveBeenCalled();
-    expect(classifyGiveawayText('!ga reroll')).toBe('OTHER_COMMAND');
+    expect(classifyGiveawayText('!ga reroll')).toBe('HELP');
   });
 });
 

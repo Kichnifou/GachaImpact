@@ -16,7 +16,7 @@ describe('R1047 post-recipe: modern daily semantics and shared presentation', ()
     h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState: 'AVAILABLE', availableCharacters: [1, 2, 3, 4] } as never);
     await h.send(command);
     const text = output(h);
-    const labels = ['📅 Quotidiennes :', '🎁 Récompense', '🎡 Roue', '🛒 Shop', '⚔️ Combat', '👹 Boss', '🧭 Expédition', '💖 Amitié', '🎪 Event', '✧ Faveur'];
+    const labels = ['📅 Quotidiennes :', 'Récompense', 'Roue', 'Shop', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Event', 'Faveur'];
     let previous = -1;
     for (const label of labels) { expect(text).toContain(label); expect(text.indexOf(label)).toBeGreaterThan(previous); previous = text.indexOf(label); }
     expect(h.services.monthlyBossService.getCurrentForChat).toHaveBeenCalledWith(actor);
@@ -27,7 +27,7 @@ describe('R1047 post-recipe: modern daily semantics and shared presentation', ()
   ])('reads the real Boss owner: %s with %s eligible characters', async (attackState, count, mark) => {
     const h = harness();
     h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState, availableCharacters: Array(count).fill({}) } as never);
-    await h.send('!quotis'); expect(output(h)).toContain(`👹 Boss ${mark}`);
+    await h.send('!quotis'); expect(output(h)).toContain(`Boss ${mark}`);
   });
   it.each([
     ['RUNNING', true, false, false, '✅'], ['RUNNING', false, false, false, '⏳'],
@@ -36,7 +36,7 @@ describe('R1047 post-recipe: modern daily semantics and shared presentation', ()
   ])('projects Expedition %s, startedToday=%s, used=%s, canStart=%s', async (operationalStatus, startedOnCurrentBusinessDate, departureUsedToday, canStartToday, mark) => {
     const h = harness();
     h.services.expeditionService.getState.mockResolvedValue({ operationalStatus, startedOnCurrentBusinessDate, departureUsedToday, canStartToday, todayReward: null } as never);
-    await h.send('!quotis'); expect(output(h)).toContain(`🧭 Expédition ${mark}`);
+    await h.send('!quotis'); expect(output(h)).toContain(`Expédition ${mark}`);
   });
   it.each([
     ['shadows', false, false, false, false, '⏳'],
@@ -52,7 +52,7 @@ describe('R1047 post-recipe: modern daily semantics and shared presentation', ()
       gameA: { completedToday: aDone }, gameB: { solvedToday: !bActionable, canAttempt: bActionable },
       gameC: { canSend: cActionable, unviewedCount: 0 },
     } as never);
-    await h.send('!quotis'); expect(output(h)).toContain(`🎪 Event ${mark}`);
+    await h.send('!quotis'); expect(output(h)).toContain(`Event ${mark}`);
   });
   it('also keeps calendar, daily bonus and unread social messages actionable', async () => {
     for (const remaining of ['calendar', 'bonus', 'message']) {
@@ -61,7 +61,7 @@ describe('R1047 post-recipe: modern daily semantics and shared presentation', ()
         dailyBonus: { claimedToday: true, canClaim: remaining === 'bonus' }, calendar: { canClaimToday: remaining === 'calendar' },
         gameA: { completedToday: true }, gameB: { solvedToday: true, canAttempt: false }, gameC: { canSend: false, unviewedCount: remaining === 'message' ? 1 : 0 },
       } as never);
-      await h.send('!quotis'); expect(output(h)).toContain('🎪 Event ⏳');
+      await h.send('!quotis'); expect(output(h)).toContain('Event ⏳');
     }
   });
   it('renders the same logical command result for standalone and Twitch', async () => {

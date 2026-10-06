@@ -27,6 +27,9 @@ import { GetCurrentPlayerTeams, RenamePlayerTeam } from '../src/application/team
 import { TwitchCommandPilot } from '../src/application/twitch/twitch-command-pilot.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
+import { GetTodayWheelState } from '../src/application/wheel/get-today-wheel-state.js';
+import { SpinDailyWheel } from '../src/application/wheel/spin-daily-wheel.js';
+import { PrismaWheelStore } from '../src/infrastructure/database/prisma-wheel-store.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 let now = new Date('2026-09-30T21:59:58Z');
@@ -62,6 +65,30 @@ async function prepare(player: Awaited<ReturnType<typeof createPlayer>>, text: s
 }
 
 describe('R1047 frozen intent on private PostgreSQL', () => {
+  it('freezes the Wheel name before mutation and replays a committed spin without another draw', async () => {
+    const originalNow = now;
+    try {
+      const player = await createPlayer('Wheel Original');
+      const draws = vi.fn(() => 99), store = new PrismaWheelStore(db);
+      const services = { ...harness().services, getTodayWheelState: new GetTodayWheelState(getPlayer, store, clock),
+        spinDailyWheelChat: new SpinDailyWheel(getPlayer, store, clock, { nextInt: draws }, 'INTERNAL_CHAT') } as unknown as ChatCommandServices;
+      const core = twitchPlayerCommandExecutor(db, services, clock), key = `twitch-command:123:${randomUUID()}`;
+      const intent = await core.prepare!(player, 'roue', [], '!roue', key);
+      expect(draws).not.toHaveBeenCalled();
+      const first = await core.execute(player, 'roue', [], '!roue', key, intent);
+      expect(first).toEqual(['🎡 La roue tourne pour Wheel Original et… JACKPOT 💠 +1 600 primos ! La roue bénit officiellement ce moment ✨']);
+      await db.player.update({ where: { id: player.id }, data: { displayName: 'Wheel Renamed' } });
+      now = new Date(now.getTime() + 86_400_000);
+      expect(await core.execute({ ...player, displayName: 'Wheel Renamed' }, 'roue', [], '!roue', key, intent)).toEqual(first);
+      expect(draws).toHaveBeenCalledTimes(1);
+      expect((await db.playerWheelStats.findUniqueOrThrow({ where: { playerId: player.id } })).totalSpins).toBe(1n);
+      now = originalNow;
+      const nextKey = `twitch-command:123:${randomUUID()}`;
+      const nextIntent = await core.prepare!(player, 'roue', [], '!roue', nextKey);
+      expect(await core.execute(player, 'roue', [], '!roue', nextKey, nextIntent)).toEqual([expect.stringContaining('Roue déjà utilisée aujourd’hui')]);
+      expect(draws).toHaveBeenCalledTimes(1);
+    } finally { now = originalNow; }
+  });
   it('recovers a Team mutation with source TWITCH and its original snapshot', async () => {
     const player = await createPlayer(); const first = await prepare(player, '!team rename "Première"');
     const result = await first.run(); const later = await prepare(player, '!team rename "Suivante"'); await later.run();

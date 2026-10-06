@@ -10,7 +10,7 @@ export type GiveawayChatEvent = {
   messageType: string; observedAt: Date; badges?: readonly { set_id: string }[];
 };
 
-/** This consumer sees only the five Giveaway classifications; it never dispatches global Twitch commands. */
+/** Only exact Giveaway roots and normal activity; never dispatch global Twitch commands. */
 export class TwitchGiveawayConsumer {
   constructor(private readonly db: PrismaClient, private readonly core: GiveawayService,
     private readonly bridge: TwitchGiveawayManager) {}
@@ -40,6 +40,10 @@ export class TwitchGiveawayConsumer {
       const id = await this.bridge.queueReply(key, kind, text, sessionId);
       if (id) await this.bridge.sendAnnouncement(id);
     };
+    if (command === 'HELP') {
+      await sendReply('ℹ️ Commandes giveaway : !giveaway open | !giveaway close | !giveaway stats | Participation : !wish', 'COMMAND');
+      return false;
+    }
     if (command === 'STATS') { await sendReply(await this.core.publicStats(), 'STATS'); return false; }
     if (command === 'WISH') {
       const result = await this.core.wish(event.chatterUserId, key);

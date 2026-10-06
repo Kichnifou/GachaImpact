@@ -9,7 +9,7 @@ describe('Giveaway specialized Twitch contract', () => {
     expect(classifyGiveawayText('!giveaway stats')).toBe('STATS');
     expect(classifyGiveawayText('!giveaway ouvrir')).toBe('OPEN');
     expect(classifyGiveawayText('!giveaway fermer')).toBe('CLOSE');
-    expect(classifyGiveawayText('!giveaway reroll')).toBe('OTHER_COMMAND');
+    expect(classifyGiveawayText('!giveaway reroll')).toBe('HELP');
     expect(classifyGiveawayText('!xp')).toBe('OTHER_COMMAND');
     expect(classifyGiveawayText('bonjour')).toBe('MESSAGE');
     expect(oneLine('Bonjour\nà tous')).toBe('Bonjour à tous');
