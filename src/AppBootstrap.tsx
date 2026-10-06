@@ -332,7 +332,7 @@ function AppBootstrap() {
     const api = getGameApiClient()
     await runChatRefreshScopes(scopes, {
       player: () => api.getCurrentPlayer().then(setPlayer),
-      resources: loadResources,
+      resources: () => Promise.all([loadResources(), loadDailyReward()]),
       progression: () => api.getProgression().then(next => { progressionRef.current = next; setProgression(next) }),
       gacha: () => api.getCurrentGacha().then(setGacha),
       teams: loadTeams,
@@ -345,7 +345,7 @@ function AppBootstrap() {
       event: loadEvent,
       notifications: loadNotifications,
     })
-  }, [loadDailyChallenge, loadWheel, loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources, loadTeams, refreshContest])
+  }, [loadDailyChallenge, loadDailyReward, loadWheel, loadDailyCombat, loadEvent, loadExpedition, loadMonthlyBoss, loadNotifications, loadResources, loadTeams, refreshContest])
 
   const applyModerationState = useCallback((next: ModerationStateDto) => {
     setPermissions(next.permissions)

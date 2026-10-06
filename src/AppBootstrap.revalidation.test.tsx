@@ -39,6 +39,17 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); mocks.shell = null })
 const mount = () => act(async () => root.render(<AppBootstrap />))
 
+it('refreshes balances and the daily reward card together through the existing Chat resources scope', async () => {
+  await mount()
+  mocks.api.getResources.mockResolvedValue({ ...resources, primogems: '1160' })
+  mocks.api.getDailyRewardToday.mockResolvedValue({ claimed: true, businessDate: '2026-10-06' })
+  await act(async () => mocks.shell!.onRefreshChatScopes!(['resources']))
+  expect(mocks.shell!.resources.primogems).toBe('1160')
+  expect(mocks.shell!.dailyRewardToday).toMatchObject({ claimed: true })
+  expect(mocks.api.getResources).toHaveBeenCalledTimes(2)
+  expect(mocks.api.getDailyRewardToday).toHaveBeenCalledTimes(2)
+})
+
 it('rereads the actual bootstrap pipeline, coalesces callers and publishes all shared changes without gain feedback', async () => {
   await mount()
   const initial = container.textContent!

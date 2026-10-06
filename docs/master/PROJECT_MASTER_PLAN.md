@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : correctif post-recette R1047, candidat review seulement.
+Version : correction unique après review de b5256f0, candidat review seulement.
 Date : 2026-10-06
-Statut : **29 ET 30 CLÔTURÉES ; R1047 GÉNÉRIQUE ET RESTE DE LA RECETTE VALIDÉS PAR LE PROPRIÉTAIRE SUR 4403eed ; CORRECTIF PRÉSENTATION/QUOTIS SUR REVIEW ; GIVEAWAY/WISH NON ENCORE VALIDÉS PUBLIQUEMENT ; STREAMER.BOT AUTORITATIF.** Prochaine action : review indépendante ChatGPT du correctif → promotion dédiée → courte recette des messages corrigés et Giveaway/Wish. R1047 reste à finaliser avant R1046, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
+Statut : **29 ET 30 CLÔTURÉES ; R1047 GÉNÉRIQUE ET RESTE DE LA RECETTE VALIDÉS PAR LE PROPRIÉTAIRE SUR 4403eed ; b5256f0 CORRIGÉ APRÈS REVIEW POUR LE PREMIER QUOTIDIEN STANDALONE ; CANDIDAT REVIEW ; GIVEAWAY/WISH NON ENCORE VALIDÉS PUBLIQUEMENT ; STREAMER.BOT AUTORITATIF.** Prochaine action : nouvelle review indépendante ChatGPT du commit correction. R1047 reste à finaliser avant R1046, puis recette de parité/autorité → 31A Ceo → 31B batch → 32.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — correctif post-recette R1047 sur review, 06/10/2026
+## Point courant — correction unique après review de b5256f0, 06/10/2026
+
+**Baseline vérifiée :** fetch exécuté, HEAD/local review/origin review = `b5256f083722ee5a397883bac58a54919e32a9c7`, origin main = `4403eed38ce4a62954d2d1e09b724d887f864c71`, review ahead 1 / behind 0 ; worktree/index propres avant ce lot séquentiel. La review indépendante valide le lot précédent sauf l'absence du déclenchement quotidien dans le Chat standalone. Aucun autre chantier ouvert.
+
+**Correction :** le premier message PLAYER normal réellement accepté, d'un Player ACTIVE avec élément permanent, appelle `ClaimDailyReward` après le commit Chat, jamais sous son verrou. UI, Chat standalone et Twitch utilisent réellement le même owner Player/jour avec leurs déclencheurs respectifs. Source `INTERNAL_CHAT`, clé `chat-message:<messageId>` ; montants modernes rendus depuis le résultat par `firstDailyMessageResult`, déjà utilisé par Twitch. Commandes/système et absence d'élément exclus ; un claim préalable UI/Twitch ne produit pas d'annonce standalone.
+
+**Reprise et retour UI :** éligibilité et instant du message conservés dans le reçu Chat ; un ancien POST ne réclame ni un nouveau jour ni un rattrapage. Le trigger du claim permet de reprendre un feedback manquant après paiement sans nouveau crédit. Publication privée SYSTEM/GAME_RESULT liée au PLAYER et à sa génération ; unicité existante `(sourceChannel, externalMessageId)` avec `daily-reward:<messageId>` et lecture du résultat existant sur P2002. Un échec secondaire conserve le Chat accepté, sans gain fictif ni erreur d'envoi ; replay ou prochain message éligible peuvent reprendre. Scope existant `resources` : soldes et carte Récompense rechargés sans F5, aucun scope ajouté.
+
+**Contrôles exécutés PASS :** défaut reproduit avant correction (claim absent). Ciblés hors DB : **77 tests frontend / 3 fichiers** (pipeline AppBootstrap, refresh-scopes, ChatPanel), **50 tests serveur / 2 fichiers** (daily-reward, chat-post-recipe). PostgreSQL privé final, séquentiel : **54 tests / 3 fichiers**, Chat **45**, bridge natif **8**, DailyReward **1** ; dix nouveaux cas Chat couvrent crédits exacts, source/trigger/renderer, deuxième message, replays, exclusions, claims UI/Twitch préalables, courses, échecs secondaires, absence de rattrapage et égalité réelle standalone/Twitch. Trois attentes antérieures adaptées au nouveau feedback et au crédit quotidien ; aucune erreur finale. Fixtures privées nettoyées ; avertissement pg de dépréciation préexistant. **verify:full PASS 8/8** : frontend **1 328 / 124 fichiers**, backend hors DB **1 834 / 123 fichiers**, builds/typechecks/lint/diff-checks. **138 liens locaux** des trois documents contrôlés ; aucune cible absente. Schéma et migrations inchangés : **60 migrations**, dernière `20261003180000_060_add_arcade_multiplayer`. Logs TEMP : `r1047-daily-repro.log`, `r1047-chat-db.log` (première passe), `r1047-chat-front.log`, `r1047-daily-unit.log`, `r1047-daily-db-final.log`, `r1047-correction-full.log` et `gachaimpact-verify-full-6v3KGh`.
+
+**Sortie et reprise :** commit dédié au-dessus de b5256f0, push normal review uniquement. Main reste `4403eed` ; aucune migration ni changement Twitch réel, Railway, OAuth/EventSub, gate ou donnée joueur publique. Les seuls DDL de tests reconstruisent le schéma existant dans les fixtures PostgreSQL privées. Giveaway/Wish toujours non validés publiquement ; Streamer.bot autoritatif. Nouvelle review indépendante ChatGPT du commit correction, puis seulement promotion dédiée si approuvée. STOP après publication review, sans nouvelle Rxxx.
+
+## Historique — correctif post-recette R1047 sur review, 06/10/2026
 
 **Baseline vérifiée :** fetch exécuté ; HEAD/local review/origin review/origin main = `4403eed38ce4a62954d2d1e09b724d887f864c71`, divergence 0/0, worktree/index propres avant écriture. Lot dédié séquentiel sur review, sans branche/worktree parallèle. Main reste cette baseline ; aucun changement du transport, des gates génériques ou de l’autorité.
 

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { GlobalChatDeletionState, GlobalChatMessageType, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
-import type { Clock } from '../../domain/time/business-date.js';
+import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-player-xp-service.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
@@ -16,6 +16,13 @@ import { normalizePlayerSearch } from '../social/social-service.js';
 import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes.js';
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
+import { ClaimDailyReward } from '../daily-reward/claim-daily-reward.js';
+import { PrismaDailyRewardStore } from '../../infrastructure/database/prisma-daily-reward-store.js';
+import { isElementKey } from '../../domain/economy/resources.js';
+import { verifiedPlayerActor } from '../player/player-execution-actor.js';
+import { withPlayerCommandExecution } from '../player/player-command-execution.js';
+import { firstDailyMessageResult } from './daily-reward-chat-result.js';
+import { BusinessError } from '../errors.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
@@ -23,7 +30,7 @@ const conflict = () => new AppError('Cette clé appartient à un autre message.'
 const pacingLimited = () => new AppError('Envoi Chat temporairement limité.', 429, 'CHAT_PACING_LIMIT');
 const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string };
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
 const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
@@ -83,6 +90,7 @@ export class GlobalChatService {
     private readonly dailyChallenges = new PrismaDailyChallengeStore(database),
     private readonly onSubmissionReserved?: (order: bigint) => Promise<void>,
     private readonly permanentMissions = new PermanentMissionService(new PrismaEconomyService()),
+    private readonly dailyReward = new ClaimDailyReward(currentPlayer, new PrismaDailyRewardStore(database), clock),
   ) {}
 
   private async actor(identity: AuthenticatedIdentity) { return this.currentPlayer.execute(identity); }
@@ -156,7 +164,7 @@ export class GlobalChatService {
     const submissionOrder = await this.reserveSubmissionOrder(idempotencyKey);
     if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
     const player = await this.actor(identity);
-    return this.transaction(async tx => {
+    const accepted = await this.transaction(async tx => {
       const actor = await this.lockPlayer(tx, player.id);
       const generation = await this.lockedGeneration(tx);
       const existing = await tx.businessOperation.findFirst({ where: { sourceChannel: 'INTERNAL_CHAT', idempotencyKey } });
@@ -164,7 +172,7 @@ export class GlobalChatService {
         const summary = existing.resultSummary as ChatOperationSummary | null;
         if (existing.playerId !== player.id || existing.operationType !== 'chat.send' || summary?.fingerprint !== fingerprint || existing.status !== 'COMPLETED' || !summary.messageId) throw conflict();
         const message = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: summary.messageId }, include: messageInclude });
-        return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true };
+        return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true, dailyRewardElement: summary.dailyRewardElement };
       }
       if (submissionOrder === null) throw conflict();
       // Pacing time belongs to the serialized Player turn, not to an earlier network arrival.
@@ -248,12 +256,55 @@ export class GlobalChatService {
         refreshScopes.push('resources');
       }
       await this.activity.record(tx, player.id, now, 'INTERNAL_CHAT');
-      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted, refreshScopes, dailyChallengeCompleted } } });
+      await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { fingerprint, messageId: message.id, xpGranted, refreshScopes, dailyChallengeCompleted, dailyRewardElement: actor.element_key } } });
       const projected = resolvedMentions.length
         ? await tx.globalChatMessage.findUniqueOrThrow({ where: { id: message.id }, include: messageInclude })
         : message;
-      return { message: project(projected, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false };
+      return { message: project(projected, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false, dailyRewardElement: actor.element_key };
     });
+    const { dailyRewardElement, ...result } = accepted;
+    if (result.message.messageType !== 'PLAYER' || !dailyRewardElement || !isElementKey(dailyRewardElement)) return result;
+    // The Chat transaction has committed and released lockPlayer. Freeze its day and eligibility
+    // on retries; a historical POST must never become a claim for a later day.
+    try {
+      const triggerKey = `chat-message:${result.message.id}`;
+      const acceptedAt = new Date(result.message.createdAt);
+      if (getBusinessDate(acceptedAt) !== getBusinessDate(this.clock.now())) {
+        const prior = await this.database.businessOperation.findFirst({ where: {
+          playerId: player.id, operationType: 'daily-reward.claim', status: 'COMPLETED',
+          idempotencyKey: `daily-reward:${player.id}:${getBusinessDate(acceptedAt)}`,
+        }, select: { resultSummary: true } });
+        if ((prior?.resultSummary as { triggerKey?: string } | null)?.triggerKey !== triggerKey) return result;
+      }
+      const claim = await withPlayerCommandExecution({ now: acceptedAt, source: 'INTERNAL_CHAT' }, () =>
+        this.dailyReward.execute(verifiedPlayerActor({ ...player, elementKey: dailyRewardElement }), 'INTERNAL_CHAT', triggerKey));
+      if (!claim.alreadyClaimed) {
+        result.refreshScopes = [...new Set([...result.refreshScopes, 'resources'])];
+        await this.publishDailyRewardResult(result.message.id, result.generation,
+          firstDailyMessageResult(player.displayName, dailyRewardElement, claim));
+      }
+    } catch (error) {
+      if (error instanceof BusinessError && error.code === 'PLAYER_ELEMENT_REQUIRED') return result;
+      // Secondary work cannot reject an accepted Chat message. The durable trigger lets
+      // a replay recover either the claim or its missing feedback without paying twice.
+    }
+    return result;
+  }
+
+  private async publishDailyRewardResult(messageId: string, generation: number, content: string) {
+    const externalMessageId = `daily-reward:${messageId}`;
+    try {
+      return await this.database.globalChatMessage.create({ data: {
+        authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT',
+        externalMessageId, replyToMessageId: messageId, generation,
+        content: normalize(content).value, createdAt: this.clock.now(),
+      } });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') throw error;
+      return this.database.globalChatMessage.findUniqueOrThrow({ where: {
+        sourceChannel_externalMessageId: { sourceChannel: 'SYSTEM', externalMessageId },
+      } });
+    }
   }
 
   /** Backend-only public result. The command message ID is the durable delivery key. */

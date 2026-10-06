@@ -18,6 +18,12 @@ import { GetCurrentPlayerMissions } from '../src/application/missions/get-curren
 import { PermanentMissionService } from '../src/application/missions/permanent-mission-service.js';
 import { PrismaEconomyService } from '../src/infrastructure/database/prisma-economy-service.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
+import { ClaimDailyReward } from '../src/application/daily-reward/claim-daily-reward.js';
+import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-daily-reward-store.js';
+import { DAILY_REWARDS } from '../src/domain/daily-reward/daily-reward.js';
+import { firstDailyMessageResult } from '../src/application/chat/daily-reward-chat-result.js';
+import { TwitchMessageActivity } from '../src/application/twitch/twitch-message-activity.js';
+import { BusinessError } from '../src/application/errors.js';
 
 const fixture = isolatedBatchDatabase();
 const db = fixture.database;
@@ -71,6 +77,138 @@ const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where:
 const migrationChecksum = (path: string) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n')).digest('hex');
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
+  it('claims the daily reward after the first accepted standalone PLAYER message', async () => {
+    const id = await player(0n);
+    const key = randomUUID();
+    const sent = await service.send(as(id), 'Bonjour quotidien', key);
+    const operation = await db.businessOperation.findFirst({ where: { playerId: id, operationType: 'daily-reward.claim' } });
+    expect(operation).toMatchObject({ sourceChannel: 'INTERNAL_CHAT', status: 'COMPLETED' });
+    expect(operation!.resultSummary).toMatchObject({ triggerKey: `chat-message:${sent.message.id}` });
+    const movements = await db.resourceMovement.findMany({ where: { playerId: id, causeKey: 'daily-reward.claim' } });
+    expect(movements.map(row => ({ key: row.resourceKey, amount: row.delta }))).toEqual(expect.arrayContaining([
+      { key: 'primogems', amount: DAILY_REWARDS.primogems }, { key: 'particles_pyro', amount: DAILY_REWARDS.mainElementParticles }, { key: 'moras', amount: DAILY_REWARDS.moras },
+    ]));
+    expect(movements).toHaveLength(3);
+    expect(sent.refreshScopes).toContain('resources');
+    const feedback = await db.globalChatMessage.findFirstOrThrow({ where: { externalMessageId: `daily-reward:${sent.message.id}` } });
+    expect(feedback).toMatchObject({ authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', replyToMessageId: sent.message.id, generation: sent.generation,
+      content: firstDailyMessageResult(sent.message.author!.displayName, 'pyro', { rewards: DAILY_REWARDS }) });
+    expect((await service.send(as(id), 'Bonjour quotidien', key)).message.id).toBe(sent.message.id);
+    advance(1_000);
+    const second = await service.send(as(id), 'Deuxième message', randomUUID());
+    expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${second.message.id}` } })).toBe(0);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(1);
+    expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+    expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}`, sourceChannel: 'SYSTEM' } })).toBe(1);
+    advance(86_400_000);
+    await service.send(as(id), 'Bonjour quotidien', key);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(1);
+  });
+
+  it('does not claim for commands or Players without a permanent element, including their later replay', async () => {
+    const commandPlayer = await player(0n);
+    await service.send(as(commandPlayer), '!help', randomUUID());
+    const newcomer = await player(0n, null);
+    const key = randomUUID();
+    const sent = await service.send(as(newcomer), 'Bonjour', key);
+    await db.player.update({ where: { id: newcomer }, data: { elementKey: 'pyro' } });
+    expect((await service.send(as(newcomer), 'Bonjour', key)).message.id).toBe(sent.message.id);
+    expect(await db.businessOperation.count({ where: { playerId: { in: [commandPlayer, newcomer] }, operationType: 'daily-reward.claim' } })).toBe(0);
+  });
+
+  it.each(['UI', 'TWITCH'] as const)('accepts Chat after a prior %s daily claim without announcing it', async source => {
+    const id = await player(0n);
+    await new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock).execute(as(id), source, `prior:${id}`);
+    const sent = await service.send(as(id), 'Bonjour', randomUUID());
+    expect(sent.message.messageType).toBe('PLAYER');
+    expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(0);
+    expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(1);
+  });
+
+  it('arbitrates UI, Twitch and concurrent standalone POST replays through the same daily owner', async () => {
+    const id = await player(0n), key = randomUUID();
+    const claim = new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock);
+    const [sent, replay] = await Promise.all([
+      service.send(as(id), 'Course quotidienne', key), service.send(as(id), 'Course quotidienne', key),
+      claim.execute(as(id), 'UI'), claim.execute(as(id), 'TWITCH', `twitch:${id}`),
+    ]);
+    expect(sent.message.id).toBe(replay.message.id);
+    const operation = await db.businessOperation.findFirstOrThrow({ where: { playerId: id, operationType: 'daily-reward.claim' } });
+    expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+    expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(operation.sourceChannel === 'INTERNAL_CHAT' ? 1 : 0);
+  });
+
+  it('keeps committed Chat on claim failure and retries its durable trigger', async () => {
+    const id = await player(0n), key = randomUUID();
+    const failure = vi.spyOn(ClaimDailyReward.prototype, 'execute').mockRejectedValueOnce(new Error('Secondary claim unavailable'));
+    try {
+      const sent = await service.send(as(id), 'Message conservé', key);
+      expect(await db.globalChatMessage.count({ where: { id: sent.message.id } })).toBe(1);
+      expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(0);
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(0);
+      const replay = await service.send(as(id), 'Message conservé', key);
+      expect(replay).toMatchObject({ replayed: true, message: { id: sent.message.id } });
+      expect(replay.refreshScopes).toContain('resources');
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(1);
+    } finally { failure.mockRestore(); }
+  });
+
+  it('treats PLAYER_ELEMENT_REQUIRED as ineligible and lets the next eligible message retry', async () => {
+    const id = await player(0n);
+    const failure = vi.spyOn(ClaimDailyReward.prototype, 'execute').mockRejectedValueOnce(new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Element required'));
+    try {
+      const first = await service.send(as(id), 'Premier message conservé', randomUUID());
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${first.message.id}` } })).toBe(0);
+      advance(1_000);
+      const next = await service.send(as(id), 'Nouvelle tentative', randomUUID());
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${next.message.id}` } })).toBe(1);
+    } finally { failure.mockRestore(); }
+  });
+
+  it('does not turn an unpaid historical POST replay into a daily catch-up', async () => {
+    const id = await player(0n), key = randomUUID();
+    const failure = vi.spyOn(ClaimDailyReward.prototype, 'execute').mockRejectedValueOnce(new Error('Unavailable'));
+    try {
+      await service.send(as(id), 'Ancien message conservé', key);
+      advance(86_400_000);
+      await service.send(as(id), 'Ancien message conservé', key);
+      expect(await db.businessOperation.count({ where: { playerId: id, operationType: 'daily-reward.claim' } })).toBe(0);
+      const next = await service.send(as(id), 'Premier message du nouveau jour', randomUUID());
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${next.message.id}` } })).toBe(1);
+    } finally { failure.mockRestore(); }
+  });
+
+  it('renders identical actual standalone and Twitch daily rewards for the same name and element', async () => {
+    const standalone = await player(0n, 'hydro'), twitch = await player(0n, 'hydro');
+    await db.player.updateMany({ where: { id: { in: [standalone, twitch] } }, data: { displayName: 'Fixture commune' } });
+    const sent = await service.send(as(standalone), 'Bonjour', randomUUID());
+    const activity = new TwitchMessageActivity(db, clock, random, new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock));
+    const outputs = await activity.consume(await getPlayer.execute(as(twitch)), randomUUID(), 'fixture-channel', 7, true);
+    const feedback = await db.globalChatMessage.findFirstOrThrow({ where: { externalMessageId: `daily-reward:${sent.message.id}` } });
+    expect(outputs).toContain(feedback.content);
+  });
+
+  it('recovers a missing daily feedback after payment and deduplicates concurrent replays', async () => {
+    const id = await player(0n), key = randomUUID();
+    const create = db.globalChatMessage.create.bind(db.globalChatMessage);
+    const failure = vi.spyOn(db.globalChatMessage, 'create').mockImplementation(args => {
+      if (String(args.data.externalMessageId ?? '').startsWith('daily-reward:')) {
+        failure.mockRestore();
+        throw new Error('Secondary publication unavailable');
+      }
+      return create(args);
+    });
+    try {
+      const sent = await service.send(as(id), 'Paiement conservé', key);
+      expect(sent.refreshScopes).toContain('resources');
+      expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(0);
+      await Promise.all([service.send(as(id), 'Paiement conservé', key), service.send(as(id), 'Paiement conservé', key)]);
+      expect(await db.globalChatMessage.count({ where: { externalMessageId: `daily-reward:${sent.message.id}` } })).toBe(1);
+      expect(await db.resourceMovement.count({ where: { playerId: id, causeKey: 'daily-reward.claim' } })).toBe(3);
+    } finally { failure.mockRestore(); }
+  });
+
   it('validates Unicode length and lines, classifies commands, and awards XP only to eligible PLAYER messages', async () => {
     const id = await player(0n);
     await expect(service.send(as(id), '  ', randomUUID())).rejects.toMatchObject({ code: 'CHAT_INVALID' });
@@ -80,7 +218,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(first.message).toMatchObject({ content: '😀', messageType: 'PLAYER' });
     expect(first.xpGranted).toBe(1);
     expect(await progress(id)).toMatchObject({ xp: 1n, totalMessages: 1n, countedMessages: 1n, lastXpMessageAt: now });
-    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(0n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(DAILY_REWARDS.primogems);
     expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } })).lastInternalChatAt).toEqual(now);
     advance(2_000);
     expect((await service.send(as(id), 'a'.repeat(101), randomUUID())).xpGranted).toBe(2);
@@ -99,13 +237,13 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const key = randomUUID();
     const sent = await service.send(as(id), 'Bonjour', key);
     expect(sent.xpGranted).toBe(1);
-    const result = await db.globalChatMessage.findFirstOrThrow({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } });
+    const result = await db.globalChatMessage.findFirstOrThrow({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT', externalMessageId: null } });
     expect(result.createdAt.getTime()).toBe(new Date(sent.message.createdAt).getTime() + 1);
     const visible = (await service.list(as(id))).messages.filter(row => row.id === sent.message.id || row.id === result.id);
     expect(visible.map(row => row.id)).toEqual([sent.message.id, result.id]);
     expect(visible[1]).toMatchObject({ authorLabel: 'GachaImpact', replyToMessageId: sent.message.id });
     expect((await service.send(as(id), 'Bonjour', key)).replayed).toBe(true);
-    expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT' } })).toBe(1);
+    expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT', externalMessageId: null } })).toBe(1);
   });
 
   it('reconciles counted Messages on the chat operation, preserves carry into A, and ignores cooldown and commands', async () => {
@@ -266,13 +404,15 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const first = await service.send(as(author), 'origine', randomUUID()); advance(750);
     const second = await service.send(as(reader), 'réponse', randomUUID(), first.message.id); advance(750);
     const third = await service.send(as(author), 'suivant', randomUUID());
-    expect((await service.unreadCount(as(reader))).unreadCount).toBe(3);
+    const secondDaily = await db.globalChatMessage.findFirstOrThrow({ where: { externalMessageId: `daily-reward:${second.message.id}` } });
+    expect((await service.unreadCount(as(reader))).unreadCount).toBe(5);
     const latest = await service.list(as(reader), 2);
-    expect(latest.messages.map(m => m.id)).toEqual([second.message.id, third.message.id]);
+    expect(latest.messages.map(m => m.id)).toEqual([secondDaily.id, third.message.id]);
     const older = await service.list(as(reader), 2, latest.nextCursor!);
-    expect(older.messages.at(-1)?.id).toBe(first.message.id);
+    expect(older.messages.at(-1)?.id).toBe(second.message.id);
+    expect((await service.list(as(reader), 2, older.nextCursor!)).messages.at(-1)?.id).toBe(first.message.id);
     expect((await service.markRead(as(reader), second.message.id)).changed).toBe(true);
-    expect((await service.unreadCount(as(reader))).unreadCount).toBe(1);
+    expect((await service.unreadCount(as(reader))).unreadCount).toBe(2);
     expect((await service.markRead(as(reader), first.message.id)).changed).toBe(false);
     expect((await service.markRead(as(reader), third.message.id)).changed).toBe(true);
     expect((await service.unreadCount(as(reader))).unreadCount).toBe(0);
@@ -557,14 +697,14 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const result = await service.send(as(id), 'Dixième message', key);
     expect(result).toMatchObject({ xpGranted: 1, dailyChallengeCompleted: true, refreshScopes: expect.arrayContaining(['progression', 'dailyChallenge', 'resources']) });
     expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
-    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n + DAILY_REWARDS.primogems);
     expect((await service.send(as(id), 'Dixième message', key)).dailyChallengeCompleted).toBe(true);
     advance(750);
     expect((await service.send(as(id), 'Pendant cooldown', randomUUID())).xpGranted).toBe(0);
     advance(750);
     expect((await service.send(as(id), '!help', randomUUID())).xpGranted).toBe(0);
     expect((await db.playerDailyChallenge.findUniqueOrThrow({ where: { id: challenge.id } })).progress).toBe(10n);
-    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'primogems' } } })).amount).toBe(800n + DAILY_REWARDS.primogems);
   }, 20_000);
 
   it('records the exact Prisma 032–035 migrations and secures their real public tables', async () => {
@@ -676,8 +816,9 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await service.updates(as(reader), cleared.generation)).toEqual({ generation: cleared.generation, reset: false, messages: [], changes: [] });
     const key = randomUUID();
     const first = await service.send(as(author), 'Premier', key);
+    const daily = await db.globalChatMessage.findFirstOrThrow({ where: { externalMessageId: `daily-reward:${first.message.id}` } });
     const initial = await service.updates(as(author), cleared.generation);
-    expect(initial.messages.map(row => row.id)).toEqual([first.message.id]);
+    expect(initial.messages.map(row => row.id)).toEqual([first.message.id, daily.id]);
     expect(initial.messages[0]?.clientIntentKey).toBe(key);
     expect((await service.updates(as(reader), cleared.generation)).messages[0]?.clientIntentKey).toBeNull();
     advance(750);
@@ -687,11 +828,11 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const anchor = { createdAt: first.message.createdAt, id: first.message.id };
     expect(await service.updates(as(reader), cleared.generation, { ...anchor, createdAt: '2000-01-01T00:00:00.000Z' })).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });
     const newer = await service.updates(as(reader), cleared.generation, anchor, [first.message.id]);
-    expect(newer.messages.map(row => row.id)).toEqual([second.message.id, third.message.id]);
+    expect(newer.messages.map(row => row.id)).toEqual([daily.id, second.message.id, third.message.id]);
     expect(newer.changes).toEqual([]);
     await service.deleteOwn(as(author), first.message.id);
     const deleted = await service.updates(as(reader), cleared.generation, anchor, [first.message.id]);
-    expect(deleted.messages.map(row => row.id)).toEqual([second.message.id, third.message.id]);
+    expect(deleted.messages.map(row => row.id)).toEqual([daily.id, second.message.id, third.message.id]);
     expect(deleted.changes).toMatchObject([{ id: first.message.id, deletionState: 'AUTHOR', content: null }]);
     expect((await service.updates(as(reader), cleared.generation, anchor, [])).changes).toEqual([]);
     expect(await service.updates(as(reader), cleared.generation - 1, anchor)).toEqual({ generation: cleared.generation, reset: true, messages: [], changes: [] });

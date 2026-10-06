@@ -389,6 +389,8 @@ Canaux voulus :
 
 Si la récompense a déjà été récupérée par un canal, les autres canaux ne donnent rien de plus.
 
+État technique du 06/10/2026, correction après review de b5256f0 : ces trois déclencheurs utilisent `ClaimDailyReward`. Le Chat standalone appelle désormais l'owner après le commit du premier PLAYER normal éligible ; paiement et feedback ont des clés durables par message, le scope `resources` recharge aussi la carte Récompense. Les exclusions, courses entre canaux et replays sont couverts en PostgreSQL privé ; preuves et statut candidat review au [Master](../master/PROJECT_MASTER_PLAN.md). Aucun rattrapage d'un jour non réclamé.
+
 ### Twitch : enregistrement passif conservé, activation du jeu verrouillée par l'élément
 
 Le fonctionnement Twitch ne doit pas être confondu avec l'onboarding standalone.
