@@ -15,14 +15,14 @@ export const personalReplacementTables = [
 export const targetedBackupTables = [...personalReplacementTables, 'players', 'web_identities', 'twitch_identities',
   'player_preferences', 'privacy_settings', 'player_role_assignments'] as const;
 export type RowGraph = { schema: string; playerIds: string[]; tables: Record<string, string[]>; order: string[]; hash: string };
-type ForeignKey = { child: string; parent: string; child_columns: string[]; parent_columns: string[] };
-const identifier = (value: string) => {
+export type ForeignKey = { child: string; parent: string; child_columns: string[]; parent_columns: string[] };
+export const rowGraphIdentifier = (value: string) => {
   if (!/^[a-z][a-z0-9_]*$/.test(value)) throw new Error('TARGETED_ROWS_IDENTIFIER_INVALID');
   return `"${value}"`;
 };
 export const rowGraphHash = (tables: RowGraph['tables']) => createHash('sha256').update(JSON.stringify(tables)).digest('hex');
 
-async function metadata(tx: Prisma.TransactionClient) {
+export async function targetedRowMetadata(tx: Prisma.TransactionClient) {
   const schema = (await tx.$queryRaw<{ schema: string }[]>`SELECT current_schema() AS schema`)[0]!.schema;
   if (schema !== 'public' && !/^batch_test_[0-9a-f]{32}$/.test(schema)) throw new Error('TARGETED_ROWS_SCHEMA_INVALID');
   const fks = await tx.$queryRawUnsafe<ForeignKey[]>(`SELECT c.relname child,p.relname parent,
@@ -34,23 +34,23 @@ async function metadata(tx: Prisma.TransactionClient) {
     WHERE fk.contype='f' AND cn.nspname=$1 AND pn.nspname=$1 GROUP BY fk.oid,c.relname,p.relname ORDER BY c.relname,p.relname,fk.oid`, schema);
   return { schema, fks };
 }
-const recordset = (schema: string, table: string) => `json_populate_recordset(NULL::${identifier(schema)}.${identifier(table)},$1::json)`;
-const match = (fk: ForeignKey) => fk.child_columns.map((column, i) => `c.${identifier(column)}=p.${identifier(fk.parent_columns[i]!)}`).join(' AND ');
+const recordset = (schema: string, table: string) => `json_populate_recordset(NULL::${rowGraphIdentifier(schema)}.${rowGraphIdentifier(table)},$1::json)`;
+const match = (fk: ForeignKey) => fk.child_columns.map((column, i) => `c.${rowGraphIdentifier(column)}=p.${rowGraphIdentifier(fk.parent_columns[i]!)}`).join(' AND ');
 
 /** Target rows and their owned descendants only. Values remain PostgreSQL JSON text (int8/timestamps lossless). */
 export async function captureTargetedPlayerRows(tx: Prisma.TransactionClient, playerIds: string[], allowedTables: readonly string[] = targetedBackupTables,
   includeRequiredParents = false): Promise<RowGraph> {
   if (!playerIds.length || playerIds.some(id => !/^[0-9a-f-]{36}$/.test(id))) throw new Error('TARGETED_ROWS_PLAYER_INVALID');
-  const { schema, fks } = await metadata(tx), allowed = new Set(allowedTables);
+  const { schema, fks } = await targetedRowMetadata(tx), allowed = new Set(allowedTables);
   const tables: Record<string, string[]> = Object.fromEntries([...allowed].sort().map(table => [table, []]));
-  tables.players = (await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT row_to_json(t)::text row FROM ${identifier(schema)}.players t WHERE id=ANY($1::uuid[]) ORDER BY id`, playerIds)).map(row => row.row);
+  tables.players = (await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT row_to_json(t)::text row FROM ${rowGraphIdentifier(schema)}.players t WHERE id=ANY($1::uuid[]) ORDER BY id`, playerIds)).map(row => row.row);
   // Downward closure never includes another Player's children merely because that Player is a relation endpoint.
   for (;;) {
     let changed = false;
     for (const fk of fks) {
       if (!allowed.has(fk.child) || !tables[fk.parent]?.length || fk.child === 'players') continue;
       if (fk.parent === 'players' && fk.child === 'player_role_assignments' && !fk.child_columns.includes('player_id')) continue;
-      const rows = await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT DISTINCT row_to_json(c)::text row FROM ${identifier(schema)}.${identifier(fk.child)} c
+      const rows = await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT DISTINCT row_to_json(c)::text row FROM ${rowGraphIdentifier(schema)}.${rowGraphIdentifier(fk.child)} c
         JOIN ${recordset(schema, fk.parent)} p ON ${match(fk)} ORDER BY 1`, `[${tables[fk.parent]!.join(',')}]`);
       const previous = new Set(tables[fk.child]);
       for (const row of rows) if (!previous.has(row.row)) { previous.add(row.row); changed = true; }
@@ -63,7 +63,7 @@ export async function captureTargetedPlayerRows(tx: Prisma.TransactionClient, pl
     for (const fk of fks) {
       if (!allowed.has(fk.parent) || fk.parent === 'players' || !tables[fk.child]?.length) continue;
       const rows = await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT DISTINCT row_to_json(p)::text row FROM ${recordset(schema, fk.child)} c
-        JOIN ${identifier(schema)}.${identifier(fk.parent)} p ON ${match(fk)} ORDER BY 1`, `[${tables[fk.child]!.join(',')}]`);
+        JOIN ${rowGraphIdentifier(schema)}.${rowGraphIdentifier(fk.parent)} p ON ${match(fk)} ORDER BY 1`, `[${tables[fk.child]!.join(',')}]`);
       const previous = new Set(tables[fk.parent]);
       for (const row of rows) if (!previous.has(row.row)) { previous.add(row.row); changed = true; }
       tables[fk.parent] = [...previous].sort();
@@ -81,11 +81,11 @@ export async function captureTargetedPlayerRows(tx: Prisma.TransactionClient, pl
 
 /** Reject unowned references before deletion. A canary never cascades into another domain/Player. */
 export async function assertTargetedDeletionSafe(tx: Prisma.TransactionClient, graph: RowGraph, deleting: ReadonlySet<string>) {
-  const { schema, fks } = await metadata(tx);
+  const { schema, fks } = await targetedRowMetadata(tx);
   if (schema !== graph.schema) throw new Error('TARGETED_ROWS_SCHEMA_MISMATCH');
   for (const fk of fks) {
     if (!deleting.has(fk.parent) || !graph.tables[fk.parent]?.length) continue;
-    const rows = await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT row_to_json(c)::text row FROM ${identifier(schema)}.${identifier(fk.child)} c
+    const rows = await tx.$queryRawUnsafe<{ row: string }[]>(`SELECT row_to_json(c)::text row FROM ${rowGraphIdentifier(schema)}.${rowGraphIdentifier(fk.child)} c
       JOIN ${recordset(schema, fk.parent)} p ON ${match(fk)}`, `[${graph.tables[fk.parent]!.join(',')}]`);
     if (rows.some(row => !deleting.has(fk.child) || !graph.tables[fk.child]?.includes(row.row))) throw new Error('CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR');
   }
@@ -95,7 +95,7 @@ export async function deleteTargetedRows(tx: Prisma.TransactionClient, graph: Ro
   await assertTargetedDeletionSafe(tx, graph, deleting);
   for (const table of graph.order) {
     if (!deleting.has(table) || !graph.tables[table]?.length) continue;
-    await tx.$executeRawUnsafe(`DELETE FROM ${identifier(graph.schema)}.${identifier(table)} c USING ${recordset(graph.schema, table)} p WHERE to_jsonb(c)=to_jsonb(p)`, `[${graph.tables[table]!.join(',')}]`);
+    await tx.$executeRawUnsafe(`DELETE FROM ${rowGraphIdentifier(graph.schema)}.${rowGraphIdentifier(table)} c USING ${recordset(graph.schema, table)} p WHERE to_jsonb(c)=to_jsonb(p)`, `[${graph.tables[table]!.join(',')}]`);
   }
 }
 
@@ -109,15 +109,15 @@ export async function restoreTargetedRows(tx: Prisma.TransactionClient, backup: 
   for (const table of [...backup.order].reverse()) {
     const rows = backup.tables[table]!;
     if (replacing.has(table)) {
-      if (rows.length) await tx.$executeRawUnsafe(`INSERT INTO ${identifier(backup.schema)}.${identifier(table)} SELECT * FROM ${recordset(backup.schema, table)}`, `[${rows.join(',')}]`);
+      if (rows.length) await tx.$executeRawUnsafe(`INSERT INTO ${rowGraphIdentifier(backup.schema)}.${rowGraphIdentifier(table)} SELECT * FROM ${recordset(backup.schema, table)}`, `[${rows.join(',')}]`);
     } else if (table === 'players' || table === 'twitch_identities' || table === 'player_preferences') {
       const columns = await tx.$queryRawUnsafe<{ column_name: string }[]>(`SELECT column_name FROM information_schema.columns WHERE table_schema=$1 AND table_name=$2 ORDER BY ordinal_position`, backup.schema, table);
       const keys = table === 'players' ? ['id'] : table === 'twitch_identities' ? ['player_id'] : ['player_id', 'preference_key'];
       // Remove newly introduced preference/Twitch identity rows (absence is part of the preimage).
-      if (table !== 'players') await tx.$executeRawUnsafe(`DELETE FROM ${identifier(backup.schema)}.${identifier(table)} WHERE player_id=ANY($1::uuid[])`, backup.playerIds);
+      if (table !== 'players') await tx.$executeRawUnsafe(`DELETE FROM ${rowGraphIdentifier(backup.schema)}.${rowGraphIdentifier(table)} WHERE player_id=ANY($1::uuid[])`, backup.playerIds);
       if (!rows.length) continue;
-      const updates = columns.map(row => row.column_name).filter(column => !keys.includes(column)).map(column => `${identifier(column)}=EXCLUDED.${identifier(column)}`).join(',');
-      await tx.$executeRawUnsafe(`INSERT INTO ${identifier(backup.schema)}.${identifier(table)} SELECT * FROM ${recordset(backup.schema, table)} ON CONFLICT (${keys.map(identifier).join(',')}) DO UPDATE SET ${updates}`, `[${rows.join(',')}]`);
+      const updates = columns.map(row => row.column_name).filter(column => !keys.includes(column)).map(column => `${rowGraphIdentifier(column)}=EXCLUDED.${rowGraphIdentifier(column)}`).join(',');
+      await tx.$executeRawUnsafe(`INSERT INTO ${rowGraphIdentifier(backup.schema)}.${rowGraphIdentifier(table)} SELECT * FROM ${recordset(backup.schema, table)} ON CONFLICT (${keys.map(rowGraphIdentifier).join(',')}) DO UPDATE SET ${updates}`, `[${rows.join(',')}]`);
     }
   }
   if (!backup.tables.players?.length) await tx.player.deleteMany({ where: { id: { in: backup.playerIds } } });

@@ -143,8 +143,8 @@ export class TwitchPilotService {
     return web;
   }
   async linkResolution(identity: AuthenticatedIdentity) { return new TwitchAccountLink(this.db).pending((await this.accountWeb(identity)).id); }
-  async resolveLink(identity: AuthenticatedIdentity, resolutionId: string, choice: ProgressionChoice) {
-    return new TwitchAccountLink(this.db).resolve((await this.accountWeb(identity)).id, resolutionId, choice);
+  async resolveLink(identity: AuthenticatedIdentity, resolutionId: string, choice: ProgressionChoice, decisionRevision: string) {
+    return new TwitchAccountLink(this.db).resolve((await this.accountWeb(identity)).id, resolutionId, choice, decisionRevision);
   }
 
   async start(identity: AuthenticatedIdentity) {

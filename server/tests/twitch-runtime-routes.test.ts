@@ -41,16 +41,16 @@ async function setup(withCommands = false) {
 describe('Twitch runtime pilot routes with mocked services', () => {
   it('authenticates definitive choices and accepts only a server challenge with explicit consent', async () => {
     const { app,twitch } = await setup(); const url='/api/v1/me/twitch/resolution', headers={authorization:'Bearer test'};
-    const payload={resolutionId:'22222222-2222-4222-8222-222222222222',choice:'WEB',confirmation:'ONE_PROGRESSION_NO_MERGE'};
+    const payload={resolutionId:'22222222-2222-4222-8222-222222222222',choice:'WEB',decisionRevision:'33333333-3333-4333-8333-333333333333',confirmation:'ONE_PROGRESSION_NO_MERGE'};
     for(const method of ['GET','POST'] as const) expect((await app.inject({method,url,...(method==='POST'?{payload}:{})})).statusCode).toBe(401);
-    for(const invalid of [{...payload,playerId:'other'},{...payload,choice:'MERGE'},{...payload,confirmation:'YES'},{...payload,resolutionId:'invalid'},{}])
+    for(const invalid of [{...payload,playerId:'other'},{...payload,choice:'MERGE'},{...payload,confirmation:'YES'},{...payload,resolutionId:'invalid'},{...payload,decisionRevision:'invalid'},{...payload,decisionRevision:undefined},{}])
       expect((await app.inject({method:'POST',url,headers,payload:invalid})).statusCode).toBe(400);
     expect((await app.inject({method:'POST',url:url+'?playerId=other',headers,payload})).statusCode).toBe(400);
     expect(twitch.resolveLink).not.toHaveBeenCalled();
     const pending=await app.inject({method:'GET',url,headers});expect(pending.statusCode).toBe(200);expect(pending.headers['cache-control']).toBe('no-store');
     expect(twitch.linkResolution).toHaveBeenCalledWith({subject:'operator'});
     const result=await app.inject({method:'POST',url,headers,payload});expect(result.statusCode).toBe(200);
-    expect(twitch.resolveLink).toHaveBeenCalledWith({subject:'operator'},payload.resolutionId,'WEB');
+    expect(twitch.resolveLink).toHaveBeenCalledWith({subject:'operator'},payload.resolutionId,'WEB',payload.decisionRevision);
   });
   it('authenticates recovery for a non-pilot account, rejects caller identity fields, and redirects success', async () => {
     const { app, twitch } = await setup();

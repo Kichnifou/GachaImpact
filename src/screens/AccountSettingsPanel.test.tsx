@@ -536,9 +536,40 @@ describe('explicit Twitch command pilot controls', () => {
   })
 })
 
+const safeChoices = { WEB: { status: 'SAFE', reason: null }, TWITCH: { status: 'SAFE', reason: null } } as const
+const conflictRevision = '22222222-2222-4222-8222-222222222222'
 const conflictSummary = { displayName: 'Private profile', level: 2, totalXp: '60', elementKey: null, resources: { primogems: '777', moras: '1000' }, characters: 3, totalMessages: '55', recentActivityAt: null }
+it.each(['WEB','TWITCH','BOTH'] as const)('disables only unsafe %s choices and shows a private-data-free reason',async blocked=>{
+  const safety={...safeChoices};
+  const unsafe={status:'OPERATOR_REQUIRED',reason:'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR'} as const;
+  const resolution={id:'unsafe',revision:conflictRevision,expiresAt:'2099-01-01T00:00:00Z',web:conflictSummary,twitch:conflictSummary,
+    safety:{WEB:blocked==='TWITCH'?safety.WEB:unsafe,TWITCH:blocked==='WEB'?safety.TWITCH:unsafe}};
+  api.getTwitchAccount.mockResolvedValue({...linkedAccount,linked:null,eligible:false});api.getTwitchLinkResolution.mockResolvedValueOnce(resolution);
+  const container=await mount();const checkbox=container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!;
+  if(blocked==='BOTH') {expect(checkbox.disabled).toBe(true);expect(container.textContent).toContain('Ces deux progressions possèdent des données partagées. Une résolution opérateur est nécessaire.');}
+  else await act(async()=>checkbox.click());
+  expect(button(container,'Conserver ma progression de l’application Web').disabled).toBe(blocked!=='TWITCH');
+  expect(button(container,'Utiliser ma progression Twitch').disabled).toBe(blocked!=='WEB');
+  expect(container.textContent).toContain('relations partagées qui nécessitent une résolution opérateur');
+  expect(api.resolveTwitchLink).not.toHaveBeenCalled();
+});
+it('clears acknowledgement when a new server revision has an identical visible summary',async()=>{
+  const resolution={id:'invisible',revision:conflictRevision,safety:safeChoices,expiresAt:'2099-01-01T00:00:00Z',web:conflictSummary,twitch:conflictSummary};
+  const fresh={...resolution,revision:'33333333-3333-4333-8333-333333333333'};
+  api.getTwitchAccount.mockResolvedValue({...linkedAccount,linked:null,eligible:false});api.getTwitchLinkResolution.mockResolvedValueOnce(resolution);
+  api.resolveTwitchLink.mockResolvedValueOnce({linked:false,resolutionRequired:true,resolution:fresh}).mockResolvedValueOnce({linked:true,resolutionRequired:false});
+  const refresh=vi.fn(),container=await mount(refresh);
+  await act(async()=>container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.click());
+  await act(async()=>button(container,'Utiliser ma progression Twitch').click());
+  expect(api.resolveTwitchLink).toHaveBeenLastCalledWith(resolution.id,'TWITCH',resolution.revision);
+  expect(container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.checked).toBe(false);
+  expect(button(container,'Utiliser ma progression Twitch').disabled).toBe(true);expect(refresh).not.toHaveBeenCalled();
+  await act(async()=>container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.click());
+  await act(async()=>button(container,'Utiliser ma progression Twitch').click());
+  expect(api.resolveTwitchLink).toHaveBeenLastCalledWith(fresh.id,'TWITCH',fresh.revision);expect(refresh).toHaveBeenCalledOnce();
+});
 it.each(['WEB','TWITCH'] as const)('presents a verified comparison and confirms the final %s progression without unlink', async choice => {
-  const resolution = { id: 'private-resolution', expiresAt: '2099-01-01T00:00:00Z', web: { ...conflictSummary, level: 3, resources: { primogems: '100', moras: '50' } }, twitch: conflictSummary }
+  const resolution = { id: 'private-resolution', revision: conflictRevision, safety: safeChoices, expiresAt: '2099-01-01T00:00:00Z', web: { ...conflictSummary, level: 3, resources: { primogems: '100', moras: '50' } }, twitch: conflictSummary }
   api.getTwitchAccount.mockResolvedValueOnce({ ...linkedAccount, eligible: false, linked: null }).mockResolvedValueOnce(linkedAccount)
   api.getTwitchLinkResolution.mockResolvedValueOnce(resolution)
   api.resolveTwitchLink.mockResolvedValueOnce({ linked: true, resolutionRequired: false })
@@ -551,7 +582,7 @@ it.each(['WEB','TWITCH'] as const)('presents a verified comparison and confirms 
   const checkbox = container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!
   await act(async () => checkbox.click())
   await act(async () => button(container,label).click())
-  expect(api.resolveTwitchLink).toHaveBeenCalledExactlyOnceWith(resolution.id, choice)
+  expect(api.resolveTwitchLink).toHaveBeenCalledExactlyOnceWith(resolution.id, choice, resolution.revision)
   expect(refresh).toHaveBeenCalledOnce()
   expect(container.textContent).not.toContain('Choisis la progression à conserver')
   expect(button(container,'Délier Twitch')).toBeUndefined()
@@ -570,7 +601,7 @@ it('offers account access and sign-out before choosing an element, without showi
 
 it('offers a new link after an expired verified choice without switching any Player', async () => {
   api.getTwitchAccount.mockResolvedValue({...linkedAccount,linked:null,eligible:false,identityLinkAvailable:true});
-  api.getTwitchLinkResolution.mockResolvedValueOnce({id:'expired',expiresAt:'2026-01-01T00:00:00Z',web:conflictSummary,twitch:conflictSummary});
+  api.getTwitchLinkResolution.mockResolvedValueOnce({id:'expired',revision:conflictRevision,safety:safeChoices,expiresAt:'2026-01-01T00:00:00Z',web:conflictSummary,twitch:conflictSummary});
   api.resolveTwitchLink.mockRejectedValueOnce({code:'TWITCH_RESOLUTION_EXPIRED',message:'Expired'});
   const refresh=vi.fn(),container=await mount(refresh);
   await act(async()=>container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.click());

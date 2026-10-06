@@ -6,6 +6,8 @@ Entité privée de résolution OAuth, liée à WebIdentity et aux deux Players, 
 
 Les quatre issues et protections sont définies par [R1055](decisions-log.md). Player.elementKey nullable et owner strict disposable R1046 restent acquis. Schéma physique additif 062 candidat, privé testé seulement, statut au [Master](../master/PROJECT_MASTER_PLAN.md).
 
+comparedState version 1 sépare presentation (résumés affichés), fingerprints (SHA-256 exhaustif personnel serveur), safety par choix et revision opaque. Le hash couvre tous les domaines personnels via le graphe FK et les relations classifiées ; aucun token ni ligne privée tierce stocké. Recalcul pending/resolve, changement → nouvelle révision et confirmation sans canonicalisation. Le consentement POST est lié à cette révision. L’archive personnelle reste autorisée uniquement si le futur perdant est relationnellement SAFE ; SHARED_ACTIVE/ambigu exige OPERATOR_REQUIRED pour ce choix, sans fusion générale. [Méthode et domaines](../architecture/backend-architecture-v1.md#owner-de-liaison-twitch-unifiée--r1055).
+
 ## Correction R1049 et besoins futurs de pré-release
 
 PlannedPlayer.elementKey / faits personnels = ElementKey | null, comme Player déjà nullable ; niveau/XP ne conditionnent pas import/claim. ABSENT_ELEMENT et INVALID_ELEMENT sont distincts, avec erreur explicite pour l'invalide. Même Player/WebIdentity/ressources/progression après récupération, puis choix normal si null. [R1049](decisions-log.md) et [guide](../process/twitch-native-foundations.md).

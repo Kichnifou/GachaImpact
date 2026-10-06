@@ -133,7 +133,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) })
   const resolve = (choice: 'WEB' | 'TWITCH') => void run(async () => {
     if (!resolution) return
-    const next = await api.resolveTwitchLink(resolution.id, choice)
+    const next = await api.resolveTwitchLink(resolution.id, choice, resolution.revision)
     if (next.resolutionRequired) { setResolution(next.resolution ?? null); setError('La progression a changé. Vérifie le nouveau résumé avant de confirmer.'); return }
     setResolution(null); setSuccess('Compte Twitch lié. Twitch et l’application web utilisent la même progression.')
     setAccount(await api.getTwitchAccount())

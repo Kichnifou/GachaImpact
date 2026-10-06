@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat UI/UX avant canary et liaison unifiée R1055.
+Version : correction de review de la canonicalisation R1055, avant canary.
 Date : 2026-10-06
-Statut : **CANDIDAT REVIEW R1055 — CONTRÔLES LOCAUX ACQUIS ; REVIEW INDÉPENDANTE CHATGPT ATTENDUE.** Main reste au checkpoint 0fd2413. Streamer.bot autoritatif ; aucun canary ni Player public migré. Seul le retrait de Configuration > Apparence réalise une partie de R1052 ; autres travaux pré-release non implémentés.
+Statut : **CORRECTIF REVIEW R1055 — NOUVELLE REVIEW INDÉPENDANTE CHATGPT ATTENDUE.** Main reste au checkpoint 0fd2413. Streamer.bot autoritatif ; aucun canary ni Player public migré. Le lot UI/UX approuvé est conservé ; seules les deux corrections de canonicalisation et leurs preuves sont ajoutées.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
-## Point courant — UI/UX avant canary et liaison unifiée R1055, 06/10/2026
+## Point courant — correction de review de 0c865b4, 06/10/2026
+
+**Baseline :** fetch et état propre initiaux vérifiés ; HEAD/local review/origin review = `0c865b468c770bdc7bd2bd074d0b26c6998da7f6`, main/origin main = `0fd241310f09758d1d7e6dcafbf71c1376f0bdd3`, review ahead 1/behind 0. Correction dédiée directement au-dessus de 0c865b4 ; aucune promotion ni réécriture du lot approuvé.
+
+**Sûreté relationnelle :** primitive assessPlayerCanonicalizationSafety réutilisant metadata FK/identifiants/domaines personnels de targeted-player-rows ; graphe personnel exhaustif et références entrantes/sortantes, sans capture des autres Players. OWNED_PERSONAL / SAFE_HISTORICAL / SHARED_ACTIVE ; relation active/ambiguë/inconnue → OPERATOR_REQUIRED. WEB inspecte le futur perdant Twitch, TWITCH le perdant Web. Amitiés/demandes/cœurs/blocages, MP, social Event, trade/invitations, activités/classements vivants et opérateurs/credentials bloquent le choix concerné ; l’autre choix SAFE reste possible. Les deux unsafe exigent un opérateur. Aucune identité/statut/relation déplacés sur refus, aucun merge relationnel ; archive personnelle/audit conservés sur succès. UI : boutons disabled et raisons privées, mêmes libellés et comparatif.
+
+**Preuve exhaustive :** compared_state existant contient version 1, presentation, fingerprints SHA-256 serveur, safety par choix et revision opaque. Projection canonique de tous les domaines personnels, descendant FK, int8 conservés sans arrondi JS, tables/lignes/signatures/evidence triées ; ni graphe brut ni secret persisté/exposé. Résumé UI distinct, sessions/OAuth/lectures techniques exclus. pending et resolve recalculent sous les verrous ; changement visible ou invisible → nouveau snapshot, resolutionRequired=true, aucune canonicalisation. Checkbox false et decisionRevision obligatoire lient le consentement à la comparaison affichée, y compris entre onglets. Replay terminal identique/opposé et contrôles identité/autorité existants conservés. 062 et schéma Prisma inchangés.
+
+**Contrôles :** verify:full final PASS 8/8, 1 345 tests frontend / 124 fichiers et 1 899 backend hors DB / 127 fichiers ; builds, typechecks, lint et diff-checks. Ciblés frontend 118 et routes backend 20 PASS ; Prisma generate/validate et scripts opérateur typecheck PASS. 31 tests PostgreSQL privés PASS / deux fichiers : 30 liaison/shared-state/fingerprint/concurrence/provenance/purge, plus le test DDL/RLS. Amitiés des deux perdants et deux unsafe, conversation/demande MP, social/trade/Arcade pending, Teams/Missions/pity invisibles, résumé visible, consentement périmé entre onglets, bigint sans changement de timestamp, FK futures directes/descendantes/nouvelle colonne cross-player, Boss actif/historique terminé, Native winner/provenance reconnus par la projection du futur batch. Fixtures trade/session/Boss corrigées après violations CHECK lors des premiers essais ; résultats finaux verts. Logs TEMP twitch-canonical-* et gachaimpact-verify-full-VayU9q. Test DDL privé PASS : 62 migrations réellement déployées et enregistrées, migrate status à jour, RLS sur 062/no browser grants, aucune autorité configurée. 20 captures inspectées avec CSS de production/GameShell sur 1920×1080, 1366×768, 2560×1440 et 390×844, choix SAFE/asymétriques/deux unsafe/reconfirmation ; interactions et checkbox reset vérifiés, zéro erreur JS/débordement horizontal. Harness local arrêté ; aucun OAuth réel ni recette propriétaire prétendus.
+
+**Sources et données :** R1055 précisée, aucune nouvelle Rxxx. Architecture backend/migration/schéma, modèle V1, navigation, administration, guide native et ce Master actualisés ; autres domaines du lot approuvé inchangés. Lecture seule Prisma publique exécutée : 62 dossiers, seule 062 pending. Aucune application publique, donnée/Player réel/Kichni_Test, activation native, Railway/env/OAuth/EventSub ni main modifiés. Fixtures PostgreSQL exclusivement privées/synthétiques, nettoyées après contrôle.
+
+**Sortie et reprise :** commit correction review uniquement, SHA exact dans le rapport Git ; état de sortie contrôlé après push : review ahead 2/behind 0, main inchangé et worktree/index propres. STOP pour nouvelle review indépendante ChatGPT. Promotion/application publique 062/déploiement et canary exigent une mission ultérieure explicitement autorisée.
+
+## Historique — UI/UX avant canary et liaison unifiée R1055, 06/10/2026
 
 **Baseline vérifiée :** fetch initial, HEAD/local review/origin review/origin main = `0fd241310f09758d1d7e6dcafbf71c1376f0bdd3`, ahead 0/behind 0, worktree/index propres. Mission bornée A–E : notifications, Configuration, écran élément, liaison Twitch et sources canoniques ; publication d’un seul commit review, sans promotion main.
 

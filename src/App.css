@@ -9262,6 +9262,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .twitch-progression-warning { padding: 12px; border-left: 3px solid #efd179; color: #efd179; line-height: 1.6; }
 .twitch-progression-ack { display: flex; gap: 10px; align-items: flex-start; line-height: 1.6; }
 .twitch-progression-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-.twitch-progression-actions .app-button { flex: 1 1 220px; white-space: normal; }
+.twitch-progression-actions > div { flex: 1 1 220px; display: flex; flex-direction: column; justify-content: flex-end; }
+.twitch-progression-actions .app-button { width: 100%; white-space: normal; }
 .account-link-success { color: #a1eac5; }
 @media (max-width: 640px) { .twitch-progression-comparison { grid-template-columns: minmax(0,1fr); } }

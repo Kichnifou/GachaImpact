@@ -65,9 +65,9 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   });
   app.post('/api/v1/me/twitch/resolution', authenticated, async (request, reply) => {
     reply.header('cache-control', 'no-store');
-    const input = z.object({ resolutionId: z.uuid(), choice: z.enum(['WEB','TWITCH']), confirmation: z.literal('ONE_PROGRESSION_NO_MERGE') }).strict().safeParse(request.body);
+    const input = z.object({ resolutionId: z.uuid(), choice: z.enum(['WEB','TWITCH']), decisionRevision: z.uuid(), confirmation: z.literal('ONE_PROGRESSION_NO_MERGE') }).strict().safeParse(request.body);
     if (!input.success || Object.keys(request.query as object).length) throw new AppError('Confirmation de progression requise.', 400, 'VALIDATION_ERROR');
-    return options.twitch.resolveLink(requireAuthenticatedIdentity(request), input.data.resolutionId, input.data.choice);
+    return options.twitch.resolveLink(requireAuthenticatedIdentity(request), input.data.resolutionId, input.data.choice, input.data.decisionRevision);
   });
   app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/twitch/recover/start', authenticated, request => {

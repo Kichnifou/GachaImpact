@@ -4,6 +4,8 @@
 
 Le parcours joueur [R1055](decisions-log.md) ne propose aucune déliaison Twitch self-service ni restauration/bascule entre Players. Deux progressions significatives compatibles sont comparées puis départagées définitivement : identité déplacée vers gagnant, perdant ARCHIVED sans identité d’accès, audit privé et graphe sauvegardé en interne ; aucune fusion additive. Cas tiers/opérateur/migration/activité en cours restent fail-closed et nécessitent une résolution opérateur. La target native d’un choix Web ne peut être retargetée qu’à OFF, sans activation ; operator/credential owner à écarter reste bloqué même OFF.
 
+Correction de review : cette autorisation est évaluée pour chaque futur perdant à partir des références FK réelles ; relation partagée active/ambiguë ou inconnue → OPERATOR_REQUIRED pour ce choix, l’autre choix SAFE restant autorisé. Les deux unsafe imposent un opérateur, sans déplacement d’identité/statut/relation ni fusion automatique. Le résumé UI ne vaut pas preuve exhaustive : fingerprint serveur version 1 et révision de consentement, mutation même invisible → nouvelle confirmation. Le détail des tiers reste privé. Sources : [R1055](decisions-log.md), [architecture backend](../architecture/backend-architecture-v1.md#owner-de-liaison-twitch-unifiée--r1055).
+
 Ancien endpoint DELETE /api/v1/me/twitch reste strictement pilote pour compatibilité, avec les guards R1049/R1048 existants ; aucune nouvelle UI opérateur/unlink ou restauration ajoutée. Configuration > Compte conserve les outils Runtime/Faveur/Gift/Giveaway distincts. Migration 062/audit privé, aucune action opérateur publique dans cette mission ; statut au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 ## Lots Character / Assets pré-release — R1051
