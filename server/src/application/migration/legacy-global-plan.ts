@@ -1,3 +1,5 @@
+import type { ElementKey } from '../../domain/economy/resources.js';
+import { parseLegacyElement } from './legacy-element.js';
 import { createHash } from 'node:crypto';
 import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
 import { scanLegacyCoverage } from './legacy-coverage.js';
@@ -11,8 +13,8 @@ import type { OwnerApprovedPopulation } from './owner-approved-population.js';
 const elements = new Set(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']);
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 export type LegacyPlanIssue = { code: string; severity: 'BLOCKER' | 'WARNING' | 'QUARANTINE' | 'INFO'; source: string; path: string; legacyKey?: string; domain?: string; factCount?: number };
-export type ExistingWebAccount = { id: string; displayName: string; twitchUserId: string | null; hasWebAccount?: boolean; dataAuthority?: string; canaryImported?: boolean };
-export type PlannedPlayer = { legacyUsername: string; elementKey: string; playerId: string; displayName: string;
+export type ExistingWebAccount = { id: string; displayName: string; twitchUserId: string | null; elementKey?: string | null; hasWebAccount?: boolean; dataAuthority?: string; canaryImported?: boolean };
+export type PlannedPlayer = { legacyUsername: string; elementKey: ElementKey | null; playerId: string; displayName: string;
   twitchUserId: string; twitchLogin: string; twitchDisplayName: string;
   mappingMode: 'EXISTING_VERIFIED_TWITCH' | 'TWITCH_ONLY'; viewer: Record<string, unknown>; personalImport?: boolean };
 export type LegacyGlobalPlan = { snapshotHash: string; players: PlannedPlayer[]; unmatchedWebPlayerIds: string[];
@@ -62,8 +64,7 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
   if (finalPopulation) for (const login of quarantined) issues.push({ code: 'TWITCH_IDENTITY_QUARANTINED', severity: 'QUARANTINE',
     source: 'viewers_data.json', path: '*.username', legacyKey: login, domain: 'IDENTITY' });
   const discarded = new Set(finalPopulation?.historicalProof.ownerDiscardedLogins.map(normalizeLegacyName) ?? []);
-  if (approved && (selected.length !== 43 || selected.some(([name, raw]) => !elements.has(String(record(raw).element).toLowerCase())
-    || resolutionByLogin.get(normalizeLegacyName(name))?.twitchUserId !== approved.get(normalizeLegacyName(name)))))
+  if (approved && (selected.length !== 43 || selected.some(([name]) => resolutionByLogin.get(normalizeLegacyName(name))?.twitchUserId !== approved.get(normalizeLegacyName(name)))))
     issues.push({ code: 'FINAL_POPULATION_REVALIDATION_FAILED', severity: 'BLOCKER', source: 'viewers_data.json', path: '*' });
   const existingByTwitch = new Map(existingWeb.filter(row => row.twitchUserId).map(row => [row.twitchUserId!, row]));
   const linkedByTwitch = new Map(existingIdentities.map(row => [row.twitchUserId, row.playerId]));
@@ -108,10 +109,14 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
       }
       usedWeb.add(existing.id);
       seenIds.add(identity!.twitchUserId);
-      players.push({ legacyUsername: login, elementKey: String(viewer.element).toLowerCase(), playerId: existing.id, displayName: existing.displayName,
+      players.push({ legacyUsername: login, elementKey: parseLegacyElement(existing.elementKey).elementKey, playerId: existing.id, displayName: existing.displayName,
         twitchUserId: identity!.twitchUserId, twitchLogin: identity!.currentLogin, twitchDisplayName: identity!.displayName,
         mappingMode: 'EXISTING_VERIFIED_TWITCH', viewer: {}, personalImport: false });
       continue;
+    }
+    let elementKey: ElementKey | null;
+    try { elementKey = parseLegacyElement(viewer.element).elementKey; } catch {
+      issues.push({ code: 'LEGACY_ELEMENT_INVALID', severity: 'BLOCKER', source: 'viewers_data.json', path: '*.element', legacyKey: login }); continue;
     }
     if (!isValidLegacyXpDate(record(viewer.dates).lastXpDate))
       issues.push({ code: 'LEGACY_XP_DATE_INVALID', severity: 'BLOCKER', source: 'viewers_data.json',
@@ -142,7 +147,7 @@ export function buildLegacyGlobalPlan(snapshot: Snapshot, resolved: readonly Res
     }
     if (web && usedWeb.has(web.id)) { issues.push({ code: 'TWITCH_EXISTING_CONFLICT', severity: 'BLOCKER', source: 'viewers_data.json', path: '*.username', legacyKey: login }); continue; }
     if (web) usedWeb.add(web.id);
-    players.push({ legacyUsername: login, elementKey: String(viewer.element).toLowerCase(),
+    players.push({ legacyUsername: login, elementKey,
       playerId: web?.id ?? deterministicUuid(snapshot.hash, key), displayName: web?.displayName ?? identity.displayName,
       twitchUserId: identity.twitchUserId, twitchLogin: identity.currentLogin, twitchDisplayName: identity.displayName,
       mappingMode: web ? 'EXISTING_VERIFIED_TWITCH' : 'TWITCH_ONLY', viewer, personalImport: true });

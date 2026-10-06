@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Correction R1049 et besoins futurs de pré-release
+
+PlannedPlayer.elementKey / faits personnels = ElementKey | null, comme Player déjà nullable ; niveau/XP ne conditionnent pas import/claim. ABSENT_ELEMENT et INVALID_ELEMENT sont distincts, avec erreur explicite pour l'invalide. Même Player/WebIdentity/ressources/progression après récupération, puis choix normal si null. [R1049](decisions-log.md) et [guide](../process/twitch-native-foundations.md).
+
+Besoins futurs [R1052/R1053](decisions-log.md) : projeter PlayerCosmetic.unlockedAt dans le DTO Personnalisation pour date/tri/nouveautés, sans nouvelle table si possible ; persister le résultat unique du tirage mensuel par EventEdition avec preuve/récompense/notifications transactionnelles. Ces évolutions DTO/schéma ne sont pas implémentées dans cette correction. Le Player NATIVE Twitch-only est le compte réel pendant l'exploitation silencieuse R1050 ; WebIdentity demeure facultative jusqu'au rattachement.
+
 ## Fondations Twitch pré-cutover — R1048
 
 [Décisions R1048](decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06). TwitchNativeAuthority porte le singleton de désir OFF/CANARY/GLOBAL, révision, opérateur, acknowledgement et dates. TwitchNativeTarget porte User ID numérique, Player facultatif/unique, LEGACY/MIGRATION_PENDING/NATIVE, canary et preuve déclarative du transfert. TwitchNativeAudit conserve les actions opérateur ; TwitchCanaryImport conserve Player/User ID, hashes snapshot/rapport/backup, état et dates, sans JSON source brut. TwitchLinkState lie facultativement WebIdentity au consentement CLAIM_TWITCH_PROFILE.

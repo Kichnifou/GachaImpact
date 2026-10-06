@@ -349,6 +349,10 @@ export class TwitchPilotService {
 
   async unlink(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
+    // Check before any consumer/subscription work. DB failure leaves identity and authority intact.
+    const authority = await this.db.twitchNativeAuthority.findUnique({ where: { id: 'twitch-commands' } });
+    if (authority && authority.desiredMode !== 'OFF' && authority.operatorPlayerId === player.id)
+      throw new AppError('Désactivez d’abord l’autorité native des commandes Twitch.', 409, 'TWITCH_NATIVE_AUTHORITY_UNLINK_BLOCKED');
     const giveawayCredential = await this.db.twitchGiveawayCredential.findUnique({ where: { playerId: player.id } });
     if (giveawayCredential?.enabled || await this.db.giveawaySession.findFirst({ where: { origin: 'NATIVE', status: 'OPEN' }, select: { id: true } }))
       throw new AppError('Fermez le Giveaway et désactivez son bridge avant de dissocier Twitch.', 409, 'GIVEAWAY_UNLINK_BLOCKED');

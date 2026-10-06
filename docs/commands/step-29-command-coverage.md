@@ -1,5 +1,11 @@
 # Étape 29 — couverture des 37 sources de commandes
 
+## Correction de review et exploitation silencieuse
+
+[R1049/R1050](../specifications/decisions-log.md) : un profil migré/récupéré n'a aucun gate de niveau/élément pour exister ; les commandes nécessitant un élément gardent leurs owners. Ni remappage de nom ni reset du profil ; NULL réel accepté, typo bloquée. R1048/provisioning/receipts/outbound partagés conservés ; unlink opérateur exige OFF explicite avant toute suppression.
+
+Après futurs canaries Kichni_Test/Kichnifou/Ceo et batch des 43, Twitch continue sur le même Player NATIVE pendant stabilisation silencieuse : aucune annonce standalone, aucun OAuth individuel ou compte web imposé. Faveur/Gift/Giveaway restent leurs owners natifs. À la révélation après [pré-release](../roadmap/implementation-order-v1.md), R1046 récupère tout l'état accumulé sans nouvelle migration ; aucun cutover/activation ou recette Twitch réelle dans la correction.
+
 **Fondations R1048 en candidat review :** le registre/parser et les owners métier R1047 restent communs. Sous couverture numérique NATIVE seulement, un chatter inconnu est provisionné Twitch-only ; son premier message/!element continue dans le pipeline. XP sans élément jusqu'au niveau 2 et rappel compact idempotent ; les mécaniques exigeant un élément refusent normalement. La couverture n'est plus une mémoire armed ni une allowlist de Player préexistants : autorité PostgreSQL et canary IDs pré-Player, hard-off et transport fail-closed. Tests [Native](../../server/tests-db/twitch-native-foundations.test.ts), [pilote](../../server/tests/twitch-command-pilot.test.ts) ; preuve/publication au [Master](../master/PROJECT_MASTER_PLAN.md). Aucune activation ni recette Twitch réelle dans ce lot.
 
 

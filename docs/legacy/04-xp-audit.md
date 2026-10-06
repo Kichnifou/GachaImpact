@@ -1,5 +1,11 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
+## Migration sans élément et mode XP interface acquis
+
+[R1049](../specifications/decisions-log.md) : niveaux 0/1/2 et supérieurs migrables/récupérables avec ou sans élément, aucun reset d'XP/messages/ressources. L'absence réelle devient null, une typo reste un blocker ; le même Player choisit ensuite normalement au standalone. Cela ne supprime pas les prérequis des owners ni ne donne de nouvelles récompenses sans élément. L'onboarding messages Twitch sans élément de R1048 reste borné au niveau 2 avec rappel idempotent ; l'historique importé peut être supérieur.
+
+Le mode XP standalone n'est plus une activité future à inventer : Arcade solo l'a réalisé selon R984 et les checkpoints acquis ; Arcade multijoueur conserve 0 XP. Sources/cooldowns/compteurs restent autoritatifs dans leurs contrats, jamais de messages fabriqués pour l'XP Arcade. La pré-release [R1054](../specifications/decisions-log.md) doit recetter l'onboarding et la continuité du profil sans élément.
+
 Statut : AUDIT TECHNIQUE INITIAL CLÔTURÉ — Q1 À Q9 TRAITÉS ; RESPONSABILITÉS HORS XP REPORTÉES AUX AUDITS DÉDIÉS 
 Date : 2026-08-27  
 Source : `legacy/streamerbot/commands/XP.txt`
@@ -140,7 +146,7 @@ Dans GachaImpact :
 - un message du chat interne éligible donnant +1/+2/+3 XP ajoute +1 à `countedMessages` ;
 - une commande ne l'incrémente pas ;
 - un message refusé par le cooldown XP ne l'incrémente pas ;
-- l'XP gagnée via le futur mode XP de l'interface ne l'incrémente pas, puisqu'il ne s'agit pas d'un message.
+- l'XP gagnée via le mode Arcade solo de l'interface ne l'incrémente pas, puisqu'il ne s'agit pas d'un message.
 
 Les futures mécaniques utilisant une statistique « nombre de messages comptés », notamment certaines missions, pourront continuer à s'appuyer sur ce compteur si leur audit dédié confirme cette règle.
 
@@ -190,11 +196,11 @@ Identité :
 - dans le futur système XP, utiliser conceptuellement un état du type `lastXpMessageAt` ;
 - il représente le dernier message ayant réellement accordé de l'XP ;
 - il est commun entre Twitch et le chat interne pour appliquer le cooldown global de 2 secondes ;
-- le futur mode XP de l'interface ne le modifie pas.
+- le mode Arcade solo de l'interface ne le modifie pas.
 
 `lastXpDate` :
 - doit représenter dans le futur la dernière fois où le joueur a réellement gagné de l'XP, quelle que soit la source ;
-- XP via Twitch, chat interne ou futur mode XP interface mettent donc à jour cette information ;
+- XP via Twitch, chat interne ou mode Arcade solo interface mettent donc à jour cette information ;
 - le choix exact entre date ou timestamp sera figé lors de la conception du modèle cible.
 
 ---
@@ -284,7 +290,7 @@ le message principal de level-up n'affiche actuellement que les informations de 
 
 ### Décision cible — ✅ VALIDÉE le 2026-08-27
 
-Un gain d'XP important, notamment via le futur mode XP de l'interface, peut faire franchir plusieurs niveaux en une seule opération.
+Un gain d'XP important, notamment via le mode Arcade solo de l'interface, peut faire franchir plusieurs niveaux en une seule opération.
 
 Dans ce cas :
 - toutes les récompenses intermédiaires doivent être attribuées ;
@@ -807,13 +813,13 @@ Ainsi, exécuter une même action via l'interface, le chat interne ou Twitch ne 
 
 ### Progression XP pour les joueurs utilisant principalement l'interface
 
-GachaImpact standalone disposera d'une **activité ou d'un mode dédié au gain d'XP**, afin qu'un joueur puisse progresser normalement sans être obligé d'écrire dans le chat.
+GachaImpact standalone dispose désormais d'**Arcade solo, mode dédié au gain d'XP (R984)**, afin qu'un joueur puisse progresser normalement sans être obligé d'écrire dans le chat.
 
 Décision définitive **R970–R990** : [Arcade V1](../specifications/arcade-v1.md), Memory V1 6×6 puis V2 4×4/5×5/6×6 selon R991, Puissance 4 et Morpion, trois difficultés. Première partie naturelle terminée par jeu et jour Europe/Paris : jusqu'à 10 XP, maximum 30 XP Arcade/jour. Les difficultés partagent le quota ; après celui-ci, les parties donnent encore leur score. Le barème détaillé et les règles sont portés par la source Arcade. R993 : Quitter produit ABANDONED sans XP, quota ni effets progression/ressources/Missions/notifications ; les parties V1 et leurs gains restent intacts.
 
 ### Cumul des sources
 
-Le gain d'XP par chat et le gain d'XP via le futur mode dédié sont **cumulables**.
+Le gain d'XP par chat et le gain d'XP via le mode Arcade solo sont **cumulables**.
 
 Un joueur utilisant à la fois le chat et le mode XP peut donc progresser par les deux sources.
 
@@ -884,7 +890,7 @@ Dans GachaImpact :
 - fonctionne aussi bien pour Twitch que pour le chat interne ;
 - une commande ne compte pas ;
 - un message bloqué par le cooldown ne compte pas ;
-- l'XP obtenue via le futur mode XP de l'interface ne compte pas comme message.
+- l'XP obtenue via le mode Arcade solo de l'interface ne compte pas comme message.
 
 ### Cooldown
 
@@ -930,14 +936,14 @@ Dans le futur système XP, il correspond conceptuellement à un état du type `l
 - dernier message ayant réellement accordé de l'XP ;
 - partagé entre Twitch et chat interne ;
 - utilisé pour le cooldown global de 2 secondes ;
-- non modifié par le futur mode XP de l'interface.
+- non modifié par le mode Arcade solo de l'interface.
 
 ### `lastXpDate`
 
 Dans le futur, cette information représente la dernière fois où le joueur a gagné de l'XP, quelle que soit la source :
 - Twitch ;
 - chat interne ;
-- futur mode XP interface.
+- mode Arcade solo interface.
 
 Le format DB exact sera défini pendant le modèle cible.
 

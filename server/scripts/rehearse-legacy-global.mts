@@ -23,7 +23,7 @@ import { applyLegacyContest } from '../src/application/migration/legacy-contest-
 import { remainingFavorDays } from '../src/application/migration/legacy-favor-calendar.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
 import { normalizeLegacyName } from '../src/application/migration/streamerbot-snapshot.js';
-import { loadOwnerApprovedPopulation } from '../src/application/migration/owner-approved-population.js';
+import { loadHistoricalOwnerPopulation, revalidateFinalPopulation } from '../src/application/migration/owner-approved-population.js';
 import { loadLocalOperatorSnapshot } from '../src/application/migration/local-operator-snapshot.js';
 import { loadIdentityQuarantine } from '../src/application/migration/identity-quarantine.js';
 
@@ -32,9 +32,10 @@ const { directory, cutoverAt, identities: identityFile, quarantine: quarantineFi
 const snapshot = await loadLocalOperatorSnapshot(resolve(directory));
 validateLegacyBossSnapshot(snapshot);
 const catalog = JSON.parse(await readFile(new URL('../prisma/data/characters.json', import.meta.url), 'utf8')) as { externalKey: string }[];
-const report = identityFile ? await loadVerifiedTwitchReport(identityFile, snapshot) : null;
-if (report && !(populationFile && historicalIdentities && historicalSnapshot)) throw new Error('FINAL_POPULATION_PROOF_REQUIRED');
-const population = report && populationFile ? await loadOwnerApprovedPopulation(populationFile, historicalIdentities!, await loadLocalOperatorSnapshot(historicalSnapshot!), snapshot, report) : undefined;
+if (identityFile && !(populationFile && historicalIdentities && historicalSnapshot)) throw new Error('FINAL_POPULATION_PROOF_REQUIRED');
+const population = populationFile ? await loadHistoricalOwnerPopulation(populationFile, historicalIdentities!, await loadLocalOperatorSnapshot(historicalSnapshot!)) : undefined;
+const report = identityFile && population ? await loadVerifiedTwitchReport(identityFile, snapshot, new Date(), { kind: 'FINAL_POPULATION', population }) : null;
+if (report && population) revalidateFinalPopulation(population, report, snapshot);
 const quarantine = quarantineFile && report ? await loadIdentityQuarantine(quarantineFile, snapshot.hash, report) : undefined;
 const identities = report?.users ?? fixtureTwitchResolution(snapshot);
 let accounts: AccountProjection;

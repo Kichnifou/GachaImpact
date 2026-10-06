@@ -108,3 +108,49 @@ describe('single legacy canary with exact private backup/rollback', () => {
     }, { timeout: 180_000 });
   }, 180_000);
 });
+
+
+describe('legacy canaries without a chosen element', () => {
+  beforeAll(() => new TwitchNativeAuthority(db, config).configure(operatorId, 'OFF', []));
+  let sequence = 10;
+  function noElementSnapshot(overrides: Record<string, unknown>) {
+    const f = canarySnapshot(overrides); f.report.users[0]!.twitchUserId = String(900000000000 + sequence++); return f;
+  }
+  it.each([0, 30, 60])('imports XP %s without element or WebIdentity and restores the exact absence', async xp => {
+    const { snapshot, report } = noElementSnapshot({ element: xp === 0 ? undefined : xp === 30 ? null : '', xp });
+    const plan = await planLegacyCanary(db, snapshot, report, report.users[0]!.twitchUserId, null, new Date());
+    expect(plan.blockers).toEqual([]); expect(plan.player.elementKey).toBeNull();
+    let backup!: CanaryBackup;
+    const result = await applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async value => { backup = value; });
+    expect((await db.player.findUniqueOrThrow({ where: { id: result.playerId } })).elementKey).toBeNull();
+    expect(await db.playerProgression.findUniqueOrThrow({ where: { playerId: result.playerId } })).toMatchObject({ xp: BigInt(xp), totalMessages: 10n });
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: result.playerId, resourceKey: 'moras' } } })).amount).toBe(80n);
+    expect(await db.twitchIdentity.count({ where: { playerId: result.playerId } })).toBe(1);
+    expect(await db.webIdentity.count({ where: { playerId: result.playerId } })).toBe(0);
+    await rollbackLegacyCanary(db, config, operatorId, backup);
+    expect((await captureTargetedPlayerRows(db, backup.rows.playerIds)).hash).toBe(backup.rows.hash);
+  }, 180_000);
+  it('replaces verified standalone gameplay with element null and retains WebIdentity/Player ID without addition', async () => {
+    const { snapshot, report } = noElementSnapshot({ element: null, xp: 300 });
+    const player = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private existing null-element canary',
+      webIdentity: { provider: 'supabase', providerSubject: randomUUID() }, twitchIdentity: { twitchUserId: report.users[0]!.twitchUserId, login: 'fixture_canary', displayName: 'Fixture', firstSeenAt: new Date() } }));
+    await db.player.update({ where: { id: player.id }, data: { elementKey: 'pyro' } });
+    await db.playerProgression.update({ where: { playerId: player.id }, data: { xp: 999n } });
+    const web = await db.webIdentity.findUniqueOrThrow({ where: { playerId: player.id } });
+    const plan = await planLegacyCanary(db, snapshot, report, report.users[0]!.twitchUserId, player.id, new Date());
+    let backup!: CanaryBackup;
+    await applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async value => { backup = value; });
+    expect(await db.player.findUniqueOrThrow({ where: { id: player.id } })).toMatchObject({ elementKey: null });
+    expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId: player.id } })).xp).toBe(300n);
+    expect(await db.webIdentity.findUniqueOrThrow({ where: { id: web.id } })).toEqual(web);
+    await rollbackLegacyCanary(db, config, operatorId, backup);
+    expect((await captureTargetedPlayerRows(db, backup.rows.playerIds)).hash).toBe(backup.rows.hash);
+    await db.twitchIdentity.delete({ where: { playerId: player.id } });
+  }, 180_000);
+  it('rejects a real typo before import instead of silently choosing no element', async () => {
+    const { snapshot, report } = noElementSnapshot({ element: 'pyrp' });
+    const count = await db.player.count();
+    await expect(planLegacyCanary(db, snapshot, report, report.users[0]!.twitchUserId, null, new Date())).rejects.toThrow('LEGACY_ELEMENT_INVALID');
+    expect(await db.player.count()).toBe(count);
+  });
+});

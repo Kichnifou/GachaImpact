@@ -1,5 +1,11 @@
 # 16 — Audit Event / monthly
 
+## Tirage de clôture mensuelle Event — R1053, à implémenter
+
+La [décision propriétaire R1053](../specifications/decisions-log.md), avec référence source legacy Tirage.txt, supersède l'ancien report/abandon de monthlyDraw. Ce tirage appartient à Event, pas au Concours C6. Au passage à 00:00 Europe/Paris vers le mois suivant : figer les participants/points de l'édition terminée, points > 0 seulement, un point = un ticket, tirage pondéré d'un gagnant et +1 Masterless Stella Fortuna.
+
+Futur scheduler serveur exactly-once avec catch-up au démarrage ; résultat persistant par EventEdition, restart sans second gagnant. Résultat, acquisition Stella, preuve durable, notification gagnant (ton Event, +1 Masterless Stella Fortuna) et notification ADMIN dans la même transaction. Aucun historique absent fabriqué, aucun résultat source brut supposé valide pour la migration. L'ancien mécanisme manuel des cinq derniers jours n'est pas le mécanisme principal ; récupération/correction ADMIN exceptionnelle auditée, jamais reroll silencieux. Ce contrat est requis avant [révélation R1054](../specifications/decisions-log.md), non implémenté/testé dans cette correction R1048.
+
 **Amendement Chat R1038 — étape 29 :** Les mutations Event Chat utilisent INTERNAL_CHAT et mémorisent leur snapshot de résultat dans les reçus existants ; replay du même Player/type/requête avant résolution du nouveau jour/mois, sans nouveau gain ni RNG. Le contexte Festival/thèmes initial est conservé dans l’intention Chat privée. A/B/C rapportent seulement leurs gains réels ; go déjà inscrit ne promet aucun bonus. Rang personnel ajouté au Top 10 selon points/joinedAt/ID, dates legacy inconnues après dates connues. Jeux des douze mois et aliases legacy utiles sont raccordés ; aucun contenu privé du Jeu C répété dans le résultat. Règles, paliers, permissions, calendrier et données actives restent autoritatifs ici. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
 
 **Complément étape 22 (candidat `review`) :** l'Administration lit les définitions/éditions Event et permet une configuration future validée par le parser métier. Une édition active ou programmée fige sa configuration ; la désactivation/réactivation d'une définition n'efface ni snapshot, ni participant, ni point, ni claim. Aucun reset ou recalcul rétroactif. Voir [Administration / Modération V1](../specifications/administration-moderation-v1.md). Les décisions legacy ci-dessous conservent leur statut historique.
@@ -497,7 +503,7 @@ Décision technique provisoire :
 - `drawDone`
 - `winner`
 
-Le champ est initialisé / normalisé par Event et XP, mais aucune mécanique exécutant réellement un tirage mensuel n'a été trouvée.
+Constat de l'audit antérieur : champ initialisé/normalisé par Event et XP, tirage non retrouvé dans ce périmètre. Ce report est supersédé par la décision R1053 et la référence Tirage.txt signalée par le propriétaire ; future mécanique ci-dessus, sans historique inventé.
 
 Décision technique provisoire :
 
@@ -1529,7 +1535,7 @@ Il disparaît avec la clôture du Festival de Noël au changement de mois.
 - Les douze Festivals utilisent une configuration commune plutôt que douze implémentations métier copiées.
 - Le changement de journée et de mois dépend du temps serveur `Europe/Paris`.
 - `monthly_events.json` reste considéré comme fichier vide / résidu sans fonctionnalité V1 tant que le sweep final n'apporte aucune preuve contraire.
-- `monthlyDraw` ne devient pas un tirage mensuel V1 sans preuve d'une mécanique réellement existante.
+- Ancienne condition de report monthlyDraw supersédée par R1053 : tirage Event mensuel futur décidé, sans migration de résultats historiques inconnus.
 - Le cooldown de 3 secondes du Jeu A est imposé côté serveur et partagé entre UI, chat interne et Twitch.
 - Les soldes de monnaie sont identifiés par Festival / monnaie saisonnière afin de pouvoir survivre jusqu'à l'édition suivante.
 - La réclamation quotidienne R602 est idempotente et commune aux canaux.
@@ -1729,8 +1735,8 @@ Il ne devient pas le futur mécanisme de scheduling.
 
 `monthlyDraw` :
 
-- aucune mécanique réelle trouvée ;
-- aucune fonctionnalité de tirage mensuel migrée.
+- constat historique de mécanique non retrouvée dans le périmètre initial, supersédé pour la cible produit par R1053 ;
+- aucun ancien résultat de tirage migré/inventé ; nouveau scheduler Event mensuel à implémenter.
 
 Ces deux conclusions restent soumises à la confirmation du sweep exhaustif final.
 
@@ -1875,7 +1881,7 @@ Le Domaine Event est considéré prêt pour une future implémentation V1 si les
 30. la migration peut être relancée sans créer de second gain, solde ou objet ;
 31. aucune récompense n'est déclenchée uniquement parce qu'une donnée a été importée ;
 32. aucun ancien historique mensuel absent n'est inventé ;
-33. `monthly_events.json` et `monthlyDraw` ne créent aucune fonctionnalité V1 sans nouvelle preuve lors du sweep final.
+33. monthly_events.json résidu reste sans import de faits inventés ; la nouvelle mécanique mensuelle Event R1053 est exactement-once et ne reconstitue aucun historique absent.
 
 ---
 

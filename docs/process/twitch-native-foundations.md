@@ -1,4 +1,12 @@
-﻿# Fondations Twitch pré-cutover — exploitation du candidat R1048
+# Fondations Twitch pré-cutover — exploitation du candidat R1048
+
+## Amendement de review R1049 et recettes R1050
+
+[R1049/R1050](../specifications/decisions-log.md) supersèdent les hypothèses personnelles « élément obligatoire » et « compte test inexistant ». Kichni_Test est créé côté propriétaire, Twitch-only niveau 1 avec élément et petite activité legacy ; aucun ID publié ni snapshot/import réalisé dans cette mission. Un autre profil explicitement ciblé peut aussi être sans élément à tout niveau : import des données certaines, élément null, choix normal au standalone sur le même Player. Une typo reste un blocker explicite.
+
+Résolution future via migration:legacy:resolve-identities : arguments historiques <capture> <sortie-ignore> [rapport-historique], ou --canary-login <login-cible> ; final : --population <decision-ignore> --historical-identities <preuve-R1041> --historical-snapshot <capture-R1041>. Ces périmètres sont mutuellement exclusifs ; sans option, le filtre nommé HISTORICAL_ELEMENT_REHEARSAL reste diagnostic ancien. Canary exige son rapport frais ciblé d'un seul login ; le final résout seulement les 43 autorisés, jamais les 171/additionnels, puis vérifie les mêmes IDs. L'élément n'est pas un critère d'identité. Aucune résolution Twitch réelle exécutée ici.
+
+Unlink opérateur refuse TWITCH_NATIVE_AUTHORITY_UNLINK_BLOCKED tant que desiredMode != OFF, avant consumer/subscription/identité ; OFF doit être écrit par le kill explicite. Erreur de lecture DB → aucune suppression. Les règles ordinaires de déliaison ne sont pas élargies. Après futurs canaries/batch : exploitation NATIVE silencieuse, aucun compte standalone/OAuth individuel imposé aux viewers ; [runbook](legacy-cutover-runbook.md) et [gate de pré-release](../roadmap/implementation-order-v1.md) avant annonce.
 
 Statut : préparation technique sur `review`, sans mise en service publique. La [décision R1048](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06) fait autorité pour la population, les transitions et les futures recettes. Le [Master](../master/PROJECT_MASTER_PLAN.md) distingue les contrôles réellement exécutés de la recette propriétaire.
 
@@ -50,4 +58,4 @@ Le rehearsal final exige ensemble `--identities <nouveau-rapport-frais> --popula
 
 Un membre déjà NATIVE avec DATA_IMPORTED reste dans les 43 mais `personalImport=false` et viewer personnel vide. Ses lignes sont protégées indépendamment d'une liste fournie par le caller, avec parents FK nécessaires. Les relations nouvelles peuvent utiliser son Player ID ; les rows préexistantes sont comparées exactement après les domaines. Une collision sur un global/référentiel nécessaire au préimage protégé bloque la transaction ; aucune fusion/déduction silencieuse. Le futur snapshot exact et les collisions partagées doivent encore être examinés dans la mission batch. Le mode dynamique ISOLATED_FIXTURE demeure un diagnostic, jamais une preuve Twitch ni une certification finale 30/31B.
 
-La suite prépare le compte Twitch-only inexistant, le refresh Kichnifou encore LEGACY, puis Ceo standalone avec OAuth préalable et remplacement volontaire. Aucun de ces joueurs n'est migré ici ; la conservation du compte test appartient à la décision après recette. STOP sur review pour review indépendante ChatGPT.
+La suite prépare la migration du compte Twitch-only Kichni_Test déjà créé par le propriétaire, le refresh Kichnifou encore LEGACY, puis Ceo standalone avec OAuth préalable et remplacement volontaire. Aucun de ces joueurs n'est migré ici ; la conservation du compte test appartient à la décision après recette. STOP sur review pour review indépendante ChatGPT.

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Correction sans nouvelle DDL
+
+R1049 utilise la nullabilité physique existante de Player.element_key : aucune modification de 061 ni des migrations antérieures. Unlink consulte twitch_native_authorities avant suppression opérateur ; aucune mutation automatique OFF. R1046 déplace toujours WebIdentity sans copier le gameplay. Les besoins futurs PlayerCosmetic.unlockedAt/DTO et résultat mensuel par EventEdition relèvent de [R1052/R1053](../specifications/decisions-log.md) : colonne cosmétique existante, projection à étendre et schéma Event futur à définir, aucun modèle nouveau appliqué ici. 061 reste non appliquée publiquement, preuves au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Fondations Twitch — migration additive 061
 
 Candidat [20261006120000_061_add_twitch_native_foundations](../../server/prisma/migrations/20261006120000_061_add_twitch_native_foundations/migration.sql), suivant 060 sans modification historique. Ajoute twitch_native_authorities (singleton, révision positive, modes contrôlés, ACK/opérateur/date obligatoires hors OFF), twitch_native_targets (User ID numérique PK, Player FK unique facultative, états contrôlés, ACK/date obligatoires en NATIVE), twitch_native_audit (acteur FK, dates/index, actions), twitch_canary_imports (FK Player/target, trois hashes SHA-256, statut/date cohérents, index target/date). TwitchLinkState gagne web_identity_id nullable, FK CASCADE et index.

@@ -1,5 +1,11 @@
 # Roadmap de préparation et de développement GachaImpact
 
+## Fin du projet : exploitation silencieuse puis pré-release
+
+[R1050/R1054](../specifications/decisions-log.md) rendent distincts le cutover technique et la révélation du standalone. Les comptes Twitch-only NATIVE PostgreSQL continuent d'accumuler leur vrai état par messages/commandes sans OAuth individuel ni création web imposée, avec Faveur/Gift/Giveaway selon leurs owners et sans Streamer.bot autoritaire pour les domaines remplacés. La stabilisation demeure silencieuse. Kichni_Test, créé par le propriétaire, ouvre les futurs canaries ; ses snapshot/import/recette ne sont pas réalisés ici et il n'entre pas automatiquement dans les 43.
+
+La pré-release comprend Character/catalogue/assets/import officiel à sept jours et outils ADMIN R1051, cosmétiques et suppression Configuration Apparence R1052, tirage mensuel Event R1053, passe graphique/ergonomie/mobile, vraie bêta/corrections et sweep des sources/backlog. La [séquence détaillée](implementation-order-v1.md) conserve 31A/31B/32 et la gate complète ; aucune de ces décisions ne vaut mission d'implémentation automatique. R1046 permettra ensuite de retrouver tout l'état du même Player, sans migration supplémentaire ; les conflits web significatifs restent opérateur. Le [Master](../master/PROJECT_MASTER_PLAN.md) seul consigne les preuves et la prochaine action.
+
 ## Rôle de ce document
 
 Ce fichier décrit la **trajectoire macro** du projet.
@@ -127,7 +133,7 @@ Objectifs :
 
 Le jeu doit rester entièrement utilisable sans Twitch.
 
-Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. R1034 clôture 27 par périmètre et reclasse charge/performance en observation bêta non bloquante ; 29 ACTIVE porte la passe exhaustive commandes/sorties, leur validation propriétaire et la préparation d'une bascule transparente. Aucune activation Twitch en 29 ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
+Avant éventuel outbound, inventorier/comparer les réponses aux `.txt` legacy, tester les textes d'abord dans le Chat standalone avec Kichnifou et obtenir la validation propriétaire. R1034 clôture 27 par périmètre et reclasse charge/performance en observation bêta non bloquante ; 29 est clôturée R1039 ; R1048 prépare les fondations durables de la bascule transparente. Aucune activation Twitch en 29 ; voir [la dette commandes](../commands/command-reference.md#passe-finale-twitch--commandes-r939r942) et [l'architecture](../architecture/backend-architecture-v1.md).
 
 ---
 
@@ -150,7 +156,7 @@ R1034 clôture le lot transverse 27 par décision de périmètre propriétaire, 
 
 ## Séquence de clôture avant migration globale
 
-Suivre [implementation-order-v1.md](implementation-order-v1.md), R1034 supersédant R1032 après 28 : 26 et 28 VALIDÉES / CLÔTURÉES, 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE ; puis **29 ACTIVE → 30 foundation/rehearsal privée → 31A Ceo → 31B batch → 32 validation finale**. Tous les numéros sont conservés. 29 prépare le remplacement Twitch transparent sans activation ; 30 ne fait aucune écriture publique de migration ; 31B exige la validation propriétaire du pilote Ceo, sans bascule globale automatique. Streamer.bot reste autoritatif jusqu'au transfert effectif de chaque périmètre. Les contrats spécialisés définissent la cible ; le Master porte les preuves et prochaines actions.
+Suivre [implementation-order-v1.md](implementation-order-v1.md) : 26 et 28 VALIDÉES / CLÔTURÉES, 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE, 29 et 30 clôturées selon le Master. La suite courante R1050/R1054 est **fondations R1048 corrigées → 31A Kichni_Test → Kichnifou refresh LEGACY puis NATIVE → Ceo standalone → rehearsal finale → 31B membres encore LEGACY des 43 → transfert GLOBAL explicite → stabilisation silencieuse → pré-release 32 → révélation autorisée**. Tous les numéros sont conservés. Les Players déjà NATIVE sont préservés, les 171 discarded et deux quarantaines non migrés ; 31B exige la validation propriétaire des canaries, sans bascule globale automatique. Streamer.bot reste autoritatif jusqu'au transfert effectif de chaque périmètre. Les contrats spécialisés définissent la cible ; le Master porte les preuves et prochaines actions.
 
 ## Principe final
 

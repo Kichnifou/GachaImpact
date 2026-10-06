@@ -58,9 +58,7 @@ describe('strict final historical population', () => {
     const viewers = JSON.parse(f.files['viewers_data.json']!) as Record<string, { element: string | null }>;
     viewers.discarded0!.element = 'pyro'; viewers.future_test = { element: 'hydro' };
     f.files['viewers_data.json'] = JSON.stringify(viewers);
-    const fresh = parseStreamerbotSnapshot(f.files), report = { ...f.report, snapshotHash: fresh.hash, users: [...f.report.users,
-      { legacyLogin: 'discarded0', twitchUserId: '999000', currentLogin: 'discarded0', displayName: 'Discarded fixture', renamed: false },
-      { legacyLogin: 'future_test', twitchUserId: '999001', currentLogin: 'future_test', displayName: 'Future fixture', renamed: false }] };
+    const fresh = parseStreamerbotSnapshot(f.files), report = { ...f.report, snapshotHash: fresh.hash, missing: [] };
     revalidateFinalPopulation(population, report, fresh, f.now);
     const plan = buildLegacyGlobalPlan(fresh, report.users, [], new Set(), [], undefined, undefined, population);
     expect(plan.players).toHaveLength(43);
@@ -74,4 +72,36 @@ describe('strict final historical population', () => {
       dataAuthority: 'NATIVE', canaryImported: true }], new Set(), [{ playerId: id, twitchUserId: f.report.users[0]!.twitchUserId }], undefined, undefined, population);
     expect(plan.players[0]).toMatchObject({ playerId: id, mappingMode: 'EXISTING_VERIFIED_TWITCH', personalImport: false, viewer: {} });
   });
+});
+
+
+it('resolves the fixed 43 independently of absent elements and blocks a real typo', () => {
+  const f = evidence(), population = validateOwnerApprovedPopulation(f.raw, f.report, f.snapshot, f.now);
+  const viewers = JSON.parse(f.files['viewers_data.json']!) as Record<string, { element?: string | null }>;
+  delete viewers.approved0!.element; viewers.approved1!.element = null; viewers.approved2!.element = '';
+  viewers.discarded0!.element = 'pyro'; viewers.additional = { element: 'geo' };
+  f.files['viewers_data.json'] = JSON.stringify(viewers);
+  let snapshot = parseStreamerbotSnapshot(f.files), report = { ...f.report, snapshotHash: snapshot.hash, missing: [] };
+  revalidateFinalPopulation(population, report, snapshot, f.now);
+  const plan = buildLegacyGlobalPlan(snapshot, report.users, [], new Set(), [], undefined, undefined, population);
+  expect(plan.players).toHaveLength(43);
+  expect(plan.players.slice(0, 3).map(row => row.elementKey)).toEqual([null, null, null]);
+  expect(plan).toMatchObject({ ownerDiscarded: 171, quarantined: 2, unapprovedAdditional: 1 });
+  expect(plan.issues.filter(row => row.severity === 'BLOCKER')).toEqual([]);
+  const extra = { ...report, users: [...report.users, { legacyLogin: 'discarded0', twitchUserId: '999000', currentLogin: 'discarded0', displayName: 'Fixture', renamed: false }] };
+  expect(() => revalidateFinalPopulation(population, extra, snapshot, f.now)).toThrow('TWITCH_REPORT_POPULATION_MISMATCH');
+  viewers.approved0!.element = 'pyrp'; f.files['viewers_data.json'] = JSON.stringify(viewers); snapshot = parseStreamerbotSnapshot(f.files);
+  const invalid = buildLegacyGlobalPlan(snapshot, report.users, [], new Set(), [], undefined, undefined, population);
+  expect(invalid.issues).toEqual(expect.arrayContaining([expect.objectContaining({ code: 'LEGACY_ELEMENT_INVALID', severity: 'BLOCKER' })]));
+});
+
+
+it('never remaps an already Native element from ignored legacy personal data', () => {
+  const f = evidence(), population = validateOwnerApprovedPopulation(f.raw, f.report, f.snapshot, f.now);
+  const viewers = JSON.parse(f.files['viewers_data.json']!); viewers.approved0.element = 'pyrp';
+  f.files['viewers_data.json'] = JSON.stringify(viewers); const snapshot = parseStreamerbotSnapshot(f.files);
+  const plan = buildLegacyGlobalPlan(snapshot, f.report.users, [{ id: 'native-id', displayName: 'Native', twitchUserId: f.report.users[0]!.twitchUserId,
+    elementKey: 'hydro', dataAuthority: 'NATIVE', canaryImported: true }], new Set(), [], undefined, undefined, population);
+  expect(plan.players[0]).toMatchObject({ elementKey: 'hydro', personalImport: false, viewer: {} });
+  expect(plan.issues.filter(row => row.severity === 'BLOCKER')).toEqual([]);
 });

@@ -215,3 +215,24 @@ describe('R1046 conservative claim in private PostgreSQL', () => {
     } finally { await fixture.admin.query(`DROP TABLE "${fixture.schema}".unknown_claim_domain`); }
   });
 });
+
+
+describe('R1046 has no element or level recovery gate', () => {
+  it.each([null, 'pyro'] as const)('retains the target and all progression/resources with element %s, then chooses only if absent', async elementKey => {
+    const subject = randomUUID(), twitchUserId = elementKey === null ? '83001' : '83002';
+    const target = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private recovery target', twitchIdentity: { twitchUserId, login: 'target', displayName: 'Target', firstSeenAt: at } }));
+    await db.player.update({ where: { id: target.id }, data: { elementKey } });
+    await db.playerProgression.update({ where: { playerId: target.id }, data: { xp: elementKey === null ? 300n : 30n, totalMessages: 77n } });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: target.id, resourceKey: 'moras' } }, data: { amount: 12345n } });
+    const temp = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private empty web', webIdentity: { provider: 'supabase', providerSubject: subject } }));
+    const web = await db.webIdentity.findUniqueOrThrow({ where: { playerId: temp.id } });
+    const graph = await captureTargetedPlayerRows(db, [target.id]);
+    await new TwitchProfileClaim(db).execute(web.id, temp.id, twitchUserId);
+    expect((await new PrismaCurrentPlayerStore(db).findByIdentity('supabase', subject))!).toMatchObject({ id: target.id, elementKey });
+    const after = await captureTargetedPlayerRows(db, [target.id]);
+    for (const [table, rows] of Object.entries(graph.tables)) if (table !== 'web_identities') expect(after.tables[table], table).toEqual(rows);
+    if (elementKey === null) expect(await new PrismaPlayerElementStore(db).chooseElement(target.id, 'hydro')).toBe('selected');
+    expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId: target.id } })).xp).toBe(elementKey === null ? 300n : 30n);
+    expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: target.id, resourceKey: 'moras' } } })).amount).toBe(12345n);
+  }, 90_000);
+});

@@ -46,7 +46,7 @@ export function validateOwnerApprovedPopulation(raw: unknown, historicalRaw: unk
 }
 
 export function revalidateFinalPopulation(population: OwnerApprovedPopulation, freshRaw: unknown, snapshot: Snapshot, now = new Date()): VerifiedTwitchReport {
-  const report = validateVerifiedTwitchReport(freshRaw, snapshot, now);
+  const report = validateVerifiedTwitchReport(freshRaw, snapshot, now, { kind: 'FINAL_POPULATION', population });
   if (report.conflicts.length || report.duplicates || population.approved.some(member =>
     !report.users.some(row => normalizeLegacyName(row.legacyLogin) === normalizeLegacyName(member.legacyLogin) && row.twitchUserId === member.twitchUserId)))
     throw new Error('FINAL_POPULATION_REVALIDATION_FAILED');
@@ -57,4 +57,9 @@ export async function loadOwnerApprovedPopulation(file: string, historicalFile: 
   const population = validateOwnerApprovedPopulation(await readLocalIdentityJson(file), await readLocalIdentityJson(historicalFile), historicalSnapshot);
   revalidateFinalPopulation(population, fresh, snapshot);
   return population;
+}
+
+/** Membership proof can be loaded before resolving a fresh snapshot: no element filter participates. */
+export async function loadHistoricalOwnerPopulation(file: string, historicalFile: string, historicalSnapshot: Snapshot) {
+  return validateOwnerApprovedPopulation(await readLocalIdentityJson(file), await readLocalIdentityJson(historicalFile), historicalSnapshot);
 }

@@ -1,9 +1,10 @@
+import { parseLegacyElement } from './legacy-element.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { Snapshot } from './streamerbot-snapshot.js';
 import { normalizeLegacyName, resolveSnapshotViewer } from './streamerbot-snapshot.js';
 import { identityProofHash } from './owner-approved-population.js';
-import { validateVerifiedTwitchReport, type VerifiedTwitchReport } from './verified-twitch-report.js';
+import { validateVerifiedTwitchReport, validateHistoricalTwitchReport, type VerifiedTwitchReport } from './verified-twitch-report.js';
 import { SnapshotPilotService } from './snapshot-pilot-service.js';
 import { applyLegacyPersonalState } from './legacy-personal-apply.js';
 import { compareLegacyPersonalState } from './legacy-personal-compare.js';
@@ -28,7 +29,10 @@ export const canaryBackupHash = (backup: Omit<CanaryBackup, 'hash'>) => createHa
 
 export async function planLegacyCanary(db: PrismaClient, snapshot: Snapshot, rawReport: unknown, twitchUserId: string,
   expectedPlayerId: string | null, cutoverAt: Date): Promise<CanaryPlan> {
-  const report = validateVerifiedTwitchReport(rawReport, snapshot);
+  const proof = validateHistoricalTwitchReport(rawReport);
+  const candidate = proof.users.find(row => row.twitchUserId === twitchUserId);
+  if (!candidate) throw new Error('CANARY_VERIFIED_ID_REQUIRED');
+  const report = validateVerifiedTwitchReport(rawReport, snapshot, new Date(), { kind: 'CANARY', legacyLogin: candidate.legacyLogin });
   const identities = report.users.filter(row => row.twitchUserId === twitchUserId);
   if (identities.length !== 1 || report.conflicts.length || report.duplicates || !Number.isFinite(cutoverAt.getTime())) throw new Error('CANARY_VERIFIED_ID_REQUIRED');
   const identity = identities[0]!, viewer = resolveSnapshotViewer(snapshot, identity.legacyLogin);
@@ -39,7 +43,7 @@ export async function planLegacyCanary(db: PrismaClient, snapshot: Snapshot, raw
   if (target && (target.dataAuthority !== 'LEGACY' || target.canary)) blockers.push('CANARY_LEGACY_AUTHORITY_REQUIRED');
   if (linked && linked.player.status !== 'ACTIVE' || target?.playerId && target.playerId !== linked?.playerId) blockers.push('CANARY_TARGET_CONFLICT');
   const playerId = linked?.playerId ?? randomUUID();
-  const player: PlannedPlayer = { playerId, legacyUsername: viewer.name, elementKey: String(viewer.data.element).toLowerCase(),
+  const player: PlannedPlayer = { playerId, legacyUsername: viewer.name, elementKey: parseLegacyElement(viewer.data.element).elementKey,
     displayName: linked?.player.displayName ?? identity.displayName, twitchUserId, twitchLogin: identity.currentLogin,
     twitchDisplayName: identity.displayName, mappingMode: linked ? 'EXISTING_VERIFIED_TWITCH' : 'TWITCH_ONLY', viewer: viewer.data, personalImport: true };
   const mapping = await new SnapshotPilotService(db, {} as never, 'local-canary-only').globalPlayerPlan(playerId, identity.legacyLogin, snapshot, cutoverAt);
@@ -72,7 +76,7 @@ async function assertCanaryIdle(db: Prisma.TransactionClient, twitchUserId: stri
 export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, actorPlayerId: string, plan: CanaryPlan,
   frozenAcknowledgement: string, writeBackup: (backup: CanaryBackup) => Promise<void>) {
   if (plan.blockers.length || frozenAcknowledgement !== STREAMERBOT_PATH_DISABLED) throw new Error('CANARY_PREFLIGHT_BLOCKED');
-  validateVerifiedTwitchReport(plan.report, plan.snapshot);
+  validateVerifiedTwitchReport(plan.report, plan.snapshot, new Date(), { kind: 'CANARY', legacyLogin: plan.player.legacyUsername });
   return db.$transaction(async tx => {
     await new TwitchNativeAuthority(db, config).requireOperator(tx, actorPlayerId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${plan.player.twitchUserId}`},0))::text`;

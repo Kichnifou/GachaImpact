@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Correction R1049 et trajectoire de fin R1050–R1054
+
+[R1049](../specifications/decisions-log.md) rend l'élément personnel nullable sans gate de niveau. Absence réelle → null et conservation du gameplay ; typo → LEGACY_ELEMENT_INVALID, jamais null par défaut. Résolution canary explicite et population fixe finale indépendante de l'élément ; ancien filtre uniquement en mode historique de répétition. Les domaines nécessitant un élément gardent leurs propriétaires, et R1046 conserve le même Player avant le choix standalone normal. Le garde unlink lit l'autorité persistante avant toute suppression/arrêt : opérateur actif bloqué, OFF explicite/audité requis, erreur DB fail-closed.
+
+Le cutover natif s'exploite silencieusement sans WebIdentity obligatoire ni OAuth individuel Twitch. Le rattachement ultérieur déplace WebIdentity vers ce même Player, sans seconde migration. Les futurs jobs Character quotidien et tirage mensuel Event auront catch-up, idempotence et propriétaires distincts, sans dépendance des resets critiques envers les fournisseurs externes ; contrats [R1051/R1053](../specifications/decisions-log.md) et [gate de révélation](../roadmap/implementation-order-v1.md). Aucun de ces jobs n'est ajouté dans la correction.
+
 ## Fondations pré-cutover R1048 — candidat review
 
 [Décision propriétaire R1048](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06), [guide opératoire](../process/twitch-native-foundations.md). TwitchNativeAuthority est la source PostgreSQL commune aux replicas. TwitchCommandPilot relit le désir et la couverture numérique avant consommation/exécution/envoi ; seule la preuve de transport reste transitoire et liée à la révision DB. Le hard-off et le gate GLOBAL priment ; OFF ne supprime pas la propriété personnelle NATIVE.

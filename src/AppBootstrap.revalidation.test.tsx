@@ -9,7 +9,7 @@ import AppBootstrap from './AppBootstrap'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
-  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
+  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
 }))
 vi.mock('./auth/auth-context', () => ({ useAuth: () => ({ status: mocks.status, session: mocks.status === 'signedIn' ? { user: { id: mocks.userId } } : null, signOut: mocks.signOut }) }))
@@ -133,3 +133,33 @@ it('does not expose the return refresh before the Player is resolved', async () 
   await act(async () => { window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
   expect(mocks.shell).toBeNull(); expect(mocks.api.getResources).not.toHaveBeenCalled()
 })
+
+
+it('recovers a no-element Twitch Player with retained gameplay, then uses normal choice without resetting its state', async () => {
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'temporary-web', elementKey: null });
+  await mount();
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'twitch-without-element', elementKey: null });
+  mocks.api.getResources.mockResolvedValue({ ...resources, primogems: '777' });
+  mocks.api.getProgression.mockResolvedValue({ totalXp: '60', level: 2 });
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Retour OAuth vérifié')!.click());
+  expect(mocks.shell).toBeNull(); expect(container.textContent).toContain('Choisis ton élément');
+  // Close the account dialog before the existing permanent element choice.
+  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'twitch-without-element', elementKey: 'hydro' });
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent?.includes('Hydro'))!.click());
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Choisir Hydro')!.click());
+  const shell = mocks.shell as ComponentProps<typeof GameShell> | null;
+  expect(shell?.player.id).toBe('twitch-without-element'); expect(shell?.player.elementKey).toBe('hydro');
+  expect(shell?.resources.primogems).toBe('777'); expect(shell?.progression.totalXp).toBe('60');
+  expect(mocks.api.chooseElement).toHaveBeenCalledWith('hydro'); expect(mocks.signOut).not.toHaveBeenCalled();
+});
+
+it('does not ask a recovered level-1 Player with an element to choose it again', async () => {
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'recovered-level-one', elementKey: 'pyro' });
+  mocks.api.getProgression.mockResolvedValue({ totalXp: '30', level: 1 });
+  await mount();
+  expect(mocks.shell?.player.id).toBe('recovered-level-one');
+  expect(container.textContent).not.toContain('Choisis ton élément');
+  expect(mocks.api.chooseElement).not.toHaveBeenCalled();
+});

@@ -1,5 +1,11 @@
 # 06 — Audit legacy : Gacha / Invocation
 
+## Politique propriétaire de catalogue / assets — R1051
+
+[R1051](../specifications/decisions-log.md) supersède le seul critère « sortie atteinte » de R108 ; R109 (cible hors rotation) et les protections catalogue/bannières restent inchangés. Futur job vers 00:00 Europe/Paris avec catch-up au démarrage, séparé des resets critiques : sorties déjà effectives ou officiellement annoncées/confirmées dans les sept prochains jours, multi-source fiable, ni leaks/bêta non confirmée ni champs GachaImpact internes inventés. Nom, rareté, élément fiables ; arme/région/localisation et assets si disponibles/fiables. Fournisseurs configurables/auditables, politique définitive au lot, Réauditer les sources sans changement automatique sur une panne. Les constats datés sur les fournisseurs ci-dessous restent historiques.
+
+Modération > Personnages conserve le catalogue/owner commun : modale Ajouter/Modifier, upload manuel ADMIN et import automatique, état des assets/fallbacks audité contre la DB réelle, filtre Assets manquants. Notification persistante ADMIN après import réussi avec accès direct à la modale du Character ; contrat détaillé [Administration](../specifications/administration-moderation-v1.md). Mitya est un test réel hors fenêtre possible uniquement sur autorisation explicite/override ADMIN audité, sans hardcode permanent ; aucun import/donnée réelle Mitya testé ici. Livraison avant révélation selon [R1054](../specifications/decisions-log.md), aucun code du lot dans la correction R1048.
+
 **Amendement Chat R1038 — étape 29 :** Select exige le nom exact normalisé ; Vote garde son matching propre phrase/typo non ambiguë. Pull mémorise pity du tirage et Back-to-back dans le résultat JSON existant, sans nouveau calcul RNG. Réponses séquentielles complètes, passifs/XP/C6 et refunds modernes depuis les faits autoritatifs ; Stella restitue la progression C6 réelle sans remboursement ajouté. Le coût et les règles Gacha restent ceux de ce domaine. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
 
 **Révision propriétaire étape 29 — R1036 :** Banniere.txt aligné sur la présentation legacy avec la rotation moderne 4×5★ + 6×4★, ordre autoritatif, emojis élémentaires, dates inclusives Europe/Paris et cible valide/conseil !select. Canonique !banniere ; !bannière conservé, !ban ajouté explicitement, !banner absent. Consultation sans mutation, fichiers JSON legacy ou génération liée au Chat. Une réponse normale reste unique ; absence de bannière localisée. [Contrat des sorties](../commands/command-reference.md#banniere). Implémentation/test automatique ≠ déploiement ou recette publique ; nouveau rendu/!ban à recetter. Rotation, sélection et économie inchangées.
@@ -360,7 +366,7 @@ Ce job est séparé du reset critique du jeu :
 1. récupérer les personnages connus depuis plusieurs sources externes ;
 2. comparer avec le catalogue GachaImpact via identifiants stables et noms normalisés ;
 3. détecter les nouveaux candidats ;
-4. vérifier qu'ils sont réellement sortis/jouables ;
+4. vérifier sortie officielle atteinte ou sortie officiellement confirmée dans les sept prochains jours (R1051 supersède le critère historique) ;
 5. vérifier que les données essentielles sont présentes ;
 6. récupérer/normaliser les informations françaises ;
 7. importer automatiquement si les critères sont satisfaits ;
@@ -372,7 +378,7 @@ Ce job est séparé du reset critique du jeu :
 Ne pas importer un personnage uniquement parce qu'il apparaît sur une source bêta/leak.
 
 Conditions minimales avant import automatique :
-- personnage officiellement jouable/sorti ou release confirmée et date de sortie atteinte ;
+- personnage officiellement sorti ou officiellement annoncé avec sortie confirmée dans les sept prochains jours (R1051) ;
 - nom fiable ;
 - rareté connue ;
 - élément connu ;
@@ -1389,7 +1395,7 @@ Obligatoire :
 - nom exploitable ;
 - rareté 4★ ou 5★ ;
 - élément ;
-- confirmation que le personnage est réellement sorti.
+- sortie officielle atteinte ou confirmée dans les sept prochains jours ; le seul critère de date atteinte de R108 est supersédé par R1051.
 
 À récupérer si disponibles :
 - arme ;

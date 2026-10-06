@@ -27,6 +27,7 @@ beforeAll(async () => {
 });
 function setup(id = playerId, runtime = false) {
   const db = {
+    twitchNativeAuthority: { findUnique: vi.fn().mockResolvedValue(null) },
     webIdentity: { findUnique: vi.fn().mockResolvedValue({ id: otherId, playerId: id }) },
     twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null), upsert: vi.fn().mockResolvedValue({}), deleteMany: vi.fn().mockResolvedValue({ count: 1 }) },
     twitchLinkState: { create: vi.fn().mockResolvedValue({}) },
@@ -510,5 +511,34 @@ describe('Faveur status projection and independent disable', () => {
     subscriptions.disablePilotChatSubscription.mockClear(); await service.unlink(identity);
     expect(subscriptions.disablePilotChatSubscription).toHaveBeenCalledOnce(); expect(subscriptions.disablePilotFavorSubscription).toHaveBeenCalledOnce();
     await expect(setup(otherId, true).service.disableFavor(identity)).rejects.toMatchObject({ code: 'TWITCH_PILOT_FORBIDDEN' });
+  });
+});
+
+
+describe('operator native authority unlink guard', () => {
+  it.each(['CANARY', 'GLOBAL'])('blocks %s before identity or subscription work', async desiredMode => {
+    const { db, service, subscriptions } = setup(playerId, true);
+    db.twitchNativeAuthority.findUnique.mockResolvedValue({ desiredMode, operatorPlayerId: playerId } as never);
+    db.twitchIdentity.findUnique.mockResolvedValue({ playerId, twitchUserId: '12345', login: 'kichnifou' } as never);
+    await expect(service.unlink(identity)).rejects.toMatchObject({ code: 'TWITCH_NATIVE_AUTHORITY_UNLINK_BLOCKED' });
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(subscriptions.unlinkPilotIdentity).not.toHaveBeenCalled();
+    expect(subscriptions.disablePilotChatSubscription).not.toHaveBeenCalled();
+    expect(db.twitchNativeAuthority.findUnique).toHaveBeenCalledWith({ where: { id: 'twitch-commands' } });
+  });
+  it('permits OFF after an explicit kill, while other gates retain their ownership', async () => {
+    const { db, service } = setup();
+    db.twitchNativeAuthority.findUnique.mockResolvedValue({ desiredMode: 'CANARY', operatorPlayerId: playerId } as never);
+    await expect(service.unlink(identity)).rejects.toMatchObject({ code: 'TWITCH_NATIVE_AUTHORITY_UNLINK_BLOCKED' });
+    db.twitchNativeAuthority.findUnique.mockResolvedValue({ desiredMode: 'OFF', operatorPlayerId: playerId } as never);
+    await expect(service.unlink(identity)).resolves.toEqual({ linked: false });
+    expect(db.twitchIdentity.deleteMany).toHaveBeenCalledOnce();
+  });
+  it('fails closed on authority DB failure without deleting or stopping anything', async () => {
+    const { db, service, subscriptions } = setup(playerId, true);
+    db.twitchNativeAuthority.findUnique.mockRejectedValue(new Error('private DB unavailable'));
+    await expect(service.unlink(identity)).rejects.toThrow('private DB unavailable');
+    expect(db.twitchIdentity.deleteMany).not.toHaveBeenCalled();
+    expect(subscriptions.unlinkPilotIdentity).not.toHaveBeenCalled();
   });
 });

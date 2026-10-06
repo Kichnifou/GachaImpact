@@ -4,7 +4,7 @@ import { projectLegacyFavorPeriod } from './legacy-favor-calendar.js';
 import { mapLegacyXpProvenance } from './legacy-xp-provenance.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-const elements = new Set(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']);
+import { parseLegacyElement } from './legacy-element.js';
 
 export function legacyInstant(value: unknown): Date | null {
   if (value == null || value === '') return null;
@@ -25,8 +25,7 @@ export function legacyBusinessDate(value: unknown): Date | null {
 }
 
 export function mapLegacyPersonalFacts(viewer: Record<string, unknown>, snapshotHash: string, cutoverAt: Date) {
-  const elementKey = typeof viewer.element === 'string' ? viewer.element.toLowerCase() : '';
-  if (!elements.has(elementKey)) throw new Error('Invalid legacy element.');
+  const { elementKey } = parseLegacyElement(viewer.element);
   const dates = object(viewer.dates);
   const firstSeenAt = legacyInstant(dates.firstSeen);
   const lastMessageAt = legacyInstant(dates.lastSeen);
