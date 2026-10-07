@@ -1,21 +1,23 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — incident Kichnifou ; STOP Ceo
+## Point courant — recovery Kichnifou terminal ; smoke en attente
 
-Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--incident-kichnifou--stop-ceo-07102026) porte l'état réel et les contrôles : rétention historique `60f0c5f` approuvée et promue, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary, CANARY révision 8. Mynonyme : trois smokes et F5/reconnexion validés. Kichnifou : import et extension exécutés une seule fois, puis échec `!pity` et bootstrap standalone ; receipt RECEIVED/EXECUTING sans intent ni réponse, GET concours expirant à cinq minutes. Ceo n'a pas été préparé/importé/lié.
+Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--recovery-kichnifou-terminal--smoke-en-attente-07102026) porte les preuves actuelles : `cf43ddf` approuvé/promu/déployé, dry-run strictement sans écriture PASS, ancien pity récupéré **PROCESSED/RESPONSES/une SENT**, audit unique. Même receipt/clé/date ; graphe complet, compteurs/observation, accès/imports et trois backups exacts. **Ce receipt est terminal : ne jamais rejouer le recovery.** CANARY révision 8, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary ; Streamer.bot OFF, GLOBAL/batch interdits.
 
-**Consigne actuelle : STOP Ceo ; aucun nouvel apply/extend ni commande Twitch.** Les trois canaries, identités, provenance et backups restent préservés. Le backend existant a été redémarré normalement après contrôle inflight/outbound ; health 200, contrôle exact de conservation PASS, standalone rétabli et confirmé par le propriétaire après Ctrl+F5 ; le GET concours public répond 200 en 162 ms à 13:07:18 UTC le 07/10. Le receipt pity reste RECEIVED/EXECUTING sans intent ni réponse : Twitch reste non validé, aucune nouvelle déconnexion/reconnexion Web n’est présumée. La reprise existante des réponses ne peut pas reprendre ce stade EXECUTING : aucune modification manuelle du receipt ni réexécution n'est autorisée. Cause exacte encore non démontrée ; preuves et tests exécutés au Master, avec les huit échecs DB initiaux conservés malgré les rejeux réussis.
+**STOP humain smoke Kichnifou :** trois nouvelles commandes pity/quotis/box puis F5 et déconnexion/reconnexion, réponse propriétaire « validé ». Contrôler ensuite les receipts et l'identité du même Player Web/Twitch avant COMPLETE. **Ceo reste STOP**, non préparé/importé/lié ; son futur Player B TWITCH_ONLY distinct doit précéder OAuth/comparaison/choix Twitch. Aucun nouvel apply/extend/rollback legacy Kichnifou.
 
-Un correctif borné existant exige tests DB/runtime complets puis review/main selon mission. Nouveau mécanisme sensible ou réparation non prévue : STOP sur review pour review indépendante. Streamer.bot reste OFF, GLOBAL interdit. Les parcours ci-dessous demeurent des instructions conditionnelles ; ils n'autorisent aucune poursuite pendant l'incident.
+Runtime sain aux contrôles ; **contention de pool reproduite et corrigée ; cause exacte de l'incident public historique non démontrée**. Les huit échecs DB initiaux et les timeouts intermédiaires restent dans l'historique au Master ; le succès actuel ne les efface pas.
 
-### Candidat LOCAL-ONLY — récupérer un EXECUTING pity sans intent
+<a id="candidat-local-only--récupérer-un-executing-pity-sans-intent"></a>
 
-**Nouveau mécanisme sensible, review uniquement : review indépendante ChatGPT avant main/déploiement et toute utilisation publique.** Le receipt réel reste inchangé ; standalone rétabli, cause historique runtime non démontrée. L'attente du pool provoquée par les lectures racines sous transaction du receipt est reproduite en privé ; le candidat raccourcit ces transactions, sans augmenter pool/timeouts.
+### LOCAL-ONLY — récupérer un EXECUTING pity sans intent
 
-Après approbation/promotion seulement, utiliser depuis `server/` le CLI canonique, avec les valeurs exactes de la preuve privée fraîche et la configuration opérateur autorisée existante :
+**Mécanisme approuvé/promu/déployé et utilisé une seule fois sur le pity exact.** Recovery terminal acquis ci-dessus ; ce receipt ne satisfait plus les guards et ne doit jamais être rejoué. Les contrats techniques suivants restent conservés pour comprendre le mécanisme, sans autoriser une autre opération.
+
+Le CLI canonique utilise depuis `server/` les valeurs exactes des preuves privées et la configuration opérateur existante via Railway CLI authentifiée sur GachaImpact/production. Injection en mémoire par `railway run --no-local` ; aucun `.env` reconstruit, secret copié/imprimé ou variable publique modifiée.
 
 ```text
-npm run twitch:recover-executing-pity -- --operator-player <UUID-opérateur> --receipt <UUID-existant> --expected-player <UUID-Player> --twitch-id <ID-immuable> --expected-revision <révision-CANARY> --command-key <clé-persistée> --business-at <instant-ISO-persisté> --acknowledgement STREAMERBOT_PATH_DISABLED
+railway run --no-local --service GachaImpact --environment production npm run twitch:recover-executing-pity -- --operator-player <UUID-opérateur> --receipt <UUID-existant> --expected-player <UUID-Player> --twitch-id <ID-immuable> --expected-revision <révision-CANARY> --command-key <clé-persistée> --business-at <instant-ISO-persisté> --acknowledgement STREAMERBOT_PATH_DISABLED
 ```
 
 Dry-run par défaut : aucun prepare/execute, audit, sauvegarde ou envoi. Schéma public requis par le CLI ; aucun scheduler/serveur HTTP/souscription démarré. Ne jamais injecter une allowlist ou résoudre le Player par pseudo pour contourner un refus. Une exécution distincte explicitement autorisée ajoute seulement `--apply` ; aucun force/batch/GLOBAL/handler alternatif.
@@ -24,7 +26,7 @@ Gates : opérateur ACTIVE/ADMIN/allowlist/Twitch lié, transport réel inspecté
 
 Le vrai executor prépare une **lecture pity actuelle**, sans reconstruire d'ancienne valeur ou de cible mutationnelle, au businessAt déjà réservé ; clé/date/identités/receipt sont conservés. Lectures Gacha/acteur seules, output complet et aucune mutation/cible exigés. Intent et audit existant atomiques, puis execute et publication par le même pipeline ; observation du message déjà COMPLETED non rejouée. Aucune fusion gameplay, nouvelle opération métier ou faux résultat. Vérifier le receipt exact PROCESSED/RESPONSES/toutes SENT ; une issue HTTP ambiguë reste bloquée, sans promesse exactly-once réseau.
 
-Mutation sans intent, opération déjà engagée, intent présente ou RESPONSES ne sont **jamais** reprises par ce CLI. Après crash post-intent ou refus : STOP, inspecter l'état réel ; seule redelivery authentique ou reprise existante response-only quand RESPONSES atteint, aucune modification manuelle/commande neuve/loop automatique. Le smoke Kichnifou et Ceo restent interdits avant récupération et validation complètes, selon la gate du Master.
+Mutation sans intent, opération déjà engagée, intent présente ou RESPONSES ne sont **jamais** reprises par ce CLI. Après crash post-intent ou refus : STOP, inspecter l'état réel ; seule redelivery authentique ou reprise existante response-only quand RESPONSES atteint, aucune modification manuelle/commande neuve/loop automatique. Le recovery exact est désormais terminal ; le smoke Kichnifou est la gate humaine actuelle. Ceo reste interdit avant validation complète de ce smoke, selon le Master.
 
 ## Historique — candidat rétention historique ; STOP review indépendante
 
