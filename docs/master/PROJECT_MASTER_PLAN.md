@@ -1,13 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : OFF canonique acquis ; cause pool non démontrée, STOP Ceo.
+Version : reprise contrôlée ; STOP bootstrap Concours authentifié.
 Date : 2026-10-07
-Statut : **OFF CANONIQUE RÉVISION 11 PROUVÉ ; STOP CEO.** Trois NATIVE/canaries et cosmétiques exacts. Cause DB/pool et bootstrap authentifié non clos ; aucune nouvelle promotion/déploiement.
+Statut : **OFF 11 ET TROIS CANARIES PRÉSERVÉS ; BOOTSTRAP AUTHENTIFIÉ ÉCHOUÉ.** Sondes DB/Prisma réussies ; GET Concours 499 après 163,6 s. Ceo et main STOP.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="reprise-controlee-stop-bootstrap-contest-20261007"></a>
+
+## Point courant — reprise contrôlée ; STOP bootstrap Concours authentifié, 07/10/2026
+
+**Gate échouée, aucun import Ceo.** Après le checkpoint 2166e1c, trois sondes Prisma bornées/successives avec configuration Railway canonique réussissent (568/561/652 ms environ), chacune avec disconnect terminé ; trois migrate status successifs confirment 62 migrations à jour. Lecture admin pendant la tentative réelle : OFF révision 11, quatorze connexions idle, zéro transaction active/idle-in-transaction/verrou bloquant. PostgreSQL a toujours la même date de démarrage 18:25:17 UTC, max_connections=60 ; aucune nouvelle erreur de pool/P1001 dans les fenêtres runtime bornées. Cela prouve les accès contrôlés actuels, sans clore l’incident applicatif ni établir sa cause historique.
+
+**Bootstrap réellement authentifié ÉCHEC :** aucun navigateur n’est connecté au canal d’automatisation ; le propriétaire a donc testé lui-même son standalone Kichnifou par le parcours normal, sans session/JWT fabriqués ni token exposé, et rapporte le blocage « Connexion aux astres… », capture à l’appui. Corrélation proxy 18:59:00–19:03:16 UTC, sans troncature : à 19:00:04, GET /api/v1/me puis treize autres lectures métier authentifiées retournent 200 ; OPTIONS /api/v1/contest retourne 204, ce qui ne valide pas son GET. À 19:02:48, **GET /api/v1/contest termine 499 après 163 614 ms**. Le bootstrap attend cette lecture dans Promise.all. Le compte et les lectures principales sont accessibles ; la restauration complète reste bloquée sur Concours. Le service attend sa Promise de réconciliation partagée jusqu’à règlement : chemin compatible avec un blocage après incident DB, sans preuve de l’état interne de cette Promise dans le processus actif. Aucune cause racine pool/coalescence/fournisseur déclarée résolue.
+
+**Railway et protection :** l’instance réellement active reste SUCCESS du SHA 82d8d145a0507b4321132aebf885bce1221017fa, une replica Online ; le rouge présenté par le propriétaire appartient au hard-off FAILED de l’historique. Logs de cet échec revérifiés : build réussi, pre-deploy Prisma P1001 à 18:22:15, pas de nouveau runtime hard-off. Aucune opération staged/applying en attente. Configuration canonique lue par railway run --no-local : TWITCH_COMMAND_PILOT_ENABLED=false ; valeur conservée, jamais réactivée. Cette configuration souhaitée ne prouve pas à elle seule le flag du processus de l’ancien déploiement ; OFF persistant 11, relu indépendamment, reste la protection acquise. Aucun redémarrage/redeploy/push main ni changement de configuration effectué dans cette reprise.
+
+**Préservation acquise :** exactement trois NATIVE/canaries, targets/imports/identités et trois backups originaux exacts, deux audits de réparation inchangés ; Kichnifou 96 avatars/5 titres, Mynonyme 2/1, Kichni_Test 0/0. Garde canonique : zéro PENDING/EXECUTING protégé ou réponse SENDING/AMBIGUOUS. Ceo A reste ACTIVE, associé à l’Auth confirmé et à la même WebIdentity immuable, sans Twitch ; aucune target/identité/import Ceo. Aucun rafraîchissement source/Helix, préflight/rehearsal/apply Ceo de cette reprise. Aucun replay/import/recovery/réparation des trois canaries. Helpers/proofs locaux ignorés uniquement ; aucun code produit, DDL ou fixture DB publique. Streamer.bot OFF ; aucune nouvelle commande, GLOBAL/batch interdits.
+
+**STOP demandé lorsque le bootstrap échoue.** Publier ce constat sur review uniquement ; main reste 82d8d14. Prochain travail : diagnostiquer/restaurer le GET Concours du processus actif et réussir un vrai bootstrap authentifié, puis renouveler les sondes DB/runtime. Ne pas attendre une cause historique impossible comme condition autonome : elle peut rester non démontrée après stabilité actuelle réellement prouvée. Tout nouveau mécanisme produit/pool exige tests et review indépendante avant promotion. Seulement si ces gates passent : snapshot 17/17/Helix frais, préflight borné terminé, deux progressions significatives et TWITCH_ONLY B distinct, rehearsal privée/backup/comparaison/rollback exact ; importer B DATA_IMPORTED/LEGACY/non-canary sans toucher A ou les trois NATIVE. Le seul gate humain OAuth/lien vient après import vérifié. Aucun gate humain Ceo proposé aujourd’hui.
 
 <a id="pool-incident-off-canonique-20261007"></a>
 
-## Point courant — OFF canonique acquis ; cause pool non démontrée, 07/10/2026
+## Historique — OFF canonique acquis ; cause pool non démontrée, 07/10/2026
 
 **Protection acquise : OFF révision 11**, par `TwitchNativeAuthority.configure` avec opérateur réel et `expectedRevision=10`, le 07/10 à 18:42:49 UTC. Relecture Prisma puis canal admin indépendante : OFF/11, exactement Kichni_Test, Mynonyme et Kichnifou NATIVE/canary, targets byte-identiques. Zéro PENDING, aucun EXECUTING ou outbound SENDING/AMBIGUOUS protégé ; les RECEIVED passifs sont distingués par le garde canonique. Receipts de commandes récents PROCESSED/RESPONSES/toutes SENT ; aucune nouvelle commande envoyée. Imports DATA_IMPORTED, identités ACTIVE, trois backups originaux byte-exact et deux audits DERIVED_COSMETICS_REPAIRED inchangés. Possessions exactes : Kichnifou 96 avatars/5 titres, Mynonyme 2/1, Kichni_Test 0/0. Le graphe personnel est identique avant/après OFF ; par rapport au checkpoint de réparation, seuls last_app_activity_at/updated_at d’activité et updated_at d’un Player ont évolué. Aucun gain, mélange ou réparation de progression.
 

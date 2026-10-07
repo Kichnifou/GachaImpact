@@ -1,6 +1,11 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — OFF canonique 11 prouvé ; STOP Ceo
+## Point courant — STOP bootstrap authentifié Concours ; OFF 11 conservé
+
+[Preuves et prochaine gate au Master](../master/PROJECT_MASTER_PLAN.md#reprise-controlee-stop-bootstrap-contest-20261007) : trois sondes Prisma/configuration Railway et trois migrate status (62 migrations) réussis, connexions fermées ; zéro transaction active/verrou bloquant à la sonde admin. Le vrai test standalone Kichnifou du propriétaire échoue : quatorze GET principaux 200, puis GET /api/v1/contest 499 après 163 614 ms ; bootstrap complet non validé. Instance active SUCCESS 82d8d14, rouge hard-off historique au pre-deploy P1001 ; aucun changement en attente, flag canonique false conservé et OFF persistant 11. Trois NATIVE/imports/backups/cosmétiques exacts, deux audits inchangés. Ceo A Auth/Web intact sans Twitch ; aucune source/Helix/rehearsal/import Ceo repris. Review uniquement, main et Ceo STOP selon la gate explicite d’échec bootstrap. Diagnostiquer/restaurer Concours puis refaire le bootstrap authentifié avant toute reprise ; cause historique peut rester inconnue. Aucune nouvelle commande/replay/GLOBAL/batch, Streamer.bot OFF.
+
+
+## Historique — OFF canonique 11 prouvé ; STOP Ceo
 
 [État et diagnostic au Master](../master/PROJECT_MASTER_PLAN.md#pool-incident-off-canonique-20261007) : OFF acquis par owner canonique/révision attendue 10, relectures Prisma/admin OFF/11, trois NATIVE/canaries et imports/backups/cosmétiques exacts, deux audits de réparation inchangés, zéro opération/outbound incertain. Reproduction privée du timeout laissant un enfant détaché vivant ; helper local corrigé, aucun code produit/configuration changé. Sondes Prisma, migrate status 62 et lectures publiques health/historique Concours réussies ; cause racine pool/redémarrage PostgreSQL/P1001 non démontrée et bootstrap authentifié non retesté. Le hard-off FAILED reste non effectif ; ne pas le relancer ni promouvoir main pendant ce reliquat. Ceo A authentifié reste sans Twitch, aucun B/import/OAuth ; prochain préflight/rehearsal privé doit finir avant tout import séparé. Streamer.bot OFF, aucune nouvelle commande, GLOBAL/batch/replays interdits.
 
