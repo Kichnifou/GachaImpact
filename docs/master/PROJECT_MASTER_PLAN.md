@@ -1,13 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : P0 standalone / Concours approuvé ; préflight acquis, promotion et recette publique à contrôler.
+Version : code P0 standalone / Concours promu et déployé ; recette humaine publique attendue.
 Date : 2026-10-07
-Statut : **P0 APPROUVÉ ; PRÉFLIGHT ACQUIS ; PUBLIC NON VALIDÉ.** OFF11 et trois canaries/backups préservés, Ceo STOP.
+Statut : **CODE P0 DÉPLOYÉ ; VALIDATION HUMAINE NON ACQUISE.** OFF11 et trois canaries/backups préservés, Ceo STOP.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="p0-deploye-recette-humaine-20261007"></a>
+
+## Point courant — code P0 promu et déployé ; recette publique Kichnifou attendue
+
+**Promotion exécutée :** code a6dceebe10772a6ad262c07b85e63a2a4f1a7575 approuvé indépendamment, finalisation documentaire 7e900df39fa19939b03cec9b66961f74ae2134e8 publiée sur review puis ensemble promu vers main par fast-forward strict. Push/fetch du 07/10 à 20:44 UTC : main/review/origin main/origin review tous 7e900df, divergence 0/0, worktree/index propres. Diffs GitHub exacts des 25 fichiers du candidat et quatre fichiers d’approbation ; aucune source produit changée après a6dceeb. Le présent checkpoint ajoute seulement les résultats documentaires réels ; son pipeline automatique sera contrôlé sur son SHA exact avant demande de recette, sans nouveau code, reconfiguration ou redéploiement manuel.
+
+**Déploiement produit vérifié sur 7e900df, 07/10/2026 :** Railway SUCCESS à 20:46:47 UTC, déploiement 10f71959-3ed8-4027-84c1-f815332679c9, Online/une replica, zéro warning/critical actif, aucun staged/applying. Pre-deploy : 62 migrations trouvées, aucune pending, pas de P1001 ; application démarrée et healthcheck réussi. Health public 200/status ok (12 ms proxy). Cloudflare Pages check GitHub completed/success pour le SHA complet 7e900df, déploiement 48823cf2-ca53-4937-b8a1-072b7cd9593f ; preview 48823cf2.gachaimpact.pages.dev et production 200, chemins et octets JS/CSS de production strictement identiques à ce build exact. Backend et frontend contrôlés séparément. L’ancien FAILED 82d8d14/pre-deploy P1001 reste historique et n’a pas été rejoué.
+
+**Contrôles après déploiement, 20:47–20:48 UTC :** migrate status canonique Railway PASS/62 à jour/code 0 ; flag canonique false conservé. PostgreSQL : 62 migrations terminées/zéro incomplète, zéro connexion bloquée/transaction longue/idle-in-transaction. Gate READ ONLY PASS et disconnect terminé : OFF révision 11, exactement trois NATIVE, graphes/imports/targets/identités/audits strictement identiques au préflight, trois backups byte/hash/provenance exacts, cosmétiques 0/0, 2/1, 96/5 et deux réparations inchangées, zéro opération/outbound incertain ; Ceo A Auth/Web sans Twitch/B/import intact. Aucun apply/extend/recovery/réparation/canary/commande Twitch exécuté. Logs du nouveau runtime dans la fenêtre bornée depuis 20:46:34 : zéro erreur DB/pool/P1001 et zéro contest-stage lent/erreur ; seul health HTTP observé à ce contrôle, donc aucune corrélation authentifiée Concours ni preuve de validation métier.
+
+**Validation humaine NON ACQUISE / prochaine action exacte :** après confirmation des pipelines du checkpoint documentaire final, sur https://gachaimpact.pages.dev avec Kichnifou : Ctrl+F5 et chargement complet du jeu ; ouvrir Concours (vrai état serveur ou indisponibilité maîtrisée/réessayable) ; déconnexion puis reconnexion ; confirmer que Concours ne bloque jamais l’ensemble du standalone. Aucun test Twitch, aucune liaison Ceo. Corréler ensuite les GET et contest-stage sur une fenêtre exacte ; aucune ancienne recette ni health seul ne remplace ce retour. Si Concours demeure suspendu, nommer l’étape effectivement observée et ouvrir une correction ciblée ultérieure. Le couplage frontend et sa correction sont prouvés ; la cause SQL historique reste inconnue.
+
+**STOP Ceo conservé :** aucun import/OAuth/lien, batch/GLOBAL, replay des trois imports/backups/réparations ou recovery Kichnifou ; Streamer.bot OFF. Autorité commandes OFF11 et flag false conservés. Aucune nouvelle décision Rxxx. Le Master conserve les anciens incidents et distingue code/local/DB, déploiement technique et validation publique encore attendue.
 
 <a id="p0-promotion-approuvee-20261007"></a>
 
-## Point courant — P0 approuvé ; préflight acquis, promotion contrôlée autorisée
+## Historique — approbation P0 et préflight acquis avant promotion
 
 **Review indépendante ChatGPT approuvée par le propriétaire :** a6dceebe10772a6ad262c07b85e63a2a4f1a7575, aucun finding bloquant. Promotion/déploiements contrôlés autorisés dans cette mission ; aucun nouveau changement produit ni décision Rxxx. Les preuves/tests/limites du [candidat](#p0-bootstrap-contest-candidat-20261007) sont conservés. Le diff réel GitHub des 25 fichiers correspond exactement au commit local ; HEAD/origin review exacts, main/origin main 82d8d145a0507b4321132aebf885bce1221017fa, ancestry stricte 0/4 et worktree/index propres au préflight.
 
