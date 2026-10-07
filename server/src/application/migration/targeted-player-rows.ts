@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { classifyOperationForeignKeys, operationReferenceContract, operationForeignKeySignature } from './operation-retention-contract.js';
+import { assertLegacyCosmeticsClassified } from '../appearance/derived-player-cosmetics.js';
 
 export const personalReplacementTables = [
   'player_resource_balances', 'resource_movements', 'player_economy_stats', 'player_bank_accounts', 'bank_transactions',
@@ -133,6 +134,7 @@ export async function captureTargetedPlayerRows(tx: Prisma.TransactionClient, pl
 
 /** Reject unowned references before deletion. A canary never cascades into another domain/Player. */
 export async function assertTargetedDeletionSafe(tx: Prisma.TransactionClient, graph: RowGraph, deleting: ReadonlySet<string>, retention?: TargetedRetention) {
+  if (deleting.has('player_cosmetics')) await assertLegacyCosmeticsClassified(tx, graph.playerIds);
   graph = await deletionGraph(tx, graph, retention);
   const { schema, fks } = await targetedRowMetadata(tx);
   if (schema !== graph.schema) throw new Error('TARGETED_ROWS_SCHEMA_MISMATCH');

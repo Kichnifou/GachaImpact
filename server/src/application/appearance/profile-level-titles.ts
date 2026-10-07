@@ -2,6 +2,7 @@ import type { Prisma } from '../../../generated/prisma/client.js';
 import { unlockCosmeticInTransaction } from './appearance-service.js';
 
 export const profileLevelTitleThresholds = [10, 25, 50, 75, 100] as const;
+export const profileLevelTitleNames = ['Éclat naissant', 'Voyageur astral', 'Étoile montante', 'Maître des Astres', 'Légende astrale'] as const;
 /** Called inside the XP transaction, only for newly crossed levels. */
 export async function unlockProfileLevelTitles(tx: Prisma.TransactionClient, input: { playerId: string; levelsReached: readonly number[]; operationId: string }) {
   const levels = profileLevelTitleThresholds.filter(level => input.levelsReached.includes(level));

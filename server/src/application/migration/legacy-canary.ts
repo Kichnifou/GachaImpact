@@ -55,7 +55,7 @@ export async function planLegacyCanary(db: PrismaClient, snapshot: Snapshot, raw
     const rows = await captureTargetedPlayerRows(db, [playerId]);
     retention = await planTargetedRetention(db, rows);
     await assertTargetedDeletionSafe(db, rows, new Set<string>(personalReplacementTables), retention);
-  } catch { blockers.push('CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR'); }
+  } catch (error) { blockers.push(error instanceof Error && error.message === 'LEGACY_COSMETIC_FAMILY_UNCLASSIFIED' ? error.message : 'CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR'); }
   return { snapshot, report, identityReportHash: identityProofHash(report), cutoverAt, player, expectedPlayerId, mapping, blockers,
     deferred: planDeferredIdentityFacts(snapshot, new Set([normalizeLegacyName(identity.legacyLogin)]), cutoverAt), retention };
 }

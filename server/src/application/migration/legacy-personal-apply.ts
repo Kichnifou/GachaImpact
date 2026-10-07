@@ -3,6 +3,7 @@ import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/b
 import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
 import type { SnapshotPilotService } from './snapshot-pilot-service.js';
+import { assertLegacyCosmeticsClassified, clearLegacyDerivedCosmetics, rebuildDerivedPlayerCosmetics } from '../appearance/derived-player-cosmetics.js';
 
 type PlayerMapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>;
 /** Writes only current, proven personal state. No synthetic BusinessOperation, movement or acquisition. */
@@ -17,6 +18,7 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
   const { lastMessageAt, xpProvenance } = facts;
   const cutoverDate = getBusinessDate(cutoverAt);
   const isExisting = player.mappingMode === 'EXISTING_VERIFIED_TWITCH';
+  await assertLegacyCosmeticsClassified(tx, [player.playerId]);
   if (isExisting) await tx.player.update({ where: { id: player.playerId }, data: { elementKey: player.elementKey, legacyUsername: player.legacyUsername,
     equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null } });
   else await tx.player.create({ data: { id: player.playerId, displayName: player.displayName, elementKey: player.elementKey,
@@ -104,12 +106,11 @@ export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, pla
         operationId: null, claimedAt: null,
         legacyProvenance: { source: 'viewers_data.json.favor.lastClaimDate', snapshotHash } }, update: {} });
   }
-  const avatarDefinitions = await tx.cosmeticDefinition.findMany({ where: { sourceCharacterId: { in: mapping.boxRows.map(row => row.characterId) }, type: CosmeticType.AVATAR }, select: { id: true } });
-  await tx.playerCosmetic.deleteMany({ where: { playerId: player.playerId } });
-  if (avatarDefinitions.length) await tx.playerCosmetic.createMany({ data: avatarDefinitions.map(definition => ({
-    playerId: player.playerId, cosmeticId: definition.id, unlockSource: 'legacy-proven-ownership',
-    provenance: { source: 'viewers_data.json.box', snapshotHash },
-  })) });
+  // Classification above refuses unknown families; only explicitly derived
+  // possessions are replaced, never silently discarding future cosmetics.
+  await clearLegacyDerivedCosmetics(tx, player.playerId);
+  await rebuildDerivedPlayerCosmetics(tx, { playerId: player.playerId, now: cutoverAt, source: 'LEGACY_DERIVED_COSMETICS',
+    provenance: { source: 'viewers_data.json', snapshotHash, batchId, mode: 'SILENT_BACKFILL' } });
   await tx.migrationRun.create({ data: { playerId: player.playerId, batchId, snapshotHash, status: 'COMPLETED',
     summary: { personalDomains: mapping.domains.filter(domain => domain.category === 'PLAYER_LOCAL_PHYSICAL').length,
       characters: mapping.boxRows.length, missions: mapping.missionMapping.rows.length } } });

@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import { captureTargetedPlayerRows, type RowGraph } from './targeted-player-rows.js';
+import { assertLegacyCosmeticsClassified } from '../appearance/derived-player-cosmetics.js';
 
 // The contract is deliberately exhaustive. A new table blocks cutover until assigned here.
 export const referenceTables = [
@@ -102,6 +103,10 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
 /** Private-schema rehearsal only. Public cutover has no callable apply path in this foundation lot. */
 export async function applyPrivateCutoverPurge(db: Prisma.TransactionClient, plan: CutoverPurgePlan): Promise<void> {
   if (!/^batch_test_[0-9a-f]{32}$/.test(plan.schema)) throw new Error('Public cutover mutation is unavailable.');
+  if (plan.deleteOrder.some(row => row.table === 'player_cosmetics' && row.rows > 0n)) {
+    const owners = await db.playerCosmetic.findMany({ where: { playerId: { notIn: plan.retainedRows?.playerIds ?? [] } }, select: { playerId: true }, distinct: ['playerId'] });
+    await assertLegacyCosmeticsClassified(db, owners.map(row => row.playerId));
+  }
   for (const { table, rows } of plan.deleteOrder) {
     if (rows === 0n) continue;
     const retained = plan.retainedRows?.tables[table];

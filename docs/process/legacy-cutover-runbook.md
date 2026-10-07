@@ -1,6 +1,20 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — Kichnifou COMPLETE ; gate identité Web Ceo
+## Point courant — blocker cosmétiques ; STOP review indépendante avant Ceo
+
+État et contrôles au [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--blocker-cosmétiques-avant-ceo--stop-review-indépendante-07102026). Kichnifou COMPLETE côté liaison/commandes, mais possessions dérivées incomplètes après import. Candidat sur review uniquement : **aucune promotion main, réparation publique, migration/OAuth/extension Ceo, batch ou GLOBAL dans cette mission**. Trois canaries et leurs backups préservés ; Streamer.bot OFF. Le recovery pity est terminal, ne jamais le rejouer ni réimporter Kichnifou/Mynonyme pour réparer les cosmétiques.
+
+### Réparateur canonique — utilisation future après review et déploiement
+
+La CLI locale `npm run migration:legacy:canary:repair-cosmetics -- …` est dry-run par défaut et n'expose aucune route HTTP. Elle exige pour un seul Player : `--operator-player`, `--expected-player` (UUID), `--twitch-id` immuable, `--expected-revision`, `--acknowledgement STREAMERBOT_PATH_DISABLED`, `--confirm-backup-hash`, `--import-backup` original et `--output` neuf sous local-data/identity-resolutions ignoré. Les valeurs privées restent hors Git/stdout ; les fichiers doivent avoir leurs parents existants, aucun lien/traversée/écrasement. Le backup original v1/v2, son hash, la préimage et la provenance DATA_IMPORTED sont vérifiés, jamais modifiés.
+
+Après approbation indépendante seulement, promouvoir/déployer le même candidat puis mettre les commandes OFF via le chemin normal. Contrôler frais les trois NATIVE/canaries ACTIVE, identités/imports, zéro PENDING/EXECUTING/outbound incertain et backups exacts. Faire un dry-run par Player depuis PostgreSQL actuel. Attendu à l'audit : Kichnifou +2 avatars/+5 titres ; Mynonyme +0/+1 ; Kichni_Test +0/+0. Un écart, famille inconnue, conflit de définition ou possession surnuméraire bloque : pas de SQL manuel, suppression de relation ou import rejoué.
+
+L'application explicite ajoute `--apply --confirm-plan-hash <HASH> --expected-avatars <N> --expected-titles <N>` et un autre output neuf. Relecture/verrous/transaction Serializable, confirmation exacte du plan et des comptes, préimage complète fsync avant écriture, owner SILENT_BACKFILL, contrôle postimage attendu=réel ; graphe gameplay, possessions préexistantes, notifications, équipement, autorité et provenance restent exacts. Audit DERIVED_COSMETICS_REPAIRED seulement si ajout ; nouveau dry-run exact puis replay = ALREADY_EXACT sans audit ni écriture. Toute modification de l'état invalide le plan. Garder les preuves privées et les backups originaux, puis réarmer l'ensemble canary existant par le chemin normal et contrôler le runtime. Ne pas passer Ceo NATIVE à cette occasion.
+
+**Gate actuelle : review indépendante ChatGPT du commit/diff ; réparation publique non exécutée.** Identification standalone Ceo terminée en READ ONLY : compte Web confirmé par le propriétaire, ID Auth immuable/session canonique non expirée, WebIdentity exacte et présence applicative authentifiée sur le même Player ACTIVE. Zéro identité Twitch/target/import sur ce Player ; aucun rapprochement par displayName ni session/JWT fabriqués. Identifiants et preuve restent locaux ignorés. Aucune liaison Twitch tant que le blocker n'est pas corrigé, revu et réellement réparé ; reprendre ensuite le parcours Ceo ci-dessous dans son ordre canonique.
+
+## Historique — Kichnifou COMPLETE ; ancien gate identité Web Ceo
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--kichnifou-complete--gate-identité-web-ceo-07102026) porte les preuves actuelles : `cf43ddf` approuvé/promu/déployé, dry-run strictement sans écriture PASS, ancien pity récupéré **PROCESSED/RESPONSES/une SENT**, audit unique. Même receipt/clé/date ; graphe complet, compteurs/observation, accès/imports et trois backups exacts. **Ce receipt est terminal : ne jamais rejouer le recovery.** CANARY révision 8, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary ; Streamer.bot OFF, GLOBAL/batch interdits.
 

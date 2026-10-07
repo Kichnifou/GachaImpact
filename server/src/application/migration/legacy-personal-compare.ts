@@ -4,6 +4,7 @@ import type { SnapshotPilotService } from './snapshot-pilot-service.js';
 import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
 import { businessDateToDatabaseDate } from '../../domain/time/business-date.js';
+import { assertDerivedPlayerCosmeticsExact } from '../appearance/derived-player-cosmetics.js';
 
 type Mapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>;
 const subset = (actual: object | null, expected: object, domain: string) => {
@@ -12,6 +13,7 @@ const subset = (actual: object | null, expected: object, domain: string) => {
 };
 /** Compare persisted gameplay to the common mapping before committing DATA_IMPORTED. No values enter logs. */
 export async function compareLegacyPersonalState(tx: Prisma.TransactionClient, player: PlannedPlayer, mapping: Mapping, hash: string, at: Date) {
+  await assertDerivedPlayerCosmeticsExact(tx, player.playerId);
   const where = { playerId: player.playerId }, facts = mapLegacyPersonalFacts(player.viewer, hash, at);
   subset(await tx.player.findUnique({ where: { id: player.playerId } }), { elementKey: player.elementKey, legacyUsername: player.legacyUsername, displayName: player.displayName }, 'PLAYER');
   subset(await tx.playerProgression.findUnique({ where }), { ...mapping.progression, lastXpAt: facts.xpProvenance.lastXpAt,

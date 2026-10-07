@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
-import { CosmeticType, CosmeticVisibility } from '../../../generated/prisma/client.js';
+import { assertLegacyCosmeticsClassified, clearLegacyDerivedCosmetics, rebuildDerivedPlayerCosmetics } from '../appearance/derived-player-cosmetics.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { TwitchPilotService } from '../twitch/twitch-pilot-service.js';
 import { AppError } from '../../api/errors.js';
@@ -439,6 +439,7 @@ export class SnapshotPilotService {
       if (openTrades) throw new AppError('Résolvez les échanges en attente avant ce remplacement des ressources.', 409, 'SNAPSHOT_PENDING_TRADES');
       if (await tx.migrationPreview.findUnique({ where: { id: previewToken.id } }))
         throw new AppError('Cette confirmation a déjà été utilisée.', 409, 'SNAPSHOT_PREVIEW_REQUIRED');
+      await assertLegacyCosmeticsClassified(tx, [player.id]);
       await tx.migrationPreview.create({ data: { id: previewToken.id, playerId: player.id, snapshotHash: snapshot.hash, expiresAt: previewToken.expiresAt } });
       await tx.player.update({ where: { id: player.id }, data: { elementKey: report.facts.elementKey, legacyUsername: viewer.name,
         equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null } });
@@ -452,22 +453,11 @@ export class SnapshotPilotService {
       if (report.boxRows.length) await tx.playerCharacter.createMany({ data: report.boxRows.map(row => ({ playerId: player.id, characterId: row.characterId,
         constellation: row.constellation, copies: row.copies, firstObtainedAt: row.firstObtainedAt, favorite: row.favorite,
         provenance: row.provenance })) });
-      const importedCharacterIds = report.boxRows.map(row => row.characterId);
-      const avatarCharacters = importedCharacterIds.length ? await tx.character.findMany({ where: { id: { in: importedCharacterIds } }, select: { id: true, externalKey: true, name: true } }) : [];
-      if (avatarCharacters.length) await tx.cosmeticDefinition.createMany({ data: avatarCharacters.map(character => ({
-        externalKey: `character-avatar:${character.externalKey}`, sourceCharacterId: character.id, type: CosmeticType.AVATAR,
-        displayName: character.name, assetPath: null, visibility: CosmeticVisibility.SECRET,
-      })), skipDuplicates: true });
-      const avatarDefinitions = await tx.cosmeticDefinition.findMany({ where: { sourceCharacterId: { in: importedCharacterIds } },
-        select: { id: true, sourceCharacterId: true, type: true, externalKey: true } });
-      const avatarByCharacter = new Map(avatarDefinitions.map(definition => [definition.sourceCharacterId, definition]));
-      if (avatarCharacters.some(character => avatarByCharacter.get(character.id)?.externalKey !== `character-avatar:${character.externalKey}` || avatarByCharacter.get(character.id)?.type !== CosmeticType.AVATAR))
-        throw new AppError('Définition Avatar personnage incohérente.', 409, 'SNAPSHOT_AVATAR_CONFLICT');
-      await tx.playerCosmetic.deleteMany({ where: { playerId: player.id } });
-      if (avatarDefinitions.length) await tx.playerCosmetic.createMany({ data: avatarDefinitions.map(definition => ({
-        playerId: player.id, cosmeticId: definition.id, unlockSource: 'legacy-proven-ownership',
-        provenance: { source: 'viewers_data.json.box', snapshotHash: snapshot.hash },
-      })) });
+      // The classification gate runs before the first write. Both legacy owners
+      // rebuild the same deterministic families from final persisted state.
+      await clearLegacyDerivedCosmetics(tx, player.id);
+      await rebuildDerivedPlayerCosmetics(tx, { playerId: player.id, now: new Date(), source: 'LEGACY_DERIVED_COSMETICS',
+        provenance: { source: 'viewers_data.json', snapshotHash: snapshot.hash, previewId: previewToken.id, mode: 'SILENT_BACKFILL' } });
       await tx.c6CompetitionProgress.deleteMany({ where: { playerId: player.id } });
       if (report.c6Rows.length) await tx.c6CompetitionProgress.createMany({ data: report.c6Rows.map(row => ({ playerId: player.id, ...row })) as Prisma.C6CompetitionProgressCreateManyInput[] });
       await tx.team.deleteMany({ where: { playerId: player.id } });

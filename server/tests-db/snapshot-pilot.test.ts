@@ -126,12 +126,12 @@ describe('private snapshot pilot transaction', () => {
     expect(await db.notification.count({ where: { playerId } })).toBe(0);
     expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
     expect(await db.player.count()).toBe(1);
-    expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(1);
+    expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(2);
     expect(await service.apply(identity, first, preview.previewId)).toEqual({ ...applied, replayed: true });
     expect(await db.migrationRun.count({ where: { playerId, snapshotHash: preview.snapshotHash } })).toBe(1);
     await db.playerProgression.update({ where: { playerId }, data: { xp: 999n } });
     await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } }, data: { amount: 999n } });
-    const testTitle = await db.cosmeticDefinition.create({ data: { externalKey: `pilot-test-title-${playerId}`, type: 'TITLE', displayName: 'Test title' } });
+    const testTitle = await db.cosmeticDefinition.findUniqueOrThrow({ where: { externalKey: 'title-level-25' } });
     await db.playerCosmetic.create({ data: { playerId, cosmeticId: testTitle.id, unlockSource: 'standalone-test' } });
     await db.player.update({ where: { id: playerId }, data: { equippedTitleCosmeticId: testTitle.id } });
     const refresh = await service.preview(identity, first);
@@ -140,7 +140,7 @@ describe('private snapshot pilot transaction', () => {
     expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).xp).toBe(300n);
     expect((await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } } })).amount).toBe(80n);
     expect((await db.player.findUniqueOrThrow({ where: { id: playerId } })).equippedTitleCosmeticId).toBeNull();
-    expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(1);
+    expect(await db.playerCosmetic.count({ where: { playerId } })).toBe(2);
     expect(await db.migrationRun.count({ where: { playerId, snapshotHash: preview.snapshotHash } })).toBe(2);
     expect(await db.businessOperation.count({ where: { playerId, operationType: 'migration.streamerbot-refresh' } })).toBe(0);
     expect(await db.resourceMovement.count({ where: { playerId, sourceChannel: 'MIGRATION' } })).toBe(0);
@@ -174,6 +174,17 @@ describe('private snapshot pilot transaction', () => {
     expect(await db.businessOperation.count({ where: { playerId, operationType: 'permanent-mission.reward' } })).toBe(0);
   }, 60_000);
 
+  it('fails closed on an unknown cosmetic before writing or clearing equipment', async () => {
+    const unknown = await db.cosmeticDefinition.create({ data: { externalKey: 'future-pilot-cosmetic', type: 'TITLE', displayName: 'Future fixture' } });
+    await db.playerCosmetic.create({ data: { playerId, cosmeticId: unknown.id, unlockSource: 'private-fixture' } });
+    const before = await db.playerCosmetic.findMany({ where: { playerId } });
+    const progression = await db.playerProgression.findUniqueOrThrow({ where: { playerId } });
+    const source = bundle({ xp: 5189 }), preview = await service.preview(identity, source);
+    await expect(service.apply(identity, source, preview.previewId)).rejects.toThrow('LEGACY_COSMETIC_FAMILY_UNCLASSIFIED');
+    expect(await db.playerCosmetic.findMany({ where: { playerId } })).toEqual(before);
+    expect(await db.playerProgression.findUniqueOrThrow({ where: { playerId } })).toEqual(progression);
+    await db.playerCosmetic.delete({ where: { playerId_cosmeticId: { playerId, cosmeticId: unknown.id } } });
+  });
   it('rejects a different bundle and makes concurrent confirmation a single logical refresh', async () => {
     const source = bundle({ xp: 500 });
     const preview = await service.preview(identity, source);

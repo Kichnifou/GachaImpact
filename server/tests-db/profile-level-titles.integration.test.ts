@@ -104,15 +104,16 @@ describe('Profile level titles 059 — isolated schema', () => {
   });
 });
 
-it('rehearses all 59 migrations with Prisma deploy/status in a separate private schema', async () => {
+it('rehearses all 62 current migrations with Prisma deploy/status in a separate private schema', async () => {
   const rehearsal = isolatedBatchDatabase();
   try {
     await rehearsal.setup({ prismaMigrations: true });
-    expect(rehearsal.migrationStatus).toContain('59 migrations found');
+    expect(rehearsal.migrationStatus).toContain('62 migrations found');
     expect(rehearsal.migrationStatus).toContain('Database schema is up to date');
     expect(await rehearsal.database.cosmeticDefinition.count({ where: { type: 'TITLE' } })).toBe(5);
     const rows = await rehearsal.admin.query('SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name');
-    expect(rows.rows).toHaveLength(59);
-    expect(rows.rows.at(-1).migration_name).toContain('_059_');
+    expect(rows.rows).toHaveLength(62);
+    expect(rows.rows.at(-1).migration_name).toContain('_062_');
+    expect(rows.rows.some(row => row.migration_name.includes('_059_'))).toBe(true);
   } finally { await rehearsal.cleanup(); }
 }, 180_000);

@@ -1,5 +1,37 @@
 # Migration legacy V1 — contrat canonique
 
+## Cosmétiques dérivés et audit des remplacements — candidat review, 07/10/2026
+
+Blocker découvert avant Ceo : l'ancien remplacement effaçait les titres et ne recréait que les avatars déjà définis. Les backfills 048/059 exécutés avant l'import ne certifient donc pas les possessions du Player après import ; un Player au niveau 100 ne refranchira pas les seuils. Le candidat couvre applyLegacyPersonalState et l'ancien SnapshotPilotService avec un helper Apparence commun : XP final PG -> derivePlayerLevel/profileLevelTitleThresholds ; PlayerCharacter 4★/5★ final -> unlockCharacterAvatars ; titres -> unlockCosmeticInTransaction/SILENT_BACKFILL. Définitions nécessaires créées/vérifiées sans dépendance à un backfill antérieur ; aucun historique économique, notification ou auto-équipement. Équipement importé reste null selon le contrat existant, rollback restaure le préimage exact. Source/provenance explicites distinguent LEGACY_DERIVED_COSMETICS et IMPORTED_CANARY_COSMETIC_REPAIR, avec snapshot/batch ou import/backup/plan. Aucune modification du modèle Apparence, des seuils, du catalogue validé ou des migrations historiques.
+
+Le contrat de suppression n'autorise que les avatars canoniques de personnages et les cinq titres TITLE/PLAYER_LEVEL canoniques. Une possession d'une famille inconnue/conflictuelle fait refuser le préflight ou la transaction avant toute suppression : aucun effacement silencieux. Le garde couvre également deleteTargetedRows et la purge de rehearsal privée. Compare personnel contrôle l'égalité des possessions dérivées attendues/réelles après remplacement.
+
+Le réparateur local canonique est borné à un Player immuable parmi l'ensemble exact de trois NATIVE/canaries importées, avec opérateur autorisé, OFF/révision/ACK, identités ACTIVE cohérentes, dernier DATA_IMPORTED non rollbacké et backup exact, zéro opération/outbound incertain sur l'ensemble. Dry-run READ ONLY sans audit ni création de définition ; application avec plan/counts confirmés, verrous et Serializable, backup durable préalable. Il ajoute uniquement les possessions manquantes depuis XP/Box actuels ; possessions dérivées surnuméraires ou familles inconnues bloquent. Contrôle postimage : égalité attendue/réelle, toutes possessions initiales conservées byte-for-byte, graphe personnel hors cosmétiques/notifications/targets/contrôle/import inchangés. Audit Twitch existant trace le plan et les hashes/pré-postimage ; aucun BusinessOperation historique fabriqué. Idempotence : état déjà exact -> aucune attribution, backup ou audit. [Usage futur](../process/legacy-cutover-runbook.md#réparateur-canonique--utilisation-future-après-review-et-déploiement).
+
+### Matrice d'audit des autres états personnels remplacés
+
+Audit du code de mapping/apply/compare, des 62 migrations et des backfills 002/003/004/007/008/023/041/048/059 ; lecture publique READ ONLY de 25 tables sur les trois canaries. Les backfills de référentiels n'inventent pas un historique de Player. « Aucun écart établi » porte sur les sources et contrôles disponibles, pas sur un historique absent des JSON.
+
+| DOMAINE | SOURCE | RECONSTRUIT PAR IMPORT ? | ÉCART RÉEL ? | ACTION |
+| --- | --- | --- | --- | --- |
+| Avatars | PlayerCharacter PG final 4★/5★ | Anciennement seulement définitions existantes ; candidat complet | Kichnifou : deux manquants | Helper commun ; réparation future +2 |
+| Titres de niveau | XP PG final, seuils 10/25/50/75/100 | Anciennement non ; candidat exact | Kichnifou : cinq ; Mynonyme : un | Backfill silencieux ; niveau max couvert |
+| Teams/base slots/membres | Team/savedTeams legacy + Box importée | Dix slots de base, active/membres/éventuel slot supplémentaire | Aucun ; dix Teams par canary | Pas de nouvelle réparation |
+| Missions permanentes/défi quotidien | longMissions + catalogue V1 + métriques finales ; défi du jour valide | 31 états, baselines/progrès certain/Z, catchup marqué effectué | Aucun ; 31 états par canary | Ne pas attribuer de récompense/rang absent du legacy |
+| Progression/Gacha/cible | XP/stats/pity/garanties legacy ; niveau calculé | Singletons complets ; cible de bannière globale différée | Aucun hors titres | Pas de gain XP/overflow ni nouvelle cible inventée |
+| Ressources/Banque/économie/social | Soldes/agrégats legacy ; jour métier cutover | Neuf ressources, Banque/compteurs, intérêt verrouillé au cutover | Aucun ; singletons présents | Aucun mouvement/transaction historique synthétique |
+| Roue/Daily | Compteurs/dates legacy et jour métier | Singletons ; spin du jour seulement si courant, résultat inconnu conservé | Aucun | Résultat/RNG et premier claim historiques inconnus non reconstruits |
+| Items/Collection | coffre/specialItems + catalogue | Quantités certaines, provenance ; acquisitions seulement si prouvées par le propriétaire global | Aucun manque établi | Ne pas inventer de date/ItemAcquisition depuis un solde |
+| C6/constellations | Box autoritaire + c6_characters/stats/titres certains | Possession/copies/favoris/C6 cohérents ou refus/quarantaine | Aucun manque établi | Aucun Concours/résultat/reward historique fabriqué |
+| Combat/personnages/Expédition | Stats legacy, expédition et instants certains | Agrégats/personnages/expédition présents ; loadouts/KO/attempts modernes non déduits | Aucun ; singletons présents | État combat quotidien global/interjoueur différé, pas d'historique inventé |
+| Faveur | Jours restants/dates legacy projetés au cutover | Période/claim certain ; absence légitime si source absente | Aucun manque établi | Pas de FavorGrant/claim reward rétroactif synthétique |
+| Opérations/historiques supprimés | Preuves legacy et contrat de rétention FK ciblée | Seuls parents terminaux nécessaires aux faits conservés restent exacts | Absence volontaire, pas un écart dérivé | Contrat rétention/rollback existant inchangé |
+| Amitié/Boss/Event/Codes/Votes/Giveaway et états récents | Sources globales/interjoueur et owners V1 | Différés/classifiés par le plan canary ; états nouveaux initialisés par leur owner | Aucun autre backfill personnel manquant identifié | Aucun import/récompense partagés ou batch/GLOBAL dans ce lot |
+
+Les suppressions de ressources/mouvements/transactions/pulls/acquisitions/operations, missions, Box/C6, Teams, items, daily et stats/loadouts modernes ont toutes une disposition ci-dessus. Access identities/roles/privacy/préférences hors gameplay restent hors remplacement ; aucune nouvelle famille cosmétique ou future table n'obtient une autorisation implicite.
+
+**Publication review uniquement, STOP review indépendante. Aucune réparation publique, import/OAuth/extension Ceo ni batch/GLOBAL ; main inchangée.** Validation exécutée au Master, preuves individuelles ignorées ; aucun nouveau mécanisme de migration publique globale.
+
 ## Liaison joueur et sauvegardes internes — R1055
 
 Pour les trois recettes réelles, la [précision propriétaire R1055 du 07/10/2026](../specifications/decisions-log.md#r1055--liaison-twitch-unifiée-et-progression-définitive-2026-10-06) fait autorité : Mynonyme/Kichnifou déjà liés utilisent EXISTING_VERIFIED_TWITCH sur le même Player ; Ceo teste volontairement TWITCH_ONLY distinct avant OAuth, comparaison et choix Twitch, puis NATIVE seulement après validation. Elle supersède l’ancien ordre Ceo d’OAuth préalable ci-dessous. État/preuves au Master, gates au runbook ; aucune association par displayName.

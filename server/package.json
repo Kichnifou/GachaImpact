@@ -23,6 +23,7 @@
     "migration:legacy:canary:rollback": "tsx scripts/legacy-canary.mts rollback",
     "migration:legacy:canary:transfer": "tsx scripts/transfer-imported-canary.mts",
     "migration:legacy:canary:extend": "tsx scripts/extend-imported-canary.mts",
+    "migration:legacy:canary:repair-cosmetics": "tsx scripts/repair-imported-canary-cosmetics.mts",
     "twitch:recover-executing-pity": "tsx scripts/recover-executing-pity.mts",
     "migration:legacy:verify-ddl": "tsx scripts/verify-legacy-ddl.mts",
     "typecheck": "tsc --noEmit --project tsconfig.json",

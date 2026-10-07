@@ -3,7 +3,7 @@ import { CosmeticType, CosmeticVisibility, NotificationState, Prisma } from '../
 /** Grants owned character avatars inside the caller's authoritative transaction. */
 export async function unlockCharacterAvatars(
   transaction: Prisma.TransactionClient,
-  input: { playerId: string; characterIds: readonly string[]; now: Date; silent?: boolean; unlockSource?: string },
+  input: { playerId: string; characterIds: readonly string[]; now: Date; silent?: boolean; unlockSource?: string; provenance?: Prisma.InputJsonValue },
 ) {
   const characterIds = [...new Set(input.characterIds)];
   if (!characterIds.length) return { newlyUnlocked: 0 };
@@ -52,7 +52,7 @@ export async function unlockCharacterAvatars(
       cosmeticId: byCharacter.get(character.id)!.id,
       unlockedAt: input.now,
       unlockSource: input.unlockSource ?? 'gacha-first-ownership',
-      provenance: { characterId: character.id },
+      provenance: { characterId: character.id, ...(input.provenance ? { backfill: input.provenance } : {}) },
     })),
     skipDuplicates: true,
   });
