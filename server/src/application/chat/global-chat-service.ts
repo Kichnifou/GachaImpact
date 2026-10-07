@@ -23,6 +23,7 @@ import { verifiedPlayerActor } from '../player/player-execution-actor.js';
 import { withPlayerCommandExecution } from '../player/player-command-execution.js';
 import { firstDailyMessageResult } from './daily-reward-chat-result.js';
 import { BusinessError } from '../errors.js';
+import { isRetainedHistoricalOperation } from '../migration/historical-operation-retention.js';
 
 const invalid = (message: string) => new AppError(message, 400, 'CHAT_INVALID');
 const unavailable = () => new AppError('Ce message est indisponible.', 404, 'CHAT_UNAVAILABLE');
@@ -172,7 +173,14 @@ export class GlobalChatService {
         const summary = existing.resultSummary as ChatOperationSummary | null;
         if (existing.playerId !== player.id || existing.operationType !== 'chat.send' || summary?.fingerprint !== fingerprint || existing.status !== 'COMPLETED' || !summary.messageId) throw conflict();
         const message = await tx.globalChatMessage.findUniqueOrThrow({ where: { id: summary.messageId }, include: messageInclude });
-        return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true, dailyRewardElement: summary.dailyRewardElement };
+        const historicalPersonalReplacement = await isRetainedHistoricalOperation(tx, player.id, existing.id);
+        // Its personal domain operation may have been replaced. Without a stored
+        // answer, dispatching this historical command could mutate the new state.
+        if (historicalPersonalReplacement && message.messageType === 'COMMAND' && !await tx.globalChatMessage.findUnique({
+          where: { sourceChannel_externalMessageId: { sourceChannel: 'SYSTEM', externalMessageId: `command:${message.id}` } }, select: { id: true },
+        })) throw new AppError('Cette ancienne commande ne peut pas être rejouée. Envoie une nouvelle commande.', 409, 'CHAT_HISTORICAL_REPLAY_REQUIRES_NEW_KEY');
+        return { message: project(message, player.id), generation: message.generation, xpGranted: summary.xpGranted ?? 0, refreshScopes: summary.refreshScopes ?? [], dailyChallengeCompleted: summary.dailyChallengeCompleted ?? false, replayed: true, dailyRewardElement: summary.dailyRewardElement,
+          historicalPersonalReplacement };
       }
       if (submissionOrder === null) throw conflict();
       // Pacing time belongs to the serialized Player turn, not to an earlier network arrival.
@@ -260,9 +268,12 @@ export class GlobalChatService {
       const projected = resolvedMentions.length
         ? await tx.globalChatMessage.findUniqueOrThrow({ where: { id: message.id }, include: messageInclude })
         : message;
-      return { message: project(projected, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false, dailyRewardElement: actor.element_key };
+      return { message: project(projected, player.id), generation, xpGranted, refreshScopes, dailyChallengeCompleted, replayed: false, dailyRewardElement: actor.element_key, historicalPersonalReplacement: false };
     });
-    const { dailyRewardElement, ...result } = accepted;
+    const { dailyRewardElement, historicalPersonalReplacement, ...result } = accepted;
+    // The current personal state replaced the historical reward effects. An exact
+    // retained replay returns its old result without paying them into that new state.
+    if (historicalPersonalReplacement) return result;
     if (result.message.messageType !== 'PLAYER' || !dailyRewardElement || !isElementKey(dailyRewardElement)) return result;
     // The Chat transaction has committed and released lockPlayer. Freeze its day and eligibility
     // on retries; a historical POST must never become a claim for a later day.

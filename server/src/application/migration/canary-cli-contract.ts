@@ -20,9 +20,14 @@ export function parseCanaryArguments(args: string[]) {
   return { mode, values };
 }
 
-export const canaryBackupSchema = z.object({ version: z.literal(1), kind: z.literal('TARGETED_LEGACY_CANARY'), twitchUserId: z.string().regex(/^[1-9][0-9]{0,127}$/),
+const canaryBackupFields = { kind: z.literal('TARGETED_LEGACY_CANARY'), twitchUserId: z.string().regex(/^[1-9][0-9]{0,127}$/),
   hash: z.string().regex(/^[a-f0-9]{64}$/), snapshotHash: z.string().regex(/^[a-f0-9]{64}$/), identityReportHash: z.string().regex(/^[a-f0-9]{64}$/), target: z.object({
     twitchUserId: z.string(), playerId: z.uuid().nullable(), dataAuthority: z.literal('LEGACY'), canary: z.literal(false), acknowledgement: z.string().nullable(),
     transferredAt: z.iso.datetime().nullable(), updatedAt: z.iso.datetime() }).strict().nullable(),
   rows: z.object({ schema: z.string(), playerIds: z.array(z.uuid()).length(1), tables: z.record(z.string().regex(/^[a-z][a-z0-9_]*$/), z.array(z.string())),
-    order: z.array(z.string()), hash: z.string().regex(/^[a-f0-9]{64}$/) }).strict() }).strict();
+    order: z.array(z.string()), hash: z.string().regex(/^[a-f0-9]{64}$/) }).strict() };
+export const canaryBackupSchema = z.discriminatedUnion('version', [
+  z.object({ ...canaryBackupFields, version: z.literal(1) }).strict(),
+  z.object({ ...canaryBackupFields, version: z.literal(2), retention: z.object({ version: z.literal(1), foreignKeys: z.array(z.string()),
+    operations: z.array(z.string()), references: z.array(z.object({ foreignKey: z.string(), rows: z.array(z.string()) }).strict()) }).strict() }).strict(),
+]);

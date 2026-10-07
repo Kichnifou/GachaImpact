@@ -28,4 +28,18 @@ describe('local canary CLI guards, without executing public apply', () => {
     expect(canaryBackupHash({ ...preimage, rows: { ...rows, schema: 'other' } })).not.toBe(hash);
     expect(canaryBackupSchema.safeParse({ ...backup, accessToken: 'forbidden' }).success).toBe(false);
   });
+  it('requires the version 2 retention proof, hashes it, and preserves strict version 1 reading', () => {
+    const tables = { players: [], business_operations: [] };
+    const base = { kind: 'TARGETED_LEGACY_CANARY' as const, twitchUserId: '900001', snapshotHash: 'a'.repeat(64), identityReportHash: 'b'.repeat(64),
+      target: null, rows: { schema: 'public', playerIds: [id], tables, order: Object.keys(tables), hash: rowGraphHash(tables) } };
+    const retention = { version: 1 as const, foreignKeys: [], operations: [], references: [] };
+    const preimage = { ...base, version: 2 as const, retention };
+    const backup = { ...preimage, hash: canaryBackupHash(preimage) };
+    expect(canaryBackupSchema.safeParse(backup).success).toBe(true);
+    expect(canaryBackupSchema.safeParse({ ...base, version: 2, hash: backup.hash }).success).toBe(false);
+    expect(canaryBackupSchema.safeParse({ ...backup, version: 1 }).success).toBe(false);
+    expect(canaryBackupHash({ ...preimage, retention: { ...retention, operations: ['synthetic tampering'] } })).not.toBe(backup.hash);
+    const old = { ...base, version: 1 as const };
+    expect(canaryBackupSchema.safeParse({ ...old, hash: canaryBackupHash(old) }).success).toBe(true);
+  });
 });
