@@ -27,6 +27,71 @@ async function selectSnapshot(container: HTMLElement) {
 }
 
 describe('Configuration > Compte', () => {
+  it('sends exactly one authenticated start POST for a same-tick double click', async () => {
+    const { createGameApiClient } = await vi.importActual<typeof import('../api/game-api')>('../api/game-api')
+    const url = 'https://id.twitch.tv/oauth2/authorize?state=identity-post-fixture'
+    const fetchImplementation = vi.fn<typeof fetch>().mockResolvedValue(new Response(JSON.stringify({ url })))
+    const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'fixture-token', fetchImplementation })
+    api.startTwitchLink.mockImplementationOnce(() => client.startTwitchLink())
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null, identityLinkAvailable: true })
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined)
+    const container = await mount()
+    const link = button(container, 'Lier mon compte Twitch')
+    await act(async () => { link.click(); link.click() })
+    expect(fetchImplementation).toHaveBeenCalledExactlyOnceWith('https://api.example/api/v1/me/twitch/start', expect.objectContaining({ method: 'POST' }))
+    expect(new Headers(fetchImplementation.mock.calls[0]?.[1]?.headers).get('authorization')).toBe('Bearer fixture-token')
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(url)
+    await act(async () => link.click())
+    expect(fetchImplementation).toHaveBeenCalledOnce()
+    expect(link.disabled).toBe(true)
+    expect(link.getAttribute('aria-busy')).toBe('true')
+  })
+  it.each(['single', 'same tick', 'nearby'])('keeps identity OAuth pending through navigation after %s clicks', async clicks => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null, identityLinkAvailable: true })
+    let release!: (value: { url: string }) => void
+    api.startTwitchLink.mockImplementationOnce(() => new Promise(resolve => { release = resolve }))
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined)
+    const refresh = vi.fn()
+    const container = await mount(refresh)
+    const link = button(container, 'Lier mon compte Twitch')
+    await act(async () => { link.click(); if (clicks === 'same tick') link.click() })
+    expect(link.disabled).toBe(true)
+    expect(link.getAttribute('aria-busy')).toBe('true')
+    if (clicks === 'nearby') await act(async () => link.click())
+    expect(api.startTwitchLink).toHaveBeenCalledExactlyOnceWith()
+    expect(navigate).not.toHaveBeenCalled()
+    const url = 'https://id.twitch.tv/oauth2/authorize?state=identity-fixture'
+    await act(async () => release({ url }))
+    expect(navigate).toHaveBeenCalledExactlyOnceWith(url)
+    expect(link.disabled).toBe(true)
+    expect(link.getAttribute('aria-busy')).toBe('true')
+    await act(async () => link.click())
+    expect(api.startTwitchLink).toHaveBeenCalledOnce()
+    expect(refresh).not.toHaveBeenCalled()
+    expect(api.resolveTwitchLink).not.toHaveBeenCalled()
+  })
+  it.each(['request', 'invalid URL', 'navigation'])('releases identity OAuth pending after a %s failure and permits retry', async failure => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null, identityLinkAvailable: true })
+    const url = 'https://id.twitch.tv/oauth2/authorize?state=identity-retry-fixture'
+    if (failure === 'request') api.startTwitchLink.mockRejectedValueOnce(Error('request failed'))
+    else api.startTwitchLink.mockResolvedValueOnce({ url: failure === 'invalid URL' ? 'https://evil.example/authorize' : url })
+    api.startTwitchLink.mockResolvedValueOnce({ url })
+    const navigate = vi.spyOn(location, 'assign').mockImplementation(() => undefined)
+    if (failure === 'navigation') navigate.mockImplementationOnce(() => { throw Error('navigation failed') })
+    const container = await mount()
+    const link = button(container, 'Lier mon compte Twitch')
+    await act(async () => link.click())
+    expect(link.disabled).toBe(false)
+    expect(link.getAttribute('aria-busy')).toBe('false')
+    expect(container.querySelector('[role="alert"]')?.textContent).toContain('Une erreur inattendue')
+    if (failure !== 'navigation') expect(navigate).not.toHaveBeenCalled()
+    await act(async () => { link.click(); link.click() })
+    expect(api.startTwitchLink).toHaveBeenCalledTimes(2)
+    expect(navigate).toHaveBeenLastCalledWith(url)
+    expect(link.disabled).toBe(true)
+    expect(link.getAttribute('aria-busy')).toBe('true')
+    expect(container.querySelector('[role="alert"]')).toBeNull()
+  })
   it('opens recovery before element choice and restores focus on Escape', async () => {
     api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, eligible: false, linked: null, profileRecoveryAvailable: true });
     const container = document.createElement('div'); document.body.append(container);

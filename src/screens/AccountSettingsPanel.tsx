@@ -110,12 +110,13 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     window.addEventListener('keydown', keys)
     return () => { window.removeEventListener('keydown', keys); openerRef.current?.focus() }
   }, [confirm])
-  const run = async (action: () => Promise<void>, allowDuringRuntimeCheck = false) => {
+  const run = async (action: () => Promise<void>, allowDuringRuntimeCheck = false, keepPendingOnSuccess = false) => {
     if (pendingRef.current || applyingRef.current || runtimeChecking && !allowDuringRuntimeCheck) return
     pendingRef.current = true
     setPending(true); setError('')
-    try { await action() } catch (reason) { if (reason && typeof reason === 'object' && 'code' in reason && ['TWITCH_RESOLUTION_EXPIRED','TWITCH_PROFILE_CHANGED'].includes(String(reason.code))) setResolution(null); setError(apiErrorMessage(reason)) }
-    finally { pendingRef.current = false; setPending(false) }
+    let succeeded = false
+    try { await action(); succeeded = true } catch (reason) { if (reason && typeof reason === 'object' && 'code' in reason && ['TWITCH_RESOLUTION_EXPIRED','TWITCH_PROFILE_CHANGED'].includes(String(reason.code))) setResolution(null); setError(apiErrorMessage(reason)) }
+    finally { if (!keepPendingOnSuccess || !succeeded) { pendingRef.current = false; setPending(false) } }
   }
   const select = async (list: FileList | null) => {
     if (applyingRef.current) return
@@ -130,7 +131,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
       setFiles(Object.fromEntries(contents))
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
-  const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) })
+  const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) }, false, true)
   const resolve = (choice: 'WEB' | 'TWITCH') => void run(async () => {
     if (!resolution) return
     const next = await api.resolveTwitchLink(resolution.id, choice, resolution.revision)
@@ -250,7 +251,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
 </>
-          : <><p>Non connecté</p>{!resolution && <AppButton disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} onClick={connect}>Lier mon compte Twitch</AppButton>}{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
+          : <><p>Non connecté</p>{!resolution && <AppButton disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} aria-busy={pending} onClick={connect}>Lier mon compte Twitch</AppButton>}{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
         {!presentationMode && resolution && <TwitchProgressionChoice key={JSON.stringify(resolution)} resolution={resolution} pending={pending} onChoose={resolve} />}
       </section>}
       {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>

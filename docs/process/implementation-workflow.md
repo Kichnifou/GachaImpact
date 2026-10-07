@@ -113,6 +113,8 @@ Pour tout lot DB, la validation confronte le dossier versionné `server/prisma/m
 
 ## 4. Publier le candidat sur `review`
 
+**Méthode propriétaire actualisée le 07/10/2026 :** pour un changement borné, testé et sans blocker utilisant les mécanismes déjà validés, la mission accomplit `review → commit/push → contrôle du vrai diff GitHub → ancestry stricte → fast-forward main → push/fetch → déploiements exacts/health` dans la même conversation, sans nouvelle review indépendante ni prompt de promotion séparé. Cette autorisation permanente reste limitée au périmètre demandé ; elle n’autorise aucune activation, migration, dépense ou autre lot implicite. STOP intermédiaire seulement pour une action humaine indispensable, un vrai blocker ou un nouveau mécanisme sensible non prévu. Dans ce dernier cas, implémentation/tests/publication sur review puis review indépendante avant promotion restent obligatoires ; aucun contournement d’intégrité. Les étapes de review/promotion dédiée ci-dessous s’appliquent à ces périmètres sensibles et aux missions qui l’exigent explicitement. Vérification GitHub réelle avant main, documentation exacte, absence de force-push/rebase destructif, contrôles de déploiement et distinction technique/validation propriétaire restent obligatoires dans les deux parcours.
+
 Le workflow Git permanent est le suivant :
 
 1. `main` reste le dernier checkpoint promu ; plusieurs petits lots indépendamment reviewés peuvent s'accumuler sur `review` ;
