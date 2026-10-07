@@ -1,13 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat P0 standalone / Concours ; contrôle visuel local acquis, review indépendante et recette publique restantes.
+Version : P0 standalone / Concours approuvé ; préflight acquis, promotion et recette publique à contrôler.
 Date : 2026-10-07
-Statut : **CANDIDAT P0 TESTÉ ; PUBLIC NON VALIDÉ.** OFF 11, trois canaries/backups et Ceo A préservés ; main non promu.
+Statut : **P0 APPROUVÉ ; PRÉFLIGHT ACQUIS ; PUBLIC NON VALIDÉ.** OFF11 et trois canaries/backups préservés, Ceo STOP.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="p0-promotion-approuvee-20261007"></a>
+
+## Point courant — P0 approuvé ; préflight acquis, promotion contrôlée autorisée
+
+**Review indépendante ChatGPT approuvée par le propriétaire :** a6dceebe10772a6ad262c07b85e63a2a4f1a7575, aucun finding bloquant. Promotion/déploiements contrôlés autorisés dans cette mission ; aucun nouveau changement produit ni décision Rxxx. Les preuves/tests/limites du [candidat](#p0-bootstrap-contest-candidat-20261007) sont conservés. Le diff réel GitHub des 25 fichiers correspond exactement au commit local ; HEAD/origin review exacts, main/origin main 82d8d145a0507b4321132aebf885bce1221017fa, ancestry stricte 0/4 et worktree/index propres au préflight.
+
+**Préflight actuel, 07/10/2026 20:39–20:42 UTC :** PostgreSQL 62 migrations terminées, zéro migration incomplète, zéro transaction longue/idle-in-transaction/connexion bloquée ; 7 connexions sur max 60. Prisma migrate status canonique Railway PASS, 62 dossiers/migrations à jour, code 0, aucun P1001. Gate READ ONLY canonique PASS, disconnect terminé : OFF11 ; trois NATIVE et graphes/imports/targets/identités/audits strictement inchangés depuis la preuve P0 ; trois backups vérifiés byte/hash et provenance ; cosmétiques 0/0, 2/1, 96/5, deux réparations inchangées, zéro opération/outbound incertain. Ceo A Auth/Web sans Twitch ni B/import reste intact. Flag canonique TWITCH_COMMAND_PILOT_ENABLED=false relu ; aucune réactivation ni configuration changée.
+
+**Railway/Cloudflare avant publication :** Railway Online/une replica, SUCCESS actif du SHA 82d8d14 ; FAILED historique du même SHA, pre-deploy P1001 à 18:22:15 revérifié, aucune opération staged/applying. Aucun nouveau déploiement ni tentative de correction d’infrastructure. Logs runtime bornés sur les cinq dernières minutes : aucune entrée, donc aucune nouvelle erreur observée dans cette seule fenêtre, pas une preuve de bootstrap. Cloudflare Pages check GitHub SUCCESS du SHA 82d8d14, avant ce candidat. La publication main du présent checkpoint déclenchera les pipelines existants ; leurs résultats restent à contrôler sur le SHA exact.
+
+**Prochaine action :** contrôle du diff documentaire publié sur review puis fast-forward strict de main, push/fetch et égalité origin/main=origin/review/divergence 0/0. Vérifier séparément Railway SUCCESS, Cloudflare SUCCESS et livraison frontend, health 200, Prisma/flag OFF et logs. Nouvel échec P1001/pool/pre-deploy/déploiement → STOP sans nouvelle tentative ni reconfiguration expérimentale. Après déploiements vérifiés seulement, demander Ctrl+F5 authentifié Kichnifou, ouverture Concours et déconnexion/reconnexion ; aucune validation humaine anticipée. Les nouvelles traces contest-stage localiseront une éventuelle attente réelle ; elles ne résolvent pas artificiellement la cause SQL historique inconnue. Ceo reste STOP ; trois canaries/backups intacts, Streamer.bot OFF, aucune commande Twitch, import/OAuth/lien Ceo, batch/GLOBAL/replay/réparation/recovery.
 
 <a id="p0-bootstrap-contest-candidat-20261007"></a>
 
-## Point courant — P0 standalone / Concours ; candidat testé et contrôlé visuellement, STOP review indépendante
+## Historique — candidat P0 testé et contrôlé visuellement ; review indépendante approuvée depuis
 
 **Correctif préparé sur review ; public non rétabli par cette mission.** Le socle authentifié charge sans attendre Concours : cette lecture ne fait plus partie de loadBootstrapGameState ni des conditions de readiness d’AppBootstrap. GameShell reçoit un vrai ContestDto ou null. La surface null affiche Chargement/Concours indisponible et un Réessayer avec le bouton partagé ; aucun thème, résultat, permission ou historique fictif. Après huit secondes, l’affichage devient indisponible ; cette borne est une borne UI, pas une annulation SQL. La requête reste suivie/coalescée jusqu’à règlement, réessai désactivé pendant l’attente, puis activable après erreur. Aucun Promise.race, reset de la réconciliation, nouveau pool produit ou annulation PostgreSQL. Génération/révision protègent données, statut, erreur et timer contre les anciennes sessions ; déconnexion/reconnexion du même compte et changement de compte testés. Pull/Stella confirmés et rafraîchissements Chat ne dépendent plus de la projection secondaire Concours ; mutations Concours et idempotence restent existantes.
 

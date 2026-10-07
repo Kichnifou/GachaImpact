@@ -1,9 +1,9 @@
 # Migration legacy V1 — contrat canonique
 
 
-## Point courant — candidat P0 standalone / Concours
+## Point courant — promotion P0 approuvée ; préflight acquis
 
-[État exact et gates au Master](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007) ; [reprise P0 au runbook](../process/legacy-cutover-runbook.md#p0-standalone-contest-20261007). Tests privés et verify:full réussis, contrôle visuel Codex Playwright acquis aux quatre viewports sur fixtures locales, recette authentifiée publique non acquise. Candidat review uniquement ; STOP pour review indépendante ChatGPT demandée explicitement par le propriétaire avant toute promotion main. OFF11/flag canonique false, trois NATIVE/imports/backups/cosmétiques et Ceo A Auth/Web sans Twitch préservés par relecture canonique READ ONLY. Aucun import/OAuth Ceo, opération canary, replay, recovery, réparation, batch/GLOBAL ou commande Twitch. Cause historique PostgreSQL/attente publique exacte non démontrée ; instrumentation candidate et correctif de disponibilité ne valent pas déploiement.
+[État exact et gates au Master](../master/PROJECT_MASTER_PLAN.md#p0-promotion-approuvee-20261007) ; [reprise P0 au runbook](../process/legacy-cutover-runbook.md#p0-standalone-contest-20261007). Tests privés et verify:full réussis, contrôle visuel Codex Playwright acquis aux quatre viewports sur fixtures locales, recette authentifiée publique non acquise. Review indépendante ChatGPT du SHA a6dceeb approuvée par le propriétaire, préflight canonique acquis et promotion contrôlée autorisée ; déploiements/recette publique du nouveau checkpoint restent à prouver. OFF11/flag canonique false, trois NATIVE/imports/backups/cosmétiques et Ceo A Auth/Web sans Twitch préservés par relecture canonique READ ONLY. Aucun import/OAuth Ceo, opération canary, replay, recovery, réparation, batch/GLOBAL ou commande Twitch. Cause historique PostgreSQL/attente publique exacte non démontrée ; instrumentation candidate et correctif de disponibilité ne valent pas déploiement.
 
 
 ## Historique — checkpoint 852e9f9, STOP bootstrap authentifié Concours ; OFF 11 conservé
