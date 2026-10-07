@@ -2,6 +2,9 @@ import { TwitchNativeAuthority, type NativeAuthorityStore, type NativeAuthorityS
 import { PrismaTwitchPlayerStore } from '../../infrastructure/database/prisma-twitch-player-store.js';
 import type { TwitchMessageActivity } from './twitch-message-activity.js';
 import { AppError } from '../../api/errors.js';
+import { isDeepStrictEqual } from 'node:util';
+import { executingPityRecoveryRequest, type ExecutingPityRecoveryRequest } from './executing-pity-recovery-contract.js';
+import { assessTwitchOperationsInFlight } from './twitch-operations-in-flight.js';
 import { z } from 'zod';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
@@ -53,6 +56,7 @@ export class TwitchCommandPilot {
   private transportRevision = -1;
   private readonly authority: NativeAuthorityStore;
   private readonly players: PrismaTwitchPlayerStore;
+  private readonly executions = new Map<string, Promise<void>>();
   constructor(private readonly db: PrismaClient, private readonly config: AppConfig,
     private readonly executor: TwitchCommandExecutor, private readonly outbound: Pick<TwitchCommandChatClient, 'send'>,
     private readonly parser: typeof findChatCommand = findChatCommand,
@@ -153,6 +157,24 @@ export class TwitchCommandPilot {
     }, { timeout: 60_000, maxWait: 10_000 });
   }
 
+  /** Short receipt transactions must never wait for a second pool connection. */
+  private async enabledInTransaction(tx: Prisma.TransactionClient, chatterId: string) {
+    const state = await this.authority.read(tx);
+    return Boolean(this.transport && this.transportRevision === state.revision && state.operatorPlayerId
+      && this.config.twitchCommandPilot?.enabled && this.config.twitch?.pilotPlayerIds.includes(state.operatorPlayerId)
+      && this.config.twitch.pilotLogin === 'kichnifou' && this.subscriptions?.activationAvailable
+      && (state.desiredMode === 'CANARY' || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled)
+      && await this.authority.covers(chatterId, tx));
+  }
+
+  private async serializeExecution(receiptId: string, action: () => Promise<void>) {
+    const prior = this.executions.get(receiptId);
+    if (prior) return prior;
+    const pending = Promise.resolve().then(action);
+    this.executions.set(receiptId, pending);
+    try { await pending; } finally { if (this.executions.get(receiptId) === pending) this.executions.delete(receiptId); }
+  }
+
   /** Only the authenticated EventSub route calls this; observation/specialized consumers run first. */
   async consumeAuthenticated(raw: unknown, receiptId: string, executeCommands = true): Promise<void> {
     if (!await this.enabled() || this.config.twitch?.pilotLogin !== 'kichnifou') return;
@@ -218,22 +240,38 @@ export class TwitchCommandPilot {
       return true;
     });
     if (!owned) return;
-    // Preparation has no explicit command effect; commit the resolved invocation before execution.
-    await this.locked(receiptId, async tx => {
-      const { minimal, saved } = await read(tx);
-      if (!saved || saved.stage !== 'EXECUTING' || saved.intent || saved.args === undefined || !await this.enabled(event.chatter_user_id) || !this.executor.prepare) return;
-      const intent = await this.executor.prepare({ ...identity.player, displayName: saved.actorName }, saved.handler, saved.args ?? args, definition.syntax, saved.commandKey, saved.businessAt);
-      await save(tx, minimal, { ...saved, intent: frozenIntent.parse(intent) });
+    await this.serializeExecution(receiptId, async () => {
+      // Resolve outside the row-lock transaction; commit the first frozen intent.
+      const before = await read(this.db);
+      if (before.saved?.stage === 'EXECUTING' && !before.saved.intent && before.saved.args !== undefined
+        && await this.enabled(event.chatter_user_id) && this.executor.prepare) {
+        const saved = before.saved;
+        const intent = frozenIntent.parse(await this.executor.prepare({ ...identity.player, displayName: saved.actorName }, saved.handler,
+          saved.args!, definition.syntax, saved.commandKey, saved.businessAt));
+        await this.locked(receiptId, async tx => {
+          const latest = await read(tx);
+          if (!latest.saved || latest.saved.stage !== 'EXECUTING' || latest.saved.intent || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
+          if (!isDeepStrictEqual(latest.saved, saved)) throw new Error('TWITCH_COMMAND_RECEIPT_CONFLICT');
+          await save(tx, latest.minimal, { ...latest.saved, intent });
+        });
+      }
+      // Another process may have committed the intent. Always execute that winner.
+      const current = await read(this.db), saved = current.saved;
+      if (saved?.stage === 'EXECUTING' && (saved.intent || !this.executor.prepare || saved.args === undefined) && await this.enabled(event.chatter_user_id)) {
+        const preimage = structuredClone(saved);
+        const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler,
+          saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
+        const segments = twitchResponseSegments(output);
+        if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
+        await this.locked(receiptId, async tx => {
+          const latest = await read(tx);
+          if (!latest.saved || latest.saved.stage !== 'EXECUTING' || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
+          if (!isDeepStrictEqual(latest.saved, preimage)) throw new Error('TWITCH_COMMAND_RECEIPT_CONFLICT');
+          await save(tx, latest.minimal, { ...saved, stage: 'RESPONSES', responses: segments.map(text => ({ text, status: 'PENDING' })) });
+        });
+      }
+      await this.deliver(receiptId, { senderId: transport.receiverId, chatterId: identity.twitchUserId, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id });
     });
-    await this.locked(receiptId, async tx => {
-      const { minimal, saved } = await read(tx);
-      if (!saved || saved.stage !== 'EXECUTING' || !await this.enabled(event.chatter_user_id)) return;
-      const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler, saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
-      const segments = twitchResponseSegments(output);
-      if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
-      await save(tx, minimal, { ...saved, stage: 'RESPONSES', responses: segments.map(text => ({ text, status: 'PENDING' })) });
-    });
-    await this.deliver(receiptId, { senderId: transport.receiverId, chatterId: identity.twitchUserId, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id });
   }
 
   async isNativeOutboundMessage(raw: unknown): Promise<boolean> {
@@ -280,11 +318,15 @@ export class TwitchCommandPilot {
       return receiptId;
     });
     // Reservation is committed before Event preparation can reconcile its existing owners.
+    const initial = await this.read(this.db, canonical, event.chatter_user_id);
+    const previous = initial.minimal.messageActivity as unknown as { now: string; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
+    const prepared = previous.plan ?? await this.messageActivity!.prepare(player, normal, new Date(previous.now));
     const activity = await this.locked(canonical, async tx => {
       const { minimal } = await this.read(tx, canonical, event.chatter_user_id);
       const prior = minimal.messageActivity as unknown as { now: string; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
       if (!prior.plan) {
-        prior.plan = await this.messageActivity!.prepare(player, normal, new Date(prior.now));
+        if (prior.now !== previous.now) throw new Error('TWITCH_MESSAGE_CONFLICT');
+        prior.plan = prepared;
         await tx.twitchEventReceipt.update({ where: { id: canonical }, data: { payloadMinimal: { ...minimal, messageActivity: prior } as Prisma.InputJsonValue } });
       }
       return prior;
@@ -322,7 +364,7 @@ export class TwitchCommandPilot {
       const { saved } = await this.read(tx, receiptId, receipt?.twitchUserId ?? '');
       const actor = await tx.twitchIdentity.findUnique({ where: { twitchUserId: receipt!.twitchUserId! }, include: { player: true } });
       if (!this.transport || this.transport.broadcasterId !== identity.twitchUserId || !saved || !actor || actor.player.status !== 'ACTIVE'
-        || !await this.authority.covers(actor.twitchUserId) || saved.playerId !== actor.playerId
+        || !await this.authority.covers(actor.twitchUserId, tx) || saved.playerId !== actor.playerId
         || saved.senderId !== this.transport.receiverId || saved.broadcasterId !== this.transport.broadcasterId)
         throw new AppError('Réponse Twitch introuvable.', 404, 'TWITCH_COMMAND_RESPONSE_NOT_FOUND');
       if (saved.stage !== 'RESPONSES' || saved.responses.some(row => row.status === 'SENDING' || row.status === 'AMBIGUOUS'))
@@ -336,6 +378,71 @@ export class TwitchCommandPilot {
     });
   }
 
+  /** LOCAL-ONLY, explicit operator gate. Only a read-only !pity with no arguments
+   * may acquire an absent intent; every mutating command is refused, even if its
+   * operation is completed. No synthetic EventSub envelope or signature. */
+  async recoverExecutingPity(input: ExecutingPityRecoveryRequest, apply = false) {
+    const request = executingPityRecoveryRequest.parse(input);
+    const blocked = () => new AppError('Reprise EXECUTING refusée : contrôle opérateur requis.', 409, 'TWITCH_EXECUTING_PITY_RECOVERY_BLOCKED');
+    if (!await this.enabled(request.twitchUserId) || !this.executor.prepare) throw blocked();
+    const guard = async (tx: Prisma.TransactionClient, requireAbsentIntent: boolean) => {
+      await new TwitchNativeAuthority(this.db, this.config).requireOperator(tx, request.operatorPlayerId);
+      const control = await tx.twitchNativeAuthority.findUnique({ where: { id: 'twitch-commands' } });
+      const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: request.twitchUserId }, include: { player: true } });
+      const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: request.twitchUserId } });
+      const { receipt, minimal, saved } = await this.read(tx, request.receiptId, request.twitchUserId);
+      if (control?.desiredMode !== 'CANARY' || control.operatorPlayerId !== request.operatorPlayerId || control.revision !== request.expectedRevision
+        || !await this.enabledInTransaction(tx, request.twitchUserId) || identity?.playerId !== request.expectedPlayerId || identity.player.status !== 'ACTIVE'
+        || !target?.canary || target.dataAuthority !== 'NATIVE' || target.playerId !== identity.playerId || !target.transferredAt
+        || receipt.state !== 'RECEIVED' || receipt.processedAt !== null || receipt.errorMessage !== null
+        || !saved || saved.playerId !== request.expectedPlayerId || saved.chatterId !== request.twitchUserId
+        || saved.stage !== 'EXECUTING' || saved.responses.length || requireAbsentIntent && (saved.intent || minimal.executingPityRecovery)
+        || saved.handler !== 'pity' || !saved.args || saved.args.length || saved.businessAt !== request.businessAt
+        || saved.commandKey !== request.commandKey || saved.commandKey !== `twitch-command:${saved.broadcasterId}:${saved.replyParentMessageId}`
+        || receipt.externalReference !== `command-pilot:${saved.commandKey}` || saved.senderId !== this.transport?.receiverId
+        || saved.broadcasterId !== this.transport?.broadcasterId) throw blocked();
+      // Reject any engaged operation, regardless of owner, Player or status.
+      if (await tx.businessOperation.count({ where: { OR: [{ idempotencyKey: saved.commandKey }, { idempotencyKey: { endsWith: `:${saved.commandKey}` } }] } })
+        || await tx.businessOperation.count({ where: { status: 'PENDING', OR: [{ sourceChannel: 'TWITCH' }, { playerId: request.expectedPlayerId }] } })) throw blocked();
+      const canaries = await tx.twitchNativeTarget.findMany({ where: { canary: true } });
+      for (const canary of canaries) {
+        if ((await assessTwitchOperationsInFlight(tx, canary.twitchUserId, canary.playerId ?? undefined)).unresolvedOutbound) throw blocked();
+      }
+      return { minimal, saved, player: { ...identity.player, displayName: saved.actorName } };
+    };
+    const before = await this.db.$transaction(async tx => { await tx.$executeRaw`SET TRANSACTION READ ONLY`; return guard(tx, true); });
+    if (!apply) return { state: 'DRY_RUN', responses: [] as string[] };
+    const intent = frozenIntent.parse(await this.executor.prepare(before.player, 'pity', [], '!pity', request.commandKey, request.businessAt));
+    // Defense against a future resolver change. The command may only read these
+    // two owners, and must have produced its complete result before persistence.
+    if (intent.mutation || intent.output === undefined || intent.now !== request.businessAt || intent.targets || intent.bannerId
+      || Object.keys(intent.reads).some(path => !['getCurrentGacha.execute', 'socialService.actor'].includes(path))) throw blocked();
+    await this.locked(request.receiptId, async tx => {
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;
+      const current = await guard(tx, true);
+      if (!isDeepStrictEqual(current.saved, before.saved)) throw blocked();
+      const audit = await tx.twitchNativeAudit.create({ data: { actorPlayerId: request.operatorPlayerId, twitchUserId: request.twitchUserId,
+        action: 'EXECUTING_PITY_RECOVERY_PREPARED', mode: 'CANARY', revision: request.expectedRevision, acknowledgement: request.acknowledgement } });
+      await this.save(tx, request.receiptId, { ...current.minimal, executingPityRecovery: { version: 1, auditId: audit.id, operatorPlayerId: request.operatorPlayerId } }, { ...current.saved, intent });
+    });
+    const output = await this.executor.execute(before.player, 'pity', [], '!pity', request.commandKey, intent);
+    const segments = twitchResponseSegments(output);
+    if (!segments.length) throw blocked();
+    await this.locked(request.receiptId, async tx => {
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;
+      const current = await this.read(tx, request.receiptId, request.twitchUserId);
+      // An authenticated redelivery may already have published the same intent.
+      if (current.saved?.stage === 'RESPONSES') return;
+      const verified = await guard(tx, false);
+      if (!isDeepStrictEqual(verified.saved.intent, intent)) throw blocked();
+      await this.save(tx, request.receiptId, verified.minimal, { ...verified.saved, stage: 'RESPONSES', responses: segments.map(text => ({ text, status: 'PENDING' })) });
+    });
+    await this.deliver(request.receiptId, { senderId: before.saved.senderId, chatterId: request.twitchUserId,
+      broadcasterId: before.saved.broadcasterId, replyParentMessageId: before.saved.replyParentMessageId });
+    const result = await this.read(this.db, request.receiptId, request.twitchUserId);
+    return { state: result.receipt.state, responses: result.saved!.responses.map(row => row.status) };
+  }
+
   private async deliver(receiptId: string, target: { senderId: string; chatterId: string; broadcasterId: string; replyParentMessageId: string }) {
     const canSend = async () => await this.enabled(target.chatterId) && this.transport?.broadcasterId === target.broadcasterId && this.transport.receiverId === target.senderId;
     const read = (tx: Prisma.TransactionClient) => this.read(tx, receiptId, target.chatterId);
@@ -345,7 +452,7 @@ export class TwitchCommandPilot {
       if (!await canSend()) return;
       const text = await this.locked(receiptId, async tx => {
         const { receipt, minimal, saved } = await read(tx);
-        if (!await canSend() || !saved || receipt.state === 'PROCESSED') return null;
+        if (!await this.enabledInTransaction(tx, target.chatterId) || !saved || receipt.state === 'PROCESSED') return null;
         if (saved.senderId !== target.senderId || saved.broadcasterId !== target.broadcasterId || saved.replyParentMessageId !== target.replyParentMessageId)
           throw new AppError('Transport de réponse modifié : contrôle opérateur requis.', 409, 'TWITCH_COMMAND_RESPONSE_TRANSPORT_CHANGED');
         const segment = saved.responses[index];

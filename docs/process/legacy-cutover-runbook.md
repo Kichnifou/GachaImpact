@@ -8,6 +8,24 @@ Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--incident-kichnifou--
 
 Un correctif borné existant exige tests DB/runtime complets puis review/main selon mission. Nouveau mécanisme sensible ou réparation non prévue : STOP sur review pour review indépendante. Streamer.bot reste OFF, GLOBAL interdit. Les parcours ci-dessous demeurent des instructions conditionnelles ; ils n'autorisent aucune poursuite pendant l'incident.
 
+### Candidat LOCAL-ONLY — récupérer un EXECUTING pity sans intent
+
+**Nouveau mécanisme sensible, review uniquement : review indépendante ChatGPT avant main/déploiement et toute utilisation publique.** Le receipt réel reste inchangé ; standalone rétabli, cause historique runtime non démontrée. L'attente du pool provoquée par les lectures racines sous transaction du receipt est reproduite en privé ; le candidat raccourcit ces transactions, sans augmenter pool/timeouts.
+
+Après approbation/promotion seulement, utiliser depuis `server/` le CLI canonique, avec les valeurs exactes de la preuve privée fraîche et la configuration opérateur autorisée existante :
+
+```text
+npm run twitch:recover-executing-pity -- --operator-player <UUID-opérateur> --receipt <UUID-existant> --expected-player <UUID-Player> --twitch-id <ID-immuable> --expected-revision <révision-CANARY> --command-key <clé-persistée> --business-at <instant-ISO-persisté> --acknowledgement STREAMERBOT_PATH_DISABLED
+```
+
+Dry-run par défaut : aucun prepare/execute, audit, sauvegarde ou envoi. Schéma public requis par le CLI ; aucun scheduler/serveur HTTP/souscription démarré. Ne jamais injecter une allowlist ou résoudre le Player par pseudo pour contourner un refus. Une exécution distincte explicitement autorisée ajoute seulement `--apply` ; aucun force/batch/GLOBAL/handler alternatif.
+
+Gates : opérateur ACTIVE/ADMIN/allowlist/Twitch lié, transport réel inspecté et identique au receipt ; CANARY/révision, cible NATIVE/canary et Player ACTIVE/TwitchIdentity exacts ; RECEIVED/EXECUTING, no-intent, args `[]`, handler pity, clé/date persistées exactes et réponses vides. Aucune opération clé/suffixe, même terminale/autre canal/Player ; zéro PENDING Twitch ou du Player et aucun SENDING/AMBIGUOUS des canaries. Les gardes sont relus avant la première écriture ; concurrentes, une seule tentative peut acquérir l'intent.
+
+Le vrai executor prépare une **lecture pity actuelle**, sans reconstruire d'ancienne valeur ou de cible mutationnelle, au businessAt déjà réservé ; clé/date/identités/receipt sont conservés. Lectures Gacha/acteur seules, output complet et aucune mutation/cible exigés. Intent et audit existant atomiques, puis execute et publication par le même pipeline ; observation du message déjà COMPLETED non rejouée. Aucune fusion gameplay, nouvelle opération métier ou faux résultat. Vérifier le receipt exact PROCESSED/RESPONSES/toutes SENT ; une issue HTTP ambiguë reste bloquée, sans promesse exactly-once réseau.
+
+Mutation sans intent, opération déjà engagée, intent présente ou RESPONSES ne sont **jamais** reprises par ce CLI. Après crash post-intent ou refus : STOP, inspecter l'état réel ; seule redelivery authentique ou reprise existante response-only quand RESPONSES atteint, aucune modification manuelle/commande neuve/loop automatique. Le smoke Kichnifou et Ceo restent interdits avant récupération et validation complètes, selon la gate du Master.
+
 ## Historique — candidat rétention historique ; STOP review indépendante
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--candidat-rétention-historique--stop-review-indépendante-07102026) porte le candidat review issu du blocker CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR sur Mynonyme, base `fcbca95`. Les 30 FK actuelles vers business_operations sont classifiées explicitement : 12 enfants personnels remplacés, 18 conservés. Les 126 références historiques réelles nécessitent 125 opérations distinctes COMPLETED. Le plan row-level ne retient que les parents terminalement COMPLETED/FAILED, réellement référencés par un fait conservé connu et appartenant au Player ciblé ; parents non nécessaires supprimés, autres gardes hors graphe inchangés. DDL/FK inconnu ou PENDING → STOP. Le current gameplay est remplacé exactement par le legacy ; les opérations retenues ne conservent pas leurs anciens effets personnels. Les neuf mouvements personnels d’autres joueurs reliés à ces parents déjà retenus restent exacts et ne créent aucune exception par eux-mêmes.

@@ -7,8 +7,8 @@ export const STREAMERBOT_PATH_DISABLED = 'STREAMERBOT_PATH_DISABLED';
 export type NativeAuthorityMode = 'OFF' | 'CANARY' | 'GLOBAL';
 export type NativeAuthorityState = { desiredMode: NativeAuthorityMode; revision: number; operatorPlayerId: string | null };
 export interface NativeAuthorityStore {
-  read(): Promise<NativeAuthorityState>;
-  covers(twitchUserId: string): Promise<boolean>;
+  read(db?: Prisma.TransactionClient): Promise<NativeAuthorityState>;
+  covers(twitchUserId: string, db?: Prisma.TransactionClient): Promise<boolean>;
   hasPersistedCanary(): Promise<boolean>;
   resumePersistedCanary(actor: string, acknowledgement: string | undefined, expectedRevision: number): Promise<NativeAuthorityState>;
   configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number): Promise<NativeAuthorityState>;
@@ -19,8 +19,8 @@ const forbidden = () => new AppError('Autorité Twitch réservée à l’opérat
 /** Desired authority is always read from PostgreSQL. Transport proof remains a separate, transient concern. */
 export class TwitchNativeAuthority implements NativeAuthorityStore {
   constructor(private readonly db: PrismaClient, private readonly config: AppConfig) {}
-  async read(): Promise<NativeAuthorityState> {
-    const row = await this.db.twitchNativeAuthority.findUnique({ where: { id: key } });
+  async read(db: Prisma.TransactionClient = this.db): Promise<NativeAuthorityState> {
+    const row = await db.twitchNativeAuthority.findUnique({ where: { id: key } });
     return { desiredMode: row?.desiredMode as NativeAuthorityMode ?? 'OFF', revision: row?.revision ?? 0, operatorPlayerId: row?.operatorPlayerId ?? null };
   }
   async hasPersistedCanary() {
@@ -60,18 +60,18 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       return { desiredMode: row.desiredMode as NativeAuthorityMode, revision: row.revision, operatorPlayerId: row.operatorPlayerId };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
   }
-  async covers(twitchUserId: string) {
+  async covers(twitchUserId: string, db: Prisma.TransactionClient = this.db) {
     if (this.config.twitchCommandPilot?.enabled !== true) return false;
-    const state = await this.read();
+    const state = await this.read(db);
     if (state.desiredMode === 'OFF' || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled !== true) return false;
-    const target = await this.db.twitchNativeTarget.findUnique({ where: { twitchUserId } });
+    const target = await db.twitchNativeTarget.findUnique({ where: { twitchUserId } });
     if (target) {
-      const identity = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
+      const identity = await db.twitchIdentity.findUnique({ where: { twitchUserId } });
       return target.dataAuthority === 'NATIVE' && target.acknowledgement === STREAMERBOT_PATH_DISABLED
         && (state.desiredMode === 'GLOBAL' || target.canary) && (!identity || target.playerId === identity.playerId);
     }
     // GLOBAL can provision a new identity, never silently take over an existing legacy Player.
-    return state.desiredMode === 'GLOBAL' && !await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
+    return state.desiredMode === 'GLOBAL' && !await db.twitchIdentity.findUnique({ where: { twitchUserId } });
   }
   async relinquishForRollback(actor: string, twitchUserId: string, backupHash: string) {
     return this.db.$transaction(async tx => {
