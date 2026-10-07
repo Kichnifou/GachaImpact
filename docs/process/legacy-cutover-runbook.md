@@ -1,14 +1,28 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — récupération standalone à recetter avant Kichnifou
+## Point courant — promotion des deux correctifs approuvés ; recette avant Kichnifou
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md) consigne le réarmement propriétaire réussi et le smoke final `!quotis / !quoti / !roue` validé. Lecture publique READ ONLY du checkpoint précédent (06/10) : CANARY révision 4, Kichni_Test ACTIVE/identité exacte/WebIdentity 0/DATA_IMPORTED, seule NATIVE/canary, trois receipts terminaux PROCESSED/RESPONSES/SENT, Roue quotidienne/statistiques inchangées, aucune opération engagée ni réponse incertaine. Streamer.bot reste OFF ; ne pas le redémarrer ni refaire Kichni_Test.
 
-Les commandes Twitch Kichni_Test restent validées ; sa récupération standalone a révélé un défaut avec le Web neuf existant. Le [correctif des traces techniques](twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques) est candidat review. **STOP review indépendante de l’identité ; aucune promotion main ni liaison publique dans ce lot.** Après approbation/déploiement distincts : reprendre la liaison avec MynonymeTest6 et Kichni_Test existants, vérifier récupération automatique puis persistance après reconnexion. Aucun nouveau compte/reset/nettoyage SQL public/import/transfert Kichni_Test. Recette humaine encore à faire ; Kichnifou attend sa réussite.
+Les commandes Twitch Kichni_Test restent validées ; la récupération standalone reste à recetter. Les reviews indépendantes ChatGPT du [correctif des traces techniques](twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques) `dadcb3a` et de l’extension locale `1ec810a` sont APPROUVÉES. Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--promotion-approuvée--déploiements-puis-recette-propriétaire-07102026) porte le checkpoint documentaire de promotion stricte de cette chaîne. Après push main : vérifier les déploiements du SHA final exact, health/Prisma et l’état public READ ONLY, puis **STOP pour la recette propriétaire ci-dessous**. Aucun rattachement public par Codex ; aucun nouveau compte/reset/nettoyage SQL public/import/transfert Kichni_Test. Kichni_Test reste ACTIVE/NATIVE/canary/DATA_IMPORTED, autorité CANARY révision 4 ; Streamer.bot OFF. Kichnifou demeure non importé et attend cette recette ; Ceo/batch/GLOBAL non commencés.
 
-Le correctif [d’extension locale gardée](twitch-native-foundations.md#extension-locale-dun-ensemble-canary-importé) `1ec810a` a reçu une review ChatGPT favorable sans finding bloquant ; il reste non promu, préservé sur review, sans application publique. Le transfert strict initial exige zéro canary et configure avec IDs réécrit/audite les membres. Ne pas supprimer une target ni forcer le contrôle en SQL.
+Le correctif [d’extension locale gardée](twitch-native-foundations.md#extension-locale-dun-ensemble-canary-importé) `1ec810a` fait partie de la chaîne approuvée portée par la promotion ; aucune extension canary publique n’est exécutée ici. Le transfert strict initial exige zéro canary et configure avec IDs réécrit/audite les membres. Ne pas supprimer une target ni forcer le contrôle en SQL.
 
 Après recette publique de récupération réussie et promotion/déploiement de l’extension validés seulement : snapshot ciblé frais des 17 JSON legacy figés pendant Streamer.bot OFF, manifest/hashes propres à cette fenêtre (distinct du futur GLOBAL), Helix frais/Player exact EXISTING_VERIFIED_TWITCH, inventaire relations/DM/trades/état partagé/FK et plan public READ ONLY sans blocker, rehearsal privée/backup/restauration/comparaison complète, Prisma et opérations in-flight. Relation partagée ou donnée inconnue empêchant le rollback exact → STOP sans écrasement. OFF par kill switch normal, Kichni_Test NATIVE/canary inchangé et aucune opération engagée ; apply ciblé LEGACY/DATA_IMPORTED avec sauvegarde durable fsync et comparaison avant commit. Préserver Player/WebIdentity/Auth/TwitchIdentity/rôles/préférences hors gameplay/privacy ; gameplay remplacé volontairement depuis le snapshot exact, sans fusion. Extension CLI confirmée préservant Kichni_Test, exactement deux NATIVE/canaries ACTIVE/provenances cohérentes, transport CANARY/CANARY/true sans changement OAuth/EventSub, puis STOP pour vrai smoke Twitch Kichnifou. Ceo attend sa validation ; le batch attend celle de Ceo. GLOBAL non activé.
+
+### Recette propriétaire après déploiements vérifiés
+
+1. Se connecter au standalone avec le compte Web existant MynonymeTest6.
+2. Depuis l’écran pré-élément, ouvrir Configuration > Compte.
+3. Relancer « Lier mon compte Twitch » avec Kichni_Test.
+4. Attendu : PAS d’écran de comparaison.
+5. Attendu : récupération automatique du Player Twitch Kichni_Test.
+6. Vérifier que les données affichées sont celles de Kichni_Test.
+7. F5.
+8. Déconnexion / reconnexion avec le même compte Web.
+9. Vérifier que le même Player Twitch est toujours retrouvé.
+
+Aucun nouveau compte ni choix d’élément avant récupération. Cette recette appartient au propriétaire ; le déploiement seul ne la valide pas. Après ce test seulement, ChatGPT contrôle la DB/receipts et décide de la validation standalone. Ensuite uniquement : Kichnifou → Ceo → rehearsal finale → batch historique, avec leurs missions/gates dédiés.
 
 ## Historique — réarmement de la canary NATIVE après OFF
 
