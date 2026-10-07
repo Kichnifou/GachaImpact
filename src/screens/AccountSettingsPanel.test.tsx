@@ -113,12 +113,13 @@ describe('Configuration > Compte', () => {
     expect(api.startTwitchProfileRecovery).not.toHaveBeenCalled();
     expect(container.textContent).not.toContain('Récupérer mon profil Twitch');
   });
-  it('reloads the entire authoritative Player after recovery without a logout', async () => {
+  it.each(['connected', 'profile-recovered'])('shows the exact shared-progression success message after %s', async outcome => {
     api.getTwitchAccount.mockResolvedValue(linkedAccount);
-    history.replaceState(null, '', '/?twitch=profile-recovered');
+    history.replaceState(null, '', `/?twitch=${outcome}`);
     const refresh = vi.fn().mockResolvedValue(undefined);
     const container = await mount(refresh);
-    expect(refresh).toHaveBeenCalledOnce();
+    expect(refresh).toHaveBeenCalledTimes(outcome === 'profile-recovered' ? 1 : 0);
+    expect(container.querySelector('[role="status"]')?.textContent).toBe('Compte Twitch lié. Tu peux maintenant jouer ici ou sur Twitch, ta progression sera conservée quelle que soit la plateforme !');
     expect(container.querySelector('[role="alert"]')).toBeNull();
     expect(location.search).not.toContain('twitch=');
   });
@@ -668,6 +669,7 @@ it.each(['WEB','TWITCH'] as const)('presents a verified comparison and confirms 
   await act(async () => checkbox.click())
   await act(async () => button(container,label).click())
   expect(api.resolveTwitchLink).toHaveBeenCalledExactlyOnceWith(resolution.id, choice, resolution.revision)
+  expect(container.querySelector('[role="status"]')?.textContent).toBe('Compte Twitch lié. Tu peux maintenant jouer ici ou sur Twitch, ta progression sera conservée quelle que soit la plateforme !')
   expect(refresh).toHaveBeenCalledOnce()
   expect(container.textContent).not.toContain('Choisis la progression à conserver')
   expect(button(container,'Délier Twitch')).toBeUndefined()

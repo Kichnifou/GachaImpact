@@ -10,6 +10,7 @@ import { apiErrorMessage } from '../utils/formatters'
 
 const expected = new Set(['banner_votes.json', 'c6_characters.json', 'combat_config.json', 'combat_data.json', 'contests_data.json', 'element_passives.json', 'friendships_data.json', 'genshin_characters.json', 'gift_codes.json', 'giveaway.json', 'long_missions.json', 'missions_pool.json', 'monthly_boss.json', 'monthly_events.json', 'monthly_events_data.json', 'shop_items.json', 'viewers_data.json'])
 type ConfirmAction = 'apply' | null
+const twitchLinkSuccess = 'Compte Twitch lié. Tu peux maintenant jouer ici ou sur Twitch, ta progression sera conservée quelle que soit la plateforme !'
 const runtimeStatusError = (error: 'CONFLICT' | 'UNAVAILABLE') => error === 'CONFLICT'
   ? 'La réception du chat Twitch nécessite un contrôle opérateur.'
   : 'Le statut du chat Twitch est temporairement indisponible. Réessayez plus tard.'
@@ -57,7 +58,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
       if (outcome !== 'connected' && outcome !== 'progression-choice' && outcome !== 'profile-recovered' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_PROFILE_WEB_CONFLICT' ? apiErrorMessage({ code: outcome }) : outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch possède déjà une identité web. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_DISPOSABLE' ? 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_FOUND' ? 'Aucun profil Twitch existant à récupérer.' : 'La liaison Twitch a échoué ou a été annulée.') }
     // OAuth returns through a full page bootstrap; the authenticated subject now resolves the recovered Player.
-    if (outcome === 'connected' || outcome === 'profile-recovered') setSuccess('Compte Twitch lié. Twitch et l’application web utilisent la même progression.')
+    if (outcome === 'connected' || outcome === 'profile-recovered') setSuccess(twitchLinkSuccess)
     if (outcome === 'profile-recovered') void onRefreshPlayerState().catch(reason => setError(apiErrorMessage(reason)))
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
     if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
@@ -136,7 +137,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (!resolution) return
     const next = await api.resolveTwitchLink(resolution.id, choice, resolution.revision)
     if (next.resolutionRequired) { setResolution(next.resolution ?? null); setError('La progression a changé. Vérifie le nouveau résumé avant de confirmer.'); return }
-    setResolution(null); setSuccess('Compte Twitch lié. Twitch et l’application web utilisent la même progression.')
+    setResolution(null); setSuccess(twitchLinkSuccess)
     setAccount(await api.getTwitchAccount())
     try { await onRefreshPlayerState() } catch { setError('Liaison réussie. Recharge la page pour actualiser ta progression.') }
   })
