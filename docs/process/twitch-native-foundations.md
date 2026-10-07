@@ -1,6 +1,10 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — Kichnifou COMPLETE ; gate identité Web Ceo
+## Point courant — réparation cosmétiques acquise ; STOP Ceo/pool PostgreSQL
+
+[Master courant](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026) : correctif approuvé/promu/déployé, réparation canonique exacte et idempotente des trois canaries, puis reprise de leur ensemble CANARY en révision 10. Aucune target Ceo ou quatrième NATIVE. Nouveau blocker pool/auth avant son import ; OFF normal échoué EAUTHQUERY, hard-off de déploiement demandé mais pre-deploy P1001 échoué : effectif OFF non prouvé, ancienne instance conservée. Streamer.bot OFF, aucune nouvelle commande Twitch, GLOBAL/batch interdits. Restaurer/contrôler DB et runtime avant reprise Ceo ; ne pas rejouer les imports/recovery/extend ou réparations acquises.
+
+## Historique — Kichnifou COMPLETE ; ancien gate identité Web Ceo
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--kichnifou-complete--gate-identité-web-ceo-07102026) porte les preuves actuelles : `cf43ddf` approuvé/promu/déployé, dry-run strictement sans écriture PASS, ancien pity récupéré **PROCESSED/RESPONSES/une SENT**, audit unique. Même receipt/clé/date ; graphe complet, compteurs/observation, accès/imports et trois backups exacts. **Ce receipt est terminal : ne jamais rejouer le recovery.** CANARY révision 8, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary ; Streamer.bot OFF, GLOBAL/batch interdits.
 

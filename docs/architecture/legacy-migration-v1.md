@@ -1,5 +1,9 @@
 # Migration legacy V1 — contrat canonique
 
+## État courant — contrat cosmétiques validé, blocker opérationnel avant Ceo
+
+Le candidat cosmétiques ci-dessous a été approuvé indépendamment, promu/déployé dans `82d8d145a0507b4321132aebf885bce1221017fa`, puis les trois canaries ont été réparées et vérifiées exactement, avec deux audits et replays sans écriture. Aucun autre écart dérivé établi ; aucune DDL ni évolution produit. La reprise Ceo s’arrête avant import sur un nouveau blocker pool/auth PostgreSQL ; aucun contournement ou nouveau mécanisme livré. [État exact et prochaine gate](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026).
+
 ## Cosmétiques dérivés et audit des remplacements — candidat review, 07/10/2026
 
 Blocker découvert avant Ceo : l'ancien remplacement effaçait les titres et ne recréait que les avatars déjà définis. Les backfills 048/059 exécutés avant l'import ne certifient donc pas les possessions du Player après import ; un Player au niveau 100 ne refranchira pas les seuils. Le candidat couvre applyLegacyPersonalState et l'ancien SnapshotPilotService avec un helper Apparence commun : XP final PG -> derivePlayerLevel/profileLevelTitleThresholds ; PlayerCharacter 4★/5★ final -> unlockCharacterAvatars ; titres -> unlockCosmeticInTransaction/SILENT_BACKFILL. Définitions nécessaires créées/vérifiées sans dépendance à un backfill antérieur ; aucun historique économique, notification ou auto-équipement. Équipement importé reste null selon le contrat existant, rollback restaure le préimage exact. Source/provenance explicites distinguent LEGACY_DERIVED_COSMETICS et IMPORTED_CANARY_COSMETIC_REPAIR, avec snapshot/batch ou import/backup/plan. Aucune modification du modèle Apparence, des seuils, du catalogue validé ou des migrations historiques.

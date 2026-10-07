@@ -1,6 +1,14 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — blocker cosmétiques ; STOP review indépendante avant Ceo
+## Point courant — réparation acquise ; STOP Ceo/pool PostgreSQL
+
+État/preuves au [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026). Réparateur exécuté et exact, trois NATIVE conservées, reprise CANARY révision 10 acquise avant le nouveau blocker. Aucun import/OAuth Ceo.
+
+Tentative unique de OFF normal par owner/révision 10 : échec P2039/EAUTHQUERY pendant authentification DB, aucune écriture métier exécutée. Hard-off existant demandé sur Railway (`TWITCH_COMMAND_PILOT_ENABLED=false`), mais son redéploiement échoue au pre-deploy Prisma P1001 ; ancienne instance du SHA approuvé conservée Online/une replica, un warning/échec récent. **Hard-off effectif NON prouvé ; dernière autorité persistante lue CANARY révision 10.** Aucun changement OAuth/EventSub, GLOBAL, batch ou commande Twitch envoyée. Ne pas réactiver ce flag ni annoncer le runtime sain sur la seule base de health 200.
+
+**STOP Ceo et nouvelle commande Twitch.** Rétablir/diagnostiquer PostgreSQL/auth/pool, contrôler frais les opérations/receipts/outbound sans rejouer le recovery terminal Kichnifou, les imports, extend ou réparations cosmétiques. Vérifier le déploiement hard-off, puis OFF normal/état exact des trois canaries et backups avant toute reprise. Rafraîchir snapshot/Helix/préflight Ceo ; A est identifié uniquement par Auth/WebIdentity, B doit être TWITCH_ONLY distinct, DATA_IMPORTED/LEGACY/non-canary, sans rattachement Web ni NATIVE. Rehearsal privée/rollback exact et deux vraies progressions significatives avant le seul gate humain OAuth/comparaison/choix Twitch. Aucun mécanisme sensible nouveau, reconfiguration de pool, achat ou réparation de données implicite autorisé par ce constat. Main reste le code approuvé 82d8d145a0507b4321132aebf885bce1221017fa ; checkpoint de continuité sur review uniquement tant que le blocker est ouvert. Preuves brutes et identifiants restent locaux ignorés.
+
+## Historique — blocker cosmétiques ; review approuvée depuis
 
 État et contrôles au [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--blocker-cosmétiques-avant-ceo--stop-review-indépendante-07102026). Kichnifou COMPLETE côté liaison/commandes, mais possessions dérivées incomplètes après import. Candidat sur review uniquement : **aucune promotion main, réparation publique, migration/OAuth/extension Ceo, batch ou GLOBAL dans cette mission**. Trois canaries et leurs backups préservés ; Streamer.bot OFF. Le recovery pity est terminal, ne jamais le rejouer ni réimporter Kichnifou/Mynonyme pour réparer les cosmétiques.
 
