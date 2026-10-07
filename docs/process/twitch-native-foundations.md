@@ -1,6 +1,14 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — candidat rétention historique ; STOP review indépendante
+## Point courant — incident Kichnifou ; STOP Ceo
+
+Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--incident-kichnifou--stop-ceo-07102026) porte l'état réel et les contrôles : rétention historique `60f0c5f` approuvée et promue, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary, CANARY révision 8. Mynonyme : trois smokes et F5/reconnexion validés. Kichnifou : import et extension exécutés une seule fois, puis échec `!pity` et bootstrap standalone ; receipt RECEIVED/EXECUTING sans intent ni réponse, GET concours expirant à cinq minutes. Ceo n'a pas été préparé/importé/lié.
+
+**Consigne actuelle : STOP Ceo ; aucun nouvel apply/extend ni commande Twitch.** Les trois canaries, identités, provenance et backups restent préservés. Le backend existant a été redémarré normalement après contrôle inflight/outbound ; health 200, contrôle exact de conservation PASS, mais résolution publique non validée. Seul un Ctrl+F5 standalone a été demandé au propriétaire ; sa réponse est en attente. La reprise existante des réponses ne peut pas reprendre ce stade EXECUTING : aucune modification manuelle du receipt ni réexécution n'est autorisée. Cause exacte encore non démontrée ; preuves et tests exécutés au Master, avec les huit échecs DB initiaux conservés malgré les rejeux réussis.
+
+Un correctif borné existant exige tests DB/runtime complets puis review/main selon mission. Nouveau mécanisme sensible ou réparation non prévue : STOP sur review pour review indépendante. Streamer.bot reste OFF, GLOBAL interdit. Les parcours ci-dessous demeurent des instructions conditionnelles ; ils n'autorisent aucune poursuite pendant l'incident.
+
+## Historique — candidat rétention historique ; STOP review indépendante
 
 Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--candidat-rétention-historique--stop-review-indépendante-07102026) porte le candidat review issu du blocker CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR sur Mynonyme, base `fcbca95`. Les 30 FK actuelles vers business_operations sont classifiées explicitement : 12 enfants personnels remplacés, 18 conservés. Les 126 références historiques réelles nécessitent 125 opérations distinctes COMPLETED. Le plan row-level ne retient que les parents terminalement COMPLETED/FAILED, réellement référencés par un fait conservé connu et appartenant au Player ciblé ; parents non nécessaires supprimés, autres gardes hors graphe inchangés. DDL/FK inconnu ou PENDING → STOP. Le current gameplay est remplacé exactement par le legacy ; les opérations retenues ne conservent pas leurs anciens effets personnels. Les neuf mouvements personnels d’autres joueurs reliés à ces parents déjà retenus restent exacts et ne créent aucune exception par eux-mêmes.
 
