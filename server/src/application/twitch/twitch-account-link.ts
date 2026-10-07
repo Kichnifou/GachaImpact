@@ -31,7 +31,7 @@ async function decisionState(tx:Tx,webId:string,twitchId:string,twitchUserId:str
   const web=await assessPlayerCanonicalizationSafety(tx,webId,meta),twitch=await assessPlayerCanonicalizationSafety(tx,twitchId,meta);
   const safety={WEB:twitch.safety,TWITCH:web.safety};
   const native=await tx.twitchNativeTarget.findUnique({where:{twitchUserId}}),control=await tx.twitchNativeAuthority.findUnique({where:{id:'twitch-commands'}});
-  if(native&&control&&control.desiredMode!=='OFF') safety.WEB={status:'OPERATOR_REQUIRED',reason:'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR'};
+  if(native&&control&&control.desiredMode!=='OFF'&&safety.WEB.status==='SAFE') safety.WEB={status:'OPERATOR_REQUIRED',reason:'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR'};
   return {version:1,presentation:{web:await summary(tx,webId),twitch:await summary(tx,twitchId)},fingerprints:{web:web.fingerprint,twitch:twitch.fingerprint},safety};
 }
 const snapshot = (state:DecisionState):DecisionSnapshot => ({...state,revision:randomUUID()});
@@ -130,7 +130,12 @@ export class TwitchAccountLink {
         if(!identical) await tx.twitchLinkResolution.update({where:{id:record.id},data:{comparedState}});
         return {linked:false,resolutionRequired:true,resolution:resolutionDto(record,comparedState)};
       }
-      if(current.safety[choice].status==='OPERATOR_REQUIRED') throw new AppError('Cette progression contient des données partagées ou une opération en cours. Une résolution opérateur est nécessaire.',409,'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR');
+      if(current.safety[choice].status==='OPERATOR_REQUIRED') {
+        const reason=current.safety[choice].reason!;
+        throw new AppError(reason==='TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR'
+          ? 'L’autorité Twitch est active. Abandonner cette progression nécessite une résolution opérateur.'
+          : 'Cette progression contient des données partagées ou une opération en cours. Une résolution opérateur est nécessaire.',409,reason);
+      }
       const winner = choice === 'WEB' ? record.webPlayerId : record.twitchPlayerId;
       const loser = choice === 'WEB' ? record.twitchPlayerId : record.webPlayerId;
       // Never retire an operator or an owner still engaged in a live activity/transport.

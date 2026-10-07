@@ -4,7 +4,7 @@ import { personalReplacementTables, rowGraphIdentifier as ident, targetedRowMeta
 
 type Tx = Prisma.TransactionClient;
 type Metadata = Awaited<ReturnType<typeof targetedRowMetadata>>;
-export type CanonicalizationSafety = { status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | null };
+export type CanonicalizationSafety = { status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | 'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR' | null };
 type Classification = 'OWNED_PERSONAL' | 'SAFE_HISTORICAL' | 'SHARED_ACTIVE';
 
 // Reuse the replacement owner's personal domains. Everything not explicitly owned or

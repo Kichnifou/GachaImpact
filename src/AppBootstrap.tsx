@@ -502,6 +502,7 @@ function AppBootstrap() {
   if (stage === 'elementRequired' && player) {
     return (
       <ElementChoiceScreen
+        key={player.id}
         onSignOut={signOut}
         onRefreshPlayerState={refreshPlayerState}
         onChoose={async (elementKey: ElementKey) => {

@@ -569,6 +569,25 @@ it('clears acknowledgement when a new server revision has an identical visible s
   await act(async()=>button(container,'Utiliser ma progression Twitch').click());
   expect(api.resolveTwitchLink).toHaveBeenLastCalledWith(fresh.id,'TWITCH',fresh.revision);expect(refresh).toHaveBeenCalledOnce();
 });
+it.each(['SAFE','SHARED'] as const)('explains native authority separately when the Web discard choice is %s', async web => {
+  const shared = { status: 'OPERATOR_REQUIRED', reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' };
+  const resolution = { id: 'private-native', revision: conflictRevision, expiresAt: '2099-01-01T00:00:00Z', web: conflictSummary, twitch: conflictSummary,
+    safety: { WEB: { status: 'OPERATOR_REQUIRED', reason: 'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR' }, TWITCH: web === 'SAFE' ? safeChoices.TWITCH : shared } };
+  api.getTwitchLinkResolution.mockResolvedValueOnce(resolution);
+  api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null, identityLinkAvailable: true });
+  const container = await mount();
+  expect(container.querySelector('#twitch-web-choice-reason')!.textContent).toBe('L’autorité Twitch est active. Abandonner cette progression nécessite une résolution opérateur.');
+  expect(container.querySelector('#twitch-web-choice-reason')!.textContent).not.toContain('relations');
+  expect(button(container, 'Conserver ma progression de l’application Web').disabled).toBe(true);
+  if (web === 'SAFE') {
+    await act(async () => container.querySelector<HTMLInputElement>('.twitch-progression-ack input')!.click());
+    expect(button(container, 'Utiliser ma progression Twitch').disabled).toBe(false);
+    expect(container.textContent).not.toContain('relations partagées');
+  } else {
+    expect(container.textContent).toContain('L’autorité Twitch est active et la progression Web contient des données partagées.');
+    expect(container.querySelector('#twitch-twitch-choice-reason')!.textContent).toContain('relations partagées');
+  }
+});
 it.each(['WEB','TWITCH'] as const)('presents a verified comparison and confirms the final %s progression without unlink', async choice => {
   const resolution = { id: 'private-resolution', revision: conflictRevision, safety: safeChoices, expiresAt: '2099-01-01T00:00:00Z', web: { ...conflictSummary, level: 3, resources: { primogems: '100', moras: '50' } }, twitch: conflictSummary }
   api.getTwitchAccount.mockResolvedValueOnce({ ...linkedAccount, eligible: false, linked: null }).mockResolvedValueOnce(linkedAccount)

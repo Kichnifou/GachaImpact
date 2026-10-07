@@ -892,6 +892,6 @@ export type FavorPresenceDto = Readonly<{ status: 'CLAIMED' | 'ALREADY_CLAIMED' 
 export type TutorialAutostartDto = { shouldLaunch: false } | { shouldLaunch: true; preference: TutorialPreferenceDto & { status: 'IN_PROGRESS' } }
 
 export type TwitchProgressionSummary = Readonly<{ displayName: string; level: number; totalXp: string; elementKey: string | null; resources: Record<string, string>; totalMessages: string; characters: number; recentActivityAt: string | null }>
-export type TwitchCanonicalizationSafety = Readonly<{ status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | null }>
+export type TwitchCanonicalizationSafety = Readonly<{ status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | 'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR' | null }>
 export type TwitchLinkResolutionDto = Readonly<{ id: string; expiresAt: string; revision: string; web: TwitchProgressionSummary; twitch: TwitchProgressionSummary; safety: Readonly<{ WEB: TwitchCanonicalizationSafety; TWITCH: TwitchCanonicalizationSafety }> }>
 export type TwitchLinkResultDto = Readonly<{ linked: boolean; resolutionRequired: boolean; playerId?: string; resolution?: TwitchLinkResolutionDto }>

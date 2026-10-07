@@ -2,6 +2,8 @@
 
 ## TwitchLinkResolution — R1055
 
+Les anciennes comparaisons techniques d’un Web strictement vide ne constituent pas une progression : récupération automatique → elles restent expirées/inachevées comme audit, avec leurs deux Players et WebIdentity FK d’origine. Le Player Web vide est ARCHIVED sans accès, le Twitch conservé reste le même ; aucun choix définitif utilisateur inventé et aucun nouvel état/table nécessaire. Une notification de code disponible non récupéré reste sur l’archive ; sans comparaison antérieure, une preuve AUTOMATIC_RECOVERY déjà expirée utilise le modèle existant pour protéger cette archive. Elles et les graphes référencés restent protégés au futur purge. [Lifecycle et contrôles](../process/twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques).
+
 Entité privée de résolution OAuth, liée à WebIdentity et aux deux Players, ID Twitch immuable vérifié et métadonnées de nom, résumé comparé, expiration 15 minutes, choix WEB/TWITCH et horodatage terminal. Aucune preuve/token OAuth exposé au client ; aucun Player ID choisi par lui. Gagnant conserve tout son gameplay et reçoit l’identité manquante ; perdant ARCHIVED, graphe interne sans identité d’accès, sauvegarde/audit préservés au futur purge. Aucun état alternatif jouable, fusion, switch ou restauration joueur.
 
 Les quatre issues et protections sont définies par [R1055](decisions-log.md). Player.elementKey nullable et owner strict disposable R1046 restent acquis. Schéma physique additif 062 candidat, privé testé seulement, statut au [Master](../master/PROJECT_MASTER_PLAN.md).

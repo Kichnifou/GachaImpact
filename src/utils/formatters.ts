@@ -57,6 +57,7 @@ export function apiErrorMessage(error: unknown): string {
     TWITCH_PROFILE_NOT_DISPOSABLE: 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.',
     TWITCH_PROFILE_WEB_CONFLICT: 'Une identité ou une opération en cours nécessite une résolution opérateur.',
     TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR: 'Cette progression contient des données partagées qui nécessitent une résolution opérateur.',
+    TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR: 'L’autorité Twitch est active. Abandonner cette progression nécessite une résolution opérateur.',
     TWITCH_RESOLUTION_EXPIRED: 'La vérification Twitch a expiré. Recommencez la liaison.',
     TWITCH_PROFILE_NOT_FOUND: 'Aucun profil Twitch existant à récupérer.',
     ARCADE_OPPONENT_UNAVAILABLE: 'Ce joueur est indisponible. Choisissez un autre adversaire.',

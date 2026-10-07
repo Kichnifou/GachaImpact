@@ -5,17 +5,20 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type GameShell from './components/GameShell'
 import type { PlayerDto } from './api/types'
 import AppBootstrap from './AppBootstrap'
+import { usePresence } from './social/use-presence'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
   api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
+  presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
 vi.mock('./auth/auth-context', () => ({ useAuth: () => ({ status: mocks.status, session: mocks.status === 'signedIn' ? { user: { id: mocks.userId } } : null, signOut: mocks.signOut }) }))
-vi.mock('./api/game-api', async original => ({ ...await original<typeof import('./api/game-api')>(), getGameApiClient: () => ({ ...mocks.api, social: {}, trades: {} }) }))
-vi.mock('./components/GameShell', () => ({ default: (props: ComponentProps<typeof GameShell>) => {
+vi.mock('./api/game-api', async original => ({ ...await original<typeof import('./api/game-api')>(), getGameApiClient: () => ({ ...mocks.api, social: mocks.presence, trades: {} }) }))
+vi.mock('./components/GameShell', () => ({ default: function GameSessionShell(props: ComponentProps<typeof GameShell>) {
   mocks.shell = props
+  usePresence(props.player.id, props.socialActions)
   return <output>{JSON.stringify({ player: props.player, resources: props.resources, progression: props.progression, teams: props.teams, gacha: props.gacha, challenge: props.dailyChallenge, combat: props.dailyCombat, revision: props.playerStateReadRevision, feedbacks: props.levelUpFeedbacks })}</output>
 } }))
 let root: ReturnType<typeof createRoot>, container: HTMLDivElement
@@ -26,6 +29,7 @@ const event = { businessDate: '2026-10-05', edition: { id: 'edition', startsAt: 
 beforeEach(() => {
   mocks.status = 'signedIn'; mocks.userId = 'web-owner'; mocks.shell = null; mocks.signOut.mockClear()
   Object.values(mocks.api).forEach(fn => fn.mockReset().mockResolvedValue({}))
+  Object.values(mocks.presence).forEach(fn => fn.mockReset().mockResolvedValue({}))
   mocks.api.getCurrentPlayer.mockResolvedValue(player)
   mocks.api.getResources.mockResolvedValue(resources)
   mocks.api.getProgression.mockResolvedValue({ totalXp: '0', level: 1 })
@@ -59,6 +63,43 @@ it('recovers the actual Twitch Player from the pre-element account panel and rel
   expect(shell?.teams.teams[0]?.id).toBe('twitch-team');
   expect(shell?.gacha.playerState.pity5).toBe(73);
   for (const domain of ['getCharacters', 'getFavor', 'getPermissions', 'getExpedition', 'getContest', 'getEvent', 'getNotifications']) expect(mocks.api[domain]).toHaveBeenCalled();
+  expect(mocks.signOut).not.toHaveBeenCalled();
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.textContent).not.toContain('Configuration › Compte');
+  expect(mocks.presence.session).toHaveBeenCalledOnce();
+});
+
+it('replaces the game presence session on canonical Player change and reconnects to that Player with the same Auth subject', async () => {
+  await mount();
+  const oldKey = mocks.presence.session.mock.calls[0]![0];
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'retained-twitch-player' });
+  await act(async () => mocks.shell!.onRefreshPlayerState!());
+  expect(mocks.shell!.player.id).toBe('retained-twitch-player');
+  expect(mocks.presence.end).toHaveBeenCalledWith(oldKey);
+  expect(mocks.presence.session).toHaveBeenCalledTimes(2);
+  const newKey = mocks.presence.session.mock.calls[1]![0]; expect(newKey).not.toBe(oldKey);
+  mocks.status = 'signedOut'; await mount(); mocks.status = 'signedIn'; await mount();
+  expect(mocks.shell!.player.id).toBe('retained-twitch-player'); expect(mocks.userId).toBe('web-owner');
+  expect(mocks.presence.session).toHaveBeenCalledTimes(3);
+  expect(mocks.presence.session.mock.calls[2]![0]).not.toBe(newKey);
+  expect(mocks.signOut).not.toHaveBeenCalled();
+});
+it('closes the old Account dialog and clears a temporary element selection when the retained Twitch Player has no element', async () => {
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'temporary-web-player', elementKey: null });
+  await mount();
+  await act(async () => container.querySelector<HTMLButtonElement>('.element-choice.hydro')!.click());
+  expect(container.querySelector('.element-choice.hydro')!.getAttribute('aria-pressed')).toBe('true');
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'retained-null-element-twitch-player', elementKey: null });
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Retour OAuth vérifié')!.click());
+  expect(container.querySelector('[role="dialog"]')).toBeNull();
+  expect(container.querySelector('[aria-pressed="true"]')).toBeNull();
+  expect(mocks.api.chooseElement).not.toHaveBeenCalled();
+  await act(async () => container.querySelector<HTMLButtonElement>('.element-choice.pyro')!.click());
+  await act(async () => container.querySelector<HTMLButtonElement>('.element-confirm')!.click());
+  expect(mocks.shell!.player.id).toBe('retained-null-element-twitch-player');
+  expect(mocks.shell!.player.elementKey).toBe('pyro');
+  expect(mocks.api.chooseElement).toHaveBeenCalledWith('pyro');
   expect(mocks.signOut).not.toHaveBeenCalled();
 });
 
