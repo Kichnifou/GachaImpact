@@ -1,10 +1,12 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — recovery Kichnifou terminal ; smoke en attente
+## Point courant — Kichnifou COMPLETE ; gate identité Web Ceo
 
-Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--recovery-kichnifou-terminal--smoke-en-attente-07102026) porte les preuves actuelles : `cf43ddf` approuvé/promu/déployé, dry-run strictement sans écriture PASS, ancien pity récupéré **PROCESSED/RESPONSES/une SENT**, audit unique. Même receipt/clé/date ; graphe complet, compteurs/observation, accès/imports et trois backups exacts. **Ce receipt est terminal : ne jamais rejouer le recovery.** CANARY révision 8, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary ; Streamer.bot OFF, GLOBAL/batch interdits.
+Le [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--kichnifou-complete--gate-identité-web-ceo-07102026) porte les preuves actuelles : `cf43ddf` approuvé/promu/déployé, dry-run strictement sans écriture PASS, ancien pity récupéré **PROCESSED/RESPONSES/une SENT**, audit unique. Même receipt/clé/date ; graphe complet, compteurs/observation, accès/imports et trois backups exacts. **Ce receipt est terminal : ne jamais rejouer le recovery.** CANARY révision 8, exactement Kichni_Test/Mynonyme/Kichnifou NATIVE/canary ; Streamer.bot OFF, GLOBAL/batch interdits.
 
-**STOP humain smoke Kichnifou :** trois nouvelles commandes pity/quotis/box puis F5 et déconnexion/reconnexion, réponse propriétaire « validé ». Contrôler ensuite les receipts et l'identité du même Player Web/Twitch avant COMPLETE. **Ceo reste STOP**, non préparé/importé/lié ; son futur Player B TWITCH_ONLY distinct doit précéder OAuth/comparaison/choix Twitch. Aucun nouvel apply/extend/rollback legacy Kichnifou.
+**Kichnifou COMPLETE :** propriétaire « Validé », F5/déconnexion/reconnexion confirmés et même Player Web/Twitch ACTIVE. Cinq nouveaux messages distincts (trois pity, un quotis, un box), tous PROCESSED/RESPONSES/toutes SENT ; aucun doublon par message/commandKey, EXECUTING ou outbound incertain. Fenêtres EventSub exactes non tronquées : toutes 204, zéro 499/500 ; imports et trois backups exacts. **Ne plus toucher son import.**
+
+**STOP humain identité Web Ceo :** se connecter au standalone avec Ceo, **sans lier Twitch**, puis répondre « fait ». Son identité exacte n'est pas encore disponible ; préimage d'observation Auth/Web privée capturée en lecture seule, aucun Player choisi par displayName. Après identification authentifiée seulement, préparer/importer le Player B TWITCH_ONLY distinct de A, DATA_IMPORTED/LEGACY/non-canary ; OAuth/comparaison/choix Twitch viennent ensuite. Aucun nouvel apply/extend/rollback legacy Kichnifou, aucune préparation/import/liaison/NATIVE Ceo encore exécutée.
 
 Runtime sain aux contrôles ; **contention de pool reproduite et corrigée ; cause exacte de l'incident public historique non démontrée**. Les huit échecs DB initiaux et les timeouts intermédiaires restent dans l'historique au Master ; le succès actuel ne les efface pas.
 
