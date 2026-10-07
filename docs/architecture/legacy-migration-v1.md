@@ -1,6 +1,11 @@
 # Migration legacy V1 — contrat canonique
 
-## État courant — contrat cosmétiques validé, blocker opérationnel avant Ceo
+## Point courant — OFF canonique 11 prouvé ; STOP Ceo
+
+[État et diagnostic au Master](../master/PROJECT_MASTER_PLAN.md#pool-incident-off-canonique-20261007) : OFF acquis par owner canonique/révision attendue 10, relectures Prisma/admin OFF/11, trois NATIVE/canaries et imports/backups/cosmétiques exacts, deux audits de réparation inchangés, zéro opération/outbound incertain. Reproduction privée du timeout laissant un enfant détaché vivant ; helper local corrigé, aucun code produit/configuration changé. Sondes Prisma, migrate status 62 et lectures publiques health/historique Concours réussies ; cause racine pool/redémarrage PostgreSQL/P1001 non démontrée et bootstrap authentifié non retesté. Le hard-off FAILED reste non effectif ; ne pas le relancer ni promouvoir main pendant ce reliquat. Ceo A authentifié reste sans Twitch, aucun B/import/OAuth ; prochain préflight/rehearsal privé doit finir avant tout import séparé. Streamer.bot OFF, aucune nouvelle commande, GLOBAL/batch/replays interdits.
+
+
+## Historique — contrat cosmétiques validé, blocker opérationnel avant Ceo
 
 Le candidat cosmétiques ci-dessous a été approuvé indépendamment, promu/déployé dans `82d8d145a0507b4321132aebf885bce1221017fa`, puis les trois canaries ont été réparées et vérifiées exactement, avec deux audits et replays sans écriture. Aucun autre écart dérivé établi ; aucune DDL ni évolution produit. La reprise Ceo s’arrête avant import sur un nouveau blocker pool/auth PostgreSQL ; aucun contournement ou nouveau mécanisme livré. [État exact et prochaine gate](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026).
 

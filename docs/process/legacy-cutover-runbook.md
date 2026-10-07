@@ -1,6 +1,11 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — réparation acquise ; STOP Ceo/pool PostgreSQL
+## Point courant — OFF canonique 11 prouvé ; STOP Ceo
+
+[État et diagnostic au Master](../master/PROJECT_MASTER_PLAN.md#pool-incident-off-canonique-20261007) : OFF acquis par owner canonique/révision attendue 10, relectures Prisma/admin OFF/11, trois NATIVE/canaries et imports/backups/cosmétiques exacts, deux audits de réparation inchangés, zéro opération/outbound incertain. Reproduction privée du timeout laissant un enfant détaché vivant ; helper local corrigé, aucun code produit/configuration changé. Sondes Prisma, migrate status 62 et lectures publiques health/historique Concours réussies ; cause racine pool/redémarrage PostgreSQL/P1001 non démontrée et bootstrap authentifié non retesté. Le hard-off FAILED reste non effectif ; ne pas le relancer ni promouvoir main pendant ce reliquat. Ceo A authentifié reste sans Twitch, aucun B/import/OAuth ; prochain préflight/rehearsal privé doit finir avant tout import séparé. Streamer.bot OFF, aucune nouvelle commande, GLOBAL/batch/replays interdits.
+
+
+## Historique — réparation acquise ; STOP Ceo/pool PostgreSQL
 
 État/preuves au [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026). Réparateur exécuté et exact, trois NATIVE conservées, reprise CANARY révision 10 acquise avant le nouveau blocker. Aucun import/OAuth Ceo.
 

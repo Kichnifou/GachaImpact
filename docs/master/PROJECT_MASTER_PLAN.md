@@ -1,13 +1,42 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : réparation cosmétiques acquise ; STOP Ceo/pool PostgreSQL.
+Version : OFF canonique acquis ; cause pool non démontrée, STOP Ceo.
 Date : 2026-10-07
-Statut : **RÉPARATIONS COSMÉTIQUES VALIDÉES ; STOP CEO — INCIDENT POOL/DB.** Trois canaries NATIVE préservées, CANARY révision 10 dernière lecture ; hard-off demandé mais pre-deploy échoué, effectif non prouvé. Aucun import/OAuth Ceo, batch ou GLOBAL ; Streamer.bot OFF.
+Statut : **OFF CANONIQUE RÉVISION 11 PROUVÉ ; STOP CEO.** Trois NATIVE/canaries et cosmétiques exacts. Cause DB/pool et bootstrap authentifié non clos ; aucune nouvelle promotion/déploiement.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="pool-incident-off-canonique-20261007"></a>
+
+## Point courant — OFF canonique acquis ; cause pool non démontrée, 07/10/2026
+
+**Protection acquise : OFF révision 11**, par `TwitchNativeAuthority.configure` avec opérateur réel et `expectedRevision=10`, le 07/10 à 18:42:49 UTC. Relecture Prisma puis canal admin indépendante : OFF/11, exactement Kichni_Test, Mynonyme et Kichnifou NATIVE/canary, targets byte-identiques. Zéro PENDING, aucun EXECUTING ou outbound SENDING/AMBIGUOUS protégé ; les RECEIVED passifs sont distingués par le garde canonique. Receipts de commandes récents PROCESSED/RESPONSES/toutes SENT ; aucune nouvelle commande envoyée. Imports DATA_IMPORTED, identités ACTIVE, trois backups originaux byte-exact et deux audits DERIVED_COSMETICS_REPAIRED inchangés. Possessions exactes : Kichnifou 96 avatars/5 titres, Mynonyme 2/1, Kichni_Test 0/0. Le graphe personnel est identique avant/après OFF ; par rapport au checkpoint de réparation, seuls last_app_activity_at/updated_at d’activité et updated_at d’un Player ont évolué. Aucun gain, mélange ou réparation de progression.
+
+**Diagnostic borné, sans reconfiguration :** Railway conserve l’instance SUCCESS du code approuvé `82d8d145a0507b4321132aebf885bce1221017fa`, une replica Online. Le hard-off demandé auparavant a réussi son build puis échoué à 18:22:15 UTC au pre-deploy Prisma P1001 ; aucune nouvelle instance hard-off n’est prouvée. Logs service découpés sous la limite, dédupliqués, de 17:46:47 à 18:38:11 UTC : premier ECHECKOUTTIMEOUT à 18:02:50. Depuis cette première erreur : six lignes ECHECKOUTTIMEOUT pour trois épisodes, quatre épisodes P2039 (dont un timeout de connexion 08006), zéro ligne runtime EAUTHQUERY, un P1001 pre-deploy, onze HTTP 499 et un HTTP 500. La fenêtre de contexte précédente contient cinq 499 et six 500 supplémentaires. L’EAUTHQUERY est prouvé séparément par la tentative locale OFF échouée à 18:19:50, sans le compter comme une ligne Railway. Fenêtre complémentaire 18:38:11–18:49:22 : quatre HTTP 200, zéro 499/500 et aucune nouvelle erreur nommée ; ne pas extrapoler cette fenêtre à une recette complète.
+
+| PREUVE | UTC LE 07/10 |
+| --- | --- |
+| Premier préflight Ceo READ ONLY, puis timeout externe 180 s | 17:58:39 → 18:01:39 |
+| Premier ECHECKOUTTIMEOUT runtime | 18:02:50 |
+| Redémarrage backend antérieur, puis application ready | 18:08:11 → 18:08:19 |
+| Sonde SQL temporairement rétablie, CANARY/10 | 18:08:41 |
+| Second préflight Ceo READ ONLY, puis timeout externe | 18:09:27 → 18:12:27 |
+| OFF antérieur échoué EAUTHQUERY | 18:19:50 |
+| Hard-off FAILED, stage pre-deploy P1001 | 18:22:15 |
+| Démarrage PostgreSQL observé via pg_postmaster_start_time | 18:25:17 |
+| Trois sondes Prisma/configuration Railway réelle, clients fermés | 18:41:02, 18:41:19, 18:41:44 |
+| Gate exact, OFF canonique, relecture complète, admin OFF/11 | 18:42:26 → 18:46:03 |
+
+PostgreSQL répond de manière répétée : première sonde six sessions idle et un scheduler de fond, aucun active long/idle-in-transaction/verrou bloquant ; limite max_connections=60, trois réservées, rôle postgres sans limite spécifique. Sonde ultérieure : dix sessions observées ; pas de saturation démontrée. PostgreSQL et pg_stat_statements ont redémarré à 18:25:17, sans action de redémarrage DB par Codex dans cette mission ; l’origine de ce redémarrage n’est pas connue. Les statistiques actuelles ne permettent donc pas d’identifier la requête de 125 s observée avant ce redémarrage. Causes d’une fuite, d’une saturation globale, d’une requête SQL particulière ou d’une panne fournisseur **non démontrées** ; P1001 reste une indisponibilité de connexion constatée, sans cause racine attribuée.
+
+**Défaut de helper prouvé, produit inchangé :** chaque préflight crée un seul PrismaClient/un seul pool paresseux, les diagnostics un seul pg.Client ; finally appelle disconnect/end. Helix, snapshot et rapport sont hors transaction ; la capture de graphe et l’évaluation de canonicalisation SQL restent dans une transaction READ ONLY jusqu’à 120 s. Le wrapper spawnSync expirait en tuant seulement Railway et laissait un enfant Node vivant ; deux propres orphelins avaient été arrêtés. Une sonde de diagnostic était aussi simultanée au premier préflight. Reproduction privée sans base publique : enfant détaché et socket encore vivants après l’ancien timeout ; wrapper corrigé tue tout son arbre, zéro orphelin/socket restante, deux ouvertures/deux fermetures. Premier montage sans enfant détaché ne reproduisait pas le défaut ; il n’est pas compté comme PASS. Préflight local instrumenté par étapes et statement_timeout transactionnel de 5 s ; **aucun nouveau préflight Ceo exécuté**, annulation SQL du cas Ceo réel non revendiquée. Les fichiers/proofs restent ignorés. La fermeture de finally seule ne garantit rien si la requête ou la fermeture ne revient pas ; query_timeout du driver pg ne constitue pas une annulation serveur. Le serveur partage un seul pool fermé à onClose ; Concours coalesce sa réconciliation jusqu’à règlement de sa Promise, chemin compatible avec un GET bloqué mais cause publique non prouvée. Ne pas confondre cette observation avec l’ancien incident Kichnifou déjà récupéré.
+
+**Contrôles runtime bornés :** trois lectures publiques successives de /health et /api/v1/contest/history répondent 200 (132–408 ms pour la lecture DB), Prisma migrate status confirme 62 migrations à jour. Aucun nouveau restart, déploiement, changement de variables/pool, SQL métier manuel, fixture DB publique ou kill de backend PostgreSQL. La requête authentifiée /api/v1/contest avait encore produit un 499 à 18:31:45 dans les logs ; le bootstrap authentifié complet n’a pas été retesté, donc aucune clôture de cet incident ni validation publique Ceo annoncée. Le garde persistant OFF est prouvé indépendamment du flag Railway et ne dépend pas du hard-off FAILED.
+
+**STOP Ceo / promotion main.** A Web reste identifié par Auth/WebIdentity immuables, ACTIVE, sans Twitch ; aucune identité/target/import Ceo. Ne réarmer CANARY, ne relancer aucune commande, import/recovery/repair/extend. Ne pas relancer le hard-off ni pousser main : le déploiement déclenché reprendrait le flag false déjà demandé alors que la cause du P1001 et le bootstrap authentifié restent non élucidés. Checkpoint documentaire sur review uniquement, main conserve 82d8d14. Prochaine gate : résoudre ce reliquat DB/runtime sans essai de configuration ; seulement ensuite snapshot 17/17 et Helix frais, préflight borné terminé, TWITCH_ONLY B distinct de A, rehearsal privée et rollback exact, deux progressions significatives ; import B DATA_IMPORTED/LEGACY/non-canary avant tout gate humain OAuth. Tout correctif produit/pool nécessaire va sur review, avec tests et review indépendante avant promotion. GLOBAL/batch interdits ; Streamer.bot OFF.
 
 <a id="point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026"></a>
 
-## Point courant — réparation cosmétiques acquise ; STOP Ceo/pool PostgreSQL, 07/10/2026
+## Historique — réparation cosmétiques acquise ; premier STOP Ceo/pool PostgreSQL, 07/10/2026
 
 Review indépendante ChatGPT approuvée sans finding bloquant ; SHA `82d8d145a0507b4321132aebf885bce1221017fa` promu par fast-forward strict, refs locales/distantes communes et vrai diff GitHub exact. Railway et Cloudflare ont déployé ce SHA SUCCESS, health/frontend 200 et Prisma 62 à jour avant les opérations. OFF normal révision 9, dry-runs frais strictement sans écriture, puis réparateur canonique : Kichnifou +2 avatars (Aloy/Vodyanitsa) et +5 titres ; Mynonyme +0/+1 ; Kichni_Test ALREADY_EXACT +0/+0. Postimage : 96 avatars/5 titres, 2/1 et 0/0 respectivement, aucune possession dérivée manquante ou surnuméraire. Graphe personnel hors cosmétiques, possessions préexistantes, notifications, accès, targets/imports/provenances et trois backups exacts ; deux audits de réparation seulement. Dry-runs postérieurs exacts et trois replays ALREADY_EXACT : zéro écriture, backup ou audit supplémentaire. Reprise canonique des trois mêmes NATIVE/canaries en CANARY révision 10, aucun nouveau transfert. Sonde canonique READ ONLY avec configuration Railway/inspection EventSub réelle : CANARY/CANARY/transportValid=true ; ce contrôle ne constitue pas une lecture HTTP authentifiée du processus déployé.
 

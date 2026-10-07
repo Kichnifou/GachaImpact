@@ -1,6 +1,11 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
-## Point courant — réparation cosmétiques acquise ; STOP Ceo/pool PostgreSQL
+## Point courant — OFF canonique 11 prouvé ; STOP Ceo
+
+[État et diagnostic au Master](../master/PROJECT_MASTER_PLAN.md#pool-incident-off-canonique-20261007) : OFF acquis par owner canonique/révision attendue 10, relectures Prisma/admin OFF/11, trois NATIVE/canaries et imports/backups/cosmétiques exacts, deux audits de réparation inchangés, zéro opération/outbound incertain. Reproduction privée du timeout laissant un enfant détaché vivant ; helper local corrigé, aucun code produit/configuration changé. Sondes Prisma, migrate status 62 et lectures publiques health/historique Concours réussies ; cause racine pool/redémarrage PostgreSQL/P1001 non démontrée et bootstrap authentifié non retesté. Le hard-off FAILED reste non effectif ; ne pas le relancer ni promouvoir main pendant ce reliquat. Ceo A authentifié reste sans Twitch, aucun B/import/OAuth ; prochain préflight/rehearsal privé doit finir avant tout import séparé. Streamer.bot OFF, aucune nouvelle commande, GLOBAL/batch/replays interdits.
+
+
+## Historique — réparation cosmétiques acquise ; STOP Ceo/pool PostgreSQL
 
 [Master courant](../master/PROJECT_MASTER_PLAN.md#point-courant--réparation-cosmétiques-acquise--stop-ceo-pool-postgresql-07102026) : correctif approuvé/promu/déployé, réparation canonique exacte et idempotente des trois canaries, puis reprise de leur ensemble CANARY en révision 10. Aucune target Ceo ou quatrième NATIVE. Nouveau blocker pool/auth avant son import ; OFF normal échoué EAUTHQUERY, hard-off de déploiement demandé mais pre-deploy P1001 échoué : effectif OFF non prouvé, ancienne instance conservée. Streamer.bot OFF, aucune nouvelle commande Twitch, GLOBAL/batch interdits. Restaurer/contrôler DB et runtime avant reprise Ceo ; ne pas rejouer les imports/recovery/extend ou réparations acquises.
 
