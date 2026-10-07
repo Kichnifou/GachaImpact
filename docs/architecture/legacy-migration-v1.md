@@ -1,6 +1,12 @@
 # Migration legacy V1 — contrat canonique
 
-## Point courant — STOP bootstrap authentifié Concours ; OFF 11 conservé
+
+## Point courant — candidat P0 standalone / Concours
+
+[État exact et gates au Master](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007) ; [reprise P0 au runbook](../process/legacy-cutover-runbook.md#p0-standalone-contest-20261007). Tests privés et verify:full réussis, contrôle visuel Codex Playwright acquis aux quatre viewports sur fixtures locales, recette authentifiée publique non acquise. Candidat review uniquement ; STOP pour review indépendante ChatGPT demandée explicitement par le propriétaire avant toute promotion main. OFF11/flag canonique false, trois NATIVE/imports/backups/cosmétiques et Ceo A Auth/Web sans Twitch préservés par relecture canonique READ ONLY. Aucun import/OAuth Ceo, opération canary, replay, recovery, réparation, batch/GLOBAL ou commande Twitch. Cause historique PostgreSQL/attente publique exacte non démontrée ; instrumentation candidate et correctif de disponibilité ne valent pas déploiement.
+
+
+## Historique — checkpoint 852e9f9, STOP bootstrap authentifié Concours ; OFF 11 conservé
 
 [Preuves et prochaine gate au Master](../master/PROJECT_MASTER_PLAN.md#reprise-controlee-stop-bootstrap-contest-20261007) : trois sondes Prisma/configuration Railway et trois migrate status (62 migrations) réussis, connexions fermées ; zéro transaction active/verrou bloquant à la sonde admin. Le vrai test standalone Kichnifou du propriétaire échoue : quatorze GET principaux 200, puis GET /api/v1/contest 499 après 163 614 ms ; bootstrap complet non validé. Instance active SUCCESS 82d8d14, rouge hard-off historique au pre-deploy P1001 ; aucun changement en attente, flag canonique false conservé et OFF persistant 11. Trois NATIVE/imports/backups/cosmétiques exacts, deux audits inchangés. Ceo A Auth/Web intact sans Twitch ; aucune source/Helix/rehearsal/import Ceo repris. Review uniquement, main et Ceo STOP selon la gate explicite d’échec bootstrap. Diagnostiquer/restaurer Concours puis refaire le bootstrap authentifié avant toute reprise ; cause historique peut rester inconnue. Aucune nouvelle commande/replay/GLOBAL/batch, Streamer.bot OFF.
 

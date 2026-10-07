@@ -5,7 +5,7 @@ import { loadBootstrapGameState, retryBootstrapRead, type BootstrapReaders } fro
 
 const independentKeys = ['resources', 'progression', 'wheel', 'dailyReward', 'gacha', 'catalog', 'permissions'] as const
 const playerLockKeys = ['notifications', 'expedition', 'teams', 'event'] as const
-const independentReconciliationKeys = ['dailyChallenge', 'dailyCombat', 'monthlyBoss', 'contest'] as const
+const independentReconciliationKeys = ['dailyChallenge', 'dailyCombat', 'monthlyBoss'] as const
 
 function readersWithConcurrencyTrace() {
   const started: string[] = []
@@ -61,7 +61,6 @@ function readersWithConcurrencyTrace() {
     dailyChallenge: reconciling('dailyChallenge'),
     dailyCombat: reconciling('dailyCombat'),
     monthlyBoss: reconciling('monthlyBoss'),
-    contest: reconciling('contest'),
     event: reconciling('event'),
   } satisfies BootstrapReaders
 
@@ -82,7 +81,7 @@ describe('bootstrap game state loading', () => {
     const state = await loadBootstrapGameState(trace.readers)
 
     expect(trace.independentMaximum()).toBe(independentKeys.length)
-    expect(trace.reconcilingMaximum()).toBe(5)
+    expect(trace.reconcilingMaximum()).toBe(4)
     expect(trace.playerLockMaximum()).toBe(1)
     expect(trace.independentReconciliationMaximum()).toBe(independentReconciliationKeys.length)
     expect(trace.started.filter((key) => independentKeys.includes(key as typeof independentKeys[number]))).toHaveLength(independentKeys.length)
@@ -93,7 +92,7 @@ describe('bootstrap game state loading', () => {
       resources: 'resources', progression: 'progression', wheel: 'wheel', dailyReward: 'dailyReward',
       gacha: 'gacha', catalog: 'catalog', permissions: 'permissions', notifications: 'notifications',
       expedition: 'expedition', teams: 'teams', dailyChallenge: 'dailyChallenge', dailyCombat: 'dailyCombat',
-      monthlyBoss: 'monthlyBoss', contest: 'contest', event: 'event',
+      monthlyBoss: 'monthlyBoss', event: 'event',
     })
     for (const reader of Object.values(trace.readers)) expect(reader).toHaveBeenCalledTimes(1)
   })

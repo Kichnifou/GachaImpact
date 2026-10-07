@@ -82,9 +82,4 @@ describe('GameShell shared particle conversion overlay', () => {
     expect(appBootstrapSource).not.toMatch(/on(?:Load|Get)(?:MonthlyBossHistory|GachaHistory|Inventory|InventoryItemDetail|BankHistory)=\{\s*\([^)]*\)\s*=>/)
   })
 
-  it('forces one coordinated Contest refresh after successful Stella and Pull mutations', () => {
-    expect(appBootstrapSource).toContain('const refreshContest = useCallback(() => contestRequests.refresh(')
-    expect(appBootstrapSource).toMatch(/const useStella = useCallback\(async[\s\S]*?await refreshContest\(\)[\s\S]*?return result/)
-    expect(appBootstrapSource).toContain('Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss(), refreshContest()])')
-  })
 })

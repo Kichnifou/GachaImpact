@@ -18,7 +18,7 @@ import { applyBankWalletToResources } from './bank/bank-presentation'
 import { gachaLevelRewards, type LevelUpFeedbackEvent } from './progression/level-up-feedback'
 import { publishProgressionUpdate } from './progression/publish-progression-update'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from './expedition/expedition-client-snapshot'
-import { createContestRequestCoordinator, type ContestRequestCoordinator } from './contest/contest-request-coordinator'
+import { createContestRequestCoordinator, type ContestAvailability, type ContestRequestCoordinator } from './contest/contest-request-coordinator'
 import { createEventRequestCoordinator, type EventRequestCoordinator } from './event/event-request-coordinator'
 import { useEventTemporalRefresh } from './event/use-event-temporal-refresh'
 import type { EventMilestoneFeedback } from './event/event-request-coordinator'
@@ -64,6 +64,7 @@ function AppBootstrap() {
     publish(next); setDailyErrors(current => ({ ...current, [key]: false }))
   }), [dailyReads])
   const [contest, setContest] = useState<ContestDto | null>(null)
+  const [contestAvailability, setContestAvailability] = useState<ContestAvailability>({ phase: 'loading', pending: false })
   const [event, setEvent] = useState<EventDto | null>(null)
   const rankingFlightRef = useRef<{ userId: string | undefined; promise: Promise<EventRankingDto> } | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
@@ -82,7 +83,10 @@ function AppBootstrap() {
   const arcadeAwardIds = useRef(new Set<string>())
   useEffect(() => { arcadeAwardIds.current.clear() }, [sessionUserId])
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
-    () => createContestRequestCoordinator<ContestDto>((value) => setContest(value)),
+    () => createContestRequestCoordinator<ContestDto>(setContest, value => {
+      setContestAvailability(value)
+      if (value.phase === 'unavailable') setContest(null)
+    }),
   )
   const [milestoneFeedbacks, setMilestoneFeedbacks] = useState<EventMilestoneFeedback[]>([])
   const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { acceptDaily('event', value, setEvent); if (value.resources) setResources(value.resources) }, values => setMilestoneFeedbacks(current => [...current, ...values.filter(value => !current.some(item => item.id === value.id))])))
@@ -125,7 +129,7 @@ function AppBootstrap() {
     (await getGameApiClient().setBoxSortPreference(preference)).preference, [])
   const useStella = useCallback(async (characterId: string, idempotencyKey: string) => {
     const result = await getGameApiClient().useStella(characterId, idempotencyKey)
-    await refreshContest()
+    void refreshContest().catch(() => undefined)
     return result
   }, [refreshContest])
   const loadTeams = useCallback(async () => {
@@ -171,7 +175,12 @@ function AppBootstrap() {
   const loadRanking = useCallback((metric: string, page: number) => getGameApiClient().getRanking(metric, page), [])
   const loadHistory = useCallback((category: 'banners' | 'event', page: number) => getGameApiClient().getHistory(category, page), [])
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
-  useEffect(() => { contestRequests.reset() }, [contestRequests, sessionUserId])
+  useLayoutEffect(() => {
+    contestRequests.reset()
+    setContest(null)
+    setContestAvailability({ phase: 'loading', pending: false })
+    return () => contestRequests.reset()
+  }, [contestRequests, sessionUserId])
   const publishExpedition = useCallback((next: ExpeditionDto) => {
     const observedAt = performance.now()
     setExpedition(createExpeditionClientSnapshot(next, observedAt))
@@ -256,6 +265,7 @@ function AppBootstrap() {
   const loadGameState = useCallback(async () => {
     const owner = playerReadOwner.current
     const api = getGameApiClient()
+    void loadContest().catch(() => undefined)
     const next = await loadBootstrapGameState({
       resources: api.getResources,
       progression: api.getProgression,
@@ -264,7 +274,6 @@ function AppBootstrap() {
       dailyChallenge: api.getDailyChallenge,
       dailyCombat: api.getDailyCombat,
       monthlyBoss: api.getMonthlyBoss,
-      contest: loadContest,
       event: () => eventRequests.read(() => api.getEvent()),
       expedition: api.getExpedition,
       notifications: api.getNotifications,
@@ -282,7 +291,6 @@ function AppBootstrap() {
     acceptDaily('challenge', next.dailyChallenge, setDailyChallenge)
     acceptDaily('combat', next.dailyCombat, setDailyCombat)
     acceptDaily('boss', next.monthlyBoss, setMonthlyBoss)
-    setContest(next.contest)
     setEvent(next.event)
     publishExpedition(next.expedition)
     setNotifications(next.notifications)
@@ -342,7 +350,7 @@ function AppBootstrap() {
       wheel: loadWheel,
       dailyCombat: loadDailyCombat,
       monthlyBoss: loadMonthlyBoss,
-      contest: refreshContest,
+      contest: async () => { void refreshContest().catch(() => undefined) },
       expedition: loadExpedition,
       event: loadEvent,
       notifications: loadNotifications,
@@ -383,7 +391,8 @@ function AppBootstrap() {
     if (gachaPresentation.current === null) gachaPresentation.current = createGachaPresentationCoordinator({
       execute: async (count, idempotencyKey, onPullSucceeded) => {
         const result = await performGachaPullAndRefresh(getGameApiClient(), count, idempotencyKey, onPullSucceeded)
-        const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss(), refreshContest()])
+        void refreshContest().catch(() => undefined)
+        const [nextDailyChallenge] = await Promise.all([getGameApiClient().getDailyChallenge(), loadMonthlyBoss()])
         acceptDaily('challenge', nextDailyChallenge, setDailyChallenge)
         return result
       },
@@ -471,7 +480,7 @@ function AppBootstrap() {
     authStatus,
     player,
     playerResolved,
-    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && monthlyBoss !== null && contest !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
+    resources !== null && progression !== null && wheelToday !== null && dailyRewardToday !== null && dailyChallenge !== null && dailyCombat !== null && monthlyBoss !== null && expedition !== null && notifications !== null && gacha !== null && characters !== null && teams !== null && permissions !== null,
   )
   const currentFatalError =
     fatalError && fatalError.userId === sessionUserId ? fatalError.message : null
@@ -519,7 +528,7 @@ function AppBootstrap() {
     )
   }
 
-  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !contest || !event || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
+  if (!player || !resources || !visibleResources || !progression || !wheelToday || !dailyRewardToday || !dailyChallenge || !dailyCombat || !monthlyBoss || !event || !expedition || !notifications || !gacha || !characters || !teams || !permissions) {
     return <StatusScreen title="Chargement du profil…" message="Synchronisation de vos ressources." loading />
   }
 
@@ -556,6 +565,7 @@ function AppBootstrap() {
       onLoadMissions={loadMissions}
       monthlyBoss={monthlyBoss}
       contest={contest}
+      contestAvailability={contestAvailability}
       event={event}
       onLoadEvent={loadEvent}
       onJoinEvent={joinEvent}

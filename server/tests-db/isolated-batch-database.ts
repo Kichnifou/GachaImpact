@@ -16,10 +16,16 @@ export function isolatedBatchDatabase() {
   const admin = new pg.Client({ connectionString });
   // Concurrent mutation tests need a third connection while keeping each
   // sequential private fixture well below Supabase's shared connection limit.
-  const database = new PrismaClient({ adapter: new PrismaPg({ connectionString, options: `-c search_path=${schema},public`, max: 3, idleTimeoutMillis: 1_000 }, { schema }) });
+  const pool = new pg.Pool({ connectionString, options: `-c search_path=${schema},public`, max: 3, idleTimeoutMillis: 1_000 });
+  let openedConnections = 0;
+  let closedConnections = 0;
+  pool.on('connect', () => { openedConnections += 1; });
+  pool.on('remove', () => { closedConnections += 1; });
+  const database = new PrismaClient({ adapter: new PrismaPg(pool, { schema, disposeExternalPool: true }) });
   let created = false;
   let migrationStatus = '';
   return { database, admin, schema,
+    poolSnapshot: () => ({ total: pool.totalCount, idle: pool.idleCount, waiting: pool.waitingCount, opened: openedConnections, closed: closedConnections }),
     get migrationStatus() { return migrationStatus; },
     async setup(options: { seedPublicCatalog?: boolean; prismaMigrations?: boolean } = {}) {
       await admin.connect();

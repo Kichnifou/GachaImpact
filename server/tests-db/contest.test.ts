@@ -6,6 +6,7 @@ import { ContestService } from '../src/application/contest/contest-service.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import { loadConfig } from '../src/config/environment.js';
 import { resourceKeys } from '../src/domain/economy/resources.js';
+import type { ContestDiagnostic, ContestDiagnosticSink } from '../src/application/contest/contest-diagnostics.js';
 
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Contest database tests.');
 const isolated = isolatedBatchDatabase();
@@ -25,7 +26,7 @@ beforeAll(cleanup);
 beforeEach(cleanup);
 afterAll(async () => { try { await cleanup(); } finally { await database.$disconnect(); } });
 
-async function fixture(name: string) {
+async function fixture(name: string, diagnosticSink?: ContestDiagnosticSink) {
   const character = await database.character.findFirstOrThrow({ where: { isActive: true, rarity: 5 }, orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }] });
   const id = randomUUID(); playerIds.add(id);
   await database.player.create({ data: {
@@ -35,7 +36,7 @@ async function fixture(name: string) {
     c6Progress: { create: { characterId: character.id, strength: 20, intelligence: 12, beauty: 8, charisma: 4, popularity: 1, unlockedAt: now } },
   } });
   const current = new GetCurrentPlayer({ findByIdentity: async () => ({ id, displayName: `Contest Fixture ${name} ${id.slice(0, 6)}`, elementKey: 'hydro', status: 'ACTIVE' as const }), provision: async () => { throw new Error('not used'); } });
-  return { id, character, service: new ContestService(current, database, clock, random) };
+  return { id, character, service: new ContestService(current, database, clock, random, undefined, diagnosticSink) };
 }
 
 async function addLegend(playerId: string, name: string) {
@@ -84,6 +85,69 @@ async function cleanup() {
 }
 
 describe('Contest persistence', () => {
+  it('isolates a GET from a blocked scheduler candidate and drains concurrent private bootstrap reads', async () => {
+    now = new Date('2098-09-01T10:00:00Z');
+    const events: ContestDiagnostic[] = [];
+    const player = await fixture('PendingScheduler', event => events.push(event));
+    const original = await player.service.getCurrent(identity);
+    expect(original.active).toBeNull();
+    expect(original.legends).toHaveLength(1);
+    events.length = 0;
+    let reconciliation: Promise<void> | undefined;
+    let previousReadWait: Promise<void> | undefined;
+    let previousReadSettled = false;
+    const pids = new Set<number>();
+    await isolated.admin.query('BEGIN');
+    try {
+      await isolated.admin.query("SET LOCAL statement_timeout = '8s'");
+      await isolated.admin.query(`LOCK TABLE "${isolated.schema}".contests IN ACCESS EXCLUSIVE MODE`);
+      reconciliation = player.service.reconcile();
+      // Await an observed SQL lock, not a race that abandons a PostgreSQL query.
+      let blocked = false;
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const result = await isolated.admin.query<{ pid: number }>(
+          'SELECT pid FROM pg_locks WHERE relation = to_regclass($1) AND NOT granted',
+          [`"${isolated.schema}".contests`],
+        );
+        if (result.rows.length) { result.rows.forEach(row => pids.add(row.pid)); blocked = true; break; }
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      expect(blocked).toBe(true);
+      // Reproduce the former GET's await of the already-owned reconciliation.
+      // It stays pending even while the unrelated private reads below finish.
+      previousReadWait = player.service.reconcile().then(() => { previousReadSettled = true; });
+      await expect(player.service.getCurrent(identity)).rejects.toMatchObject({ code: 'CONTEST_TEMPORARILY_UNAVAILABLE' });
+      expect(events).toContainEqual(expect.objectContaining({ stage: 'current.reconciliation.shared', state: 'ERROR' }));
+      expect(events.some(event => event.stage.startsWith('view.'))).toBe(false);
+      const tables = ['players', 'player_resource_balances', 'player_progression', 'player_characters', 'teams', 'team_members', 'player_economy_stats'];
+      const reads = await Promise.all([...tables, ...tables].map(table => database.$queryRawUnsafe<{ pid: number; count: bigint }[]>(
+        `SELECT pg_backend_pid() AS pid, count(*)::bigint AS count FROM "${isolated.schema}"."${table}"`,
+      )));
+      reads.forEach(rows => rows.forEach(row => pids.add(row.pid)));
+      expect(reads).toHaveLength(14);
+      expect(pids.size).toBeLessThanOrEqual(3);
+      await new Promise(resolve => setTimeout(resolve, 2_100));
+      expect(events).toContainEqual(expect.objectContaining({ stage: 'reconciliation.candidate', state: 'WAITING' }));
+      expect(previousReadSettled).toBe(false);
+    } finally {
+      await isolated.admin.query('ROLLBACK');
+      await reconciliation;
+      await previousReadWait;
+    }
+    const restored = await player.service.getCurrent(identity);
+    expect(previousReadSettled).toBe(true);
+    expect(restored).toEqual(original);
+    expect(await database.businessOperation.count({ where: { playerId: player.id } })).toBe(0);
+    // Pool fixture idleTimeoutMillis=1000: prove the actual sockets close too.
+    await new Promise(resolve => setTimeout(resolve, 1_200));
+    const pool = isolated.poolSnapshot();
+    expect(pool).toMatchObject({ total: 0, idle: 0, waiting: 0 });
+    expect(pool.opened).toBe(pool.closed);
+    // A transaction pooler may retain/reuse upstream PIDs after our socket closes.
+    // They must have no remaining active or idle-in-transaction work from this test.
+    const remaining = await isolated.admin.query<{ count: string }>("SELECT count(*) FROM pg_stat_activity WHERE pid = ANY($1::int[]) AND state <> 'idle'", [[...pids]]);
+    expect(remaining.rows[0]?.count).toBe('0');
+  }, 20_000);
   it('protects every new table from browser roles and tracks migration 017', async () => {
     const tables = ['contest_daily_themes', 'contests', 'contest_participants', 'contest_spectators', 'contest_daily_participations', 'contest_lobby_removals', 'contest_events', 'contest_rewards'];
     const rls = await database.$queryRawUnsafe<{ relname: string; relrowsecurity: boolean }[]>(`SELECT c.relname, c.relrowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace WHERE n.nspname = 'public' AND c.relname = ANY($1::text[]) ORDER BY c.relname`, tables);

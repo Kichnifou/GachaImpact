@@ -1,5 +1,10 @@
 # Navigation et shell V1
 
+## Résilience du bootstrap Concours — correctif P0
+
+La coque devient prête dès que ses domaines essentiels sont chargés, indépendamment de la projection Concours. Cette destination présente le DTO réel ou un panneau chargement/indisponible avec Réessayer, sans résultat ni permission fictifs. Après huit secondes d’attente, le reste du jeu demeure accessible ; la requête reste suivie, bouton de réessai désactivé jusqu’à règlement pour éviter un doublon. Échec réglé : réessai disponible ; réponse valide : écran Concours normal. Les anciennes sessions ne publient ni DTO, statut ou erreur sur la suivante. [Recette et état physique](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).
+
+
 ## Polish candidat avant canary
 
 Notifications : petit bouton texte « Tout supprimer » près du titre à droite, sans flèche, uniquement si la liste est non vide. Archive logique bulk propriétaire serveur ; liste vide/badge zéro immédiatement après réponse, erreur visible/retry et protection contre un ancien polling. Ne supprime pas les objets métier. [Contrat Notifications](notifications-v1.md). Configuration : Menu, Confidentialité, Compte ; aucune Apparence désactivée affichée. Nouveau parcours et limites ci-dessous ; recette propriétaire attendue après review/promotion.

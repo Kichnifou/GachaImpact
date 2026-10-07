@@ -18,6 +18,8 @@ import { unavailableMonthlyBoss } from '../combat/monthly-boss-unavailable'
 import type { ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 import type { EventDailyDestination, EventDailyOpenIntent } from '../event/event-presentation'
 import ContestScreen from './ContestScreen'
+import ContestUnavailable from '../contest/ContestUnavailable'
+import type { ContestAvailability } from '../contest/contest-request-coordinator'
 import EventScreen from './EventScreen'
 import ArcadeScreen, { type ArcadeScreenProps } from './ArcadeScreen'
 import MissionsScreen from './MissionsScreen'
@@ -46,7 +48,8 @@ type ActivitiesScreenProps = {
   dailyChallenge: DailyChallengeDto
   dailyCombat?: DailyCombatDto
   monthlyBoss?: MonthlyBossDto
-  contest?: ContestDto
+  contest?: ContestDto | null
+  contestAvailability?: ContestAvailability
   event?: EventDto
   onLoadEvent?: () => Promise<EventDto>
   onJoinEvent?: (key: string) => Promise<EventJoinDto>
@@ -107,12 +110,13 @@ type ActivitiesScreenProps = {
 }
 
 function ActivitiesScreen(props: ActivitiesScreenProps) {
-  const { screen, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, contest = unavailableContest, bossRequestToken = 0, expedition, dailyCombatBox, onSetDailyCombatSlot = async () => unavailableDailyCombat, onRemoveDailyCombatSlot = async () => unavailableDailyCombat, onCopyActiveTeamToDailyCombat = async () => unavailableDailyCombat, onAutoSelectDailyCombat = async () => unavailableDailyCombat, onClearDailyCombatLoadout = async () => unavailableDailyCombat, onFightDailyCombat = async () => { throw new Error('Combat indisponible.') }, onSetMonthlyBossSlot = async () => unavailableMonthlyBoss, onRemoveMonthlyBossSlot = async () => unavailableMonthlyBoss, onCopyActiveTeamToMonthlyBoss = async () => unavailableMonthlyBoss, onClearMonthlyBossLoadout = async () => unavailableMonthlyBoss, onAttackMonthlyBoss = async () => { throw new Error('Boss indisponible.') }, onLoadMonthlyBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }), onOpenBoss } = props
+  const { screen, dailyCombat = unavailableDailyCombat, monthlyBoss = unavailableMonthlyBoss, contest, bossRequestToken = 0, expedition, dailyCombatBox, onSetDailyCombatSlot = async () => unavailableDailyCombat, onRemoveDailyCombatSlot = async () => unavailableDailyCombat, onCopyActiveTeamToDailyCombat = async () => unavailableDailyCombat, onAutoSelectDailyCombat = async () => unavailableDailyCombat, onClearDailyCombatLoadout = async () => unavailableDailyCombat, onFightDailyCombat = async () => { throw new Error('Combat indisponible.') }, onSetMonthlyBossSlot = async () => unavailableMonthlyBoss, onRemoveMonthlyBossSlot = async () => unavailableMonthlyBoss, onCopyActiveTeamToMonthlyBoss = async () => unavailableMonthlyBoss, onClearMonthlyBossLoadout = async () => unavailableMonthlyBoss, onAttackMonthlyBoss = async () => { throw new Error('Boss indisponible.') }, onLoadMonthlyBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }), onOpenBoss } = props
   if (screen === 'activities-dailies') return <DailiesScreen {...props} dailyCombat={dailyCombat} monthlyBoss={monthlyBoss} expedition={expedition} onOpenBoss={onOpenBoss} />
   if (screen === 'activities-missions' && props.onLoadMissions) return <MissionsScreen onLoad={props.onLoadMissions} />
   if (screen === 'activities-combat') return <DailyCombatScreen value={dailyCombat} box={dailyCombatBox} onSetSlot={onSetDailyCombatSlot} onRemoveSlot={onRemoveDailyCombatSlot} onCopyActive={onCopyActiveTeamToDailyCombat} onAuto={onAutoSelectDailyCombat} onClear={onClearDailyCombatLoadout} onFight={onFightDailyCombat} monthlyBoss={monthlyBoss} bossRequestToken={bossRequestToken} onSetBossSlot={onSetMonthlyBossSlot} onRemoveBossSlot={onRemoveMonthlyBossSlot} onCopyActiveToBoss={onCopyActiveTeamToMonthlyBoss} onClearBoss={onClearMonthlyBossLoadout} onAttackBoss={onAttackMonthlyBoss} onLoadBossHistory={onLoadMonthlyBossHistory} />
   if (screen === 'activities-arcade') return <ArcadeScreen key={props.sessionUserId} playerId={props.sessionUserId} onMutation={props.onArcadeMutation} feedbackPending={props.arcadeFeedbackPending} />
   if (screen === 'activities-contest') {
+    if (!contest) return <ContestUnavailable availability={props.contestAvailability ?? { phase: 'unavailable', pending: false }} onRetry={props.onRefreshContest} />
     const unchanged = async () => contest
     const emptyHistory = async () => ({ page: 1, pageSize: 10, total: 0, pageCount: 1, contests: [] as const })
     const emptyDetail = async () => { throw new Error('Détail indisponible.') }
@@ -129,11 +133,6 @@ const unavailableDailyCombat: DailyCombatDto = {
   availableCharacters: [], koCharacterIds: [], availableCharacterCount: 0, preview: null, canFight: false,
   reward: { primogems: '800', moras: '20000' }, lastAttempt: null,
   playerStats: { totalFights: '0', totalWins: '0', totalLosses: '0', totalManualWins: '0' },
-}
-const unavailableContest: ContestDto = {
-  businessDate: '', theme: { key: 'STRENGTH', label: 'Force', title: 'Titan', statKey: 'strength' }, dailyUsed: false,
-  permissions: { canOpen: false, canJoin: false, canSpectate: false, canLeave: false, canReady: false, canStart: false, canCancel: false, canPlay: false, canSupport: false },
-  active: null, lastResult: null, legends: [],
 }
 
 type DailyOverviewCardProps = {

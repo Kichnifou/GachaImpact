@@ -2,6 +2,7 @@
 import { act, type ComponentProps } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { CONTEST_SLOW_READ_MS } from './contest/contest-request-coordinator'
 import type GameShell from './components/GameShell'
 import type { PlayerDto } from './api/types'
 import AppBootstrap from './AppBootstrap'
@@ -10,7 +11,7 @@ import { usePresence } from './social/use-presence'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
-  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
+  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
   presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
@@ -41,8 +42,81 @@ beforeEach(() => {
   mocks.api.getEvent.mockResolvedValue(event)
   container = document.createElement('div'); root = createRoot(container)
 })
-afterEach(() => { act(() => root.unmount()); mocks.shell = null })
+afterEach(() => { act(() => root.unmount()); mocks.shell = null; vi.useRealTimers() })
 const mount = () => act(async () => root.render(<AppBootstrap />))
+
+it('opens the real bootstrap shell while Contest is pending and accepts its eventual recovery', async () => {
+  vi.useFakeTimers()
+  let release!: (value: object) => void
+  mocks.api.getContest.mockImplementationOnce(() => new Promise<object>(done => { release = done }))
+  await mount()
+  expect(mocks.shell?.player.id).toBe('player')
+  expect(mocks.shell?.resources.primogems).toBe('1000')
+  expect(mocks.shell?.contest).toBeNull()
+  expect(container.textContent).not.toContain('Connexion aux astres')
+  await act(async () => { await vi.advanceTimersByTimeAsync(CONTEST_SLOW_READ_MS) })
+  expect(mocks.shell?.contestAvailability).toEqual({ phase: 'unavailable', pending: true })
+  expect(mocks.api.getContest).toHaveBeenCalledOnce()
+  const result = { theme: { key: 'STRENGTH' }, active: null }
+  await act(async () => { release(result) })
+  expect(mocks.shell?.contest).toEqual(result)
+  expect(mocks.shell?.contestAvailability).toEqual({ phase: 'ready', pending: false })
+})
+
+it('keeps the rest of the game ready after a Contest 503 and retries without fake results', async () => {
+  const { ApiError } = await import('./api/game-api')
+  mocks.api.getContest.mockRejectedValueOnce(new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503))
+  await mount()
+  expect(mocks.shell?.player.id).toBe('player')
+  expect(mocks.shell?.contest).toBeNull()
+  expect(mocks.shell?.contestAvailability).toEqual({ phase: 'unavailable', pending: false })
+  const result = { active: null, legends: [] }
+  mocks.api.getContest.mockResolvedValueOnce(result)
+  await act(async () => { await mocks.shell!.onRefreshContest() })
+  expect(mocks.shell?.contest).toEqual(result)
+  expect(mocks.signOut).not.toHaveBeenCalled()
+})
+
+it.each(['web-owner', 'new-web-owner'])('isolates a late Contest response after reconnection as %s', async nextOwner => {
+  let release!: (value: object) => void
+  mocks.api.getContest.mockImplementationOnce(() => new Promise<object>(done => { release = done }))
+  await mount()
+  mocks.status = 'signedOut'; await mount()
+  mocks.status = 'signedIn'; mocks.userId = nextOwner
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'new-player' })
+  const actual = { active: null, legends: ['new-player-legend'] }
+  mocks.api.getContest.mockResolvedValue(actual)
+  await mount()
+  await act(async () => { release({ active: { id: 'previous-session-contest' } }) })
+  expect(mocks.shell?.player.id).toBe('new-player')
+  expect(mocks.shell?.contest).toEqual(actual)
+  expect(mocks.shell?.contestAvailability).toEqual({ phase: 'ready', pending: false })
+})
+
+it('does not let a pending Contest refresh hold a confirmed Stella or Chat refresh', async () => {
+  await mount()
+  let release!: (value: object) => void
+  mocks.api.getContest.mockImplementation(() => new Promise<object>(done => { release = done }))
+  const result = { character: { id: 'legend', constellation: 6 }, operation: { id: 'stella-operation' } }
+  mocks.api.useStella.mockResolvedValueOnce(result)
+  await act(async () => { await expect(mocks.shell!.onUseStella('legend', 'private-stella-key')).resolves.toEqual(result) })
+  await act(async () => { await mocks.shell!.onRefreshChatScopes!(['resources', 'contest']) })
+  expect(mocks.api.useStella).toHaveBeenCalledOnce()
+  expect(mocks.api.getContest).toHaveBeenCalledTimes(2)
+  await act(async () => { release({ active: null, legends: [] }) })
+})
+
+it('returns a confirmed Pull without waiting for the secondary Contest projection', async () => {
+  await mount()
+  let release!: (value: object) => void
+  mocks.api.getContest.mockImplementationOnce(() => new Promise<object>(done => { release = done }))
+  const result = { operation: { id: 'pull-operation', primogemCost: '160' }, results: [], playerState: { pity5: 11 } }
+  mocks.api.pullGacha.mockResolvedValueOnce(result)
+  await act(async () => { await expect(mocks.shell!.onPullGacha(1)).resolves.toEqual(result) })
+  expect(mocks.api.pullGacha).toHaveBeenCalledOnce()
+  expect(mocks.shell?.contestAvailability?.pending).toBe(true)
+  await act(async () => { release({ active: null, legends: [] }) })
+})
 
 it('recovers the actual Twitch Player from the pre-element account panel and reloads every bootstrap domain', async () => {
   mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'temporary-web-player', elementKey: null });

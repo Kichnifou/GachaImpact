@@ -1,5 +1,7 @@
-import { describe, expect, it, vi } from 'vitest'
-import { createContestRequestCoordinator } from './contest-request-coordinator'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { CONTEST_SLOW_READ_MS, createContestRequestCoordinator } from './contest-request-coordinator'
+
+afterEach(() => vi.useRealTimers())
 
 function deferred<T>() {
   let resolve!: (value: T) => void
@@ -8,6 +10,48 @@ function deferred<T>() {
 }
 
 describe('contest request coordinator', () => {
+  it('marks a slow read unavailable while keeping the one owned request and accepts its recovery', async () => {
+    vi.useFakeTimers()
+    const pending = deferred<number>(), publish = vi.fn(), status = vi.fn()
+    const load = vi.fn(() => pending.promise)
+    const coordinator = createContestRequestCoordinator(publish, status)
+    const request = coordinator.read(load)
+    await vi.advanceTimersByTimeAsync(CONTEST_SLOW_READ_MS)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'unavailable', pending: true })
+    expect(coordinator.read(load)).toBe(request)
+    expect(load).toHaveBeenCalledOnce()
+    pending.resolve(8)
+    await expect(request).resolves.toBe(8)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'ready', pending: false })
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('publishes a retryable backend failure, then restores the real value', async () => {
+    const status = vi.fn(), publish = vi.fn()
+    const coordinator = createContestRequestCoordinator(publish, status)
+    await expect(coordinator.read(async () => { throw new Error('backend unavailable') })).rejects.toThrow('backend unavailable')
+    expect(status).toHaveBeenLastCalledWith({ phase: 'unavailable', pending: false })
+    expect(publish).not.toHaveBeenCalled()
+    await coordinator.refresh(async () => 12)
+    expect(publish).toHaveBeenLastCalledWith(12)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'ready', pending: false })
+  })
+
+  it('clears slow timers and rejects publications of late failures from an old session', async () => {
+    vi.useFakeTimers()
+    let fail!: (error: Error) => void
+    const status = vi.fn(), publish = vi.fn()
+    const coordinator = createContestRequestCoordinator(publish, status)
+    const request = coordinator.read(() => new Promise<number>((_, reject) => { fail = reject }))
+    const rejected = expect(request).rejects.toThrow('old session')
+    coordinator.reset()
+    expect(vi.getTimerCount()).toBe(0)
+    await coordinator.read(async () => 20)
+    fail(new Error('old session'))
+    await rejected
+    expect(publish).toHaveBeenCalledExactlyOnceWith(20)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'ready', pending: false })
+  })
   it('deduplicates concurrent polling, focus and visibility reads', async () => {
     const pending = deferred<number>()
     const load = vi.fn(() => pending.promise)

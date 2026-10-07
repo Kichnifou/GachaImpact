@@ -1,5 +1,10 @@
 # GachaImpact — Architecture backend V1
 
+## Résilience de la lecture Concours — correctif P0
+
+GET Concours résout le Player puis refuse une réconciliation déjà possédée par un autre appel/scheduler avec CONTEST_TEMPORARILY_UNAVAILABLE/503. La Promise partagée conserve son propriétaire ; aucune annulation, remise à zéro, duplication ou modification des mutations/retries/transactions. S’il possède lui-même la nouvelle réconciliation, le GET attend son résultat comme auparavant ; pas de fausse garantie de deadline SQL. Instrumentation bornée de chaque étape attendue sans données sensibles. La lecture frontend est indépendante du bootstrap essentiel et son délai d’affichage ne cancel pas SQL. [État physique et limites](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).
+
+
 ## Owner de liaison Twitch unifiée — R1055
 
 Correction du Web neuf : les traces OAuth/comparaisons inachevées ne constituent pas du gameplay si leur ownership/structure/FK sont strictement vérifiés. [Traitement transactionnel canonique](../process/twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques) : invalidation des autres states source, expiration des challenges, conservation de leurs snapshots/FK et archive du Web vide référencé ; suppression seulement sans audit. Même WebIdentity et même Twitch Player, sans fusion/import/transfert ni arrêt de l’autorité conservée. CanonicalizationSafety distingue TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR des relations partagées ; une vraie relation unsafe conserve sa raison. Le bootstrap et la session de jeu prennent le nouveau Player, écran pré-élément remonté par ID même si les deux éléments sont null. Aucun changement de DDL ni de vérification OAuth/consentement/fingerprint.

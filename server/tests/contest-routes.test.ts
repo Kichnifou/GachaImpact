@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ContestService } from '../src/application/contest/contest-service.js';
 import { buildApp } from '../src/app.js';
+import { BusinessError } from '../src/application/errors.js';
 
 const characterId = randomUUID();
 const view = { businessDate: '2098-09-01', theme: { key: 'STRENGTH', label: 'Force', title: 'Titan' }, dailyUsed: false, permissions: { canOpen: true, canJoin: false, canSpectate: false, canLeave: false, canReady: false, canStart: false, canCancel: false, canPlay: false, canSupport: false }, active: null, lastResult: null, legends: [] };
@@ -18,6 +19,16 @@ describe('Contest HTTP contracts', () => {
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, contestService: service });
     apps.push(app); return { app, service };
   }
+
+  it('returns a retryable 503 without inventing a DTO when reconciliation is already owned', async () => {
+    const { app, service } = await setup();
+    vi.mocked(service.getCurrent).mockRejectedValueOnce(new BusinessError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Réessayez.'));
+    const response = await app.inject({ url: '/api/v1/contest', headers: { authorization: 'Bearer token' } });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({ error: { code: 'CONTEST_TEMPORARILY_UNAVAILABLE' } });
+    expect(response.json()).not.toHaveProperty('theme');
+    expect((await app.inject({ url: '/api/v1/contest', headers: { authorization: 'Bearer token' } })).statusCode).toBe(200);
+  });
 
   it('protects the player view and validates every sensitive mutation payload', async () => {
     const { app, service } = await setup(); const headers = { authorization: 'Bearer token' }; const idempotencyKey = randomUUID();

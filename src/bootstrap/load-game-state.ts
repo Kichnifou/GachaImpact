@@ -1,7 +1,6 @@
 import { ApiError } from '../api/game-api'
 import type {
   CharacterCatalogDto,
-  ContestDto,
   CurrentGachaDto,
   DailyChallengeDto,
   DailyCombatDto,
@@ -25,7 +24,6 @@ export type BootstrapReaders = Readonly<{
   dailyChallenge: () => Promise<DailyChallengeDto>
   dailyCombat: () => Promise<DailyCombatDto>
   monthlyBoss: () => Promise<MonthlyBossDto>
-  contest: () => Promise<ContestDto>
   event: () => Promise<EventDto>
   expedition: () => Promise<ExpeditionDto>
   notifications: () => Promise<NotificationsDto>
@@ -43,7 +41,6 @@ export type BootstrapGameState = Readonly<{
   dailyChallenge: DailyChallengeDto
   dailyCombat: DailyCombatDto
   monthlyBoss: MonthlyBossDto
-  contest: ContestDto
   event: EventDto
   expedition: ExpeditionDto
   notifications: NotificationsDto
@@ -85,14 +82,13 @@ export async function loadBootstrapGameState(readers: BootstrapReaders): Promise
       const event = await retryBootstrapRead(readers.event)
       return { expedition, teams, event }
     })()
-    const [dailyChallenge, dailyCombat, monthlyBoss, contest] = await Promise.all([
+    const [dailyChallenge, dailyCombat, monthlyBoss] = await Promise.all([
       retryBootstrapRead(readers.dailyChallenge),
       retryBootstrapRead(readers.dailyCombat),
       retryBootstrapRead(readers.monthlyBoss),
-      retryBootstrapRead(readers.contest),
     ])
     const { expedition, teams, event } = await playerLockReads
-    return { notifications, expedition, teams, dailyChallenge, dailyCombat, monthlyBoss, contest, event }
+    return { notifications, expedition, teams, dailyChallenge, dailyCombat, monthlyBoss, event }
   })()
 
   const [independent, reconciling] = await Promise.all([independentReads, reconcilingReads])

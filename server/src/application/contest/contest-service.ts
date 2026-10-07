@@ -1,3 +1,4 @@
+import { contestDiagnostics, type ContestDiagnosticSink } from './contest-diagnostics.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import {
@@ -111,16 +112,26 @@ export class ContestService {
     private readonly clock: Clock,
     private readonly random: RandomSource,
     private readonly economy = new PrismaEconomyService(),
+    private readonly diagnosticSink?: ContestDiagnosticSink,
   ) {}
 
   public async getCurrent(identity: PlayerExecutionActor) {
-    const player = await this.getPlayer.execute(identity);
-    try { await this.reconcile(); }
+    const stage = contestDiagnostics(this.diagnosticSink);
+    const player = await stage('current.player', () => this.getPlayer.execute(identity));
+    // A GET must not subscribe indefinitely to work already owned by the
+    // scheduler (or another request). That work remains owned and is not reset,
+    // cancelled or duplicated. Mutations keep their existing reconciliation.
+    if (this.reconciliationInFlight) {
+      return stage('current.reconciliation.shared', async () => {
+        throw new BusinessError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Le Concours est en cours de synchronisation. Réessayez dans un instant.');
+      });
+    }
+    try { await stage('current.reconciliation.new', () => this.reconcile()); }
     catch (error) {
       if (!isRetryableTransactionError(error)) throw error;
       logContestReconciliationDeferred(error);
     }
-    return this.readView(player.id);
+    return stage('current.view', () => this.readView(player.id));
   }
 
   public async createLobby(identity: PlayerExecutionActor, characterId: string, idempotencyKey: string) {
@@ -423,11 +434,12 @@ export class ContestService {
   }
 
   private async runReconciliation(): Promise<void> {
+    const stage = contestDiagnostics(this.diagnosticSink);
     for (let step = 0; step < 4; step += 1) {
       const now = commandNow(this.clock);
-      const candidate = await findReconciliationCandidate(this.database);
+      const candidate = await stage('reconciliation.candidate', () => findReconciliationCandidate(this.database));
       if (!candidate || !reconciliationIsDue(candidate, now)) return;
-      const outcome = await withSerializableRetry(this.database, async (tx) => {
+      const outcome = await stage('reconciliation.transaction', () => withSerializableRetry(this.database, async (tx) => {
         if (!await tryLockContest(tx)) return 'STOP' as const;
         const active = await findActive(tx);
         if (!active) return 'STOP' as const;
@@ -475,7 +487,7 @@ export class ContestService {
           await applyTurn(tx, active, participant, 'BASIC', true, null, participant.playerId, lockedNow, this.random, this.economy);
         }
         return 'CONTINUE' as const;
-      });
+      }));
       if (outcome === 'STOP') return;
     }
   }
@@ -506,28 +518,29 @@ export class ContestService {
   }
 
   private async readView(playerId: string) {
+    const stage = contestDiagnostics(this.diagnosticSink);
     const businessDate = getBusinessDate(commandNow(this.clock));
     const [theme, active, legends, daily, ownedC6, legacyDaily] = await Promise.all([
-      readOrCreateDailyTheme(this.database, businessDate, this.random),
-      this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude }),
-      this.database.c6CompetitionProgress.findMany({ where: { playerId, character: { isActive: true, rarity: 5 } }, include: { character: true }, orderBy: { character: { displayOrder: 'asc' } } }),
-      this.database.contestDailyParticipation.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
-      this.database.playerCharacter.findMany({ where: { playerId, constellation: 6, character: { isActive: true, rarity: 5 } }, select: { characterId: true } }),
-      this.database.contestLegacyDailyLock.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
+      stage('view.theme', () => readOrCreateDailyTheme(this.database, businessDate, this.random, this.diagnosticSink)),
+      stage('view.active', () => this.database.contest.findFirst({ where: { status: { in: [...ACTIVE_STATUSES] } }, include: liveContestInclude })),
+      stage('view.legends', () => this.database.c6CompetitionProgress.findMany({ where: { playerId, character: { isActive: true, rarity: 5 } }, include: { character: true }, orderBy: { character: { displayOrder: 'asc' } } })),
+      stage('view.daily', () => this.database.contestDailyParticipation.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } })),
+      stage('view.owned-c6', () => this.database.playerCharacter.findMany({ where: { playerId, constellation: 6, character: { isActive: true, rarity: 5 } }, select: { characterId: true } })),
+      stage('view.legacy-daily', () => this.database.contestLegacyDailyLock.findUnique({ where: { playerId_businessDate: { playerId, businessDate: businessDateToDatabaseDate(businessDate) } } })),
     ]);
     const ownedIds = new Set(ownedC6.map(({ characterId }) => characterId));
     const eligibleLegends = legends.filter((legend) => ownedIds.has(legend.characterId));
     const dailyUsed = Boolean(daily && !daily.refundedAt) || Boolean(legacyDaily);
     const participant = active?.participants.find((item) => item.playerId === playerId);
     const spectator = active?.spectators.some((item) => item.playerId === playerId) ?? false;
-    const formerParticipant = active && !participant && !spectator ? await wasContestParticipant(this.database, active, playerId) : false;
-    const recentScoreEvents = active ? await this.database.contestEvent.findMany(recentScoreEventQuery(active.id)) : [];
+    const formerParticipant = active && !participant && !spectator ? await stage('view.former-participant', () => wasContestParticipant(this.database, active, playerId)) : false;
+    const recentScoreEvents = active ? await stage('view.score-events', () => this.database.contestEvent.findMany(recentScoreEventQuery(active.id))) : [];
     const resultCutoff = new Date(commandNow(this.clock).getTime() - LAST_RESULT_WINDOW_MS);
-    const lastResult = active ? null : await this.database.contest.findFirst({
+    const lastResult = active ? null : await stage('view.last-result', () => this.database.contest.findFirst({
       where: { status: ContestStatus.FINISHED, finishedAt: { gt: resultCutoff } },
       include: historyContestInclude,
       orderBy: { finishedAt: 'desc' },
-    });
+    }));
     return {
       businessDate,
       theme: presentTheme(theme),
@@ -672,16 +685,17 @@ async function ensureDailyTheme(tx: Client, businessDate: string, random: Random
   return (await tx.contestDailyTheme.upsert({ where: { businessDate: date }, create: { businessDate: date, theme }, update: {} })).theme;
 }
 
-async function readOrCreateDailyTheme(database: PrismaClient, businessDate: string, random: RandomSource): Promise<ContestTheme> {
+async function readOrCreateDailyTheme(database: PrismaClient, businessDate: string, random: RandomSource, sink?: ContestDiagnosticSink): Promise<ContestTheme> {
+  const stage = contestDiagnostics(sink);
   const date = businessDateToDatabaseDate(businessDate);
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const existing = await database.contestDailyTheme.findUnique({ where: { businessDate: date } });
+    const existing = await stage('theme.read', () => database.contestDailyTheme.findUnique({ where: { businessDate: date } }));
     if (existing) return existing.theme;
-    try { return await database.$transaction((tx) => ensureDailyTheme(tx, businessDate, random), serializable); }
+    try { return await stage('theme.create', () => database.$transaction((tx) => ensureDailyTheme(tx, businessDate, random), serializable)); }
     catch (error) {
       const uniqueRace = error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
       if (!uniqueRace && !isRetryableTransactionError(error)) throw error;
-      const winner = await database.contestDailyTheme.findUnique({ where: { businessDate: date } });
+      const winner = await stage('theme.winner', () => database.contestDailyTheme.findUnique({ where: { businessDate: date } }));
       if (winner) return winner.theme;
       if (attempt === 4) throw error;
       await wait(50 * 2 ** attempt);
