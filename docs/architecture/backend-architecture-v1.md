@@ -7,11 +7,11 @@ GET Concours résout le Player puis refuse une réconciliation déjà possédée
 
 ## Owner de liaison Twitch unifiée — R1055
 
-### Parcours R1055 par clés et fermeture incrémentale — candidat review
+### Parcours R1055 par clés et fermeture incrémentale — promu et déployé
 
 Le [dossier R1055](r1055-canonicalization-performance.md) porte l’algorithme, la preuve d’équivalence, les stratégies comparées et les mesures locales. Le candidat conserve les images complètes pour le hash et emploie des clés FK PostgreSQL typées pour les jointures. Fermeture par nouveaux parents, chemins directs redondants éliminés, déduplication par Map, lots de 64 branches par parent et payload limité aux tables requises. Toutes les références sont traitées avant sûreté/hash ; aucune écriture, nouvelle connexion ou opération détachée.
 
-Le moteur refuse READ COMMITTED : un snapshot Repeatable Read/Serializable stable est indispensable à l’équivalence clé/image. Les owners existants satisfont déjà cette condition ; aucune modification de leur isolation, deadline, verrou/retry, choix/consentement ou archivage. Les classifications métier, les FK découvertes, le tri/version 1 et bigint sont inchangés. Mesures facultatives uniquement numériques, incluant tri de projection et durée totale. [État/gate de review indépendante](../master/PROJECT_MASTER_PLAN.md#r1055-astra-20261008) : code non promu, aucun préflight public ni résolution de la cause historique revendiquée.
+Le moteur refuse READ COMMITTED : un snapshot Repeatable Read/Serializable stable est indispensable à l’équivalence clé/image. Les owners existants satisfont déjà cette condition ; aucune modification de leur isolation, deadline, verrou/retry, choix/consentement ou archivage. Les classifications métier, les FK découvertes, le tri/version 1 et bigint sont inchangés. Mesures facultatives uniquement numériques, incluant tri de projection et durée totale. [État public/gate opérateur](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008) : review Astra 524e9f9 approuvée, code promu/déployé dans d8ba137 ; préflight réel 4895 lignes/55 tables/références/fingerprint complet en 1 295 ms, OPERATOR_REQUIRED sur 23 catégories partagées. Aucun import/lien Ceo ni résolution de la cause historique revendiquée ; mécanisme canonique opérateur requis, aucune garde modifiée.
 
 <a id="optimisation-de-la-planification-r1055--candidat-review"></a>
 

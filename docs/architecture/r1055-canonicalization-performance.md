@@ -1,10 +1,10 @@
 # R1055 — fermeture, sûreté et empreinte des progressions
 
-Candidat review du 08/10/2026, baseline publique `52b5631c1988a895b90046347a8db320f810432f`. Aucun déploiement ni préflight Ceo public dans ce lot. Le contrat de choix reste porté par [l’owner de liaison](backend-architecture-v1.md#owner-de-liaison-twitch-unifiée--r1055) ; [le Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-20261008) porte les gates et l’état courant.
+Moteur du 08/10/2026, baseline `52b5631c1988a895b90046347a8db320f810432f`, review Astra 524e9f9 approuvée et code promu/déployé dans d8ba137. Les campagnes locales ci-dessous restent synthétiques ; le nouveau résultat public est distingué à la fin. Le contrat de choix reste porté par [l’owner de liaison](backend-architecture-v1.md#owner-de-liaison-twitch-unifiée--r1055) ; [le Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008) porte les gates et l’état courant.
 
 ## Diagnostic et limites de la preuve
 
-Le préflight public précédent termine trois projections, puis 57014 à `CANONICALIZATION_EVIDENCE` : 282 FK, graphe de 4 895 lignes/55 tables/5 566 868 octets et 241 branches de références. Il ne permet pas de séparer planification et exécution de cette dernière requête. Ce résultat reste historique : aucun nouveau diagnostic distant n’a été lancé.
+Le préflight public précédent termine trois projections, puis 57014 à `CANONICALIZATION_EVIDENCE` : 282 FK, graphe de 4 895 lignes/55 tables/5 566 868 octets et 241 branches de références. Il ne permet pas de séparer planification et exécution de cette dernière requête. Ce résultat reste historique ; le nouveau préflight complet ci-dessous ne démontre pas rétrospectivement sa cause SQL exacte.
 
 La reproduction utilise les 62 migrations réelles sur PostgreSQL **17.11 local**, des données entièrement synthétiques, 282 FK et 55 tables personnelles remplies. Les volumes sont comparables, sans copier le graphe public. Elle produit 244 branches de références ; sa distribution métier diffère donc de celle de Ceo.
 
@@ -68,6 +68,12 @@ npm --prefix server run test:db -- tests-db/canonicalization-performance.test.ts
 npm run verify:full
 ```
 
-## Gate suivante
+## Préflight public réel — 08/10/2026, après déploiement contrôlé
 
-Review indépendante Astra **APPROUVÉE** pour 524e9f992bc03f788beea0fa72eb246e8d65c965, sans finding bloquant ; treize patches/blobs GitHub contrôlés. Promotion et déploiements contrôlés autorisés, puis **un préflight Ceo complet** mesurant aussi références/fingerprint. [Résultats publics et gates au Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008) ; les mesures de ce dossier restent locales et synthétiques. Si 57014, instabilité ou OPERATOR_REQUIRED : STOP exact sans hausse de limite. Sinon seulement suivre le runbook B séparé/rehearsal/backup/rollback/import. Aucune liaison humaine avant B importé et vérifié. La dette Supabase reste prioritaire après migration des joueurs ; aucune optimisation d’infrastructure ni abonnement dans ce candidat.
+Sur d8ba137, Railway/Cloudflare SUCCESS exacts/health200/Prisma 62/OFF11/flag false ; trois canaries/backups/imports/cosmétiques préservés. UN préflight READ ONLY Repeatable Read/statement 5 s/transaction 60 s avec sources 17/Helix/Auth-Web frais : **282 FK, 55 tables, 4895 lignes, 241 branches de références en 64/64/64/49,104 classifications stables et fingerprint complet**. Deux projections SQL445/89 ms (total534 ms), références 180/129/87/178 ms (total574 ms), fingerprint 45 ms, moteur complet1295 ms ; helper 15143 ms. Aucun57014, nouvelle erreur DB/pool ou opération orpheline ; fermeture publique zéro connexion Ceo/transaction longue/idle/verrou. Ces mesures sont publiques, sans EXPLAIN distant ni seconde tentative ; les mesures numériques de r1055-performance-evidence.json restent exclusivement locales.
+
+**Résultat de sûreté OPERATOR_REQUIRED**, raison TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR : 23 catégories SHARED_ACTIVE, dont relations DM/amitiés/cœurs/Event/Boss/Arcade/expédition et opérations externes. Comptages détaillés au Master ; politique existante inchangée et références inconnues conservatrices. La vitesse/fingerprint complet ne valent pas SAFE. Arrêt à la garde de politique après le fingerprint ; lastSqlStage CANONICALIZATION_EVIDENCE de l'artefact n'est pas une requête suspendue. Plan legacy complet/signification Twitch/rehearsal/backup/import B non exécutés ; A intact/B absent/OAuth absent.
+
+## Gate suivante — STOP opérateur canonique
+
+Review indépendante Astra **APPROUVÉE** pour 524e9f992bc03f788beea0fa72eb246e8d65c965, sans finding bloquant ; patches/blobs contrôlés, promotion/déploiements et préflight exécutés. [Résultats publics et prochaine mission au Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008). STOP sur OPERATOR_REQUIRED : diagnostic/résolution opérateur canonique sous autorisation distincte, aucune suppression de relation/hausse de limite/contournement. Un mécanisme manquant sensible exige candidat review et review indépendante avant promotion. Aucune liaison humaine avant B importé et vérifié. La dette Supabase reste prioritaire après migration des joueurs ; aucune optimisation d’infrastructure ni abonnement.
