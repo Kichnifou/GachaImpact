@@ -1,12 +1,12 @@
 # GachaImpact — Modèle de données V1 consolidé
 
-## Extension R1055/R1056 — candidat 063
+## Extension R1055/R1056 — 063 déployée
 
 `TwitchCanonicalizationPlan` représente une autorisation opérateur expirante pour un choix précis, pas un choix du joueur. Il lie la WebIdentity, les deux Players, le Twitch ID immuable, l'opérateur, le fingerprint complet, le backup et les conséquences ; consommation atomique avec `TwitchLinkResolution`. Consentement humain supplémentaire et preuve fraîche obligatoires.
 
 `LegacyFriendshipFact` conserve une paire source et ses agrégats/dates avec preuves d'identités immuables. Les versions `Friendship` conservent endpoints et historiques, une seule version effective. Ami non importé/proof manquante : différé ; collision ou blocage : refus explicite. Les relations communautaires suivent le Player définitif sans transférer de progression économique ni récompenser à nouveau. La sauvegarde jouable dépend exclusivement du choix R1055 WEB/TWITCH ; aucune priorité générale legacy/Web.
 
-Le Player perdant devient ARCHIVED, inaccessible et sans nouvelle mutation personnelle ; ses traces partagées restent cohérentes pour les tiers. [Contrat et limites](../architecture/r1055-operator-resolution.md), [DDL](../architecture/postgresql-schema-v1.md), [validation courante](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Candidat local/review uniquement, aucune opération publique.
+Le Player perdant devient ARCHIVED, inaccessible et sans nouvelle mutation personnelle ; ses traces partagées restent cohérentes pour les tiers. [Contrat et limites](../architecture/r1055-operator-resolution.md), [DDL](../architecture/postgresql-schema-v1.md), [validation courante](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Mécanisme approuvé/déployé ; A/B, preuves et gates au Master. Aucun choix/archivage Ceo exécuté.
 
 ## TwitchLinkResolution — R1055
 

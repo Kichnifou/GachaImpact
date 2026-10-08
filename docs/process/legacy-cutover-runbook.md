@@ -2,20 +2,20 @@
 
 <a id="r1055-operator-runbook-20261008"></a>
 
-## Point courant — candidat opérateur ; aucune exécution publique autorisée
+## Point courant — mécanisme déployé ; B importée, attendre la disponibilité humaine
 
-Ce checkpoint prépare un mécanisme sensible R1055/R1056 **sur review seulement**. [Contrat/données/limites](../architecture/r1055-operator-resolution.md), [preuves actuelles](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Main public reste 32af8b7/62 migrations selon les derniers contrôles. 063 est uniquement locale. Review indépendante puis mission de promotion contrôlée requises ; ne pas utiliser les commandes suivantes en production maintenant.
+Code approuvé8928f7b déployé Railway/Cloudflare SUCCESS du SHA exact, health200, Prisma63 et DDL063 vérifiés. Ceo B DATA_IMPORTED/LEGACY/non-canary, A Auth/Web ACTIVE et graphes/tiers exacts ; OFF11/flagfalse/trois canaries préservés. Aucun plan/OAuth/archivage. Disponibilité humaine puis plan frais et liaison requis ; raccordement communautaire global non exécuté. [État et checkpoint final au Master](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Ne rejouer aucun import de B ou des trois canaries.
 
 ### Gates distinctes pour Ceo
 
 1. Après déploiement approuvé, relire une fois les protections canoniques : Prisma 63, OFF révision attendue et flag false, zéro opération/outbound incertain, trois NATIVE/imports/backups/cosmétiques identiques. Échec déploiement/DB → STOP, aucun retry/reconfiguration à l'aveugle.
 2. Rafraîchir identité Web authentifiée A, 17 fichiers gelés/hash et preuve Helix. Préflight de B seulement : TWITCH_ONLY, UUID distinct, progression source significative, aucune collision/preimage/opération/contradiction sociale. Le refus d'archiver A n'est pas un blocker de cet import indépendant. A significatif, WebIdentity/Auth et tiers doivent rester exacts.
 3. Répétition privée représentative avec chaîne 63, sources/relations pertinentes, backup v3 durable, comparaison et rollback EXACT_PREIMAGE. Vérifier le retour des faits/relations/quotas sociaux et des tiers, pas seulement le gameplay de B. Réautorisation ciblée puis apply B DATA_IMPORTED/LEGACY/non-canary ; aucune identité Web sur B, aucune activation NATIVE. Vérifier A/B séparés et significatifs avant tout OAuth.
-4. Préparer, par la CLI locale ci-dessous, une autorisation TWITCH pour les identités vérifiées de A/B. Elle écrit un backup privé neuf synchronisé et un plan expirant quinze minutes ; elle ne ferme rien et ne choisit pas. Une relation inconnue, activité incompatible ou collision sociale réelle → STOP avec diagnostic owner. Aucun assouplissement SAFE.
+4. **Attendre que Ceo confirme être prête à effectuer la liaison ; aucun plan expirant avant sa disponibilité.** Préparer alors, par la CLI locale ci-dessous, une autorisation TWITCH pour les identités vérifiées de A/B. Elle écrit un backup privé neuf synchronisé et un plan expirant quinze minutes ; elle ne ferme rien et ne choisit pas. Une relation inconnue, activité incompatible ou collision sociale réelle → STOP avec diagnostic owner. Aucun assouplissement SAFE.
 5. Gate humaine seulement après B vérifié : « Ceo peut maintenant se connecter au standalone, puis aller dans Configuration > Compte > Lier Twitch. L'écran de comparaison des deux progressions doit apparaître. » Elle choisit elle-même « Utiliser ma progression Twitch » et accepte l'abandon présenté. Preuve modifiée/plan expiré → nouvelle préparation/confirmation, jamais répétition automatique du choix.
 6. Après choix : B ACTIVE et Web+Twitch, A ARCHIVED sans accès ; gameplay gagnant sans fusion, historiques/tiers cohérents, import/provenance/backup/target B conservés. Recette F5/logout-login humaine. NATIVE et smoke appartiennent à l'étape ultérieure d'extension multi-canary autorisée ; aucune commande dans le présent lot.
 
-### Préparation opérateur locale — après approbation seulement
+### Préparation opérateur locale — après disponibilité humaine et nouvelles gates seulement
 
 Depuis server, avec configuration canonique injectée dans le processus et artefacts privés ignorés (valeurs réelles jamais publiées) :
 

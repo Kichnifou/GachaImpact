@@ -1,10 +1,10 @@
 # GachaImpact — Architecture backend V1
 
-## Candidat R1055/R1056 — abandon contrôlé et relations communautaires, 08/10/2026
+## R1055/R1056 déployé — abandon contrôlé et relations communautaires, 08/10/2026
 
-[Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Candidat sensible sur review uniquement : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.
+[Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Mécanisme sensible approuvé puis déployé : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.
 
-La nouvelle migration 063 est testée uniquement en PostgreSQL local ; production toujours baseline 32af8b7/62 selon le dernier contrôle. Les performances SQL publiques sont résolues, aucun nouveau chantier PostgreSQL. Nouvelle review indépendante avant main/déploiement/import/OAuth Ceo ; OFF11/flag false/trois canaries non modifiés.
+Code approuvé8928f7b déployé Railway/Cloudflare SUCCESS du SHA exact, health200, Prisma63 et DDL063 vérifiés. Ceo B DATA_IMPORTED/LEGACY/non-canary, A Auth/Web ACTIVE et graphes/tiers exacts ; OFF11/flagfalse/trois canaries préservés. Aucun plan/OAuth/archivage. Disponibilité humaine puis plan frais et liaison requis ; raccordement communautaire global non exécuté. [État et checkpoint final au Master](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008).
 
 ## Résilience de la lecture Concours — correctif P0
 

@@ -1,12 +1,12 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
-## Migration 063 — résolution opérateur et amitiés versionnées (candidat privé)
+## Migration 063 — résolution opérateur et amitiés versionnées (déployée)
 
 063 ajoute `twitch_canonicalization_plans` (paire Web/Twitch, opérateur, choix, fingerprint/backup, conséquences, expiration, consommation liée à résolution) et `legacy_friendship_facts` (provenance JSON et Helix, agrégats/dates, deux IDs Twitch vérifiés ou différés). FK RESTRICT, CHECK de cohérence, index FK, RLS activée et droits PUBLIC/anon/authenticated révoqués. Aucun token OAuth stocké. Les plans et backups restent privés.
 
 `friendships` reçoit provenance/version/clôture ; l'unicité absolue de paire devient une unicité partielle sur la version non supersédée, avec une seule version effective par fait legacy. Les anciennes lignes/cœurs/endpoints restent conservés. Une barrière physique INSERT/UPDATE/DELETE vérifie sous verrou les propriétaires anciens/nouveaux des 71 tables personnelles et des identités ; quatre enfants indirects verrouillent leur parent. ARCHIVED est inerte ; SUSPENDED conserve ses règles. Erreur métier 409, pas d'accès navigateur ni bypass de session.
 
-Les fixtures privées rejouent les 63 migrations. 001–062 inchangées ; 063 n'est pas appliquée publiquement. [Contrat détaillé](r1055-operator-resolution.md), [état réel](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008).
+Fixtures privées63 ; registre public63 exact/0incomplète. 001–062 inchangées ;063 appliquée par pre-deploy Prisma,12index/9contraintes/2tables RLS/73triggers vérifiés. Deux écritures Prisma ACTIVE acceptées puis entièrement rollbackées, aucun contournementSQL. [Contrat détaillé](r1055-operator-resolution.md), [état réel](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008).
 
 ## Liaison unifiée — migration additive 062
 
