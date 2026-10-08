@@ -1,7 +1,11 @@
 # Migration legacy V1 — contrat canonique
 
 
-## Point courant — optimisation R1055 sur review ; Ceo STOP, 08/10
+## Point courant — R1055 déployé ; Ceo STOP aux références, 08/10
+
+[État et mesures réels](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008), [gate opératoire](../process/legacy-cutover-runbook.md#point-courant--r1055-déployé--ceo-stop-aux-références). fccd0d6 approuvé/promu dans 92d6389, Railway/Cloudflare SUCCESS du SHA exact, health 200/Prisma 62/OFF11/flag false. Sources 17/17 et Helix frais ; A Auth/Web-only ACTIVE/significatif intact. Préflight unique READ ONLY : projections complètes jusqu’à 4895 lignes/55 tables, puis 57014 à CANONICALIZATION_EVIDENCE (241 branches), fingerprint non atteint ; aucun conflit relationnel ou SAFE démontré. STOP sans retry/hausse de borne ; B/plan complet/rehearsal/backup/import/OAuth/NATIVE non exécutés. Fermeture finale PASS, trois canaries/imports/backups/réparations préservés. Prochaine mission ciblée privée sur les références avant toute reprise Ceo ; dette Supabase après migration et P0 clos conservés.
+
+## Historique — optimisation R1055 sur review ; Ceo STOP, 08/10
 
 **Autorité actualisée :** fccd0d6 approuvé par review indépendante ; [promotion et reprise conditionnelle Ceo](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008) autorisées sous toutes les gates. L’ancienne gate de review ci-dessous est acquise, le préflight réel n’est pas encore déclaré PASS et B reste absent. Aucun OAuth/NATIVE Ceo avant les validations prévues.
 

@@ -1,6 +1,14 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — candidat R1055 ; Ceo STOP pour review indépendante
+## Point courant — R1055 déployé ; Ceo STOP aux références
+
+[Résultats et reprise exacte](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008). Code fccd0d6 approuvé indépendamment, promu dans 92d6389 par fast-forward ; refs 0/0/worktree propre et vrais diff/blobs GitHub contrôlés. Railway 9cc159c7 et Cloudflare cc6b91c9 SUCCESS sur ce SHA exact, health 200/Prisma 62, OFF11/flag false et trois canaries/imports/backups/cosmétiques/deux réparations exacts. Les contrôles du checkpoint documentaire qui porte ces résultats sont distincts, sans nouveau code produit ni redéploiement manuel.
+
+Préflight réel unique READ ONLY après déploiement stable : 17 sources/Helix frais, A Web/Auth immuable ACTIVE/significatif, trois projections complètes en 1658/2582/2391 ms, graphe 4895 lignes/55 tables. **57014 à CANONICALIZATION_EVIDENCE** : 241 branches, JSON 5 566 868 octets ; références/fingerprint non terminés, plan versus exécution interne non départagés. Aucun conflit relationnel démontré et aucun SAFE présumé. STOP sans seconde tentative ni hausse de borne ; aucun plan complet, rehearsal/backup/import B, OAuth ou Ceo NATIVE.
+
+Fermeture finale READ ONLY 08:02 UTC PASS : zéro connexion Ceo/verrou/transaction longue/idle, 62 migrations/zéro incomplète, OFF11/flag false, trois imports/identités/deux réparations exacts, A Web-only intact et B/TwitchIdentity/target/import/OAuth absents. Échecs intermédiaires de fermeture conservés au Master ; aucune écriture. Reprise : diagnostic privé ciblé du coût des evidenceQueries à 55 tables, conservation du contrat R1055, review indépendante de toute nouvelle modification sensible ; ensuite seulement préflight complet et chemin B séparé ci-dessous. Aucune liaison humaine maintenant. Streamer.bot OFF ; GLOBAL/batch/replay interdits. Dette Supabase après migration inchangée.
+
+## Historique — candidat R1055 ; gate de review indépendante
 
 **Mise à jour d’autorité :** review indépendante fccd0d6aa1814fe1c6e645c7aa6266f21f23ae5b APPROUVÉE, aucun finding bloquant. [Promotion et gates courantes](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008). La gate de review décrite ci-dessous est acquise ; promotion/déploiements exacts et un nouveau préflight Ceo instrumenté sont autorisés. Import B seulement après préflight complet + rehearsal/backup/comparaison/rollback exact. Tout 57014/OPERATOR_REQUIRED/instabilité impose STOP ; aucune liaison humaine avant B vérifié. Aucun test complet distant répété ni configuration modifiée.
 
