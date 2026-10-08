@@ -1,13 +1,29 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat R1055 — consentement stable et chargements Twitch séparés.
+Version : R1055 consentement/chargements approuvé, promu et déployé ; disponibilité Ceo attendue.
 Date : 2026-10-08
-Statut : **CANDIDAT REVIEW UNIQUEMENT ; STOP REVIEW INDÉPENDANTE.** Production f633760 inchangée, A/B ACTIVE séparés ; aucun choix confirmé ni nouveau plan. OFF11/flag false/trois canaries préservés au dernier contrôle public daté.
+Statut : **CORRECTIF APPROUVÉ/DÉPLOYÉ ; STOP AVANT DISPONIBILITÉ HUMAINE ET PLAN FRAIS.** Code f96d5a3 promu strictement ; A/B ACTIVE séparés, aucun choix confirmé ni nouveau plan. OFF11/flag false/trois canaries préservés aux contrôles publics datés ci-dessous.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-consent-promotion-20261008"></a>
+
+## Point courant — promotion R1055 contrôlée ; seconde tentative humaine différée
+
+Review indépendante propriétaire **APPROUVÉE**, aucun finding bloquant, pour **f96d5a3330f2976eb7dbed392b4758b20bf2479e**. Préflight GitHub réel : main f633760/review f96d5a3, parent exact, divergence0/1, 12 patches/blobs conformes, worktree propre et aucun concurrent. Promotion strictement fast-forward du même candidat, sans force-push ; main/review/origin égaux, divergence0/0. Aucun changement de code sensible supplémentaire. Le checkpoint documentaire qui conserve ces résultats est publié sur review/main dans cette mission ; son propre SHA et ses déploiements exacts sont consignés au TASK_STATE et au rapport final, sans commit en boucle pour citer son SHA.
+
+**Déploiement du code approuvé :** Railway **bb988480-e707-4b15-ace1-ec7c85331fce SUCCESS15:20:24UTC**, SHA f96d5a3 exact, Online1/zéroissue/pending/staged. Cloudflare **be71c398-f281-4080-85f2-14b9c7324c47 SUCCESS15:19:56UTC**, SHA exact ; production/preview200, JS/CSS identiques octet pour octet. Bundle public vérifié : chargement et réessai de comparaison et erreur compte distincte effectivement servis. Backend : déploiement actif du SHA exact, compilation TypeScript et nouveau conteneur écoutant à15:20:13UTC, health200. L'essai de lecture directe des fichiers runtime par SSH s'est arrêté faute de clé existante ; aucune clé/configuration créée, aucun hash runtime revendiqué. La preuve backend est la provenance du déploiement actif, ses build/startup logs et sa réponse health, distincte d'une recette OAuth humaine.
+
+**Gates publiques READ ONLY bornées :** revalidation avant15:16:57–15:16:59UTC et après15:21:02–15:21:04UTC PASS, Repeatable Read/statement5s/transaction30s, déconnexion acquise. Prisma migrate status **63 migrations à jour**, registre exact/checksums et DDL063 conformes :12index/9contraintes/73triggers, RLS/grants inchangés. Aucun nouveau fichier de migration ni DDL métier. Logs du déploiement code :66build/126runtime, fenêtres non tronquées, zéro erreur DB/pool/P1001/57014/PinoERROR. OFF réel révision11 et flagRailwayfalse ; zéroPENDING/outbound incertain/verrou/idletransaction/transactionlongue. Trois NATIVE/canaries/identités/imports/backups/deux réparations exacts ; backups locaux bruts/hash canoniques et backup Ceo v3 vérifiés avant/après. A ACTIVE/Auth-Web seul/significatif, B ACTIVE/Twitch-only/DATA_IMPORTED/LEGACY/non-canary, graphes économiques personnels contrôlés identiques avant/après, identités/target/provenance/import exacts. Ancien plan expiré non consommé, six résolutions expirées sans choix confirmé ; **11faits d'amitié Ceo DEFERRED exacts**.
+
+Les incidents de helpers locaux sont conservés : première sérialisation BigInt privée échouée après lecture et déconnexion ; corrigée sans changement SQL/produit. Une lecture suivante s'est arrêtée sur une garde d'activité agrégée non nulle sans détail persisté ; diagnostic ciblé ensuite sans ligne anormale, puis revalidation complète PASS sans affaiblir la garde. Ne pas inventer la cause de cette observation ni de l'ancien incident PostgreSQL/Concours. Aucun redéploiement de récupération, aucune configuration expérimentale, aucune campagne DB lourde Supabase ; tests du candidat **67 DB locaux + verify:full8/8** conservés sans répétition inutile.
+
+**STOP humain après déploiement vérifié : attendre la confirmation propriétaire que Ceo est disponible.** Aucune autorisation de quinze minutes préparée ici. Mission suivante seulement : gates fraîches/backup neuf/plan TWITCH via owner, autorisation réellement visible dans la comparaison, OAuth et choix «Utiliser ma progression Twitch» strictement humains. Vérifier B Web+Twitch ACTIVE, A ARCHIVED sans accès, sauvegarde/provenance/historiques tiers sans fusion, puis F5/logout-login. NATIVE et raccordement communautaire sont des étapes distinctes ultérieures ; onze amitiés et restauration communautaire de tous les éligibles restent suivies. Streamer.botOFF, aucun réimport B/canary, OAuth automatique, batch/GLOBAL, infra/abonnement. DetteSupabase prioritaire après migration des joueurs.
+
+Artefacts privés ignorés : local-data/identity-resolutions/ceo-consent-promotion-20261008. Aucun identifiant personnel, fingerprint, token ou backup publié. [Contrat](../architecture/r1055-operator-resolution.md), [runbook](../process/legacy-cutover-runbook.md#r1055-consent-fix-runbook-20261008).
 
 <a id="r1055-consent-fix-20261008"></a>
 
-## Point courant — correctif ciblé du consentement et du chargement de comparaison
+## Historique — candidat correctif ciblé du consentement et du chargement de comparaison
 
 **Diagnostic démontré, sans mutation publique :** le plan TWITCH préparé à 15:15:01 (Paris) expirait à **15:30:01**, sans consommation. Six résolutions OAuth ont été créées entre 15:21 et 15:27, aucune avec choix/confirmation exécuté. L'empreinte du plan était modifiée uniquement par `player_activity_state.last_app_activity_at` et `updated_at` de A, présents dans deux projections du graphe. La restauration de ces seules valeurs **en mémoire locale** reproduit exactement l'empreinte initiale. Aucun changement de gameplay, identité ou relation n'est nécessaire pour reproduire le défaut. Le délai UI commun de huit secondes annulait aussi la comparaison : 499 à 7,819 s, autre lecture réussie à 7,054 s ; lecture du compte autour de 31 ms. Les renouvellements OAuth remplacent la résolution précédente ; aucune liaison n'était confirmée malgré les comparaisons affichées.
 
