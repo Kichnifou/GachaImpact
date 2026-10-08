@@ -1,7 +1,11 @@
 # Migration legacy V1 — contrat canonique
 
 
-## Point courant — P0 publiquement validé ; Ceo STOP dans cette mission
+## Point courant — Ceo STOP au contrôle canonique des références, 08/10
+
+[État/preuves et reprise au Master](../master/PROJECT_MASTER_PLAN.md#contest-height-ceo-20261008). Correctif de hauteur vide Concours déployé sur ec5cd9a, sans changement backend/migration ; P0 public déjà clôturé. Sources Ceo 17/17 et Helix rafraîchies, A authentifié Web ACTIVE/significatif sans Twitch. Préflight READ ONLY interrompu à assessPlayerCanonicalizationSafety : borne SQL 5 s, code 57014/statement timeout, classification des références non terminée. Aucun conflit partagé présumé ; aucun plan complet/rehearsal/apply/B/OAuth/NATIVE Ceo. Fermeture des connexions prouvée, OFF11/flag false et trois canaries/imports/backups préservés. Diagnostic privé ciblé requis avant reprise, sans contournement ni nouveau mécanisme sensible promu sans review indépendante.
+
+## Historique — P0 publiquement validé ; Ceo STOP dans cette mission P0
 
 [État exact et gates au Master](../master/PROJECT_MASTER_PLAN.md#p0-deploye-recette-humaine-20261007) ; [reprise P0 au runbook](../process/legacy-cutover-runbook.md#p0-standalone-contest-20261007). Tests privés et verify:full réussis, contrôle visuel Codex Playwright acquis aux quatre viewports sur fixtures locales, recette authentifiée Kichnifou (Ctrl+F5/Concours/logout-login) validée par le propriétaire. Code a6dceeb approuvé indépendamment puis promu dans 7e900df : Railway SUCCESS/Online et Cloudflare SUCCESS/livraison JS-CSS exacte/health 200, Prisma 62 à jour et préservation OFF11/trois NATIVE/backups prouvées après déploiement. Checkpoint 0aba64c aligné main/review et déployé Railway/Cloudflare sur le SHA exact ; propriétaire « Tout passe, Concours affiche son vrai état ». Corrélation bornée : 23 GET Concours 200/82–144 ms, trois clusters bootstrap 200, aucune erreur/stage lent observé. La clôture documentaire conserve le code approuvé ; ses pipelines sont contrôlés séparément. OFF11/flag canonique false, trois NATIVE/imports/backups/cosmétiques et Ceo A Auth/Web sans Twitch préservés par relecture canonique READ ONLY. Aucun import/OAuth Ceo, opération canary, replay, recovery, réparation, batch/GLOBAL ou commande Twitch. Cause historique PostgreSQL/attente publique exacte non démontrée ; cause historique reste inconnue malgré le rétablissement et la recette humaine actuelle ; préserver les anciens incidents.
 
