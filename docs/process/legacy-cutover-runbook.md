@@ -16,7 +16,17 @@ Baseline publique edb3b2b1257f3c2e9353f935927c0385a20da5ce : GitHubmain=review0/
 
 <a id="ceo-native-preparation-20261008"></a>
 
-### Préparation du prochain transfert Ceo — checklist sans exécution
+<a id="ceo-native-operation-runbook-20261008"></a>
+
+### Extension Ceo exécutée et recettée le08/10 — quatre canaries persistées
+
+[État réel, autorisation et preuves](../master/PROJECT_MASTER_PLAN.md#ceo-native-operation-20261008) : capacité commandes true déployée au même code f561850, GLOBAL false ; extension canonique exécutée une fois, B NATIVE et quatre canaries persistées, CANARY 12. Postflight exact des trois targets/imports/identités et 734 lignes personnelles B PASS ; un transfert B/un changement d'autorité, A ARCHIVED, onze faits DEFERRED.
+
+La sonde canonique READ ONLY avec configuration Railway/Helix valide CANARY/CANARY/transportValid=true, mais n'est pas le GET authentifié de l'instance déployée. **Gate runtime et smoke humain post-transfert acquis.** Le propriétaire confirme après F5, dans sa session Kichnifou existante, Configuration→Compte : « Disponible sur ce serveur », Armement ON, État effectif ON, réception Chat Activée, sans cliquer Activer/Désactiver. Cette UI lit le GET authentifié existant ; la capacité et l'effectif proviennent du runtime, la sélection exacte des quatre IDs vient du postflight PostgreSQL. Aucun token exporté ni session fabriquée ; lecture HTTP autonome par Codex non prétendue.
+
+Après cette gate : trois nouveaux messages !pity/!quotis/!box depuis Ceo, reçus techniques exacts/PlayerB/terminal/SENT validés (1/1/3 segments), aucune livraison incertaine ou doublon. Pity/Box gelés conformes à B, récompense quotidienne déjà réclamée/zéro nouveau crédit, six opérations de présence uniques / +3 totalMessages et XP inchangé. Le propriétaire confirme les réponses cohérentes puis F5/profil100/ressources/Box/reconnexion avec même progression. La recette est acquise sans replay ni faux EventSub. Si contrôle tardif échoué/indisponible : OFF par l'owner normal, relire la révision et l'effectif ; préserver quatre NATIVE/audits/imports. Une reprise ultérieure utilise l'ensemble persisté, jamais un second extendImportedCanary. Rollback d'import pré-liaison et restitutionLEGACY restent interdits dans cette mission. Avant promotion documentaire : autorité/receipts sains et redémarrage sûr, puis revalider l'instance après déploiement. STOP final après Ceo ; raccordement social et31B distincts.
+
+### Checklist du transfert Ceo — préparation historique, protections toujours applicables
 
 Le mécanisme propriétaire reste [l'extension multi-canary existante](twitch-native-foundations.md#extension-locale-dun-ensemble-canary-importé), jamais le transfert initial ni un nouvel import. Les preuves fraîches, historiques et non exécutées sont distinguées dans le Master ; ne pas reprendre automatiquement la révision11.
 
