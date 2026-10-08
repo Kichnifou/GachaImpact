@@ -1,13 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : moteur R1055 structurel testé en local ; candidat review, Ceo STOP.
+Version : moteur R1055 structurel approuvé ; promotion contrôlée et gate Ceo.
 Date : 2026-10-08
-Statut : **P0 PUBLIC CLÔTURÉ ; CANDIDAT R1055 EN REVIEW ; PUBLIC INCHANGÉ, CEO STOP.** Review indépendante requise avant promotion/déploiement/préflight. Baseline main 52b5631, OFF11/flag false/trois canaries conservés ; aucune opération publique dans ce lot.
+Statut : **P0 PUBLIC CLÔTURÉ ; REVIEW ASTRA APPROUVÉE ; PROMOTION AUTORISÉE SOUS GATES.** Ceo reste sans import/OAuth jusqu'au préflight complet et à la rehearsal. OFF11/flag false/trois canaries conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-astra-promotion-20261008"></a>
+
+## Point courant — approbation Astra ; promotion et préflight Ceo contrôlés
+
+Review indépendante Astra **APPROUVÉE**, aucun finding bloquant, pour **524e9f992bc03f788beea0fa72eb246e8d65c965**. Le code reste strictement celui approuvé ; aucune nouvelle décision Rxxx. Avant publication : GitHub main 52b5631/review 524e9f9, ancestry exacte et divergence 0/1, worktree propre ; treize patches et blobs GitHub confrontés au commit local, PASS.
+
+Gates publiques avant promotion PASS : connexion/configuration canonique Railway, Prisma **62 migrations à jour**, READ ONLY Repeatable Read/statement 5 s/transaction 60 s, déconnexion effective. OFF révision **11**, flag **false**, zéro opération PENDING/outbound incertain/verrou bloquant/transaction longue ; trois NATIVE, imports/identités/backups exacts, cosmétiques cohérents et deux audits de réparation inchangés. Ceo A Auth/Web ACTIVE intact, sans Twitch ; B/target/import absents. Railway baseline 52b5631 **SUCCESS/Online1**, zéro issue/pending/staged ; aucune modification de configuration ni redéploiement manuel.
+
+Promotion de l'ensemble review vers main uniquement par fast-forward strict, puis contrôles séparés Railway/Cloudflare sur le SHA exact, health200, Prisma62 et logs. Ces nouveaux déploiements et le préflight sont **à exécuter**, aucun résultat anticipé. Toute erreur de déploiement/DB/pool impose STOP sans répétition. Après stabilité : sources legacy 17/17 et Helix frais, preuve Auth/Web immuable, **UN préflight Ceo** complet instrumenté ; couverture FK/graphes/classifications/fingerprint et gardes exigées, sans augmenter les bornes. Au premier 57014/OPERATOR_REQUIRED/partage non résolu : STOP exact.
+
+Import ciblé B autorisé seulement après PASS complet, deux progressions significatives, TWITCH_ONLY distinct de A, rehearsal privée représentative, backup durable/comparaison/rollback EXACT_PREIMAGE et revalidation publique. B DATA_IMPORTED/LEGACY/non-canary ; A gameplay/Auth/Web intégralement conservés. Liaison et choix humain attendent B vérifié. Streamer.bot OFF, aucun batch/GLOBAL/commande Twitch ni replay/réparation/recovery des trois canaries. Dette Supabase après migration inchangée. Preuves privées ignorées : local-data/r1055-astra-promotion-20261008 ; performances locales ci-dessous distinctes des performances publiques encore non mesurées. Cause historique PostgreSQL/pool toujours non démontrée.
 
 <a id="r1055-astra-20261008"></a>
 
-## Point courant — candidat R1055 structurel ; STOP review indépendante
+## Historique — candidat R1055 structurel ; gate de review indépendante acquise
 
 Mission Astra sur baseline **main = review = 52b5631c1988a895b90046347a8db320f810432f**, worktree propre au départ. Le présent candidat est autorisé uniquement sur **review**, sans promotion ni déploiement. Le [dossier d’architecture et de preuves](../architecture/r1055-canonicalization-performance.md) compare les stratégies et explique les invariants. Aucune nouvelle décision produit/Rxxx, migration ou configuration fournisseur.
 

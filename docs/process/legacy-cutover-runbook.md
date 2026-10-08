@@ -1,6 +1,12 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — moteur R1055 structurel en review ; aucun préflight public autorisé
+## Point courant — moteur R1055 approuvé ; promotion puis un préflight Ceo
+
+Review indépendante Astra APPROUVÉE pour **524e9f992bc03f788beea0fa72eb246e8d65c965**, aucun finding bloquant. [Gates et résultats réels au Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008). Avant promotion : patches/blobs GitHub et ancestry PASS, main 52b5631/review 524e9f9, divergence 0/1/worktree propre ; Prisma62, OFF11/flag false, trois NATIVE/imports/backups/cosmétiques et deux réparations exacts, zéro opération/verrou/transaction longue. Railway Online/SUCCESS sans pending/staged. Aucun nouveau déploiement/préflight/import encore revendiqué.
+
+Finaliser la documentation sur review, contrôler GitHub, fast-forward strict main, contrôler les deux déploiements exacts et health/Prisma/logs. Ensuite seulement UN préflight complet READ ONLY avec sources17/Helix/Auth-Web frais, couverture/classifications/fingerprint et métriques. STOP sur tout échec de déploiement, 57014, anomalie ou OPERATOR_REQUIRED ; aucune répétition/hausse de borne. Après PASS seulement : rehearsal privée/backup durable/comparaison/rollback EXACT_PREIMAGE/revalidation publique, import B TWITCH_ONLY/DATA_IMPORTED/LEGACY/non-canary distinct de A intact. Aucune liaison humaine avant B vérifié, aucun Ceo NATIVE. Streamer.bot OFF, trois canaries préservés sans replay/réparation, aucun batch/GLOBAL/commande Twitch/configuration infrastructure.
+
+## Historique — moteur R1055 structurel en review
 
 [État courant et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-astra-20261008), [architecture/invariants/mesures](../architecture/r1055-canonicalization-performance.md). Baseline publique 52b5631. Candidat local : fermeture incrémentale, clés FK typées, lots par parent de 64 branches maximum, même graphe/classifications/fingerprint ; snapshot Repeatable Read ou Serializable obligatoire. Tests PostgreSQL uniquement locaux sur données synthétiques et 62 migrations, sans accès Supabase. Aucune migration/variable/pool/timeout fournisseur modifié.
 
