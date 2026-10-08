@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import type { Prisma } from '../generated/prisma/client.js';
 import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
@@ -10,6 +11,7 @@ import type { GetCurrentPlayer } from '../src/application/player/get-current-pla
 import type { ExpeditionService } from '../src/application/expedition/expedition-service.js';
 import { buildCutoverPurgePlan, applyPrivateCutoverPurge } from '../src/application/migration/legacy-cutover-purge.js';
 import { assessPlayerCanonicalizationSafety } from '../src/application/twitch/player-canonicalization-safety.js';
+import { assessBaselineCanonicalizationSafety } from './canonicalization-safety-reference.js';
 import { readLegacyAccountProjection } from './legacy-account-projection.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database, link = new TwitchAccountLink(db);
@@ -18,7 +20,20 @@ beforeAll(async () => {
   await fixture.setup({ prismaMigrations:true });
   await db.permanentMissionDefinition.createMany({ data:permanentMissionCatalog.map(entry=>({...entry})),skipDuplicates:true });
 },180_000);
-afterAll(() => fixture.cleanup(), 60_000);
+afterAll(async () => {
+  await fixture.cleanup();
+  const pool = fixture.poolSnapshot();
+  expect(pool.total).toBe(0); expect(pool.idle).toBe(0); expect(pool.waiting).toBe(0); expect(pool.opened).toBe(pool.closed);
+}, 60_000);
+async function equivalentAssessment(playerId: string) {
+  return db.$transaction(async tx => {
+    await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
+    const baseline = await assessBaselineCanonicalizationSafety(tx, playerId);
+    const optimized = await assessPlayerCanonicalizationSafety(tx, playerId);
+    expect(optimized).toEqual(baseline);
+    return optimized;
+  }, { isolationLevel: 'RepeatableRead', timeout: 60_000 });
+}
 async function profiles(significant = true) {
   const subject = randomUUID(), twitchUserId = String(960000000000 + ++sequence);
   const web = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private Web', webIdentity: { provider: 'supabase', providerSubject: subject } }));
@@ -37,6 +52,49 @@ it('links an unknown verified Twitch ID to the same significant Web Player witho
   expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId: f.web.id } })).xp).toBe(90n);
   expect(await db.twitchLinkResolution.count({ where: { webIdentityId: f.identity.id } })).toBe(0);
 });
+it('plans a significant synthetic graph without repeatedly folding its JSON input', async () => {
+  const f=await profiles();
+  const operations=Array.from({length:1415},()=>randomUUID()), now=new Date();
+  const sessions=Array.from({length:26},()=>randomUUID());
+  await db.arcadeSession.createMany({data:sessions.map(id=>({id,playerId:f.twitch.id,game:'MEMORY',difficulty:'EASY',status:'ABANDONED',firstSide:'PLAYER',privateState:{},randomState:1n,banterId:'fixture',nextActionAt:now,finishedAt:now}))});
+  await db.businessOperation.createMany({data:operations.map(id=>({id,playerId:f.twitch.id,operationType:'private.r1055',sourceChannel:'UI',status:'COMPLETED',completedAt:now,resultSummary:{synthetic:'fixture'.repeat(256)}}))});
+  await db.resourceMovement.createMany({data:operations.slice(0,1205).map(operationId=>({playerId:f.twitch.id,resourceKey:'primogems',delta:1n,balanceBefore:9007199254740992n,balanceAfter:9007199254740993n,causeKey:'private.r1055',domainKey:'private',operationId,sourceChannel:'UI'}))});
+  await db.arcadeReceipt.createMany({data:operations.slice(0,646).map((operationId,index)=>({playerId:f.twitch.id,sessionId:sessions[index%sessions.length]!,operationId,idempotencyKey:randomUUID(),fingerprint:'a'.repeat(64),response:{synthetic:'fixture'.repeat(128)}}))});
+  const plans: {engine:string;stage:string;durationMs:number;cost:number;jitFunctions:number;inputBytes:number}[]=[],metrics:unknown[]=[];
+  let baselinePlanningTimeout = false;
+  const measuredTx=(tx:Prisma.TransactionClient,engine:string)=>new Proxy(tx,{get(target,key){
+    if(key!=='$queryRawUnsafe')return Reflect.get(target,key);
+    return async(sql:string,...args:unknown[])=>{
+      if(sql.includes(' table_name,to_jsonb')||sql.includes('::text edge,')) {
+        const start=performance.now();const stage=sql.includes(' table_name,to_jsonb')?'projection':'evidence';
+        let plan: { 'QUERY PLAN': {Plan:{'Total Cost':number};JIT?:{Functions:number}}[] }[];
+        try {
+          plan=await tx.$queryRawUnsafe('EXPLAIN (FORMAT JSON) '+sql,...args);
+        } catch (error) {
+          const failure=error as {code?:string;meta?:{driverAdapterError?:{cause?:{originalCode?:string}}}};
+          baselinePlanningTimeout=engine==='baseline'&&stage==='projection'&&failure.code==='P2010'&&failure.meta?.driverAdapterError?.cause?.originalCode==='57014';
+          throw error;
+        }
+        plans.push({engine,stage,durationMs:performance.now()-start,cost:plan[0]!['QUERY PLAN'][0]!.Plan['Total Cost'],jitFunctions:plan[0]!['QUERY PLAN'][0]!.JIT?.Functions??0,inputBytes:Buffer.byteLength(args[0] as string)});
+      }
+      return tx.$queryRawUnsafe(sql,...args);
+    };
+  }});
+  // The old custom plan alone exceeds the same five-second statement budget.
+  await expect(db.$transaction(async tx=>{
+    await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
+    return assessBaselineCanonicalizationSafety(measuredTx(tx,'baseline'),f.twitch.id);
+  },{timeout:60_000})).rejects.toMatchObject({code:'P2010'});
+  expect(baselinePlanningTimeout).toBe(true);
+  expect(plans.filter(p=>p.engine==='baseline')).toHaveLength(1);
+  const optimized=await db.$transaction(async tx=>{
+    await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
+    return assessPlayerCanonicalizationSafety(measuredTx(tx,'optimized'),f.twitch.id,undefined,metric=>metrics.push(metric));
+  },{isolationLevel:'RepeatableRead',timeout:60_000});
+  expect(optimized.safety.status).toBe('SAFE');
+  expect(plans.filter(p=>p.engine==='optimized')).toHaveLength(3);
+  process.stdout.write('R1055_METRIC '+JSON.stringify({plans,metrics})+'\n');
+},120_000);
 it('recovers a null-element Twitch Player from a disposable Web Player using the same WebIdentity', async () => {
   const f = await profiles(false);
   await expect(link.verified(f.identity.id, f.web.id, f.twitchUserId, 'renamed', 'Renamed')).resolves.toMatchObject({ playerId: f.twitch.id, linked: true });
@@ -249,10 +307,10 @@ it('stores only versioned summaries, fingerprints and safety; ignores sessions a
   await db.playerSession.create({data:{playerId:f.twitch.id,sessionTokenHash:'d'.repeat(64)}});
   expect((await link.pending(f.identity.id))!.revision).toBe(pending.revision);expect(JSON.stringify(stored)).not.toContain('d'.repeat(64));
   await db.playerEconomyStats.update({where:{playerId:f.twitch.id},data:{totalPrimosSpent:9007199254740992n}});
-  const first=await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,f.twitch.id));
+  const first=await equivalentAssessment(f.twitch.id);
   // Change only the int8 value: neither a rounded JS number nor an updated timestamp can distinguish these rows.
   await db.$executeRaw`UPDATE player_economy_stats SET total_primos_spent=9007199254740993 WHERE player_id=${f.twitch.id}::uuid`;
-  const second=await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,f.twitch.id));expect(second.fingerprint).not.toBe(first.fingerprint);
+  const second=await equivalentAssessment(f.twitch.id);expect(second.fingerprint).not.toBe(first.fingerprint);
 },90_000);
 it('fails closed for future direct and nested FK tables and new cross-player columns on owned tables',async()=>{
   const f=await profiles();const team=await db.team.create({data:{playerId:f.twitch.id,displayPosition:1}});
@@ -261,14 +319,14 @@ it('fails closed for future direct and nested FK tables and new cross-player col
     await fixture.admin.query(`CREATE TABLE ${schema}."${name}" (id uuid PRIMARY KEY, "${column}" uuid REFERENCES ${schema}."${parent}"(id), private_body text)`);
     try {
       await fixture.admin.query(`INSERT INTO ${schema}."${name}" VALUES ($1,$2,'never expose this body')`,[randomUUID(),value]);
-      const assessment=await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,f.twitch.id));expect(assessment.safety.status).toBe('OPERATOR_REQUIRED');
+      const assessment=await equivalentAssessment(f.twitch.id);expect(assessment.safety.status).toBe('OPERATOR_REQUIRED');
       expect(JSON.stringify(assessment)).not.toContain('never expose this body');
     } finally {await fixture.admin.query(`DROP TABLE ${schema}."${name}"`);}
   }
   await fixture.admin.query(`ALTER TABLE ${schema}.teams ADD COLUMN future_other_player_id uuid REFERENCES ${schema}.players(id)`);
   try {
     await fixture.admin.query(`UPDATE ${schema}.teams SET future_other_player_id=$1 WHERE id=$2`,[f.web.id,team.id]);
-    for(const playerId of [f.web.id,f.twitch.id]) expect((await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,playerId))).safety.status).toBe('OPERATOR_REQUIRED');
+    for(const playerId of [f.web.id,f.twitch.id]) expect((await equivalentAssessment(playerId)).safety.status).toBe('OPERATOR_REQUIRED');
   } finally {await fixture.admin.query(`ALTER TABLE ${schema}.teams DROP COLUMN future_other_player_id`);}
 },90_000);
 it('requires an operator for live Boss ranking rows and allows proven finished history',async()=>{

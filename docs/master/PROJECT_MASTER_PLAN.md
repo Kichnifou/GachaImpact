@@ -1,13 +1,41 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : hauteur du Concours vide déployée ; Ceo STOP au contrôle des références.
+Version : candidat d’optimisation R1055 sur review ; Ceo STOP avant import.
 Date : 2026-10-08
-Statut : **P0 PUBLIC CLÔTURÉ ; CORRECTIF VISUEL DÉPLOYÉ ET CONTRÔLÉ.** OFF11/flag false/trois canaries/backups préservés ; Ceo A intact, B absent, préflight SQL borné annulé.
+Statut : **P0 PUBLIC CLÔTURÉ ; REVIEW INDÉPENDANTE R1055 REQUISE.** Main conserve 0af5827 ; OFF11/flag false/trois canaries/backups préservés, Ceo A intact et B absent.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-query-candidate-20261008"></a>
+
+## Point courant — planification R1055 optimisée en privé ; STOP review indépendante
+
+**Baseline :** main=review=0af58272966c1c97094458c2029e7375ba9a34a7, divergence 0/0 avant ce lot. Le P0 public et la hauteur Concours restent livrés/validés, sans nouvelle recette ou modification UI. La présente mission modifie la construction des requêtes du moteur de sûreté : publier le candidat uniquement sur review, vérifier le vrai diff GitHub, puis STOP pour review indépendante ChatGPT. Aucune promotion, aucun déploiement ou préflight optimisé public avant approbation ; aucune nouvelle règle produit/Rxxx.
+
+**Diagnostic public unique READ ONLY, 07:08 UTC :** 282 FK lues (128 ayant directement players pour parent), métadonnées 117 ms dont FK 89 ms ; racine 30 ms. Projection 1 : 64 branches, plan EXPLAIN 260 ms, exécution 1803 ms, 3795 lignes capturées ; fusion 5 ms, 49 tables avec la racine. Construction projection 2 : 98 branches/0,2 ms. Son EXPLAIN seul est annulé à cinq secondes par PostgreSQL 57014/P2010, avant exécution de la projection. Les références et le fingerprint publics ne sont donc pas atteints : aucun conflit partagé ni état SAFE public démontré. Le plan disponible utilise 64 Hash Join/Seq Scan/Function Scan, sans JIT ; les index Player/opération/session existent sur les grands domaines concernés. Aucun besoin de nouvel index démontré, aucun DDL/configuration changé. Transaction et connexion fermées.
+
+**Correction :** matérialiser le paramètre JSONB une fois et chaque recordset typé une fois par statement, puis réutiliser ces CTE dans les UNION, classifications et contrôles sortants. La répétition du même gros paramètre dans l’ancien plan est supprimée ; pas de hausse de timeout, changement de pool, annulation concurrente ou opération détachée. Métadonnées/FK, fermeture descendante, protection des tiers, égalités de lignes JSONB complètes, classifications fail-closed, format/version du fingerprint, tri et précision bigint restent identiques. Mesures facultatives par étapes, uniquement nombres/temps, sans identifiant, SQL, graphe ou credential ; une exception de l’observateur ne change pas le résultat métier. [Owner](../architecture/backend-architecture-v1.md#optimisation-de-la-planification-r1055--candidat-review).
+
+**Preuve privée synthétique, migrations 62 :** 1415 opérations terminales, 1205 mouvements, 646 receipts et 26 sessions Arcade abandonnées ; fermeture de 3340 lignes/14 tables, JSON de 4 396 671 octets, mêmes 282 FK. L’ancien EXPLAIN de projection 2 reproduit exactement 57014 à cinq secondes. Le candidat termine les deux projections et les preuves sous la même borne par statement ; aucun JIT observé. Mesures du dernier test :
+
+| Étape | Construction | Plan EXPLAIN | Appel mesuré, EXPLAIN inclus |
+| --- | ---: | ---: | ---: |
+| Métadonnées / racine | — | — | 195 / 30 ms |
+| Projection 1, 64 branches | 0,9 ms | 183 ms | 1683 ms |
+| Projection 2, 91 branches | 7,6 ms | 447 ms | 2225 ms |
+| Références, 182 branches / 17 résultats | 6,9 ms | 735 ms | 1988 ms |
+| Fingerprint, 3340 lignes | — | — | 33 ms |
+
+**Tests réellement exécutés :** les 30 tests métier R1055 passent dans une seule fixture privée : choix WEB/TWITCH, archive sans fusion, idempotence, tiers/états partagés, reconfirmation périmée, relations futures inconnues et bigint au-delà de 2⁵³. Un oracle figé de 0af5827 vérifie l’égalité complète safety/classifications/fingerprint sur les cas ciblés. Le test volumineux passe séparément après correction de sa fixture (un receipt exige session/invitation) ; son assertion 57014 utilise le code PostgreSQL imbriqué de l’adapter Prisma. Les exécutions intermédiaires échouées sont conservées, sans les présenter comme PASS ; aucune répétition de toute la suite distante. Cleanup privé terminé, pool total/idle/waiting=0 et opened=closed. verify:full 8/8 : 1370 tests frontend, 1978 backend non-DB, builds/typechecks/lint/diff-check PASS ; warning de bundle existant. Preuves ignorées : local-data/identity-resolutions/r1055-diagnostic-20261008, logs verify-full-xa9jnw.
+
+**État réel relu, 07:28–07:29 UTC :** Railway c7e4f687-befd-4502-8e11-90dec0df9d75 SUCCESS/Online/une replica, zéro issue ou travail pending ; aucun nouveau déploiement. PostgreSQL/Prisma accessibles, 62 migrations terminées/zéro incomplète, zéro connexion de diagnostic Ceo, transaction longue, idle-in-transaction ou verrou bloquant, disconnect terminé. Flag canonique false et OFF11 ; trois targets/imports/identités strictement identiques au checkpoint avant lot. Backups locaux : trois fichiers, octets/hash/provenance exacts. Aucun mutatif public ni replay/réparation/import/recovery/commande Twitch ; les réparations cosmétiques restent celles du checkpoint déployé, sans nouveau recalcul métier. A Auth/Web ACTIVE et sans Twitch conservé, B/TwitchIdentity/target/import Ceo absents, zéro OAuth Ceo.
+
+**Limite et prochaine action :** review indépendante du SHA candidat avant promotion. Le coût réel des références/fingerprint sur les 49 tables Ceo reste à mesurer après approbation ; la preuve privée ne vaut pas réussite du préflight réel. Après promotion/déploiements exacts contrôlés seulement : rafraîchir sources/Helix, préflight complet TWITCH_ONLY vers B distinct, rehearsal/backup/comparaison/rollback exact, puis import B DATA_IMPORTED/LEGACY/non-canary si toutes les gates passent. La demande humaine de liaison attend B vérifié ; A intact, aucun choix automatique. Streamer.bot OFF, aucun GLOBAL/batch ou reimport des trois canaries. Le coût de planification R1055 identifié ne démontre pas la cause historique de l’incident PostgreSQL/Concours, toujours inconnue.
+
+**Dette d’infrastructure décidée par le propriétaire — après Ceo et migration des joueurs :** audit/optimisation Supabase prioritaires ensuite. Chiffres signalés, non re-mesurés dans ce lot : Egress 8,41/5 Go ; Shared Pooler 4,485 Go le 05/10 ; Log Ingestion 6,99/1 Go ; forte activité de tests DB privés sur l’instance publique ; fin de grâce signalée au 07/11/2026. Aucun abonnement/infrastructure/historique changé, aucune garantie de test réduite. Limiter maintenant les tests distants aux preuves indispensables ; prochaine mission coûts : PostgreSQL local/éphémère et optimisation du trafic après migration.
 
 <a id="contest-height-ceo-20261008"></a>
 
-## Point courant — hauteur Concours déployée ; Ceo STOP sans import
+## Historique — hauteur Concours déployée ; Ceo STOP sans import
 
 **Périmètre autorisé :** baseline main=review a8f14ac68afc9a9104a92f7e953bc5d9b0f58fd4, divergence 0/0, worktree propre. Le [P0 public validé](#p0-deploye-recette-humaine-20261007) reste clôturé : Ctrl+F5/Concours réel/reconnexion et 23 GET Concours 200 ; cause SQL historique inconnue. Aucun nouvel incident démontré. Correction visuelle bornée, promotion review/main dans la même mission autorisée, puis préparation Ceo seulement après déploiement stable ; aucune nouvelle décision Rxxx ni mécanique produit.
 

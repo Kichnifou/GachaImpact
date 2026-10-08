@@ -1,7 +1,11 @@
 # Migration legacy V1 — contrat canonique
 
 
-## Point courant — Ceo STOP au contrôle canonique des références, 08/10
+## Point courant — optimisation R1055 sur review ; Ceo STOP, 08/10
+
+[État réel et diagnostic](../master/PROJECT_MASTER_PLAN.md#r1055-query-candidate-20261008), [gate opératoire](../process/legacy-cutover-runbook.md#point-courant--candidat-r1055--ceo-stop-pour-review-indépendante). Timeout 57014 localisé pendant EXPLAIN de la deuxième projection, avant exécution/classification/fingerprint publics ; aucun conflit partagé prouvé. Candidat MATERIALIZED JSON/recordsets testé en DB privée, résultat identique à l’oracle de baseline sur les cas ciblés, reproduction volumineuse sous la borne inchangée ; aucune règle de migration/consentement, DDL ou transaction changée. Publication review puis STOP review indépendante avant main/déploiement/préflight/import. Main stable 0af5827, A Web-only ACTIVE intact, B absent, OFF11/flag false/trois canaries/backups préservés. Aucun OAuth/liaison humaine tant que B n’est pas importé et vérifié. P0 clos, ancien incident PostgreSQL conservé sans cause artificiellement déclarée résolue. Dette Supabase propriétaire après Ceo et migration des joueurs, selon le Master.
+
+## Historique — Ceo STOP au contrôle canonique des références, 08/10
 
 [État/preuves et reprise au Master](../master/PROJECT_MASTER_PLAN.md#contest-height-ceo-20261008). Correctif de hauteur vide Concours déployé sur ec5cd9a, sans changement backend/migration ; P0 public déjà clôturé. Sources Ceo 17/17 et Helix rafraîchies, A authentifié Web ACTIVE/significatif sans Twitch. Préflight READ ONLY interrompu à assessPlayerCanonicalizationSafety : borne SQL 5 s, code 57014/statement timeout, classification des références non terminée. Aucun conflit partagé présumé ; aucun plan complet/rehearsal/apply/B/OAuth/NATIVE Ceo. Fermeture des connexions prouvée, OFF11/flag false et trois canaries/imports/backups préservés. Diagnostic privé ciblé requis avant reprise, sans contournement ni nouveau mécanisme sensible promu sans review indépendante.
 

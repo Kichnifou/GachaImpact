@@ -1,6 +1,16 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — hauteur Concours déployée ; Ceo STOP au préflight
+## Point courant — candidat R1055 ; Ceo STOP pour review indépendante
+
+[Diagnostic, mesures et tests réels](../master/PROJECT_MASTER_PLAN.md#r1055-query-candidate-20261008). Baseline stable 0af58272966c1c97094458c2029e7375ba9a34a7 conservée sur main. Le timeout 57014 est localisé dans EXPLAIN de la deuxième projection personnelle, avant exécution ; il ne prouve aucun conflit relationnel. Un candidat produit réutilise des CTE MATERIALIZED pour le JSON/recordsets, sans changement des règles/fingerprint/FK/transactions ni hausse de borne. Reproduction volumineuse privée et 30 tests métier PASS ; verify:full 8/8, cleanup/pool fermé.
+
+**Gate obligatoire :** publication review et contrôle du vrai diff GitHub, puis review indépendante ChatGPT avant main/déploiement/préflight public/import. Aucun préflight optimisé exécuté sur Ceo dans ce lot. Son A Auth/Web ACTIVE sans Twitch reste intact ; B absent, zéro import/target/OAuth. Fermeture publique 07:28 UTC : PostgreSQL accessible/62 migrations, aucune connexion de diagnostic ou transaction longue/verrou, OFF11/flag false, trois canaries/imports/identités conservés ; trois backups exacts. Railway Online/SUCCESS sans pending, aucun nouveau déploiement ; P0 clos, cause historique PostgreSQL non démontrée.
+
+Après approbation et déploiements contrôlés : appliquer les gates Ceo séparées ci-dessous avec nouvelles preuves fraîches, mesure complète des références/fingerprint, deux progressions significatives, TWITCH_ONLY vers B distinct, répétition privée/backup/comparaison/rollback exact avant tout import. B doit être DATA_IMPORTED/LEGACY/non-canary sans WebIdentity ; la liaison humaine attend sa vérification. Aucun OAuth ou choix automatique. Un vrai partage significatif conserve le STOP opérateur canonique R1055, sans suppression de relation. Les trois canaries ne sont ni réimportées ni réparées/rejouées ; Streamer.bot OFF, GLOBAL/batch/commande Twitch interdits.
+
+La dette coûts Supabase est prioritaire **après Ceo et la migration des joueurs**, selon la décision propriétaire consignée au Master. Aucun changement d’abonnement/infrastructure ni suppression d’historique maintenant ; tests distants limités, future cible PostgreSQL local/éphémère et optimisation du trafic.
+
+## Historique — hauteur Concours déployée ; Ceo STOP au préflight
 
 [État et preuves du 08/10 au Master](../master/PROJECT_MASTER_PLAN.md#contest-height-ceo-20261008). Le P0 public Kichnifou reste clos/validé ; ne pas le rouvrir sans preuve nouvelle. Correction CSS limitée à l’état vide desktop, contrôlée dans le vrai GameShell aux quatre viewports, mobile naturel et états lobby/partie/résultat inchangés. Publication review/main strictement fast-forward autorisée dans cette mission après tests et vrai diff GitHub. Vérifier Railway/Cloudflare du SHA exact, health et absence de nouvelle erreur DB/pool/P1001 ; aucun déploiement aveugle ou configuration expérimentale.
 
