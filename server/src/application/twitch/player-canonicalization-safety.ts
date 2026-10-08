@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { consentTables, consentClassifications } from './consent-activity-evidence.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { personalReplacementTables, rowGraphIdentifier as ident, targetedRowMetadata, type ForeignKey } from '../migration/targeted-player-rows.js';
 
@@ -97,7 +98,7 @@ export async function assessPlayerCanonicalizationSafety(tx: Tx, playerId: strin
   const stableEvidence=evidence.filter(row=>!housekeeping.has(row.edge.split('(')[0]!));
   const safety:CanonicalizationSafety={status:stableEvidence.some(row=>row.classification==='SHARED_ACTIVE'&&row.count!=='0')?'OPERATOR_REQUIRED':'SAFE',reason:null};
   if(safety.status==='OPERATOR_REQUIRED') safety.reason='TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR';
-  const fingerprint=createHash('sha256').update(JSON.stringify({version:1,tables,foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:stableEvidence})).digest('hex');
+  const fingerprint=createHash('sha256').update(JSON.stringify({version:2,tables:consentTables(tables),foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:consentClassifications(stableEvidence,tables)})).digest('hex');
   measure(diagnostic,'fingerprint',fingerprintStart,{tables:Object.keys(tables).length,rows:Object.values(tables).reduce((n,rows)=>n+rows.length,0)});
   measure(diagnostic,'total',totalStart);
   return {fingerprint,safety, classifications:stableEvidence};

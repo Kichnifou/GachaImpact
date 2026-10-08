@@ -1,5 +1,6 @@
-// Frozen R1055 baseline (0af5827): independent DB oracle for safety and fingerprint equality.
+// Frozen R1055 graph baseline (0af5827); only the versioned consent projection follows the current contract.
 import { createHash } from 'node:crypto';
+import { consentTables, consentClassifications } from '../src/application/twitch/consent-activity-evidence.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { personalReplacementTables, rowGraphIdentifier as ident, targetedRowMetadata, type ForeignKey } from '../src/application/migration/targeted-player-rows.js';
 
@@ -96,6 +97,6 @@ export async function assessBaselineCanonicalizationSafety(tx: Tx, playerId: str
   const stableEvidence=evidence.filter(row=>!housekeeping.has(row.edge.split('(')[0]!));
   const safety:CanonicalizationSafety={status:stableEvidence.some(row=>row.classification==='SHARED_ACTIVE'&&row.count!=='0')?'OPERATOR_REQUIRED':'SAFE',reason:null};
   if(safety.status==='OPERATOR_REQUIRED') safety.reason='TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR';
-  const fingerprint=createHash('sha256').update(JSON.stringify({version:1,tables,foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:stableEvidence})).digest('hex');
+  const fingerprint=createHash('sha256').update(JSON.stringify({version:2,tables:consentTables(tables),foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:consentClassifications(stableEvidence,tables)})).digest('hex');
   return {fingerprint,safety, classifications:stableEvidence};
 }

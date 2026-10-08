@@ -23,12 +23,19 @@ const giftStatusError = (error: NonNullable<TwitchAccountDto['giftSupremeError']
   : error === 'CREDENTIAL_INVALID' ? 'L’autorisation Gift Suprême doit être renouvelée.'
     : error === 'CONFLICT' ? 'Gift Suprême nécessite un contrôle opérateur.' : 'Le statut Gift Suprême est temporairement indisponible. Réessayez plus tard.'
 const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.giftSupremePending && value.giftSupremeAvailable || value.runtimeChatPending && value.runtimeSubscriptionAvailable || value.favorSubscriptionPending && value.favorSubscriptionAvailable)
+// R1055's server transaction is bounded to 30s; this separate read allows 5s
+// for transport. Account and runtime inspection keep their existing 8s bounds.
+const comparisonReadDeadline = 35_000
 
 export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
   const api = getGameApiClient()
   const [resolution, setResolution] = useState<TwitchLinkResolutionDto | null>(null)
+  const [comparisonStatus, setComparisonStatus] = useState<'loading' | 'ready' | 'error'>('loading')
+  const [comparisonError, setComparisonError] = useState('')
+  const [comparisonAttempt, setComparisonAttempt] = useState(0)
   const [success, setSuccess] = useState('')
   const [account, setAccount] = useState<TwitchAccountDto | null>(null)
+  const [accountLoadFailed, setAccountLoadFailed] = useState(false)
   const presentationMode = useTutorialPresentation().active
   const [files, setFiles] = useState<Record<string, string> | null>(null)
   const [preview, setPreview] = useState<SnapshotPreviewDto | null>(null)
@@ -51,8 +58,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     let active = true
     let timer: ReturnType<typeof setTimeout> | undefined
     let cancelWait: (() => void) | undefined
-    const controller = new AbortController()
+    const controller = new AbortController(), comparisonController = new AbortController(), runtimeController = new AbortController()
     const deadline = setTimeout(() => controller.abort(), 8_000)
+    let comparisonDeadline: ReturnType<typeof setTimeout> | undefined
+    let runtimeDeadline: ReturnType<typeof setTimeout> | undefined
+    setAccount(null); setAccountLoadFailed(false); setComparisonStatus('loading'); setComparisonError('')
     const url = new URL(location.href)
     const outcome = presentationMode ? null : url.searchParams.get('twitch')
     if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
@@ -65,23 +75,40 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     if (outcome === 'gift-supreme-error') setError('L’autorisation ou l’activation Gift Suprême a échoué ou a été annulée.')
     let checkingGift = false
     let checkingFavor = false
+    let accountLoaded = false
+    const loadComparison = async () => {
+      comparisonDeadline = setTimeout(() => comparisonController.abort(), comparisonReadDeadline)
+      try {
+        const next = await api.getTwitchLinkResolution(comparisonController.signal)
+        if (!active || comparisonController.signal.aborted) return
+        setResolution(next); setComparisonStatus('ready')
+      } catch (reason) {
+        if (!active) return
+        setComparisonStatus('error')
+        setComparisonError(comparisonController.signal.aborted ? 'La comparaison des progressions n’a pas pu être chargée à temps. Réessayez.' : `Comparaison des progressions indisponible. ${apiErrorMessage(reason)}`)
+      } finally { clearTimeout(comparisonDeadline) }
+    }
     void (async () => {
       try {
         let revision = commandRevision.current
         let value = await api.getTwitchAccount(controller.signal)
+        clearTimeout(deadline)
         if (!active) return
         if (revision !== commandRevision.current) return
         setAccount(value)
-        if (!value.linked && !presentationMode) { const next = await api.getTwitchLinkResolution(controller.signal); if (active) setResolution(next) }
+        accountLoaded = true
+        if (!value.linked && !presentationMode) void loadComparison()
+        else { setResolution(null); setComparisonStatus('ready') }
         checkingFavor = Boolean(value.favorSubscriptionPending)
         checkingGift = Boolean(value.giftSupremePending)
         if (!presentationMode && awaitingSubscription(value)) {
           setRuntimeChecking(true)
+          runtimeDeadline = setTimeout(() => runtimeController.abort(), 8_000)
           for (let attempt = 0; attempt < 4 && active && awaitingSubscription(value); attempt++) {
             await new Promise<void>(resolve => { cancelWait = resolve; timer = setTimeout(resolve, 1_000) })
             if (!active) return
             revision = commandRevision.current
-            value = await api.getTwitchAccount(controller.signal)
+            value = await api.getTwitchAccount(runtimeController.signal)
             if (!active) return
             if (revision !== commandRevision.current) return
             setAccount(value)
@@ -91,11 +118,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
           if (active && awaitingSubscription(value)) setError(value.giftSupremePending ? 'L’activation Gift Suprême n’a pas pu être confirmée. Réessayez plus tard.' : value.favorSubscriptionPending ? 'La réception des abonnements Twitch n’a pas pu être confirmée. Réessayez plus tard.' : 'La réception du chat Twitch n’a pas pu être confirmée. Réessayez plus tard.')
         }
         if (active && !presentationMode && (value.runtimeChatError || value.favorSubscriptionError)) setError([value.runtimeChatError && runtimeStatusError(value.runtimeChatError), value.favorSubscriptionError && favorStatusError(value.favorSubscriptionError)].filter(Boolean).join(' '))
-      } catch (reason) { if (active) setError(controller.signal.aborted ? checkingGift ? 'Le statut Gift Suprême n’a pas pu être confirmé. Réessayez plus tard.' : checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) }
-      finally { clearTimeout(deadline); if (active) setRuntimeChecking(false) }
+      } catch (reason) { if (active) { if (!accountLoaded) setAccountLoadFailed(true); setError(controller.signal.aborted ? 'Le compte Twitch n’a pas pu être chargé. Réessayez.' : runtimeController.signal.aborted ? checkingGift ? 'Le statut Gift Suprême n’a pas pu être confirmé. Réessayez plus tard.' : checkingFavor ? 'Le statut des abonnements Twitch n’a pas pu être confirmé. Réessayez plus tard.' : 'Le statut du chat Twitch n’a pas pu être confirmé. Réessayez plus tard.' : apiErrorMessage(reason)) } }
+      finally { clearTimeout(deadline); clearTimeout(runtimeDeadline); if (active) setRuntimeChecking(false) }
     })()
-    return () => { active = false; controller.abort(); clearTimeout(deadline); clearTimeout(timer); cancelWait?.() }
-  }, [api, presentationMode])
+    return () => { active = false; controller.abort(); comparisonController.abort(); runtimeController.abort(); clearTimeout(deadline); clearTimeout(comparisonDeadline); clearTimeout(runtimeDeadline); clearTimeout(timer); cancelWait?.() }
+  }, [api, presentationMode, comparisonAttempt])
   useEffect(() => {
     if (!confirm) return
     confirmRef.current?.focus()
@@ -132,7 +159,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
       setFiles(Object.fromEntries(contents))
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
-  const connect = () => void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) }, false, true)
+  const connect = () => { if (comparisonStatus !== 'ready' || resolution) return; void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) }, false, true) }
   const resolve = (choice: 'WEB' | 'TWITCH') => void run(async () => {
     if (!resolution) return
     const next = await api.resolveTwitchLink(resolution.id, choice, resolution.revision, ...(resolution.operatorPlans?.[choice] ? [resolution.operatorPlans[choice].id] : []))
@@ -227,7 +254,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">
       {error && <p className="configuration-error" role="alert">{error}</p>}
-      {!account ? <p data-tutorial-state={!error ? "loading" : undefined}>Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
+      {!account ? accountLoadFailed ? <AppButton onClick={() => { setError(''); setComparisonAttempt(value => value + 1) }}>Réessayer le compte Twitch</AppButton> : <p data-tutorial-state="loading">Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
         {account.linked ? <><p>Twitch et l’application web utilisent la même progression.</p><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
           {!presentationMode && account.eligible && account.runtimeSubscriptionAvailable && <div className="account-twitch-runtime" aria-busy={pending || runtimeChecking}>
             <h4>Réception du chat Twitch</h4>
@@ -252,8 +279,8 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
             {account.giftSupremeAuthorized && !account.giftSupremeActive && !account.giftSupremeDisabling && <AppButton disabled={pending || runtimeChecking} onClick={disableGift}>Désactiver</AppButton>}
           </div>}
 </>
-          : <><p>Non connecté</p>{!resolution && <AppButton disabled={!(account.identityLinkAvailable ?? account.pilotAvailable) || pending} aria-busy={pending} onClick={connect}>Lier mon compte Twitch</AppButton>}{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
-        {!presentationMode && resolution && <TwitchProgressionChoice key={JSON.stringify(resolution)} resolution={resolution} pending={pending} onChoose={resolve} />}
+          : <>{comparisonStatus === 'loading' ? <p role="status">Chargement de la comparaison des progressions…</p> : comparisonStatus === 'error' ? <div role="alert"><p>{comparisonError}</p><AppButton disabled={pending} onClick={() => setComparisonAttempt(value => value + 1)}>Réessayer la comparaison</AppButton></div> : !resolution && <p>Non connecté</p>}{!resolution && <AppButton disabled={comparisonStatus !== 'ready' || !(account.identityLinkAvailable ?? account.pilotAvailable) || pending} aria-busy={pending || comparisonStatus === 'loading'} onClick={connect}>Lier mon compte Twitch</AppButton>}{!(account.identityLinkAvailable ?? account.pilotAvailable) && <p>La liaison Twitch est indisponible pour ce compte ou sur ce serveur.</p>}{commandPilotControls}</>}
+        {!presentationMode && comparisonStatus === 'ready' && resolution && <TwitchProgressionChoice key={JSON.stringify(resolution)} resolution={resolution} pending={pending} onChoose={resolve} />}
       </section>}
       {!presentationMode && account?.snapshotAvailable && <section className="account-section"><h3>Snapshot Streamer.bot</h3><p>Le standalone est un miroir de test. Sélectionnez les fichiers locaux ; ils ne seront pas modifiés.</p>
         <div className="account-actions"><label>Choisir le dossier Data<input ref={folderRef} type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label><label>Ou choisir 17 fichiers JSON<input type="file" multiple accept=".json" disabled={pending} onChange={event => void select(event.target.files)} /></label></div>

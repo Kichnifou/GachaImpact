@@ -1,5 +1,6 @@
-// Frozen 52b5631 engine; independent performance and graph oracle. Do not refactor with production.
+// Frozen 52b5631 graph engine; consent version and technical plan exclusion follow the current R1055 contract.
 import { createHash } from 'node:crypto';
+import { consentTables, consentClassifications } from '../src/application/twitch/consent-activity-evidence.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import { personalReplacementTables, rowGraphIdentifier as ident, targetedRowMetadata, type ForeignKey } from '../src/application/migration/targeted-player-rows.js';
 
@@ -25,7 +26,7 @@ const owned = new Set<string>([...personalReplacementTables, 'players', 'player_
   'boss_legacy_contributions', 'contest_legacy_daily_locks', 'contest_daily_participations', 'contest_rewards',
   'boss_attacks', 'boss_attack_members', 'player_boss_participations', 'boss_rewards',
   'giveaway_chat_stats', 'giveaway_wins', 'giveaway_rewards', 'arcade_sessions', 'arcade_receipts', 'arcade_daily_grants', 'arcade_stats']);
-const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions',
+const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions', 'twitch_canonicalization_plans',
   'migration_previews', 'global_chat_read_states']);
 const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages']);
 const join = (fk: ForeignKey) => fk.child_columns.map((column,i) => `c.${ident(column)}=p.${ident(fk.parent_columns[i]!)}`).join(' AND ');
@@ -136,7 +137,7 @@ export async function assessMaterializedCanonicalizationSafety(tx: Tx, playerId:
   const stableEvidence=evidence.filter(row=>!housekeeping.has(row.edge.split('(')[0]!));
   const safety:CanonicalizationSafety={status:stableEvidence.some(row=>row.classification==='SHARED_ACTIVE'&&row.count!=='0')?'OPERATOR_REQUIRED':'SAFE',reason:null};
   if(safety.status==='OPERATOR_REQUIRED') safety.reason='TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR';
-  const fingerprint=createHash('sha256').update(JSON.stringify({version:1,tables,foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:stableEvidence})).digest('hex');
+  const fingerprint=createHash('sha256').update(JSON.stringify({version:2,tables:consentTables(tables),foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:consentClassifications(stableEvidence,tables)})).digest('hex');
   measure(diagnostic,'fingerprint',fingerprintStart,{tables:Object.keys(tables).length,rows:Object.values(tables).reduce((n,rows)=>n+rows.length,0)});
   return {fingerprint,safety, classifications:stableEvidence};
 }

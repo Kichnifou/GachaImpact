@@ -16,6 +16,7 @@ import { ExpeditionService } from '../src/application/expedition/expedition-serv
 import { MonthlyBossService } from '../src/application/combat/monthly-boss-service.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../src/domain/time/business-date.js';
 import { legacyFriendshipSourceFacts } from '../src/application/migration/legacy-friendship-reconciliation.js';
+import { PlayerActivityRecorder } from '../src/application/player/player-activity-recorder.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled: false, globalEnabled: false },
@@ -73,6 +74,57 @@ function legacySource(level: number, sparkleHearts: number) {
     'friendships_data.json': { friendships: { fixture: { users: names, level, sparkleHearts } } },
   } }, names[0]!)[0]! };
 }
+
+it.each(['WEB', 'TWITCH'] as const)('keeps %s consent through first technical activity, subsequent presence and concurrent activity', async choice => {
+  const f = await profiles(choice), { plan, pending, backup } = await prepare(f);
+  const rawBackup = JSON.stringify(backup), recorder = new PlayerActivityRecorder();
+  expect(backup.evidence.web.tables.player_activity_state).toBeUndefined();
+  const economy = await db.playerResourceBalance.findMany({ where: { playerId: { in: [f.web.id, f.twitch.id] } }, orderBy: [{ playerId: 'asc' }, { resourceKey: 'asc' }] });
+  await db.$transaction(tx => recorder.record(tx, f.web.id, new Date('2026-10-08T14:00:00Z'), 'APPLICATION'));
+  const current = (await link.pending(f.identity.id))!;
+  expect(current.revision).toBe(pending.revision); expect(current.operatorPlans?.[choice]?.id).toBe(plan.id);
+  await db.$transaction(tx => recorder.record(tx, f.web.id, new Date('2026-10-08T14:01:00Z'), 'APPLICATION'));
+  const [decision] = await Promise.all([
+    link.resolve(f.identity.id, pending.id, choice, pending.revision, plan.id),
+    db.$transaction(tx => recorder.record(tx, f.winner, new Date('2026-10-08T14:02:00Z'), 'APPLICATION')),
+  ]);
+  expect(decision).toMatchObject({ linked: true, playerId: f.winner });
+  expect(await db.playerResourceBalance.findMany({ where: { playerId: { in: [f.web.id, f.twitch.id] } }, orderBy: [{ playerId: 'asc' }, { resourceKey: 'asc' }] })).toEqual(economy);
+  expect(JSON.stringify(backup)).toBe(rawBackup); expect(await db.directMessage.findUniqueOrThrow({ where: { id: f.message.id } })).toEqual(f.message);
+}, 120_000);
+
+it.each(['WEB', 'TWITCH'] as const)('preserves raw existing %s activity evidence while only application dates advance', async choice => {
+  const f = await profiles(choice), recorder = new PlayerActivityRecorder();
+  await db.$transaction(tx => recorder.record(tx, f.web.id, new Date('2026-10-08T13:00:00Z'), 'GAMEPLAY'));
+  const { plan, pending, backup } = await prepare(f);
+  expect(JSON.parse(backup.evidence.web.tables.player_activity_state![0]!)).toMatchObject({ last_app_activity_at: '2026-10-08T13:00:00+00:00', last_gameplay_activity_at: '2026-10-08T13:00:00+00:00', updated_at: '2026-10-08T13:00:00+00:00' });
+  await db.$transaction(tx => recorder.record(tx, f.web.id, new Date('2026-10-08T14:00:00Z'), 'APPLICATION'));
+  expect((await link.pending(f.identity.id))!.revision).toBe(pending.revision);
+  await expect(link.resolve(f.identity.id, pending.id, choice, pending.revision, plan.id)).resolves.toMatchObject({ linked: true });
+}, 120_000);
+
+it.each(['WEB', 'TWITCH'] as const)('invalidates %s consent for business activity, then for an invisible third-party change', async choice => {
+  const f = await profiles(choice), recorder = new PlayerActivityRecorder();
+  for (const [index, category] of (['GAMEPLAY', 'INTERNAL_CHAT', 'TWITCH'] as const).entries()) {
+    const { plan, pending } = await prepare(f);
+    await db.$transaction(tx => recorder.record(tx, f.web.id, new Date(`2026-10-08T14:0${index}:00Z`), category));
+    const result = await link.resolve(f.identity.id, pending.id, choice, pending.revision, plan.id);
+    expect(result).toMatchObject({ linked: false, resolutionRequired: true }); expect(result.resolution!.operatorPlans?.[choice]).toBeUndefined();
+    expect(await db.twitchCanonicalizationPlan.findUniqueOrThrow({ where: { id: plan.id } })).toMatchObject({ consumedAt: null });
+  }
+  const { plan, pending } = await prepare(f);
+  await db.directConversationParticipant.update({ where: { conversationId_playerId: { conversationId: f.conversation.id, playerId: f.peer.id } }, data: { archivedAt: new Date() } });
+  expect(await link.resolve(f.identity.id, pending.id, choice, pending.revision, plan.id)).toMatchObject({ linked: false, resolutionRequired: true });
+  expect(await db.player.count({ where: { id: { in: [f.web.id, f.twitch.id] }, status: 'ACTIVE' } })).toBe(2);
+}, 120_000);
+
+it('revokes an operator authorization even after harmless Web activity', async () => {
+  const f = await profiles('TWITCH'), { plan, pending } = await prepare(f);
+  await db.$transaction(tx => new PlayerActivityRecorder().record(tx, f.web.id, new Date(), 'APPLICATION'));
+  await db.playerRoleAssignment.updateMany({ where: { playerId: actor, revokedAt: null }, data: { revokedAt: new Date() } });
+  try { expect((await link.pending(f.identity.id))!.operatorPlans?.TWITCH).toBeUndefined(); expect(await link.resolve(f.identity.id, pending.id, 'TWITCH', pending.revision, plan.id)).toMatchObject({ linked: false, resolutionRequired: true }); }
+  finally { await db.playerRoleAssignment.updateMany({ where: { playerId: actor }, data: { revokedAt: null } }); }
+}, 120_000);
 
 it.each(['WEB', 'TWITCH'] as const)('requires explicit %s plan consent, then archives only the loser and preserves history/economy', async choice => {
   const f = await profiles(choice, choice === 'WEB'), before = await captureTargetedPlayerRows(db, [f.web.id, f.twitch.id, f.peer.id]);

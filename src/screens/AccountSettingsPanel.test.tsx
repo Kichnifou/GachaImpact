@@ -26,6 +26,60 @@ async function selectSnapshot(container: HTMLElement) {
   expect(button(container, 'Prévisualiser le snapshot')).toBeDefined()
 }
 
+describe('independent progression comparison loading', () => {
+  it('bounds account loading separately and permits a retry without starting a comparison or chat inspection', async () => {
+    vi.useFakeTimers();
+    api.getTwitchAccount.mockImplementationOnce((signal: AbortSignal) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(Error('aborted')), { once: true })));
+    const container = await mount(); await act(async () => vi.advanceTimersByTimeAsync(8_000));
+    expect(container.textContent).toContain('compte Twitch n’a pas pu être chargé'); expect(container.textContent).not.toContain('statut du chat');
+    expect(api.getTwitchLinkResolution).not.toHaveBeenCalled(); expect(vi.getTimerCount()).toBe(0);
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null });
+    await act(async () => button(container, 'Réessayer le compte Twitch').click());
+    expect(container.textContent).toContain('Non connecté'); expect(api.startTwitchLink).not.toHaveBeenCalled();
+  });
+  it('allows a comparison beyond 8s, prevents another OAuth and keeps chat errors separate', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null });
+    let complete!: (value: null) => void;
+    api.getTwitchLinkResolution.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }));
+    const container = await mount();
+    expect(container.textContent).toContain('Chargement de la comparaison'); expect(container.textContent).not.toContain('Non connecté');
+    expect(button(container, 'Lier mon compte Twitch').disabled).toBe(true);
+    await act(async () => { button(container, 'Lier mon compte Twitch').click(); await vi.advanceTimersByTimeAsync(9_000) });
+    expect(api.startTwitchLink).not.toHaveBeenCalled(); expect(container.textContent).not.toContain('statut du chat');
+    expect(api.getTwitchLinkResolution.mock.calls[0]![0].aborted).toBe(false);
+    await act(async () => complete(null));
+    expect(container.textContent).toContain('Non connecté'); expect(button(container, 'Lier mon compte Twitch').disabled).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('reports comparison failure, retries it and never labels it as a chat failure', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null });
+    api.getTwitchLinkResolution.mockRejectedValueOnce(Error('comparison backend failed'));
+    const container = await mount();
+    expect(container.textContent).toContain('Comparaison des progressions indisponible'); expect(container.textContent).not.toContain('statut du chat');
+    expect(button(container, 'Lier mon compte Twitch').disabled).toBe(true);
+    await act(async () => button(container, 'Réessayer la comparaison').click());
+    expect(api.getTwitchLinkResolution).toHaveBeenCalledTimes(2); expect(container.textContent).toContain('Non connecté');
+    expect(api.startTwitchLink).not.toHaveBeenCalled();
+  });
+  it('bounds only the comparison to the backend contract and offers a dedicated retry', async () => {
+    vi.useFakeTimers(); api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null });
+    api.getTwitchLinkResolution.mockImplementationOnce((signal: AbortSignal) => new Promise((_resolve, reject) => signal.addEventListener('abort', () => reject(Error('aborted')), { once: true })));
+    const container = await mount(); await act(async () => vi.advanceTimersByTimeAsync(35_000));
+    expect(container.textContent).toContain('comparaison des progressions n’a pas pu être chargée à temps'); expect(container.textContent).not.toContain('statut du chat');
+    expect(button(container, 'Réessayer la comparaison')).toBeDefined(); expect(vi.getTimerCount()).toBe(0);
+  });
+  it('aborts on exit and ignores a late comparison from a previous screen/session', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null });
+    let complete!: (value: null) => void;
+    api.getTwitchLinkResolution.mockImplementationOnce(() => new Promise(resolve => { complete = resolve }));
+    const first = await mount(), signal = api.getTwitchLinkResolution.mock.calls[0]![0];
+    act(() => roots.pop()!.unmount()); expect(signal.aborted).toBe(true);
+    api.getTwitchAccount.mockResolvedValue(linkedAccount); const second = await mount();
+    await act(async () => complete(null));
+    expect(first.textContent).toBe(''); expect(second.textContent).toContain('Kichnifou · Connecté'); expect(second.textContent).not.toContain('Non connecté');
+  });
+});
+
 describe('Configuration > Compte', () => {
   it('sends exactly one authenticated start POST for a same-tick double click', async () => {
     const { createGameApiClient } = await vi.importActual<typeof import('../api/game-api')>('../api/game-api')

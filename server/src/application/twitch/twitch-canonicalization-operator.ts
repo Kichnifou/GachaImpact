@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { operatorConsentEvidence } from './consent-activity-evidence.js';
 import { isDeepStrictEqual } from 'node:util';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
@@ -191,7 +192,7 @@ export async function operatorDecisionProof(tx: Tx, pair: CanonicalizationPair, 
     web: await completeEvidence(tx, pair.webPlayerId, meta), twitch: await completeEvidence(tx, pair.twitchPlayerId, meta),
     social: JSON.parse(serialize(await losingSocialDecisionEvidence(tx, gate.loser))) as Prisma.InputJsonValue,
     legacy: JSON.parse(serialize(await legacyFriendshipDecisionEvidence(tx, [pair.twitchUserId]))) as Prisma.InputJsonValue, consequences };
-  return { fingerprint: hash(evidence), evidence, consequences };
+  return { fingerprint: hash({ consentVersion: 2, evidence: operatorConsentEvidence(evidence) }), evidence, consequences };
 }
 
 export type OperatorBackup = { kind: 'R1055_OPERATOR_PREIMAGE'; version: 1; fingerprint: string; evidence: Awaited<ReturnType<typeof operatorDecisionProof>>['evidence']; hash: string };

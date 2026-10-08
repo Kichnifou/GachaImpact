@@ -1,17 +1,25 @@
 # Cutover legacy — runbook opératoire
 
+<a id="r1055-consent-fix-runbook-20261008"></a>
+
+## Point courant — correctif consentement/chargement en review ; Ceo STOP
+
+Production f633760 inchangée, Railway/Cloudflare SUCCESS et Prisma63/DDL063 acquis au contrôle daté de promotion. Ceo B ACTIVE/DATA_IMPORTED/LEGACY/non-canary, A ACTIVE/Auth-Web intacte. Ancien plan TWITCH expiré à **15:30:01 Paris**, non consommé ; OAuth/comparaisons effectués, aucun choix confirmé. Onze amitiés différées, OFF11/flag false/trois canaries/backups intacts au diagnostic. Aucun nouvel import/OAuth/archivage/NATIVE, aucune nouvelle autorisation dans cette mission.
+
+Le candidat corrige l'empreinte trop sensible à l'activité APPLICATION et le délai UI partagé compte/comparaison/chat. [Preuves, tests et état réel](../master/PROJECT_MASTER_PLAN.md#r1055-consent-fix-20261008), [exception technique exacte](../architecture/r1055-operator-resolution.md#consentement-technique-20261008). Graphes/backups bruts et mutations métier/tiers restent intégralement protégés. 54 tests DB locaux et verify:full8/8 ; contrôle visuel Codex synthétique, distinct d'une recette humaine publique.
+
+**STOP review indépendante du SHA candidat.** Après approbation seulement : promotion strict FF et déploiements SHA exact/gates canoniques, puis disponibilité Ceo et nouveau plan frais. Ne pas réutiliser l'ancien plan/résolution ; les empreintes version2 ne valident pas une preuve ancienne. Ne rejouer aucun import B/canary ni réparation. L'activité purement APPLICATION reconnue ne révoque plus le consentement ; toute activité métier, preuve de tiers, forme inconnue ou incohérence reste bloquante. Le rollback garde son contrôle brut EXACT_PREIMAGE.
+
+Validation finale : **67 tests DB locaux PASS** (54 opérateur/liaison + 13 sûreté/équivalence), verify:full8/8. Connexions/transactions/verrous/schémas privés libérés, PostgreSQL et serveur visuel locaux arrêtés ; aucun sondage ou write public pour cette clôture.
+
 <a id="r1055-operator-runbook-20261008"></a>
-
-## Point courant — mécanisme déployé ; B importée, attendre la disponibilité humaine
-
-Code approuvé8928f7b déployé Railway/Cloudflare SUCCESS du SHA exact, health200, Prisma63 et DDL063 vérifiés. Ceo B DATA_IMPORTED/LEGACY/non-canary, A Auth/Web ACTIVE et graphes/tiers exacts ; OFF11/flagfalse/trois canaries préservés. Aucun plan/OAuth/archivage. Disponibilité humaine puis plan frais et liaison requis ; raccordement communautaire global non exécuté. [État et checkpoint final au Master](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Ne rejouer aucun import de B ou des trois canaries.
 
 ### Gates distinctes pour Ceo
 
 1. Après déploiement approuvé, relire une fois les protections canoniques : Prisma 63, OFF révision attendue et flag false, zéro opération/outbound incertain, trois NATIVE/imports/backups/cosmétiques identiques. Échec déploiement/DB → STOP, aucun retry/reconfiguration à l'aveugle.
 2. Rafraîchir identité Web authentifiée A, 17 fichiers gelés/hash et preuve Helix. Préflight de B seulement : TWITCH_ONLY, UUID distinct, progression source significative, aucune collision/preimage/opération/contradiction sociale. Le refus d'archiver A n'est pas un blocker de cet import indépendant. A significatif, WebIdentity/Auth et tiers doivent rester exacts.
 3. Répétition privée représentative avec chaîne 63, sources/relations pertinentes, backup v3 durable, comparaison et rollback EXACT_PREIMAGE. Vérifier le retour des faits/relations/quotas sociaux et des tiers, pas seulement le gameplay de B. Réautorisation ciblée puis apply B DATA_IMPORTED/LEGACY/non-canary ; aucune identité Web sur B, aucune activation NATIVE. Vérifier A/B séparés et significatifs avant tout OAuth.
-4. **Attendre que Ceo confirme être prête à effectuer la liaison ; aucun plan expirant avant sa disponibilité.** Préparer alors, par la CLI locale ci-dessous, une autorisation TWITCH pour les identités vérifiées de A/B. Elle écrit un backup privé neuf synchronisé et un plan expirant quinze minutes ; elle ne ferme rien et ne choisit pas. Une relation inconnue, activité incompatible ou collision sociale réelle → STOP avec diagnostic owner. Aucun assouplissement SAFE.
+4. **Après approbation/déploiement du correctif seulement, attendre que Ceo confirme être prête à effectuer la liaison ; aucun plan expirant avant sa disponibilité.** Préparer alors, par la CLI locale ci-dessous, une autorisation TWITCH pour les identités vérifiées de A/B, avec nouvelles gates et préimage réelle. Elle écrit un backup privé neuf synchronisé et un plan expirant quinze minutes ; elle ne ferme rien et ne choisit pas. Une relation inconnue, activité incompatible ou collision sociale réelle → STOP avec diagnostic owner. Aucun assouplissement SAFE. Les étapes d'import 2/3 sont déjà acquises pour Ceo et ne doivent pas être rejouées.
 5. Gate humaine seulement après B vérifié : « Ceo peut maintenant se connecter au standalone, puis aller dans Configuration > Compte > Lier Twitch. L'écran de comparaison des deux progressions doit apparaître. » Elle choisit elle-même « Utiliser ma progression Twitch » et accepte l'abandon présenté. Preuve modifiée/plan expiré → nouvelle préparation/confirmation, jamais répétition automatique du choix.
 6. Après choix : B ACTIVE et Web+Twitch, A ARCHIVED sans accès ; gameplay gagnant sans fusion, historiques/tiers cohérents, import/provenance/backup/target B conservés. Recette F5/logout-login humaine. NATIVE et smoke appartiennent à l'étape ultérieure d'extension multi-canary autorisée ; aucune commande dans le présent lot.
 
