@@ -12,7 +12,7 @@ export type PrivacyCategory = keyof typeof privacyDefaults;
 export const privacyCategories = Object.keys(privacyDefaults) as PrivacyCategory[];
 
 export function activeFriendOf(viewer: string): Prisma.PlayerWhereInput {
-  return { OR: [{ friendshipsAsA: { some: { playerBId: viewer, state: 'ACTIVE' } } }, { friendshipsAsB: { some: { playerAId: viewer, state: 'ACTIVE' } } }] };
+  return { OR: [{ friendshipsAsA: { some: { playerBId: viewer, state: 'ACTIVE', supersededAt: null } } }, { friendshipsAsB: { some: { playerAId: viewer, state: 'ACTIVE', supersededAt: null } } }] };
 }
 export function unblockedWith(viewer: string): Prisma.PlayerWhereInput {
   return { blocksCreated: { none: { blockedPlayerId: viewer } }, blocksReceived: { none: { blockerPlayerId: viewer } } };

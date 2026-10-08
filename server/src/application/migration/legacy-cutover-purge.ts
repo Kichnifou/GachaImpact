@@ -10,7 +10,7 @@ export const referenceTables = [
 ] as const;
 export const preservedTables = [
   '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
-  'privacy_settings', 'player_role_assignments', 'twitch_link_resolutions',
+  'privacy_settings', 'player_role_assignments', 'twitch_link_resolutions', 'twitch_canonicalization_plans', 'legacy_friendship_facts',
   // Operational authorizations are not gameplay; rehearsal never enables or refreshes them.
   'twitch_gift_supreme_credentials', 'twitch_giveaway_credentials',
   'twitch_native_authorities', 'twitch_native_targets', 'twitch_native_audit', 'twitch_canary_imports',
@@ -70,6 +70,11 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
   const unexpected = [...actual].filter(table => !known.has(table));
   const missing = [...known].filter(table => table !== '_prisma_migrations' && !actual.has(table));
   if (unexpected.length || missing.length) throw new Error(`Cutover table contract differs: unexpected=${unexpected.join(',')}; missing=${missing.join(',')}`);
+  // This older global owner has no reviewed compensation contract for operator
+  // plans or versioned social materializations. Preserve their proof and fail
+  // closed instead of clearing relations beneath it. Targeted migration is separate.
+  if (await db.twitchCanonicalizationPlan.count() || await db.friendship.count({ where: { legacyFactId: { not: null } } }))
+    throw new Error('CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT');
   const clear = new Set<string>(clearTables);
   for (const { child, parent } of fks) if (!clear.has(child) && clear.has(parent)) throw new Error(`Preserved table ${child} references cleared table ${parent}.`);
   const dependencies = new Map<string, Set<string>>(clearTables.map(table => [table, new Set<string>()]));

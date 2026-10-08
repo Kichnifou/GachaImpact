@@ -2,6 +2,13 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createGameApiClient } from './game-api'
 
+it('binds abandonment consent to the exact displayed operator plan', async () => {
+  const fetchImplementation = vi.fn().mockImplementation(async () => new Response('{}'));
+  const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-test-token', fetchImplementation });
+  await client.resolveTwitchLink('resolution', 'TWITCH', 'revision', 'operator-plan');
+  expect(JSON.parse(fetchImplementation.mock.calls[0]![1].body)).toEqual({ resolutionId: 'resolution', choice: 'TWITCH', decisionRevision: 'revision', confirmation: 'ONE_PROGRESSION_NO_MERGE', operatorPlanId: 'operator-plan', operatorConfirmation: 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS' });
+});
+
 it('submits the displayed decision revision with explicit no-merge consent',async()=>{
   const fetchImplementation=vi.fn().mockImplementation(async()=>new Response('{}'));
   const client=createGameApiClient({baseUrl:'https://api.example',getAccessToken:async()=> 'private-test-token',fetchImplementation});

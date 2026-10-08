@@ -1,3 +1,4 @@
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { assertCommandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
@@ -167,7 +168,7 @@ export class MonthlyBossService {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, context.playerId);
+      await lockPlayerMutation(transaction, context.playerId);
       const possession = await transaction.playerCharacter.findUnique({ where: { playerId_characterId: { playerId: context.playerId, characterId } }, select: possessionSelection });
       if (!possession) throw new BusinessError('BOSS_CHARACTER_NOT_OWNED', 'Ce personnage ne fait pas partie de votre Box.');
       if (!possession.character.isActive) throw new BusinessError('BOSS_CHARACTER_INACTIVE', 'Ce personnage n’est plus disponible.');
@@ -188,7 +189,7 @@ export class MonthlyBossService {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, context.playerId);
+      await lockPlayerMutation(transaction, context.playerId);
       await ensureLoadout(transaction, context.playerId);
       await transaction.playerBossLoadoutSlot.deleteMany({ where: { playerId: context.playerId, position } });
     });
@@ -199,7 +200,7 @@ export class MonthlyBossService {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, context.playerId);
+      await lockPlayerMutation(transaction, context.playerId);
       const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
       const members = team?.members.filter(({ character }) => character.isActive).slice(0, 4) ?? [];
       await ensureLoadout(transaction, context.playerId);
@@ -213,7 +214,7 @@ export class MonthlyBossService {
     const context = await this.context(identity);
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, context.playerId);
+      await lockPlayerMutation(transaction, context.playerId);
       await ensureLoadout(transaction, context.playerId);
       await transaction.playerBossLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
     });
@@ -229,7 +230,7 @@ export class MonthlyBossService {
     for (let attemptNumber = 1; attemptNumber <= MAX_TRANSACTION_ATTEMPTS; attemptNumber += 1) {
       try {
         const committed = await this.database.$transaction(async (transaction) => {
-          await lockPlayer(transaction, context.playerId);
+          await lockPlayerMutation(transaction, context.playerId);
           await transaction.$queryRaw`SELECT id FROM monthly_bosses WHERE id = ${bossId}::uuid FOR UPDATE`;
           const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) {
@@ -380,13 +381,17 @@ export class MonthlyBossService {
   }
 
   private async clearInactiveSlots(playerId: string): Promise<boolean> {
-    const result = await this.database.playerBossLoadoutSlot.deleteMany({ where: { playerId, character: { isActive: false } } });
-    return result.count > 0;
+    return this.database.$transaction(async tx => {
+      if (!await lockPlayerMutationState(tx, playerId)) return false;
+      const result = await tx.playerBossLoadoutSlot.deleteMany({ where: { playerId, character: { isActive: false } } });
+      return result.count > 0;
+    });
   }
 
   private async rewardParticipants(transaction: Prisma.TransactionClient, bossId: string, bossName: string, finalBlowPlayerId: string, now: Date) {
-    const participants = await transaction.playerBossParticipation.findMany({ where: { bossId }, include: { player: { select: { elementKey: true } } }, orderBy: { playerId: 'asc' } });
+    const participants = await transaction.playerBossParticipation.findMany({ where: { bossId, player: { status: { not: 'ARCHIVED' } } }, include: { player: { select: { elementKey: true } } }, orderBy: { playerId: 'asc' } });
     for (const participant of participants) {
+      if (!await lockPlayerMutationState(transaction, participant.playerId)) continue;
       if (!participant.player.elementKey || !isElementKey(participant.player.elementKey)) throw new Error(`Boss participant ${participant.playerId} has no valid element.`);
       const rewardOperation = await transaction.businessOperation.create({ data: {
         playerId: participant.playerId,
@@ -591,7 +596,7 @@ function toCombatMember(possession: Possession): BossCombatMember { return { id:
 function rarity(value: number): 4 | 5 { if (value === 4 || value === 5) return value; throw new Error(`Unsupported character rarity ${value}.`); }
 function elementKey(value: string): ElementKey { if (isElementKey(value)) return value; throw new Error(`Unsupported element ${value}.`); }
 async function ensureLoadout(transaction: Prisma.TransactionClient, playerId: string) { await transaction.playerBossLoadout.upsert({ where: { playerId }, create: { playerId }, update: {} }); }
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string) { const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`; if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'Aucun joueur n’est lié à ce compte.'); }
+
 async function readBalances(client: Client, playerId: string): Promise<PlayerResourceBalances> {
   const rows = await client.playerResourceBalance.findMany({ where: { playerId, resourceKey: { in: [...resourceKeys] } }, select: { resourceKey: true, amount: true } });
   const values = new Map(rows.map(({ resourceKey, amount }) => [resourceKey, amount]));

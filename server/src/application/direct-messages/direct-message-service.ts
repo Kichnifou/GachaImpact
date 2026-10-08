@@ -95,7 +95,7 @@ export class DirectMessageService {
   private async contactAccess(tx: Prisma.TransactionClient | PrismaClient, senderId: string, recipientId: string): Promise<ContactAccess> {
     const [recipient, friendship, blocks] = await Promise.all([
       tx.player.findFirst({ where: { id: recipientId, status: 'ACTIVE' }, select: { privacySettings: { where: { categoryKey: PRIVATE_MESSAGES_CATEGORY }, select: { level: true }, take: 1 } } }),
-      tx.friendship.findUnique({ where: { playerAId_playerBId: pair(senderId, recipientId) }, select: { state: true } }),
+      tx.friendship.findFirst({ where: { ...pair(senderId, recipientId), supersededAt: null }, select: { state: true } }),
       tx.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: senderId, blockedPlayerId: recipientId }, { blockerPlayerId: recipientId, blockedPlayerId: senderId }] }, select: { blockerPlayerId: true } }),
     ]);
     const level: PrivacyLevel = recipient?.privacySettings[0]?.level ?? 'PUBLIC';

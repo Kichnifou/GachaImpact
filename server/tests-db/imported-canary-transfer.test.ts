@@ -25,8 +25,8 @@ afterEach(async () => {
 afterAll(async () => fixture.cleanup(), 60_000);
 
 async function imported() {
-  const { snapshot, report } = canarySnapshot();
-  const id = report.users[0]!.twitchUserId = String(910001000001 + sequence++);
+  const id = String(910001000001 + sequence++);
+  const { snapshot, report } = canarySnapshot({}, { legacyLogin: `transfer_${id}`, twitchUserId: id });
   const plan = await planLegacyCanary(db, snapshot, report, id, null, new Date());
   let backup!: CanaryBackup;
   const applied = await applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async value => { backup = value; });

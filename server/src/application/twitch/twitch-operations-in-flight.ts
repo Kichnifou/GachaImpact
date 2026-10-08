@@ -5,7 +5,7 @@ type Receipt = Pick<Prisma.TwitchEventReceiptGetPayload<Record<string, never>>,
 const record = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 
-function receiptSafety(receipt: Receipt) {
+export function receiptSafety(receipt: Receipt) {
   const payload = record(receipt.payloadMinimal), pilot = record(payload?.commandPilot);
   const unresolvedOutbound = Array.isArray(pilot?.responses) && pilot.responses.some(response =>
     record(response)?.status === 'SENDING' || record(response)?.status === 'AMBIGUOUS');

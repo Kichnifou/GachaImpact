@@ -25,6 +25,8 @@
     "migration:legacy:canary:extend": "tsx scripts/extend-imported-canary.mts",
     "migration:legacy:canary:repair-cosmetics": "tsx scripts/repair-imported-canary-cosmetics.mts",
     "twitch:recover-executing-pity": "tsx scripts/recover-executing-pity.mts",
+    "twitch:prepare-canonicalization": "tsx scripts/prepare-twitch-canonicalization.mts",
+    "migration:legacy:social-pair": "tsx scripts/reconcile-legacy-friendship.mts",
     "migration:legacy:verify-ddl": "tsx scripts/verify-legacy-ddl.mts",
     "typecheck": "tsc --noEmit --project tsconfig.json",
     "prisma:generate": "prisma generate",

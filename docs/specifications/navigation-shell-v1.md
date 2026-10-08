@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Comparaison R1055 — abandon contrôlé (candidat 08/10/2026)
+
+Configuration > Compte conserve le parcours existant de liaison. Un plan opérateur frais ajoute, dans la comparaison, les conséquences sociales agrégées et un acquittement explicite d'abandon ; aucun contenu tiers, fingerprint serveur ou token exposé. WEB/TWITCH symétriques : seul le bouton autorisé par sa propre sûreté/son plan devient disponible après les confirmations. Révision/plan modifié : cases réinitialisées. Même conteneur de scroll et boutons partagés, contrôle GameShell local PC/mobile. [Contrat](../architecture/r1055-operator-resolution.md), validation au [Master](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008) ; pas de recette publique Ceo revendiquée.
+
 ## Hauteur de l’état vide Concours
 
 Sur desktop, le panneau « Aucun Concours actif » occupe la hauteur disponible du body défilant, avec contenu centré et minimum naturel de 330 px. La ligne flexible de grille ne cible que cet état ; lobby, partie, résultat et feedback conservent leur propriétaire de scroll. Sous 761 px, hauteur naturelle et scroll document selon le contrat UI. [Mesures et recette locale du correctif](../master/PROJECT_MASTER_PLAN.md#contest-height-ceo-20261008). Aucun changement des règles Concours ou de la résilience P0.

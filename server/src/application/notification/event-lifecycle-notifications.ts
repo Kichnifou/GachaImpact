@@ -1,3 +1,4 @@
+import { lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { NotificationState, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
@@ -21,7 +22,7 @@ export class EventLifecycleNotificationReconciler implements NotificationReconci
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+          if (!await lockPlayerMutationState(tx, playerId)) return;
           await tx.notification.updateMany({ where: { playerId, domainKey: 'event', typeKey: { in: ['EVENT_EDITION_AVAILABLE', 'EVENT_EDITION_LAST_DAY'] }, state: { in: [NotificationState.UNREAD, NotificationState.READ] },
             ...(active ? { OR: [
               { actionTargetId: { not: edition!.id } },

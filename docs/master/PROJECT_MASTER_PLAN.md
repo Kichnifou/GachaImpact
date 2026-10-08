@@ -1,13 +1,48 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : moteur R1055 structurel déployé ; Ceo STOP opérateur canonique.
+Version : résolution opérateur R1055/R1056 candidate ; STOP review indépendante.
 Date : 2026-10-08
-Statut : **P0 PUBLIC CLÔTURÉ ; R1055 DÉPLOYÉ ; PRÉFLIGHT CEO OPERATOR_REQUIRED.** Graphe/références/fingerprint complets, aucune erreur SQL ; relations partagées non résolues. A intact/B absent, aucun import/OAuth. OFF11/flag false/trois canaries conservés.
+Statut : **CANDIDAT SENSIBLE PRIVÉ ; MAIN/CEO STOP AVANT REVIEW INDÉPENDANTE.** Abandon contrôlé symétrique, préservation des tiers et restauration des amitiés. Baseline publique 32af8b7/62 migrations ; aucune opération Ceo/canary ni configuration modifiée.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-operator-audit-20261008"></a>
+
+## Point courant — candidat opérateur R1055/R1056 ; review indépendante requise
+
+Mission propriétaire et clarifications intégrées : **aucune priorité générale Twitch/Web**. Les JSON figés font autorité pour la sauvegarde legacy ; seul le choix explicite détermine le gameplay jouable. WEB conserve son gameplay entier face au Twitch minimal ; TWITCH conserve le sien face au standalone abandonné. Le perdant peut être archivé et perdre ses gains futurs/accès, sans fusion ni perte d'historique pour les tiers. [R1055/R1056](../specifications/decisions-log.md), [audit complet des 23 catégories et contrat implémenté](../architecture/r1055-operator-resolution.md).
+
+Le candidat ajoute le plan opérateur privé, backup et fingerprint complet, consentement nominatif/révision/expiration, clôtures atomiques des relations du perdant et archive inerte. Les états actifs incompatibles, inconnus, outbounds incertains et collisions restent bloquants. La migration **063 n'est appliquée qu'en PostgreSQL local** : plans, faits d'amitié, versions de relation et barrière d'écriture de l'archive. Restauration des amitiés prouvées par IDs immuables, différé si ami non importé, raccord au Player définitif sans récompense/statistique additionnée. Backup canary v3 avec préimage social et compensation exacte contrôlée ; outil social ciblé distinct pour les imports déjà acquis. Aucun réimport des trois canaries.
+
+**Deux gates démontrées séparément :** importer B TWITCH_ONLY peut préserver exactement A et ses tiers tout en laissant son archivage OPERATOR_REQUIRED. Ce découplage ne vaut pas autorisation publique dans ce lot. A reste ACTIVE/Auth-Web seul, B absent selon la dernière observation ; aucun import/OAuth/choix/NATIVE Ceo. Le préflight SQL public antérieur est complet (282 FK, 4 895 lignes/55 tables, 1 295 ms, 23 catégories SHARED_ACTIVE). Aucune nouvelle optimisation ou préflight public. Une seule lecture agrégée complémentaire à 10:21:31 UTC a précisé les états métier, sans contenu de message ni secret (SQL 872 ms ; transaction/déconnexion 1 623 ms).
+
+**Validation locale :** voir la matrice finale ci-dessous et les artefacts ignorés local-data/identity-resolutions/r1055-operator-audit-20261008. Tests sur graphes synthétiques, aucune copie de données publiques. Contrôle visuel Codex via Playwright du GameShell réel/styling production à 1366×768 et 390×844 : deux choix autorisés séparément et deux choix bloqués, confirmations, scroll, absence de débordement horizontal ; aucune requête externe/session fabriquée. Cette observation n'est pas une recette humaine Ceo. Une course de propriétaire indirect détectée en relecture a été corrigée par verrou du parent et reproduite en test PostgreSQL concurrent.
+
+**Production inchangée, preuves datées :** dernière promotion 32af8b7, Railway 7822d069-be2b-4f0b-8d9f-98b7cd00d2d7 SUCCESS/Online, Cloudflare 3821ab1d-860e-4671-aa9e-0bd6fe726a9b SUCCESS, health 200 et 62 migrations au contrôle précédent (10:04–10:05 UTC). OFF11/flag false et les trois NATIVE/imports/backups/cosmétiques préservés au contrôle de clôture 10:05:57 ; la lecture 10:21 confirme OFF/flag/A sans B. Aucun nouveau contrôle de déploiement ou sondage général répété dans cette mission. P0 déjà validé humainement ; cause historique PostgreSQL/Concours non démontrée, pas artificiellement déclarée résolue.
+
+### Matrice finale réellement exécutée — PostgreSQL local uniquement
+
+| Périmètre | Résultat final |
+| --- | --- |
+| Opérateur R1055 WEB/TWITCH ; liaison existante | 15 + 32 PASS |
+| Import B indépendant ; canary v3/préflight social/rollback | 2 + 12 PASS |
+| Registre/réconciliation sociale ; CLI d'une paire | 17 + 13 PASS |
+| Barrière physique et course de propriétaire indirect | 6 PASS |
+| Boss, Event B/C/lifecycle/milestones, Expédition, Banque, Codes et archives | 80 cas distincts PASS après corrections ciblées |
+| Social/MP/Faveur | 40 PASS |
+| Extension/transfert canary, réparation cosmétique et cosmétiques dérivés | 79 cas distincts PASS après correction des identités synthétiques des fixtures |
+| DDL | 63 migrations rejouées et migrate status dans les fixtures ; 23 tables privées/RLS/grants, parité 1 215 colonnes PASS |
+| GameShell réel, styles de production | Contrôle visuel Codex PC/mobile, choix WEB/TWITCH/bloqués ; aucune requête externe |
+| verify:full | **8/8 PASS**, 1 373 frontend + 1 981 backend non-DB ; builds/typechecks/lint/diff-check PASS |
+
+Les passes intermédiaires échouées restent conservées : mocks Event/purge actualisés, fixtures qui réutilisaient un même login pour plusieurs IDs corrigées, course indirecte réellement corrigée. Le test de scan historique lisait les artefacts opérateur accumulés : découverte désormais synthétique avec vrai loader/contrôles de chemin, sans modifier le code produit. Deux timeouts du test Chat inchangé passent avec `VITEST_MAX_WORKERS=2` pour le processus de vérification complet ; aucune hausse de timeout ni configuration produit persistante. Les reruns ne sont pas additionnés aux comptes. Logs finaux verify-full-workers2, canary-social-final, operator-15 et owners dans les répertoires privés indiqués ; warning de bundle et dépréciation pg de suites existantes conservés.
+
+Clôture locale vérifiée : zéro autre connexion/transaction/verrou en attente, zéro schéma de test restant, zéro Player dans la référence synthétique. Pools des fixtures fermés et opened=closed ; Vite de capture et PostgreSQL local arrêtés. Aucune lecture publique supplémentaire pour cette clôture. Git avant publication : HEAD/origin main/review 32af8b7, divergence0/0 ; le candidat est un commit review dédié, sans rebase/squash/force-push. Son SHA et la confrontation finale GitHub figurent dans le rapport de publication, sans boucle de commit pour inscrire son propre SHA.
+
+**Prochaine action exacte : review indépendante du SHA candidat**, avant main, déploiement, application publique de 063 ou opération Ceo. Après approbation seulement : promotion/déploiements contrôlés puis preuves fraîches A/17 JSON/Helix, préflight B complet, rehearsal représentative/backup/comparaison/rollback exact et import ciblé autorisé B DATA_IMPORTED/LEGACY/non-canary. Vérifier les deux progressions significatives ; plan opérateur frais puis liaison et choix strictement humains. Aucun OAuth anticipé, batch/GLOBAL, SQL métier manuel, replay/réparation/recovery canary, commande Twitch ou chantier infrastructure. Streamer.bot OFF ; audit coûts Supabase après migration des joueurs conservé.
 
 <a id="r1055-astra-promotion-20261008"></a>
 
-## Point courant — R1055 déployé ; Ceo STOP sur les relations partagées
+## Historique — R1055 déployé ; Ceo STOP sur les relations partagées
 
 Review indépendante Astra **APPROUVÉE**, aucun finding bloquant, pour **524e9f992bc03f788beea0fa72eb246e8d65c965**. Le code reste strictement celui approuvé ; aucune nouvelle décision Rxxx. Avant publication : GitHub main 52b5631/review 524e9f9, ancestry exacte et divergence 0/1, worktree propre ; treize patches et blobs GitHub confrontés au commit local, PASS.
 

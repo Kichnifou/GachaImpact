@@ -10,19 +10,26 @@ import { buildCutoverPurgePlan, applyPrivateCutoverPurge, assertCutoverProtected
 import { buildLegacyGlobalPlan } from '../src/application/migration/legacy-global-plan.js';
 import { applyLegacyPersonalState } from '../src/application/migration/legacy-personal-apply.js';
 import { applyLegacySocial } from '../src/application/migration/legacy-social-apply.js';
+import { parseStreamerbotSnapshot } from '../src/application/migration/streamerbot-snapshot.js';
+import { createVerifiedTwitchReport } from '../src/application/migration/verified-twitch-report.js';
+import { registerLegacyFriendships } from '../src/application/migration/legacy-friendship-reconciliation.js';
+import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled: true, globalEnabled: false },
   twitch: { pilotPlayerIds: [] as string[], pilotLogin: 'kichnifou' } };
 let operatorId: string;
 beforeAll(async () => {
-  await fixture.setup({ seedPublicCatalog: true });
+  if (!['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env['DATABASE_URL']!).hostname)) throw Error('Local PostgreSQL required');
+  await fixture.setup({ prismaMigrations: true });
+  await db.character.create({ data: { externalKey: 'legacy:1', name: 'Synthetic character', rarity: 5, elementKey: 'cryo' } });
+  await db.permanentMissionDefinition.createMany({ data: permanentMissionCatalog.map(entry => ({ ...entry })), skipDuplicates: true });
   const operator = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private operator',
     twitchIdentity: { twitchUserId: '900000000000', login: 'kichnifou', displayName: 'Private operator', firstSeenAt: new Date() } }));
   operatorId = operator.id; config.twitch.pilotPlayerIds.push(operatorId);
   await db.playerRoleAssignment.create({ data: { playerId: operatorId, role: 'ADMIN', source: 'private-fixture' } });
-}, 60_000);
-afterAll(async () => fixture.cleanup(), 60_000);
+}, 180_000);
+afterAll(async () => { await fixture.cleanup(); const pool = fixture.poolSnapshot(); expect(pool).toMatchObject({ total: 0, idle: 0, waiting: 0 }); expect(pool.closed).toBe(pool.opened); }, 60_000);
 
 describe('single legacy canary with exact private backup/rollback', () => {
   it.each([false, true])('imports only the selected Player (existing verified web=%s), preserves globals and restores exact preimage', async existing => {
@@ -114,7 +121,8 @@ describe('legacy canaries without a chosen element', () => {
   beforeAll(() => new TwitchNativeAuthority(db, config).configure(operatorId, 'OFF', []));
   let sequence = 10;
   function noElementSnapshot(overrides: Record<string, unknown>) {
-    const f = canarySnapshot(overrides); f.report.users[0]!.twitchUserId = String(900000000000 + sequence++); return f;
+    const id = sequence++;
+    return canarySnapshot(overrides, { legacyLogin: `fixture_canary_${id}`, twitchUserId: String(900000000000 + id) });
   }
   it.each([0, 30, 60])('imports XP %s without element or WebIdentity and restores the exact absence', async xp => {
     const { snapshot, report } = noElementSnapshot({ element: xp === 0 ? undefined : xp === 30 ? null : '', xp });
@@ -153,4 +161,68 @@ describe('legacy canaries without a chosen element', () => {
     await expect(planLegacyCanary(db, snapshot, report, report.users[0]!.twitchUserId, null, new Date())).rejects.toThrow('LEGACY_ELEMENT_INVALID');
     expect(await db.player.count()).toBe(count);
   });
+});
+
+describe('canary v3 social preflight and exact rollback', () => {
+  let sequence = 100;
+  async function socialScenario(existing: boolean) {
+    const index = ++sequence, ownerName = `canary_social_${index}`, peerName = `peer_social_${index}`;
+    const ownerId = String(930000000000 + index), peerId = String(940000000000 + index);
+    const base = canarySnapshot({}, { legacyLogin: ownerName, twitchUserId: ownerId });
+    const sources = { ...base.snapshot.sources, 'viewers_data.json': { ...(base.snapshot.sources['viewers_data.json'] as Record<string, unknown>), [peerName]: {} },
+      'friendships_data.json': { friendships: { pair: { users: [ownerName, peerName], level: 9, sparkleHearts: 21, createdAt: '2026-01-01', lastHeartSent: { [peerName]: '2026-10-01' } } }, requests: [] } };
+    const snapshot = parseStreamerbotSnapshot(Object.fromEntries(Object.entries(sources).map(([key, value]) => [key, JSON.stringify(value)])));
+    const reportFor = (name: string, twitchUserId: string) => createVerifiedTwitchReport(snapshot, { users: [{ legacyLogin: name, twitchUserId, currentLogin: name, displayName: name, renamed: false }], missing: [], conflicts: [], duplicates: 0 }, new Date(), { kind: 'CANARY', legacyLogin: name });
+    const report = reportFor(ownerName, ownerId), peerReport = reportFor(peerName, peerId);
+    const peer = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Imported peer', twitchIdentity: { twitchUserId: peerId, login: peerName, displayName: 'Imported peer', firstSeenAt: new Date() } }));
+    await db.migrationRun.create({ data: { playerId: peer.id, snapshotHash: snapshot.hash, summary: {} } });
+    await db.$transaction(tx => registerLegacyFriendships(tx, { snapshot, report: peerReport, ownerTwitchUserId: peerId, now: new Date() }));
+    const fact = await db.legacyFriendshipFact.findFirstOrThrow({ where: { OR: [{ leftTwitchUserId: peerId }, { rightTwitchUserId: peerId }] } });
+    const owner = existing ? await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Existing standalone', webIdentity: { provider: 'fixture', providerSubject: randomUUID() }, twitchIdentity: { twitchUserId: ownerId, login: ownerName, displayName: ownerName, firstSeenAt: new Date() } })) : null;
+    return { snapshot, report, ownerId, peer, fact, owner };
+  }
+
+  it('reports a real social collision before backup or any application mutation', async () => {
+    const f = await socialScenario(true), owner = f.owner!;
+    const [playerAId, playerBId] = [owner.id, f.peer.id].sort() as [string, string];
+    const relationship = await db.friendship.create({ data: { playerAId, playerBId, level: 27, totalHearts: 43n } });
+    const before = await captureTargetedPlayerRows(db, [owner.id, f.peer.id]);
+    const plan = await planLegacyCanary(db, f.snapshot, f.report, f.ownerId, owner.id, new Date());
+    expect(plan.blockers).toContain('LEGACY_FRIENDSHIP_EFFECTIVE_RELATION_CONFLICT');
+    let backedUp = false;
+    await expect(applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async () => { backedUp = true; })).rejects.toThrow('CANARY_PREFLIGHT_BLOCKED');
+    expect(backedUp).toBe(false);
+    expect((await captureTargetedPlayerRows(db, [owner.id, f.peer.id])).hash).toBe(before.hash);
+    expect(await db.friendship.findUniqueOrThrow({ where: { id: relationship.id } })).toEqual(relationship);
+    expect(await db.legacyFriendshipFact.findUniqueOrThrow({ where: { id: f.fact.id } })).toEqual(f.fact);
+  }, 180_000);
+
+  it('materializes a verified imported peer then rolls back exactly without deleting its original fact', async () => {
+    const f = await socialScenario(false), peerBefore = await captureTargetedPlayerRows(db, [f.peer.id]);
+    const plan = await planLegacyCanary(db, f.snapshot, f.report, f.ownerId, null, new Date());
+    expect(plan.blockers).toEqual([]); expect(plan.player.mappingMode).toBe('TWITCH_ONLY');
+    expect(plan.social).toMatchObject({ materialized: 1, deferred: 0, retained: 0 });
+    let backup!: CanaryBackup;
+    await applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async value => { backup = value; });
+    expect(backup.version).toBe(3);
+    expect(await db.friendship.findFirstOrThrow({ where: { legacyFactId: f.fact.id, supersededAt: null } })).toMatchObject({ state: 'ACTIVE', level: 9, totalHearts: 21n });
+    expect(await db.legacyFriendshipFact.findUniqueOrThrow({ where: { id: f.fact.id } })).toMatchObject({ status: 'MATERIALIZED' });
+    expect((await captureTargetedPlayerRows(db, [f.peer.id])).hash).toBe(peerBefore.hash);
+    await rollbackLegacyCanary(db, config, operatorId, backup);
+    expect(await db.legacyFriendshipFact.findUniqueOrThrow({ where: { id: f.fact.id } })).toEqual(f.fact);
+    expect(await db.friendship.count({ where: { legacyFactId: f.fact.id } })).toBe(0);
+    expect((await captureTargetedPlayerRows(db, [f.peer.id])).hash).toBe(peerBefore.hash);
+    expect((await captureTargetedPlayerRows(db, backup.rows.playerIds)).hash).toBe(backup.rows.hash);
+    expect(await db.player.findUnique({ where: { id: plan.player.playerId } })).toBeNull();
+  }, 180_000);
+
+  it('invalidates the social preflight before durable backup if a peer changes', async () => {
+    const f = await socialScenario(false);
+    const plan = await planLegacyCanary(db, f.snapshot, f.report, f.ownerId, null, new Date()); expect(plan.blockers).toEqual([]);
+    await db.player.update({ where: { id: f.peer.id }, data: { status: 'SUSPENDED' } });
+    let backedUp = false;
+    await expect(applyLegacyCanary(db, config, operatorId, plan, STREAMERBOT_PATH_DISABLED, async () => { backedUp = true; })).rejects.toThrow('CANARY_SOCIAL_PREFLIGHT_CHANGED');
+    expect(backedUp).toBe(false); expect(await db.player.findUnique({ where: { id: plan.player.playerId } })).toBeNull();
+    expect(await db.legacyFriendshipFact.findUniqueOrThrow({ where: { id: f.fact.id } })).toEqual(f.fact);
+  }, 180_000);
 });

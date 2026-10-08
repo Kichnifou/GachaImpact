@@ -1,6 +1,16 @@
 # Journal des décisions validées
 
+## R1056 — Continuité des relations communautaires à la migration (2026-10-08)
+
+VALIDÉ PAR LE PROPRIÉTAIRE, avec clarification symétrique : les JSON Streamer.bot figés sont la source de vérité de la progression legacy Twitch et de ses faits communautaires. Ils ne donnent aucune priorité automatique sur une sauvegarde standalone significative. Seul le choix explicite R1055 détermine le gameplay jouable, dans les deux sens ; aucune addition économique, XP, personnage, statistique ou récompense.
+
+Les amitiés historiques prouvées doivent être rétablies automatiquement entre Players importés par leurs identités Twitch immuables vérifiées, puis suivre le Player définitif sans réinvitation. Préserver niveaux, cœurs, dates connues et preuves anti-double-claim. Ami absent : différer sans inventer de Player. Historique partagé : conserver les auteurs, endpoints et opérations véritables ; une nouvelle version peut raccorder la même relation aux Players définitifs. Un blocage/retrait actuel n'est pas annulé par une vieille source.
+
+Collision de deux relations distinctes : refus explicite, aucun écrasement silencieux ni priorité générale Twitch/Web. Les gains personnels du gagnant restent ceux de sa seule sauvegarde. Une éventuelle politique supplémentaire de collision exige une décision spécifique préservant les tiers. Pour les canaries déjà importées, la restauration sociale est une opération ciblée distincte, jamais un réimport gameplay. Implémentation candidate et limites : [dossier R1055/R1056](../architecture/r1055-operator-resolution.md). Review indépendante avant promotion ou usage public.
+
 ## R1055 — Liaison Twitch unifiée et progression définitive (2026-10-06)
+
+**Extension propriétaire 08/10/2026 — abandon contrôlé symétrique :** la sauvegarde écartée peut rester entièrement archivée et non jouable, y compris ses gains futurs et accès sociaux. Ceo choisissant Twitch abandonne A ; un joueur choisissant WEB conserve intégralement sa progression Web et abandonne le Twitch minimal. Aucun transfert/merge gameplay. Les preuves et historiques nécessaires aux tiers sont conservés ; relations actives clôturées seulement selon leur owner, sans suppression brutale ni déplacement d'auteur. Le plan opérateur privé, versionné, sauvegardé et expirant prépare les conséquences ; le joueur les accepte explicitement avec le choix. Toute preuve modifiée invalide le consentement. Le classifieur self-service reste conservateur ; le plan n'invente pas SAFE. Import indépendant B et autorisation d'archiver A sont deux gates distinctes. [Contrat technique et tests](../architecture/r1055-operator-resolution.md). Nouveau mécanisme sensible 063 : review uniquement avant approbation indépendante, aucune exécution Ceo publique dans ce lot.
 
 VALIDÉ PAR LE PROPRIÉTAIRE : un seul parcours joueur « Lier mon compte Twitch », après OAuth et vérification serveur du Twitch User ID immuable. Aucun Player Twitch connu → TwitchIdentity attachée au Player web courant, gameplay conservé ; Twitch-only existant + web strictement disposable → owner R1046 partagé, même WebIdentity déplacée vers le même Player Twitch, seul web vide supprimé ; déjà même Player → idempotent ; deux progressions significatives compatibles → comparaison privée et choix définitif, jamais écrasement automatique.
 

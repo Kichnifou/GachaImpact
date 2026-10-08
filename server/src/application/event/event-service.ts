@@ -1,3 +1,4 @@
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { commandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
@@ -106,7 +107,7 @@ export class EventService {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         return await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           return this.snapshot(tx, player.id, context, now, true);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
@@ -149,7 +150,7 @@ export class EventService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${businessDateToDatabaseDate(context.period.businessDate)}::date FOR UPDATE`;
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const existingOperation = await tx.businessOperation.findFirst({
             where: { sourceChannel, idempotencyKey },
           });
@@ -238,7 +239,7 @@ export class EventService {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         return await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
@@ -295,7 +296,7 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${key.businessDate}::date FOR UPDATE`;
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
@@ -321,8 +322,9 @@ export class EventService {
             await tx.eventDailyPlayerState.update({ where: { eventEditionId_playerId_businessDate: { eventEditionId: context.edition.id, playerId: player.id, businessDate: key.businessDate } }, data: { gameBAttemptsUsed: { increment: 1 }, updatedAt: now } });
             await tx.eventGameBDailyState.update({ where: { eventEditionId_businessDate: key }, data: { testedCodes: [...testedCodes, code], ...(kind === 'CORRECT' ? { solvedAt: now, discovererPlayerId: player.id } : {}), updatedAt: now } });
             if (kind === 'CORRECT') {
-              const participants = await tx.eventParticipant.findMany({ where: { eventEditionId: context.edition.id }, orderBy: { playerId: 'asc' }, select: { playerId: true } });
+              const participants = await tx.eventParticipant.findMany({ where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } } }, orderBy: { playerId: 'asc' }, select: { playerId: true } });
               for (const entry of participants) {
+                if (!await lockPlayerMutationState(tx, entry.playerId)) continue;
                 await this.awardEventPoints(tx, context, entry.playerId, 1, now);
                 await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: entry.playerId, eventDefinitionId: context.definition.id } }, create: { playerId: entry.playerId, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
               }
@@ -381,6 +383,9 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT id FROM players WHERE id IN (${player.id}::uuid, ${recipientPlayerId}::uuid) ORDER BY id FOR UPDATE`;
+          // Keep the contact owner's indistinguishable refusal for absent/private
+          // recipients; only the authenticated actor uses the archive guard.
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const previousRequest = readRecord(readRecord(previous.resultSummary)?.request);
@@ -419,7 +424,7 @@ export class EventService {
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     return this.database.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+      await lockPlayerMutation(tx, player.id);
       await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
       await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
       return this.snapshot(tx, player.id, context, now, false);
@@ -437,7 +442,7 @@ export class EventService {
     for (let retry = 0; retry < 4; retry += 1) {
       try {
         return await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           // A confirmed opening remains replayable after midnight or the end of December.
           if (previous) {
@@ -481,7 +486,7 @@ export class EventService {
     for (let retry = 0; retry < 4; retry += 1) {
       try {
         return await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const request = readRecord(readRecord(previous.resultSummary)?.request);
@@ -521,7 +526,7 @@ export class EventService {
     for (let retry = 0; retry < 4; retry += 1) {
       try {
         const result = await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
@@ -559,7 +564,7 @@ export class EventService {
     for (let retry = 0; retry < 4; retry += 1) {
       try {
         const result = await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);

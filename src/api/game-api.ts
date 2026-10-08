@@ -223,7 +223,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchLinkResolution: (signal?: AbortSignal) => request<TwitchLinkResolutionDto | null>('/api/v1/me/twitch/resolution', { signal }),
-    resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH', decisionRevision: string) => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, decisionRevision, confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),
+    resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH', decisionRevision: string, operatorPlanId?: string) => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, decisionRevision, ...(operatorPlanId ? { operatorPlanId, operatorConfirmation: 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS' } : {}), confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
     armTwitchCommandPilot: (acknowledgement: 'STREAMERBOT_PATH_DISABLED') => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'POST', body: JSON.stringify({ acknowledgement }) }),
     startTwitchProfileRecovery: () => request<{ url: string }>('/api/v1/me/twitch/recover/start', { method: 'POST' }),

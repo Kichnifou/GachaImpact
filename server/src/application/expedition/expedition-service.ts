@@ -1,3 +1,4 @@
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { assertCommandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
@@ -56,7 +57,7 @@ export class ExpeditionService {
     const player = await this.getPlayer.execute(identity); const now = commandNow(this.clock); const businessDate = getBusinessDate(now);
     const operationKey = `expedition.start:${player.id}:${idempotencyKey}`;
     const committed = await this.withRetry(async () => this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, player.id);
+      await lockPlayerMutation(transaction, player.id);
       const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
       if (existing) {
         const summary = objectSummary(existing.resultSummary);
@@ -84,7 +85,7 @@ export class ExpeditionService {
     const playerElementKey = player.elementKey;
     const now = commandNow(this.clock); const businessDate = getBusinessDate(now); const operationKey = `expedition.claim:${player.id}:${idempotencyKey}`; let retainedRoll: number | null = null;
     const committed = await this.withRetry(async () => this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, player.id);
+      await lockPlayerMutation(transaction, player.id);
       const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
       if (existing) {
         const summary = objectSummary(existing.resultSummary); const roll = Number(summary.roll);
@@ -122,7 +123,7 @@ export class ExpeditionService {
 
   public async cleanup(playerId: string): Promise<boolean> { return this.reconcile(playerId, commandNow(this.clock)); }
 
-  private async reconcile(playerId: string, now: Date): Promise<boolean> { return this.database.$transaction(async (transaction) => { await lockPlayer(transaction, playerId); return reconcileLocked(transaction, playerId, now); }); }
+  private async reconcile(playerId: string, now: Date): Promise<boolean> { return this.database.$transaction(async (transaction) => { if (!await lockPlayerMutationState(transaction, playerId)) return false; return reconcileLocked(transaction, playerId, now); }); }
   private async withRetry<T>(run: () => Promise<T>): Promise<T> { for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) { try { return await run(); } catch (error) { if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error; } } throw new Error('Expedition transaction exhausted retries.'); }
 }
 
@@ -156,6 +157,6 @@ async function readView(client: Client, playerId: string, businessDate: string, 
   }
   return { businessDate, operationalStatus: status, departureUsedToday: departureDate === businessDate, canStartToday: status === 'IDLE' && departureDate !== businessDate, activeCharacter: state?.character ?? null, departedAt: state?.departedAt ?? null, readyAt: state?.readyAt ?? null, remainingSeconds: status === 'RUNNING' && state?.readyAt ? Math.max(0, Math.ceil((state.readyAt.getTime() - now.getTime()) / 1_000)) : 0, startedOnCurrentBusinessDate: departureDate === businessDate, totalCompleted: state?.totalCompleted ?? 0n, todayReward };
 }
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string) { const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`; if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'Aucun joueur n’est lié à ce compte.'); }
+
 async function readBalances(client: Client, playerId: string): Promise<PlayerResourceBalances> { const rows = await client.playerResourceBalance.findMany({ where: { playerId, resourceKey: { in: [...resourceKeys] } }, select: { resourceKey: true, amount: true } }); const values = new Map(rows.map(row => [row.resourceKey, row.amount])); if (!resourceKeys.every(key => values.has(key))) throw new BusinessError('RESOURCE_STATE_INCOMPLETE', 'L’état des ressources du joueur est incomplet.'); return Object.fromEntries(resourceKeys.map(key => [key, values.get(key)!])) as PlayerResourceBalances; }
 function objectSummary(value: Prisma.JsonValue | null): Record<string, unknown> { return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {}; }

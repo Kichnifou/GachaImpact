@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { mkdir, mkdtemp, readdir, rm, symlink, writeFile } from 'node:fs/promises';
+import { basename, resolve } from 'node:path';
 import type pg from 'pg';
 import { describe, expect, it, vi } from 'vitest';
 import { collectHistoricalIdentityCandidates, readHistoricalChatEvidence, scanHistoricalTwitchReports, verifiedChatReceiptEvidence,
@@ -12,6 +12,10 @@ import { loadHistoricalTwitchReport, validateHistoricalTwitchReport } from '../s
 vi.mock('node:child_process', async importOriginal => {
   const actual = await importOriginal<typeof import('node:child_process')>();
   return { ...actual, execFileSync: vi.fn(actual.execFileSync) };
+});
+vi.mock('node:fs/promises', async importOriginal => {
+  const actual = await importOriginal<typeof import('node:fs/promises')>();
+  return { ...actual, readdir: vi.fn(actual.readdir) };
 });
 const report = () => ({ version: 1 as const, verification: 'TWITCH_HELIX' as const, snapshotHash: 'a'.repeat(64),
   resolvedAt: '2020-01-01T00:00:00.000Z', users: [
@@ -74,14 +78,17 @@ describe('strict historical reports, without current snapshot/freshness assumpti
   it('automatically scans top-level JSON reports and discards unknown/partial JSON', async () => {
     const root = identityReportDirectory(); await mkdir(root, { recursive: true });
     const file = resolve(root, `proof-scan-fixture-${randomUUID()}.json`);
-    const count = (reports: Awaited<ReturnType<typeof scanHistoricalTwitchReports>>) => reports.filter(row => row.snapshotHash === 'a'.repeat(64)
-      && row.resolvedAt === '2020-01-01T00:00:00.000Z').length;
-    const before = count(await scanHistoricalTwitchReports());
+    // Discovery is synthetic: never enumerate/read the operator's accumulated
+    // private reports. Keep the real file loader and ignored-path checks.
+    const entries = [{ name: basename(file) }, { name: 'not-a-report.txt' }] as unknown as Awaited<ReturnType<typeof readdir>>;
     try {
       await writeFile(file, JSON.stringify(report()), { flag: 'wx' });
-      expect(count(await scanHistoricalTwitchReports())).toBe(before + 1);
+      vi.mocked(readdir).mockResolvedValueOnce(entries);
+      expect(await scanHistoricalTwitchReports()).toEqual([report()]);
+      expect(readdir).toHaveBeenLastCalledWith(root, { withFileTypes: true });
       await writeFile(file, JSON.stringify({ users: report().users }));
-      expect(count(await scanHistoricalTwitchReports())).toBe(before);
+      vi.mocked(readdir).mockResolvedValueOnce(entries);
+      expect(await scanHistoricalTwitchReports()).toEqual([]);
     } finally { await rm(file, { force: true }); }
   });
   it('crosses receipt/report evidence without choosing a conflicting ID', () => {

@@ -39,6 +39,16 @@ async function setup(withCommands = false) {
   apps.push(app); return { app, twitch, subscriptions, commandPilot };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it('requires paired explicit operator consent and rejects missing or invented consent', async () => {
+    const { app, twitch } = await setup(), url = '/api/v1/me/twitch/resolution', headers = { authorization: 'Bearer test' };
+    const payload = { resolutionId: '22222222-2222-4222-8222-222222222222', choice: 'TWITCH', decisionRevision: '33333333-3333-4333-8333-333333333333', confirmation: 'ONE_PROGRESSION_NO_MERGE' };
+    const operatorPlanId = '44444444-4444-4444-8444-444444444444', operatorConfirmation = 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS';
+    for (const invalid of [{ ...payload, operatorPlanId }, { ...payload, operatorConfirmation }, { ...payload, operatorPlanId, operatorConfirmation: 'YES' }])
+      expect((await app.inject({ method: 'POST', url, headers, payload: invalid })).statusCode).toBe(400);
+    expect(twitch.resolveLink).not.toHaveBeenCalled();
+    expect((await app.inject({ method: 'POST', url, headers, payload: { ...payload, operatorPlanId, operatorConfirmation } })).statusCode).toBe(200);
+    expect(twitch.resolveLink).toHaveBeenCalledExactlyOnceWith({ subject: 'operator' }, payload.resolutionId, 'TWITCH', payload.decisionRevision, operatorPlanId);
+  });
   it('authenticates definitive choices and accepts only a server challenge with explicit consent', async () => {
     const { app,twitch } = await setup(); const url='/api/v1/me/twitch/resolution', headers={authorization:'Bearer test'};
     const payload={resolutionId:'22222222-2222-4222-8222-222222222222',choice:'WEB',decisionRevision:'33333333-3333-4333-8333-333333333333',confirmation:'ONE_PROGRESSION_NO_MERGE'};

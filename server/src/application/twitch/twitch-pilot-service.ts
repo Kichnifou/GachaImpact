@@ -51,7 +51,7 @@ export class TwitchPilotService {
   private readonly eventSubConfigured: boolean;
   private readonly commandPilotCapabilityEnabled: boolean;
   private readonly commandPilotConfigured: boolean;
-  constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, config: AppConfig,
+  constructor(private readonly db: PrismaClient, private readonly getPlayer: GetCurrentPlayer, private readonly config: AppConfig,
     private readonly keys: JWTVerifyGetKey = twitchKeys, private readonly subscriptions?: TwitchEventSubSubscriptionManager,
     private readonly gift?: TwitchGiftSupremeManager, private readonly giftRuntime?: TwitchGiftSupremeRuntime,
     private readonly giveaway?: TwitchGiveawayManager) {
@@ -142,9 +142,9 @@ export class TwitchPilotService {
     if (!web || web.playerId !== player.id || web.state !== 'ACTIVE') throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
     return web;
   }
-  async linkResolution(identity: AuthenticatedIdentity) { return new TwitchAccountLink(this.db).pending((await this.accountWeb(identity)).id); }
-  async resolveLink(identity: AuthenticatedIdentity, resolutionId: string, choice: ProgressionChoice, decisionRevision: string) {
-    return new TwitchAccountLink(this.db).resolve((await this.accountWeb(identity)).id, resolutionId, choice, decisionRevision);
+  async linkResolution(identity: AuthenticatedIdentity) { return new TwitchAccountLink(this.db,this.config).pending((await this.accountWeb(identity)).id); }
+  async resolveLink(identity: AuthenticatedIdentity, resolutionId: string, choice: ProgressionChoice, decisionRevision: string,operatorPlanId?:string) {
+    return new TwitchAccountLink(this.db,this.config).resolve((await this.accountWeb(identity)).id, resolutionId, choice, decisionRevision,operatorPlanId);
   }
 
   async start(identity: AuthenticatedIdentity) {
@@ -316,7 +316,7 @@ export class TwitchPilotService {
     if (accountPurpose) {
       const webIdentityId = consumed[0]!.web_identity_id;
       if (!webIdentityId) throw new AppError('Identité web absente du consentement.', 409, 'TWITCH_PROFILE_CHANGED');
-      return new TwitchAccountLink(this.db).verified(webIdentityId, playerId, twitchUserId, user.login, typeof user.display_name === 'string' ? user.display_name : null);
+      return new TwitchAccountLink(this.db,this.config).verified(webIdentityId, playerId, twitchUserId, user.login, typeof user.display_name === 'string' ? user.display_name : null);
     }
     const owner = await this.db.twitchIdentity.findUnique({ where: { twitchUserId } });
     if (owner && owner.playerId !== playerId) throw new AppError('Ce compte Twitch est dÃ©jÃ  liÃ© Ã  un autre Player.', 409, 'TWITCH_IDENTITY_CONFLICT');

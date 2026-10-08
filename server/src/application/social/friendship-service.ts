@@ -18,7 +18,7 @@ export type FriendSort = typeof friendSorts[number];
 export type FriendMutationResult = { state: string; requestId?: string; friendshipId?: string };
 export type HeartResult = { sent: number; alreadySent: number; unavailable: number; activeFriends: number; senderReward: string; recipientReward: string; status: 'SENT' | 'NO_FRIENDS' | 'ALL_SENT' | 'UNAVAILABLE'; level?: number; tier?: string; message?: string };
 export const friendshipTier = (level: number) => level >= 1000 ? 'Amitié Parfaite' : level >= 300 ? 'Amitié Légendaire' : level >= 100 ? 'Amitié Fusionnelle' : 'Amitié Sincère';
-const relationWhere = (playerId: string): Prisma.FriendshipWhereInput => ({ OR: [{ playerAId: playerId }, { playerBId: playerId }] });
+const relationWhere = (playerId: string): Prisma.FriendshipWhereInput => ({ supersededAt: null, OR: [{ playerAId: playerId }, { playerBId: playerId }] });
 const pair = (a: string, b: string) => { const ids = [a, b].sort(); return { playerAId: ids[0]!, playerBId: ids[1]! }; };
 const unavailable = () => new AppError('Cette interaction est indisponible.', 409, 'SOCIAL_UNAVAILABLE');
 
@@ -75,13 +75,13 @@ export class FriendshipService {
         if (!await tx.player.findFirst({ where: { AND: [{ id: target }, unblockedRecipient(playerId)] }, select: { id: true } })) throw unavailable();
       }
       const now = commandNow(this.clock), playerPair = pair(playerId, target);
-      const friendship = await tx.friendship.findUnique({ where: { playerAId_playerBId: playerPair } });
+      const friendship = await tx.friendship.findFirst({ where: { ...playerPair, supersededAt: null } });
       const pending = await tx.friendRequest.findFirst({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId, recipientPlayerId: target }, { senderPlayerId: target, recipientPlayerId: playerId }] } });
       let result: FriendMutationResult;
       let changed = false;
       if (action === 'REMOVE') {
         if (!friendship) throw unavailable();
-        if (friendship.state === 'ACTIVE') { await tx.friendship.update({ where: { id: friendship.id }, data: { state: 'ARCHIVED', archivedAt: now } }); changed = true; }
+        if (friendship.state === 'ACTIVE') { await tx.friendship.update({ where: { id: friendship.id }, data: { state: 'ARCHIVED', archivedAt: now, retiredByProgressionAt: null } }); changed = true; }
         result = { state: 'ARCHIVED', friendshipId: friendship.id };
       } else if (action === 'ADD' && friendship?.state === 'ACTIVE') {
         result = { state: 'ACTIVE', friendshipId: friendship.id };
@@ -99,7 +99,9 @@ export class FriendshipService {
         await tx.notification.updateMany({ where: { deduplicationKey: `friend-request:${pending.id}`, state: { in: [NotificationState.UNREAD, NotificationState.READ] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
         changed = true; result = { state, requestId: pending.id };
         if (state === 'ACCEPTED') {
-          const relation = await tx.friendship.upsert({ where: { playerAId_playerBId: playerPair }, create: { ...playerPair, level: 1, becameFriendsAt: now }, update: { state: 'ACTIVE', archivedAt: null } });
+          const relation = friendship
+            ? await tx.friendship.update({ where: { id: friendship.id }, data: { state: 'ACTIVE', archivedAt: null, retiredByProgressionAt: null } })
+            : await tx.friendship.create({ data: { ...playerPair, level: 1, becameFriendsAt: now } });
           result.friendshipId = relation.id;
           const acceptor = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true } });
           await tx.notification.create({ data: { playerId: pending.senderPlayerId, domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', deduplicationKey: `friend-request-accepted:${pending.id}`, payload: { acceptorPlayerId: playerId, acceptorDisplayName: acceptor.displayName }, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });

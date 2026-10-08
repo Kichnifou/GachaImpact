@@ -11,13 +11,14 @@ export type CanonicalizationSafety = { status: 'SAFE' | 'OPERATOR_REQUIRED'; rea
 type Classification = 'OWNED_PERSONAL' | 'SAFE_HISTORICAL' | 'SHARED_ACTIVE';
 // Reuse the replacement owner's personal domains. Everything not explicitly owned or
 // proven historical is unsafe when referenced, including future FK tables/columns.
-const owned = new Set<string>([...personalReplacementTables, 'players', 'player_preferences', 'privacy_settings', 'player_role_assignments',
+export const canonicalizationOwnedTables = new Set<string>([...personalReplacementTables, 'players', 'player_preferences', 'privacy_settings', 'player_role_assignments',
   'banner_votes', 'notifications', 'gift_code_claims', 'event_calendar_claims', 'event_collection_acquisitions',
   'player_event_currency_balances', 'event_participants', 'event_milestone_claims', 'event_daily_player_states',
   'boss_legacy_contributions', 'contest_legacy_daily_locks', 'contest_daily_participations', 'contest_rewards',
   'boss_attacks', 'boss_attack_members', 'player_boss_participations', 'boss_rewards',
   'giveaway_chat_stats', 'giveaway_wins', 'giveaway_rewards', 'arcade_sessions', 'arcade_receipts', 'arcade_daily_grants', 'arcade_stats']);
-const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions',
+const owned = canonicalizationOwnedTables;
+const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions', 'twitch_canonicalization_plans',
   'migration_previews', 'global_chat_read_states']);
 const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages']);
 const signature = (fk: ForeignKey) => `${fk.child}(${fk.child_columns.join(',')})->${fk.parent}(${fk.parent_columns.join(',')})`;

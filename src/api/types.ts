@@ -893,5 +893,6 @@ export type TutorialAutostartDto = { shouldLaunch: false } | { shouldLaunch: tru
 
 export type TwitchProgressionSummary = Readonly<{ displayName: string; level: number; totalXp: string; elementKey: string | null; resources: Record<string, string>; totalMessages: string; characters: number; recentActivityAt: string | null }>
 export type TwitchCanonicalizationSafety = Readonly<{ status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | 'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR' | null }>
-export type TwitchLinkResolutionDto = Readonly<{ id: string; expiresAt: string; revision: string; web: TwitchProgressionSummary; twitch: TwitchProgressionSummary; safety: Readonly<{ WEB: TwitchCanonicalizationSafety; TWITCH: TwitchCanonicalizationSafety }> }>
+export type TwitchOperatorChoiceDto = Readonly<{ id: string; expiresAt: string; consequences: Readonly<{ friendships: number; friendRequests: number; directRequests: number; directParticipants: number; abandonProgression: true; preserveThirdPartyHistory: true }> }>
+export type TwitchLinkResolutionDto = Readonly<{ id: string; expiresAt: string; revision: string; web: TwitchProgressionSummary; twitch: TwitchProgressionSummary; safety: Readonly<{ WEB: TwitchCanonicalizationSafety; TWITCH: TwitchCanonicalizationSafety }>; operatorPlans?: Readonly<Partial<Record<'WEB' | 'TWITCH', TwitchOperatorChoiceDto>>> }>
 export type TwitchLinkResultDto = Readonly<{ linked: boolean; resolutionRequired: boolean; playerId?: string; resolution?: TwitchLinkResolutionDto }>

@@ -1,5 +1,13 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 063 — résolution opérateur et amitiés versionnées (candidat privé)
+
+063 ajoute `twitch_canonicalization_plans` (paire Web/Twitch, opérateur, choix, fingerprint/backup, conséquences, expiration, consommation liée à résolution) et `legacy_friendship_facts` (provenance JSON et Helix, agrégats/dates, deux IDs Twitch vérifiés ou différés). FK RESTRICT, CHECK de cohérence, index FK, RLS activée et droits PUBLIC/anon/authenticated révoqués. Aucun token OAuth stocké. Les plans et backups restent privés.
+
+`friendships` reçoit provenance/version/clôture ; l'unicité absolue de paire devient une unicité partielle sur la version non supersédée, avec une seule version effective par fait legacy. Les anciennes lignes/cœurs/endpoints restent conservés. Une barrière physique INSERT/UPDATE/DELETE vérifie sous verrou les propriétaires anciens/nouveaux des 71 tables personnelles et des identités ; quatre enfants indirects verrouillent leur parent. ARCHIVED est inerte ; SUSPENDED conserve ses règles. Erreur métier 409, pas d'accès navigateur ni bypass de session.
+
+Les fixtures privées rejouent les 63 migrations. 001–062 inchangées ; 063 n'est pas appliquée publiquement. [Contrat détaillé](r1055-operator-resolution.md), [état réel](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008).
+
 ## Liaison unifiée — migration additive 062
 
 Correction de récupération sans nouvelle migration : les comparaisons inachevées du Web vide gardent leurs IDs, snapshots et FK RESTRICT ; elles expirent, sans choice/completed_at fabriqués. Leur Player Web source reste ARCHIVED, sans identité d’accès ni session. Une notification de code disponible strictement vérifiée est conservée dans cette archive ; sans comparaison préalable, une preuve technique AUTOMATIC_RECOVERY déjà expirée utilise le même modèle et protège ses FK au futur purge. Sans comparaison ni notification, le Web strictement vide peut toujours être supprimé, y compris sa banque de maintenance à zéro sans historique. Le purge privé protège aussi les graphes de ces archives techniques. [Lifecycle applicatif](../process/twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques) ; 001–062 inchangées, état public courant au Master. Les mentions de 062 pending ci-dessous décrivent le lot historique R1055 avant sa promotion/application, pas une migration à appliquer de nouveau.

@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Candidat R1055/R1056 — abandon contrôlé et relations communautaires, 08/10/2026
+
+[Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Candidat sensible sur review uniquement : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.
+
+La nouvelle migration 063 est testée uniquement en PostgreSQL local ; production toujours baseline 32af8b7/62 selon le dernier contrôle. Les performances SQL publiques sont résolues, aucun nouveau chantier PostgreSQL. Nouvelle review indépendante avant main/déploiement/import/OAuth Ceo ; OFF11/flag false/trois canaries non modifiés.
+
 ## Résilience de la lecture Concours — correctif P0
 
 GET Concours résout le Player puis refuse une réconciliation déjà possédée par un autre appel/scheduler avec CONTEST_TEMPORARILY_UNAVAILABLE/503. La Promise partagée conserve son propriétaire ; aucune annulation, remise à zéro, duplication ou modification des mutations/retries/transactions. S’il possède lui-même la nouvelle réconciliation, le GET attend son résultat comme auparavant ; pas de fausse garantie de deadline SQL. Instrumentation bornée de chaque étape attendue sans données sensibles. La lecture frontend est indépendante du bootstrap essentiel et son délai d’affichage ne cancel pas SQL. [État physique et limites](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).

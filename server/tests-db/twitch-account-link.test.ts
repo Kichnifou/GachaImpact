@@ -274,7 +274,7 @@ it('refreshes consent and then refuses a newly unsafe choice without moving shar
 it('stores only versioned summaries, fingerprints and safety; ignores sessions and preserves bigint precision',async()=>{
   const f=await profiles(),pending=await compare(f);
   const stored=(await db.twitchLinkResolution.findUniqueOrThrow({where:{id:pending.id}})).comparedState as Record<string,unknown>;
-  expect(Object.keys(stored).sort()).toEqual(['fingerprints','presentation','revision','safety','version']);expect(stored.version).toBe(1);
+  expect(Object.keys(stored).sort()).toEqual(['fingerprints','legacyFingerprint','presentation','revision','safety','version']);expect(stored.version).toBe(1);
   expect(stored.fingerprints).toEqual({web:expect.stringMatching(/^[a-f0-9]{64}$/),twitch:expect.stringMatching(/^[a-f0-9]{64}$/)});
   expect(pending).not.toHaveProperty('fingerprints');
   await db.playerSession.create({data:{playerId:f.twitch.id,sessionTokenHash:'d'.repeat(64)}});

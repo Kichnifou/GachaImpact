@@ -2,11 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { applyPrivateCutoverPurge, buildCutoverPurgePlan, clearTables, preservedTables, referenceTables } from '../src/application/migration/legacy-cutover-purge.js';
 
-function database(extra: string[] = [], fks: { child: string; parent: string }[] = []) {
+function database(extra: string[] = [], fks: { child: string; parent: string }[] = [], proofs = { plans: 0, legacyRelations: 0 }) {
   const query = vi.fn(async (sql: string) => sql.includes('pg_tables')
     ? [...referenceTables, ...preservedTables, ...clearTables, ...extra].map(tablename => ({ tablename }))
     : sql.includes('pg_constraint') ? fks : [{ count: 1n }]);
-  return { $queryRawUnsafe: query, $executeRawUnsafe: vi.fn(), twitchLinkResolution: { findMany: vi.fn(async () => []) }, twitchNativeTarget: { findMany: vi.fn(async () => []) } } as unknown as PrismaClient;
+  return { $queryRawUnsafe: query, $executeRawUnsafe: vi.fn(), twitchLinkResolution: { findMany: vi.fn(async () => []) }, twitchNativeTarget: { findMany: vi.fn(async () => []) },
+    twitchCanonicalizationPlan: { count: vi.fn(async () => proofs.plans) }, friendship: { count: vi.fn(async () => proofs.legacyRelations) } } as unknown as PrismaClient;
 }
 
 describe('exhaustive cutover purge contract', () => {
@@ -20,6 +21,16 @@ describe('exhaustive cutover purge contract', () => {
     const db = database(['future_gameplay']);
     await expect(buildCutoverPurgePlan(db, 'private_schema')).rejects.toThrow('future_gameplay');
     expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
+  });
+  it.each(['operator plan', 'versioned legacy relationship'] as const)('refuses purge planning when a protected %s exists', async proof => {
+    const db = database([], [], { plans: proof === 'operator plan' ? 1 : 0, legacyRelations: proof === 'versioned legacy relationship' ? 1 : 0 });
+    await expect(buildCutoverPurgePlan(db, 'batch_test_' + 'b'.repeat(32))).rejects.toThrow('CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT');
+    expect(db.twitchCanonicalizationPlan.count).toHaveBeenCalledExactlyOnceWith();
+    if (proof === 'versioned legacy relationship') expect(db.friendship.count).toHaveBeenCalledExactlyOnceWith({ where: { legacyFactId: { not: null } } });
+    expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
+    expect(preservedTables).toEqual(expect.arrayContaining(['twitch_canonicalization_plans', 'legacy_friendship_facts']));
+    expect(clearTables).not.toEqual(expect.arrayContaining(['twitch_canonicalization_plans']));
+    expect(clearTables).not.toEqual(expect.arrayContaining(['legacy_friendship_facts']));
   });
   it('orders children first and blocks dependencies from preserved tables', async () => {
     const plan = await buildCutoverPurgePlan(database([], [{ child: 'arcade_receipts', parent: 'business_operations' }]), 'private_schema');

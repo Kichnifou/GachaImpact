@@ -1,4 +1,5 @@
 import { commandNow } from '../player/player-command-execution.js';
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { GiftCodeStatus, GiftCodeType, NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { isElementKey, isResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
@@ -87,7 +88,7 @@ export class GiftCodeService {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const result = await this.database.$transaction(async (tx) => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const request = readJsonRecord(existingOperation.resultSummary)?.request;
@@ -131,6 +132,7 @@ export class GiftCodeService {
   public async reconcileNotificationsForPlayer(playerId: string, now = commandNow(this.clock), materialize = true): Promise<void> {
     if (materialize) await this.materializeAnnualEditions(this.database, now);
     await this.database.$transaction(async (tx) => {
+      if (!await lockPlayerMutationState(tx, playerId)) return;
       await tx.$queryRaw`
         SELECT gc.id
         FROM gift_codes gc

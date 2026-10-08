@@ -1,5 +1,13 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Extension R1055/R1056 — candidat 063
+
+`TwitchCanonicalizationPlan` représente une autorisation opérateur expirante pour un choix précis, pas un choix du joueur. Il lie la WebIdentity, les deux Players, le Twitch ID immuable, l'opérateur, le fingerprint complet, le backup et les conséquences ; consommation atomique avec `TwitchLinkResolution`. Consentement humain supplémentaire et preuve fraîche obligatoires.
+
+`LegacyFriendshipFact` conserve une paire source et ses agrégats/dates avec preuves d'identités immuables. Les versions `Friendship` conservent endpoints et historiques, une seule version effective. Ami non importé/proof manquante : différé ; collision ou blocage : refus explicite. Les relations communautaires suivent le Player définitif sans transférer de progression économique ni récompenser à nouveau. La sauvegarde jouable dépend exclusivement du choix R1055 WEB/TWITCH ; aucune priorité générale legacy/Web.
+
+Le Player perdant devient ARCHIVED, inaccessible et sans nouvelle mutation personnelle ; ses traces partagées restent cohérentes pour les tiers. [Contrat et limites](../architecture/r1055-operator-resolution.md), [DDL](../architecture/postgresql-schema-v1.md), [validation courante](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Candidat local/review uniquement, aucune opération publique.
+
 ## TwitchLinkResolution — R1055
 
 Les anciennes comparaisons techniques d’un Web strictement vide ne constituent pas une progression : récupération automatique → elles restent expirées/inachevées comme audit, avec leurs deux Players et WebIdentity FK d’origine. Le Player Web vide est ARCHIVED sans accès, le Twitch conservé reste le même ; aucun choix définitif utilisateur inventé et aucun nouvel état/table nécessaire. Une notification de code disponible non récupéré reste sur l’archive ; sans comparaison antérieure, une preuve AUTOMATIC_RECOVERY déjà expirée utilise le modèle existant pour protéger cette archive. Elles et les graphes référencés restent protégés au futur purge. [Lifecycle et contrôles](../process/twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques).

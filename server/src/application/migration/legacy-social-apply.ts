@@ -32,7 +32,7 @@ export async function applyLegacySocial(tx: Prisma.TransactionClient, snapshot: 
     if (!first || !second) continue; // R933: no ghost Player.
     if (first === second) throw new Error('Self friendship in legacy source.');
     const [playerAId, playerBId] = [first, second].sort() as [string, string];
-    const retained = await tx.friendship.findUnique({ where: { playerAId_playerBId: { playerAId, playerBId } } });
+    const retained = await tx.friendship.findFirst({ where: { playerAId, playerBId, supersededAt: null } });
     if (retained) { friendships++; continue; }
     const level = friendship.level;
     const totalHearts = friendship.sparkleHearts;

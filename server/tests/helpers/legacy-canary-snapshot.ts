@@ -2,7 +2,7 @@ import { parseStreamerbotSnapshot, snapshotFileNames } from '../../src/applicati
 import { createVerifiedTwitchReport } from '../../src/application/migration/verified-twitch-report.js';
 
 /** Synthetic fixtures only, no private operator source. */
-export function canarySnapshot(overrides: Record<string, unknown> = {}) {
+export function canarySnapshot(overrides: Record<string, unknown> = {}, identity: { legacyLogin?: string; twitchUserId?: string } = {}) {
   const categories = ['messages', 'pulls', 'characters4', 'characters5', 'morasEarned', 'mainParticlesEarned', 'expeditions', 'combatWins', 'friendHeartsSent'];
   const zKeys = ['c6_5_characters_z', 'perfect_friendship_z', 'level_100_z', 'manual_combat_wins_z'];
   const viewer = { element: 'Cryo', xp: 300, primogems: 120, moras: 80,
@@ -26,7 +26,9 @@ export function canarySnapshot(overrides: Record<string, unknown> = {}) {
       stats: { strength: 20, intelligence: 12, beauty: 8, charisma: 9, popularity: 3 },
       contestStats: { totalContests: 7, totalWins: 2, intelligenceContests: 3, intelligenceWins: 1 }, titles: { intelligence: 'Sage de Bronze' } } } } } : {})]));
   files['friendships_data.json'] = JSON.stringify({ friendships: { deferred: { users: ['fixture_canary', 'not_migrated'], level: 1, sparkleHearts: 0 } }, requests: [] });
+  const legacyLogin = identity.legacyLogin ?? 'fixture_canary';
+  for (const name of Object.keys(files)) files[name] = files[name]!.replaceAll('"fixture_canary"', JSON.stringify(legacyLogin));
   const snapshot = parseStreamerbotSnapshot(files);
-  const report = createVerifiedTwitchReport(snapshot, { users: [{ legacyLogin: 'fixture_canary', twitchUserId: '900000000001', currentLogin: 'fixture_canary', displayName: 'Private canary', renamed: false }], missing: [], conflicts: [], duplicates: 0 }, new Date(), { kind: 'CANARY', legacyLogin: 'fixture_canary' });
+  const report = createVerifiedTwitchReport(snapshot, { users: [{ legacyLogin, twitchUserId: identity.twitchUserId ?? '900000000001', currentLogin: legacyLogin, displayName: 'Private canary', renamed: false }], missing: [], conflicts: [], duplicates: 0 }, new Date(), { kind: 'CANARY', legacyLogin });
   return { snapshot, report };
 }

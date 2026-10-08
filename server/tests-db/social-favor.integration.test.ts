@@ -74,7 +74,7 @@ it('enforces only FAVOR privacy and removes every personal field from third-part
   try { await social.favor(identity(stranger), owner); expect(read).not.toHaveBeenCalled(); } finally { read.mockRestore(); }
   const [playerAId, playerBId] = [owner, friend].sort();
   await social.privacy.save(owner, 'FAVOR', 'FRIENDS');
-  await db.friendship.update({ where: { playerAId_playerBId: { playerAId: playerAId!, playerBId: playerBId! } }, data: { state: 'ARCHIVED' } });
+  await db.friendship.updateMany({ where: { playerAId: playerAId!, playerBId: playerBId!, supersededAt: null }, data: { state: 'ARCHIVED' } });
   expect(await social.favor(identity(friend), owner)).toEqual({ access: 'PRIVATE' });
   await social.privacy.save(owner, 'FAVOR', 'PUBLIC');
   await db.playerFavorState.update({ where: { playerId: owner }, data: { activeFromDate: null, activeUntilDate: null } });
@@ -103,7 +103,7 @@ it('applies the same public/friend/private projection to real Chat target and @m
   const chat = new GlobalChatService(db, getPlayer, { now: () => new Date(chatTime) }, { nextInt: () => 0 });
   const dispatcher = new ChatCommandDispatcher(chat, { socialService: social } as unknown as ChatCommandServices);
   const [playerAId, playerBId] = [owner, friend].sort();
-  await db.friendship.update({ where: { playerAId_playerBId: { playerAId: playerAId!, playerBId: playerBId! } }, data: { state: 'ACTIVE' } });
+  await db.friendship.updateMany({ where: { playerAId: playerAId!, playerBId: playerBId!, supersededAt: null }, data: { state: 'ACTIVE' } });
   await db.playerFavorState.update({ where: { playerId: owner }, data: { activeFromDate: new Date('2099-09-10'), activeUntilDate: new Date('2099-10-09') } });
   const before = await proofs();
   for (const level of ['PUBLIC', 'FRIENDS', 'PRIVATE'] as const) {

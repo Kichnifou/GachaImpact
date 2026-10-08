@@ -99,7 +99,8 @@ describe('monthly Event period resolution', () => {
     };
     const database = {
       $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(database)),
-      $queryRaw: vi.fn(async () => []),
+      $queryRaw: vi.fn(async (query: TemplateStringsArray) => query.join('').includes('FROM players')
+        ? [{ id: '20000000-0000-4000-8000-000000000009', status: 'ACTIVE' }] : []),
       eventDefinition: { findFirst: vi.fn(async () => ({ id: definitionId, externalKey: 'changed', displayName: 'Festival renommé', calendarMonth: 9, currencyKey: 'changed-currency', config: { emoji: '❌', currency: { label: 'Monnaie modifiée', emoji: '❌' }, collection: { key: 'changed-item', label: 'Collection modifiée' } } })) },
       eventEdition: { findUnique: vi.fn(async () => edition), upsert: vi.fn() },
       eventParticipant: { findUnique: vi.fn(async () => null) },

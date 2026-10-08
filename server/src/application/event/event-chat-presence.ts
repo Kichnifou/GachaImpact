@@ -1,3 +1,4 @@
+import { lockPlayerMutation } from '../player/player-mutation-guard.js';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
@@ -29,7 +30,7 @@ export class EventChatPresence {
     for (let retry = 0; ; retry++) {
       try {
         return await this.db.$transaction(async tx => {
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
+          await lockPlayerMutation(tx, player.id);
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: 'TWITCH', idempotencyKey: `event-presence:${key}` } });
           if (previous) return (previous.resultSummary as { responses: string[] }).responses;
           const responses: string[] = [];

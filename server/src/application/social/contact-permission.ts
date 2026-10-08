@@ -14,8 +14,8 @@ export function unblockedRecipient(senderPlayerId: string): Prisma.PlayerWhereIn
 
 export function eligibleContactRecipient(senderPlayerId: string): Prisma.PlayerWhereInput {
   const activeFriendship: Prisma.PlayerWhereInput[] = [
-    { friendshipsAsA: { some: { playerBId: senderPlayerId, state: 'ACTIVE' } } },
-    { friendshipsAsB: { some: { playerAId: senderPlayerId, state: 'ACTIVE' } } },
+    { friendshipsAsA: { some: { playerBId: senderPlayerId, state: 'ACTIVE', supersededAt: null } } },
+    { friendshipsAsB: { some: { playerAId: senderPlayerId, state: 'ACTIVE', supersededAt: null } } },
   ];
   return {
     ...unblockedRecipient(senderPlayerId),

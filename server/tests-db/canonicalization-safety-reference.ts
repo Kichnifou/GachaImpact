@@ -17,7 +17,7 @@ const owned = new Set<string>([...personalReplacementTables, 'players', 'player_
   'boss_attacks', 'boss_attack_members', 'player_boss_participations', 'boss_rewards',
   'giveaway_chat_stats', 'giveaway_wins', 'giveaway_rewards', 'arcade_sessions', 'arcade_receipts', 'arcade_daily_grants', 'arcade_stats']);
 const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions',
-  'migration_previews', 'global_chat_read_states']);
+  'twitch_canonicalization_plans', 'migration_previews', 'global_chat_read_states']);
 const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages']);
 const join = (fk: ForeignKey) => fk.child_columns.map((column,i) => `c.${ident(column)}=p.${ident(fk.parent_columns[i]!)}`).join(' AND ');
 const records = (schema: string, table: string) => `json_populate_recordset(NULL::${ident(schema)}.${ident(table)},($1::jsonb->'${table}')::json)`;

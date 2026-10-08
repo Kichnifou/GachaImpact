@@ -1,6 +1,39 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — moteur R1055 déployé ; Ceo STOP OPERATOR_REQUIRED
+<a id="r1055-operator-runbook-20261008"></a>
+
+## Point courant — candidat opérateur ; aucune exécution publique autorisée
+
+Ce checkpoint prépare un mécanisme sensible R1055/R1056 **sur review seulement**. [Contrat/données/limites](../architecture/r1055-operator-resolution.md), [preuves actuelles](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Main public reste 32af8b7/62 migrations selon les derniers contrôles. 063 est uniquement locale. Review indépendante puis mission de promotion contrôlée requises ; ne pas utiliser les commandes suivantes en production maintenant.
+
+### Gates distinctes pour Ceo
+
+1. Après déploiement approuvé, relire une fois les protections canoniques : Prisma 63, OFF révision attendue et flag false, zéro opération/outbound incertain, trois NATIVE/imports/backups/cosmétiques identiques. Échec déploiement/DB → STOP, aucun retry/reconfiguration à l'aveugle.
+2. Rafraîchir identité Web authentifiée A, 17 fichiers gelés/hash et preuve Helix. Préflight de B seulement : TWITCH_ONLY, UUID distinct, progression source significative, aucune collision/preimage/opération/contradiction sociale. Le refus d'archiver A n'est pas un blocker de cet import indépendant. A significatif, WebIdentity/Auth et tiers doivent rester exacts.
+3. Répétition privée représentative avec chaîne 63, sources/relations pertinentes, backup v3 durable, comparaison et rollback EXACT_PREIMAGE. Vérifier le retour des faits/relations/quotas sociaux et des tiers, pas seulement le gameplay de B. Réautorisation ciblée puis apply B DATA_IMPORTED/LEGACY/non-canary ; aucune identité Web sur B, aucune activation NATIVE. Vérifier A/B séparés et significatifs avant tout OAuth.
+4. Préparer, par la CLI locale ci-dessous, une autorisation TWITCH pour les identités vérifiées de A/B. Elle écrit un backup privé neuf synchronisé et un plan expirant quinze minutes ; elle ne ferme rien et ne choisit pas. Une relation inconnue, activité incompatible ou collision sociale réelle → STOP avec diagnostic owner. Aucun assouplissement SAFE.
+5. Gate humaine seulement après B vérifié : « Ceo peut maintenant se connecter au standalone, puis aller dans Configuration > Compte > Lier Twitch. L'écran de comparaison des deux progressions doit apparaître. » Elle choisit elle-même « Utiliser ma progression Twitch » et accepte l'abandon présenté. Preuve modifiée/plan expiré → nouvelle préparation/confirmation, jamais répétition automatique du choix.
+6. Après choix : B ACTIVE et Web+Twitch, A ARCHIVED sans accès ; gameplay gagnant sans fusion, historiques/tiers cohérents, import/provenance/backup/target B conservés. Recette F5/logout-login humaine. NATIVE et smoke appartiennent à l'étape ultérieure d'extension multi-canary autorisée ; aucune commande dans le présent lot.
+
+### Préparation opérateur locale — après approbation seulement
+
+Depuis server, avec configuration canonique injectée dans le processus et artefacts privés ignorés (valeurs réelles jamais publiées) :
+
+~~~text
+npm.cmd run twitch:prepare-canonicalization -- --operator-player <UUID-vérifié> --web-identity <UUID-Auth-vérifié> --expected-web-player <A> --twitch-id <ID-immuable> --choice TWITCH --expected-revision <OFF-révision> --acknowledgement STREAMERBOT_PATH_DISABLED --output <local-data/backup-neuf.json>
+~~~
+
+Le chemin est contrôlé, création exclusive/fsync ; aucune session fabriquée, aucun token exporté. Le plan privé contient les préimages complètes ; ne pas le committer. Le navigateur n'obtient ni graphes ni identifiants tiers. La même procédure WEB est générique : elle abandonne le Twitch perdant et conserve intégralement le Web. Le choix en transaction est atomique et rejouable dans le même sens seulement. Un backup ne permet pas de revenir librement sur un choix terminé.
+
+### Relations communautaires et rollback
+
+L'import ciblé intègre les faits prouvés du nouvel endpoint ; un ami non vérifié/importé reste différé. Le rapprochement de Players déjà importés est un outil social ciblé à une paire, deux rapports Helix, plan READ ONLY et fingerprint attendu, autorité OFF/flag false, backup durable avant écritures. Il ne relance jamais un import gameplay. Aucun usage public sur les trois canaries n'est autorisé par ce checkpoint.
+
+L'outil local est `npm.cmd run migration:legacy:social-pair -- <plan|apply|rollback>`. `plan` demande `--operator-player`, `--expected-revision`, `--snapshot`, `--report-left`, `--report-right`, `--source-pair-hash` et `--output` privé neuf. Le résultat privé contient l'`operationId` et le fingerprint. `apply` reprend exactement ces preuves avec `--operation-id`, `--confirm-plan-hash`, `--legacy-path-frozen STREAMERBOT_PATH_DISABLED` et un autre `--output` neuf destiné au backup. `rollback` demande l'opérateur/révision, `--backup`, `--confirm-backup-hash` et le même acquittement ; le postimage est contrôlé, jamais restauré aveuglément. DEFERRED n'est pas applicable par cet outil de paire déjà importée. Rapports mono-compte vérifiés indépendants, aucune résolution par pseudo ou manifeste libre ; aucune commande contenant des identifiants réels dans la documentation publique.
+
+Chaque collision de relation distincte, révocation, blocage ou provenance contradictoire est explicite et bloque ; aucune priorité globale legacy/Web ni addition des niveaux/cœurs. Quota du jour déjà consommé reste prouvé sans nouvelle récompense. Un rollback social/canary doit reconnaître le postimage audité et vérifier les FK externes ; toute activité ultérieure, transfert d'identité ou référence nouvelle interdit la compensation automatique. Journaux append-only conservés. Le purge GLOBAL refuse les nouvelles preuves opérateur/social tant qu'un contrat de compensation complet n'existe pas.
+
+## Historique — moteur R1055 déployé ; Ceo STOP OPERATOR_REQUIRED
 
 Review indépendante Astra APPROUVÉE pour **524e9f992bc03f788beea0fa72eb246e8d65c965**, aucun finding bloquant. [Gates et résultats réels au Master](../master/PROJECT_MASTER_PLAN.md#r1055-astra-promotion-20261008). Avant promotion : patches/blobs GitHub et ancestry PASS, main 52b5631/review 524e9f9, divergence 0/1/worktree propre ; Prisma 62, OFF11/flag false, trois NATIVE/imports/backups/cosmétiques et deux réparations exacts, zéro opération/verrou/transaction longue. Railway Online/SUCCESS sans pending/staged. Ces contrôles précèdent la promotion ci-dessous.
 

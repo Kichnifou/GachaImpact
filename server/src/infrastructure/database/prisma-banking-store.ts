@@ -6,6 +6,7 @@ import { calculateDailyBankInterest } from '../../domain/banking/bank-interest.j
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
+import { lockPlayerMutation, lockPlayerMutationState } from '../../application/player/player-mutation-guard.js';
 
 const MAX_ATTEMPTS = 4;
 const RECENT_OPERATION_LIMIT = 5;
@@ -21,7 +22,7 @@ export class PrismaBankingStore implements BankingStore {
 
   public async getState(playerId: string, businessDate: string, now: Date): Promise<BankState> {
     return this.withRetry(() => this.database.$transaction(async (transaction) => {
-      await lockPlayer(transaction, playerId);
+      await lockPlayerMutation(transaction, playerId);
       let account = await ensureAndLockAccount(transaction, playerId, businessDate);
       account = await accruePlayerThrough(transaction, playerId, account, businessDate, now, this.permanentMissions);
       return readState(transaction, playerId, account.balance);
@@ -53,7 +54,7 @@ export class PrismaBankingStore implements BankingStore {
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
       try {
         return await this.database.$transaction(async (transaction) => {
-          await lockPlayer(transaction, input.playerId);
+          await lockPlayerMutation(transaction, input.playerId);
           let account = await ensureAndLockAccount(transaction, input.playerId, input.businessDate);
           account = await accruePlayerThrough(transaction, input.playerId, account, input.businessDate, input.occurredAt, this.permanentMissions);
 
@@ -115,17 +116,14 @@ export class PrismaBankingStore implements BankingStore {
   }
 
   public async accrueAllInterestThrough(businessDate: string, now: Date): Promise<{ playersProcessed: number; daysProcessed: number }> {
-    await this.database.$executeRaw`
-      INSERT INTO player_bank_accounts (player_id, balance, last_interest_date)
-      SELECT id, 0, ${businessDate}::date FROM players
-      ON CONFLICT (player_id) DO NOTHING
-    `;
-    const accounts = await this.database.playerBankAccount.findMany({ select: { playerId: true } });
+    // Resolve each candidate under its Player lock. A concurrent archive must not
+    // create an account, advance its cursor or abort interest for other Players.
+    const players = await this.database.player.findMany({ where: { status: { not: 'ARCHIVED' } }, select: { id: true }, orderBy: { id: 'asc' } });
     let playersProcessed = 0;
     let daysProcessed = 0;
-    for (const { playerId } of accounts) {
+    for (const { id: playerId } of players) {
       const count = await this.withRetry(() => this.database.$transaction(async (transaction) => {
-        await lockPlayer(transaction, playerId);
+        if (!await lockPlayerMutationState(transaction, playerId)) return 0;
         const account = await ensureAndLockAccount(transaction, playerId, businessDate);
         const before = account.lastInterestDate;
         await accruePlayerThrough(transaction, playerId, account, businessDate, now, this.permanentMissions);
@@ -157,11 +155,6 @@ export class PrismaBankingStore implements BankingStore {
     }
     throw new Error('Bank transaction exhausted all retry attempts.');
   }
-}
-
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string): Promise<void> {
-  const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
-  if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'No Player is linked to this account.');
 }
 
 async function ensureAndLockAccount(transaction: Prisma.TransactionClient, playerId: string, businessDate: string): Promise<BankAccountCursor> {

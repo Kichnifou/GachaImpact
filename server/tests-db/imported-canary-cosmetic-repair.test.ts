@@ -21,9 +21,10 @@ beforeAll(async () => {
   const characters = await db.character.findMany({ where: { rarity: { in: [4, 5] } }, orderBy: { externalKey: 'asc' }, take: 96 });
   for (const [index, count, xp] of [[0, 96, 5189], [1, 2, 301], [2, 0, 32]]) {
     const box = Object.fromEntries(characters.slice(0, count).map(c => [c.externalKey.slice(7), { characterId: Number(c.externalKey.slice(7)), constellation: 0, copies: 1 }]));
-    const original = canarySnapshot({ xp, box, team: [], savedTeams: {}, boxFavorites: [], combat: {} });
+    const legacyLogin = `fixture_repair_${index}`, twitchUserId = String(900000001000 + index!);
+    const original = canarySnapshot({ xp, box, team: [], savedTeams: {}, boxFavorites: [], combat: {} }, { legacyLogin, twitchUserId });
     const snapshot = parseStreamerbotSnapshot(Object.fromEntries(snapshotFileNames.map(name => [name, JSON.stringify(name === 'c6_characters.json' ? {} : original.snapshot.sources[name])])));
-    const report = createVerifiedTwitchReport(snapshot, { users: [{ ...original.report.users[0]!, twitchUserId: String(900000001000 + index!) }], missing: [], conflicts: [], duplicates: 0 }, new Date(), { kind: 'CANARY', legacyLogin: 'fixture_canary' });
+    const report = createVerifiedTwitchReport(snapshot, { users: [original.report.users[0]!], missing: [], conflicts: [], duplicates: 0 }, new Date(), { kind: 'CANARY', legacyLogin });
     const plan = await planLegacyCanary(db, snapshot, report, report.users[0]!.twitchUserId, null, new Date());
     expect(plan.blockers).toEqual([]);
     const result = await applyLegacyCanary(db, config, actor, plan, STREAMERBOT_PATH_DISABLED, async () => {});

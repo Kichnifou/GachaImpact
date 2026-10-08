@@ -606,6 +606,31 @@ describe('explicit Twitch command pilot controls', () => {
 const safeChoices = { WEB: { status: 'SAFE', reason: null }, TWITCH: { status: 'SAFE', reason: null } } as const
 const conflictRevision = '22222222-2222-4222-8222-222222222222'
 const conflictSummary = { displayName: 'Private profile', level: 2, totalXp: '60', elementKey: null, resources: { primogems: '777', moras: '1000' }, characters: 3, totalMessages: '55', recentActivityAt: null }
+it.each(['WEB', 'TWITCH'] as const)('requires separate abandonment consent for the authorized %s plan and resets it after change', async choice => {
+  const unsafe = { status: 'OPERATOR_REQUIRED', reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' } as const;
+  const plan = { id: 'operator-plan', expiresAt: '2099-01-01T00:00:00Z', consequences: { friendships: 3, friendRequests: 1, directRequests: 1, directParticipants: 2, abandonProgression: true, preserveThirdPartyHistory: true } } as const;
+  const resolution = { id: 'operator-resolution', revision: conflictRevision, expiresAt: plan.expiresAt, web: conflictSummary, twitch: conflictSummary, safety: { WEB: unsafe, TWITCH: unsafe }, operatorPlans: { [choice]: plan } };
+  const fresh = { ...resolution, revision: '33333333-3333-4333-8333-333333333333', operatorPlans: { [choice]: { ...plan, id: 'new-plan' } } };
+  api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, linked: null, eligible: false }); api.getTwitchLinkResolution.mockResolvedValueOnce(resolution);
+  api.resolveTwitchLink.mockResolvedValueOnce({ linked: false, resolutionRequired: true, resolution: fresh }).mockResolvedValueOnce({ linked: true, resolutionRequired: false });
+  const refresh = vi.fn(), container = await mount(refresh);
+  const label = choice === 'WEB' ? 'Conserver ma progression de l’application Web' : 'Utiliser ma progression Twitch';
+  const other = choice === 'WEB' ? 'Utiliser ma progression Twitch' : 'Conserver ma progression de l’application Web';
+  let checkboxes = [...container.querySelectorAll<HTMLInputElement>('.twitch-progression-ack input')];
+  expect(checkboxes).toHaveLength(2); expect(button(container, label).disabled).toBe(true);
+  expect(container.textContent).toContain('3 amitié(s)'); expect(container.textContent).toContain('Les autres joueurs conservent leurs messages et historiques');
+  await act(async () => checkboxes[1]!.click());
+  expect(button(container, label).disabled).toBe(true);
+  await act(async () => checkboxes[0]!.click());
+  expect(button(container, label).disabled).toBe(false); expect(button(container, other).disabled).toBe(true);
+  await act(async () => button(container, label).click());
+  expect(api.resolveTwitchLink).toHaveBeenLastCalledWith(resolution.id, choice, resolution.revision, plan.id);
+  checkboxes = [...container.querySelectorAll<HTMLInputElement>('.twitch-progression-ack input')];
+  expect(checkboxes.every(input => !input.checked)).toBe(true); expect(button(container, label).disabled).toBe(true); expect(refresh).not.toHaveBeenCalled();
+  for (const checkbox of checkboxes) await act(async () => checkbox.click());
+  await act(async () => button(container, label).click());
+  expect(api.resolveTwitchLink).toHaveBeenLastCalledWith(fresh.id, choice, fresh.revision, 'new-plan'); expect(refresh).toHaveBeenCalledOnce();
+});
 it.each(['WEB','TWITCH','BOTH'] as const)('disables only unsafe %s choices and shows a private-data-free reason',async blocked=>{
   const safety={...safeChoices};
   const unsafe={status:'OPERATOR_REQUIRED',reason:'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR'} as const;

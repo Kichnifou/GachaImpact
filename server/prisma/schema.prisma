@@ -380,6 +380,9 @@ model Player {
   twitchGiveawayCredential TwitchGiveawayCredential?
   twitchLinkResolutionsWeb TwitchLinkResolution[] @relation("LinkResolutionWeb")
   twitchLinkResolutionsTwitch TwitchLinkResolution[] @relation("LinkResolutionTwitch")
+  canonicalizationWebPlans TwitchCanonicalizationPlan[] @relation("CanonicalizationWeb")
+  canonicalizationTwitchPlans TwitchCanonicalizationPlan[] @relation("CanonicalizationTwitch")
+  canonicalizationOperatorPlans TwitchCanonicalizationPlan[] @relation("CanonicalizationOperator")
   twitchLinkStates      TwitchLinkState[]
   twitchNativeTargets   TwitchNativeTarget[]
   twitchNativeAuthorities TwitchNativeAuthority[]
@@ -853,6 +856,7 @@ model WebIdentity {
   linkedAt        DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
   state           String   @default("ACTIVE") @db.Text
   twitchResolutions TwitchLinkResolution[]
+  canonicalizationPlans TwitchCanonicalizationPlan[]
   twitchClaims TwitchLinkState[]
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   player          Player   @relation(fields: [playerId], references: [id], onDelete: Restrict)
@@ -1573,6 +1577,11 @@ model Friendship {
   totalHearts     BigInt          @default(0) @map("total_hearts")
   becameFriendsAt DateTime?       @map("became_friends_at") @db.Timestamptz(6)
   archivedAt      DateTime?       @map("archived_at") @db.Timestamptz(6)
+  supersededAt    DateTime?       @map("superseded_at") @db.Timestamptz(6)
+  retiredByProgressionAt DateTime? @map("retired_by_progression_at") @db.Timestamptz(6)
+  legacyFactId    String?         @map("legacy_fact_id") @db.Uuid
+  legacyLeftPlayerId String?      @map("legacy_left_player_id") @db.Uuid
+  legacyFact      LegacyFriendshipFact? @relation(fields: [legacyFactId], references: [id], onDelete: Restrict)
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   playerA         Player          @relation("FriendshipA", fields: [playerAId], references: [id], onDelete: Restrict)
@@ -1580,7 +1589,9 @@ model Friendship {
   hearts          FriendHeart[]
   legacyHeartStates FriendshipLegacyHeartState[]
 
-  @@unique([playerAId, playerBId], map: "friendships_player_pair_key")
+  // One current version per pair is enforced by a partial unique SQL index.
+  @@index([playerAId, playerBId], map: "friendships_player_pair_idx")
+  @@index([legacyFactId], map: "friendships_legacy_fact_idx")
   @@index([playerBId], map: "friendships_player_b_idx")
   @@map("friendships")
 }
@@ -2928,9 +2939,63 @@ model TwitchLinkResolution {
   webIdentity WebIdentity @relation(fields: [webIdentityId], references: [id], onDelete: Restrict)
   webPlayer Player @relation("LinkResolutionWeb", fields: [webPlayerId], references: [id], onDelete: Restrict)
   twitchPlayer Player @relation("LinkResolutionTwitch", fields: [twitchPlayerId], references: [id], onDelete: Restrict)
+  operatorPlan TwitchCanonicalizationPlan?
   @@index([webIdentityId, expiresAt], map: "twitch_link_resolutions_owner_expiry_idx")
   @@index([webPlayerId], map: "twitch_link_resolutions_web_player_idx")
   @@index([twitchPlayerId], map: "twitch_link_resolutions_twitch_player_idx")
   @@index([twitchUserId, completedAt], map: "twitch_link_resolutions_twitch_completed_idx")
   @@map("twitch_link_resolutions")
+}
+
+model TwitchCanonicalizationPlan {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  webIdentityId String @map("web_identity_id") @db.Uuid
+  webPlayerId String @map("web_player_id") @db.Uuid
+  twitchPlayerId String @map("twitch_player_id") @db.Uuid
+  twitchUserId String @map("twitch_user_id") @db.Text
+  choice String @db.Text
+  operatorPlayerId String @map("operator_player_id") @db.Uuid
+  contractVersion Int @map("contract_version")
+  fingerprint String @db.Text
+  backupHash String @map("backup_hash") @db.Text
+  consequences Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(6)
+  resolutionId String? @unique(map: "twitch_canonicalization_plans_resolution_key") @map("resolution_id") @db.Uuid
+  webIdentity WebIdentity @relation(fields: [webIdentityId], references: [id], onDelete: Restrict)
+  webPlayer Player @relation("CanonicalizationWeb", fields: [webPlayerId], references: [id], onDelete: Restrict)
+  twitchPlayer Player @relation("CanonicalizationTwitch", fields: [twitchPlayerId], references: [id], onDelete: Restrict)
+  operatorPlayer Player @relation("CanonicalizationOperator", fields: [operatorPlayerId], references: [id], onDelete: Restrict)
+  resolution TwitchLinkResolution? @relation(fields: [resolutionId], references: [id], onDelete: Restrict)
+  @@index([webIdentityId, choice, expiresAt], map: "twitch_canonicalization_plans_owner_expiry_idx")
+  @@index([webPlayerId], map: "twitch_canonicalization_plans_web_idx")
+  @@index([twitchPlayerId], map: "twitch_canonicalization_plans_twitch_idx")
+  @@index([operatorPlayerId], map: "twitch_canonicalization_plans_operator_idx")
+  @@map("twitch_canonicalization_plans")
+}
+
+model LegacyFriendshipFact {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceSnapshotHash String @map("source_snapshot_hash") @db.Text
+  sourcePairKeyHash String @unique(map: "legacy_friendship_facts_source_pair_key") @map("source_pair_key_hash") @db.Text
+  sourceFingerprint String @map("source_fingerprint") @db.Text
+  leftSourceKeyHash String @map("left_source_key_hash") @db.Text
+  rightSourceKeyHash String @map("right_source_key_hash") @db.Text
+  leftTwitchUserId String? @map("left_twitch_user_id") @db.Text
+  rightTwitchUserId String? @map("right_twitch_user_id") @db.Text
+  leftProofHash String? @map("left_proof_hash") @db.Text
+  rightProofHash String? @map("right_proof_hash") @db.Text
+  level Int
+  totalHearts BigInt @map("total_hearts")
+  becameFriendsAt DateTime? @map("became_friends_at") @db.Timestamptz(6)
+  leftLastHeartSentDate DateTime? @map("left_last_heart_sent_date") @db.Date
+  rightLastHeartSentDate DateTime? @map("right_last_heart_sent_date") @db.Date
+  status String @default("DEFERRED") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  friendships Friendship[]
+  @@index([leftTwitchUserId], map: "legacy_friendship_facts_left_twitch_idx")
+  @@index([rightTwitchUserId], map: "legacy_friendship_facts_right_twitch_idx")
+  @@map("legacy_friendship_facts")
 }

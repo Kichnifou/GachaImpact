@@ -1,3 +1,4 @@
+import { lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { NotificationState, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import type { NotificationReconciler } from './notification-service.js';
@@ -33,7 +34,7 @@ export class EventMessageNotificationReconciler implements NotificationReconcile
   public async reconcileNotificationsForPlayer(playerId: string, now = new Date()) {
     const businessDate = getBusinessDate(now);
     await this.database.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+      if (!await lockPlayerMutationState(tx, playerId)) return;
       const message = await tx.eventSocialMessage.findFirst({ where: { recipientPlayerId: playerId, businessDate: businessDateToDatabaseDate(businessDate), viewedAt: null }, select: { eventEditionId: true } });
       await reconcileEventMessageAggregate(tx, playerId, message?.eventEditionId ?? null, businessDate, now);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

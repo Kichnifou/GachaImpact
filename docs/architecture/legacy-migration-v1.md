@@ -1,7 +1,13 @@
 # Migration legacy V1 — contrat canonique
 
+## Candidat R1055/R1056 — abandon contrôlé et relations communautaires, 08/10/2026
 
-## Point courant — R1055 déployé ; Ceo STOP aux références, 08/10
+[Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Candidat sensible sur review uniquement : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.
+
+La nouvelle migration 063 est testée uniquement en PostgreSQL local ; production toujours baseline 32af8b7/62 selon le dernier contrôle. Les performances SQL publiques sont résolues, aucun nouveau chantier PostgreSQL. Nouvelle review indépendante avant main/déploiement/import/OAuth Ceo ; OFF11/flag false/trois canaries non modifiés.
+
+
+## Historique — R1055 initial déployé ; Ceo STOP aux références, 08/10
 
 [État et mesures réels](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008), [gate opératoire](../process/legacy-cutover-runbook.md#point-courant--r1055-déployé--ceo-stop-aux-références). fccd0d6 approuvé/promu dans 92d6389, Railway/Cloudflare SUCCESS du SHA exact, health 200/Prisma 62/OFF11/flag false. Sources 17/17 et Helix frais ; A Auth/Web-only ACTIVE/significatif intact. Préflight unique READ ONLY : projections complètes jusqu’à 4895 lignes/55 tables, puis 57014 à CANONICALIZATION_EVIDENCE (241 branches), fingerprint non atteint ; aucun conflit relationnel ou SAFE démontré. STOP sans retry/hausse de borne ; B/plan complet/rehearsal/backup/import/OAuth/NATIVE non exécutés. Fermeture finale PASS, trois canaries/imports/backups/réparations préservés. Prochaine mission ciblée privée sur les références avant toute reprise Ceo ; dette Supabase après migration et P0 clos conservés.
 
