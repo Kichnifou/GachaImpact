@@ -1,13 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : candidat d’optimisation R1055 sur review ; Ceo STOP avant import.
+Version : optimisation R1055 approuvée ; promotion contrôlée et reprise Ceo conditionnelle.
 Date : 2026-10-08
-Statut : **P0 PUBLIC CLÔTURÉ ; REVIEW INDÉPENDANTE R1055 REQUISE.** Main conserve 0af5827 ; OFF11/flag false/trois canaries/backups préservés, Ceo A intact et B absent.
+Statut : **P0 PUBLIC CLÔTURÉ ; R1055 APPROUVÉ INDÉPENDAMMENT.** Promotion autorisée sous gates ; OFF11/flag false/trois canaries/backups préservés, Ceo A intact et B absent.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-promotion-ceo-20261008"></a>
+
+## Point courant — R1055 approuvé ; promotion puis préflight Ceo borné
+
+Review indépendante ChatGPT **APPROUVÉE**, aucun finding bloquant, pour fccd0d6aa1814fe1c6e645c7aa6266f21f23ae5b. La mission autorise review → main par fast-forward strict, puis vérification séparée Railway/Cloudflare sur le SHA exact, health, Prisma 62 et préservation OFF11/flag false/trois canaries/imports/backups/cosmétiques. Aucune nouvelle source produit dans ce checkpoint documentaire ; tests privés et verify:full du candidat conservés, sans nouvelle suite distante.
+
+Préflight de promotion : vrais sept diff/blobs GitHub du code approuvé et ancestry 0af5827 → fccd0d6 vérifiés ; Prisma migrate status canonique 62 à jour, gate READ ONLY PASS/connexion fermée, zéro opération/outbound incertain, OFF11/flag false. Trois NATIVE/targets/imports/identités et backups exacts, cosmétiques sans écart et deux audits inchangés, Ceo A Auth/Web-only intact. Railway Online/une replica/zéro issue ou changement pending. Le checkpoint d’approbation sera publié review puis promu ; ses déploiements et le résultat réel Ceo restent à vérifier, aucun PASS public anticipé.
+
+Après les déploiements stables uniquement : sources 17/17 et Helix frais, même identification Web immuable A, un préflight READ ONLY borné avec métriques numériques R1055. 57014 → STOP avec étape exacte, sans augmentation de borne ; SHARED_ACTIVE/OPERATOR_REQUIRED → STOP opérateur sans contournement. Si préflight entièrement PASS : TWITCH_ONLY vers B distinct, deux progressions significatives, rehearsal privée/backup/comparaison/rollback exact, puis seul B DATA_IMPORTED/LEGACY/non-canary. A et trois canaries intégralement conservés. Aucun Ceo NATIVE/OAuth/choix automatique ; liaison humaine seulement après A/B vérifiés. Cause historique PostgreSQL/Concours inconnue, P0 clos, dette Supabase prioritaire après migration des joueurs, aucun changement infrastructure/abonnement. Streamer.bot OFF, aucun GLOBAL/batch/replay.
 
 <a id="r1055-query-candidate-20261008"></a>
 
-## Point courant — planification R1055 optimisée en privé ; STOP review indépendante
+## Historique — planification R1055 optimisée en privé ; gate de review indépendante
 
 **Baseline :** main=review=0af58272966c1c97094458c2029e7375ba9a34a7, divergence 0/0 avant ce lot. Le P0 public et la hauteur Concours restent livrés/validés, sans nouvelle recette ou modification UI. La présente mission modifie la construction des requêtes du moteur de sûreté : publier le candidat uniquement sur review, vérifier le vrai diff GitHub, puis STOP pour review indépendante ChatGPT. Aucune promotion, aucun déploiement ou préflight optimisé public avant approbation ; aucune nouvelle règle produit/Rxxx.
 

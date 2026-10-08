@@ -3,6 +3,8 @@
 
 ## Point courant — optimisation R1055 sur review ; Ceo STOP, 08/10
 
+**Autorité actualisée :** fccd0d6 approuvé par review indépendante ; [promotion et reprise conditionnelle Ceo](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008) autorisées sous toutes les gates. L’ancienne gate de review ci-dessous est acquise, le préflight réel n’est pas encore déclaré PASS et B reste absent. Aucun OAuth/NATIVE Ceo avant les validations prévues.
+
 [État réel et diagnostic](../master/PROJECT_MASTER_PLAN.md#r1055-query-candidate-20261008), [gate opératoire](../process/legacy-cutover-runbook.md#point-courant--candidat-r1055--ceo-stop-pour-review-indépendante). Timeout 57014 localisé pendant EXPLAIN de la deuxième projection, avant exécution/classification/fingerprint publics ; aucun conflit partagé prouvé. Candidat MATERIALIZED JSON/recordsets testé en DB privée, résultat identique à l’oracle de baseline sur les cas ciblés, reproduction volumineuse sous la borne inchangée ; aucune règle de migration/consentement, DDL ou transaction changée. Publication review puis STOP review indépendante avant main/déploiement/préflight/import. Main stable 0af5827, A Web-only ACTIVE intact, B absent, OFF11/flag false/trois canaries/backups préservés. Aucun OAuth/liaison humaine tant que B n’est pas importé et vérifié. P0 clos, ancien incident PostgreSQL conservé sans cause artificiellement déclarée résolue. Dette Supabase propriétaire après Ceo et migration des joueurs, selon le Master.
 
 ## Historique — Ceo STOP au contrôle canonique des références, 08/10
