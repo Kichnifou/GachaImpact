@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
+import { readdirSync } from 'node:fs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
@@ -105,6 +106,15 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     expect(guest.session.result).toMatchObject({ outcome: 'WIN', xpAwarded: 0 });
     expect((await service.session(a.identity, line.id)).result).toMatchObject({ outcome: 'LOSS', xpAwarded: 0 });
     expect(guest.session.result!.scoreAwarded).toBeGreaterThan(0);
+    const physical = await db.arcadeSession.findUniqueOrThrow({ where: { id: line.id } });
+    const balances = await db.playerResourceBalance.findMany({ where: { playerId: b.id }, orderBy: { resourceKey: 'asc' } });
+    await db.player.update({ where: { id: a.id }, data: { status: 'ARCHIVED' } });
+    const archivedOpponent = await service.session(b.identity, line.id);
+    expect(archivedOpponent.opponent).toEqual({ id: a.id, displayName: 'Progression archivée' });
+    expect(archivedOpponent.participants?.PLAYER).toEqual({ id: a.id, displayName: 'Progression archivée' });
+    expect(archivedOpponent.result?.outcome).toBe('WIN');
+    expect(await db.arcadeSession.findUniqueOrThrow({ where: { id: line.id } })).toEqual(physical);
+    expect(await db.playerResourceBalance.findMany({ where: { playerId: b.id }, orderBy: { resourceKey: 'asc' } })).toEqual(balances);
   }, 60000);
   it('expiry racing Ready at the deadline never starts; orphaned notifications lose their action', async () => {
     const a = await player(), b = await player(), first = await invite(a, b);
@@ -116,11 +126,12 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
     await service.overview(b.identity);
     expect((await db.notification.findUniqueOrThrow({ where: { id: orphan.id } })).state).toBe('RESOLVED');
   }, 60000);
-  it('deploys sixty migrations; enforces FKs, mode, pending and receipt guards with RLS', async () => {
+  it('deploys the exact repository migrations; enforces FKs, mode, pending and receipt guards with RLS', async () => {
     expect(isolated.migrationStatus).toContain('up to date');
     const migrations = await isolated.admin.query('SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name');
-    expect(migrations.rows).toHaveLength(60);
-    expect(migrations.rows.at(-1).migration_name).toBe('20261003180000_060_add_arcade_multiplayer');
+    const expected = readdirSync(new URL('../prisma/migrations/', import.meta.url), { withFileTypes: true }).filter(row => row.isDirectory()).map(row => row.name).sort();
+    expect(migrations.rows.map(row => row.migration_name)).toEqual(expected);
+    expect(expected).toContain('20261003180000_060_add_arcade_multiplayer');
     const guards = await isolated.admin.query("SELECT relrowsecurity, has_table_privilege('anon', oid, 'SELECT') AS anon_read, has_table_privilege('authenticated', oid, 'INSERT') AS user_write FROM pg_class WHERE relnamespace = $1::regnamespace AND relname = 'arcade_invitations'", [isolated.schema]);
     expect(guards.rows[0]).toEqual({ relrowsecurity: true, anon_read: false, user_write: false });
     const a = await player(), b = await player(), c = await invite(a,b);

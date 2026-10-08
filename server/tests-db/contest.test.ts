@@ -445,6 +445,14 @@ describe('Contest persistence', () => {
     expect(detail.participants.find(({ slot }) => slot === 2)).toMatchObject({ kind: 'BOT', replaced: true, replacementReason: 'LEFT', finalRank: 2 });
     expect(detail.promotions).toEqual([{ playerId: alpha.id, slot: 1, characterName: alpha.character.name, fromRank: 2, toRank: 3, title: 'Titan d’Or' }]);
     expect(detail.historyEvents.map(({ kind }) => kind)).toEqual(['PARTICIPANT_LEFT', 'PARTICIPANT_REPLACED', 'SUPPORT_SELECTED', 'SUPPORT_PLAYED', 'TITLE_PROMOTED']);
+    const proof = await database.contestParticipant.findMany({ where: { contestId: contest.id }, orderBy: { slot: 'asc' } });
+    const events = await database.contestEvent.findMany({ where: { contestId: contest.id }, orderBy: { id: 'asc' } });
+    await database.player.update({ where: { id: alpha.id }, data: { status: 'ARCHIVED' } });
+    expect((await alpha.service.getHistory(1)).contests[0]?.winner?.displayName).toBe('Progression archivée');
+    const archivedDetail = await alpha.service.getHistoryDetail(contest.id);
+    expect(archivedDetail.participants.find(row => row.slot === 1)).toMatchObject({ playerId: alpha.id, displayName: 'Progression archivée', finalRank: 1, rewardPrimogems: '800' });
+    expect(await database.contestParticipant.findMany({ where: { contestId: contest.id }, orderBy: { slot: 'asc' } })).toEqual(proof);
+    expect(await database.contestEvent.findMany({ where: { contestId: contest.id }, orderBy: { id: 'asc' } })).toEqual(events);
   }, 30_000);
 
   it('projects authoritative live ranks while preserving the shuffled turn-order presentation', async () => {

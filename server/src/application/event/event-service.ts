@@ -122,13 +122,13 @@ export class EventService {
     const viewer = await this.getPlayer.execute(identity);
     const context = await this.resolveCurrentEdition(this.database, commandNow(this.clock));
     const participants = await this.database.eventParticipant.findMany({
-      where: { eventEditionId: context.edition.id },
+      where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } } },
       orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
       take: 10,
       select: { playerId: true, points: true, player: { select: { displayName: true } } },
     });
-    const own = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: viewer.id } } });
-    const before = own ? await this.database.eventParticipant.count({ where: { eventEditionId: context.edition.id, OR: [{ points: { gt: own.points } }, ...(own.joinedAt ? [{ points: own.points, joinedAt: { lt: own.joinedAt } }] : [{ points: own.points, joinedAt: { not: null } }]), { points: own.points, joinedAt: own.joinedAt, playerId: { lt: viewer.id } }] } }) : null;
+    const own = await this.database.eventParticipant.findFirst({ where: { eventEditionId: context.edition.id, playerId: viewer.id, player: { status: { not: 'ARCHIVED' } } } });
+    const before = own ? await this.database.eventParticipant.count({ where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } }, OR: [{ points: { gt: own.points } }, ...(own.joinedAt ? [{ points: own.points, joinedAt: { lt: own.joinedAt } }] : [{ points: own.points, joinedAt: { not: null } }]), { points: own.points, joinedAt: own.joinedAt, playerId: { lt: viewer.id } }] } }) : null;
     return {
       editionId: context.edition.id,
       self: own ? { rank: before! + 1, points: own.points } : null,

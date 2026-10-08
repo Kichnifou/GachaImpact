@@ -7,7 +7,7 @@ import { banterId } from '../../domain/arcade/banter.js';
 import { AppError } from '../../api/errors.js';
 import { arcadeJson } from './arcade-transaction.js';
 
-export const arcadeParticipants = { player: { select: { id: true, displayName: true } }, opponent: { select: { id: true, displayName: true } } } as const;
+export const arcadeParticipants = { player: { select: { id: true, displayName: true, status: true } }, opponent: { select: { id: true, displayName: true, status: true } } } as const;
 export async function createArcadeSession(tx: Prisma.TransactionClient, playerId: string, game: ArcadeGame, difficulty: ArcadeDifficulty, seed: number, now: Date, opponentPlayerId: string | null = null) {
   const random = new ArcadeRandom(seed);
   const first = random.nextInt(2) ? 'AI' : 'PLAYER';

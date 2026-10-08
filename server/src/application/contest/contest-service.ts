@@ -48,13 +48,13 @@ const ACTIVE_STATUSES = [ContestStatus.LOBBY, ContestStatus.RUNNING] as const;
 const SCORE_EVENT_TYPES = ['TURN_PLAYED', 'BOT_TURN_PLAYED', 'TURN_AUTO_BASIC', 'SUPPORT_PLAYED'] as const;
 
 const participantInclude = {
-  player: { select: { id: true, displayName: true } },
-  originalPlayer: { select: { id: true, displayName: true } },
+  player: { select: { id: true, displayName: true, status: true } },
+  originalPlayer: { select: { id: true, displayName: true, status: true } },
 } satisfies Prisma.ContestParticipantInclude;
 
 const liveContestInclude = {
   participants: { include: participantInclude, orderBy: { slot: 'asc' as const } },
-  spectators: { include: { player: { select: { id: true, displayName: true } } }, orderBy: { joinedAt: 'asc' as const } },
+  spectators: { include: { player: { select: { id: true, displayName: true, status: true } } }, orderBy: { joinedAt: 'asc' as const } },
 } satisfies Prisma.ContestInclude;
 
 const historyContestInclude = {
@@ -892,7 +892,7 @@ function replacementBotIdentity(slot: number) {
 
 function presentParticipantIdentity(participant: ContestRecord['participants'][number]) {
   if (participant.kind === ContestParticipantKind.BOT && participant.originalPlayerId) return replacementBotIdentity(participant.slot);
-  return { displayName: participant.playerNameSnapshot, characterName: participant.characterNameSnapshot, avatar: participant.avatarSnapshot };
+  return { displayName: participant.player?.status === 'ARCHIVED' ? 'Progression archivée' : participant.playerNameSnapshot, characterName: participant.characterNameSnapshot, avatar: participant.avatarSnapshot };
 }
 
 function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title, statKey: item.statKey }; }
@@ -941,7 +941,7 @@ function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPla
       liveRank: liveRanks.get(item.slot) ?? null,
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
     }}),
-    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
+    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.status === 'ARCHIVED' ? 'Progression archivée' : item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
     recentScoreChanges,
     promotions,
     historyEvents: historyContest ? presentHistoryEvents(historyContest) : [],
@@ -1008,9 +1008,10 @@ function presentHistoryEvents(contest: ContestHistoryRecord): PresentedHistoryEv
   const displayName = (playerId: string | null) => {
     if (!playerId) return null;
     const participant = contest.participants.find((item) => item.playerId === playerId || item.originalPlayerId === playerId);
-    if (participant?.playerId === playerId) return participant.playerNameSnapshot;
-    if (participant?.originalPlayerId === playerId) return participant.originalPlayer?.displayName ?? participant.playerNameSnapshot;
-    return contest.spectators.find((item) => item.playerId === playerId)?.player.displayName ?? null;
+    if (participant?.playerId === playerId) return presentParticipantIdentity(participant).displayName;
+    if (participant?.originalPlayerId === playerId) return participant.originalPlayer?.status === 'ARCHIVED' ? 'Progression archivée' : participant.originalPlayer?.displayName ?? participant.playerNameSnapshot;
+    const spectator = contest.spectators.find((item) => item.playerId === playerId)?.player;
+    return spectator?.status === 'ARCHIVED' ? 'Progression archivée' : spectator?.displayName ?? null;
   };
   const result: PresentedHistoryEvent[] = [];
   for (const event of contest.events) {

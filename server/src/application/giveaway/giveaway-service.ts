@@ -239,14 +239,14 @@ export class GiveawayService {
   async state() {
     const session = await this.db.giveawaySession.findFirst({ where: { origin: 'NATIVE' },
       orderBy: [{ openedAt: 'desc' }, { id: 'desc' }], select: { id: true, status: true, openedAt: true, closedAt: true,
-        openedBy: { select: { displayName: true } }, winner: { select: { displayName: true } },
-        participants: { select: { playerId: true } }, chatStats: { select: { playerId: true, messageCount: true,
+        openedBy: { select: { displayName: true, status: true } }, winner: { select: { displayName: true, status: true } },
+        participants: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true } }, chatStats: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true, messageCount: true,
           player: { select: { displayName: true } } } }, announcements: { select: { id: true, kind: true, state: true, errorCode: true, attempts: true } } } });
     const ranked = session ? giveawayRanked(session.chatStats.map(row => ({ playerId: row.playerId,
       displayName: row.player.displayName, messageCount: row.messageCount }))) : [];
     return { session: session ? { id: session.id, status: session.status, openedAt: session.openedAt?.toISOString() ?? null,
-      closedAt: session.closedAt?.toISOString() ?? null, openedBy: session.openedBy?.displayName ?? null,
-      winner: session.winner?.displayName ?? null, participantCount: session.participants.length, chatterCount: session.chatStats.length,
+      closedAt: session.closedAt?.toISOString() ?? null, openedBy: session.openedBy?.status === 'ARCHIVED' ? 'Progression archivée' : session.openedBy?.displayName ?? null,
+      winner: session.winner?.status === 'ARCHIVED' ? 'Progression archivée' : session.winner?.displayName ?? null, participantCount: session.participants.length, chatterCount: session.chatStats.length,
       top: ranked.slice(0, 3).map(row => ({ playerId: row.playerId, displayName: row.displayName,
         messageCount: row.messageCount.toString(), rank: row.rank })), announcements: session.announcements } : null,
       bridge: await this.bridge.status() };

@@ -29,11 +29,12 @@ beforeAll(async () => {
 afterAll(() => fixture.cleanup(), 60_000);
 
 async function player(displayName: string, elementKey: string | null = 'pyro', role?: 'ADMIN' | 'MODERATOR' | 'TESTER', status: 'ACTIVE' | 'ARCHIVED' = 'ACTIVE') {
-  const created = await db.player.create({ data: { displayName, elementKey, status, progression: { create: { xp: 0n } },
+  const created = await db.player.create({ data: { displayName, elementKey, status: 'ACTIVE', progression: { create: { xp: 0n } },
     economyStats: { create: {} }, resourceBalances: { create: resourceKeys.map(resourceKey => ({ resourceKey, amount: 0n })) } } });
   if (role) await db.playerRoleAssignment.create({ data: { playerId: created.id, role, source: 'private-giveaway-test' } });
   const playerTwitchId = String(++twitchId);
   await db.twitchIdentity.create({ data: { playerId: created.id, twitchUserId: playerTwitchId, login: displayName.toLowerCase().replaceAll(' ', '_') } });
+  if (status === 'ARCHIVED') await db.player.update({ where: { id: created.id }, data: { status } });
   return { ...created, twitchUserId: playerTwitchId };
 }
 const message = (twitchUserId: string, twitchMessageId = randomUUID()) => service.countMessage({ twitchUserId, twitchMessageId, observedAt: new Date(Date.now() + 1000) });

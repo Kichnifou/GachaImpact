@@ -50,7 +50,7 @@ export class HistoryService {
     ]);
     const ids = editions.map(edition => edition.id);
     const [participants, claims, acquisitions] = ids.length ? await Promise.all([
-      this.database.eventParticipant.findMany({ where: { eventEditionId: { in: ids } }, select: { eventEditionId: true, playerId: true, points: true, joinedAt: true, player: { select: { displayName: true } } } }),
+      this.database.eventParticipant.findMany({ where: { eventEditionId: { in: ids }, player: { status: { not: 'ARCHIVED' } } }, select: { eventEditionId: true, playerId: true, points: true, joinedAt: true, player: { select: { displayName: true } } } }),
       this.database.eventMilestoneClaim.findMany({ where: { eventEditionId: { in: ids }, playerId }, select: { eventEditionId: true, milestone: true } }),
       this.database.eventCollectionAcquisition.findMany({ where: { eventEditionId: { in: ids }, playerId }, select: { eventEditionId: true, item: { select: { displayName: true } } } }),
     ]) : [[], [], []];

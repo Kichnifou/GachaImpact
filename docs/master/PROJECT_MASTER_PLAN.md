@@ -1,9 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Ceo NATIVE transférée, transport vérifié et recette post-transfert validée.
+Version : compléments R1056/31B — visibilité des archives R1059, sources récentes en analyse.
 Date : 2026-10-08
-Statut : **CEO_NATIVE_COMPLETE — EXTENSION COMMITÉE, POSTFLIGHT/TRANSPORT/SMOKE TECHNIQUE PASS ET RECETTE HUMAINE POST-NATIVE CONFIRMÉE.** B ACTIVE Web+Twitch/NATIVE, A ARCHIVED sans accès ; quatre canaries persistées, CANARY révision12, capacité commandes true/GLOBAL false. Étape31A des quatre canaries techniquement finalisée et recettée dans les périmètres prouvés ; prochaine mission distincte : raccordement R1056 et audits partagés/préparation contrôlée31B. Preuves et limites ci-dessous.
+Statut : **R1056/31B EN COURS — LOT A VISIBILITÉ R1059 TESTÉ, LOT B RESTAURATION NON EXÉCUTÉ.** CEO_NATIVE_COMPLETE reste acquis. B ACTIVE Web+Twitch/NATIVE, A ARCHIVED sans accès ; quatre canaries persistées, CANARY révision12, capacité commandes true/GLOBAL false. Aucun batch43/GLOBAL, réimport personnel ni réparation économique publique. Preuves et limites ci-dessous.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="community-complements-20261008"></a>
+
+## Point courant — compléments communautaires et visibilité des archives
+
+Rectification propriétaire : **Céo = A ARCHIVED ; Céotryd = B ACTIVE/NATIVE conservé**, identités et résolution R1055 vérifiées en lecture PostgreSQL. Lot A : exclusions serveur dans Event actuel/historique, Boss et Giveaway ; attributions historiques neutralisées dans Boss/Giveaway/Concours/Arcade, sans effacer auteurs/résultats/récompenses ni transférer A vers B. [R1059 et audit](../architecture/community-complements-20261008.md#visibilite-archive). 90 tests PostgreSQL pertinents locaux privés PASS ; verify:full 8/8 PASS. Ce checkpoint décrit la correction portée vers main par la promotion bornée autorisée ; déploiements exacts, health, transport après redémarrage et recette publique restent des contrôles séparés à constater.
+
+La suite autorisée de cette mission inspecte le ZIP et les 17 JSON récents, rapproche les sources des quatre imports, puis prépare sur review les mécanismes suffisamment spécifiés et les limites de restauration Votes/Event/Bannières/R1056. Toute nouvelle réparation sensible exige une review indépendante avant promotion et une mission d'apply distincte ; ne pas réimporter les NATIVE. Onze faits Ceo DEFERRED et `CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT` restent protégés ; 43 identités historiques fixes, Kichni_Test hors 43, 171 owner-discarded et deux quarantaines exclus.
 
 <a id="ceo-native-operation-20261008"></a>
 
