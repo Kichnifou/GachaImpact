@@ -1,5 +1,13 @@
 # Cutover legacy — runbook opératoire
 
+## Point courant 31B — STOP au candidat sensible review
+
+Visibilité R1059 publiée/recettée01a9d14 ; production Prisma 63, quatre NATIVE/CANARY 12, GLOBALfalse. [Sources, matrice, candidat et preuves](../architecture/community-complements-20261008.md). R1060 autorise le candidat legacy 05/10, pas l'application. Migration 064 et réparation Event/votes/bannière/rétention uniquement testées en PostgreSQL privé ; review indépendante ChatGPT obligatoire avant promotion, puis mission d'apply distincte. Ne pas déduire cette autorisation d'une recette A ou de CEO_NATIVE_COMPLETE.
+
+L'application éventuelle doit revalider source 17/manifest/hash et semaine encore courante, identités définitives/imports/R1055, ledger natif complet, diff/fingerprint et migration 64 revue. Exiger opérateur canonique, capacitéfalse/desiredOFF/révision fraîche, GLOBALfalse, zéro opération ou livraison incertaine, snapshot/backup durable exact immédiatement avant écriture. Conserver tous les 115 résultats natifs et leurs FK, preuves de rotation/votes et acquisitions personnelles ; aucun réimport NATIVE ni rollback de son ancien backup pré-liaison. Toute collision/drift refuse avant écriture. Compensation uniquement si postimage exacte et sans gameplay ultérieur, audits conservés.
+
+Après remise en capacité et tout redémarrage : revalider transport effectif CANARY et sélection des quatre IDs, puis statut authentifié par session existante ou preuve humaine explicite ; ne fabriquer aucune session. Aucun smoke Twitch sans cette gate et autorisation distincte, ni replay historique. Onze faits Social restent différés ; population 43 fixe/Kichni_Test hors 43/171 discarded/deux quarantaines. Le guard `CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT` public demeure obligatoire ; sa répétition privée n'ouvre pas batch 43/GLOBAL. Les points pré-NATIVE ci-dessous sont historiques.
+
 <a id="ceo-link-postflight-runbook-20261008"></a>
 
 ## Point courant — CEO_LINK_CONFIRMED ; F5/reconnexion validés, STOP avant NATIVE

@@ -1,5 +1,9 @@
 # 06 — Audit legacy : Gacha / Invocation
 
+## R1060 — candidat de restitution du cycle du 5 octobre
+
+Le propriétaire valide la priorité de la composition legacy vérifiée pour la semaine 05→12/10/2026 : Chiori/Durin/Varesa/YaeMiko et Aino/Collei/Fréminet/Kaeya/Sayu/Yaoyao, puis rotation normale du lundi 00:00 Europe/Paris. Les 16 opérations natives/115 résultats restent définitivement acquis sur leur rotation d'origine, conservée comme preuve non officielle. Aucun recalcul, remboursement ni double gain ; pity/garanties/Capture/ressources/possessions/statistiques/historiques conservés. Votes natifs conservés et votes legacy rapprochés par identité définitive, collision explicite ; seule une cible devenue hors composition peut être vidée selon R109. [Décision R1060](../specifications/decisions-log.md#r1060--priorité-de-la-bannière-legacy-prouvée-du-5-octobre-sans-annuler-les-invocations-natives-2026-10-08), [mécanisme et tests](../architecture/community-complements-20261008.md#banniere-r1060). Migration 064 et mécanisme sur review uniquement ; review indépendante avant promotion/application, aucune priorité automatique pour les autres conflits.
+
 ## Politique propriétaire de catalogue / assets — R1051
 
 [R1051](../specifications/decisions-log.md) supersède le seul critère « sortie atteinte » de R108 ; R109 (cible hors rotation) et les protections catalogue/bannières restent inchangés. Futur job vers 00:00 Europe/Paris avec catch-up au démarrage, séparé des resets critiques : sorties déjà effectives ou officiellement annoncées/confirmées dans les sept prochains jours, multi-source fiable, ni leaks/bêta non confirmée ni champs GachaImpact internes inventés. Nom, rareté, élément fiables ; arme/région/localisation et assets si disponibles/fiables. Fournisseurs configurables/auditables, politique définitive au lot, Réauditer les sources sans changement automatique sur une panne. Les constats datés sur les fournisseurs ci-dessous restent historiques.

@@ -1,6 +1,7 @@
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import { captureTargetedPlayerRows, type RowGraph } from './targeted-player-rows.js';
 import { assertLegacyCosmeticsClassified } from '../appearance/derived-player-cosmetics.js';
+import { communityHash } from './legacy-community-proof.js';
 
 // The contract is deliberately exhaustive. A new table blocks cutover until assigned here.
 export const referenceTables = [
@@ -53,9 +54,35 @@ export const clearTables = [
 export type PurgeTable = { table: string; rows: bigint };
 export type CutoverPurgePlan = { schema: string; deleteOrder: PurgeTable[]; retainedPlayers: bigint;
   retainedWebIdentities: bigint; retainedRoles: bigint; retainedPreferences: bigint; retainedPrivacy: bigint;
-  deletedRows: bigint; tablesWithRows: number; retainedRows?: RowGraph };
+  deletedRows: bigint; tablesWithRows: number; retainedRows?: RowGraph; operatorProofFingerprint?: string };
+
+async function operatorRelations(db: Prisma.TransactionClient) {
+  const plans = await db.twitchCanonicalizationPlan.findMany({ orderBy: { id: 'asc' } });
+  const resolutions = await db.twitchLinkResolution.findMany({ where: { completedAt: { not: null } }, orderBy: { id: 'asc' } });
+  const relations = await db.friendship.findMany({ where: { legacyFactId: { not: null } }, orderBy: { id: 'asc' }, include: { legacyFact: true } });
+  return { plans, resolutions, relations };
+}
+
+/** Review candidate, isolated schemas only. The public/default owner below keeps its
+ * mandatory guard. This private path retains both operator graphs and every version
+ * of legacy social relations; it authorizes neither shared imports nor public purge. */
+export async function buildPrivateOperatorRetentionPurgePlan(db: PrismaClient, schema: string, protectedPlayerIds: string[] = []) {
+  if (!/^batch_test_[0-9a-f]{32}$/.test(schema)) throw Error('CUTOVER_OPERATOR_REHEARSAL_PRIVATE_ONLY');
+  const actual = (await db.$queryRaw<{ schema: string }[]>`SELECT current_schema() AS schema`)[0]?.schema;
+  if (actual !== schema) throw Error('CUTOVER_OPERATOR_REHEARSAL_SCHEMA_MISMATCH');
+  const proof = await operatorRelations(db);
+  const ids = [...new Set([...protectedPlayerIds, ...proof.plans.flatMap(p => [p.webPlayerId, p.twitchPlayerId, p.operatorPlayerId]),
+    ...proof.resolutions.flatMap(r => [r.webPlayerId, r.twitchPlayerId]), ...proof.relations.flatMap(r => [r.playerAId, r.playerBId])])];
+  const plan = await buildPurgePlan(db, schema, ids, communityHash(proof));
+  if (communityHash(await operatorRelations(db)) !== plan.operatorProofFingerprint) throw Error('CUTOVER_OPERATOR_RELATION_PROOFS_CHANGED');
+  return plan;
+}
 
 export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, protectedPlayerIds: string[] = []): Promise<CutoverPurgePlan> {
+  return buildPurgePlan(db, schema, protectedPlayerIds);
+}
+
+async function buildPurgePlan(db: PrismaClient, schema: string, protectedPlayerIds: string[], operatorProofFingerprint?: string): Promise<CutoverPurgePlan> {
   if (!/^[a-z][a-z0-9_]*$/.test(schema)) throw new Error('Invalid cutover plan schema.');
   const [tables, fks] = await Promise.all([
     db.$queryRawUnsafe<{ tablename: string }[]>(`SELECT tablename FROM pg_tables WHERE schemaname = $1 ORDER BY tablename`, schema),
@@ -73,7 +100,7 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
   // This older global owner has no reviewed compensation contract for operator
   // plans or versioned social materializations. Preserve their proof and fail
   // closed instead of clearing relations beneath it. Targeted migration is separate.
-  if (await db.twitchCanonicalizationPlan.count() || await db.friendship.count({ where: { legacyFactId: { not: null } } }))
+  if (!operatorProofFingerprint && (await db.twitchCanonicalizationPlan.count() || await db.friendship.count({ where: { legacyFactId: { not: null } } })))
     throw new Error('CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT');
   const clear = new Set<string>(clearTables);
   for (const { child, parent } of fks) if (!clear.has(child) && clear.has(parent)) throw new Error(`Preserved table ${child} references cleared table ${parent}.`);
@@ -99,7 +126,7 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
   const protectedIds = [...new Set([...protectedPlayerIds, ...nativeTargets.map(target => target.playerId!), ...resolutions.flatMap(record => [record.webPlayerId, record.twitchPlayerId])])];
   const retainedRows = protectedIds.length ? await captureTargetedPlayerRows(db, protectedIds, ['players', ...clearTables], true) : undefined;
   if (retainedRows && retainedRows.schema !== schema) throw new Error('Cutover protected rows escaped requested schema.');
-  return { schema, deleteOrder: counts, retainedRows, retainedPlayers: await preserved('players'), retainedWebIdentities: await preserved('web_identities'),
+  return { schema, deleteOrder: counts, retainedRows, operatorProofFingerprint, retainedPlayers: await preserved('players'), retainedWebIdentities: await preserved('web_identities'),
     retainedRoles: await preserved('player_role_assignments'), retainedPreferences: await preserved('player_preferences'),
     retainedPrivacy: await preserved('privacy_settings'), deletedRows: counts.reduce((sum, row) => sum + row.rows, 0n),
     tablesWithRows: counts.filter(row => row.rows > 0n).length };
@@ -108,6 +135,9 @@ export async function buildCutoverPurgePlan(db: PrismaClient, schema: string, pr
 /** Private-schema rehearsal only. Public cutover has no callable apply path in this foundation lot. */
 export async function applyPrivateCutoverPurge(db: Prisma.TransactionClient, plan: CutoverPurgePlan): Promise<void> {
   if (!/^batch_test_[0-9a-f]{32}$/.test(plan.schema)) throw new Error('Public cutover mutation is unavailable.');
+  const actual = (await db.$queryRaw<{ schema: string }[]>`SELECT current_schema() AS schema`)[0]?.schema;
+  if (actual !== plan.schema) throw Error('CUTOVER_PRIVATE_SCHEMA_MISMATCH');
+  if (plan.operatorProofFingerprint && communityHash(await operatorRelations(db)) !== plan.operatorProofFingerprint) throw Error('CUTOVER_OPERATOR_RELATION_PROOFS_CHANGED');
   if (plan.deleteOrder.some(row => row.table === 'player_cosmetics' && row.rows > 0n)) {
     const owners = await db.playerCosmetic.findMany({ where: { playerId: { notIn: plan.retainedRows?.playerIds ?? [] } }, select: { playerId: true }, distinct: ['playerId'] });
     await assertLegacyCosmeticsClassified(db, owners.map(row => row.playerId));

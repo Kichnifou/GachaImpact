@@ -10,6 +10,8 @@ import type { Snapshot } from '../src/application/migration/streamerbot-snapshot
 import type { VerifiedTwitchReport } from '../src/application/migration/verified-twitch-report.js';
 import { FriendshipService } from '../src/application/social/friendship-service.js';
 import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
+import { planOperatorRelationRetention } from '../src/application/migration/legacy-operator-retention-plan.js';
+import { applyPrivateCutoverPurge, assertCutoverProtectedRows, buildCutoverPurgePlan, buildPrivateOperatorRetentionPurgePlan } from '../src/application/migration/legacy-cutover-purge.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const now = new Date('2099-10-08T12:00:00.000Z'), today = new Date('2099-10-08'), yesterday = new Date('2099-10-07');
@@ -61,6 +63,17 @@ it('defers unproved/unimported peers, then restores exactly once without any eco
   expect(relation).toMatchObject({ level: 12, totalHearts: 70n, legacyLeftPlayerId: s.players[0] });
   expect(await db.friendshipLegacyHeartState.findUniqueOrThrow({ where: { friendshipId_senderPlayerId: { friendshipId: relation.id, senderPlayerId: s.players[0]! } } })).toMatchObject({ lastHeartSentDate: yesterday });
   expect(await db.friendHeart.count({ where: { friendshipId: relation.id } })).toBe(0);
+  expect(await s.reconcile()).toEqual({ materialized: 0, deferred: 0, retained: 1 });
+  const retention = await planOperatorRelationRetention(db);
+  expect(retention).toMatchObject({ status: 'BLOCKED', materializedRelationCount: 1, reason: 'CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT', completeGameplayClosureVerified: false });
+  expect(retention.playerIds).toEqual([...s.players].sort());
+  expect(retention.proof.graph!.tables.friendships).toHaveLength(1);
+  expect(retention.proof.graph!.tables.legacy_friendship_facts).toHaveLength(1);
+  expect(retention.proof.graph!.tables.friendship_legacy_heart_state).toHaveLength(2);
+  await expect(buildCutoverPurgePlan(db, fixture.schema)).rejects.toThrow('CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT');
+  const purge = await buildPrivateOperatorRetentionPurgePlan(db, fixture.schema);
+  await db.$transaction(async tx => { await applyPrivateCutoverPurge(tx, purge); await assertCutoverProtectedRows(tx, purge); }, { timeout: 30_000 });
+  expect(await s.effective()).toEqual(relation);
   expect(await s.reconcile()).toEqual({ materialized: 0, deferred: 0, retained: 1 });
   expect(await db.playerResourceBalance.findMany({ where: { playerId: { in: s.players } }, orderBy: [{ playerId: 'asc' }, { resourceKey: 'asc' }] })).toEqual(wallets);
 });

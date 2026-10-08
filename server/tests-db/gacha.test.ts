@@ -8,7 +8,7 @@ import { GlobalChatService } from '../src/application/chat/global-chat-service.j
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import { pullChatResult } from '../src/application/chat/gacha-command-result.js';
 import { PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
-import { getParisWeekWindow } from '../src/domain/gacha/gacha.js';
+import { getParisWeekWindow, selectBannerFeatured } from '../src/domain/gacha/gacha.js';
 import { loadConfig } from '../src/config/environment.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-store.js';
@@ -20,7 +20,15 @@ const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
 const isolated = isolatedBatchDatabase();
 const database = isolated.database;
-beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+beforeAll(async () => {
+  await isolated.setup({ seedPublicCatalog: true });
+  // Local immutable catalog baselines may have no running scheduler/rotation.
+  if (!await database.bannerRotation.findFirst({ where: { status: 'ACTIVE' } })) {
+    const week = getParisWeekWindow(new Date());
+    await new PrismaGachaStore(database).ensureRotation(week.startsAt, week.endsAt,
+      (catalog, previous, votes) => selectBannerFeatured(catalog, previous, votes, { nextInt: () => 0 }));
+  }
+}, 60_000);
 afterAll(() => isolated.cleanup(), 60_000);
 const pullFixturePlayerIds = new Set<string>();
 afterEach(async () => cleanupPullFixtures());

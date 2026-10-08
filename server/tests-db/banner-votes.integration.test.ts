@@ -127,7 +127,8 @@ describe('Banner votes isolated PostgreSQL', () => {
     expect(await database.bannerVote.findMany({ orderBy: { id: 'asc' } })).toEqual(rows);
     expect((await database.playerGachaState.findUniqueOrThrow({ where: { playerId: identity.subject } })).selectedBannerCharacterId).toBeNull();
     expect((await votes.getCurrent(identity))).toMatchObject({ bannerRotationId: next.id, ownVote: null, canVote: true });
-    expect(await votes.vote({ subject: rows[0]!.playerId }, rows[0]!.characterId, rotationId)).toMatchObject({ alreadyProcessed: true, bannerRotationId: next.id, ownVote: null });
+    // Replay is bound to the original cycle, including when that rotation is superseded.
+    expect(await votes.vote({ subject: rows[0]!.playerId }, rows[0]!.characterId, rotationId)).toMatchObject({ alreadyProcessed: true, bannerRotationId: rotationId, ownVote: { characterId: rows[0]!.characterId } });
     await expect(votes.vote(identity, candidateIds[0]!, rotationId)).rejects.toMatchObject({ code: 'BANNER_VOTE_CLOSED' });
   }, 60_000);
 });

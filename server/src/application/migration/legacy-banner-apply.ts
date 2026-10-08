@@ -1,7 +1,8 @@
 import { Prisma, SourceChannel } from '../../../generated/prisma/client.js';
 import { getBusinessDate, getBusinessDayStartAt } from '../../domain/time/business-date.js';
-import { normalizeLegacyName, type Snapshot } from './streamerbot-snapshot.js';
+import type { Snapshot } from './streamerbot-snapshot.js';
 import type { LegacyGlobalPlan } from './legacy-global-plan.js';
+import { legacyBannerEvidence, planLegacyBannerReconciliation, planLegacyVotes } from './legacy-banner-reconciliation.js';
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 function monday(date: string): string {
@@ -25,7 +26,7 @@ export async function applyLegacyBanner(tx: Prisma.TransactionClient, snapshot: 
   const rawCharacters = source.characters;
   if (!Array.isArray(rawCharacters)) throw new Error('Legacy banner characters are missing.');
   const featured = rawCharacters.map(object).filter(row => row.bannerFeatured === true);
-  const catalog = await tx.character.findMany({ select: { id: true, externalKey: true, rarity: true } });
+  const catalog = await tx.character.findMany({ select: { id: true, externalKey: true, rarity: true, isActive: true } });
   const byExternal = new Map(catalog.map(row => [row.externalKey, row]));
   const slots = { 4: 0, 5: 0 };
   const rows = featured.map(row => {
@@ -37,22 +38,23 @@ export async function applyLegacyBanner(tx: Prisma.TransactionClient, snapshot: 
     return { characterId: character.id, rarity, slot: slots[rarity], selectionSource: 'LEGACY_UNKNOWN' as const };
   });
   if (slots[5] !== 4 || slots[4] !== 6) throw new Error('Legacy banner must have four 5-star and six 4-star characters.');
-  const rotation = await tx.bannerRotation.create({ data: { startsAt: getBusinessDayStartAt(started), endsAt: getBusinessDayStartAt(nextMonday(started)), status: 'ACTIVE',
+  const evidence = legacyBannerEvidence(snapshot, catalog);
+  const reconciliation = planLegacyBannerReconciliation(evidence, await tx.bannerRotation.findMany({ include: { featuredCharacters: true } }), cutoverAt);
+  if (reconciliation.status === 'CONFLICT' || reconciliation.status === 'HISTORICAL') throw Error(`LEGACY_${reconciliation.reason}`);
+  const votePlan = planLegacyVotes(evidence, plan.players, reconciliation.rotationId
+    ? await tx.bannerVote.findMany({ where: { bannerRotationId: reconciliation.rotationId } }) : []);
+  if (votePlan.some(row => row.action === 'CONFLICT' || row.action === 'INELIGIBLE')) throw Error('LEGACY_VOTE_NATIVE_CONFLICT');
+  const rotation = reconciliation.rotationId ? { id: reconciliation.rotationId } : await tx.bannerRotation.create({ data: { startsAt: getBusinessDayStartAt(started), endsAt: getBusinessDayStartAt(nextMonday(started)), status: 'ACTIVE',
     generationVoteSnapshot: Prisma.JsonNull, legacyProvenance: { source: 'genshin_characters.json', batchId,
       startDayKnown: true, selectionSourceKnown: false, previousBannerFeaturedIds: source.previousBannerFeaturedIds ?? [] },
     featuredCharacters: { create: rows } } });
-  const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
-  let importedVotes = 0, excludedVotes = 0;
-  for (const [username, rawChoice] of Object.entries(object(votes.voters))) {
-    const playerId = byName.get(normalizeLegacyName(username));
-    if (!playerId) { excludedVotes++; continue; }
-    if (plan.players.some(player => player.playerId === playerId && player.personalImport === false)) continue;
-    if (!Number.isSafeInteger(rawChoice)) throw new Error('Invalid legacy vote choice.');
-    const character = byExternal.get(`legacy:${rawChoice}`);
-    if (!character || character.rarity !== 5) throw new Error('Legacy vote choice is missing from the 5-star catalog.');
-    await tx.bannerVote.create({ data: { bannerRotationId: rotation.id, playerId, characterId: character.id,
+  let importedVotes = 0, excludedVotes = 0, retainedVotes = 0;
+  for (const vote of votePlan) {
+    if (vote.action === 'EXCLUDED') { excludedVotes++; continue; }
+    if (vote.action === 'RETAIN') { retainedVotes++; continue; }
+    await tx.bannerVote.create({ data: { bannerRotationId: rotation.id, playerId: vote.playerId!, characterId: vote.characterId,
       sourceChannel: SourceChannel.MIGRATION, votedAt: null,
-      legacyProvenance: { source: 'banner_votes.json.voters', batchId, voteTimeKnown: false } } });
+      legacyProvenance: { source: 'banner_votes.json.voters', batchId, snapshotHash: snapshot.hash, weekId: evidence.week, voteTimeKnown: false } } });
     importedVotes++;
   }
   const fiveStars = new Set(rows.filter(row => row.rarity === 5).map(row => row.characterId));
@@ -73,6 +75,6 @@ export async function applyLegacyBanner(tx: Prisma.TransactionClient, snapshot: 
     await tx.playerGachaState.update({ where: { playerId: player.playerId }, data: { selectedBannerCharacterId: target.id } });
     validTargets++;
   }
-  return { rotations: 1, featuredFive: slots[5], featuredFour: slots[4], votes: importedVotes, excludedVotes,
+  return { rotations: reconciliation.rotationId ? 0 : 1, featuredFive: slots[5], featuredFour: slots[4], votes: importedVotes, excludedVotes, retainedVotes,
     validTargets, invalidTargets, inventedVoteTimes: 0 };
 }

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile } from 'node:fs/promises';
 import { resolve, sep } from 'node:path';
 import type pg from 'pg';
 import type { Prisma } from '../generated/prisma/client.js';
@@ -9,7 +9,7 @@ const guard = (schema: string) => {
   if (!/^batch_test_[0-9a-f]{32}$/.test(schema)) throw new Error('Backup/restore requires an isolated private schema.');
 };
 const identifier = (name: string) => {
-  if (!/^[a-z][a-z0-9_]*$/.test(name)) throw new Error('Invalid backup identifier.');
+  if (name !== '_prisma_migrations' && !/^[a-z][a-z0-9_]*$/.test(name)) throw new Error('Invalid backup identifier.');
   return `"${name}"`;
 };
 const digest = (tables: Backup['tables']) => createHash('sha256').update(JSON.stringify(tables)).digest('hex');
@@ -62,7 +62,8 @@ export async function writePrivateBackup(backup: Backup, label: string): Promise
   const root = resolve('..', 'local-data', 'migration-backups');
   await mkdir(root, { recursive: true });
   const file = resolve(root, `${backup.schema}_${label}.json`);
-  await writeFile(file, JSON.stringify(backup), { flag: 'wx', mode: 0o600 });
+  const handle = await open(file, 'wx', 0o600);
+  try { await handle.writeFile(JSON.stringify(backup)); await handle.sync(); } finally { await handle.close(); }
   return file;
 }
 
@@ -78,10 +79,27 @@ export async function restorePrivateBackup(client: pg.Client, schema: string, fi
       JSON.stringify(Object.keys(current.tables)) !== JSON.stringify(Object.keys(backup.tables))) throw new Error('Private backup DDL differs.');
   await client.query('BEGIN');
   try {
+    // A physical rehearsal restore must also restore archived preimages. This
+    // narrow exception exists only in this test helper, on loopback PostgreSQL,
+    // and names only this schema's archive triggers. FK/check guards stay on.
+    const archiveGuards = (await client.query<{ table_name: string; enabled: string }>(`
+      SELECT c.relname AS table_name,t.tgenabled AS enabled FROM pg_trigger t
+      JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname=$1 AND t.tgname='archived_player_write_guard' AND NOT t.tgisinternal ORDER BY c.relname`, [schema])).rows;
+    if (archiveGuards.length) {
+      const host = (await client.query<{ host: string | null }>('SELECT host(inet_server_addr()) AS host')).rows[0]?.host;
+      if (host !== '127.0.0.1' && host !== '::1') throw new Error('Archived fixture restore requires loopback PostgreSQL.');
+      for (const trigger of archiveGuards) await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} DISABLE TRIGGER archived_player_write_guard`);
+    }
     for (const name of backup.deleteOrder) await client.query(`DELETE FROM ${identifier(schema)}.${identifier(name)}`);
     for (const name of [...backup.deleteOrder].reverse()) {
       const rows = backup.tables[name]!;
       if (rows.length) await client.query(`INSERT INTO ${identifier(schema)}.${identifier(name)} SELECT * FROM json_populate_recordset(NULL::${identifier(schema)}.${identifier(name)}, $1::json)`, [`[${rows.join(',')}]`]);
+    }
+    const modes: Record<string, string> = { O: 'ENABLE', A: 'ENABLE ALWAYS', R: 'ENABLE REPLICA', D: 'DISABLE' };
+    for (const trigger of archiveGuards) {
+      if (!modes[trigger.enabled]) throw new Error('Unknown archived trigger mode.');
+      await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} ${modes[trigger.enabled]} TRIGGER archived_player_write_guard`);
     }
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK'); throw error; }

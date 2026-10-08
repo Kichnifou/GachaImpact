@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1060 — Priorité de la bannière legacy prouvée du 5 octobre, sans annuler les invocations natives (2026-10-08)
+
+VALIDÉ PAR LE PROPRIÉTAIRE pendant R1056/31B : pour la semaine du **5 au 12 octobre 2026 Europe/Paris**, la composition du snapshot legacy vérifié prime sur la composition native concurrente. Conserver exactement ses quatre 5★ et six 4★ jusqu'au lundi suivant à 00:00 Paris, puis utiliser le scheduler normal. Une seule bannière ACTIVE subsiste. Cette décision ne donne aucune priorité implicite à une autre source ou période en conflit.
+
+Les invocations natives antérieures restent définitivement acquises : **16 opérations et 115 résultats persistés constatés en lecture PostgreSQL**, sans recalcul, remboursement, annulation ni double gain. Conserver la rotation native remplacée, ses dates, composition, preuve de génération, votes et références des invocations ; elle ne constitue plus une bannière officielle active. Les votes natifs restent prouvés et consommés ; intégrer les choix legacy du cycle correspondant une seule fois après résolution des IDs définitifs. Une collision de choix ou une incompatibilité d'éligibilité doit être explicite, sans écrasement silencieux. Préserver pity, garanties, Capture, ressources, possessions, statistiques et historiques. Garder les cibles compatibles ; ne pas inventer de cible pour un NATIVE ni de bannière ancienne absente des sources.
+
+**Autorisation limitée au candidat sensible et aux tests PostgreSQL privés sur review.** Aucun apply public, promotion, changement d'autorité CANARY/GLOBAL ou réimport personnel autorisé par cet arbitrage. Review indépendante ChatGPT obligatoire, puis mission d'application distincte avec gates fraîches. [Mécanisme, source et limites](../architecture/community-complements-20261008.md#banniere-r1060).
+
 ## R1059 — Visibilité des progressions archivées après choix R1055 (2026-10-08)
 
 VALIDÉ PAR LE PROPRIÉTAIRE dans la mission R1056/31B, rectification explicite : **Céo est l'ancien Player A ARCHIVED ; Céotryd est le Player B Twitch définitif ACTIVE/NATIVE à conserver**. La correspondance repose sur Player.id, WebIdentity, TwitchIdentity et le choix R1055 terminé, jamais sur un filtre de pseudonymes. Aucun transfert de points, monnaie, ressources ou statistiques de A vers B.

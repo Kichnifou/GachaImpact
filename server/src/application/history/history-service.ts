@@ -27,8 +27,9 @@ export class HistoryService {
 
   async banners(page: number) {
     const [total, rotations] = await Promise.all([
-      this.database.bannerRotation.count(),
+      this.database.bannerRotation.count({ where: { supersededAt: null } }),
       this.database.bannerRotation.findMany({
+        where: { supersededAt: null },
         orderBy: [{ startsAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
         select: { id: true, startsAt: true, endsAt: true, status: true, generationVoteSnapshot: true,
           featuredCharacters: { orderBy: [{ rarity: 'desc' }, { slot: 'asc' }], select: { rarity: true, slot: true, selectionSource: true, characterId: true, character: { select: { name: true } } } } },

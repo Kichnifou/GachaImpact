@@ -1,5 +1,9 @@
 # Migration legacy V1 — contrat canonique
 
+## Point 31B du 08/10 — visibilité recettée, réparation sensible sur review seulement
+
+R1059 publié/recetté sur 01a9d14 : Céo A ARCHIVED exclu, Céotryd B ACTIVE/NATIVE conservé sans transfert économique. Les 17 sources récentes/ZIP et la provenance des quatre imports sont vérifiés. [Rapprochement communautaire et protections](community-complements-20261008.md) : Event sans double join/palier, votes par identité définitive, priorité de bannière R1060 limitée au cycle 05/10 avec conservation des 16 opérations/115 résultats natifs. Migration 064 candidate, public toujours 63/CANARY 12. Default purge guard inchangé ; rétention opérateur/social répétée uniquement en schéma PostgreSQL privé. STOP pour review indépendante ChatGPT après publication review ; aucun réimport personnel, nouveau choix OAuth/R1055, raccordement social public, batch 43 ou GLOBAL.
+
 ## R1055/R1056 déployé — abandon contrôlé et relations communautaires, 08/10/2026
 
 [Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves postflight](../master/PROJECT_MASTER_PLAN.md#ceo-link-postflight-20261008). Mécanisme sensible approuvé puis déployé : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.

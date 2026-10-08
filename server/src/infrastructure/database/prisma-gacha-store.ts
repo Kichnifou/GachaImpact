@@ -156,6 +156,8 @@ export class PrismaGachaStore implements GachaStore {
   private async pullInTransaction(input: GachaPullInput, operationKey: string): Promise<GachaPullResult> {
     const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
     return this.database.$transaction(async (transaction) => {
+      // Match votes, weekly rotation and reviewed same-week replacement before Player locks.
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
       const lockedPlayers = await transaction.$queryRaw<{ elementKey: string | null }[]>`
         SELECT element_key AS "elementKey" FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE
       `;
@@ -453,7 +455,7 @@ export class PrismaGachaStore implements GachaStore {
   private async closeRotationVotes(startsAt: Date): Promise<void> {
     await this.database.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
-      if (await tx.bannerRotation.findUnique({ where: { startsAt }, select: { id: true } })) return;
+      if (await tx.bannerRotation.findFirst({ where: { startsAt, supersededAt: null }, select: { id: true } })) return;
       const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true, votes: true } });
       if (!previous || readClosedVoteSnapshot(previous.generationVoteSnapshot, previous.id)) return;
       const catalog = (await tx.character.findMany({ where: { isActive: true, rarity: 5 }, select: characterSelection })).map(toCharacter);
@@ -476,7 +478,7 @@ export class PrismaGachaStore implements GachaStore {
   ): Promise<CurrentBanner> {
     return this.database.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
-      const existing = await tx.bannerRotation.findUnique({ where: { startsAt }, include: { featuredCharacters: { include: { character: { select: characterSelection } } } } });
+      const existing = await tx.bannerRotation.findFirst({ where: { startsAt, supersededAt: null }, include: { featuredCharacters: { include: { character: { select: characterSelection } } } } });
       if (existing) return toBanner(existing);
 
       const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true } });

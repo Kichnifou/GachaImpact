@@ -1,5 +1,9 @@
 # Audit legacy — Ami / Social
 
+## Point 31B — preuves conservées, raccordement public non exécuté
+
+Onze faits Céotryd B restent DEFERRED ; seul son endpoint Twitch est vérifié dans ce graphe, peer proof/import manquants. Aucun compte/relation fictive, ni niveau/cœur/date/usage inventé. Le garde-fou `CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT` de l'owner par défaut reste obligatoire. Adaptation candidate privée seulement : rétention des plans expirés/consommés, résolutions, A/B/opérateur et endpoints de toutes versions sociales, vérification FK/fingerprint avant purge et graphes protégés après. Réconciliation/quotas directionnels/blocage/révocation/collisions et backup-restauration sont testés séparément ; cela n'autorise aucune purge sociale publique, batch 43 ou GLOBAL. [Audit31B et limites](../architecture/community-complements-20261008.md#r1056-global).
+
 ## Extension de migration R1056, 08/10/2026
 
 [R1056](../specifications/decisions-log.md#r1056--continuité-des-relations-communautaires-à-la-migration-2026-10-08) porte la décision propriétaire ; [owner technique](../architecture/r1055-operator-resolution.md) et [état réel](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Restauration des faits JSON prouvés par IDs Twitch immuables, ami différé puis réconciliation automatique, versions conservant les endpoints des anciens cœurs, quotas directionnels sans double gain. Pas de priorité automatique Twitch/Web : le joueur choisit son gameplay. Collision de relations distinctes/blocage/révocation : résultat explicite, aucun remplacement silencieux. Au choix opérateur R1055, les relations du perdant sont clôturées avec son consentement ; messages et droits historiques des tiers restent conservés. Mécanisme approuvé/déployé ; B Ceo conserve11faits différés, sans restauration globale achevée. Raccordement des éligibles et contrôle des tiers restent obligatoires avant la phase communautaire, selon le Master.

@@ -762,17 +762,19 @@ model Character {
 
 model BannerRotation {
   id                 String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  startsAt           DateTime                  @unique(map: "banner_rotations_starts_at_key") @map("starts_at") @db.Timestamptz(6)
+  startsAt           DateTime                  @map("starts_at") @db.Timestamptz(6)
   endsAt             DateTime                  @map("ends_at") @db.Timestamptz(6)
   status             BannerStatus
   generationVoteSnapshot Json?          @map("generation_vote_snapshot") @db.JsonB
   legacyProvenance Json?                @map("legacy_provenance") @db.JsonB
+  supersededAt       DateTime?                  @map("superseded_at") @db.Timestamptz(6)
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   featuredCharacters BannerFeaturedCharacter[]
   votes              BannerVote[]
   pullOperations     PullOperation[]
 
   @@index([status], map: "banner_rotations_status_idx")
+  @@index([startsAt, supersededAt], map: "banner_rotations_official_lookup_idx")
   @@map("banner_rotations")
 }
 
