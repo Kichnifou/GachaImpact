@@ -1,5 +1,9 @@
 # 16 — Audit Event / monthly
 
+<a id="codes-event-r1057"></a>
+
+**Complément futur Codes/Event R1057, passation du 08/10/2026 — non implémenté :** le moteur Codes existant reste propriétaire du claim. Ses futurs points/monnaie Event exigent une édition active et l'inscription déjà acquise ; sans l'une des deux conditions, aucun crédit Event ni récompense de palier, sans empêcher les autres récompenses du code. Aucun auto-enrollment. Tous les paliers nouvellement franchis par les points du code sont crédités atomiquement et une seule fois, sans présentation supplémentaire de franchissement. [Règles propriétaires R1057](../specifications/decisions-log.md#codes-enrichis-r1057), [source Codes](19-codes-cadeaux-audit.md#extension-codes-r1057). Cela ne modifie pas les poids, gagnant, Stella, calendrier ou garanties du tirage R1053 ci-dessous ; sa position avant mots de passe/Character suit [la roadmap](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).
+
 ## Tirage de clôture mensuelle Event — R1053, à implémenter
 
 La [décision propriétaire R1053](../specifications/decisions-log.md), avec référence source legacy Tirage.txt, supersède l'ancien report/abandon de monthlyDraw. Ce tirage appartient à Event, pas au Concours C6. Au passage à 00:00 Europe/Paris vers le mois suivant : figer les participants/points de l'édition terminée, points > 0 seulement, un point = un ticket, tirage pondéré d'un gagnant et +1 Masterless Stella Fortuna.

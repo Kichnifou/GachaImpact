@@ -458,6 +458,10 @@ Les services métier ne doivent jamais dépendre directement de l'adresse e-mail
 
 L'authentification est isolée derrière un petit adaptateur afin de pouvoir changer de fournisseur plus tard sans réécrire les domaines de jeu.
 
+<a id="password-recovery-r1058"></a>
+
+**Extension future R1058, validée à la passation du 08/10/2026 — non implémentée :** après le tirage mensuel Event et avant le Catalogue Character, changement de mot de passe depuis le compte, mot de passe oublié sur la connexion et réinitialisation sécurisée par e-mail. Réutiliser Supabase Auth standard, valider l'expiration et les liens, fournir des messages compréhensibles et préserver Auth/WebIdentity/TwitchIdentity ainsi que les liaisons existantes. Aucune nouvelle identité de gameplay ni récupération Twitch automatique. Les détails techniques non décidés (parcours, redirections, paramètres et tests) seront précisés au début du lot ; aucune route, table, configuration ou implémentation créée ici. [Décision R1058](../specifications/decisions-log.md), [ordre propriétaire](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).
+
 ---
 
 ## 2.3 Backend applicatif
