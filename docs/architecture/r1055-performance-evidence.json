@@ -1,0 +1,336 @@
+{
+  "date": "2026-10-08",
+  "scope": "Synthetic local PostgreSQL only; not public timings",
+  "postgresql": "17.11",
+  "node": "v24.19.0",
+  "migrations": 62,
+  "foreignKeys": 282,
+  "branchLimit": 64,
+  "oracle": "52b5631c1988a895b90046347a8db320f810432f",
+  "oldTotalMeaning": "Sum of instrumented stages; candidate total is wall clock; EXPLAIN runs separately",
+  "results": [
+    {
+      "kind": "R1055_BENCHMARK",
+      "scale": 1,
+      "counts": {
+        "tables": 55,
+        "rows": 4895,
+        "graphBytes": 5630745
+      },
+      "oldSumMs": 1506.798,
+      "old": {
+        "metadata": 23.338,
+        "root": 0.95,
+        "projection-build": 12.962,
+        "projection-execute": 621.964,
+        "projection-merge": 59.797,
+        "evidence-build": 8.27,
+        "evidence-execute": 760.147,
+        "fingerprint": 19.37
+      },
+      "candidate": {
+        "snapshot": 0.603,
+        "metadata": 11.963,
+        "root": 2.239,
+        "projection-build": 0.622,
+        "projection-execute": 82.011,
+        "projection-merge": 1.708,
+        "projection-sort": 1.279,
+        "evidence-build": 4.311,
+        "evidence-execute": 143.377,
+        "fingerprint": 20.314,
+        "total": 270.022
+      },
+      "statements": {
+        "old": 4,
+        "candidate": 6
+      },
+      "inputBytes": {
+        "old": 16891512,
+        "candidate": 1292073
+      },
+      "plans": [
+        {
+          "engine": "52b5631",
+          "stage": "evidence",
+          "planningMs": 30.267,
+          "executionMs": 596.037,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 5630745,
+          "nodes": 1804,
+          "maxLoops": 1600,
+          "filteredRows": 75
+        },
+        {
+          "engine": "candidate",
+          "stage": "projection",
+          "planningMs": 2.866,
+          "executionMs": 43.442,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 154,
+          "nodes": 261,
+          "maxLoops": 1,
+          "filteredRows": 0
+        },
+        {
+          "engine": "candidate",
+          "stage": "projection",
+          "planningMs": 0.374,
+          "executionMs": 0.246,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 739,
+          "nodes": 37,
+          "maxLoops": 1,
+          "filteredRows": 0
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 5.84,
+          "executionMs": 40.022,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 641464,
+          "nodes": 453,
+          "maxLoops": 1600,
+          "filteredRows": 24
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 6.255,
+          "executionMs": 20.837,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 412855,
+          "nodes": 450,
+          "maxLoops": 1,
+          "filteredRows": 16
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 3.954,
+          "executionMs": 3.233,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 6491,
+          "nodes": 435,
+          "maxLoops": 1,
+          "filteredRows": 18
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 3.414,
+          "executionMs": 11.541,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 230370,
+          "nodes": 367,
+          "maxLoops": 1,
+          "filteredRows": 17
+        }
+      ]
+    },
+    {
+      "kind": "R1055_BENCHMARK",
+      "scale": 4,
+      "counts": {
+        "tables": 55,
+        "rows": 19313,
+        "graphBytes": 22430462
+      },
+      "oldSumMs": 6781.844,
+      "old": {
+        "metadata": 11.957,
+        "root": 1.188,
+        "projection-build": 63.315,
+        "projection-execute": 2462.049,
+        "projection-merge": 1088.106,
+        "evidence-build": 25.411,
+        "evidence-execute": 3053.481,
+        "fingerprint": 76.336
+      },
+      "candidate": {
+        "snapshot": 0.732,
+        "metadata": 11.921,
+        "root": 1.281,
+        "projection-build": 0.448,
+        "projection-execute": 305.722,
+        "projection-merge": 6.075,
+        "projection-sort": 6.009,
+        "evidence-build": 11.419,
+        "evidence-execute": 422.031,
+        "fingerprint": 94.642,
+        "total": 861.558
+      },
+      "statements": {
+        "old": 4,
+        "candidate": 6
+      },
+      "inputBytes": {
+        "old": 67290663,
+        "candidate": 5101245
+      },
+      "plans": []
+    },
+    {
+      "kind": "R1055_BENCHMARK",
+      "scale": 10,
+      "counts": {
+        "tables": 55,
+        "rows": 48149,
+        "graphBytes": 55998058
+      },
+      "oldSumMs": 23260.739,
+      "old": {
+        "metadata": 17.106,
+        "root": 0.885,
+        "projection-build": 138.817,
+        "projection-execute": 6679.219,
+        "projection-merge": 7647.877,
+        "evidence-build": 69.618,
+        "evidence-execute": 8528.571,
+        "fingerprint": 178.645
+      },
+      "candidate": {
+        "snapshot": 0.535,
+        "metadata": 17.48,
+        "root": 1.359,
+        "projection-build": 0.447,
+        "projection-execute": 757.615,
+        "projection-merge": 23.94,
+        "projection-sort": 17.08,
+        "evidence-build": 38.119,
+        "evidence-execute": 1011.418,
+        "fingerprint": 182.057,
+        "total": 2050.935
+      },
+      "statements": {
+        "old": 4,
+        "candidate": 6
+      },
+      "inputBytes": {
+        "old": 167993451,
+        "candidate": 12719589
+      },
+      "plans": [
+        {
+          "engine": "52b5631",
+          "stage": "evidence",
+          "planningMs": 36.492,
+          "executionMs": 8049.16,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 55998058,
+          "nodes": 1807,
+          "maxLoops": 20000,
+          "filteredRows": 75
+        },
+        {
+          "engine": "candidate",
+          "stage": "projection",
+          "planningMs": 2.883,
+          "executionMs": 420.358,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 154,
+          "nodes": 261,
+          "maxLoops": 1,
+          "filteredRows": 0
+        },
+        {
+          "engine": "candidate",
+          "stage": "projection",
+          "planningMs": 0.356,
+          "executionMs": 0.199,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 739,
+          "nodes": 37,
+          "maxLoops": 1,
+          "filteredRows": 0
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 7.382,
+          "executionMs": 497.91,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 6336754,
+          "nodes": 456,
+          "maxLoops": 20000,
+          "filteredRows": 24
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 7.085,
+          "executionMs": 227.045,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 4106545,
+          "nodes": 451,
+          "maxLoops": 1,
+          "filteredRows": 16
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 4.008,
+          "executionMs": 4.234,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 43427,
+          "nodes": 435,
+          "maxLoops": 1,
+          "filteredRows": 18
+        },
+        {
+          "engine": "candidate",
+          "stage": "evidence",
+          "planningMs": 3.903,
+          "executionMs": 89.133,
+          "jitFunctions": 0,
+          "jitMs": 0,
+          "inputBytes": 2231970,
+          "nodes": 367,
+          "maxLoops": 1,
+          "filteredRows": 17
+        }
+      ]
+    },
+    {
+      "kind": "R1055_POPULATION",
+      "addedPlayers": 250,
+      "addedOperations": 25000,
+      "totals": [
+        277.203,
+        288.374
+      ]
+    },
+    {
+      "kind": "R1055_WORKFLOW",
+      "choice": "WEB",
+      "elapsed": {
+        "verified": 1259.704,
+        "pending": 1173.233,
+        "resolve": 1217.918
+      }
+    },
+    {
+      "kind": "R1055_WORKFLOW",
+      "choice": "TWITCH",
+      "elapsed": {
+        "verified": 1229.637,
+        "pending": 1219.12,
+        "resolve": 1251.841
+      }
+    }
+  ]
+}

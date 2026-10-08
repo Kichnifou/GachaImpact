@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { Prisma } from '../generated/prisma/client.js';
 import { permanentMissionCatalog } from '../src/domain/missions/permanent-mission-catalog.js';
 import { afterAll, beforeAll, expect, it } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
@@ -52,49 +51,6 @@ it('links an unknown verified Twitch ID to the same significant Web Player witho
   expect((await db.playerProgression.findUniqueOrThrow({ where: { playerId: f.web.id } })).xp).toBe(90n);
   expect(await db.twitchLinkResolution.count({ where: { webIdentityId: f.identity.id } })).toBe(0);
 });
-it('plans a significant synthetic graph without repeatedly folding its JSON input', async () => {
-  const f=await profiles();
-  const operations=Array.from({length:1415},()=>randomUUID()), now=new Date();
-  const sessions=Array.from({length:26},()=>randomUUID());
-  await db.arcadeSession.createMany({data:sessions.map(id=>({id,playerId:f.twitch.id,game:'MEMORY',difficulty:'EASY',status:'ABANDONED',firstSide:'PLAYER',privateState:{},randomState:1n,banterId:'fixture',nextActionAt:now,finishedAt:now}))});
-  await db.businessOperation.createMany({data:operations.map(id=>({id,playerId:f.twitch.id,operationType:'private.r1055',sourceChannel:'UI',status:'COMPLETED',completedAt:now,resultSummary:{synthetic:'fixture'.repeat(256)}}))});
-  await db.resourceMovement.createMany({data:operations.slice(0,1205).map(operationId=>({playerId:f.twitch.id,resourceKey:'primogems',delta:1n,balanceBefore:9007199254740992n,balanceAfter:9007199254740993n,causeKey:'private.r1055',domainKey:'private',operationId,sourceChannel:'UI'}))});
-  await db.arcadeReceipt.createMany({data:operations.slice(0,646).map((operationId,index)=>({playerId:f.twitch.id,sessionId:sessions[index%sessions.length]!,operationId,idempotencyKey:randomUUID(),fingerprint:'a'.repeat(64),response:{synthetic:'fixture'.repeat(128)}}))});
-  const plans: {engine:string;stage:string;durationMs:number;cost:number;jitFunctions:number;inputBytes:number}[]=[],metrics:unknown[]=[];
-  let baselinePlanningTimeout = false;
-  const measuredTx=(tx:Prisma.TransactionClient,engine:string)=>new Proxy(tx,{get(target,key){
-    if(key!=='$queryRawUnsafe')return Reflect.get(target,key);
-    return async(sql:string,...args:unknown[])=>{
-      if(sql.includes(' table_name,to_jsonb')||sql.includes('::text edge,')) {
-        const start=performance.now();const stage=sql.includes(' table_name,to_jsonb')?'projection':'evidence';
-        let plan: { 'QUERY PLAN': {Plan:{'Total Cost':number};JIT?:{Functions:number}}[] }[];
-        try {
-          plan=await tx.$queryRawUnsafe('EXPLAIN (FORMAT JSON) '+sql,...args);
-        } catch (error) {
-          const failure=error as {code?:string;meta?:{driverAdapterError?:{cause?:{originalCode?:string}}}};
-          baselinePlanningTimeout=engine==='baseline'&&stage==='projection'&&failure.code==='P2010'&&failure.meta?.driverAdapterError?.cause?.originalCode==='57014';
-          throw error;
-        }
-        plans.push({engine,stage,durationMs:performance.now()-start,cost:plan[0]!['QUERY PLAN'][0]!.Plan['Total Cost'],jitFunctions:plan[0]!['QUERY PLAN'][0]!.JIT?.Functions??0,inputBytes:Buffer.byteLength(args[0] as string)});
-      }
-      return tx.$queryRawUnsafe(sql,...args);
-    };
-  }});
-  // The old custom plan alone exceeds the same five-second statement budget.
-  await expect(db.$transaction(async tx=>{
-    await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
-    return assessBaselineCanonicalizationSafety(measuredTx(tx,'baseline'),f.twitch.id);
-  },{timeout:60_000})).rejects.toMatchObject({code:'P2010'});
-  expect(baselinePlanningTimeout).toBe(true);
-  expect(plans.filter(p=>p.engine==='baseline')).toHaveLength(1);
-  const optimized=await db.$transaction(async tx=>{
-    await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
-    return assessPlayerCanonicalizationSafety(measuredTx(tx,'optimized'),f.twitch.id,undefined,metric=>metrics.push(metric));
-  },{isolationLevel:'RepeatableRead',timeout:60_000});
-  expect(optimized.safety.status).toBe('SAFE');
-  expect(plans.filter(p=>p.engine==='optimized')).toHaveLength(3);
-  process.stdout.write('R1055_METRIC '+JSON.stringify({plans,metrics})+'\n');
-},120_000);
 it('recovers a null-element Twitch Player from a disposable Web Player using the same WebIdentity', async () => {
   const f = await profiles(false);
   await expect(link.verified(f.identity.id, f.web.id, f.twitchUserId, 'renamed', 'Renamed')).resolves.toMatchObject({ playerId: f.twitch.id, linked: true });
@@ -190,6 +146,23 @@ it('serializes opposite concurrent choices to exactly one main progression', asy
   expect(web.playerId).toBe(twitch.playerId);
   expect(await db.player.count({where:{id:{in:[f.web.id,f.twitch.id]},status:'ACTIVE'}})).toBe(1);
 },90_000);
+it.each(['WEB','TWITCH'] as const)('rolls back the entire %s choice after identity writes if archiving fails', async choice => {
+  const f=await profiles();
+  const pending=await compare(f),loser=choice==='WEB'?f.twitch.id:f.web.id,schema=`"${fixture.schema}"`;
+  const balances=await db.playerResourceBalance.findMany({where:{playerId:{in:[f.web.id,f.twitch.id]}},orderBy:[{playerId:'asc'},{resourceKey:'asc'}]});
+  await fixture.admin.query(`CREATE FUNCTION ${schema}.fixture_fail_archive() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'fixture_cancel_archive'; END $$`);
+  await fixture.admin.query(`CREATE TRIGGER fixture_fail_archive BEFORE UPDATE ON ${schema}.players FOR EACH ROW WHEN(OLD.id='${loser}'::uuid AND NEW.status='ARCHIVED') EXECUTE FUNCTION ${schema}.fixture_fail_archive()`);
+  try {
+    await expect(link.resolve(f.identity.id,pending.id,choice,pending.revision)).rejects.toThrow('fixture_cancel_archive');
+    await unchanged(f);
+    expect(await db.twitchLinkResolution.findUniqueOrThrow({where:{id:pending.id}})).toMatchObject({completedAt:null,choice:null});
+    expect(await db.playerResourceBalance.findMany({where:{playerId:{in:[f.web.id,f.twitch.id]}},orderBy:[{playerId:'asc'},{resourceKey:'asc'}]})).toEqual(balances);
+  } finally {
+    await fixture.admin.query(`DROP TRIGGER fixture_fail_archive ON ${schema}.players`);
+    await fixture.admin.query(`DROP FUNCTION ${schema}.fixture_fail_archive()`);
+  }
+  await expect(link.resolve(f.identity.id,pending.id,choice,pending.revision)).resolves.toMatchObject({linked:true});
+});
 it('blocks migration pending targets before recovery and before a pending choice', async () => {
   const f = await profiles(false);
   await db.twitchNativeTarget.create({ data: { twitchUserId:f.twitchUserId, playerId:f.twitch.id, dataAuthority:'MIGRATION_PENDING' } });
@@ -339,7 +312,7 @@ it('requires an operator for live Boss ranking rows and allows proven finished h
   await db.playerBossParticipation.create({data:{bossId:boss.id,playerId:f.twitch.id,totalDamage:1n,attackCount:1n,bestHit:1n,firstAttackAt:new Date(),lastAttackAt:new Date()}});
   await db.twitchNativeAudit.create({data:{actorPlayerId:f.twitch.id,action:'PRIVATE_HISTORY'}});
   const pending=await compare(f);expect(pending.safety.WEB.status).toBe('OPERATOR_REQUIRED');
-  const assessment=await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,f.twitch.id));
+  const assessment=await db.$transaction(tx=>assessPlayerCanonicalizationSafety(tx,f.twitch.id),{isolationLevel:'RepeatableRead'});
   for(const table of ['boss_legacy_contributions','boss_attacks','player_boss_participations']) expect(assessment.classifications.some(row=>row.edge.startsWith(table+'(')&&row.classification==='SHARED_ACTIVE')).toBe(true);
   await expect(link.resolve(f.identity.id,pending.id,'WEB',pending.revision)).rejects.toMatchObject({code:sharedReason});await unchanged(f);
   await db.monthlyBoss.update({where:{id:boss.id},data:{currentHp:0n,defeatedAt:new Date(),finalBlowPlayerId:f.web.id}});

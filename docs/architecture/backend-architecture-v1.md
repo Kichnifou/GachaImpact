@@ -7,7 +7,15 @@ GET Concours résout le Player puis refuse une réconciliation déjà possédée
 
 ## Owner de liaison Twitch unifiée — R1055
 
-### Optimisation de la planification R1055 — candidat review
+### Parcours R1055 par clés et fermeture incrémentale — candidat review
+
+Le [dossier R1055](r1055-canonicalization-performance.md) porte l’algorithme, la preuve d’équivalence, les stratégies comparées et les mesures locales. Le candidat conserve les images complètes pour le hash et emploie des clés FK PostgreSQL typées pour les jointures. Fermeture par nouveaux parents, chemins directs redondants éliminés, déduplication par Map, lots de 64 branches par parent et payload limité aux tables requises. Toutes les références sont traitées avant sûreté/hash ; aucune écriture, nouvelle connexion ou opération détachée.
+
+Le moteur refuse READ COMMITTED : un snapshot Repeatable Read/Serializable stable est indispensable à l’équivalence clé/image. Les owners existants satisfont déjà cette condition ; aucune modification de leur isolation, deadline, verrou/retry, choix/consentement ou archivage. Les classifications métier, les FK découvertes, le tri/version 1 et bigint sont inchangés. Mesures facultatives uniquement numériques, incluant tri de projection et durée totale. [État/gate de review indépendante](../master/PROJECT_MASTER_PLAN.md#r1055-astra-20261008) : code non promu, aucun préflight public ni résolution de la cause historique revendiquée.
+
+<a id="optimisation-de-la-planification-r1055--candidat-review"></a>
+
+### Historique — première optimisation de planification R1055
 
 Le [diagnostic et les gates](../master/PROJECT_MASTER_PLAN.md#r1055-query-candidate-20261008) localisent 57014 pendant le plan de la deuxième fermeture personnelle. assessPlayerCanonicalizationSafety construit désormais un CTE MATERIALIZED pour le JSONB source et un par recordset typé requis, réutilisés dans les projections et preuves entrantes/sortantes. La répétition du gros paramètre au sein du plan est supprimée ; UNION/UNION ALL, égalités JSONB de lignes complètes, politique de sûreté, fermeture/exhaustivité FK, tri/version/précision du fingerprint sont conservés. targeted-player-rows reste le propriétaire inchangé des métadonnées/domaines ; aucune migration, transaction/retry/verrou/pool ou configuration modifiée.
 

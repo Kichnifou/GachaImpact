@@ -1,6 +1,16 @@
 # Cutover legacy — runbook opératoire
 
-## Point courant — R1055 déployé ; Ceo STOP aux références
+## Point courant — moteur R1055 structurel en review ; aucun préflight public autorisé
+
+[État courant et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-astra-20261008), [architecture/invariants/mesures](../architecture/r1055-canonicalization-performance.md). Baseline publique 52b5631. Candidat local : fermeture incrémentale, clés FK typées, lots par parent de 64 branches maximum, même graphe/classifications/fingerprint ; snapshot Repeatable Read ou Serializable obligatoire. Tests PostgreSQL uniquement locaux sur données synthétiques et 62 migrations, sans accès Supabase. Aucune migration/variable/pool/timeout fournisseur modifié.
+
+Publier review, vérifier le vrai diff GitHub, puis **STOP review indépendante ChatGPT**. Ne pas appliquer les anciennes autorisations de promotion relatées dans l’historique ci-dessous à ce nouveau mécanisme. Aucun déploiement ni préflight Ceo avant approbation.
+
+Après approbation, mission suivante : refs/ancestry/worktree et protections publiques → promotion strictement fast-forward → Railway/Cloudflare SUCCESS SHA exact/health/Prisma/logs → **un seul préflight Ceo complet** avec sources/Helix fraîches et A identifié par Auth/WebIdentity. Conserver le READ ONLY Repeatable Read, statement 5 s et borne de transaction existante ; enregistrer les métriques de chaque lot et du total sans SQL/identifiants/contenu. Aucun total partiel ne vaut PASS. Au premier 57014, problème DB/pool ou conflit réel : STOP à l’étape exacte, sans relèvement arbitraire de limite.
+
+Seulement après préflight entièrement PASS : TWITCH_ONLY vers B distinct, A significatif intact, rehearsal/backup/comparaison/rollback exacts, puis import B DATA_IMPORTED/LEGACY/non-canary et vérification complète. La demande humaine Configuration > Compte > Lier Twitch attend toujours B vérifié ; aucun OAuth anticipé ni choix automatique. OFF11/flag false/trois NATIVE/backups/imports/réparations restent acquis au dernier contrôle public, sans action nouvelle dans ce lot. Streamer.bot OFF, aucun batch/GLOBAL/replay/recovery. Dette Supabase après migration inchangée.
+
+## Historique — R1055 déployé ; Ceo STOP aux références
 
 [Résultats et reprise exacte](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008). Code fccd0d6 approuvé indépendamment, promu dans 92d6389 par fast-forward ; refs 0/0/worktree propre et vrais diff/blobs GitHub contrôlés. Railway 9cc159c7 et Cloudflare cc6b91c9 SUCCESS sur ce SHA exact, health 200/Prisma 62, OFF11/flag false et trois canaries/imports/backups/cosmétiques/deux réparations exacts. Les contrôles du checkpoint documentaire qui porte ces résultats sont distincts, sans nouveau code produit ni redéploiement manuel.
 

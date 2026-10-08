@@ -2,20 +2,13 @@ import { createHash } from 'node:crypto';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { personalReplacementTables, rowGraphIdentifier as ident, targetedRowMetadata, type ForeignKey } from '../migration/targeted-player-rows.js';
 
+import { captureCanonicalizationGraph, graphRecordsets, groups, join, measure, rootColumns, type Diagnostic } from './canonicalization-graph.js';
+export type { CanonicalizationMetric } from './canonicalization-graph.js';
+
 type Tx = Prisma.TransactionClient;
 type Metadata = Awaited<ReturnType<typeof targetedRowMetadata>>;
 export type CanonicalizationSafety = { status: 'SAFE' | 'OPERATOR_REQUIRED'; reason: 'TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR' | 'TWITCH_PROGRESSION_NATIVE_AUTHORITY_REQUIRES_OPERATOR' | null };
 type Classification = 'OWNED_PERSONAL' | 'SAFE_HISTORICAL' | 'SHARED_ACTIVE';
-export type CanonicalizationMetric = {
-  stage: 'metadata' | 'root' | 'projection-build' | 'projection-execute' | 'projection-merge' | 'evidence-build' | 'evidence-execute' | 'fingerprint';
-  durationMs: number; iteration?: number; branches?: number; rows?: number; tables?: number; inputBytes?: number;
-};
-type Diagnostic = (metric: CanonicalizationMetric) => void;
-function measure(diagnostic: Diagnostic | undefined, stage: CanonicalizationMetric['stage'], start: number, counts: Omit<CanonicalizationMetric, 'stage' | 'durationMs'> = {}) {
-  // Opt-in counts/timings only; an observer never changes the business result.
-  if (diagnostic) { try { diagnostic({stage, durationMs: performance.now()-start, ...counts}); } catch { /* observer only */ } }
-}
-
 // Reuse the replacement owner's personal domains. Everything not explicitly owned or
 // proven historical is unsafe when referenced, including future FK tables/columns.
 const owned = new Set<string>([...personalReplacementTables, 'players', 'player_preferences', 'privacy_settings', 'player_role_assignments',
@@ -27,55 +20,10 @@ const owned = new Set<string>([...personalReplacementTables, 'players', 'player_
 const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions',
   'migration_previews', 'global_chat_read_states']);
 const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages']);
-const join = (fk: ForeignKey) => fk.child_columns.map((column,i) => `c.${ident(column)}=p.${ident(fk.parent_columns[i]!)}`).join(' AND ');
-// Materialize the input once, then each typed recordset once per statement. Keeping
-// the graph behind a CTE also prevents custom-plan constant folding from parsing
-// the entire JSON parameter separately for every branch of a large UNION.
-function graphRecordsets(schema: string) {
-  const required = new Set<string>();
-  return {
-    table(table: string) { ident(table); required.add(table); return ident(`canonical_rows_${table}`); },
-    query(sql: string) {
-      const recordsets = [...required].map(table => `${ident(`canonical_rows_${table}`)} AS MATERIALIZED (SELECT r.* FROM canonical_graph g CROSS JOIN LATERAL json_populate_recordset(NULL::${ident(schema)}.${ident(table)},(g.value->'${table}')::json) r)`);
-      return `WITH canonical_graph AS MATERIALIZED (SELECT $1::jsonb AS value), ${recordsets.join(', ')} ${sql}`;
-    },
-  };
-}
-const graphJson = (tables: Record<string,string[]>) => `{${Object.entries(tables).map(([table,rows])=>`${JSON.stringify(table)}:[${rows.join(',')}]`).join(',')}}`;
 const signature = (fk: ForeignKey) => `${fk.child}(${fk.child_columns.join(',')})->${fk.parent}(${fk.parent_columns.join(',')})`;
 
-/** Canonical JSONB text preserves int8 precision. No raw graph is persisted or returned. */
-async function personalProjection(tx: Tx, playerId: string, meta: Metadata, diagnostic?: Diagnostic) {
-  const rootStart=performance.now();
-  const tables: Record<string,string[]> = { players: (await tx.$queryRawUnsafe<{row:string}[]>(`SELECT to_jsonb(p)::text row FROM ${ident(meta.schema)}.players p WHERE id=$1::uuid`,playerId)).map(r=>r.row) };
-  measure(diagnostic,'root',rootStart,{rows:tables.players!.length});
-  const rootColumns = new Map<string,string[]>();
-  for(const fk of meta.fks.filter(fk=>fk.parent==='players')) rootColumns.set(fk.child,[...(rootColumns.get(fk.child)??[]),...fk.child_columns]);
-  // Same downward row closure as targeted-player-rows, batched to avoid one round-trip
-  // per FK. A child with its own player_id can never be pulled from another Player.
-  for (let iteration=1;;iteration++) {
-    const buildStart=performance.now();
-    const records = graphRecordsets(meta.schema);
-    const queries = meta.fks.filter(fk=>owned.has(fk.child)&&fk.child!=='players'&&tables[fk.parent]?.length)
-      .filter(fk=>fk.parent!=='players'||fk.child_columns.length===1&&fk.child_columns[0]==='player_id')
-      .map(fk=>`SELECT '${fk.child}'::text table_name,to_jsonb(c)::text row FROM ${ident(meta.schema)}.${ident(fk.child)} c JOIN ${records.table(fk.parent)} p ON ${join(fk)} WHERE $2::uuid IS NOT NULL${fk.parent!=='players'&&rootColumns.get(fk.child)?.includes('player_id')?' AND c.player_id=$2::uuid':''}`);
-    if(!queries.length) break;
-    const sql=records.query(queries.join(' UNION ')),input=graphJson(tables);
-    measure(diagnostic,'projection-build',buildStart,{iteration,branches:queries.length,inputBytes:Buffer.byteLength(input)});
-    const executeStart=performance.now();
-    const rows = await tx.$queryRawUnsafe<{table_name:string;row:string}[]>(sql,input,playerId);
-    measure(diagnostic,'projection-execute',executeStart,{iteration,rows:rows.length});
-    const mergeStart=performance.now();
-    let changed=false;
-    for(const row of rows) { const previous=tables[row.table_name]??=[]; if(!previous.includes(row.row)) { previous.push(row.row);changed=true; } }
-    measure(diagnostic,'projection-merge',mergeStart,{iteration,tables:Object.keys(tables).length,rows:Object.values(tables).reduce((n,rows)=>n+rows.length,0)});
-    if(!changed) break;
-  }
-  return Object.fromEntries(Object.entries(tables).sort(([a],[b])=>a.localeCompare(b)).map(([table,rows])=>[table,[...rows].sort()]));
-}
-
 /** SQL classification for existing rows; unknown tables/FKs always fail closed. */
-function classification(fk: ForeignKey, meta: Metadata, records: ReturnType<typeof graphRecordsets>): string {
+function classification(fk: ForeignKey, meta: Metadata, ownership: ReturnType<typeof rootColumns>): string {
   const {schema}=meta, table=fk.child;
   if(housekeeping.has(table)||historical.has(table)) return "'SAFE_HISTORICAL'";
   // Native targets are retargeted under the existing authority/identity guard; they
@@ -93,7 +41,11 @@ function classification(fk: ForeignKey, meta: Metadata, records: ReturnType<type
   const playerFks=meta.fks.filter(edge=>edge.child===table&&edge.parent==='players');
   const expected=new Set(table==='player_role_assignments'?['player_id','granted_by_player_id']:table==='arcade_sessions'?['player_id','opponent_player_id']:['player_id']);
   if(playerFks.some(edge=>edge.child_columns.some(column=>!expected.has(column)))) return "'SHARED_ACTIVE'";
-  const captured=`EXISTS(SELECT 1 FROM ${records.table(table)} mine WHERE to_jsonb(mine)=to_jsonb(c))`;
+  // This incoming row is reached from a captured parent. At the completed fixed
+  // point it belongs to the graph iff the same downward ownership guard allows it.
+  // players is the only owned table never descended into; only its root may match.
+  // Unknown cross-player columns have already failed closed above.
+  const captured=table==='players'?'c.id=$2::uuid':ownership.get(table)?.has('player_id')?'c.player_id=$2::uuid':'TRUE';
   let admissible='TRUE';
   if(table==='player_role_assignments') admissible="NOT(c.revoked_at IS NULL AND c.role IN ('ADMIN','MODERATOR'))";
   if(table==='player_expeditions') admissible="c.state='IDLE'";
@@ -105,29 +57,38 @@ function classification(fk: ForeignKey, meta: Metadata, records: ReturnType<type
 }
 
 export async function assessPlayerCanonicalizationSafety(tx: Tx, playerId: string, metadata?: Metadata, diagnostic?: Diagnostic) {
-  const metadataStart=performance.now();
-  const meta=metadata??await targetedRowMetadata(tx);
+  const totalStart=performance.now(),snapshotStart=performance.now();
+  // Key equality replaces row-image equality only within a stable MVCC snapshot.
+  // R1055 owners use Serializable; read-only preflights use RepeatableRead.
+  const isolation=await tx.$queryRawUnsafe<{transaction_isolation:string}[]>('SHOW transaction_isolation');
+  if(!['repeatable read','serializable'].includes(isolation[0]?.transaction_isolation??'')) throw new Error('CANONICALIZATION_STABLE_SNAPSHOT_REQUIRED');
+  measure(diagnostic,'snapshot',snapshotStart);
+  const metadataStart=performance.now(),meta=metadata??await targetedRowMetadata(tx);
   measure(diagnostic,'metadata',metadataStart,{branches:meta.fks.length});
-  const tables=await personalProjection(tx,playerId,meta,diagnostic);
-  const buildStart=performance.now();
-  const records=graphRecordsets(meta.schema);
-  const evidenceQueries:string[]=[];
+  const {graph,tables}=await captureCanonicalizationGraph(tx,playerId,meta,owned,diagnostic);
+  const ownership=rootColumns(meta);
+  type Records=ReturnType<typeof graphRecordsets>;
+  const branches:{parent:string;render:(records:Records)=>string}[]=[];
   for(const fk of meta.fks) {
     ident(fk.child);ident(fk.parent);fk.child_columns.forEach(ident);fk.parent_columns.forEach(ident);
-    if(tables[fk.parent]?.length) evidenceQueries.push(`SELECT '${signature(fk)}'::text edge,${classification(fk,meta,records)} classification,count(*)::text count FROM ${ident(meta.schema)}.${ident(fk.child)} c JOIN ${records.table(fk.parent)} p ON ${join(fk)} GROUP BY 2`);
-    // Also reject a known owned row pointing outside its captured personal graph.
-    // This catches future cross-owner references through Teams/items/etc, without
-    // treating catalog/global parents as personal data or capturing another Player.
+    if(tables[fk.parent]?.length) branches.push({parent:fk.parent,render:records=>`SELECT '${signature(fk)}'::text edge,${classification(fk,meta,ownership)} classification,count(*)::text count FROM ${ident(meta.schema)}.${ident(fk.child)} c JOIN ${records.table(fk.parent)} p ON ${join(fk)} WHERE $2::uuid IS NOT NULL GROUP BY 2`});
     if(tables[fk.child]?.length&&owned.has(fk.parent)&&!housekeeping.has(fk.child)&&!historical.has(fk.child)
       &&!(fk.child==='player_role_assignments'&&fk.child_columns.includes('granted_by_player_id'))
       &&!(fk.child==='arcade_sessions'&&fk.child_columns.includes('opponent_player_id')))
-      evidenceQueries.push(`SELECT '${signature(fk)}:external'::text edge,'SHARED_ACTIVE'::text classification,count(*)::text count FROM ${records.table(fk.child)} c JOIN ${ident(meta.schema)}.${ident(fk.parent)} p ON ${join(fk)} WHERE NOT EXISTS(SELECT 1 FROM ${records.table(fk.parent)} mine WHERE to_jsonb(mine)=to_jsonb(p)) HAVING count(*)>0`);
+      // A FK targets a unique key. Under this snapshot, matching its non-null
+      // referenced tuple identifies exactly the same full row as the old engine.
+      branches.push({parent:fk.parent,render:records=>`SELECT '${signature(fk)}:external'::text edge,'SHARED_ACTIVE'::text classification,count(*)::text count FROM ${records.table(fk.child)} c JOIN ${ident(meta.schema)}.${ident(fk.parent)} p ON ${join(fk)} WHERE $2::uuid IS NOT NULL AND NOT EXISTS(SELECT 1 FROM ${records.table(fk.parent)} mine WHERE ${fk.parent_columns.map(column=>`mine.${ident(column)}=p.${ident(column)}`).join(' AND ')}) HAVING count(*)>0`});
   }
-  const sql=records.query(evidenceQueries.join(' UNION ALL ')),input=graphJson(tables);
-  measure(diagnostic,'evidence-build',buildStart,{branches:evidenceQueries.length,inputBytes:Buffer.byteLength(input)});
-  const executeStart=performance.now();
-  const evidence=await tx.$queryRawUnsafe<{edge:string;classification:Classification;count:string}[]>(sql,input);
-  measure(diagnostic,'evidence-execute',executeStart,{rows:evidence.length});
+  const evidence:{edge:string;classification:Classification;count:string}[]=[];
+  for(const [batch,group] of groups(branches.sort((a,b)=>a.parent.localeCompare(b.parent))).entries()) {
+    const buildStart=performance.now(),records=graphRecordsets(meta.schema,graph);
+    const {sql,input}=records.query(group.map(branch=>branch.render(records)).join(' UNION ALL '));
+    measure(diagnostic,'evidence-build',buildStart,{batch,branches:group.length,inputBytes:Buffer.byteLength(input)});
+    const executeStart=performance.now();
+    const rows=await tx.$queryRawUnsafe<typeof evidence>(sql,input,playerId);
+    evidence.push(...rows);
+    measure(diagnostic,'evidence-execute',executeStart,{batch,rows:rows.length});
+  }
   const fingerprintStart=performance.now();
   evidence.sort((a,b)=>a.edge.localeCompare(b.edge)||a.classification.localeCompare(b.classification));
   // Technical polling/OAuth challenges are excluded from consent stability and do
@@ -137,5 +98,6 @@ export async function assessPlayerCanonicalizationSafety(tx: Tx, playerId: strin
   if(safety.status==='OPERATOR_REQUIRED') safety.reason='TWITCH_PROGRESSION_SHARED_STATE_REQUIRES_OPERATOR';
   const fingerprint=createHash('sha256').update(JSON.stringify({version:1,tables,foreignKeys:meta.fks.filter(fk=>!housekeeping.has(fk.child)).map(signature).sort(),safety:stableEvidence})).digest('hex');
   measure(diagnostic,'fingerprint',fingerprintStart,{tables:Object.keys(tables).length,rows:Object.values(tables).reduce((n,rows)=>n+rows.length,0)});
+  measure(diagnostic,'total',totalStart);
   return {fingerprint,safety, classifications:stableEvidence};
 }

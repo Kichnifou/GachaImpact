@@ -1,13 +1,44 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : optimisation R1055 promue/déployée ; Ceo STOP à la classification des références.
+Version : moteur R1055 structurel testé en local ; candidat review, Ceo STOP.
 Date : 2026-10-08
-Statut : **P0 PUBLIC CLÔTURÉ ; R1055 DÉPLOYÉ ; PRÉFLIGHT CEO NON PASS.** Projections terminées, références annulées par 57014 ; OFF11/flag false/trois canaries/backups préservés, A intact et B absent.
+Statut : **P0 PUBLIC CLÔTURÉ ; CANDIDAT R1055 EN REVIEW ; PUBLIC INCHANGÉ, CEO STOP.** Review indépendante requise avant promotion/déploiement/préflight. Baseline main 52b5631, OFF11/flag false/trois canaries conservés ; aucune opération publique dans ce lot.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="r1055-astra-20261008"></a>
+
+## Point courant — candidat R1055 structurel ; STOP review indépendante
+
+Mission Astra sur baseline **main = review = 52b5631c1988a895b90046347a8db320f810432f**, worktree propre au départ. Le présent candidat est autorisé uniquement sur **review**, sans promotion ni déploiement. Le [dossier d’architecture et de preuves](../architecture/r1055-canonicalization-performance.md) compare les stratégies et explique les invariants. Aucune nouvelle décision produit/Rxxx, migration ou configuration fournisseur.
+
+**Correction complète :** fermeture incrémentale jusqu’au point fixe, suppression des chemins redondants déjà couverts depuis Player, déduplication par ensemble d’images complètes, clés FK JSONB typées sans perte bigint pour les jointures, branches groupées par parent et bornées à **64**. Les images complètes restent la source du fingerprint version 1. Isolation Repeatable Read/Serializable explicitement exigée ; transactions Serializable de 30 s du owner, préflight READ ONLY/statement 5 s, retries/verrous et consentement inchangés. Références inconnues/partagées/états actifs conservés fail-closed. Aucun calcul partiel, staging, Promise.race ou requête détachée.
+
+**Cause mesurée et portée :** ancien moteur 52b5631 testé contre le candidat sur les mêmes données synthétiques, 62 migrations/282 FK/55 tables. Le graphe complet était renvoyé trois fois, les images complètes réexpansées/comparées et le plan non borné. La déduplication Array.includes atteint aussi 7,65 s sur le cas 10×, contre 24 ms pour la fusion du candidat. Le cas 4 895 lignes/5,63 Mo produit 244 branches (241 publiquement : distribution différente). EXPLAIN sépare les temps locaux ; aucune nouvelle lecture Supabase ou configuration, et aucune cause précise du 57014 public ou de l’incident pool/PostgreSQL déclarée résolue.
+
+**Dernière campagne locale, 08/10 :** comparaison exacte des graphes, classifications/comptages, sûreté et fingerprint PASS. L’ancien total ci-dessous est la **somme de ses étapes instrumentées** ; celui du candidat est chronométré de bout en bout. EXPLAIN est mesuré séparément. [Mesures numériques bornées](../architecture/r1055-performance-evidence.json).
+
+| Graphe synthétique | Octets du graphe | Ancien, somme des étapes | Candidat, total | Paramètres SQL ancien → candidat |
+| --- | ---: | ---: | ---: | ---: |
+| 1× : 4 895 lignes / 55 tables | 5 630 745 | 1 507 ms | **270 ms** | 16,89 → 1,29 Mo |
+| 4× : 19 313 lignes / 55 tables | 22 430 462 | 6 782 ms | **862 ms** | 67,29 → 5,10 Mo |
+| 10× : 48 149 lignes / 55 tables | 55 998 058 | 23 261 ms | **2 051 ms** | 167,99 → 12,72 Mo |
+
+À 10×, références anciennes : **plan 36,5 ms / exécution 8 049 ms**, donc exécution au-delà de la borne de cinq secondes. Candidat : quatre lots de références, plan maximum **7,4 ms**, exécution maximum **498 ms**, sans JIT ; six requêtes projection/références quelle que soit cette taille. Le hash reste linéaire : 20/95/182 ms. Ce résultat local ne garantit pas la latence sur Shared Pooler.
+
+Population supplémentaire **250 Players / 25 000 opérations** : résultat identique, total 277 → 288 ms. Parcours réels avec deux progressions 1×/4× dans les transactions Serializable originales : verified/pending/resolve **1 260/1 173/1 218 ms (WEB)** et **1 230/1 219/1 252 ms (TWITCH)**. Deux identités sur le gagnant, perdant ARCHIVED, gameplay intégral des deux conservé ; aucune addition ni perte. Rollback après écritures d’identités, choix simultanés et idempotence vérifiés séparément.
+
+**Tests DB locaux : 45/45 PASS** — sûreté 6, liaison 32, performances 7. Oracles indépendants figés 0af5827 et 52b5631 ; ce dernier confronté exactement à git show (imports/nom exporté seuls adaptés). Bigint adjacent au-delà de 2^53, FK composites/nulles/cycliques, multiplicité, tiers, 96 futures FK, 65 colonnes FK, référence inverse de Players, changement concurrent de payload, READ ONLY, révision du consentement, états actifs, timeout SQL sans résultat partiel/orphelin, réutilisation et fermeture complète du pool couverts. Les erreurs de préparation des premières fixtures ont été corrigées ; seuls les derniers runs complets font foi. Le warning de dépréciation pg@8 relatif au séquencement du client apparaît sur le gros oracle ; aucun échec, transaction orpheline ou connexion résiduelle constaté dans ces suites. La borne étendue de l’oracle de diagnostic privé n’est pas une modification des délais du produit.
+
+**Vérification finale :** `verify:full` **8/8 PASS** : frontend 126 fichiers/1 370 tests, backend non-DB 135 fichiers/1 978 tests, deux builds, types et lint ; diff-check worktree/index PASS. Prisma local migrate status **62 à jour** ; clôture : zéro schéma privé restant, autre client, idle-in-transaction, verrou bloquant ou Player dans le schéma public local de référence. Les pools des trois suites sont fermés avec autant de connexions ouvertes que fermées. Aucun test visuel/public requis ou revendiqué pour ce changement backend. Préflight Ceo, promotion et déploiement **non exécutés**, conformément à la gate de review indépendante.
+
+**État public conservé, non recontrôlé dans ce lot local :** dernier checkpoint 52b5631 ; Railway 5f86e0b9-b48e-4466-8e8c-80f56fc48112 et Cloudflare cecb9ca2-d677-435e-9432-8d675b31b59c SUCCESS exacts le 08/10, health 200 à 08:09:47 UTC/Prisma 62. Dernière clôture READ ONLY : OFF11, flag Railway false, trois NATIVE/imports/backups et réparations exacts, A Web/Auth intact, B absent. Les erreurs et observations historiques ci-dessous restent conservées. Aucun résultat humain ni déploiement nouveau ne découle des tests locaux.
+
+**Prochaine action unique : review indépendante ChatGPT du SHA review publié.** Après approbation seulement, mission de promotion stricte et contrôle des déploiements/protections, puis UN préflight Ceo complet borné avec projection/références/fingerprint/total. Tout 57014/instabilité/SHARED_ACTIVE/OPERATOR_REQUIRED impose STOP précis. Rehearsal privée/backup/comparaison/rollback exact et import Twitch B séparé seulement après toutes les gates ; liaison humaine uniquement après B vérifié. Aucun OAuth/import/liaison Ceo, batch/GLOBAL, replay/réparation/recovery des trois canaries ni commande Twitch maintenant. Streamer.bot OFF. Dette Supabase prioritaire après migration des joueurs, sans optimisation infrastructure dans ce lot.
+
 
 <a id="r1055-promotion-ceo-20261008"></a>
 
-## Point courant — R1055 déployé ; Ceo STOP à CANONICALIZATION_EVIDENCE
+## Historique — R1055 déployé ; Ceo STOP à CANONICALIZATION_EVIDENCE
 
 Review indépendante ChatGPT **APPROUVÉE**, aucun finding bloquant, pour fccd0d6aa1814fe1c6e645c7aa6266f21f23ae5b. Documentation d’approbation 92d638963db9f9d59d5f3052690fc93068138341 publiée review et vrais diff/blobs GitHub vérifiés, puis fast-forward strict main/push/fetch : quatre refs alignées, divergence 0/0, worktree propre. Le code approuvé reste inchangé ; aucune nouvelle règle Rxxx, suite DB ou verify:full répétés. Le présent checkpoint ajoute seulement les résultats réels ; publier review, contrôler le vrai diff, promouvoir strictement et contrôler ses deux pipelines exacts si les gates de stabilité restent satisfaites, sans redéploiement manuel ni boucle de commits pour inscrire son SHA.
 
