@@ -1,5 +1,9 @@
 # 19 — Audit Codes cadeaux
 
+<a id="extension-codes-r1057"></a>
+
+**Extension future R1057, validée le 08/10/2026 — non implémentée :** après stabilisation silencieuse, Modération > Codes reçoit les quantités configurables de Masterless Stella Fortuna, Points de l'édition Event et monnaie de l'édition Event courante. Conditions d'édition active/inscription existante, absence d'auto-inscription, maintien des autres récompenses, crédit automatique des paliers franchis sans affichage supplémentaire et atomicité/anti-double-attribution sont définis dans [la décision propriétaire R1057](../specifications/decisions-log.md#codes-enrichis-r1057). Ce complément supersède les exclusions historiques de ces nouveaux types pour le futur lot seulement ; il ne décrit pas le moteur physique actuel. [Ordre de livraison](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).
+
 **Révision propriétaire étape 29 — R1037 :** Code.txt : découverte !code sans argument conservée (amélioration moderne), tous les tokens disponibles et compte récupérés ; split opt-in entre tokens si nécessaire. Claim présenté avec récompenses positives et nouveaux totaux du snapshot autoritatif retourné, ordre Primos/Moras/sept éléments, description moderne éventuelle. Erreurs player-facing déjà utilisé/indisponible sans détail Admin. GiftCodeService/Economy/notifications/publication/ponctuel/annuel/idempotence inchangés. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
 
 > Domaine 16 de l'audit GachaImpact.  

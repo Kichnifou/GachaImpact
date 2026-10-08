@@ -1,8 +1,20 @@
 # Cutover legacy — runbook opératoire
 
+<a id="ceo-link-postflight-runbook-20261008"></a>
+
+## Point courant — CEO_LINK_CONFIRMED ; F5/reconnexion validés, STOP avant NATIVE
+
+Liaison et choix TWITCH strictement humains terminés une seule fois le08/10/2026 à18:38:17.739 Paris. Le plan frais valable jusqu'à18:49:48 Paris a été consommé par cette résolution ; aucun plan actif contradictoire. Ancien plan historique expiré/non consommé. Postflight READ ONLY16:53:05–16:53:13UTC et rapprochement local des images PASS : B ACTIVE WebIdentity+TwitchIdentity niveau100, A ARCHIVED sans identité d'accès ni PlayerSession. UUID/Auth/TwitchUserId exacts, aucun rapprochement par pseudo. B DATA_IMPORTED/LEGACY/non-canary, target/provenance/backupv3 et backup opérateur exacts ; aucun transfert NATIVE.
+
+XP/personnages/inventaire et état personnel original de B conservés, aucune fusion avec A. Après la liaison, sept opérations UI et une ADMIN terminées expliquent exactement neuf mouvements/soldes/statistiques économiques et les nouvelles claims ; aucune double attribution. Graphes/historiques tiers conservés, clôture des relations actives de A selon R1055, onze faits d'amitié Ceo toujours DEFERRED exacts. Trois NATIVE/imports/identités/backups/réparations préservés ; OFF11/flagfalse, Prisma63 complet, zéroPENDING/outbound incertain/transactionlongue/verrou. Connexion du helper fermée. Le diagnostic du premier helper local et son rapprochement hors DB sont conservés, pas de garde produit modifiée. [Preuves et limites](../master/PROJECT_MASTER_PLAN.md#ceo-link-postflight-20261008).
+
+Baseline publique edb3b2b1257f3c2e9353f935927c0385a20da5ce : GitHubmain=review0/0 avant ce lot documentaire, Railway508bb9cb SUCCESS/Online1 sans issue/pending, Cloudflareee0902dd SUCCESS et assets publics identiques au déploiement exact, health200. Logs bornés consultés sans nouvelle erreur observée ; aucune affirmation de couverture exhaustive des fenêtres tronquées. Cause SQL historique non démontrée.
+
+**Recette humaine validée le08/10/2026 :** réponse propriétaire « Oui, F5 et reconnexion vérifiés » à la demande F5/profil/ressources puis déconnexion/reconnexion avec même progression Twitch niveau100. Cette preuve humaine ne vaut pas inspection autonome Codex du navigateur. Aucun nouveau plan, OAuth ou choix à rejouer. Si défaut : STOP et diagnostic READ ONLY, pas de restauration automatique. NATIVE Ceo et autorité CANARY attendent une mission distincte explicitement autorisée après recette ; batch43/GLOBAL/activation Twitch interdits ici, Streamer.botOFF. Le raccordement communautaire global reste à effectuer. Dette Supabase après migration ; Codes enrichisR1057, EventdrawR1053 puis mots de passeR1058 avant CatalogueR1051 relèvent seulement de la future pré-release.
+
 <a id="r1055-consent-fix-runbook-20261008"></a>
 
-## Point courant — correctif consentement/chargement déployé ; attendre Ceo
+## Historique — correctif consentement/chargement déployé ; disponibilité Ceo alors attendue
 
 Code f96d5a3330f2976eb7dbed392b4758b20bf2479e approuvé indépendamment et promu strict FF ; Railway bb988480 SUCCESS15:20:24UTC et Cloudflare be71c398 SUCCESS15:19:56UTC du SHA exact, health200, Prisma63 à jour et DDL063 inchangé. Assets publics exacts avec nouveaux états comparaison/réessai/erreur compte ; backend actif SHA exact et build/startup contrôlés, sans hash SSH disponible ni configuration ajoutée. Ceo B ACTIVE/DATA_IMPORTED/LEGACY/non-canary, A ACTIVE/Auth-Web intacte, états économiques avant/après exacts. Ancien plan TWITCH expiré à **15:30:01 Paris**, non consommé ; six comparaisons expirées sans choix confirmé. Onze amitiés différées exactes, OFF11/flag false/trois canaries/imports/backups/réparations préservés, zéroPENDING/outbound incertain/verrou/transaction longue aux contrôles datés. Aucun nouvel import/OAuth/archivage/NATIVE, aucune nouvelle autorisation dans cette mission.
 

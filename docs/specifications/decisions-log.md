@@ -1,5 +1,15 @@
 # Journal des décisions validées
 
+## R1058 — Gestion standard des mots de passe et ordre pré-release (2026-10-08)
+
+VALIDÉ PAR LE PROPRIÉTAIRE, documentation uniquement : après le tirage mensuel Event R1053, permettre le changement de mot de passe depuis le compte et le parcours mot de passe oublié/réinitialisation sécurisée par e-mail, en réutilisant Supabase Auth et ses mécanismes standards. Aucun mécanisme d'authentification parallèle, code, configuration ou service ajouté ici. L'ordre produit précise R1054 : stabilisation silencieuse → Codes enrichisR1057 → tirage mensuelEventR1053 → gestion des mots de passeR1058 → CatalogueCharacterR1051. Toutes les autres dépendances/priorités et la gate de révélation sont conservées ; audit/optimisation Supabase après migration des joueurs, sans chantier anticipé. [Séquence propriétaire](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).
+
+<a id="codes-enrichis-r1057"></a>
+
+## R1057 — Codes cadeaux enrichis après stabilisation silencieuse (2026-10-08)
+
+VALIDÉ PAR LE PROPRIÉTAIRE, futur lot non implémenté : dans Modération > Codes, quantités configurables de Masterless Stella Fortuna, Points de l'édition Event et monnaie de l'édition Event courante. Si aucune édition n'est active, ou si le joueur n'est pas inscrit, aucune récompense Event n'est créditée ; les autres récompenses du code restent attribuées normalement. Jamais d'inscription automatique. Quand les points du code franchissent un ou plusieurs paliers, attribuer automatiquement leurs récompenses correspondantes sans affichage supplémentaire de franchissement. Exiger atomicité et absence de double attribution du code et des paliers. Ne pas extrapoler une quantité, un tirage ou une récompense non validés. [Source Codes](../legacy/19-codes-cadeaux-audit.md#extension-codes-r1057), [séquence](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).
+
 ## R1056 — Continuité des relations communautaires à la migration (2026-10-08)
 
 VALIDÉ PAR LE PROPRIÉTAIRE, avec clarification symétrique : les JSON Streamer.bot figés sont la source de vérité de la progression legacy Twitch et de ses faits communautaires. Ils ne donnent aucune priorité automatique sur une sauvegarde standalone significative. Seul le choix explicite R1055 détermine le gameplay jouable, dans les deux sens ; aucune addition économique, XP, personnage, statistique ou récompense.
