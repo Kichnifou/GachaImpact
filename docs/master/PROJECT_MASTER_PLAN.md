@@ -1,13 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : P0 standalone / Concours rétabli ; recette publique Kichnifou validée.
-Date : 2026-10-07
-Statut : **STANDALONE KICHNIFOU ET CONCOURS VALIDÉS PUBLIQUEMENT.** Cause SQL historique inconnue ; OFF11/trois canaries/backups préservés, Ceo STOP dans cette mission.
+Version : hauteur du Concours vide corrigée ; reprise Ceo conditionnée au déploiement stable.
+Date : 2026-10-08
+Statut : **P0 PUBLIC CLÔTURÉ ; CORRECTIF VISUEL CONTRÔLÉ LOCALEMENT.** OFF11/flag false/trois canaries/backups préservés ; Ceo A intact, B non importé.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+
+<a id="contest-height-ceo-20261008"></a>
+
+## Point courant — hauteur Concours puis préparation séparée Ceo
+
+**Périmètre autorisé :** baseline main=review a8f14ac68afc9a9104a92f7e953bc5d9b0f58fd4, divergence 0/0, worktree propre. Le [P0 public validé](#p0-deploye-recette-humaine-20261007) reste clôturé : Ctrl+F5/Concours réel/reconnexion et 23 GET Concours 200 ; cause SQL historique inconnue. Aucun nouvel incident démontré. Correction visuelle bornée, promotion review/main dans la même mission autorisée, puis préparation Ceo seulement après déploiement stable ; aucune nouvelle décision Rxxx ni mécanique produit.
+
+**Défaut et correction démontrés localement :** dans le vrai GameShell avec src/index.css et src/App.css chargés, le body dispose de 627 px à 1920×1080 et 987 px à 2560×1440, mais sa ligne de grille alignée en début conserve le panneau vide à 330 px. Une règle desktop ciblant uniquement le body contenant contest-empty étire cette ligne flexible : panneau 627/987 px, contenu centré, minimum 330 px conservé à 1366×768. Mobile 390×844 : hauteur naturelle 330 px et scroll document inchangés. Lobby/partie/résultat restent hors du sélecteur ; leurs dimensions calculées avant/après sont identiques. Aucun changement backend/gameplay/transactions.
+
+**Vérification Codex exécutée :** Playwright local autonome, fixtures synthétiques et API/Auth publiques désactivées ; quatre viewports 1366×768, 1920×1080, 2560×1440, 390×844. Seize captures P0 (normal/indisponible/focus/retry/chargement/pending) plus seize captures et mesures des quatre états métier ; zéro erreur navigateur/requête externe/overflow horizontal. Captures vide et indisponible inspectées par Codex, distinctes de toute nouvelle recette publique humaine. 41 tests ciblés ContestScreen/coordinator/indisponible PASS ; verify:quick 5/5 PASS ; build frontend PASS, avertissement existant de taille de bundle. Aucun test DB nécessaire à ces trois lignes CSS ; répétition DB Ceo reste obligatoire avant import.
+
+**Préflight public READ ONLY, 08/10 06:41–06:42 UTC :** Railway réellement actif a8f14ac SUCCESS/Online/une replica, zéro issue/pending ; FAILED ancien 82d8d14/pre-deploy P1001 conservé dans l’historique, non rejoué. Prisma canonique 62 migrations à jour, flag TWITCH_COMMAND_PILOT_ENABLED=false. Gate complète PASS/disconnect terminé : OFF11, trois NATIVE/targets/imports/identités/backups exacts, cosmétiques 0/0, 96/5, 2/1 et deux audits inchangés ; zéro opération/outbound incertain, transaction longue/idle-in-transaction/verrou bloquant. Ceo A réel Auth/Web ACTIVE sans Twitch/import/target intact. Logs runtime/HTTP 06:41–06:42 UTC sans cap : zéro erreur HTTP/DB/pool/P1001/stage Concours lent ; aucune requête Concours authentifiée dans cette fenêtre, aucune nouvelle validation métier déduite.
+
+**Prochaine gate :** publier le correctif sur review, vérifier le vrai diff GitHub, fast-forward strict main, contrôler séparément les déploiements Railway/Cloudflare du SHA exact et leur health. Puis sources 17/17 et Helix fraîches, préflight TWITCH_ONLY/B distinct, répétition privée/backup/rollback exact et revalidation publique avant import uniquement B DATA_IMPORTED/LEGACY/non-canary. A et WebIdentity restent intacts ; aucun OAuth/lien/choix automatique ni Ceo NATIVE. Blocker d’intégrité, relation partagée ou connexion : STOP sans contournement. Après B vérifié seulement, gate humain Configuration > Compte > Lier Twitch/comparaison/choix explicite Twitch. OFF11/flag false et Streamer.bot OFF conservés ; aucun batch/GLOBAL/replay/réparation/recovery/commande Twitch.
 
 <a id="p0-deploye-recette-humaine-20261007"></a>
 
-## Point courant — P0 rétabli et validé publiquement ; clôture documentaire
+## Historique — P0 rétabli et validé publiquement ; clôture documentaire
 
 **Promotion exécutée :** code a6dceebe10772a6ad262c07b85e63a2a4f1a7575 approuvé indépendamment, finalisation documentaire 7e900df39fa19939b03cec9b66961f74ae2134e8 publiée sur review puis ensemble promu vers main par fast-forward strict. Push/fetch du 07/10 à 20:44 UTC : main/review/origin main/origin review tous 7e900df, divergence 0/0, worktree/index propres. Diffs GitHub exacts des 25 fichiers du candidat et quatre fichiers d’approbation ; aucune source produit changée après a6dceeb. Les checkpoints documentaires 0aba64c puis b4932a31b97b115e8c25c610afa36e4e90d98f58 ont ensuite consigné les résultats et la recette validée ; b4932a3 est aligné main/review et déployé SUCCESS sur Railway et Cloudflare. Le présent ajustement documentaire clôt les formulations de reprise, sans nouveau code, reconfiguration ou redéploiement manuel ; son SHA exact est contrôlé à la fin de la mission.
 

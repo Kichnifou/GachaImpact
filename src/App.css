@@ -8332,6 +8332,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .contest-frame > .scrollable-screen-panel-content { height: 100%; }
 .contest-scroll-body { min-height: 0; overflow-x: hidden; overflow-y: auto; }
 .contest-body { min-height: 100%; display: grid; align-content: start; gap: 8px; }
+@media (min-width: 761px) {
+  .contest-body:has(> .contest-empty) { align-content: stretch; grid-template-rows: minmax(330px, 1fr); }
+}
 .contest-active-layout { min-height: 0; display: grid; grid-template-rows: auto auto auto auto auto; gap: 8px; }
 .contest-active-layout.running { grid-template-rows: auto auto auto auto; }
 .contest-state-header { position: sticky; z-index: 4; top: 0; min-height: 58px; padding: 10px 14px; background: linear-gradient(160deg, rgba(14, 31, 57, .99), rgba(8, 20, 39, .99)); }

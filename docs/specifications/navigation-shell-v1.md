@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Hauteur de l’état vide Concours
+
+Sur desktop, le panneau « Aucun Concours actif » occupe la hauteur disponible du body défilant, avec contenu centré et minimum naturel de 330 px. La ligne flexible de grille ne cible que cet état ; lobby, partie, résultat et feedback conservent leur propriétaire de scroll. Sous 761 px, hauteur naturelle et scroll document selon le contrat UI. [Mesures et recette locale du correctif](../master/PROJECT_MASTER_PLAN.md#contest-height-ceo-20261008). Aucun changement des règles Concours ou de la résilience P0.
+
 ## Résilience du bootstrap Concours — correctif P0
 
 La coque devient prête dès que ses domaines essentiels sont chargés, indépendamment de la projection Concours. Cette destination présente le DTO réel ou un panneau chargement/indisponible avec Réessayer, sans résultat ni permission fictifs. Après huit secondes d’attente, le reste du jeu demeure accessible ; la requête reste suivie, bouton de réessai désactivé jusqu’à règlement pour éviter un doublon. Échec réglé : réessai disponible ; réponse valide : écran Concours normal. Les anciennes sessions ne publient ni DTO, statut ou erreur sur la suivante. [Recette et état physique](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).
