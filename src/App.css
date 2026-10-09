@@ -7015,8 +7015,8 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .gift-codes-tabs button.active { color: #eef9ff; border-color: rgba(83, 210, 255, .55); background: rgba(24, 81, 126, .75); box-shadow: inset 0 -2px #5fd7ff; }
 .gift-codes-tabs button span { margin-left: 7px; color: #77dcff; }
 .gift-codes-body { padding: 14px; }
-.gift-codes-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.gift-code-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: 1fr auto; gap: 14px 18px; padding: 18px; overflow: hidden; }
+.gift-codes-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; }
+.gift-code-card { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); grid-template-rows: 1fr auto; gap: 14px 18px; padding: 18px; overflow: hidden; }
 .gift-code-copy { min-width: 0; }
 .gift-code-copy h2 { margin: 5px 0 6px; color: #edf7ff; }
 .gift-code-copy code, .gift-code-admin code { display: inline-block; padding: 4px 7px; color: #8ee5ff; border: 1px solid rgba(82, 209, 255, .28); border-radius: 6px; background: rgba(12, 50, 78, .55); }

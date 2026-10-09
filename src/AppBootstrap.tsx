@@ -253,7 +253,8 @@ function AppBootstrap() {
   const claimGiftCode = useCallback(async (editionId: string, idempotencyKey: string) => {
     const result = await getGameApiClient().claimGiftCode(editionId, idempotencyKey)
     setResources(result.resources)
-    await Promise.all([loadNotifications(), loadEvent()])
+    // The committed claim is authoritative; secondary reads cannot turn it into a failed mutation.
+    void Promise.allSettled([loadNotifications(), loadEvent()])
     return result
   }, [loadNotifications, loadEvent])
   const loadAdminGiftCodes = useCallback((query: Parameters<ReturnType<typeof getGameApiClient>['getAdminGiftCodes']>[0]) => getGameApiClient().getAdminGiftCodes(query), [])

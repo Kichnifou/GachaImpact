@@ -11,7 +11,7 @@ import { usePresence } from './social/use-presence'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
-  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
+  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella', 'claimGiftCode'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
   presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
@@ -44,6 +44,34 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); mocks.shell = null; vi.useRealTimers() })
 const mount = () => act(async () => root.render(<AppBootstrap />))
+
+it('returns a committed enriched code despite an unavailable Event and a pending notification read', async () => {
+  await mount()
+  const { ApiError } = await import('./api/game-api')
+  const result = { available: [], claimed: [], resources: { ...resources, primogems: '1006' }, grantedRewards: [{ resourceKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: '2' }], eventReward: { granted: false, reason: 'DOMAIN_UNAVAILABLE', editionId: null, milestones: [] }, operation: { id: 'code-operation', alreadyProcessed: false } }
+  mocks.api.claimGiftCode.mockResolvedValueOnce(result)
+  mocks.api.getEvent.mockRejectedValueOnce(new ApiError('EVENT_DOMAIN_UNAVAILABLE', 'Unavailable', 503))
+  let rejectNotifications!: (reason: Error) => void
+  mocks.api.getNotifications.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectNotifications = reject }))
+  await act(async () => { await expect(mocks.shell!.onClaimGiftCode('edition', 'claim-key')).resolves.toEqual(result) })
+  expect(mocks.shell!.resources.primogems).toBe('1006')
+  expect(mocks.api.claimGiftCode).toHaveBeenCalledOnce()
+  expect(mocks.api.getEvent).toHaveBeenCalledTimes(2)
+  expect(mocks.api.getNotifications).toHaveBeenCalledTimes(2)
+  await act(async () => { rejectNotifications(new Error('Secondary read failed')) })
+  expect(mocks.shell!.resources.primogems).toBe('1006')
+  expect(mocks.signOut).not.toHaveBeenCalled()
+})
+
+it('keeps an actual rejected code claim rejected, without refreshing or inventing rewards', async () => {
+  await mount()
+  const failure = new Error('Code unavailable')
+  mocks.api.claimGiftCode.mockRejectedValueOnce(failure)
+  await act(async () => { await expect(mocks.shell!.onClaimGiftCode('edition', 'claim-key')).rejects.toBe(failure) })
+  expect(mocks.shell!.resources.primogems).toBe('1000')
+  expect(mocks.api.getEvent).toHaveBeenCalledOnce()
+  expect(mocks.api.getNotifications).toHaveBeenCalledOnce()
+})
 
 it('opens the real bootstrap shell while Contest is pending and accepts its eventual recovery', async () => {
   vi.useFakeTimers()

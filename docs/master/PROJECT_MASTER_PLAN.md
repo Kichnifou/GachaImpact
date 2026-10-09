@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1064 — GLOBAL actif ; candidat R1057 validé localement.
+Version : R1064 — GLOBAL actif ; livraison contrôlée R1057.
 Date : 2026-10-09
 Statut : **GLOBAL 19 réellement activé le 09/10/2026.** Code `797a2ebc22d3ab01b3f0ed27d1806bc744a1d70f` approuvé indépendamment, promu par fast-forward strict et déployé Railway/Cloudflare SUCCESS au SHA exact ; Prisma 67 à jour et contrôles physiques conformes. Capacité GLOBAL true déployée d'abord en CANARY 18, confirmation runtime propriétaire acquise après F5, puis transition canonique/auditée GLOBAL 19. Les 44 NATIVE, R1062/R1063, la sélection bidirectionnelle, Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
@@ -19,7 +19,7 @@ R1064 corrige l'admission atomique après OAuth vérifié, les échos, le draina
 
 **Contrôles R1057 acquis :** PostgreSQL privé 68 migrations réellement appliquées/enregistrées et status à jour ; campagne 69/69, puis suite enrichie finale 22/22 avec conservation d'une date Stella inconnue (70 cas distincts au total). EventSub signé/claim réel/retry des réponses gelées après changement de mois, conservation des 44 privés, concurrence, rollback et anciens claims couverts. verify:full 8/8, 1 383 tests frontend / 2 117 serveur ; dernier delta borné Stella/libellé Sac vérifié par PostgreSQL et 11 tests Sac, contrôle statique final verify:quick 5/5 acquis avant commit. Seize états visuels GameShell/CSS réels sur quatre viewports PASS, aucun appel externe ; trois captures inspectées puis restitution joueur relue après ajustement de largeur du texte conditionnel. Aucun test synthétique ne vaut recette publique.
 
-Prochaine gate autorisée : publier le candidat R1057 sur review, vérifier les vrais contenus GitHub et obtenir la review indépendante du SHA ; corriger/reviewer si nécessaire puis promotion fast-forward, migration Prisma normale, déploiements exacts et postflight public avec les 44 NATIVE. GLOBAL 19 reste actif pendant la fabrication. Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire ; ne pas les redemander ni les annoncer réussies. Preuves R1057 privées sous `local-data/identity-resolutions/r1057-20261009/` et `local-data/r1057-code-visual/` ; preuves R1064 conservées.
+Parcours R1057 autorisé : candidat publié et vrais contenus GitHub vérifiés ; finding P2 de review corrigé (claim confirmé indépendant des lectures secondaires), P3 visuel corrigé. Re-review du correctif puis fast-forward strict. Après ce checkpoint, la prochaine gate est le contrôle des déploiements exacts, de 068 appliquée par Prisma normal et du postflight des 44 ; aucune récompense publique de test. GLOBAL 19 reste actif. Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire ; ne pas les redemander ni les annoncer réussies. Preuves R1057 privées sous `local-data/identity-resolutions/r1057-20261009/` et `local-data/r1057-code-visual/` ; preuves R1064 conservées.
 
 
 <a id="community-complements-20261008"></a>
