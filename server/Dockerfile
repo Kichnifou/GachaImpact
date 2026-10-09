@@ -1,4 +1,6 @@
-FROM node:24-alpine AS build
+# Docker Official Images mirror; same verified Node 24 Alpine manifest as Docker Hub.
+# Pin both stages to avoid Docker Hub throttling and tag drift during a build.
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
 
 WORKDIR /app
 
@@ -10,7 +12,7 @@ COPY prisma ./prisma
 COPY src ./src
 RUN npm run prisma:generate && npm run build
 
-FROM node:24-alpine AS runtime
+FROM public.ecr.aws/docker/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS runtime
 
 WORKDIR /app
 ENV NODE_ENV=production
