@@ -10,6 +10,8 @@ Mission unique préautorisée jusqu'à review indépendante du SHA publié, corr
 
 Amendement propriétaire après recette Boss du 09/10 : la fenêtre et les contributions Twitch sont conformes. Retirer du seul Historique du Bilan l'entrée native de septembre 2026 « Non vaincu », identifiée précisément dans le contrat technique ; conserver septembre Twitch vaincu. Aucun effacement du combat, des attaques, récompenses, statistiques, références ou effets de scaling ; aucun masquage général des autres combats non vaincus ni fusion des deux sources. La visibilité est filtrée avant comptage et pagination, y compris lorsque les archives Twitch sont indisponibles.
 
+Précision d'application du contrat 450, constatée lors de la recette finale : « préfixes compris » inclut la mention automatique ajoutée par Twitch aux replies. Réserver sa place avant découpage et figer le budget des nouvelles réponses, sans modifier/rejouer les anciennes sorties. Le constat technique et la correction restent dans R1063 ; aucune nouvelle règle économique ni mission distincte.
+
 ## R1062 — Reprise P0 ciblée des profils historiques, mission consolidée (2026-10-09)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : rétablir dans la même mission les 43 identités historiques R1041, avec Kichni_Test séparé ; Streamer.bot déclaré arrêté depuis cinq jours reste arrêté. Les trois historiques déjà NATIVE et Kichni_Test ne sont jamais réimportés. Les 171 écartés et deux quarantaines restent exclus ; aucune purge globale et GLOBAL toujours false. Un profil sans élément peut être repris s'il appartient à cette population fixe. Aucun rapprochement par pseudo ni choix R1055 à la place d'un joueur.

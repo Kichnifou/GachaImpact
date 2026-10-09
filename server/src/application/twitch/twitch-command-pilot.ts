@@ -11,7 +11,7 @@ import type { AppConfig } from '../../config/environment.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import { findChatCommand } from '../chat/chat-command-registry.js';
 import { parseTwitchChatCommand } from './twitch-command-parser.js';
-import { twitchResponseEntries } from './twitch-response-format.js';
+import { twitchReplyBodyLimit, twitchResponseEntries } from './twitch-response-format.js';
 export { twitchResponseSegments } from './twitch-response-format.js';
 import type { FrozenCommandIntent } from './twitch-command-intent.js';
 import { TwitchObservationConflict } from './twitch-event-observer.js';
@@ -25,11 +25,15 @@ const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type
   condition: z.object({ broadcaster_user_id: twitchId, user_id: twitchId }).strict(),
   transport: z.object({ method: z.literal('webhook'), callback: z.string().optional() }),
 }), event: z.object({ chatter_user_id: twitchId, broadcaster_user_id: twitchId,
-  source_broadcaster_user_id: twitchId.nullish(), chatter_user_login: z.string().max(128).optional(), chatter_user_name: z.string().max(128).optional(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string() }).nullish(),
+  source_broadcaster_user_id: twitchId.nullish(), chatter_user_login: z.string().max(128).optional(), chatter_user_name: z.string().max(128).optional(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string(),
+    parent_user_name: z.string().max(128).optional(), parent_user_login: z.string().max(128).optional(),
+    thread_user_name: z.string().max(128).optional(), thread_user_login: z.string().max(128).optional(),
+  }).nullish(),
 }) });
 const response = z.object({ text: z.string(), status: z.enum(['PENDING', 'SENDING', 'SENT', 'FAILED', 'AMBIGUOUS']),
   messageId: z.string().optional(), error: z.string().optional(), fullText: z.string().optional() });
-const frozenIntent = z.object({ now: z.iso.datetime(), reads: z.record(z.string(), z.array(z.json())), memory: z.record(z.string(), z.string()),
+const responseBodyLimit = z.number().int().min(320).max(450);
+const frozenIntent = z.object({ now: z.iso.datetime(), responseBodyLimit: responseBodyLimit.optional(), reads: z.record(z.string(), z.array(z.json())), memory: z.record(z.string(), z.string()),
   mutation: z.object({ path: z.string(), args: z.json() }).optional(), output: z.json().optional(), bannerId: z.string().optional(),
   targets: z.object({ gachaTargetId: z.string().nullable().optional(), eventEditionId: z.string().optional(), bannerId: z.string().optional(),
     activeTeam: z.object({ id: z.string().nullable(), members: z.array(z.object({ position: z.number().int(), characterId: z.string() })) }).optional(),
@@ -38,9 +42,9 @@ const frozenIntent = z.object({ now: z.iso.datetime(), reads: z.record(z.string(
   }).optional() });
 const execution = z.object({ version: z.literal(1), playerId: z.string(), actorName: z.string(),
   senderId: twitchId, broadcasterId: twitchId, chatterId: twitchId.optional(), replyParentMessageId: z.string().min(1).max(256),
-  commandKey: z.string(), handler: z.string(), businessAt: z.iso.datetime().optional(), args: z.array(z.string()).optional(), intent: frozenIntent.optional(), stage: z.enum(['EXECUTING', 'RESPONSES']), responses: z.array(response) });
+  commandKey: z.string(), handler: z.string(), businessAt: z.iso.datetime().optional(), responseBodyLimit: responseBodyLimit.optional(), args: z.array(z.string()).optional(), intent: frozenIntent.optional(), stage: z.enum(['EXECUTING', 'RESPONSES']), responses: z.array(response) });
 type Execution = z.infer<typeof execution>;
-export type TwitchCommandExecutor = { capturedAt?(): Date; prepare?(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, businessAt?: string): Promise<FrozenCommandIntent>; execute(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, intent?: FrozenCommandIntent): Promise<string | readonly string[]> };
+export type TwitchCommandExecutor = { capturedAt?(): Date; prepare?(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, businessAt?: string, responseBodyLimit?: number): Promise<FrozenCommandIntent>; execute(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, intent?: FrozenCommandIntent): Promise<string | readonly string[]> };
 export type TwitchCommandSubscriptionInspector = Pick<TwitchEventSubSubscriptionManager, 'activationAvailable' | 'inspectPilotChatTransport'>;
 
 export class TwitchCommandPilot {
@@ -190,11 +194,13 @@ export class TwitchCommandPilot {
     if (!await this.enabled(event.chatter_user_id) || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
       || identity.twitchUserId !== event.chatter_user_id) return;
     if (!event.message.text.trim()) return;
+    let activityBodyLimit: number | undefined;
     if (this.messageActivity) {
-      const output = await this.consumeMessageActivity(identity.player, event, receiptId);
-      if (output === null) return; // Native outbound echo, not a player message.
+      const activity = await this.consumeMessageActivity(identity.player, event, receiptId);
+      if (activity === null) return; // Native outbound echo, not a player message.
+      activityBodyLimit = activity.responseBodyLimit;
       if (!event.message.text.startsWith('!')) {
-        if (output.length) await this.deliverActivityResponses(identity.player, event, receiptId, output, transport);
+        if (activity.output.length) await this.deliverActivityResponses(identity.player, event, receiptId, activity.output, transport, activityBodyLimit);
         else await this.completeMessageObservation(receiptId);
         return;
       }
@@ -224,10 +230,12 @@ export class TwitchCommandPilot {
         return true;
       }
       if (receipt.state !== 'RECEIVED' || receipt.externalReference !== null && !receipt.externalReference.startsWith('message-native:')) throw new Error('TWITCH_COMMAND_RECEIPT_CONFLICT');
-      const activity = minimal.messageActivity as { now?: string } | undefined;
+      const activity = minimal.messageActivity as { now?: string; responseBodyLimit?: number } | undefined;
+      const bodyLimit = this.messageActivity ? activityBodyLimit : activity ? activity.responseBodyLimit : twitchReplyBodyLimit(event);
       await save(tx, minimal, { version: 1, playerId: identity.playerId, actorName: identity.player.displayName,
         senderId: transport.receiverId, chatterId: identity.twitchUserId, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id,
         commandKey: key, handler, args, businessAt: activity?.now ?? this.executor.capturedAt?.().toISOString() ?? new Date().toISOString(),
+        ...(bodyLimit !== undefined ? { responseBodyLimit: bodyLimit } : {}),
         stage: 'EXECUTING', responses: [] });
       return true;
     });
@@ -239,7 +247,7 @@ export class TwitchCommandPilot {
         && await this.enabled(event.chatter_user_id) && this.executor.prepare) {
         const saved = before.saved;
         const intent = frozenIntent.parse(await this.executor.prepare({ ...identity.player, displayName: saved.actorName }, saved.handler,
-          saved.args!, definition.syntax, saved.commandKey, saved.businessAt));
+          saved.args!, definition.syntax, saved.commandKey, saved.businessAt, saved.responseBodyLimit));
         await this.locked(receiptId, async tx => {
           const latest = await read(tx);
           if (!latest.saved || latest.saved.stage !== 'EXECUTING' || latest.saved.intent || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
@@ -253,7 +261,7 @@ export class TwitchCommandPilot {
         const preimage = structuredClone(saved);
         const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler,
           saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
-        const segments = twitchResponseEntries(output);
+        const segments = twitchResponseEntries(output, saved.responseBodyLimit);
         if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
         await this.locked(receiptId, async tx => {
           const latest = await read(tx);
@@ -306,16 +314,16 @@ export class TwitchCommandPilot {
       }
       const now = this.messageActivity!.capturedAt();
       await tx.twitchEventReceipt.update({ where: { id: receiptId }, data: { externalReference: receipt.externalReference ?? 'message-native:' + event.broadcaster_user_id + ':' + event.message_id,
-        payloadMinimal: { ...minimal, messageActivity: { key, now: now.toISOString(), messageId: event.message_id, normal, length } } } });
+        payloadMinimal: { ...minimal, messageActivity: { key, now: now.toISOString(), messageId: event.message_id, normal, length, responseBodyLimit: twitchReplyBodyLimit(event) } } } });
       return receiptId;
     });
     // Reservation is committed before Event preparation can reconcile its existing owners.
     const initial = await this.read(this.db, canonical, event.chatter_user_id);
-    const previous = initial.minimal.messageActivity as unknown as { now: string; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
+    const previous = initial.minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
     const prepared = previous.plan ?? await this.messageActivity!.prepare(player, normal, new Date(previous.now));
     const activity = await this.locked(canonical, async tx => {
       const { minimal } = await this.read(tx, canonical, event.chatter_user_id);
-      const prior = minimal.messageActivity as unknown as { now: string; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
+      const prior = minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
       if (!prior.plan) {
         if (prior.now !== previous.now) throw new Error('TWITCH_MESSAGE_CONFLICT');
         prior.plan = prepared;
@@ -323,11 +331,12 @@ export class TwitchCommandPilot {
       }
       return prior;
     });
-    if (!await this.enabled(event.chatter_user_id)) return [];
-    return this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan);
+    const output = await this.enabled(event.chatter_user_id)
+      ? await this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan, activity.responseBodyLimit) : [];
+    return { output, responseBodyLimit: activity.responseBodyLimit };
   }
 
-  private async deliverActivityResponses(player: CurrentPlayer, event: z.infer<typeof envelope>['event'], receiptId: string, output: readonly string[], transport: PilotChatTransport) {
+  private async deliverActivityResponses(player: CurrentPlayer, event: z.infer<typeof envelope>['event'], receiptId: string, output: readonly string[], transport: PilotChatTransport, activityBodyLimit?: number) {
     const owned = await this.locked(receiptId, async tx => {
       const key = 'twitch-message:' + event.broadcaster_user_id + ':' + event.message_id;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
@@ -337,7 +346,8 @@ export class TwitchCommandPilot {
       await this.save(tx, receiptId, minimal, { version: 1, playerId: player.id, actorName: player.displayName,
         senderId: transport.receiverId, chatterId: event.chatter_user_id, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id,
         commandKey: 'twitch-message:' + event.broadcaster_user_id + ':' + event.message_id, handler: 'message', stage: 'RESPONSES',
-        responses: twitchResponseEntries(output).map(entry => ({ ...entry, status: 'PENDING' })) });
+        ...(activityBodyLimit !== undefined ? { responseBodyLimit: activityBodyLimit } : {}),
+        responses: twitchResponseEntries(output, activityBodyLimit).map(entry => ({ ...entry, status: 'PENDING' })) });
       return true;
     });
     if (!owned) return;
@@ -404,7 +414,7 @@ export class TwitchCommandPilot {
     };
     const before = await this.db.$transaction(async tx => { await tx.$executeRaw`SET TRANSACTION READ ONLY`; return guard(tx, true); });
     if (!apply) return { state: 'DRY_RUN', responses: [] as string[] };
-    const intent = frozenIntent.parse(await this.executor.prepare(before.player, 'pity', [], '!pity', request.commandKey, request.businessAt));
+    const intent = frozenIntent.parse(await this.executor.prepare(before.player, 'pity', [], '!pity', request.commandKey, request.businessAt, before.saved.responseBodyLimit));
     // Defense against a future resolver change. The command may only read these
     // two owners, and must have produced its complete result before persistence.
     if (intent.mutation || intent.output === undefined || intent.now !== request.businessAt || intent.targets || intent.bannerId
@@ -418,7 +428,7 @@ export class TwitchCommandPilot {
       await this.save(tx, request.receiptId, { ...current.minimal, executingPityRecovery: { version: 1, auditId: audit.id, operatorPlayerId: request.operatorPlayerId } }, { ...current.saved, intent });
     });
     const output = await this.executor.execute(before.player, 'pity', [], '!pity', request.commandKey, intent);
-    const segments = twitchResponseEntries(output);
+    const segments = twitchResponseEntries(output, before.saved.responseBodyLimit);
     if (!segments.length) throw blocked();
     await this.locked(request.receiptId, async tx => {
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;

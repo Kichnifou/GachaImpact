@@ -1,22 +1,22 @@
 import type { ElementKey } from '../../domain/economy/resources.js';
-import { commandSource } from '../player/player-command-execution.js';
+import { commandResponseBodyLimit, commandSource } from '../player/player-command-execution.js';
 
 export const chatElementEmojis: Readonly<Record<ElementKey, string>> = { pyro: '🔥', hydro: '💧', cryo: '❄️', electro: '⚡', anemo: '🌪️', geo: '☄️', dendro: '🌿' };
 export const chatElementNames: Readonly<Record<ElementKey, string>> = { pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Electro', anemo: 'Anemo', geo: 'Geo', dendro: 'Dendro' };
 export const chatLine = (value: string) => value.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
 export const TWITCH_RESPONSE_LIMIT = 450;
-export const chatResponseLimit = () => commandSource('INTERNAL_CHAT') === 'TWITCH' ? TWITCH_RESPONSE_LIMIT : 500;
+export const chatResponseLimit = () => commandSource('INTERNAL_CHAT') === 'TWITCH' ? commandResponseBodyLimit() ?? TWITCH_RESPONSE_LIMIT : 500;
 export const chatLength = (value: string) => Array.from(value).length;
 
 /** Opt-in packing: each entry is indivisible, even when its name contains spaces or commas. */
 export function logicalChatParts(prefix: string, entries: readonly { text: string; separator: string }[], continuation: string, limit = chatResponseLimit()): readonly string[] {
   const twitch = commandSource('INTERNAL_CHAT') === 'TWITCH';
-  return packChatParts(prefix, entries, continuation, twitch ? Math.min(limit, TWITCH_RESPONSE_LIMIT) : limit, twitch);
+  return packChatParts(prefix, entries, continuation, twitch ? Math.min(limit, chatResponseLimit()) : limit, twitch);
 }
 
 /** Explicit transport presentation, also usable outside a Player command scope. */
-export function logicalTwitchParts(prefix: string, entries: readonly { text: string; separator: string }[], continuation: string): readonly string[] {
-  return packChatParts(prefix, entries, continuation, TWITCH_RESPONSE_LIMIT, true);
+export function logicalTwitchParts(prefix: string, entries: readonly { text: string; separator: string }[], continuation: string, limit = TWITCH_RESPONSE_LIMIT): readonly string[] {
+  return packChatParts(prefix, entries, continuation, Math.min(limit, TWITCH_RESPONSE_LIMIT), true);
 }
 
 function packChatParts(prefix: string, entries: readonly { text: string; separator: string }[], continuation: string, limit: number, twitch: boolean): readonly string[] {

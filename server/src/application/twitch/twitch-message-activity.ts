@@ -33,7 +33,7 @@ export class TwitchMessageActivity {
     const eligible = normal && Boolean(player.elementKey && isElementKey(player.elementKey));
     return { daily: eligible, event: eligible && this.events ? await new EventChatPresence(this.db, this.events).prepare(player, now) : null };
   }
-  async consume(player: CurrentPlayer, messageId: string, broadcasterId: string, length: number, normal: boolean, now = this.clock.now(), intent?: MessagePresenceIntent) {
+  async consume(player: CurrentPlayer, messageId: string, broadcasterId: string, length: number, normal: boolean, now = this.clock.now(), intent?: MessagePresenceIntent, responseBodyLimit?: number) {
     const key = `twitch-message:${broadcasterId}:${messageId}`;
     const completed = await this.db.businessOperation.findFirst({ where: { sourceChannel: 'TWITCH', idempotencyKey: `message-complete:${key}` } });
     if (completed) {
@@ -73,7 +73,7 @@ export class TwitchMessageActivity {
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
         const presence = intent ?? await this.prepare(player, normal, now);
         const actor = verifiedPlayerActor(player);
-        const extras = await withPlayerCommandExecution({ now, source: 'TWITCH', eventEditionId: presence.event?.editionId }, async () => {
+        const extras = await withPlayerCommandExecution({ now, source: 'TWITCH', eventEditionId: presence.event?.editionId, responseBodyLimit }, async () => {
           const output: string[] = [];
           if (presence.daily && this.dailyReward) {
             const daily = await this.dailyReward.execute(actor, 'TWITCH', key);

@@ -1,7 +1,7 @@
 import type { GachaPullResult } from '../gacha/gacha-store.js';
 import type { StellaUseResult } from '../box/box-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
-import { chatElementEmojis, chatLength, logicalChatParts, TWITCH_RESPONSE_LIMIT } from './chat-list-result.js';
+import { chatElementEmojis, chatLength, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
 import { commandSource } from '../player/player-command-execution.js';
 import { chatElementNames } from './chat-list-result.js';
 import { chatNumber } from './chat-command-format.js';
@@ -85,7 +85,7 @@ export function pullChatResult(actorName: string, result: GachaPullResult): read
       return { text: [...prefixes, [principal, ...suffix].join(compact ? '|' : ' | ')].join(' '), atoms: [...prefixes, principal, ...suffix] };
     };
     const message = render(false);
-    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return chatLength(message.text) <= TWITCH_RESPONSE_LIMIT ? [message.text]
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return chatLength(message.text) <= chatResponseLimit() ? [message.text]
       : logicalChatParts('', message.atoms.map(text => ({ text, separator: ' | ' })), `🎲 ${result.operation.pullCount > 1 ? `[${row.index}/${result.operation.pullCount}] ` : ''}Invocation (suite) :`);
     // Compact only numeric typography and labels, keeping player/character names intact.
     return chatLength(message.text) <= 500 ? [message.text] : [render(true).text];

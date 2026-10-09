@@ -21,26 +21,27 @@ export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatComm
     async rememberCommandRefreshScopes() {},
     hasConfirmedCommandMutation: () => confirmed(playerId, key),
   });
-  const finalize = async (playerId: string, key: string, output: string | readonly string[]) => {
+  const finalize = async (playerId: string, key: string, output: string | readonly string[], responseBodyLimit = TWITCH_RESPONSE_LIMIT) => {
     const segments = typeof output === 'string' ? [output] : [...output];
     for (const text of await commandMissionFeedback(db, playerId, SourceChannel.TWITCH, key)) {
       const last = segments.at(-1);
-      if (last && chatLength(`${last} ${text}`) <= TWITCH_RESPONSE_LIMIT) segments[segments.length - 1] = `${last} ${text}`;
+      if (last && chatLength(`${last} ${text}`) <= responseBodyLimit) segments[segments.length - 1] = `${last} ${text}`;
       else segments.push(text);
     }
     return segments;
   };
-  const prepare: NonNullable<TwitchCommandExecutor['prepare']> = async (player, handler, args, _usage, key, businessAt) => {
+  const prepare: NonNullable<TwitchCommandExecutor['prepare']> = async (player, handler, args, _usage, key, businessAt, responseBodyLimit) => {
     const actor = verifiedPlayerActor(player);
-    const intent: FrozenCommandIntent = { now: businessAt ?? clock.now().toISOString(), reads: {}, memory: {} };
+    const intent: FrozenCommandIntent = { now: businessAt ?? clock.now().toISOString(), reads: {}, memory: {},
+      ...(responseBodyLimit !== undefined ? { responseBodyLimit } : {}) };
     const frozen = commandIntentServices(services, actor, intent, 'PREPARE');
     try {
-      intent.output = freezeCommandValue(await withPlayerCommandExecution({ now: new Date(intent.now), source: SourceChannel.TWITCH, ...intent.targets, bannerId: intent.bannerId, key },
+      intent.output = freezeCommandValue(await withPlayerCommandExecution({ now: new Date(intent.now), source: SourceChannel.TWITCH, ...intent.targets, bannerId: intent.bannerId, key, responseBodyLimit: intent.responseBodyLimit },
         () => new PlayerCommandResolver(context(player.id, key, intent), frozen, SourceChannel.TWITCH).resolve(actor, `!${handler} ${args.join(' ')}`, key)));
     } catch (error) { if (!(error instanceof CommandPrepared)) throw error; }
     if (intent.mutation) {
       try {
-        await withPlayerCommandExecution({ now: new Date(intent.now), source: SourceChannel.TWITCH, key }, async () => {
+        await withPlayerCommandExecution({ now: new Date(intent.now), source: SourceChannel.TWITCH, key, responseBodyLimit: intent.responseBodyLimit }, async () => {
           if (handler === 'pull' || handler === 'select') {
             const current = await services.getCurrentGacha.execute(actor);
             intent.bannerId = current.banner.id;
@@ -87,10 +88,10 @@ export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatComm
       const intent = saved ?? await prepare(player, handler, args, usage, key);
       const actor = verifiedPlayerActor(player);
       const output = intent.output !== undefined ? thawCommandValue(intent.output) as string | readonly string[]
-        : await withPlayerCommandExecution({ ...intent.targets, now: new Date(intent.now), source: SourceChannel.TWITCH, bannerId: intent.bannerId, key },
+        : await withPlayerCommandExecution({ ...intent.targets, now: new Date(intent.now), source: SourceChannel.TWITCH, bannerId: intent.bannerId, key, responseBodyLimit: intent.responseBodyLimit },
           () => new PlayerCommandResolver(context(player.id, key, intent), commandIntentServices(services, actor, intent, 'EXECUTE'), SourceChannel.TWITCH)
             .resolve(actor, `!${handler} ${args.join(' ')}`, key));
-      return finalize(player.id, key, output);
+      return finalize(player.id, key, output, intent.responseBodyLimit);
     },
   };
 }

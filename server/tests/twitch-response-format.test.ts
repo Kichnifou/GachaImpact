@@ -84,14 +84,31 @@ describe('complete Twitch command output from frozen owners', () => {
     const db = { playerPermanentMissionProgress: { findMany: vi.fn(async () => []) }, resourceMovement: { findMany: vi.fn(async () => []) },
       businessOperation: { count: vi.fn(async () => 0) }, team: { findFirst: vi.fn(async () => null) } };
     const core = twitchPlayerCommandExecutor(db as unknown as PrismaClient, h.services as unknown as ChatCommandServices);
-    const run = async (text: string, key = text) => {
+    const run = async (text: string, key = text, responseBodyLimit?: number) => {
       const { definition, args } = parseTwitchChatCommand(text);
-      const intent = await core.prepare!(player, definition!.handler!, args, definition!.syntax, key);
+      const intent = await core.prepare!(player, definition!.handler!, args, definition!.syntax, key, undefined, responseBodyLimit);
       const output = await core.execute(player, definition!.handler!, args, definition!.syntax, key, intent);
       return { intent, output: typeof output === 'string' ? [output] : output };
     };
     return { ...h, db, core, run };
   }
+  it('freezes the reduced body budget across large Box preparation, replay and subsequent standalone changes', async () => {
+    const f = fixture();
+    const catalog = JSON.parse(readFileSync('prisma/data/characters.json', 'utf8')) as { externalKey: string; name: string; elementKey: string; rarity: number }[];
+    const characters = catalog.map((character, index) => ({ ...character, id: character.externalKey, constellation: index % 7, favorite: false, firstObtainedAt: new Date('2026-01-01') }));
+    f.services.getCurrentPlayerBox.execute.mockResolvedValue({ characters, preference: { sortKey: 'alphabetical', direction: 'asc' } } as never);
+    const legacy = await f.run('!box', 'legacy-output');
+    const current = await f.run('!box', 'new-output', 320);
+    expect(legacy.intent.responseBodyLimit).toBeUndefined(); expect(current.intent.responseBodyLimit).toBe(320);
+    expect(current.output.every(text => chatLength(text) <= 320)).toBe(true);
+    expect(current.output.length).toBeGreaterThan(legacy.output.length);
+    for (const character of characters) expect(current.output.join('\n').split(`${character.name} (C${character.constellation})`)).toHaveLength(2);
+    f.services.getCurrentPlayerBox.execute.mockResolvedValue({ characters: [], preference: { sortKey: 'alphabetical', direction: 'asc' } } as never);
+    expect(await f.core.execute(player, 'box', [], '!box', 'new-output', current.intent)).toEqual(current.output);
+    expect(await f.core.execute(player, 'box', [], '!box', 'legacy-output', legacy.intent)).toEqual(legacy.output);
+    expect(f.services.getCurrentPlayerBox.execute).toHaveBeenCalledTimes(2);
+    expect(f.services.setBoxCharacterFavorite.execute).not.toHaveBeenCalled(); expect(f.services.setBoxSortPreference.execute).not.toHaveBeenCalled();
+  });
   it('renders a large public-catalog Box including Yoimiya exactly once and freezes its complete output', async () => {
     const f = fixture();
     const catalog = JSON.parse(readFileSync('prisma/data/characters.json', 'utf8')) as { externalKey: string; name: string; elementKey: string; rarity: number }[];

@@ -2,7 +2,7 @@ import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { isElementKey } from '../../domain/economy/resources.js';
-import { chatElementEmojis, chatLength, logicalChatParts, TWITCH_RESPONSE_LIMIT } from './chat-list-result.js';
+import { chatElementEmojis, chatLength, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
 import { commandSource } from '../player/player-command-execution.js';
 import { entryParts, durationText, sacCommand } from './chat-command-format.js';
 import { pullChatResult } from './gacha-command-result.js';
@@ -50,7 +50,7 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
       const targetText = target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.';
       const text = `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${targetText}`;
-      if (commandSource('INTERNAL_CHAT') !== 'TWITCH' || chatLength(text) <= TWITCH_RESPONSE_LIMIT) return text;
+      if (commandSource('INTERNAL_CHAT') !== 'TWITCH' || chatLength(text) <= chatResponseLimit()) return text;
       return logicalChatParts(`🎯 Bannières (${period}) |`, [
         ...banner.featuredFiveStars.map(character => ({ text: `⭐⭐⭐⭐⭐ ${characterText(character)}`, separator: ', ' })),
         ...banner.featuredFourStars.map(character => ({ text: `⭐⭐⭐⭐ ${characterText(character)}`, separator: ', ' })),

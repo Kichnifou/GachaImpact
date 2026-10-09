@@ -7,7 +7,7 @@ export type CommandSource = Extract<SourceChannel, 'INTERNAL_CHAT' | 'TWITCH'>;
 export type CommandTargets = { bannerId?: string; gachaTargetId?: string | null; eventEditionId?: string;
   activeTeam?: { id: string | null; members: { position: number; characterId: string }[] };
   expedition?: { characterId: string | null; departedAt: string | null }; combat?: { encounterId: string; characterIds: string[] }; friendIds?: string[]; tradeIds?: string[] };
-type Execution = CommandTargets & { now: Date; source: CommandSource; key?: string };
+type Execution = CommandTargets & { now: Date; source: CommandSource; key?: string; responseBodyLimit?: number };
 const execution = new AsyncLocalStorage<Execution>();
 
 /** Server-internal scope: no client input, no global clock/config mutation. */
@@ -21,6 +21,7 @@ export function commandSource<T extends SourceChannel | 'CHAT'>(fallback: T): T 
   return execution.getStore()?.source ?? fallback;
 }
 export function commandBannerId(): string | undefined { return execution.getStore()?.bannerId; }
+export function commandResponseBodyLimit(): number | undefined { return execution.getStore()?.responseBodyLimit; }
 
 export function commandKey(): string | undefined { return execution.getStore()?.key; }
 export function commandTargets(): CommandTargets | undefined { return execution.getStore(); }

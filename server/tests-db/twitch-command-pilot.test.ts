@@ -285,9 +285,12 @@ describe('R1063 repeated commands and selection parity', () => {
       const body = event(text), request = signed(body), calls = business.mock.calls.length;
       const response = await post(request); expect(response.statusCode, `${text}: ${response.body}`).toBe(204);
       const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
-      const saved = (receipt.payloadMinimal as { contentHash: string; commandPilot: { args: string[]; responses: { text: string; status: string }[] } });
+      const saved = (receipt.payloadMinimal as { contentHash: string; commandPilot: { args: string[]; responseBodyLimit: number; intent: { responseBodyLimit: number }; responses: { text: string; status: string }[] } });
       expect(receipt.state).toBe('PROCESSED'); expect(saved.contentHash).toBe(createHash('sha256').update(text).digest('hex'));
       expect(saved.commandPilot.args).toEqual([]);
+      expect(saved.commandPilot.responseBodyLimit).toBe(450 - Array.from('@not-authoritative ').length);
+      expect(saved.commandPilot.intent.responseBodyLimit).toBe(saved.commandPilot.responseBodyLimit);
+      expect(saved.commandPilot.responses.every(part => Array.from('@not-authoritative ' + part.text).length <= 450)).toBe(true);
       expect(saved.commandPilot.responses.every(part => part.status === 'SENT' && Array.from(part.text).length <= 450)).toBe(true);
       const output = saved.commandPilot.responses.map(part => part.text);
       expect(output.join('\n')).not.toContain('Syntaxe');
@@ -309,6 +312,29 @@ describe('R1063 repeated commands and selection parity', () => {
     const invalidReceipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: invalid.headers['twitch-eventsub-message-id'] } });
     expect(invalidReceipt.payloadMinimal).toMatchObject({ commandPilot: { args: ['visible'], responses: [{ text: 'Syntaxe : !banniere.', status: 'SENT' }] } });
     expect(await state()).toEqual(before);
+  }, 60_000);
+  it('freezes a long thread-author reply budget once for concurrent deliveries and preserves every Box entry', async () => {
+    const before = await state(), executions = business.mock.calls.length, sends = outbound.send.mock.calls.length;
+    const body = event('!box');
+    body.event.chatter_user_name = 'x'; body.event.chatter_user_login = 'x';
+    Object.assign(body.event, { reply: { parent_message_id: randomUUID(), parent_user_name: 'Parent', parent_user_login: 'parent',
+      thread_user_name: 'T'.repeat(128), thread_user_login: 'thread' } });
+    const request = signed(body), replies = await Promise.all([post(request), post(request)]);
+    replies.forEach(response => expect(response.statusCode, response.body).toBe(204));
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const saved = receipt.payloadMinimal as { commandPilot: { responseBodyLimit: number; intent: { responseBodyLimit: number }; responses: { text: string; status: string; fullText?: string }[] } };
+    expect(saved.commandPilot.responseBodyLimit).toBe(320); expect(saved.commandPilot.intent.responseBodyLimit).toBe(320);
+    expect(saved.commandPilot.responses.every(row => row.status === 'SENT' && row.fullText === undefined && Array.from('@' + 'T'.repeat(128) + ' ' + row.text).length <= 450)).toBe(true);
+    const owned = await db.playerCharacter.findMany({ where: { playerId }, include: { character: true } });
+    for (const character of owned) expect(saved.commandPilot.responses.filter(row => row.text.includes(`${character.character.name} (C${character.constellation})`))).toHaveLength(1);
+    expect(await state()).toEqual(before); expect(business).toHaveBeenCalledTimes(executions + 1);
+    expect(outbound.send).toHaveBeenCalledTimes(sends + saved.commandPilot.responses.length);
+    const frozen = structuredClone(receipt.payloadMinimal);
+    expect((await post(request)).statusCode).toBe(204);
+    expect((await post(signed(body))).statusCode).toBe(204);
+    expect((await db.twitchEventReceipt.findUniqueOrThrow({ where: { id: receipt.id } })).payloadMinimal).toEqual(frozen);
+    expect(await state()).toEqual(before); expect(business).toHaveBeenCalledTimes(executions + 1);
+    expect(outbound.send).toHaveBeenCalledTimes(sends + saved.commandPilot.responses.length);
   }, 60_000);
   it('shares the target with the standalone owner and never lets an old Twitch receipt undo a later choice', async () => {
     const player = await db.player.findUniqueOrThrow({ where: { id: playerId } }), actor = verifiedPlayerActor(player);

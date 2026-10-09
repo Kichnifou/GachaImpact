@@ -3,7 +3,7 @@ import type { PlayerTeam, PlayerTeams } from '../team/team-store.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import type { PlayerCommandContext } from './player-command-context.js';
-import { chatElementEmojis, chatLength, TWITCH_RESPONSE_LIMIT } from './chat-list-result.js';
+import { chatElementEmojis, chatLength, chatResponseLimit } from './chat-list-result.js';
 import { deriveActiveTeamGachaEffects } from '../../domain/team/team-passives.js';
 import { entryParts } from './chat-command-format.js';
 import { commandSource } from '../player/player-command-execution.js';
@@ -29,7 +29,7 @@ function compactPassive(passive: PlayerTeam['passives'][number]): string {
 export function viewTeam(player: string, team: PlayerTeam): readonly string[] {
   const entries = [composition(team).join(' - ') || 'vide',
     team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif'];
-  if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`✅ Team suite : ${text}`) > TWITCH_RESPONSE_LIMIT)) return entryParts(`✅ Team ${player} :`, [
+  if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`✅ Team suite : ${text}`) > chatResponseLimit())) return entryParts(`✅ Team ${player} :`, [
     ...(composition(team).length ? composition(team) : ['vide']),
     ...(team.passives.length ? team.passives.map(passive => `🧩 Passif actif : ${compactPassive(passive)}`) : ['🧩 Aucun passif actif']),
   ], '✅ Team suite :');
@@ -61,7 +61,7 @@ export async function teamCommand(identity: PlayerExecutionActor, args: readonly
     const empty = slice.length - visible.length;
     const entries = [...visible.map(row => `${label(row)} (${composition(row).length}/4) : ${composition(row).join(', ') || 'vide'}`),
       ...(empty ? [`${empty} emplacements vides`] : [])];
-    if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`💾 Teams suite : ${text}`) > TWITCH_RESPONSE_LIMIT)) return [
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`💾 Teams suite : ${text}`) > chatResponseLimit())) return [
       `💾 Teams de ${actor.displayName} ${page}/${pages} :`,
       ...visible.flatMap(row => entryParts(`💾 ${label(row)} (${composition(row).length}/4) :`, composition(row).length ? composition(row) : ['vide'], `💾 Team ${row.position} (suite) :`, ', ')),
       ...(empty ? [`💾 ${empty} emplacements vides`] : []),

@@ -31,6 +31,7 @@ const reads = new Set([
 ]);
 export type FrozenCommandIntent = {
   now: string;
+  responseBodyLimit?: number;
   reads: Record<string, Prisma.JsonValue[]>;
   memory: Record<string, string>;
   mutation?: { path: string; args: Prisma.JsonValue };

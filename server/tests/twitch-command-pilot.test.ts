@@ -62,6 +62,81 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it('freezes the verified thread-name budget before preparation and retains it through concurrent redelivery', async () => {
+    const f = await fixture();
+    const body = { ...commandEnvelope('!box'), event: { ...commandEnvelope('!box').event,
+      chatter_user_name: 'x', chatter_user_login: 'x', reply: { parent_message_id: 'parent', parent_user_name: 'parent',
+        thread_user_name: 'T'.repeat(80), thread_user_login: 'thread' } } };
+    const prepare = vi.fn<NonNullable<TwitchCommandExecutor['prepare']>>(async (_player, _handler, _args, _usage, _key, at, limit) => {
+      expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responseBodyLimit: 368, stage: 'EXECUTING' } });
+      expect(limit).toBe(368);
+      return { now: at!, reads: {}, memory: {}, responseBodyLimit: limit, output: 'X'.repeat(limit!) };
+    });
+    Object.assign(f.executor, { prepare });
+    f.executor.execute.mockRejectedValueOnce(new Error('private interruption')).mockResolvedValue(['X'.repeat(368)]);
+    await expect(f.pilot.consumeAuthenticated(body, 'receipt')).rejects.toThrow('private interruption');
+    body.event.reply.thread_user_name = 'short';
+    await Promise.all([f.pilot.consumeAuthenticated(body, 'receipt'), f.pilot.consumeAuthenticated(body, 'receipt')]);
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responseBodyLimit: 368,
+      intent: { responseBodyLimit: 368 }, responses: [{ text: 'X'.repeat(368), status: 'SENT' }] } });
+    expect(f.outbound.send).toHaveBeenCalledTimes(1);
+    expect(Array.from('@' + 'T'.repeat(80) + ' ' + f.outbound.send.mock.calls[0]![0].message)).toHaveLength(450);
+  });
+  it('keeps a legacy EXECUTING frozen output without a budget at its historical size', async () => {
+    const f = await fixture();
+    f.executor.execute.mockRejectedValueOnce(new Error('private interruption'));
+    await expect(f.pilot.consumeAuthenticated(commandEnvelope('!box'), 'receipt')).rejects.toThrow();
+    const saved = f.receipt.payloadMinimal.commandPilot as Record<string, unknown>;
+    delete saved.responseBodyLimit;
+    saved.intent = { now: '2026-10-09T16:00:00Z', reads: {}, memory: {}, output: 'O'.repeat(450) };
+    const before = structuredClone(saved.intent);
+    const prepare = vi.fn(); Object.assign(f.executor, { prepare });
+    f.executor.execute.mockResolvedValue(['O'.repeat(450)]);
+    await f.pilot.consumeAuthenticated(commandEnvelope('!box'), 'receipt');
+    expect(prepare).not.toHaveBeenCalled();
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { intent: before, responses: [{ text: 'O'.repeat(450), status: 'SENT' }] } });
+    expect((f.receipt.payloadMinimal.commandPilot as Record<string, unknown>).responseBodyLimit).toBeUndefined();
+    expect(f.outbound.send.mock.calls[0]![0].message).toHaveLength(450);
+  });
+  it('freezes the activity reply budget before preparation and preserves an oversized activity atom', async () => {
+    const f = await fixture(), body = commandEnvelope('Bonjour');
+    body.event.chatter_user_name = 'N'.repeat(128);
+    const activity = {
+      capturedAt: () => new Date('2026-10-09T16:00:00Z'),
+      prepare: vi.fn(async () => {
+        expect(f.receipt.payloadMinimal).toMatchObject({ messageActivity: { responseBodyLimit: 320 } });
+        return { daily: false, event: null };
+      }),
+      consume: vi.fn(async (...args: unknown[]) => { expect(args[7]).toBe(320); return ['A'.repeat(400)]; }),
+    };
+    const pilot = new TwitchCommandPilot(f.db, f.config, f.executor, f.outbound, f.parser, f.subscriptions, activity as never, f.authority, f.players as never);
+    await pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responseBodyLimit: 320,
+      responses: [{ fullText: 'A'.repeat(400), status: 'SENT' }] } });
+    expect(Array.from('@' + body.event.chatter_user_name + ' ' + f.outbound.send.mock.calls[0]![0].message).length).toBeLessThanOrEqual(450);
+  });
+  it.each(['Bonjour', '!box'])('uses the canonical activity budget when a different delivery receipt wins %s', async text => {
+    const f = await fixture(), body = commandEnvelope(text);
+    const canonical = { ...structuredClone(f.receipt), id: 'canonical', payloadMinimal: { messageActivity: {
+      key: 'twitch-message:123:chat-message', now: '2026-10-09T16:00:00Z', messageId: 'chat-message', normal: !text.startsWith('!'),
+      length: text.length, responseBodyLimit: 320, plan: { daily: false, event: null },
+    } } };
+    f.tx.twitchEventReceipt.findUnique.mockImplementation(async (...args: unknown[]) =>
+      structuredClone((args[0] as { where: { id: string } }).where.id === 'canonical' ? canonical : f.receipt));
+    f.tx.twitchEventReceipt.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(canonical as never);
+    f.executor.execute.mockResolvedValue(['A'.repeat(400)]);
+    const activity = { capturedAt: () => new Date(), prepare: vi.fn(),
+      consume: vi.fn(async (...args: unknown[]) => { expect(args[7]).toBe(320); return text.startsWith('!') ? [] : ['A'.repeat(400)]; }) };
+    const pilot = new TwitchCommandPilot(f.db, f.config, f.executor, f.outbound, f.parser, f.subscriptions, activity as never, f.authority, f.players as never);
+    await pilot.consumeAuthenticated(body, 'receipt');
+    expect(activity.prepare).not.toHaveBeenCalled();
+    expect(f.receipt.payloadMinimal.messageActivity).toBeUndefined();
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responseBodyLimit: 320,
+      responses: [{ fullText: 'A'.repeat(400), status: 'SENT' }] } });
+    expect(f.outbound.send).toHaveBeenCalledTimes(1);
+    expect(Array.from(f.outbound.send.mock.calls[0]![0].message).length).toBeLessThanOrEqual(320);
+  });
   it.each(['!pity', '!pull'])('executes %s for an allowlisted viewer distinct from the transport receiver', async text => {
     const f = await fixture(true, true, '200');
     const viewerId = '22222222-2222-4222-8222-222222222222';
@@ -293,7 +368,8 @@ describe('Kichnifou-operated command pilot with independent viewer actors', () =
     const f = await fixture();
     f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
     await f.pilot.consumeAuthenticated(commandEnvelope('!pity'), 'receipt');
-    const saved = f.receipt.payloadMinimal.commandPilot as { responses: { text: string; status: string; messageId?: string }[] };
+    const saved = f.receipt.payloadMinimal.commandPilot as { responseBodyLimit?: number; responses: { text: string; status: string; messageId?: string }[] };
+    delete saved.responseBodyLimit;
     saved.responses = [{ text: 'S'.repeat(500), status: 'SENT', messageId: 'old-sent' }, { text: '👩🏽‍🚀'.repeat(125), status: 'PENDING' }];
     const old = structuredClone(saved.responses);
     await f.pilot.retryResponses(playerId, 'receipt');
