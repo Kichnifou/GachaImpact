@@ -30,6 +30,56 @@ Validation : 90 tests PostgreSQL pertinents PASS ; `verify:full` 8/8 PASS (tests
 
 Checkpoint `01a9d1425e2be104125b88a942899bbee0d8d33b` : vrai diff GitHub et 14 blobs rapprochés, fast-forward main strict, Railway/Cloudflare SUCCESS au SHA exact, production/preview/assets exacts, health 200, Prisma 63/noms/checksums conformes. Après redémarrage, PostgreSQL/configuration Railway/Helix READ ONLY : quatre NATIVE, CANARY 12, capacité/armement/effectifCANARY, subscription Chat ACTIVE exacte, GLOBALfalse ; aucun PENDING/outbound incertain. La sonde canonique n'est pas un GET authentifié de l'instance. Le propriétaire confirme ensuite F5/classement/historique/lisibilité (« Oui c'est bon ») et les quatre indications Configuration→Compte (« je confirme »), sans commande supplémentaire. A recetté ; aucune session navigateur inventée.
 
+<a id="correction-review-20261009"></a>
+
+## Correction après review indépendante — 09/10/2026
+
+Baseline contrôlée avant correction : `main/origin/main = 01a9d1425e2be104125b88a942899bbee0d8d33b`, `review/origin/review = d62cb7cedc35de0e6236dcf3f2f8f74ac2eb021a`, ahead 1 / behind 0, worktree propre. La review indépendante conclut CORRECTION REQUISE ; le candidat initial n'est pas promu. Cette section complète les preuves du 08/10 sans les transformer en contrôles publics du 09/10.
+
+### Sélection concurrente et ordre des verrous
+
+Le défaut est reproduit avec de vraies transactions PostgreSQL : après la lecture réelle de l'ancienne composition, le test suspend la requête UI avant son écriture, laisse R1060 terminer, puis reprend la sélection. Sans correction, celle-ci réussit et enregistre une cible retirée. Le parcours Chat attendait d'abord le verrou Player, contrairement à l'ordre global. Les logs des essais intermédiaires, dont un conflit Serializable avant stabilisation de cette reproduction, sont préservés localement.
+
+`PrismaGachaStore.setTarget` prend maintenant `70422401` au début de sa transaction, avec ou sans clé. L'éligibilité et l'écriture sont sérialisées avec votes, pulls, rotation et remplacement ; idempotence, validations ACTIVE/5★ et erreurs existantes restent inchangées. Les tests contrôlent les bloqueurs réels dans PostgreSQL, pas un simple délai supposé suffisant.
+
+La concurrence inverse révèle aussi qu'un snapshot Serializable peut être fixé avant l'attente du cycle. Verrouiller seulement Player ne suffit pas : `setTarget` modifie l'état Gacha. R1060 suit désormais identités → cycle → Players triés → états Gacha triés → autorité. Un état modifié pendant l'attente provoque SQLSTATE 40001 **avant le backup**, y compris si la cible reste compatible. L'opérateur doit relire un nouveau plan puis réessayer ; aucun retry économique automatique ni écrasement de backup. Les tests couvrent UI/Chat, les deux ordres, cible conservée/retirée, absence de deadlock, replay de clé et absence de gain supplémentaire.
+
+Audit des autres writers : Pull, votes et rotation prenaient déjà le cycle avant Player ; correction administrative via `AdminOperation` également. Ils restent inchangés. Bootstrap initialise une cible vide ; les écritures d'import personnel ne deviennent pas accessibles aux NATIVE. La répétition globale reste privée. Le contexte d'exécution Twitch ne prend pas de verrou transactionnel Player externe autour du store. Aucune règle Pull, pity, garantie, Capture ou économie modifiée.
+
+### Horloge et fenêtre courante
+
+Le candidat initial utilisait `input.now ?? new Date()` sans frontière suffisante. Le remplacement lit maintenant `clock_timestamp()` dans PostgreSQL. Une heure injectée exige simultanément le schéma effectif `batch_test_` suivi de 32 caractères hexadécimaux, une connexion PostgreSQL loopback et une Date valide ; sinon `PRIVATE_CLOCK_ONLY`. La protection concerne plan, application, replay et compensation. Une entrée publique ne peut donc pas antidater via ce paramètre.
+
+La fenêtre source est relue après acquisition des verrous, avant et après le backup, puis après les écritures avant retour de transaction. Une expiration pendant le backup ou les écritures refuse/annule la transaction ; le backup reste préservé. Tests : heure réelle, injection privée autorisée, injection refusée sur le schéma public local sans mutation, vraie source expirée refusée et expiration aux deux frontières. La rotation normale du lundi à 00:00 Europe/Paris reste inchangée.
+
+### Votes des historiques sans destination définitive
+
+Les sources vérifiées du 08/10 contiennent quatre votes de membres des 43 : B est rattaché par preuve Twitch/import/R1055 ; trois autres n'ont pas de destination NATIVE définitive prouvée. Pour ces sources et l'état lu alors : **IMPORT 1 (B, Raiden), RETAIN 0, DEFERRED 3, aucune collision observée**. Ce constat ne remplace pas la relecture fraîche exigée lors d'une éventuelle application.
+
+Le plan R1060 expose `legacyVoteDisposition` et transforme explicitement les exclusions non rattachées en DEFERRED. Toute présence différée produit `BLOCKED_VOTES` / `LEGACY_VOTES_REQUIRE_DECISION` et refuse l'application avant backup ou écriture. Un vote natif identique est RETAIN, une divergence ou une inéligibilité reste une collision bloquante. Les tests couvrent IMPORT/RETAIN avec différé et refus d'une liaison à un Player encore LEGACY. Aucun Player fantôme, rattachement par pseudo, double vote ou changement d'un résultat passé. Le planificateur générique de population conserve ses exclusions historiques, sans élargir les 43.
+
+**Gate de future application :** ces trois votes ne peuvent pas contribuer au prochain lundi avec le mécanisme actuel sans preuves de rattachement définitif suffisantes ou une nouvelle décision métier et un mécanisme revu pour les non-NATIVE. Aucune pondération anonyme ou omission silencieuse n'est choisie. Le correctif peut être publié pour review ; l'application reste bloquée par cette gate, par la fenêtre courante et par les gates opératoires existantes.
+
+### Vérification et arrêt du candidat corrigé
+
+Résultats finaux réellement exécutés après correction :
+
+| Contrôle | Résultat |
+| --- | --- |
+| `legacy-banner-replacement` : concurrence UI/Chat, horloge, votes différés, conservation, replay et compensation | 15/15 PASS |
+| Invocation et BannerVote PostgreSQL | 33/33 PASS |
+| Compléments communautaires, Event shop et paliers PostgreSQL | 32/32 PASS |
+| Total PostgreSQL local privé | 80/80 PASS, codes de retour 0, aucun timeout |
+| Prisma validate ; deploy/status des 64 migrations dans la fixture privée R1060 | PASS ; schéma à jour et contraintes physiques vérifiées |
+| `verify:full` | 8/8 PASS, code 0 : 1 378 tests frontend, 1 984 backend non-DB, builds, typechecks, lint et deux diff-checks |
+| Nettoyage des fixtures et contrôle des ajouts avant publication | Zéro schéma privé restant, zéro fuite des valeurs privées vérifiées, UTF-8 valide |
+
+Logs complets de cette correction : `local-data/identity-resolutions/review-fix-20261009/`, logs R1060 `community-complements-20261008/db-b-verified-*` et `db-b-process-*` ; full sous `%TEMP%/gachaimpact-verify-full-CdSnWu/`. Les backups restent préservés. Le contrôle GitHub cumulé et ses preuves de publication sont distincts de ces tests locaux.
+
+Aucun changement de sources, identités réelles, backups existants, infrastructure, migration publique ou armement. Les mécanismes Event, compensation, rétention, population et la migration 064 du candidat initial restent inchangés ; seuls le store, le remplacement, sa régression PostgreSQL et quatre documents sont corrigés.
+
+**STOP avant main pour une nouvelle review indépendante ChatGPT de tout le diff cumulé `main...review` (candidat initial et correction).** Aucune promotion, migration 064 publique, restauration Event, remplacement public, commande Twitch, réimport NATIVE, batch 43 ou GLOBAL dans cette intervention. Event B reste une proposition 15/23 depuis 14/21, sans attribution ; les onze faits sociaux restent DEFERRED et `CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT` demeure mandatory.
+
 <a id="sources-verifiees"></a>
 
 ## Sources vérifiées — lot B

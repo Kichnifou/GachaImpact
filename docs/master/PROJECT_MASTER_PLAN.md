@@ -1,13 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : compléments R1056/31B — visibilité R1059 recettée ; candidat sensible R1060/Event/rétention sur review.
-Date : 2026-10-08
+Version : correction après review de d62cb7c — sélection Gacha, horloge et votes différés R1060 ; candidat sensible sur review.
+Date : 2026-10-09
 Statut : **LOT A R1059 PUBLIÉ ET RECETTÉ ; LOT B/C CANDIDAT SENSIBLE, STOP POUR REVIEW INDÉPENDANTE CHATGPT.** CEO_NATIVE_COMPLETE reste acquis. B ACTIVE Web+Twitch/NATIVE, A ARCHIVED sans accès ; quatre canaries persistées, CANARY révision 12, capacité commandes true/GLOBAL false. Main/production restent sur 01a9d14 avec Prisma 63 ; migration 064 et réparation communautaire non appliquées publiquement. Aucun batch 43/GLOBAL, réimport personnel ni réparation économique publique. Preuves et limites ci-dessous.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
 <a id="community-complements-20261008"></a>
 
 ## Point courant — compléments communautaires et visibilité des archives
+
+**Correction après review indépendante du 09/10 :** `d62cb7c` a reçu CORRECTION REQUISE et n'a pas été promu. Défaut de sélection tardive reproduit en PostgreSQL privé ; `setTarget` UI et Chat prend désormais le verrou de cycle avant toute lecture d'éligibilité ou verrou Player. R1060 verrouille aussi les états Gacha après les Players : un snapshot Serializable devenu ancien échoue avant le backup, puis exige un nouveau plan. Les 16 opérations/115 résultats restent intacts. [Correction, couverture et limites](../architecture/community-complements-20261008.md#correction-review-20261009).
+
+L'heure effective R1060 vient désormais de PostgreSQL et est relue jusqu'à la fin des écritures ; `input.now` est réservé à un schéma privé de test vérifié sur loopback. Les quatre votes source sont explicités : un vote de B intégrable, trois différés faute de rattachement définitif NATIVE prouvé. Leur présence bloque l'application avec `LEGACY_VOTES_REQUIRE_DECISION` ; leur contribution au prochain lundi exige des preuves suffisantes ou une nouvelle politique métier revue. Aucune pondération ni identité inventée. **STOP après le checkpoint correctif sur review pour une nouvelle review indépendante du diff cumulé `main...review`.** Main/production restent à 01a9d14, Prisma 63 et dernier CANARY 12 validé ; aucun changement public ou d'infrastructure dans cette correction.
+
+Validation de la correction : 80/80 tests PostgreSQL privés PASS, dont 15 R1060 ; Prisma validate et deploy/status des 64 migrations privés PASS. `verify:full` 8/8 PASS (1 378 tests frontend, 1 984 backend non-DB, builds, typechecks, lint et diff-checks). Zéro schéma de fixture restant ; [logs et portée exacte](../architecture/community-complements-20261008.md#correction-review-20261009). Ces contrôles ne valent ni review indépendante ni validation publique.
 
 Rectification propriétaire : **Céo = A ARCHIVED ; Céotryd = B ACTIVE/NATIVE conservé**, identités et résolution R1055 vérifiées en lecture PostgreSQL. Lot A : exclusions serveur dans Event actuel/historique, Boss et Giveaway ; attributions historiques neutralisées dans Boss/Giveaway/Concours/Arcade, sans effacer auteurs/résultats/récompenses ni transférer A vers B. [R1059 et audit](../architecture/community-complements-20261008.md#visibilite-archive). Checkpoint 01a9d1425e2be104125b88a942899bbee0d8d33b contrôlé sur le vrai diff GitHub, promu par fast-forward strict, déployé Railway/Cloudflare au SHA exact ; health 200, Prisma 63 et transport CANARY recontrôlés après redémarrage. 90 tests PostgreSQL privés, verify:full 8/8 et huit captures synthétiques GameShell desktop/mobile PASS. Le propriétaire valide F5/classement/historique/lisibilité (« Oui c'est bon »), puis capacité/armement/effectif/réception Chat (« je confirme »). A recetté ; aucune session navigateur inventée.
 

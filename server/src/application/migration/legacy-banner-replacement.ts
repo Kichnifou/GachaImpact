@@ -17,6 +17,23 @@ const hashText = z.string().regex(/^[a-f0-9]{64}$/);
 const protectedTables = ['players', 'player_gacha_states', 'player_resource_balances', 'player_characters', 'player_economy_stats',
   'player_progression', 'pull_operations', 'pull_results', 'business_operations', 'resource_movements'] as const;
 
+/** Caller time is only a loopback/private fixture facility, never a production clock. */
+export async function readBannerReplacementTime(tx: Tx, privateNow?: Date): Promise<Date> {
+  const row = (await tx.$queryRaw<{ now: Date; schema: string; host: string | null }[]>`
+    SELECT clock_timestamp() AS now,current_schema() AS schema,host(inet_server_addr()) AS host`)[0]!;
+  if (privateNow !== undefined) {
+    if (!/^batch_test_[0-9a-f]{32}$/.test(row.schema) || !['127.0.0.1', '::1'].includes(row.host ?? '')
+      || !z.date().safeParse(privateNow).success) return fail('PRIVATE_CLOCK_ONLY');
+    return new Date(privateNow);
+  }
+  return row.now;
+}
+async function currentWeek(tx: Tx, input: Input, evidence: { startsAt: Date; endsAt: Date }) {
+  const now = await readBannerReplacementTime(tx, input.now);
+  if (now < evidence.startsAt || now >= evidence.endsAt) return fail('SOURCE_WEEK_NOT_CURRENT');
+  return now;
+}
+
 async function protectedState(tx: Tx) {
   const ids = (await tx.player.findMany({ select: { id: true }, orderBy: { id: 'asc' } })).map(p => p.id);
   const graph = await captureTargetedPlayerRows(tx, ids, protectedTables);
@@ -29,6 +46,7 @@ const bindingHash = (input: Input) => hash({ snapshotHash: input.snapshot.hash, 
   expectedNativeRotationId: input.expectedNativeRotationId, bindings: input.bindings.map(b => ({ playerId: b.playerId, twitchUserId: b.twitchUserId, importId: b.importId, importReport: b.importReport })).sort((a, b) => a.playerId.localeCompare(b.playerId)) });
 
 async function inspect(tx: Tx, input: Input) {
+  await readBannerReplacementTime(tx, input.now);
   const verified = [];
   for (const binding of input.bindings) {
     if (binding.snapshot.hash !== input.snapshot.hash) return fail('SOURCE_BINDING_CONFLICT');
@@ -36,8 +54,7 @@ async function inspect(tx: Tx, input: Input) {
   }
   if (!verified.length || new Set(verified.map(v => v.identity.playerId)).size !== verified.length) return fail('DEFINITIVE_BINDINGS_REQUIRED');
   const evidence = legacyBannerEvidence(input.snapshot, await tx.character.findMany());
-  const now = input.now ?? new Date();
-  if (now < evidence.startsAt || now >= evidence.endsAt) return fail('SOURCE_WEEK_NOT_CURRENT');
+  await currentWeek(tx, input, evidence);
   const native = await tx.bannerRotation.findUnique({ where: { id: input.expectedNativeRotationId }, include: { featuredCharacters: true, votes: true } });
   if (!native || native.status !== 'ACTIVE' || native.supersededAt || native.startsAt.getTime() !== evidence.startsAt.getTime() || native.endsAt.getTime() !== evidence.endsAt.getTime()) return fail('EXACT_ACTIVE_NATIVE_REQUIRED');
   if (native.legacyProvenance && typeof native.legacyProvenance === 'object' && !Array.isArray(native.legacyProvenance) && native.legacyProvenance.source === 'genshin_characters.json') return fail('ALREADY_LEGACY');
@@ -51,10 +68,13 @@ async function inspect(tx: Tx, input: Input) {
   if (native.votes.some(v => five.has(v.characterId) || !catalog.some(c => c.id === v.characterId && c.rarity === 5 && c.isActive))) return fail('NATIVE_VOTE_NOW_INELIGIBLE');
   const state = await protectedState(tx);
   const targets = await tx.playerGachaState.findMany({ where: { player: { status: { not: 'ARCHIVED' } }, selectedBannerCharacterId: { not: null, notIn: [...five] } }, select: { playerId: true }, orderBy: { playerId: 'asc' } });
-  const plan = { status: 'READY' as const, oldRotationId: native.id, week: evidence.week,
+  const deferredLegacyVotes = votePlan.filter(v => v.action === 'EXCLUDED').length;
+  const plan = { status: deferredLegacyVotes ? 'BLOCKED_VOTES' as const : 'READY' as const, oldRotationId: native.id, week: evidence.week,
+    applicationGate: deferredLegacyVotes ? 'LEGACY_VOTES_REQUIRE_DECISION' as const : null,
+    legacyVoteDisposition: votePlan.map(v => ({ ...v, action: v.action === 'EXCLUDED' ? 'DEFERRED' as const : v.action })),
     preservedPullOperations: state.graph.tables.pull_operations!.filter(row => (JSON.parse(row) as { banner_rotation_id: string }).banner_rotation_id === native.id).length,
     preservedNativeVotes: native.votes.length, importedLegacyVotes: votePlan.filter(v => v.action === 'IMPORT').length,
-    retainedLegacyVotes: votePlan.filter(v => v.action === 'RETAIN').length, unresolvedLegacyVotes: votePlan.filter(v => v.action === 'EXCLUDED').length,
+    retainedLegacyVotes: votePlan.filter(v => v.action === 'RETAIN').length, unresolvedLegacyVotes: deferredLegacyVotes,
     invalidTargetPlayerIds: targets.map(t => t.playerId), fingerprint: hash({ bindingHash: bindingHash(input), verified, evidence, native, state: state.graph.hash, targets }) };
   return { plan, native, evidence, votePlan, state };
 }
@@ -67,6 +87,10 @@ async function locks(tx: Tx, input: Input) {
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`; // Same cycle lock as native votes and scheduler.
   await tx.$executeRaw`LOCK TABLE players IN SHARE ROW EXCLUSIVE MODE`; // No new Player can pull outside the bounded row set.
   await tx.$queryRaw`SELECT id FROM players ORDER BY id FOR UPDATE`; // Native pulls hold this same row lock.
+  // A selector can commit while this SERIALIZABLE transaction waits for the
+  // cycle. Lock its updated row too, so a stale snapshot fails before backup,
+  // including when the selected character stays compatible with the new cycle.
+  await tx.$queryRaw`SELECT player_id FROM player_gacha_states ORDER BY player_id FOR UPDATE`;
   await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
 }
 async function currentHash(tx: Tx, input: Input, newRotationId: string) {
@@ -85,6 +109,7 @@ export async function applyLegacyBannerReplacement(db: PrismaClient, config: App
   if (!z.uuid().safeParse(input.operationId).success || !hashText.safeParse(input.expectedFingerprint).success || input.acknowledgement !== STREAMERBOT_PATH_DISABLED) return fail('CONFIRMATIONS_REQUIRED');
   return db.$transaction(async tx => {
     await locks(tx, input); await requireCommunityMutationGates(tx, config, input);
+    await readBannerReplacementTime(tx, input.now);
     const prior = await tx.migrationBatch.findUnique({ where: { id: input.operationId } });
     if (prior) {
       const j = journalSchema.safeParse(prior.summary);
@@ -95,7 +120,8 @@ export async function applyLegacyBannerReplacement(db: PrismaClient, config: App
     }
     const { plan, native, evidence, votePlan, state } = await inspect(tx, input);
     if (plan.fingerprint !== input.expectedFingerprint) return fail('PLAN_CHANGED');
-    const newRotationId = randomUUID(), now = input.now ?? new Date();
+    if (plan.applicationGate) return fail(plan.applicationGate);
+    const newRotationId = randomUUID(), now = await currentWeek(tx, input, evidence);
     const targetSet = new Set(plan.invalidTargetPlayerIds);
     const targetRows = state.graph.tables.player_gacha_states!.filter(row => targetSet.has((JSON.parse(row) as { player_id: string }).player_id));
     const body = { kind, version: 1 as const, operationId: input.operationId, inputHash: bindingHash(input), fingerprint: plan.fingerprint, oldRotationId: native.id,
@@ -103,6 +129,7 @@ export async function applyLegacyBannerReplacement(db: PrismaClient, config: App
       nativeRotationProof: JSON.stringify(native), protectedPlayerRows: state.graph.tables, createdAt: now.toISOString() };
     const backup = legacyBannerReplacementBackupSchema.parse({ ...body, hash: hash(body) });
     await writeBackup(backup);
+    await currentWeek(tx, input, evidence); // A slow backup must not cross Monday unnoticed.
     await tx.bannerRotation.update({ where: { id: native.id }, data: { status: 'ENDED', supersededAt: now } });
     const slots = { 4: 0, 5: 0 };
     await tx.bannerRotation.create({ data: { id: newRotationId, startsAt: evidence.startsAt, endsAt: evidence.endsAt, status: 'ACTIVE', generationVoteSnapshot: Prisma.JsonNull,
@@ -119,6 +146,7 @@ export async function applyLegacyBannerReplacement(db: PrismaClient, config: App
       summary: { kind, state: 'APPLIED', inputHash: backup.inputHash, fingerprint: backup.fingerprint, backupHash: backup.hash, newRotationId, oldRotationId: native.id, postHash,
         preservedNativeVotes: plan.preservedNativeVotes, importedLegacyVotes: plan.importedLegacyVotes, unresolvedLegacyVotes: plan.unresolvedLegacyVotes } } });
     await tx.twitchNativeAudit.create({ data: { actorPlayerId: input.operatorPlayerId, action: `LEGACY_BANNER_REPLACEMENT_APPLIED:${input.operationId}`, mode: 'OFF', revision: input.expectedRevision, acknowledgement: input.acknowledgement } });
+    await currentWeek(tx, input, evidence); // Refuse an expiry during writes, rolling everything back.
     return { replayed: false, rotationId: newRotationId, backupHash: backup.hash };
   }, options);
 }
@@ -130,6 +158,7 @@ export async function rollbackLegacyBannerReplacement(db: PrismaClient, config: 
   if (hash(body) !== expected || expected !== input.expectedBackupHash || backup.inputHash !== bindingHash(input) || backup.oldRotationId !== input.expectedNativeRotationId) return fail('BACKUP_INVALID');
   return db.$transaction(async tx => {
     await locks(tx, input); await requireCommunityMutationGates(tx, config, input);
+    await readBannerReplacementTime(tx, input.now);
     const prior = await tx.migrationBatch.findUniqueOrThrow({ where: { id: backup.operationId } }), j = journalSchema.safeParse(prior.summary);
     if (prior.mode !== 'CUTOVER' || prior.status !== 'COMPLETED' || prior.snapshotHash !== input.snapshot.hash || prior.migratorVersion !== version || !j.success
       || j.data.inputHash !== backup.inputHash || j.data.backupHash !== backup.hash || j.data.fingerprint !== backup.fingerprint || j.data.newRotationId !== backup.newRotationId || j.data.oldRotationId !== backup.oldRotationId) return fail('JOURNAL_OR_POSTIMAGE_CONFLICT');

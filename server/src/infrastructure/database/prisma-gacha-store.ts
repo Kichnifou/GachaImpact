@@ -60,6 +60,9 @@ export class PrismaGachaStore implements GachaStore {
 
   public async setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<PlayerGachaState> {
     return this.database.$transaction(async (tx) => {
+      // Cycle first, including UI requests without a key: eligibility and its
+      // write must serialize with rotation/replacement before any Player lock.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
       if (idempotencyKey) {
         await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
         const key = `gacha.target:${playerId}:${idempotencyKey}`;
