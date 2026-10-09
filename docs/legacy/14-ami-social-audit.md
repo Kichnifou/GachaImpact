@@ -2,6 +2,8 @@
 
 ## Point 31B — preuves conservées, raccordement public non exécuté
 
+Le 09/10, code communautaire corrigé approuvé puis déployé avec Prisma 64 au SHA 15a16a192b0f2a5a3ceb93b8090e7b4429c35041 ; aucune restauration sociale ni purge publique, onze faits B DEFERRED inchangés. La rétention décrite ci-dessous reste autorisée seulement en répétition privée, même si son code est publié. [Promotion et limites](../architecture/community-complements-20261008.md#promotion-code-20261009).
+
 Onze faits Céotryd B restent DEFERRED ; seul son endpoint Twitch est vérifié dans ce graphe, peer proof/import manquants. Aucun compte/relation fictive, ni niveau/cœur/date/usage inventé. Le garde-fou `CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT` de l'owner par défaut reste obligatoire. Adaptation candidate privée seulement : rétention des plans expirés/consommés, résolutions, A/B/opérateur et endpoints de toutes versions sociales, vérification FK/fingerprint avant purge et graphes protégés après. Réconciliation/quotas directionnels/blocage/révocation/collisions et backup-restauration sont testés séparément ; cela n'autorise aucune purge sociale publique, batch 43 ou GLOBAL. [Audit31B et limites](../architecture/community-complements-20261008.md#r1056-global).
 
 ## Extension de migration R1056, 08/10/2026

@@ -1,5 +1,11 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 064 — rotations remplacées conservées (déployée le 09/10/2026)
+
+20261008220000_064_preserve_superseded_banner_rotations est appliquée par le preDeploy Prisma normal au candidat approuvé 15a16a192b0f2a5a3ceb93b8090e7b4429c35041. Registre public **64** terminé, noms/checksums exacts et migrate status up-to-date ; aucune migration manuelle parallèle. banner_rotations reçoit superseded_at TIMESTAMPTZ(6) nullable, un CHECK imposant ENDED si supersédée, unicité partielle starts_at WHERE superseded_at IS NULL et index de lookup ; l'ancien starts_at unique est retiré. L'index one_active existant reste strictement inchangé. Sauvegarde fraîche publique applicative vérifiée avant DDL.
+
+Contrôle READ ONLY : une seule ACTIVE native, zéro rotation supersédée ; toutes les rotations, compositions, votes, 16 opérations/115 résultats et données personnelles/Event des quatre canaries sont inchangés. **064 prépare le mécanisme, elle n'applique pas R1060.** [Preuves de promotion et limites](community-complements-20261008.md#promotion-code-20261009). Les états datés 063 ci-dessous décrivent son propre checkpoint historique.
+
 ## Migration 063 — résolution opérateur et amitiés versionnées (déployée)
 
 063 ajoute `twitch_canonicalization_plans` (paire Web/Twitch, opérateur, choix, fingerprint/backup, conséquences, expiration, consommation liée à résolution) et `legacy_friendship_facts` (provenance JSON et Helix, agrégats/dates, deux IDs Twitch vérifiés ou différés). FK RESTRICT, CHECK de cohérence, index FK, RLS activée et droits PUBLIC/anon/authenticated révoqués. Aucun token OAuth stocké. Les plans et backups restent privés.

@@ -1,8 +1,8 @@
 # Migration legacy V1 — contrat canonique
 
-## Point 31B du 08/10 — visibilité recettée, réparation sensible sur review seulement
+## Point 31B du 09/10 — code et 064 déployés, restauration en attente
 
-R1059 publié/recetté sur 01a9d14 : Céo A ARCHIVED exclu, Céotryd B ACTIVE/NATIVE conservé sans transfert économique. Les 17 sources récentes/ZIP et la provenance des quatre imports sont vérifiés. [Rapprochement communautaire et protections](community-complements-20261008.md) : Event sans double join/palier, votes par identité définitive, priorité de bannière R1060 limitée au cycle 05/10 avec conservation des 16 opérations/115 résultats natifs. Migration 064 candidate, public toujours 63/CANARY 12. Default purge guard inchangé ; rétention opérateur/social répétée uniquement en schéma PostgreSQL privé. STOP pour review indépendante ChatGPT après publication review ; aucun réimport personnel, nouveau choix OAuth/R1055, raccordement social public, batch 43 ou GLOBAL.
+R1059 reste recetté ; R1056/R1060 corrigé approuvé puis promu au SHA 15a16a192b0f2a5a3ceb93b8090e7b4429c35041, Railway/Cloudflare SUCCESS et public Prisma 64 conforme. Quatre NATIVE/CANARY 12/GLOBAL false préservés ; A ARCHIVED sans accès/B ACTIVE, 16 opérations/115 résultats et états personnels/Event exacts. Aucun remplacement de bannière, crédit Event, vote importé, raccordement social, réimport personnel ou batch/GLOBAL. Source récente/ZIP et quatre imports restent acquis ; code déployé ne signifie pas données restaurées. Trois votes sans destination définitive bloquent R1060 jusqu'à un arbitrage/mécanisme revu avant lundi 12/10 00:00 Paris. Onze faits sociaux DEFERRED, garde de purge par défaut mandatory ; rétention opérateur/social autorisée uniquement en répétition privée. [Preuves, options et prochaine action](community-complements-20261008.md#promotion-code-20261009).
 
 ## R1055/R1056 déployé — abandon contrôlé et relations communautaires, 08/10/2026
 

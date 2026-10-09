@@ -4,6 +4,47 @@
 
 Continuation depuis e9967ae, rectifications propriétaire intégrées. Quatre canaries NATIVE/CANARY révision 12, GLOBAL false ; aucun import, OAuth, choix R1055, transfert de progression, restauration publique ou batch43 exécuté dans ce lot. Les preuves brutes, UUID, identités Twitch, manifests, hashes individuels et backups restent dans les dossiers locaux ignorés, préservés.
 
+<a id="promotion-code-20261009"></a>
+
+## Promotion du code et de 064 — 09/10/2026
+
+Review indépendante ChatGPT du candidat cumulé APPROUVÉE POUR PROMOTION DU CODE UNIQUEMENT. Après gates fraîches, main avance de 01a9d1425e2be104125b88a942899bbee0d8d33b à **15a16a192b0f2a5a3ceb93b8090e7b4429c35041** par fast-forward strict ; main/review et refs distantes identiques, divergence 0/0. Les 27 fichiers/stats/blobs du diff GitHub cumulé et les patches des deux commits sont rapprochés des preuves intactes. Aucun changement du code testé, aucune nouvelle campagne des 80 tests privés/verify:full nécessaire.
+
+Avant promotion : Railway Online/SUCCESS et Cloudflare SUCCESS exacts sur 01a9d14, production/preview/assets égaux, aucun déploiement concurrent ou changement staged. PostgreSQL READ ONLY : 63 migrations terminées avec noms/checksums exacts, ancien starts_at unique et one_active valides, une seule ACTIVE, quatre NATIVE/CANARY 12, GLOBAL false, A ARCHIVED sans identité/session, B ACTIVE et R1055 terminal exacts. Zéro PENDING/receipt bloquant/outbound incertain, transaction longue ou verrou DDL bloquant observé.
+
+Sauvegarde fraîche avant DDL : pg_dump custom du schéma public applicatif et de toutes ses données, incluant migrations, identités, FK, fonctions, triggers et contraintes. Archive de 1 967 203 octets, SHA-256, catalogue, décodage complet par pg_restore sans connexion et fsync vérifiés ; aucun restore public. Auth/Storage gérés et grants de rôles ne sont pas inclus ; cette sauvegarde couvre le périmètre DDL public de 064. Sources et anciens backups conservés.
+
+Railway **SUCCESS 51ab667c-8193-4e67-898c-70a70a94c408** au SHA approuvé ; Cloudflare **SUCCESS 57892a63-dbb6-42c8-86b1-3f80b1781e8f** au même SHA, production/preview/assets exacts. Backend Online/health 200, zéro incident signalé. Le preDeploy normal seul exécute Prisma : logs « Applying migration 20261008220000_064_preserve_superseded_banner_rotations » puis succès ; aucune migration manuelle parallèle. Registre **64** terminé, noms/checksums LF exacts et migrate status READ ONLY up-to-date. Colonne superseded_at nullable, unicité partielle officielle, index de lookup et CHECK ENDED conformes ; ancien starts_at unique retiré, one_active strictement inchangé.
+
+Postflight READ ONLY : rotations/compositions/votes identiques à l'avant, **une seule ACTIVE native et zéro rotation supersédée**. Les 16 opérations/115 résultats conservent leurs références ; graphes personnels des quatre canaries, personnages/possessions/ressources/progression/pity/garanties/Capture et Event exactement identiques. Imports, identités, autorité et faits sociaux inchangés. A toujours ARCHIVED sans accès ; B ACTIVE. Aucun applyLegacyBannerReplacement, applyNativeLegacyEvent, raccordement social, import personnel, batch 43 ou GLOBAL exécuté.
+
+Transport canonique après redémarrage, via PostgreSQL/configuration Railway/Helix READ ONLY : capacité true, armement ON, effectif CANARY, révision 12, Chat ACTIVE, callback/broadcaster/receiver exacts, quatre IDs couverts et GLOBAL false ; zéro PENDING/outbound incertain. Ce n'est pas un GET HTTP authentifié du processus. Après le dernier redémarrage du checkpoint documentaire, appliquer la gate F5 de la session Kichnifou existante du runbook ; aucune session fabriquée ni commande Twitch.
+
+Preuves privées : local-data/identity-resolutions/community-promotion-20261009/ (préimage/postimage, archive, registre/DDL, processus et arbitrage) et preuves transport horodatées sous ceo-native-20261008/. Le checkpoint documentaire de clôture est publié séparément selon le workflow puis recontrôlé ; il n'ajoute aucune migration ou logique métier. Ses références finales restent dans le rapport et les preuves locales pour éviter une boucle de commits de SHA.
+
+<a id="arbitrage-votes-20261009"></a>
+
+## Arbitrage préparé en lecture seule — trois votes différés
+
+Les 17 fichiers de ceo-separated-operator-20261008 et de 20261004T200232514Z sont relus, manifests/taille/SHA-256 et hashes de bundle conformes aux preuves existantes. Population approuvée validée contre le rapport Helix historique du 05/10 à 10:28 UTC et les deux autres rapports historiques concordants : 43 fixes, 171 discarded/deux quarantaines inchangés. Helix actuel relu **par ID Twitch historiquement prouvé**, sans OAuth ni matching Player par pseudo. Les quatre IDs existent et les logins concordent. Cela prouve l'identité du votant, pas une migration personnelle ou un choix de progression.
+
+| Votant source | Choix | Destination vérifiée le 09/10 | Disposition du plan courant |
+| --- | --- | --- | --- |
+| ceotryd / Céotryd B | Raiden | B ACTIVE/NATIVE, import canonique R1055 ; aucun vote natif sur ce cycle | IMPORT 1, non exécuté |
+| fred_night0wl | Raiden | Aucun Player Twitch lié, target NATIVE ou import pour cet ID | DEFERRED |
+| plumereveuse66 | Raiden | Aucun Player Twitch lié, target NATIVE ou import pour cet ID | DEFERRED |
+| kadraw18 | Raiden | Aucun Player Twitch lié, target NATIVE ou import pour cet ID | DEFERRED |
+
+Les quatre choix sont éligibles dans la composition legacy proposée. Aucun compte Web éventuellement non lié ne donne de destination sur la seule base d'un pseudonyme. Le plan R1060 réel utilise l'heure PostgreSQL sans input.now : **BLOCKED_VOTES / LEGACY_VOTES_REQUIRE_DECISION, IMPORT 1, RETAIN 0, DEFERRED 3**, aucune collision observée. Aucune écriture de vote dans cette préparation.
+
+**Option à arbitrer — preuve externe de vote, sans Player :** techniquement envisageable mais absente du mécanisme déployé. Un registre durable identifierait chaque bulletin par cycle + Twitch User ID vérifié, choix Character, snapshot/manifeste/rapport et provenance ; aucun Player ni progression créés. À la clôture du lundi, l'owner commun fusionnerait les bulletins prouvés avec BannerVote sous 70422401, une seule contribution par identité, même choix dédoublonné et divergence bloquante sans écrasement natif. Une migration ultérieure du joueur consommerait/rattacherait la même preuve sans nouveau vote. Le snapshot de clôture conserverait ces preuves avant la génération normale, sans modifier un résultat déjà figé. Les quatre votes pour Raiden représenteraient quatre identités prouvées, sans poids anonyme supplémentaire ni garantie de résultat inventée. Nécessite arbitrage d'autorité/collisions, spécification, mécanisme/éventuel DDL, concurrence/replay/compensation privés, review indépendante et autorisation d'application distincte avant l'échéance.
+
+**Autre option — migrations individuelles séparées :** les owners existants pourraient établir les trois destinations définitives avant lundi, uniquement par missions explicitement autorisées, preuves fraîches, choix humains nécessaires et gates d'import/extension ; jamais par ce lot ou un batch 43 anticipé. Le délai et la disponibilité des joueurs ne sont pas garantis. Ensuite seulement, replanifier les quatre votes et le remplacement avec les gates normales ; aucun réimport des quatre NATIVE existants.
+
+**Échéance : lundi 12/10/2026 00:00 Europe/Paris = dimanche 11/10 22:00 UTC.** À la lecture fraîche du 09/10, environ 63 heures restaient. Le mécanisme actuel est bloqué par les trois destinations absentes ; il ne peut pas satisfaire les six conditions sans travail et décision supplémentaires avant la clôture. Après cette heure, R1060 refuse SOURCE_WEEK_NOT_CURRENT : une restauration courante de cette semaine et une contribution rétroactive au tirage déjà figé ne sont plus possibles. Conserver alors les preuves historiques ; tout changement de calendrier demanderait un nouvel arbitrage, sans antidatage, rejeu ou résultat réécrit. Laisser expirer n'est pas une solution satisfaisant la priorité legacy demandée.
+
+**État : code promu/données en attente.** Event B : source 14/21, dernière proposition 15/23 à réévaluer, palier 10 acquis sans second paiement. Onze faits sociaux DEFERRED, garde CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT obligatoire. Prochaine action propriétaire : choisir une direction pour les trois votes ; aucun nouveau mécanisme sensible codé ici. Les sections datées suivantes conservent les checkpoints antérieurs et leurs arrêts de review, désormais dépassés pour le code uniquement.
+
 <a id="visibilite-archive"></a>
 
 ## Visibilité des archives — lot A
