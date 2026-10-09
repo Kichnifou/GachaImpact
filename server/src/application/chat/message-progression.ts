@@ -22,13 +22,18 @@ export async function progressPlayerMessage(tx: Prisma.TransactionClient,
   const messageXp = input.length <= 100 ? 1 : input.length <= 200 ? 2 : 3;
   const xpGranted = onboarding ? Math.min(messageXp, Number(2n * XP_PER_LEVEL - progression.xp)) : messageXp;
   const xpPlan = await owners.xp.grant(tx, { playerId, playerElementKey: element, amount: BigInt(xpGranted), source: 'chat.message', now, operationId, sourceChannel: source, random: owners.random });
+  // Read only the rewarded balances, while the caller still owns the Player lock.
+  // Ordinary messages add no query; the frozen presentation retains this snapshot on replay.
+  const xpBalances = xpPlan.rewards.length ? Object.fromEntries((await tx.playerResourceBalance.findMany({
+    where: { playerId, resourceKey: { in: xpPlan.rewards.map(reward => reward.resourceKey) } }, select: { resourceKey: true, amount: true },
+  })).map(row => [row.resourceKey, row.amount])) : undefined;
   await tx.playerProgression.update({ where: { playerId }, data: { countedMessages: { increment: 1n }, lastXpMessageAt: now } });
   await owners.missions.reconcileMetrics(tx, { playerId, sourceChannel: source, now, triggerOperationId: operationId, metrics: ['COUNTED_MESSAGES'] });
-  if (!element) return { xpGranted, dailyChallengeCompleted: false, xpPlan };
+  if (!element) return { xpGranted, dailyChallengeCompleted: false, xpPlan, xpBalances };
   const businessDate = getBusinessDate(now);
   const where = { playerId_businessDate: { playerId, businessDate: new Date(`${businessDate}T00:00:00.000Z`) } };
   const before = await tx.playerDailyChallenge.findUnique({ where, select: { status: true } });
   await owners.dailyChallenges.progress(tx, { playerId, playerElementKey: element, businessDate, type: 'messages', amount: 1n, now, operationId, sourceChannel: source });
   const after = await tx.playerDailyChallenge.findUnique({ where, select: { status: true } });
-  return { xpGranted, dailyChallengeCompleted: before?.status === 'ACTIVE' && after?.status === 'COMPLETED', xpPlan };
+  return { xpGranted, dailyChallengeCompleted: before?.status === 'ACTIVE' && after?.status === 'COMPLETED', xpPlan, xpBalances };
 }

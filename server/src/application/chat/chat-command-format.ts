@@ -1,4 +1,5 @@
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
+import { MASTERLESS_STELLA_FORTUNA_KEY } from '../box/box-store.js';
 import { elementKeys, isElementKey } from '../../domain/economy/resources.js';
 import { listTeamPassiveDefinitions } from '../../domain/team/team-passives.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
@@ -37,5 +38,7 @@ export async function sacCommand(identity: PlayerExecutionActor, services: { soc
   const elements = [...elementKeys].sort((a, b) => a === primary ? -1 : b === primary ? 1 : elementKeys.indexOf(a) - elementKeys.indexOf(b));
   const entries = [`💠 ${chatNumber(primogems)} primos (${chatNumber(primogems / 160n)} voeux)`, `💰 ${chatNumber(amount('moras'))} moras`,
     ...elements.map(key => `${chatElementEmojis[key]} ${chatNumber(amount(`particles_${key}`))}`)];
+  const stella = inventory.items.find(item => item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY)?.quantity ?? 0n;
+  if (stella > 0n) entries.push(`✨ Masterless Stella Fortuna : ${chatNumber(stella)}`);
   return entryParts(`✅ ${actor.displayName}, sac :`, entries, '🎒 Sac suite :');
 }

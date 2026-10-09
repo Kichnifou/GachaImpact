@@ -172,9 +172,11 @@ export class GiftCodeService {
       for (const edition of editions) {
         const rewards = configuredRewards(edition.giftCode).map(({ resourceKey, amount }) => ({ resourceKey, amount }));
         const deduplicationKey = `gift-code:${playerId}:${edition.id}`;
-        const existing = await tx.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true } });
+        const existing = await tx.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true, payload: true, actionKey: true, actionTargetId: true } });
         const content = { payload: { title: edition.giftCode.title, token: edition.giftCode.token, rewards }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id };
         if (existing) {
+          if (existing.state !== NotificationState.RESOLVED && existing.actionKey === content.actionKey
+            && existing.actionTargetId === content.actionTargetId && jsonFingerprint(existing.payload) === jsonFingerprint(content.payload)) continue;
           await tx.notification.update({
             where: { id: existing.id },
             data: existing.state === NotificationState.RESOLVED
@@ -457,7 +459,23 @@ function adminOrder(sort: GiftCodeAdminQuery['sort'], direction: GiftCodeAdminQu
 function serializePlayerCode(edition: Prisma.GiftCodeEditionGetPayload<{ include: { giftCode: { include: { rewards: { include: { resource: true } } } }; claims: { include: { operation: { select: { resultSummary: true } } } } } }>, now: Date) {
   const claim = edition.claims[0];
   const actual = readGrantedResult(claim?.operation?.resultSummary);
-  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt?.toISOString() ?? null, rewards: actual.grantedRewards ?? configuredRewards(edition.giftCode), eventReward: actual.eventReward };
+  // Reward configuration is immutable after a claim. Only a persisted enriched
+  // result can substantiate a breakdown; historical claims keep their old display.
+  const configured = configuredRewards(edition.giftCode);
+  const rewardBreakdown = actual.grantedRewards && actual.eventReward?.granted && actual.eventReward.milestones.length
+    ? codeRewardBreakdown(actual.grantedRewards, configured) : undefined;
+  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt?.toISOString() ?? null, rewards: actual.grantedRewards ?? configured, rewardBreakdown, eventReward: actual.eventReward };
+}
+function codeRewardBreakdown(actual: readonly GrantedCodeReward[], configured: readonly GrantedCodeReward[]) {
+  const direct: GrantedCodeReward[] = [], milestones: GrantedCodeReward[] = [];
+  for (const reward of actual) {
+    const base = BigInt(configured.find(row => row.resourceKey === reward.resourceKey)?.amount ?? '0');
+    const total = BigInt(reward.amount);
+    if (base > total) return undefined;
+    if (base > 0n) direct.push({ ...reward, amount: base.toString() });
+    if (total > base) milestones.push({ ...reward, amount: (total - base).toString() });
+  }
+  return { direct, milestones };
 }
 function serializeAdminCode(code: Prisma.GiftCodeGetPayload<{ include: { rewards: { include: { resource: true } }; editions: { include: { _count: { select: { claims: true } } } } } }>) {
   const claimCount = code.editions.reduce((total, edition) => total + edition._count.claims, 0);

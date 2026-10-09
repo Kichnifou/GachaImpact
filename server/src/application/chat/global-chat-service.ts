@@ -1,4 +1,5 @@
 import { progressPlayerMessage } from './message-progression.js';
+import { xpRewardPresentation } from './xp-reward-presentation.js';
 import { commandMissionFeedback } from './command-mission-feedback.js';
 import { createHash } from 'node:crypto';
 import { GlobalChatDeletionState, GlobalChatMessageType, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
@@ -234,7 +235,7 @@ export class GlobalChatService {
       const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'chat.send', sourceChannel: 'INTERNAL_CHAT', idempotencyKey, status: 'PENDING', startedAt: now, resultSummary: { fingerprint } } });
       const message = await tx.globalChatMessage.create({ data: { authorPlayerId: player.id, sourceChannel: 'INTERNAL_CHAT', messageType: normalized.type, content: normalized.value, operationId: operation.id, replyToMessageId: replyId, createdAt: now, submissionOrder, generation }, include: messageInclude });
       if (resolvedMentions.length) await tx.globalChatMention.createMany({ data: resolvedMentions.map(mentionedPlayerId => ({ messageId: message.id, mentionedPlayerId })) });
-      const { xpGranted, dailyChallengeCompleted, xpPlan } = await progressPlayerMessage(tx,
+      const { xpGranted, dailyChallengeCompleted, xpPlan, xpBalances } = await progressPlayerMessage(tx,
         { playerId: player.id, elementKey: actor.element_key, normal: normalized.type === GlobalChatMessageType.PLAYER, length: normalized.length, now, operationId: operation.id, source: 'INTERNAL_CHAT' },
         { xp: this.xp, dailyChallenges: this.dailyChallenges, missions: this.permanentMissions, random: this.random });
       const refreshScopes: string[] = missionCatchUp.alreadyProcessed ? [] : ['resources'];
@@ -242,9 +243,8 @@ export class GlobalChatService {
         refreshScopes.push('progression', 'dailyChallenge');
         if (xpPlan.rewards.length || dailyChallengeCompleted) refreshScopes.push('resources');
         if (xpPlan.levelsReached.length || xpPlan.overflowRewardsGranted) {
-          const levels = xpPlan.levelsReached.length ? `niveau${xpPlan.levelsReached.length > 1 ? 'x' : ''} ${xpPlan.levelsReached.join(', ')}` : `${xpPlan.overflowRewardsGranted} récompense(s) de niveau 100`;
-          const rewards = xpPlan.rewards.map(reward => `${reward.amount} ${reward.resourceKey}`).join(', ');
-          await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: `${player.displayName} atteint ${levels} ! ${rewards}.`, replyToMessageId: message.id, createdAt: new Date(message.createdAt.getTime() + 1), generation } });
+          const parts = xpRewardPresentation(player.displayName, xpPlan, xpBalances, 'INTERNAL_CHAT');
+          for (const [index, content] of parts.entries()) await tx.globalChatMessage.create({ data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content, replyToMessageId: message.id, createdAt: new Date(message.createdAt.getTime() + 1 + index), generation } });
         }
       }
       const missionCompletions = await tx.playerPermanentMissionProgress.findMany({

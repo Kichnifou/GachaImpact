@@ -281,6 +281,8 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 **Amendement Chat R1038 :** Nom exact normalisé (casse/accents), sans matching partiel. ID de cible et disposition initiale figés ; une consultation ne sélectionne rien.
 
 ## `!vote`
+
+**R1065 :** alias `!votes`, consultation et choix identiques, même owner/unicité Player-rotation, Help partagé. Nouveau message ID indépendant ; même ID redélivré sans seconde exécution ni poids.
 - **Historique Batch A :** le bouton `Personnages > Catalogue` utilisait `BannerVoteService` via UI, sans parser ni fuzzy textuel dans ce batch initial.
 - **État Chat R1038 :** `!vote` appelle ce même propriétaire avec le matching textuel décrit ci-dessous ; unicité Player/rotation commune, Twitch global non activé.
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
@@ -618,6 +620,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!code`
 
+**R1065 — présentation :** gains directs et bonus de nouveaux paliers Event distingués seulement si le résultat persisté les prouve. Les anciens résultats gelés restent rejoués exactement, aucun nouveau crédit. [R1057 et recette propriétaire](../architecture/gift-code-enriched-r1057.md).
+
 Extension R1057 déployée : le claim commun peut créditer Stella, points Event et monnaie du Festival actif, en plus des gains classiques. Édition active et inscription existante requises pour la part Event ; aucun auto-enrollment ou rattrapage ultérieur. La réponse annonce seulement les gains réellement accordés, y compris tous les nouveaux paliers payés atomiquement, et signale une part Event ignorée. Découpage Twitch logique acquis à 450 caractères, receipts/replays conservés. [Contrat et état R1057](../architecture/gift-code-enriched-r1057.md).
 
 - **Statut audit :** CLÔTURÉ — Domaine Codes cadeaux après R691
@@ -762,6 +766,8 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 **Amendement Chat R1038 :** Table générale des sept éléments indépendante de la composition ; détail avec accents. Plafond moderne de deux stacks, Dendro concerne les sept éléments.
 
 ## `!banque`
+
+**R1065 — présentation actuelle :** tous les montants (Banque, portefeuille, intérêt estimé, dépôt/retrait/MAX, nouveaux soldes et erreurs) utilisent le formateur français partagé, BigInt sans conversion en Number. Aucun changement transactionnel, d’arrondi ou de replay.
 - **Statut audit :** Audité — Domaine Banque clôturé après R255
 - **Statut implémentation :** écran, cache de session et API personnelles, dont historique paginé, réels ; consultation/dépôt/retrait Chat interne livrés par R1037 appellent les mêmes services avec `INTERNAL_CHAT`. Twitch reste non branché.
 - **But :** Consulter et transférer les Moras entre portefeuille et Banque.
@@ -801,6 +807,8 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - Règles modernes conservées : aucun frais/cooldown/plafond, atomicité/soldes non négatifs, stats earned/spent neutres, intérêts 3 % au reset serveur Europe/Paris/offline/arrondi inférieur, aucune notification Twitch spontanée. Réponse normale unique.
 
 ## `!sac`
+
+**R1065 — contrat actuel, supersède les omissions Chat historiques ci-dessous :** stock réel `masterless-stella-fortuna` déjà chargé dans Inventory, positif seulement, dernier élément après les sept particules : `✨ Masterless Stella Fortuna : 3`. Pas de lecture Box supplémentaire. Chat/Twitch, format français ; Twitch 450 caractères Unicode mention comprise, continuations explicites entre éléments complets, plutôt que garantie d’une seule ligne.
 - **Statut audit :** Audité — Domaine Sac / Coffre / Shop clôturé après R298
 - **But :** Consulter les ressources personnelles dans le Chat ; le Sac UI conserve les objets spéciaux.
 - **Disponible chat GachaImpact :** oui

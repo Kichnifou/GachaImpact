@@ -24,6 +24,16 @@ async function waitFor(predicate: () => boolean, message: string) {
 }
 
 describe('GiftCodesScreen', () => {
+  it('separates only persisted direct and newly earned milestone gains after claim', async () => {
+    const container = document.createElement('div'), root = createRoot(container); roots.push(root)
+    const reward = { resourceKey: 'event_currency' as const, displayName: 'Bonbons Maudits', amount: '33' }
+    const actual: GiftCodeDto = { ...code, claimed: true, rewards: [reward], rewardBreakdown: { direct: [{ ...reward, amount: '30' }], milestones: [{ ...reward, amount: '3' }] } }
+    await act(async () => { root.render(<GiftCodesScreen onLoad={async () => ({ available: [], claimed: [actual] })} onClaim={async () => { throw Error('No claim allowed') }} />) })
+    await act(async () => { container.querySelectorAll<HTMLButtonElement>('[role="tab"]')[1]!.click() })
+    expect(container.textContent).toContain('Gains directs du Code')
+    expect(container.querySelector('[aria-label="Récompenses"]')?.textContent).toContain('+30')
+    expect(container.querySelector('[aria-label="Récompenses de paliers"]')?.textContent).toContain('+3')
+  })
   it('explains conditional Event gains and displays only the actual claimed rewards', async () => {
     const container = document.createElement('div'), root = createRoot(container); roots.push(root)
     const enriched: GiftCodeDto = { ...code, rewards: [...code.rewards, { resourceKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: '2' }, { resourceKey: 'event_points', displayName: 'Points Event', amount: '80' }] }

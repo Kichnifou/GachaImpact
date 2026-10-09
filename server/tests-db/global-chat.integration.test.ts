@@ -289,8 +289,33 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const visible = (await service.list(as(id))).messages.filter(row => row.id === sent.message.id || row.id === result.id);
     expect(visible.map(row => row.id)).toEqual([sent.message.id, result.id]);
     expect(visible[1]).toMatchObject({ authorLabel: 'GachaImpact', replyToMessageId: sent.message.id });
+    expect(result.content).toContain('🎉'); expect(result.content).toContain('passe niveau 1 !');
+    expect(result.content).not.toContain('primogems'); expect(result.content).not.toContain('particles_');
     expect((await service.send(as(id), 'Bonjour', key)).replayed).toBe(true);
     expect(await db.globalChatMessage.count({ where: { replyToMessageId: sent.message.id, messageType: 'GAME_RESULT', externalMessageId: null } })).toBe(1);
+  });
+
+  it.each([['normal', 149n], ['max', 3029n], ['multiple', 3090n]] as const)('freezes %s Twitch rewards and transaction balances across redelivery and cooldown', async (_, initialXp) => {
+    const id = await player(initialXp, 'geo'), key = randomUUID(), current = await getPlayer.execute(as(id));
+    const activity = new TwitchMessageActivity(db, clock, random);
+    const outputs = await activity.consume(current, key, 'r1065', 7, true, now, undefined, 420);
+    const reward = outputs.filter(text => text.startsWith('🎉')).join(' ');
+    expect(reward).toContain(initialXp < 3000n ? 'passe niveau 5 !' : 'gagne une récompense niveau max !');
+    if (initialXp === 3090n) expect(reward).toContain('x3');
+    expect(reward).not.toContain('particles_'); expect(reward).not.toContain('primogems');
+    expect(outputs.every(part => Array.from(part).length <= 420)).toBe(true);
+    const movements = await db.resourceMovement.findMany({ where: { playerId: id, causeKey: 'player.xp.level-reward' } });
+    expect(movements.length).toBeGreaterThan(0);
+    for (const movement of movements) expect(reward).toContain(`(${movement.balanceAfter.toLocaleString('fr-FR').replace(/[\u00a0\u202f]/gu, ' ')})`);
+    const balances = await db.playerResourceBalance.findMany({ where: { playerId: id }, orderBy: { resourceKey: 'asc' } });
+    await db.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'moras' } }, data: { amount: { increment: 1n } } });
+    expect(await activity.consume(current, key, 'r1065', 7, true, now, undefined, 420)).toEqual(outputs);
+    const next = await activity.consume(current, randomUUID(), 'r1065', 7, true, now, undefined, 420);
+    expect(next.filter(text => text.startsWith('🎉'))).toEqual([]);
+    expect(await db.resourceMovement.findMany({ where: { playerId: id, causeKey: 'player.xp.level-reward' } })).toEqual(movements);
+    const after = await db.playerResourceBalance.findMany({ where: { playerId: id }, orderBy: { resourceKey: 'asc' } });
+    expect(after).toEqual(balances.map(row => row.resourceKey === 'moras' ? { ...row, amount: row.amount + 1n, updatedAt: after.find(value => value.resourceKey === 'moras')!.updatedAt } : row));
+    expect(await progress(id)).toMatchObject({ totalMessages: 2n, countedMessages: 1n });
   });
 
   it('reconciles counted Messages on the chat operation, preserves carry into A, and ignores cooldown and commands', async () => {

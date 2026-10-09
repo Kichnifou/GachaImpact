@@ -1,5 +1,10 @@
 # 04 — Audit legacy : XP / cycle de vie joueur
 
+## R1065 — Présentation actuelle des gains Chat/Twitch
+
+Source XP.txt CheckLevelUp/CheckMaxLevelOverflowRewards relue. Le plan XP réellement exécuté fournit niveaux et gains ; un formateur commun affiche 🎉, niveau normal ou « gagne une récompense niveau max ! » xN, 💠 primos/💰 moras/particules et emojis canoniques, nombres français et soldes après récompense capturés sous verrou Player. Aucune modification du moteur XP, RNG secondaire, cooldown ou attribution. Réponses Twitch gelées réutilisées à la redelivery, limite 450 mention comprise et continuations logiques. Tests privés normal/max/multiple, soldes, retry et deux nouveaux messages sous cooldown sans double gain ; aucune montée de niveau publique provoquée pour la recette. [Audit R1065](../architecture/supabase-stabilization-r1065.md).
+
+
 ## Migration sans élément et mode XP interface acquis
 
 [R1049](../specifications/decisions-log.md) : niveaux 0/1/2 et supérieurs migrables/récupérables avec ou sans élément, aucun reset d'XP/messages/ressources. L'absence réelle devient null, une typo reste un blocker ; le même Player choisit ensuite normalement au standalone. Cela ne supprime pas les prérequis des owners ni ne donne de nouvelles récompenses sans élément. L'onboarding messages Twitch sans élément de R1048 reste borné au niveau 2 avec rappel idempotent ; l'historique importé peut être supérieur.

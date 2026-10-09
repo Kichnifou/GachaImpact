@@ -5,6 +5,32 @@ import { createExpeditionClientSnapshot } from '../expedition/expedition-client-
 const item = (id: DailyId, sources: DailySources = dailySources()) => projectDailies(sources).find(row => row.id === id)!
 
 describe('Shared daily business projection', () => {
+  it('finishes applicable activities with an inactive Favor and no friends, preserving blocked and failed reads', () => {
+    const source = dailySources();
+    const rows = projectDailies({ ...source, favor: { ...source.favor!, active: false, claimStatus: 'UNAVAILABLE' }, friendship: { ...source.friendship!, activeFriends: 0, available: 0, alreadySent: 0 } });
+    const completed = rows.map(row => row.id === 'favor' || row.id === 'friendship' ? row : { ...row, state: 'completed' as const, actionable: false });
+    expect(dailySummaryMessage(completed)).toBe('Terminé ✅');
+    expect(dailySummaryMessage(completed.map(row => row.id === 'combat' ? { ...row, state: 'ineligible' } : row))).not.toBe('Terminé ✅');
+    expect(dailySummaryMessage(completed.map(row => row.id === 'favor' ? { ...row, applicable: true } : row))).not.toBe('Terminé ✅');
+    expect(dailySummaryMessage(completed.map(row => row.id === 'favor' ? { ...row, state: 'error' } : row))).toBe('État du jour incomplet');
+    expect(dailySummaryMessage(completed, dailyIds.filter(id => id !== 'favor' && id !== 'friendship'))).toBe('Aucune activité affichée');
+  })
+  it('finishes real completed DTOs and rejects an outstanding reward, stale date or failed owner', () => {
+    const source = dailySources();
+    const done: DailySources = { ...source,
+      favor: { ...source.favor!, active: false, claimStatus: 'UNAVAILABLE' },
+      reward: { ...source.reward!, claimed: true }, wheel: { ...source.wheel!, spun: true },
+      challenge: { ...source.challenge!, assigned: true, status: 'COMPLETED', challenge: { externalKey: 'messages', type: 'messages', displayName: 'Messages', description: 'Messages', progressLabel: 'Messages', progress: '5', target: '5', rewardPrimogems: '800' } },
+      combat: { ...source.combat!, status: 'COMPLETED' }, boss: { ...source.boss!, attackState: 'USED' },
+      expedition: createExpeditionClientSnapshot({ ...expedition, departureUsedToday: true, canStartToday: false }, 0),
+      friendship: { ...source.friendship!, activeFriends: 0, available: 0, alreadySent: 0 },
+      event: { ...source.event!, canJoin: false, gameA: { ...source.event!.gameA, completedToday: true }, gameB: { ...source.event!.gameB, solvedToday: true, canAttempt: false }, gameC: { ...source.event!.gameC, canSend: false, unviewedCount: 0 } },
+    };
+    expect(dailySummaryMessage(projectDailies(done))).toBe('Terminé ✅');
+    expect(dailySummaryMessage(projectDailies({ ...done, reward: { ...done.reward!, claimed: false } }))).toBe('1 activité disponible');
+    expect(dailySummaryMessage(projectDailies({ ...done, favor: { ...done.favor!, businessDate: '2026-10-01' } }))).toBe('État du jour incomplet');
+    expect(dailySummaryMessage(projectDailies({ ...done, errors: { friendship: true } }))).toBe('État du jour incomplet');
+  })
   it.each([
     ['IDLE', false, false, true, 'available'],
     ['RUNNING', true, true, false, 'completed'],

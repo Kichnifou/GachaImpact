@@ -19,6 +19,7 @@ it('searches accents and case across systems and real commands, separates Twitch
   const input = dialog.querySelector<HTMLInputElement>('input')!
   const search = async (value: string) => act(async () => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })); })
   await search('EQUIPE'); expect(dialog.textContent).toContain('Personnages'); expect(dialog.textContent).toContain('!team')
+  await search('!votes'); expect(dialog.textContent).toContain('!vote [nom] (alias : !votes)'); expect(dialog.querySelectorAll('.help-command-list article')).toHaveLength(1)
   await search('zzzzzz'); expect(dialog.textContent).toContain('Aucun résultat'); expect(dialog.textContent).not.toContain('Twitch uniquement')
   await click('Twitch'); expect(dialog.textContent).toContain('!wish'); expect(dialog.textContent).toContain('!giveaway stats'); expect(dialog.textContent).not.toContain('reroll')
   expect(onTutorial).not.toHaveBeenCalled()

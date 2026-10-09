@@ -1,5 +1,10 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
+## R1065 — Applicabilité et complétion
+
+La synthèse distingue les activités non applicables (Faveur inactive, aucun ami actif) des indisponibilités réellement bloquantes. Après contrôle des lectures inconnues/en erreur, actions restantes, états en cours/attente et masques, toutes les activités applicables terminées donnent « Terminé ✅ » et le compte à rebours Paris existant. Aucun remplacement global de texte ni changement des récompenses. Tests sur DTO réels, F5, minuit/DST/journée suivante/masques ; rendu desktop/mobile contrôlé synthétiquement. Validation publique au Master.
+
+
 ## Retouches Sidebar/Home 25A — recette publique finale acquise
 
 Le propriétaire confirme la recette publique finale du correctif 25A sur **a23a42304da7396da2ceeaa5a1e245a79310cec1** : Précédent, ordre des contrôles et Suivant stable ; carte sidebar entière cliquable avec ses contrôles indépendants ; titre Home simple, hauteur Quotidiennes/BannerHero et splash recentré. Les validations publiques Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale acquises sur 9aef02c sont conservées. **25A est clôturée dans son périmètre réel de prototype**. Cette preuve propriétaire est transmise par la mission, sans nouvelle vérification de déploiement Railway/Cloudflare ni mutation publique ici. **Aucune nouvelle retouche Home dans 25B** : seules des ancres de présentation sont raccordées aux composants existants ; état courant du Tutoriel au [Master](../master/PROJECT_MASTER_PLAN.md).

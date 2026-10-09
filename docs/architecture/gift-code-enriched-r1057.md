@@ -2,6 +2,15 @@
 
 État au 09/10/2026 : R1057 déployé au SHA `32128cc54d4262d1eab758eeac57781e2bb5be7b`, approuvé indépendamment après corrections puis promu par fast-forward strict. Railway et Cloudflare SUCCESS au SHA exact, Prisma 68 à jour ; GLOBAL R1064 reste actif en révision 19. Le propriétaire confirme après F5 le runtime GLOBAL et les trois quantités du formulaire, visibles et lisibles. Aucun code cadeau public créé ou publié par cette mission ; aucun claim enrichi public exécuté pour la recette. [Décision propriétaire](../specifications/decisions-log.md#codes-enrichis-r1057), [état courant](../master/PROJECT_MASTER_PLAN.md).
 
+
+## R1065 — Première recette réelle et clarification
+
+Le propriétaire a ensuite créé/publié et réclamé CADEAU_PHASE1 depuis Twitch. Contrôle public **strictement en lecture seule** : claim Kichnifou du 09/10/2026 à 20:15:20 UTC, unique pour cette édition/Player, opération COMPLETED. Gains directs configurés et persistés : 30 000 Primogemmes, 1 000 000 Moras, une Stella (une acquisition GIFT_CODE), 30 Points Event et 30 Bonbons Maudits sur l'édition courante. Nouveaux claims Event 20/30/40 prouvés : +1 monnaie, +500 Cryo personnel, +2 monnaies. Le résultat total +33 Bonbons/+500 Cryo est conforme ; mouvements de primos/Moras/Cryo et opérations enfants justifiés, aucun débit ou replay économique ajouté. Aucun changement de ce Code et aucune recette humaine inventée pour les autres joueurs.
+
+L'aperçu de création/édition affiche : « Les Points Event peuvent également débloquer des récompenses de palier supplémentaires selon votre progression. » Les restitutions UI/Chat distinguent les gains directs du Code et les bonus des nouveaux paliers à partir du résultat persisté, lorsque cette preuve existe ; elles ne recalculent aucun palier/RNG ni ne réécrivent les anciens claims ou réponses gelées. Configuration immuable après premier claim. L'historique sans preuve enrichie conserve sa restitution antérieure.
+
+La réconciliation des notifications évite l'UPDATE lorsque payload et action sont identiques, avec réactivation RESOLVED et autres contrôles conservés. [Mesures et tests privés R1065](supabase-stabilization-r1065.md). La recette propriétaire acquise est distincte du postflight et de la future recette visible du correctif R1065, suivis au Master. Les paragraphes de livraison R1057 ci-dessous décrivent leur état historique avant ce premier vrai Code.
+
 ## Configuration et propriétaires
 
 `GiftCodeService` conserve la création, publication, édition autorisée et réclamation. Les neuf récompenses classiques restent dans `gift_code_rewards`, avec leurs FK vers `resource_definitions`. Trois quantités additives sur `gift_codes` représentent la Stella, les points Event et la monnaie Event. Elles ne deviennent pas de fausses ressources générales.

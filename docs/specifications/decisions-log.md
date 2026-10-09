@@ -1,5 +1,10 @@
 # Journal des décisions validées
 
+## R1065 — Présentation joueurs et stabilisation bornée (2026-10-09)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : alias !votes du vote canonique, Banque au format français BigInt, Quotidiennes terminées sur les activités applicables sans faux succès d'une lecture inconnue/bloquée ; Stella positive à la fin de !sac, sans nouvel accès Box. Récompenses XP Chat/Twitch 🎉 en français, emojis canoniques, niveaux/max xN, vrais montants cumulés et soldes autoritatifs capturés transactionnellement lorsque disponibles ; replay figé, économie/RNG/cooldown inchangés. Aperçu Codes avec avertissement conditionnel sur les paliers, gains directs et bonus réellement prouvés distingués. Audit Supabase frais et optimisation des écritures identiques mesurées, sans purge, infrastructure payante ni modification aveugle des coordinations. GLOBAL actif, tous les profils et StreamElements conservés. [Contrat et preuves](../architecture/supabase-stabilization-r1065.md), état de livraison au [Master](../master/PROJECT_MASTER_PLAN.md).
+
+
 ## R1064 — Ouverture GLOBAL, identité unique Twitch/Web et réponse Boss (2026-10-09)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : finaliser et activer GLOBAL dans la même mission consolidée, après tests PostgreSQL privés avec migrations réelles, review indépendante du diff cumulé publié, correction/re-review, promotion stricte et déploiements exacts. Les 43 historiques et Kichni_Test restent NATIVE sans réimport ; Streamer.bot reste arrêté. Capacité serveur d'abord déployée sous CANARY, puis bascule canonique atomique/auditée à révision explicite après transport frais, cohérence des identités, sauvegarde et absence d'opération/livraison incertaine. Aucun lancement officiel du standalone.

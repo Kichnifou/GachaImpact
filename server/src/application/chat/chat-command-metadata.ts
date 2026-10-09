@@ -63,7 +63,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('echanger', 'ressources', '!echanger [pseudo] [montant|max] | liste | accepter [pseudo|all] | annuler [pseudo|all] | refuser [pseudo|all]', 'READY', ['echange', 'ech']),
   command('banniere', 'gacha', '!banniere', 'READY', ['bannière', 'ban']),
   command('select', 'gacha', '!select [nom]', 'READY'),
-  command('vote', 'gacha', '!vote [nom]', 'READY'),
+  command('vote', 'gacha', '!vote [nom] (alias : !votes)', 'READY', ['votes']),
   command('pity', 'gacha', '!pity', 'READY'),
   command('pull', 'gacha', '!pull [1..10]', 'READY'),
   command('box', 'collection', '!box [5|4|6|élément|pN|favoris [personnage]|a|d|c|e]', 'READY'),

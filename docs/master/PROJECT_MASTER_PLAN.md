@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1064 GLOBAL actif — R1057 déployé, formulaire public validé.
+Version : R1065 — correctifs joueurs et stabilisation Supabase, candidat contrôlé.
 Date : 2026-10-09
-Statut : **GLOBAL 19 réellement activé le 09/10/2026 ; R1057 déployé au SHA `32128cc54d4262d1eab758eeac57781e2bb5be7b`.** Review indépendante APPROVED après corrections, fast-forward strict, Railway/Cloudflare SUCCESS au SHA exact, Prisma 68 à jour et contrôles physiques conformes. L'activation R1064 avait été effectuée avec le code `797a2eb` après capacité GLOBAL true déployée en CANARY 18 et confirmation runtime propriétaire. Les 44 NATIVE, R1062/R1063, la sélection bidirectionnelle, Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont conservés. Aucun code cadeau réel créé/publié ni claim enrichi public de recette.
-But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
+Statut : **GLOBAL R1064 et Codes enrichis R1057 livrés à la base main 32128cc ; R1065 implémenté et testé, validation indépendante/déploiement/recette à établir dans le même cycle autorisé.** Le commit documentaire review 5914d9c est conservé. Aucune migration ni écriture corrective publique.
+But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — R1057 après activation GLOBAL R1064
+## Point courant — R1065 consolidé
+
+Correctifs : alias !votes partagé avec vote et Help, montants Banque français sans conversion BigInt, synthèse Quotidiennes « Terminé ✅ » lorsque toutes les activités applicables sont terminées, Stella positive en dernier dans le Sac, présentation française 🎉 des récompenses XP normales/max avec soldes capturés dans la transaction et réponses Twitch gelées. Pas de nouvelle économie, crédit, consommation, changement RNG/cooldown ni réimport.
+
+**Recette réelle R1057 désormais acquise :** le propriétaire a créé/publié puis réclamé CADEAU_PHASE1 sur Twitch. Lecture seule des preuves : un claim Kichnifou le 09/10 à 20:15:20 UTC, +30 000 primos, +1 000 000 Moras, une acquisition Stella, +30 points et +30 monnaies Event directs ; nouveaux paliers 20/30/40, +1/+2 Bonbons et +500 Cryo. Total monnaie +33 conforme ; opérations COMPLETED et mouvements justifiés, aucun replay ou paiement ajouté par R1065. Cette preuve n'invente pas de recette humaine pour les autres Players. Le Code demeure intact. [Contrat R1057 actualisé](../architecture/gift-code-enriched-r1057.md).
+
+**Stabilisation Supabase :** plan Free vérifié, base 77,75 MB, instantané 18 connexions/max 60, fenêtres logs réelles 24 h/sept jours. Mesures cumulatives PostgreSQL depuis le 07/10 distinguées des fenêtres. Une réécriture répétée de notifications Codes identiques est évitée, sans retirer les contrôles de résolution : zéro changement de version après cinq réconciliations privées puis deux concurrentes, mise à jour réelle conservée. Aucun gain facturé/egress ou P95 globale inventé, aucune purge ni nouvelle infrastructure. [Audit, chiffres, sécurité et limites](../architecture/supabase-stabilization-r1065.md).
+
+**Contrôles locaux :** verify:full 8/8 ; PostgreSQL privé 106 PASS et un test de métadonnées explicitement exclu après cause CRLF prouvée, non annoncé réussi. Les 68 checksums LF publics et Prisma status sont conformes séparément. Vingt-quatre états visuels synthétiques du vrai GameShell/CSS sur quatre viewports, F5 et captures desktop/mobile inspectées ; aucune API ou fixture métier publique. Backup applicatif RO complet, listé/décodé/fsync conservé. Preuves privées sous local-data/identity-resolutions/r1065-20261009/.
+
+**Gates de livraison :** même candidat à publier/reviewer sur le vrai GitHub main...review puis corrections/re-review si nécessaire ; promotion strictement fast-forward autorisée. Après promotion, la suite de la mission est le postflight du SHA exact Railway/Cloudflare, Prisma/GLOBAL/profils/économie/latence et la recette visible courte. Ces contrôles futurs ne sont pas annoncés acquis par ce texte. GLOBAL doit rester actif ; 44 historiques et nouveaux Players, Céo A ARCHIVED/Céotryd B ACTIVE/NATIVE, identités, claims, domaines et StreamElements sont à préserver. Pas de replay/import/OAuth ni nouvelle action économique publique. Les trois recettes neuves R1064 restent différées par arbitrage propriétaire, sans les redemander.
+
+Après clôture réelle R1065, prochain domaine de la séquence propriétaire : tirage mensuel Event R1053, sous mission dédiée ; ne pas le commencer automatiquement. Runbook inchangé, aucune nouvelle procédure de bascule.
+
+## Historique acquis — R1057 après activation GLOBAL R1064
 
 GLOBAL désiré/effectif et Chat ACTIVE sont vérifiés fraîchement par PostgreSQL/configuration/Helix, health 200 et service Online. Le propriétaire confirme après F5 l'affichage GLOBAL et les quatre indications runtime. Le contrôle canonique ne prétend pas être un GET authentifié du processus. Aucun volontaire neuf disponible pour Twitch-only, Web-first puis Twitch et Twitch-first puis Web : le propriétaire accepte de poursuivre sur les preuves techniques et signalera une anomalie lors de nouveaux arrivants. Ces trois recettes humaines sont différées, jamais présentées comme exécutées ; elles ne bloquent pas R1057.
 

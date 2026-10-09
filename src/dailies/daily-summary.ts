@@ -16,7 +16,7 @@ export type DailyState = 'available' | 'in_progress' | 'waiting' | 'completed' |
 export type DailyDestination = { kind: 'overview' | 'wheel' | 'challenge' | 'combat' | 'boss' | 'expedition' | 'friends' } | { kind: 'event'; destination: EventDailyDestination }
 export type DailyItem = Readonly<{
   id: DailyId; title: string; icon: string; state: DailyState; status: string; businessDate: string | null
-  actionable: boolean; detail?: string; obtained?: string; damage?: string; destination?: DailyDestination; deadline?: string
+  actionable: boolean; applicable?: boolean; detail?: string; obtained?: string; damage?: string; destination?: DailyDestination; deadline?: string
 }>
 export type DailySources = Readonly<{
   elementKey?: ElementKey
@@ -48,7 +48,7 @@ export function projectDailies(source: DailySources): DailyItem[] {
   const f = source.favor
   let favor = row('favor', f?.businessDate, { kind: 'overview' })
   if (f && known('favor', f.businessDate)) favor = !f.active || f.claimStatus === 'UNAVAILABLE'
-    ? update(favor, 'unavailable', 'Aucune Faveur active.')
+    ? { ...update(favor, 'unavailable', 'Aucune Faveur active.'), applicable: f.active }
     : f.claimedToday ? { ...update(favor, 'completed', '✅ Terminé', `${f.daysRemaining} jour${f.daysRemaining > 1 ? 's' : ''} restant${f.daysRemaining > 1 ? 's' : ''}`), obtained: `+${formatResourceAmount(f.dailyPrimogems)} Primogemmes` }
       : update(favor, 'waiting', 'Présence en cours de traitement.', `${f.daysRemaining} jour${f.daysRemaining > 1 ? 's' : ''} restant${f.daysRemaining > 1 ? 's' : ''}`)
 
@@ -98,7 +98,7 @@ export function projectDailies(source: DailySources): DailyItem[] {
   }
   const a = source.friendship
   let friendship = row('friendship', source.friendshipDate, { kind: 'friends' })
-  if (a && known('friendship', source.friendshipDate)) friendship = !a.activeFriends ? update(friendship, 'unavailable', 'Aucun ami actif.')
+  if (a && known('friendship', source.friendshipDate)) friendship = !a.activeFriends ? { ...update(friendship, 'unavailable', 'Aucun ami actif.'), applicable: false }
     : a.available > 0 ? update(friendship, 'available', `${a.available} cœur(s) à envoyer`, `${a.alreadySent} / ${a.activeFriends} envoi(s) effectué(s)`)
       : a.alreadySent === a.activeFriends ? update(friendship, 'completed', '✅ Terminé', 'Tous les cœurs ont été envoyés.')
         : update(friendship, 'unavailable', 'Aucun envoi disponible.')
@@ -147,6 +147,8 @@ export function dailySummaryMessage(items: readonly DailyItem[], hidden: readonl
   if (!visible.length || hidden.length > 0 && dailySuggestions(items, hidden).length === 0 && dailySuggestions(items).length > 0) return 'Aucune activité affichée'
   if (visible.some(item => item.state === 'unknown' || item.state === 'error')) return 'État du jour incomplet'
   if (visible.some(item => item.state === 'waiting' || item.state === 'in_progress')) return 'Rien à faire pour le moment'
-  if (visible.some(item => item.state === 'unavailable' || item.state === 'ineligible')) return 'Aucune activité disponible pour le moment'
+  const applicable = visible.filter(item => item.applicable !== false)
+  if (!applicable.length) return 'Aucune activité affichée'
+  if (applicable.some(item => item.state === 'unavailable' || item.state === 'ineligible')) return 'Aucune activité disponible pour le moment'
   return 'Terminé ✅'
 }

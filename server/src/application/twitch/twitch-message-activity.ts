@@ -3,6 +3,7 @@ import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { progressPlayerMessage } from '../chat/message-progression.js';
+import { xpRewardPresentation } from '../chat/xp-reward-presentation.js';
 import { PrismaPlayerXpService } from '../../infrastructure/database/prisma-player-xp-service.js';
 import { PrismaDailyChallengeStore } from '../../infrastructure/database/prisma-daily-challenge-store.js';
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
@@ -65,8 +66,7 @@ export class TwitchMessageActivity {
             responses.push(`✨ ${player.displayName}, niveau 2 : choisis ton élément avec !element pyro (hydro, anemo, electro, dendro, cryo ou geo).`);
           if (result.dailyChallengeCompleted) responses.push('🎯 Défi quotidien messages terminé !');
           if (result.xpPlan && (result.xpPlan.levelsReached.length || result.xpPlan.overflowRewardsGranted)) {
-            const levels = result.xpPlan.levelsReached.length ? `niveau ${result.xpPlan.levelsReached.join(', ')}` : `${result.xpPlan.overflowRewardsGranted} récompense(s) de niveau 100`;
-            responses.push(`📈 ${player.displayName} atteint ${levels} ! ${result.xpPlan.rewards.map(reward => `${reward.amount} ${reward.resourceKey}`).join(', ')}.`);
+            responses.push(...xpRewardPresentation(player.displayName, result.xpPlan, result.xpBalances, 'TWITCH', responseBodyLimit));
           }
           await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: { length, normal, responses, xpGranted: result.xpGranted } } });
           return responses;

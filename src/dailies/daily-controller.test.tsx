@@ -109,6 +109,19 @@ describe('tracker card hit target and compact Home footer', () => {
 })
 
 describe('Shared daily consultation and claim', () => {
+  it('retains completion and its Paris countdown across F5 with known nonapplicable owners', async () => {
+    vi.setSystemTime(new Date('2026-10-02T21:30:00Z'))
+    const source = dailySources()
+    const projected = projectDailies({ ...source, favor: { ...source.favor!, active: false, claimStatus: 'UNAVAILABLE' }, friendship: { ...source.friendship!, activeFriends: 0, available: 0, alreadySent: 0 } })
+    const items = projected.map(row => row.id === 'favor' || row.id === 'friendship' ? row : { ...row, state: 'completed' as const, actionable: false })
+    await render({ items })
+    expect(control.message).toBe('Terminé ✅')
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+    await act(async () => root.unmount()); root = createRoot(container)
+    await render({ items })
+    expect(control.message).toBe('Terminé ✅')
+    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+  })
   it('shows the Paris reset instead of a completed Expedition deadline and waits for the next server date', async () => {
     vi.setSystemTime(new Date('2026-10-03T21:33:00Z'))
     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false, deadline: item.id === 'expedition' ? '2026-10-04T10:33:00Z' : undefined }))

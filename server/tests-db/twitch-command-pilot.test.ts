@@ -6,7 +6,8 @@ import { SourceChannel } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { buildApp } from '../src/app.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
-import { GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
+import { GetCharacters, GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
+import { BannerVoteService } from '../src/application/gacha/banner-vote-service.js';
 import { GetCurrentPlayerBox } from '../src/application/box/box-services.js';
 import { PrismaBoxStore } from '../src/infrastructure/database/prisma-box-store.js';
 import { GetCurrentPlayerInventory } from '../src/application/inventory/inventory-services.js';
@@ -75,6 +76,7 @@ beforeAll(async () => {
   const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No Supabase identity allowed in Twitch'); }, provision: async () => { throw new Error('No web provisioning allowed'); } });
   gacha = new GetCurrentGacha(getPlayer, store); selectTarget = new SetGachaTarget(getPlayer, store);
   const services = { ...harness().services, getCurrentGacha: gacha, setGachaTarget: selectTarget,
+    getCharacters: new GetCharacters(store), bannerVotes: new BannerVoteService(getPlayer, db, clock),
     getCurrentPlayerBox: new GetCurrentPlayerBox(getPlayer, new PrismaBoxStore(db)),
     getCurrentPlayerInventory: new GetCurrentPlayerInventory(getPlayer, new PrismaInventoryStore(db)),
     socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as ChatCommandServices;
@@ -274,6 +276,30 @@ describe('real multi-pull idempotence and segmented delivery', () => {
 });
 
 describe('R1063 repeated commands and selection parity', () => {
+  it('shares !vote/!votes consultation, choice and one weight across distinct IDs and signed redeliveries', async () => {
+    const rotation = await db.bannerRotation.findFirstOrThrow({ where: { status: 'ACTIVE' } });
+    const candidates = await db.character.findMany({ where: { isActive: true, rarity: 5, bannerAppearances: { none: { bannerRotationId: rotation.id } } }, take: 2 });
+    expect(candidates).toHaveLength(2);
+    const before = await state();
+    for (const text of ['!vote', '!votes', `!votes ${candidates[0]!.name}`, `!vote ${candidates[0]!.name}`, `!votes ${candidates[1]!.name}`]) {
+      const body = event(text), request = signed(body);
+      expect((await post(request)).statusCode).toBe(204);
+      const saved = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+      expect(JSON.stringify(saved.payloadMinimal)).not.toContain('Syntaxe');
+      const sends = outbound.send.mock.calls.length;
+      expect((await post(request)).statusCode).toBe(204);
+      expect((await post(signed(body))).statusCode).toBe(204);
+      expect(outbound.send).toHaveBeenCalledTimes(sends);
+    }
+    const votes = await db.bannerVote.findMany({ where: { playerId, bannerRotationId: rotation.id } });
+    expect(votes).toHaveLength(1); expect(votes[0]!.characterId).toBe(candidates[0]!.id);
+    const current = await db.player.findUniqueOrThrow({ where: { id: playerId } });
+    const getPlayer = new GetCurrentPlayer({} as never), owner = new BannerVoteService(getPlayer, db, { now: () => new Date((rotation.startsAt.getTime() + rotation.endsAt.getTime()) / 2) });
+    expect((await owner.vote(verifiedPlayerActor(current), candidates[0]!.id, rotation.id, 'INTERNAL_CHAT')).alreadyProcessed).toBe(true);
+    await expect(owner.vote(verifiedPlayerActor(current), candidates[1]!.id, rotation.id, 'INTERNAL_CHAT')).rejects.toMatchObject({ code: 'BANNER_VOTE_USED' });
+    expect(await db.bannerVote.findMany({ where: { playerId, bannerRotationId: rotation.id } })).toEqual(votes);
+    expect(await state()).toEqual(before);
+  }, 60_000);
   it('reads full aliases/pity/Box/quotis/sac for fresh message IDs and never reexecutes a redelivery or changes the economy', async () => {
     const catalog = await db.character.findMany({ where: { isActive: true, rarity: { in: [4, 5] } }, orderBy: { name: 'asc' } });
     await db.playerCharacter.createMany({ data: catalog.map((character, index) => ({ playerId, characterId: character.id, constellation: index % 7, copies: index % 7 + 1, firstObtainedAt: new Date('2026-01-01') })), skipDuplicates: true });

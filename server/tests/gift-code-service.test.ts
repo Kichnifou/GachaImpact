@@ -25,6 +25,22 @@ function claimantHarness(total: number) {
 }
 
 describe('GiftCodeService administration', () => {
+  it.each(['UNREAD', 'READ', 'ARCHIVED', 'RESOLVED'])('skips identical notification writes without changing %s lifecycle', async state => {
+    const payload = { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'moras', amount: '100' }] };
+    const tx = {
+      $queryRaw: vi.fn(async () => [{ id: 'player', status: 'ACTIVE', legacy_recovery: null }]),
+      giftCodeEdition: { findMany: vi.fn(async () => [{ id: 'edition', giftCode: { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'moras', amount: 100n }], stellaAmount: 0n, eventPoints: 0, eventCurrency: 0n } }]) },
+      notification: { findUnique: vi.fn(async () => ({ id: 'notification', state, payload, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' })), update: vi.fn(), updateMany: vi.fn() },
+    };
+    const db = { $transaction: (action: (value: typeof tx) => unknown) => action(tx) };
+    const service = new GiftCodeService({} as never, db as never, { now: () => now });
+    for (let i = 0; i < 5; i++) await service.reconcileNotificationsForPlayer('player', now, false);
+    expect(tx.notification.update).toHaveBeenCalledTimes(state === 'RESOLVED' ? 5 : 0);
+    tx.notification.findUnique.mockResolvedValue({ id: 'notification', state, payload: { ...payload, title: 'Ancien titre' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' });
+    await service.reconcileNotificationsForPlayer('player', now, false);
+    expect(tx.notification.update).toHaveBeenCalledTimes(state === 'RESOLVED' ? 6 : 1);
+    expect(tx.notification.updateMany).toHaveBeenCalledTimes(6);
+  });
   it.each([
     { total: 0, page: 1, expected: 0, pages: 1 },
     { total: 1, page: 1, expected: 1, pages: 1 },

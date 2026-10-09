@@ -6,6 +6,7 @@ import type { PlayerCommandContext } from './player-command-context.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { chatElementEmojis, chatElementNames, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
 import { commandSource } from '../player/player-command-execution.js';
+import { chatNumber, resourceText } from './chat-command-format.js';
 
 const collectionEmojis: Readonly<Record<string, string>> = {
   lanterne_nouvel_an: '🎆', coeur_cristallin: '💖', bourgeon_eternel: '🌱', oeuf_enchante: '🥚',
@@ -29,7 +30,7 @@ export async function bankCommand(identity: PlayerExecutionActor, args: readonly
   const actor = await services.socialService.actor(identity);
   if (!args.length) {
     const bank = await services.getCurrentPlayerBank.execute(identity);
-    return `🏦 Banque ${actor.displayName} : ${bank.bankMoras} Moras | 💰 Portefeuille : ${bank.walletMoras} | Intérêt estimé (3%) : +${bank.estimatedInterest} | 📥 !banque deposer X | 📤 !banque retirer X`;
+    return `🏦 Banque ${actor.displayName} : ${chatNumber(bank.bankMoras)} Moras | 💰 Portefeuille : ${chatNumber(bank.walletMoras)} | Intérêt estimé (3%) : +${chatNumber(bank.estimatedInterest)} | 📥 !banque deposer X | 📤 !banque retirer X`;
   }
   let amount: bigint | 'max' = args[1]!.toLowerCase() === 'max' ? 'max' : BigInt(args[1]!);
   if (amount === 'max' && chat.sourceChannel === 'TWITCH') {
@@ -39,14 +40,14 @@ export async function bankCommand(identity: PlayerExecutionActor, args: readonly
   }
   try {
     const result = await (deposit ? services.depositPlayerBankChat : services.withdrawPlayerBankChat).execute(identity, amount, commandId);
-    return `✅ ${actor.displayName} ${deposit ? 'dépose' : 'retire'} ${result.resolvedAmount} Moras ${deposit ? 'à la' : 'de la'} banque. Banque : ${result.bankMoras} | Sur toi : ${result.walletMoras}`;
+    return `✅ ${actor.displayName} ${deposit ? 'dépose' : 'retire'} ${chatNumber(result.resolvedAmount)} Moras ${deposit ? 'à la' : 'de la'} banque. Banque : ${chatNumber(result.bankMoras)} | Sur toi : ${chatNumber(result.walletMoras)}`;
   } catch (error) {
     if (error instanceof BusinessError && ['BANK_AMOUNT_INVALID', 'BANK_WALLET_INSUFFICIENT', 'BANK_BALANCE_INSUFFICIENT'].includes(error.code) && !await chat.hasConfirmedCommandMutation(commandId)) {
       if (amount === 'max' && error.code === 'BANK_AMOUNT_INVALID') return `⚠️ ${actor.displayName}, tu n’as aucun Mora à ${deposit ? 'déposer' : 'retirer'}.`;
       if (error.code === 'BANK_WALLET_INSUFFICIENT' || error.code === 'BANK_BALANCE_INSUFFICIENT') {
         const bank = await services.getCurrentPlayerBank.execute(identity);
-        return deposit ? `⚠️ ${actor.displayName}, tu n’as pas assez de Moras. Portefeuille : ${bank.walletMoras}.`
-          : `⚠️ ${actor.displayName}, tu n’as pas assez de Moras en banque. Banque : ${bank.bankMoras}.`;
+        return deposit ? `⚠️ ${actor.displayName}, tu n’as pas assez de Moras. Portefeuille : ${chatNumber(bank.walletMoras)}.`
+          : `⚠️ ${actor.displayName}, tu n’as pas assez de Moras en banque. Banque : ${chatNumber(bank.bankMoras)}.`;
       }
     }
     throw error;
@@ -79,7 +80,7 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
     const result = await services.giftCodeService.claim(identity, editionId, commandId, chat.sourceChannel ?? 'INTERNAL_CHAT');
     if (result.operation.alreadyProcessed && !confirmed) return already();
     const claimed = result.claimed.find(entry => entry.editionId === editionId) ?? code;
-    const actualRewards = result.grantedRewards ?? claimed.rewards;
+    const actualRewards = claimed.rewardBreakdown?.direct ?? result.grantedRewards ?? claimed.rewards;
     const rewards = new Map(actualRewards.filter(reward => BigInt(reward.amount) > 0n).map(reward => [reward.resourceKey, reward.amount]));
     const texts: string[] = [];
     if (rewards.has('primogems')) texts.push(`+💠${numberText(rewards.get('primogems')!)} Primogemmes (${numberText(result.resources.primogems)})`);
@@ -91,6 +92,7 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
     for (const reward of actualRewards) {
       if (['masterless-stella-fortuna', 'event_points', 'event_currency'].includes(reward.resourceKey) && BigInt(reward.amount) > 0n) texts.push(`+${numberText(reward.amount)} ${reward.displayName}`);
     }
+    if (claimed.rewardBreakdown?.milestones.length) texts.push(`Paliers Event : ${claimed.rewardBreakdown.milestones.map(reward => reward.resourceKey === 'event_currency' ? `+${numberText(reward.amount)} ${reward.displayName}` : `+${resourceText(reward.resourceKey, reward.amount)}`).join(' + ')}`);
     if (result.eventReward?.granted === false) texts.push('Gains Event non accordés : inscription au Festival actif requise.');
     const description = claimed.description?.trim();
     if (commandSource('INTERNAL_CHAT') === 'TWITCH') return logicalChatParts(`✅ ${actor.displayName} a utilisé ${claimed.token} !`,

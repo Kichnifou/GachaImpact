@@ -44,7 +44,9 @@ export default function GiftCodesScreen({ refreshToken = 0, onLoad, onClaim }: P
 function GiftCodeCard({ code, pending, disabled, onClaim }: { code: GiftCodeDto; pending: boolean; disabled: boolean; onClaim: () => void }) {
   return <article className={`panel gift-code-card${code.claimed ? ' claimed' : ''}`}>
     <div className="gift-code-copy"><span className="eyebrow">{code.type === 'ANNUAL' ? `Édition ${code.editionKey}` : 'Code temporaire'}</span><h2>{code.title}</h2><code>{code.token}</code><p>{code.description}</p><small>{formatPeriod(code.startsAt, code.endsAt)}</small></div>
-    <div className="gift-code-rewards" aria-label="Récompenses">{code.rewards.map((reward) => <span key={reward.resourceKey}><b>+{formatResourceAmount(reward.amount)}</b>{reward.displayName}</span>)}</div>
+    {code.rewardBreakdown && <small className="gift-code-condition">Gains directs du Code</small>}
+    <div className="gift-code-rewards" aria-label="Récompenses">{(code.rewardBreakdown?.direct ?? code.rewards).map((reward) => <span key={reward.resourceKey}><b>+{formatResourceAmount(reward.amount)}</b>{reward.displayName}</span>)}</div>
+    {!!code.rewardBreakdown?.milestones.length && <><small className="gift-code-condition">Récompenses des nouveaux paliers Event</small><div className="gift-code-rewards" aria-label="Récompenses de paliers">{code.rewardBreakdown.milestones.map(reward => <span key={reward.resourceKey}><b>+{formatResourceAmount(reward.amount)}</b>{reward.displayName}</span>)}</div></>}
     {!code.claimed && code.rewards.some(({ resourceKey }) => resourceKey === 'event_points' || resourceKey === 'event_currency') && <small className="gift-code-condition">Gains Event réservés aux joueurs déjà inscrits au Festival actif au moment de la récupération. Les autres gains restent disponibles.</small>}
     {code.claimed && code.eventReward?.granted === false && <small className="gift-code-condition">Aucun gain Event accordé : inscription au Festival actif requise lors de la récupération.</small>}
     {code.claimed && code.rewards.length === 0 && <small className="gift-code-condition">Aucune récompense accordée.</small>}

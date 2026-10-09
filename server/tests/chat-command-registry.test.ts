@@ -11,6 +11,9 @@ describe('Chat command registry', () => {
   it('resolves case, accents and aliases, and gives command priority over categories', () => {
     expect(findChatCommand('BANNIÈRE')?.name).toBe('banniere');
     expect(findChatCommand('INFO')?.name).toBe('infos');
+    expect(findChatCommand('VOTES')).toBe(findChatCommand('vote'));
+    expect(commandHelp(findChatCommand('votes')!)).toContain('!vote [nom]');
+    expect(chatHelp('votes')).toBe(chatHelp('vote'));
     expect(chatHelp('box')).toContain('!box');
     expect(chatHelp('ressources')).toContain('!banque');
     expect(chatHelp('ressources')).toContain('!echanger');

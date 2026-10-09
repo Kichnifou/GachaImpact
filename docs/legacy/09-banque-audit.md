@@ -1,5 +1,10 @@
 # 09 — Audit legacy Banque
 
+## R1065 — Amendement de présentation courant
+
+Format français partagé pour chaque montant Banque/portefeuille/intérêt/résolution MAX/erreur. BigInt autoritatifs et transaction économique inchangés ; essais petits, grands et au-delà de Number.MAX_SAFE_INTEGER. Cet ajout ne réécrit pas les décisions historiques ci-dessous. [Contrat actuel](../commands/command-reference.md), livraison au Master.
+
+
 **Révision propriétaire étape 29 — R1037 :** Banque.txt : messages/emojis/noms réels et aliases historiques deposer/depose/déposer/dépose, retirer/retire/retiré/retirée rétablis ; Help canonique, aucun !bank. MAX résolu transactionnellement, resolvedAmount exposé depuis l’opération existante et identique au replay. Aucun changement de frais/cooldown/plafond/stats/intérêts, aucune migration. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
 
 Statut : CLÔTURÉ — R237 À R255 VALIDÉS

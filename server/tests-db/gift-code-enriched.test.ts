@@ -8,6 +8,10 @@ import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-pr
 import { withPlayerCommandExecution } from '../src/application/player/player-command-execution.js';
 import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-current-player-store.js';
 import { PrismaBoxStore } from '../src/infrastructure/database/prisma-box-store.js';
+import { PrismaInventoryStore } from '../src/infrastructure/database/prisma-inventory-store.js';
+import { GetCurrentPlayerInventory } from '../src/application/inventory/inventory-services.js';
+import { sacCommand } from '../src/application/chat/chat-command-format.js';
+import { SocialService } from '../src/application/social/social-service.js';
 
 const isolated = isolatedBatchDatabase(), db = isolated.database;
 const store = new PrismaCurrentPlayerStore(db), getPlayer = new GetCurrentPlayer(store), provision = new GetOrProvisionCurrentPlayer(store);
@@ -107,6 +111,11 @@ it('mixes all reward kinds, crosses all eight milestones once and persists actua
   expect(result.grantedRewards?.find(r => r.resourceKey === 'primogems')?.amount).toBe('1605');
   expect(result.grantedRewards?.find(r => r.resourceKey === 'moras')?.amount).toBe('50002');
   expect(result.grantedRewards?.find(r => r.resourceKey === 'event_currency')?.amount).toBe('21');
+  const breakdown = result.claimed.find(row => row.editionId === c.editionId)!.rewardBreakdown!;
+  expect(breakdown.direct.find(row => row.resourceKey === 'event_currency')?.amount).toBe('3');
+  expect(breakdown.milestones.find(row => row.resourceKey === 'event_currency')?.amount).toBe('18');
+  expect(breakdown.direct.find(row => row.resourceKey === 'primogems')?.amount).toBe('5');
+  expect(breakdown.milestones.find(row => row.resourceKey === 'primogems')?.amount).toBe('1600');
   expect(await currency(p.id, context.definition.id)).toBe(21n);
   expect(await db.eventMilestoneClaim.count({ where: { playerId: p.id } })).toBe(8);
   const operations = await db.businessOperation.findMany({ where: { playerId: p.id } });
@@ -116,8 +125,35 @@ it('mixes all reward kinds, crosses all eight milestones once and persists actua
   const replay = await service.claim(p.identity, c.editionId, key, 'TWITCH');
   expect(replay.grantedRewards).toEqual(result.grantedRewards);
   expect(replay.eventReward).toEqual(result.eventReward);
+  expect(replay.claimed.find(row => row.editionId === c.editionId)!.rewardBreakdown).toEqual(breakdown);
   expect((await service.listForPlayer(p.identity)).claimed.find(row => row.editionId === c.editionId)?.rewards).toEqual(result.grantedRewards);
   expect(await db.eventMilestoneClaim.count({ where: { playerId: p.id } })).toBe(8);
+});
+it('keeps identical notification rows untouched across repeated and concurrent reconciliations', async () => {
+  const p = await player(), c = await code([{ resourceKey: 'moras', amount: 100n }]);
+  await service.reconcileNotificationsForPlayer(p.id, now, false);
+  const key = `gift-code:${p.id}:${c.editionId}`;
+  const version = async () => db.$queryRaw<Array<{ version: string }>>`SELECT xmin::text version FROM notifications WHERE deduplication_key=${key}`;
+  const before = await version(); expect(before).toHaveLength(1);
+  for (let i = 0; i < 5; i++) await service.reconcileNotificationsForPlayer(p.id, now, false);
+  await Promise.all([service.reconcileNotificationsForPlayer(p.id, now, false), service.reconcileNotificationsForPlayer(p.id, now, false)]);
+  expect(await version()).toEqual(before);
+  await service.update(admin, c.id, { title: 'Updated private title', idempotencyKey: randomUUID() });
+  await service.reconcileNotificationsForPlayer(p.id, now, false);
+  expect(await version()).not.toEqual(before);
+  expect((await db.notification.findUniqueOrThrow({ where: { deduplicationKey: key } })).payload).toMatchObject({ title: 'Updated private title' });
+});
+it('projects the real Stella inventory after gift credit and canonical consumption without another award', async () => {
+  const p = await player(), c = await code([{ resourceKey: 'masterless-stella-fortuna', amount: 2n }]);
+  const services = { socialService: new SocialService(getPlayer, db, clock), getCurrentPlayerInventory: new GetCurrentPlayerInventory(getPlayer, new PrismaInventoryStore(db)) };
+  expect((await sacCommand(p.identity, services)).join(' ')).not.toContain('Stella');
+  await service.claim(p.identity, c.editionId, randomUUID());
+  expect((await sacCommand(p.identity, services)).join(' ')).toContain('✨ Masterless Stella Fortuna : 2');
+  const character = await db.character.findFirstOrThrow({ where: { rarity: 5, isActive: true } });
+  await db.playerCharacter.create({ data: { playerId: p.id, characterId: character.id, constellation: 0, copies: 1, firstObtainedAt: now } });
+  await new PrismaBoxStore(db).useStella({ playerId: p.id, characterId: character.id, idempotencyKey: randomUUID(), now, random: { nextInt: () => 0 } });
+  expect((await sacCommand(p.identity, services)).join(' ')).toContain('✨ Masterless Stella Fortuna : 1');
+  expect(await db.itemAcquisition.count({ where: { playerId: p.id, sourceKey: 'GIFT_CODE' } })).toBe(1);
 });
 it.each(['NOT_JOINED', 'FINISHED', 'SCHEDULED', 'ABSENT', 'EXPIRED'] as const)('skips every Event gain for %s while independently granting classic rewards and Stella', async state => {
   const p = await player();
