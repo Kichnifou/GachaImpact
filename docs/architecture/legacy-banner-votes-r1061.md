@@ -1,6 +1,6 @@
-# R1061 — Votes Twitch prouvés sans Player, candidat sensible
+# R1061 — Votes Twitch prouvés sans Player, contrat sensible
 
-Décision propriétaire du 09/10/2026, prolongement de R1060. Baseline publique : `212da08e6b601d0bf5d83e550a5629ed90d21376`, Prisma 064. Le nouveau mécanisme et 065 sont candidats sur `review` ; review indépendante obligatoire avant promotion. Aucune migration, désactivation Twitch ou restitution publique effectuée dans cette mission.
+Décision propriétaire du 09/10/2026, prolongement de R1060. Baseline publique historique : `212da08e6b601d0bf5d83e550a5629ed90d21376`, Prisma 064. Le candidat initial n'avait effectué aucune migration, désactivation Twitch ou restitution publique. Le mandat P0 ultérieur a conduit à la revue indépendante, au déploiement et à l'application au SHA `c60873af` ; les preuves et l'état effectif sont au [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--reprise-p0-appliquée-le-09102026). Les prévisualisations et validations datées ci-dessous ne doivent pas être rejouées comme de nouvelles opérations.
 
 **Mandat P0 R1062 ultérieur le même jour :** revue, corrections, promotion, déploiement et application sont désormais préautorisés dans la même exécution, après leurs gates. Les exigences de mission distincte des sections historiques suivantes sont remplacées par le [runbook courant](../process/legacy-cutover-runbook.md#reprise-p0-r1062). L'état public et la recette restent uniquement au [Master](../master/PROJECT_MASTER_PLAN.md).
 
