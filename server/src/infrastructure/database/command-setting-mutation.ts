@@ -26,7 +26,11 @@ export async function commandSettingMutation<T>(db: PrismaClient, playerId: stri
         const result = await action(tx);
         await tx.businessOperation.create({ data: { playerId, sourceChannel, idempotencyKey, operationType: type, status: 'COMPLETED', completedAt: new Date(), resultSummary: { fingerprint, result: freezeCommandValue(result) } } });
         return result;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      // Every setting belongs to this locked Player. ReadCommitted reads the
+      // winner after waiting; the unique operation key also protects collisions
+      // across Players. Serializable adds unrelated-player SSI conflicts under
+      // chat load without strengthening these per-Player invariants.
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
     } catch (error) { if (retry < 5 && isPrismaConcurrencyCollision(error)) continue; throw error; }
   }
 }

@@ -63,6 +63,20 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it('leaves an engaged activity receipt untouched when admission fails during its redelivery', async () => {
+    const f = await fixture(), body = commandEnvelope('Bonjour');
+    Object.assign(f.receipt, { externalReference: 'message-native:123:chat-message', payloadMinimal: { messageActivity: {
+      key: 'twitch-message:123:chat-message', now: '2026-10-09T16:00:00Z', messageId: 'chat-message', normal: true, length: 7,
+    } } });
+    const initial = structuredClone(f.receipt), complete = vi.fn();
+    Object.assign(f.tx.twitchEventReceipt, { updateMany: complete });
+    vi.spyOn(f.authority, 'covers').mockResolvedValueOnce(true).mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+    const activity = { capturedAt: () => new Date(), prepare: vi.fn(), consume: vi.fn() };
+    const pilot = new TwitchCommandPilot(f.db, f.config, f.executor, f.outbound, f.parser, f.subscriptions, activity as never, f.authority, f.players as never);
+    await pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.receipt).toEqual(initial); expect(complete).not.toHaveBeenCalled(); expect(f.tx.twitchEventReceipt.update).not.toHaveBeenCalled();
+    expect(activity.prepare).not.toHaveBeenCalled(); expect(activity.consume).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
+  });
   it.each(['upstream rejection', 'timeout'])('preserves GLOBAL and its kill switch when transport inspection fails: %s', async reason => {
     const f = await fixture();
     Object.assign(f.config.twitchCommandPilot, { globalEnabled: true });

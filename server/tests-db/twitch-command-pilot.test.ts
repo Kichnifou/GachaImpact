@@ -16,6 +16,7 @@ import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-st
 import { SocialService } from '../src/application/social/social-service.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
 import { TwitchReceiptRetention } from '../src/application/twitch/twitch-receipt-retention.js';
+import { receiptSafety } from '../src/application/twitch/twitch-operations-in-flight.js';
 import { TwitchCommandPilot } from '../src/application/twitch/twitch-command-pilot.js';
 import { twitchPlayerCommandExecutor } from '../src/application/twitch/twitch-player-command-executor.js';
 import { TwitchCommandSendError, type TwitchCommandChatClient } from '../src/infrastructure/twitch/twitch-command-chat-client.js';
@@ -543,6 +544,35 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     expect((await deliver(signed(echo))).statusCode).toBe(204);
     expect(await db.player.count()).toBe(players); expect(await progression()).toEqual(initial); expect(await state()).toEqual(before);
     expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways); expect(send).toHaveBeenCalledTimes(sends);
+  });
+  it.each(['reservation', 'consumption'])('preserves an engaged activity reservation when OFF wins before %s on real redelivery', async boundary => {
+    const value = body('ordinary redelivery'), messageId = value.event.message_id;
+    const receipt = await db.twitchEventReceipt.create({ data: { externalEventId: randomUUID(), eventType: 'channel.chat.message', twitchUserId: chatter,
+      state: 'RECEIVED', externalReference: `message-native:123:${messageId}`, payloadMinimal: { messageActivity: {
+        key: `twitch-message:123:${messageId}`, messageId, now: now.toISOString(), normal: true, length: value.event.message.text.length,
+      } } } });
+    const initial = await progression(), resources = await wallet(), sends = send.mock.calls.length;
+    const gates = viewerPilot as unknown as { locked: (id: string, action: (tx: unknown) => Promise<unknown>) => Promise<unknown> };
+    const locked = gates.locked.bind(viewerPilot);
+    let transactions = 0;
+    const barrier = vi.spyOn(gates, 'locked').mockImplementation(async (id, action) => {
+      transactions++;
+      if (boundary === 'reservation' && transactions === 1) await viewerPilot.disarm(playerId);
+      const result = await locked(id, action);
+      if (boundary === 'consumption' && transactions === 2) await viewerPilot.disarm(playerId);
+      return result;
+    });
+    try {
+      await viewerPilot.consumeAuthenticated(value, receipt.id);
+      const after = await db.twitchEventReceipt.findUniqueOrThrow({ where: { id: receipt.id } });
+      if (boundary === 'reservation') expect(after).toEqual(receipt);
+      expect(after.state).toBe('RECEIVED'); expect(after.processedAt).toBeNull();
+      expect(after.externalReference).toBe(receipt.externalReference); expect(receiptSafety(after).blocking).toBe(true);
+      expect(await progression()).toEqual(initial); expect(await wallet()).toEqual(resources); expect(send).toHaveBeenCalledTimes(sends);
+    } finally {
+      barrier.mockRestore(); await db.twitchEventReceipt.delete({ where: { id: receipt.id } });
+      await viewerPilot.arm(playerId, 'STREAMERBOT_PATH_DISABLED');
+    }
   });
   it('keeps system notifications and bot-badged messages out of every gameplay consumer', async () => {
     const players = await db.player.count(), before = await state(), favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length;

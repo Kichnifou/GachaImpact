@@ -212,6 +212,7 @@ export class TwitchCommandPilot {
     let activityBodyLimit: number | undefined;
     if (this.messageActivity) {
       const activity = await this.consumeMessageActivity(identity.player, event, receiptId);
+      if (activity === null) return;
       activityBodyLimit = activity.responseBodyLimit;
       if (!event.message.text.startsWith('!')) {
         if (activity.output.length) await this.deliverActivityResponses(identity.player, event, receiptId, activity.output, transport, activityBodyLimit);
@@ -349,7 +350,7 @@ export class TwitchCommandPilot {
         payloadMinimal: { ...minimal, messageActivity: { key, now: now.toISOString(), messageId: event.message_id, normal, length, responseBodyLimit: twitchReplyBodyLimit(event) } } } });
       return receiptId;
     });
-    if (canonical === null) return { output: [] as string[], responseBodyLimit: undefined };
+    if (canonical === null) return null;
     // Reservation is committed before Event preparation can reconcile its existing owners.
     const initial = await this.read(this.db, canonical, event.chatter_user_id);
     const previous = initial.minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
@@ -364,8 +365,8 @@ export class TwitchCommandPilot {
       }
       return prior;
     });
-    const output = await this.enabled(event.chatter_user_id)
-      ? await this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan, activity.responseBodyLimit) : [];
+    if (!await this.enabled(event.chatter_user_id)) return null;
+    const output = await this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan, activity.responseBodyLimit);
     return { output, responseBodyLimit: activity.responseBodyLimit };
   }
 

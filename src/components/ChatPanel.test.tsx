@@ -725,6 +725,10 @@ describe('ChatPanel réel', () => {
   })
 
   it('keeps a new older page visible when the bounded history window is full', async () => {
+    // This checks pagination, not the live polling timer. Keep polling from
+    // publishing fresh pages while React renders the 200-row history fixture.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    try {
     const cursor = { createdAt: message.createdAt, id: message.id }
     const current = Array.from({ length: 200 }, (_, index) => ({ ...message, id: `33333333-3333-4333-8333-${String(index).padStart(12, '0')}`, content: `recent-${index}`, submissionOrder: String(index + 2) }))
     chat.messages.mockImplementation(async requestedCursor => requestedCursor
@@ -738,6 +742,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { list.dispatchEvent(new Event('scroll', { bubbles: true })); await Promise.resolve() })
     expect(container.textContent).toContain('Ancien visible')
     expect(container.querySelectorAll('.chat-message')).toHaveLength(200)
+    } finally { vi.useRealTimers() }
   }, 15000)
 
   it('defers fresh rows at the history cap until the reader chooses the latest page', async () => {
