@@ -1,13 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1062 — reprise P0 appliquée, socle Twitch ouvert aux 43 historiques.
+Version : R1063 — restauration des domaines et réponses Twitch, candidat en validation.
 Date : 2026-10-09
-Statut : **PARTIAL — 43/43 historiques couverts techniquement sur Twitch, plus Kichni_Test ; recette humaine après extension en attente.** Quarante nouveaux profils importés et activés, zéro profil bloqué. CANARY révision 14, 44 cibles NATIVE exactes, GLOBAL false, capacité réelle true et Chat ACTIVE. Event/Boss/Giveaway restent restreints pour les 40 reprises. Code public `c60873afd038134491d46b5ec0d2df1adfce9f08`, Prisma 66. Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont distincts et conservés.
+Statut : **R1063 EN COURS — public R1062 PARTIAL conservé pendant les tests privés.** Code public `c60873afd038134491d46b5ec0d2df1adfce9f08`, Prisma 66, CANARY 14/44 NATIVE, GLOBAL false et Chat ACTIVE. La gate F5 et les consultations réelles R1062 sont maintenant confirmées ; la sélection bidirectionnelle est acquise. Les 40 restrictions Event/Boss/Giveaway restent publiques jusqu’à application revue. Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont distincts et conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
 <a id="community-complements-20261008"></a>
 
-## Point courant — reprise P0 appliquée le 09/10/2026
+## Point courant — R1063 consolidé
+
+Mandat : terminer Event, Boss, Giveaway et les faits sociaux prouvés, corriger les réponses Twitch dans le même cycle review indépendante → main → déploiement → application contrôlée. [Contrat et diagnostic R1063](../architecture/legacy-domains-r1063.md), [procédure](../process/legacy-cutover-runbook.md#r1063-restauration-domaines).
+
+**Validations désormais acquises :** F5 Kichnifou, quatre indications runtime confirmées ; consultations de Plumereveuse66 et sélection réelle Yae Miko depuis Twitch, puis Chiori depuis le standalone avec retour correct sur Twitch. Les receipts du 09/10 relus techniquement montrent dix commandes plus une activité, onze terminées et 36 réponses SENT. Une erreur de syntaxe bannière contient un argument invisible U+034F ; aucune troncature serveur prouvée dans la Box de 74 entrées, Yoimiya entière. Nouveau contrat de présentation : 450 caractères Unicode, éléments complets, anciens replays gelés.
+
+**Cible prouvée, non encore appliquée :** 40 ouvertures par domaine ; neuf participations Event (80 points/128 monnaies/quatre claims sans paiement), trois Boss source conservés distincts des natifs et neuf cumuls non nuls, une session Giveaway close (cinq inscrits/22 compteurs/un gagnant sans paiement), un message Event non lu, quinze relations sociales résolubles sur dix-sept. Deux endpoints exclus restent différés. Les 31 non-participants Event ne sont pas inscrits artificiellement. Aucun réimport personnel, extension ou GLOBAL.
+
+**Prochaine étape active :** achever les contrôles PostgreSQL privés et la répétition sur capture réelle, publier le candidat, obtenir le verdict indépendant du vrai SHA puis poursuivre les gates de déploiement/application préautorisées. Le jeu reste disponible durant cette préparation. Code testé, déployé, données restaurées et recette humaine restent quatre états distincts.
+
+<a id="point-courant--reprise-p0-appliquée-le-09102026"></a>
+
+## Point R1062 — reprise P0 appliquée le 09/10/2026 (historique)
 
 **Publication et déploiement acquis :** review indépendante du SHA `c60873afd038134491d46b5ec0d2df1adfce9f08` et du diff cumulé depuis `212da08` approuvée après corrections. Les 81 contenus/blobs GitHub ont été comparés aux fichiers publiés avant promotion strictement fast-forward. Railway et Cloudflare SUCCESS sur ce SHA exact, health 200 et assets publics exacts. Le preDeploy Prisma normal a appliqué 065/066 : 66 migrations terminées, noms/checksums des blobs Git exacts, migrate status à jour, contraintes/indexes/trigger/RLS/grants physiques contrôlés en lecture seule. Une différence CRLF du fichier local 005 a été corrigée dans le contrôle du helper en utilisant le blob Git canonique ; aucune migration acquise n'a été modifiée. Sauvegarde applicative publique complète, décodage, hash et fsync vérifiés avant DDL ; backups ciblés durables avant les écritures métier.
 
@@ -19,7 +31,7 @@ But : porter l’état réel, les preuves, les décisions et la prochaine repris
 
 **Postflight et limites :** lecture du 09/10 à 10:18 UTC : sélection exacte des 44 cibles, zéro profil bloqué, zéro opération/livraison incertaine et aucune nouvelle commande de recette observée. Audit indépendant des artifacts privés : **17 contrôles PASS**, dont sauvegardes, sources, votes, Event, relations et graphes complets. La conservation des tables partagées est comparée au backup complet de 09:21 UTC, car le préflight ciblé de 09:57 ne les contenait pas ; Event possède sa propre préimage fraîche de 10:15. Le socle profil/Box/ressources/banque, Gacha/pity/sélection, quotidien, missions et expéditions est ouvert. **Event/Boss/Giveaway des 40 nouveaux profils restent restreints côté serveur, y compris les chemins indirects : état PARTIAL, pas RESTORED.** Les 17 faits sociaux différés ne doivent pas être inventés ni écrasés.
 
-**Prochaine intervention indispensable :** aucun navigateur connecté n'est exposé à Codex. Les contrôles réels PostgreSQL/configuration Railway/Helix prouvent CANARY et son transport, sans constituer une lecture HTTP authentifiée du processus. La confirmation F5 dans la session Kichnifou existante, demandée après le dernier redémarrage et l'extension, reste en attente : capacité disponible, armement ON, effectif ON, réception Chat Activée. Après cette gate seulement, une salve de nouveaux messages avec un joueur importé disponible : `!pity`, `!box`, `!quotis`, `!banniere`, puis une mutation volontaire appropriée, par exemple sélection gratuite et consultation `!select`. Vérifier les nouveaux receipts/réponses SENT, effets uniques et persistance sans replay. Plumereveuse66 et Kadraw sont des possibilités, pas des présences confirmées ; leur absence ne bloque pas la couverture technique et ne vaut jamais recette. Le checkpoint opérationnel est publié sur review seulement ; le code public reste `c60873af`, sans redémarrage documentaire supplémentaire pendant cette gate. Sources, backups, journaux et preuves nominatives demeurent privés et préservés sous `local-data/identity-resolutions/p0-20261009/`.
+**Gate R1062 close :** le propriétaire a confirmé F5/capacité/armement/effectif/réception, puis les réponses réelles et la synchronisation de sélection. Le contrôle indépendant des receipts est décrit dans R1063 ci-dessus. Les preuves R1062 restent conservées sous `local-data/identity-resolutions/p0-20261009/` ; aucune ancienne commande à rejouer. Un nouveau redémarrage demandera une nouvelle validation effective du transport avant tout smoke.
 
 ## Validation et préparation du candidat P0 R1062 — historique avant application
 

@@ -22,7 +22,7 @@ Lorsqu'une mission autorise explicitement revue, corrections, promotion, déploi
 
 Le parcours conserve publication review → vérification des vrais diff/blobs GitHub → ancestry et absence de concurrent inattendu → fast-forward strict main → SHA distants → déploiements exacts et migrations normales → gates métier → application préautorisée → postflight et recette. L'autorisation ne dépasse jamais la population, l'économie ni les actions nommées dans le mandat. Aucun arrêt cérémoniel après un succès ; arrêter devant une preuve/accès indispensable manquant, un risque non résolu, une ambiguïté humaine ou un reviewer indisponible. Ne pas immobiliser les sous-ensembles indépendants sûrs. Le Master distingue toujours candidat, déployé, appliqué et recette humaine.
 
-Cette règle prime, pour ces missions, sur les passages historiques exigeant systématiquement un prompt de promotion ou d'application séparé. Hors préautorisation explicite, leurs limites restent applicables. [R1062](../specifications/decisions-log.md) est le mandat P0 courant.
+Cette règle prime, pour ces missions, sur les passages historiques exigeant systématiquement un prompt de promotion ou d'application séparé. Hors préautorisation explicite, leurs limites restent applicables. [R1063](../specifications/decisions-log.md) poursuit le mandat P0 courant après application de R1062.
 
 ## Protocole propriétaire — étape 29 uniquement (R1036)
 

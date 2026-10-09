@@ -4,7 +4,8 @@ import { BusinessError } from '../errors.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import type { PlayerCommandContext } from './player-command-context.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
-import { chatElementEmojis, chatElementNames, logicalChatParts } from './chat-list-result.js';
+import { chatElementEmojis, chatElementNames, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
+import { commandSource } from '../player/player-command-execution.js';
 
 const collectionEmojis: Readonly<Record<string, string>> = {
   lanterne_nouvel_an: '🎆', coeur_cristallin: '💖', bourgeon_eternel: '🌱', oeuf_enchante: '🥚',
@@ -61,7 +62,7 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
     if (!codes.available.length) return `🎁 Aucun code cadeau disponible actuellement. Récupérés : ${codes.claimed.length}.`;
     const parts = logicalChatParts('🎁 Codes disponibles :', codes.available.map(code => ({ text: code.token, separator: ', ' })), '🎁 Codes suite :');
     const summary = ` | Récupérés : ${codes.claimed.length}.`, last = parts.at(-1)!;
-    return Array.from(last + summary).length <= 500 ? [...parts.slice(0, -1), last + summary] : [...parts, `🎁 Récupérés : ${codes.claimed.length}.`];
+    return Array.from(last + summary).length <= chatResponseLimit() ? [...parts.slice(0, -1), last + summary] : [...parts, `🎁 Récupérés : ${codes.claimed.length}.`];
   }
   const actor = await services.socialService.actor(identity);
   const normalized = args[0]!.trim().toUpperCase().replace(/\s+/gu, '-');
@@ -87,6 +88,8 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
       if (amount) texts.push(`+${numberText(amount)} particules ${chatElementEmojis[element]} ${chatElementNames[element]} (${numberText(result.resources.particles[element] ?? '0')})`);
     }
     const description = claimed.description?.trim();
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return logicalChatParts(`✅ ${actor.displayName} a utilisé ${claimed.token} !`,
+      [...texts, ...(description ? [description] : [])].map(text => ({ text, separator: ' | ' })), '🎁 Code cadeau (suite) :');
     return `✅ ${actor.displayName} a utilisé ${claimed.token} ! ${texts.join(' | ')}${description ? ` | ${description}` : ''}`;
   } catch (error) {
     if (error instanceof BusinessError && !await chat.hasConfirmedCommandMutation(commandId)) {

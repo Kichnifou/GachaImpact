@@ -8,6 +8,7 @@ import { TwitchObservationConflict } from './twitch-event-observer.js';
 import { twitchGiftSupremeRedemption } from './twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeManager } from './twitch-gift-supreme-manager.js';
 import { matchesRecoveryGiftDelivery, recoveryDeferredError } from './twitch-recovery-deferrals.js';
+import { twitchResponseEntries } from './twitch-response-format.js';
 
 const object = (value: Prisma.JsonValue | undefined): Prisma.JsonObject => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
@@ -86,11 +87,16 @@ export class TwitchGiftSupremeRuntime {
         stage('announcement');
         const gifter = typeof journal['gifterDisplayName'] === 'string' ? journal['gifterDisplayName'] : input.gifterDisplayName;
         const element = result.elementKey[0]!.toUpperCase() + result.elementKey.slice(1);
-        const message = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1600 particules ${element} (${result.balanceAfterParticles})`;
+        const sourceText = `🎁 ${gifter} offre un Gift Suprême à ${result.targetDisplayName} ! +1600 particules ${element} (${result.balanceAfterParticles})`;
+        const presentation = twitchResponseEntries(sourceText)[0]!;
+        let message = presentation.text;
         let reserved = false;
         await this.journal(receipt.id, value => {
           if (value['announcementState'] === undefined || value['announcementState'] === 'NONE') {
-            reserved = true; return { ...value, announcementState: 'RESERVED', announcementText: message, reservedAt: this.clock.now().toISOString() };
+            // A preexisting NONE retry may already carry the original payload.
+            message = typeof value['announcementText'] === 'string' ? value['announcementText'] : presentation.text;
+            reserved = true; return { ...value, announcementState: 'RESERVED', announcementText: message,
+              ...(typeof value['announcementText'] !== 'string' && presentation.fullText !== undefined ? { announcementFullText: presentation.fullText } : {}), reservedAt: this.clock.now().toISOString() };
           }
           return value;
         });

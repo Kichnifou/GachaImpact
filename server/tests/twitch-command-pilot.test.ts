@@ -271,10 +271,35 @@ describe('Kichnifou-operated command pilot with independent viewer actors', () =
     await rejected.pilot.consumeAuthenticated(commandEnvelope(), 'receipt'); rejected.pilot.disarm(playerId);
     await rejected.pilot.consumeAuthenticated(commandEnvelope(), 'receipt'); expect(rejected.outbound.send).toHaveBeenCalledTimes(1);
   });
-  it('keeps every presentation segment and bounds Unicode without dropping a long response', () => {
+  it('reports an oversized indivisible entry instead of cutting its Unicode contents', () => {
     const result = twitchResponseSegments(['A', '💠'.repeat(1001), 'B']);
-    expect(result.map(text => Array.from(text).length)).toEqual([1, 500, 500, 1, 1]);
-    expect(result.join('')).toBe('A' + '💠'.repeat(1001) + 'B');
+    expect(result).toEqual(['A', expect.stringContaining('Contenu intégral conservé'), 'B']);
+    expect(result.every(text => Array.from(text).length <= 450)).toBe(true);
+  });
+  it('persists the complete exceptional entry and replays only the failed notice, without a second effect', async () => {
+    const f = await fixture(), fullText = '👩🏽‍🚀'.repeat(120);
+    f.executor.execute.mockResolvedValue(['A', fullText, 'B']);
+    f.outbound.send.mockResolvedValueOnce('sent-A').mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pull'), 'receipt');
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ text: 'A', status: 'SENT' }, { fullText, status: 'FAILED' }, { text: 'B', status: 'PENDING' }] } });
+    await f.pilot.retryResponses(playerId, 'receipt');
+    expect(f.executor.execute).toHaveBeenCalledTimes(1);
+    const sent = f.outbound.send.mock.calls.map(([input]) => input.message);
+    expect(sent).toEqual(['A', expect.stringContaining('Contenu intégral conservé'), expect.stringContaining('Contenu intégral conservé'), 'B']);
+    expect(sent.every(text => Array.from(text).length <= 450)).toBe(true);
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ status: 'SENT' }, { fullText, status: 'SENT' }, { status: 'SENT' }] } });
+  });
+  it('keeps preexisting 500-codepoint response segments unchanged and skips a SENT segment', async () => {
+    const f = await fixture();
+    f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pity'), 'receipt');
+    const saved = f.receipt.payloadMinimal.commandPilot as { responses: { text: string; status: string; messageId?: string }[] };
+    saved.responses = [{ text: 'S'.repeat(500), status: 'SENT', messageId: 'old-sent' }, { text: '👩🏽‍🚀'.repeat(125), status: 'PENDING' }];
+    const old = structuredClone(saved.responses);
+    await f.pilot.retryResponses(playerId, 'receipt');
+    expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(['Réponse validée.', old[1]!.text]);
+    expect((f.receipt.payloadMinimal.commandPilot as typeof saved).responses.map(row => row.text)).toEqual(old.map(row => row.text));
+    expect(f.executor.execute).toHaveBeenCalledTimes(1);
   });
   it('operator recovery reaches response only and rejects another Player, disabled gate and uncertain sends', async () => {
     const f = await fixture(); f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));

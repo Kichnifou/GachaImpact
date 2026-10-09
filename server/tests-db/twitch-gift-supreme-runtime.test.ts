@@ -100,6 +100,32 @@ describe('Gift signed webhook to economy, settlement and at-most-once announceme
     expect((await post(delivery)).statusCode).toBe(204); expect((await post(signed(body))).statusCode).toBe(204);
     expect(announcementCalls() - before).toBe(1); expect((await effects(p.id)).balance).toBe(1700n);
   });
+  it('retains an exceptional frozen Gift result privately and sends one bounded notice after one credit', async () => {
+    const p = await target('Whole Gift'), body = payload(p.displayName), before = announcementCalls();
+    body.event.user_name = 'Gifter'.repeat(15);
+    const delivery = signed(body);
+    // Commit the real Gift once, stopping before any announcement. Then model
+    // an exceptional historical presentation snapshot, without creating an
+    // invalid Player (the existing SQL limit is 40 codepoints).
+    f.state.failPatch = true; f.state.redemptionStatus = 'UNFULFILLED';
+    try { expect((await post(delivery)).statusCode).toBe(503); } finally { f.state.failPatch = false; }
+    const frozen = await receipt(body.event.id), longSnapshotName = `Whole Gift ${'n'.repeat(375)}👩🏽‍🚀`;
+    const journal = frozen.payloadMinimal as { result: Record<string, unknown> };
+    await db.twitchEventReceipt.update({ where: { id: frozen.id }, data: { payloadMinimal: {
+      ...(frozen.payloadMinimal as object), result: { ...journal.result, targetDisplayName: longSnapshotName },
+    } as never } });
+    expect((await post(delivery)).statusCode).toBe(204);
+    const expectedText = `🎁 ${body.event.user_name} offre un Gift Suprême à ${longSnapshotName} ! +1600 particules Pyro (1700)`;
+    expect((await receipt(body.event.id)).payloadMinimal).toMatchObject({ remote: {
+      announcementState: 'SENT', announcementText: f.state.message, announcementFullText: expectedText,
+    } });
+    expect(Array.from(f.state.message).length).toBeLessThanOrEqual(450);
+    expect(f.state.message).toContain('Contenu intégral conservé');
+    expect(f.state.message).not.toContain('Whole Gift');
+    expect((await post(delivery)).statusCode).toBe(204); expect((await post(signed(body))).statusCode).toBe(204);
+    expect(announcementCalls()).toBe(before + 1);
+    expect(await effects(p.id)).toEqual({ balance: 1700n, stats: 1600n, notifications: 1, operations: 1, movements: 1 });
+  });
   it('accepts a signed in-flight delivery after Reward disable and EventSub terminal failure, without live preflight', async () => {
     const p = await target('Signed Terminal Gift'), body = payload(p.displayName);
     f.state.manageable[0]!.is_enabled = false; f.state.subscriptions[0]!.status = 'notification_failures_exceeded';
@@ -194,6 +220,21 @@ describe('Gift signed webhook to economy, settlement and at-most-once announceme
     const spy = vi.spyOn(f.manager.helix!, 'announce').mockRejectedValueOnce(new TwitchGiftHelixError(0));
     expect((await post(signed(body))).statusCode).toBe(503); expect(announcementCalls()).toBe(before); expect((await receipt(body.event.id)).payloadMinimal).toMatchObject({ remote: { announcementState: 'NONE' } });
     spy.mockRestore(); expect((await post(signed(body))).statusCode).toBe(204); expect(announcementCalls()).toBe(before + 1); expect((await effects(p.id)).balance).toBe(1700n);
+  });
+  it('replays a pre-450 NONE announcement exactly as frozen without another credit', async () => {
+    const p = await target('Runtime Frozen Old Text'), body = payload(p.displayName), before = announcementCalls();
+    const spy = vi.spyOn(f.manager.helix!, 'announce').mockRejectedValueOnce(new TwitchGiftHelixError(0));
+    try { expect((await post(signed(body))).statusCode).toBe(503); } finally { spy.mockRestore(); }
+    const row = await receipt(body.event.id), frozen = '🌠'.repeat(500);
+    const old = row.payloadMinimal as { remote: Record<string, unknown> };
+    await db.twitchEventReceipt.update({ where: { id: row.id }, data: { payloadMinimal: {
+      ...(row.payloadMinimal as object), remote: { ...old.remote, announcementState: 'NONE', announcementText: frozen },
+    } as never } });
+    expect((await post(signed(body))).statusCode).toBe(204);
+    expect(f.state.message).toBe(frozen);
+    expect((await receipt(body.event.id)).payloadMinimal).toMatchObject({ remote: { announcementState: 'SENT', announcementText: frozen } });
+    expect((await post(signed(body))).statusCode).toBe(204); expect(announcementCalls()).toBe(before + 1);
+    expect(await effects(p.id)).toEqual({ balance: 1700n, stats: 1600n, notifications: 1, operations: 1, movements: 1 });
   });
   it('durable RESERVED after a crash is not auto-dispatched on replay', async () => {
     const p = await target('Runtime Reserved Crash'), body = payload(p.displayName); f.state.failPatch = true; f.state.redemptionStatus = 'UNFULFILLED';

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 067 — preuve privée des annonces Giveaway longues (candidat R1063)
+
+[20261009150000_067_preserve_full_giveaway_text](../../server/prisma/migrations/20261009150000_067_preserve_full_giveaway_text/migration.sql) ajoute seulement giveaway_announcements.full_text TEXT NULL, mappé GiveawayAnnouncement.fullText. Pas de valeur par défaut, backfill, changement des textes envoyés, paiement, policy ou grant nouveau. Les restrictions backend/RLS de la table existante sont conservées. Les anciennes annonces NULL se rejouent selon leur texte gelé ; les nouvelles entrées logiques exceptionnellement trop longues peuvent conserver ici le texte intégral derrière un avis Twitch explicite. Le DTO public exclut ce champ. Publication, déploiement normal et vérification physique restent à constater dans le [Master](../master/PROJECT_MASTER_PLAN.md). [Contrat R1063](legacy-domains-r1063.md).
+
 <a id="reprise-ciblee-migration-066"></a>
 
 ## Migration 066 — disponibilité des profils repris (déployée le 09/10/2026)

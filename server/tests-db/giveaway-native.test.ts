@@ -33,7 +33,7 @@ async function player(displayName: string, elementKey: string | null = 'pyro', r
     economyStats: { create: {} }, resourceBalances: { create: resourceKeys.map(resourceKey => ({ resourceKey, amount: 0n })) } } });
   if (role) await db.playerRoleAssignment.create({ data: { playerId: created.id, role, source: 'private-giveaway-test' } });
   const playerTwitchId = String(++twitchId);
-  await db.twitchIdentity.create({ data: { playerId: created.id, twitchUserId: playerTwitchId, login: displayName.toLowerCase().replaceAll(' ', '_') } });
+  await db.twitchIdentity.create({ data: { playerId: created.id, twitchUserId: playerTwitchId, login: `giveaway_${playerTwitchId}` } });
   if (status === 'ARCHIVED') await db.player.update({ where: { id: created.id }, data: { status } });
   return { ...created, twitchUserId: playerTwitchId };
 }
@@ -185,7 +185,7 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
     expect(await db.giveawayReward.count({ where: { sessionId: opened.sessionId! } })).toBe(2);
     expect(await db.notification.count({ where: { playerId: p.id, domainKey: 'giveaway' } })).toBe(1);
   });
-  it('retries only a certainly failed result and never resends the ranking', async () => {
+  it('holds the ranking until a certainly failed result is explicitly retried, without resending either milestone', async () => {
     const opened = await service.open(adminId, 'ADMIN');
     await db.giveawayAnnouncement.updateMany({ where: { sessionId: opened.sessionId!, kind: 'OPEN' }, data: { state: 'SENT', twitchMessageId: randomUUID() } });
     await close(opened.sessionId!);
@@ -193,17 +193,104 @@ describe('Giveaway native runtime, private PostgreSQL schema', () => {
     const manager = new TwitchGiveawayManager(db, giftConfig, subscriptions as unknown as TwitchEventSubSubscriptionManager);
     vi.spyOn(manager.tokens!, 'getToken').mockResolvedValue('token');
     const send = vi.spyOn(manager.chat!, 'send').mockRejectedValueOnce(new TwitchGiveawaySendError('CERTAIN', 'HTTP_403'))
-      .mockResolvedValueOnce('ranking-out').mockResolvedValueOnce('result-out');
+      .mockResolvedValueOnce('result-out').mockResolvedValueOnce('ranking-out');
     await manager.sendSessionMilestones(opened.sessionId!);
     const result = await db.giveawayAnnouncement.findFirstOrThrow({ where: { sessionId: opened.sessionId!, kind: 'RESULT' } });
     const ranking = await db.giveawayAnnouncement.findFirstOrThrow({ where: { sessionId: opened.sessionId!, kind: 'RANKING' } });
     expect(result).toMatchObject({ state: 'FAILED', errorCode: 'HTTP_403', attempts: 1 });
-    expect(ranking).toMatchObject({ state: 'SENT', twitchMessageId: 'ranking-out', attempts: 1 });
+    expect(ranking).toMatchObject({ state: 'PENDING', twitchMessageId: null, attempts: 0 });
+    expect(await manager.sendAnnouncement(ranking.id)).toMatchObject({ state: 'PENDING', error: 'PREVIOUS_ANNOUNCEMENT_PENDING' });
+    expect(send).toHaveBeenCalledTimes(1);
     expect(await manager.sendAnnouncement(result.id, true)).toMatchObject({ state: 'SENT', messageId: 'result-out' });
+    await manager.sendSessionMilestones(opened.sessionId!);
+    await manager.sendSessionMilestones(opened.sessionId!);
     expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: result.id } })).attempts).toBe(2);
     expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: ranking.id } })).attempts).toBe(1);
     expect(send).toHaveBeenCalledTimes(3);
     vi.restoreAllMocks();
+  });
+  it('freezes a complete maximum-name podium and stops delivery at uncertainty without repeating rewards', async () => {
+    const opened = await service.open(adminId, 'ADMIN'), sessionId = opened.sessionId!;
+    await db.giveawayAnnouncement.updateMany({ where: { sessionId, kind: 'OPEN' }, data: { state: 'SENT', twitchMessageId: randomUUID() } });
+    // The existing SQL contract caps Player names at 40 codepoints. Larger
+    // future presentation inputs are covered by the pure formatter tests.
+    const rows = await Promise.all(['A', 'B', 'C'].map(name => player(`${name}${'n'.repeat(35)}👩🏽‍🚀`)));
+    for (const [index, row] of rows.entries()) {
+      await service.wish(row.twitchUserId, `twitch:${randomUUID()}`);
+      for (let count = 0; count < 3 - index; count++) await message(row.twitchUserId);
+    }
+    await close(sessionId);
+    const ranked = await db.giveawayAnnouncement.findMany({ where: { sessionId, kind: 'RANKING' }, orderBy: { sourceEventId: 'asc' } });
+    expect(ranked).toHaveLength(1);
+    const frozen = ranked.map(row => row.text);
+    for (const [index, row] of rows.entries()) {
+      const entry = `${index + 1}e ${row.displayName} (${3 - index} messages) +${[2000, 1500, 1000][index]} particules pyro`;
+      expect(ranked[0]!.text).toContain(entry);
+      expect(frozen.join('').split(entry)).toHaveLength(2);
+      expect(ranked[0]!.fullText).toBeNull();
+      expect(Array.from(ranked[0]!.text).length).toBeLessThanOrEqual(450);
+      await db.player.update({ where: { id: row.id }, data: { displayName: `Renamed podium ${index}` } });
+    }
+    const economicState = async () => ({
+      rewards: await db.giveawayReward.findMany({ where: { sessionId }, orderBy: { id: 'asc' } }),
+      balances: await db.playerResourceBalance.findMany({ where: { playerId: { in: rows.map(row => row.id) } }, orderBy: [{ playerId: 'asc' }, { resourceKey: 'asc' }] }),
+      notifications: await db.notification.count({ where: { playerId: { in: rows.map(row => row.id) }, domainKey: 'giveaway' } }),
+    });
+    const before = await economicState();
+    expect(before.rewards).toHaveLength(4); expect(before.notifications).toBe(3);
+    const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn().mockResolvedValue('ACTIVE') };
+    const manager = new TwitchGiveawayManager(db, giftConfig, subscriptions as unknown as TwitchEventSubSubscriptionManager);
+    vi.spyOn(manager.tokens!, 'getToken').mockResolvedValue('token');
+    const send = vi.spyOn(manager.chat!, 'send').mockResolvedValueOnce(randomUUID())
+      .mockRejectedValueOnce(new TwitchGiveawaySendError('AMBIGUOUS', 'NETWORK'));
+    try {
+      await manager.sendSessionMilestones(sessionId);
+      expect(send).toHaveBeenCalledTimes(2);
+      expect(send.mock.calls[1]![2]).toBe(frozen[0]);
+      expect(await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: ranked[0]!.id } })).toMatchObject({ state: 'AMBIGUOUS', attempts: 1 });
+      await manager.sendSessionMilestones(sessionId);
+      expect(await manager.sendAnnouncement(ranked[0]!.id, true)).toMatchObject({ state: 'AMBIGUOUS' });
+      expect(send).toHaveBeenCalledTimes(2);
+      expect((await db.giveawayAnnouncement.findMany({ where: { sessionId, kind: 'RANKING' }, orderBy: { sourceEventId: 'asc' } })).map(row => row.text)).toEqual(frozen);
+      expect(await close(sessionId)).toMatchObject({ duplicate: true });
+      expect(await economicState()).toEqual(before);
+    } finally { vi.restoreAllMocks(); }
+  });
+  it('stores an exceptional reply privately through retry and leaves old 500-codepoint replies and participation intact', async () => {
+    const opened = await service.open(adminId, 'ADMIN'), sessionId = opened.sessionId!;
+    const row = await player('Whole wish'), wishId = `twitch:${randomUUID()}`, sourceEventId = `twitch:${randomUUID()}`;
+    expect((await service.wish(row.twitchUserId, wishId)).outcome).toBe('JOINED');
+    const subscriptions = { activationAvailable: true, inspectPilotChatSubscription: vi.fn().mockResolvedValue('ACTIVE') };
+    const manager = new TwitchGiveawayManager(db, giftConfig, subscriptions as unknown as TwitchEventSubSubscriptionManager);
+    const fullText = `Détail privé conservé : ${'👨‍👩‍👧‍👦'.repeat(80)}`;
+    await manager.queueReply(sourceEventId, 'STATS', fullText, sessionId);
+    const saved = await db.giveawayAnnouncement.findUniqueOrThrow({ where: { sourceEventId } });
+    expect(saved.fullText).toBe(fullText);
+    expect(saved.text).toContain('Contenu intégral conservé');
+    expect(Array.from(saved.text).length).toBeLessThanOrEqual(450);
+    expect(JSON.stringify((await service.state()).session?.announcements)).not.toContain('fullText');
+    expect(JSON.stringify((await service.state()).session?.announcements)).not.toContain(fullText);
+    vi.spyOn(manager.tokens!, 'getToken').mockResolvedValue('token');
+    const send = vi.spyOn(manager.chat!, 'send').mockRejectedValueOnce(new TwitchGiveawaySendError('CERTAIN', 'HTTP_403'))
+      .mockImplementation(async () => randomUUID());
+    try {
+      expect((await manager.sendAnnouncement(saved.id)).state).toBe('FAILED');
+      await db.player.update({ where: { id: row.id }, data: { displayName: 'Renamed whole wish' } });
+      expect((await service.wish(row.twitchUserId, wishId)).duplicate).toBe(true);
+      expect(await manager.queueReply(sourceEventId, 'STATS', fullText, sessionId)).toBe(saved.id);
+      expect((await manager.sendAnnouncement(saved.id, true)).state).toBe('SENT');
+      expect((await manager.sendAnnouncement(saved.id, true)).state).toBe('SENT');
+      expect(send.mock.calls.map(call => call[2])).toEqual([saved.text, saved.text]);
+      expect(await db.giveawayParticipant.count({ where: { sessionId, playerId: row.id } })).toBe(1);
+      expect((await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: saved.id } })).fullText).toBe(saved.fullText);
+      const oldText = 'a'.repeat(500), oldSource = `twitch:${randomUUID()}`;
+      const old = await db.giveawayAnnouncement.create({ data: { sourceEventId: oldSource, kind: 'COMMAND', text: oldText } });
+      expect(await manager.queueReply(oldSource, 'COMMAND', oldText + 'old clipped suffix')).toBe(old.id);
+      await manager.sendAnnouncement(old.id); await manager.sendAnnouncement(old.id);
+      expect(send.mock.calls.at(-1)![2]).toBe(oldText); expect(send).toHaveBeenCalledTimes(3);
+      expect(await db.giveawayAnnouncement.findUniqueOrThrow({ where: { id: old.id } })).toMatchObject({ text: oldText, fullText: null, state: 'SENT', attempts: 1 });
+      await close(sessionId);
+    } finally { vi.restoreAllMocks(); }
   });
   it('keeps all specialized commands silent for an absent or disabled credential', async () => {
     const manager = new TwitchGiveawayManager(db, giftConfig);

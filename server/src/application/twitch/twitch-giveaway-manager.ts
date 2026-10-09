@@ -3,6 +3,7 @@ import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
 import type { GiveawayBridgeProof, GiveawayService } from '../giveaway/giveaway-service.js';
 import { oneLine } from '../../domain/giveaway/giveaway.js';
+import { giveawayAnnouncementText } from '../giveaway/giveaway-announcement-format.js';
 import { TWITCH_GIVEAWAY_SCOPES } from './twitch-giveaway-contract.js';
 import { TwitchGiveawayCredentialCipher } from '../../infrastructure/twitch/twitch-giveaway-credential-cipher.js';
 import { TwitchGiveawayAccessTokenProvider } from '../../infrastructure/twitch/twitch-giveaway-access-token-provider.js';
@@ -10,6 +11,12 @@ import { TwitchGiveawayChatClient, TwitchGiveawaySendError } from '../../infrast
 import type { TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 
 const unavailable = () => new AppError('Bridge Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
+const milestoneKinds = ['OPEN', 'RESULT', 'RANKING'] as const;
+const milestoneOrder = { OPEN: 0, RESULT: 1, RANKING: 2 } as const;
+const compareMilestones = (a: { kind: string; sourceEventId: string | null; createdAt: Date; id: string },
+  b: { kind: string; sourceEventId: string | null; createdAt: Date; id: string }) =>
+  milestoneOrder[a.kind as keyof typeof milestoneOrder] - milestoneOrder[b.kind as keyof typeof milestoneOrder]
+  || (a.sourceEventId ?? '').localeCompare(b.sourceEventId ?? '') || a.createdAt.getTime() - b.createdAt.getTime() || a.id.localeCompare(b.id);
 export type GiveawayAuthorization = { playerId: string; twitchUserId: string; login: string; refreshToken: string;
   accessToken: string; scopes: string[]; expiresIn: number; linkedAt: Date };
 
@@ -111,11 +118,15 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
   }
 
   async queueReply(sourceEventId: string, kind: 'WISH' | 'STATS' | 'COMMAND', text: string, sessionId?: string | null) {
-    const safeText = oneLine(text);
-    if (!safeText) return null;
-    await this.db.giveawayAnnouncement.createMany({ data: [{ sourceEventId, kind, text: safeText, sessionId: sessionId ?? null }], skipDuplicates: true });
+    const formatted = giveawayAnnouncementText(oneLine(text));
+    if (!formatted) return null;
+    await this.db.giveawayAnnouncement.createMany({ data: [{ sourceEventId, kind, ...formatted, sessionId: sessionId ?? null }], skipDuplicates: true });
     const row = await this.db.giveawayAnnouncement.findUniqueOrThrow({ where: { sourceEventId } });
-    if (row.text !== safeText || row.kind !== kind) throw new AppError('Réponse Giveaway incohérente.', 409, 'GIVEAWAY_REPLY_CONFLICT');
+    // Already frozen pre-450 replies retain their exact old text, including the
+    // historical UTF-16 cutoff. Never reformat a retry in place.
+    const compatibleOld = row.fullText === null && row.text === oneLine(text).slice(0, 500);
+    if (row.kind !== kind || row.sessionId !== (sessionId ?? null)
+      || !compatibleOld && (row.text !== formatted.text || row.fullText !== formatted.fullText)) throw new AppError('Réponse Giveaway incohérente.', 409, 'GIVEAWAY_REPLY_CONFLICT');
     return row.id;
   }
 
@@ -126,6 +137,13 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
     if (row.state === 'SENT') { await this.core?.settleDeferred(); return { state: row.state }; }
     if (row.state === 'AMBIGUOUS' || row.state === 'RESERVED') return { state: row.state };
     if (retry && row.state !== 'FAILED' || !retry && row.state !== 'PENDING') return { state: row.state };
+    if (row.sessionId && milestoneKinds.some(kind => kind === row.kind)) {
+      const earlier = await this.db.giveawayAnnouncement.findMany({ where: { sessionId: row.sessionId, kind: { in: [...milestoneKinds] } } });
+      // SENT is terminal: once every predecessor is sent, later reservations
+      // cannot overtake it. This also covers a direct administrative retry.
+      if (earlier.some(candidate => compareMilestones(candidate, row) < 0 && candidate.state !== 'SENT'))
+        return { state: row.state, error: 'PREVIOUS_ANNOUNCEMENT_PENDING' };
+    }
     const credential = await this.db.twitchGiveawayCredential.findFirst({ where: { enabled: true } });
     if (!credential || !this.chat || !this.available || !(await this.status()).active) {
       await this.db.giveawayAnnouncement.updateMany({ where: { id, state: row.state }, data: { state: 'FAILED', errorCode: 'BRIDGE_INACTIVE' } });
@@ -150,9 +168,9 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
   }
 
   async sendSessionMilestones(sessionId: string) {
-    const rows = await this.db.giveawayAnnouncement.findMany({ where: { sessionId, kind: { in: ['OPEN', 'RESULT', 'RANKING'] } } });
-    const order = { OPEN: 0, RESULT: 1, RANKING: 2 } as const;
-    for (const row of rows.sort((a, b) => order[a.kind as keyof typeof order] - order[b.kind as keyof typeof order]))
-      await this.sendAnnouncement(row.id);
+    const rows = await this.db.giveawayAnnouncement.findMany({ where: { sessionId, kind: { in: [...milestoneKinds] } } });
+    for (const row of rows.sort(compareMilestones)) {
+      if ((await this.sendAnnouncement(row.id)).state !== 'SENT') break;
+    }
   }
 }

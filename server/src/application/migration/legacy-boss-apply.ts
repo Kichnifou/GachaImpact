@@ -25,13 +25,38 @@ function day(value: unknown): Date | null {
   return parsed;
 }
 
+export type LegacyBossCumulative = { damage: bigint; attacks: bigint; participated: bigint; rewarded: bigint; finalBlows: bigint; bestHit: bigint };
+export const emptyLegacyBossCumulative = (): LegacyBossCumulative => ({ damage: 0n, attacks: 0n, participated: 0n, rewarded: 0n, finalBlows: 0n, bestHit: 0n });
+
+/** R436: only source-proven contributions, never a synthetic attack or payment. */
+export function addLegacyBossContribution(known: LegacyBossCumulative, contribution: {
+  totalDamage: bigint; attackCount: bigint; bestHit: bigint; finalBlow: boolean; rewarded: boolean;
+}): LegacyBossCumulative {
+  return { damage: known.damage + contribution.totalDamage, attacks: known.attacks + contribution.attackCount,
+    participated: known.participated + 1n, rewarded: known.rewarded + (contribution.rewarded ? 1n : 0n),
+    finalBlows: known.finalBlows + (contribution.finalBlow ? 1n : 0n),
+    bestHit: known.bestHit > contribution.bestHit ? known.bestHit : contribution.bestHit };
+}
+
+/** Shared by initial migration and the later restoration of absent cumulative rows. */
+export function reconcileLegacyBossCumulative(viewer: Record<string, unknown>, known: LegacyBossCumulative) {
+  const source = object(viewer.stats);
+  const minimum: LegacyBossCumulative = { damage: count(source.totalBossDamage ?? 0, 'viewer damage'),
+    attacks: count(source.totalBossAttacks ?? 0, 'viewer attacks'), participated: count(source.bossesParticipated ?? 0, 'viewer participated'),
+    rewarded: count(source.bossesDefeated ?? 0, 'viewer defeated'), finalBlows: count(source.totalBossFinalBlows ?? 0, 'viewer final blows'),
+    bestHit: count(source.highestBossHit ?? 0, 'viewer best hit') };
+  const max = (a: bigint, b: bigint) => a > b ? a : b;
+  return { minimum, stats: { totalDamage: max(minimum.damage, known.damage), totalAttacks: max(minimum.attacks, known.attacks),
+    totalParticipated: max(minimum.participated, known.participated), totalRewarded: max(minimum.rewarded, known.rewarded),
+    finalBlows: max(minimum.finalBlows, known.finalBlows), bestHit: max(minimum.bestHit, known.bestHit) } };
+}
+
 export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Snapshot, plan: LegacyGlobalPlan, batchId: string) {
   validateLegacyBossSnapshot(snapshot);
   const source = object(snapshot.sources['monthly_boss.json']);
   const rawBosses = [...(Array.isArray(source.history) ? source.history : []), source.currentBoss].filter(Boolean);
   const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
-  const cumulative = new Map<string, { damage: bigint; attacks: bigint; participated: bigint; rewarded: bigint; finalBlows: bigint; bestHit: bigint }>();
-  const empty = () => ({ damage: 0n, attacks: 0n, participated: 0n, rewarded: 0n, finalBlows: 0n, bestHit: 0n });
+  const cumulative = new Map<string, LegacyBossCumulative>();
   let bosses = 0, participants = 0, rewards = 0, excludedParticipants = 0;
   for (const raw of rawBosses) {
     const row = object(raw), month = String(row.month ?? '');
@@ -65,13 +90,13 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
       await tx.bossLegacyContribution.create({ data: { bossId: boss.id, playerId, totalDamage, attackCount, bestHit,
         firstAttackAt: null, lastAttackAt: null, lastAttackDate, rewardKnown: row.rewardsDistributed === true ? true : null,
         batchId, legacyProvenance: { source: 'monthly_boss.json', month, firstAttackAtKnown: false, lastAttackDayKnown: lastAttackDate !== null } } });
-      const totals = cumulative.get(playerId) ?? empty();
-      totals.damage += totalDamage; totals.attacks += attackCount; totals.participated++; totals.bestHit = totals.bestHit > bestHit ? totals.bestHit : bestHit;
-      if (finalBlowPlayerId === playerId) totals.finalBlows++;
+      const totals = addLegacyBossContribution(cumulative.get(playerId) ?? emptyLegacyBossCumulative(), {
+        totalDamage, attackCount, bestHit, finalBlow: finalBlowPlayerId === playerId, rewarded: row.rewardsDistributed === true,
+      });
       if (row.rewardsDistributed === true) {
         await tx.bossReward.create({ data: { bossId: boss.id, playerId, primogems: null, moras: null, operationId: null,
           awardedAt: null, origin: 'LEGACY', legacyProvenance: { source: 'monthly_boss.json', batchId, distributionKnown: true, amountsKnown: false } } });
-        totals.rewarded++; rewards++;
+        rewards++;
       }
       cumulative.set(playerId, totals);
       participants++;
@@ -80,13 +105,9 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
   let divergences = 0;
   for (const player of plan.players) {
     if (player.personalImport === false) continue;
-    const stats = object(player.viewer.stats), known = cumulative.get(player.playerId) ?? empty();
-    const viewerDamage = count(stats.totalBossDamage ?? 0, 'viewer damage');
-    const viewerAttacks = count(stats.totalBossAttacks ?? 0, 'viewer attacks');
-    const viewerParticipated = count(stats.bossesParticipated ?? 0, 'viewer participated');
-    const viewerRewarded = count(stats.bossesDefeated ?? 0, 'viewer defeated');
-    const viewerFinal = count(stats.totalBossFinalBlows ?? 0, 'viewer final blows');
-    const viewerBest = count(stats.highestBossHit ?? 0, 'viewer best hit');
+    const known = cumulative.get(player.playerId) ?? emptyLegacyBossCumulative();
+    const { minimum, stats } = reconcileLegacyBossCumulative(player.viewer, known);
+    const { damage: viewerDamage, attacks: viewerAttacks, participated: viewerParticipated } = minimum;
     if (viewerDamage !== known.damage || viewerAttacks !== known.attacks || viewerParticipated !== known.participated) {
       divergences++;
       await tx.migrationIssue.create({ data: { batchId, sourceName: 'monthly_boss.json', path: 'globalStats/participants',
@@ -97,10 +118,7 @@ export async function applyLegacyBoss(tx: Prisma.TransactionClient, snapshot: Sn
           viewerAttacks: viewerAttacks.toString(), knownAttacks: known.attacks.toString(),
           viewerParticipated: viewerParticipated.toString(), knownParticipated: known.participated.toString() } } });
     }
-    const max = (a: bigint, b: bigint) => a > b ? a : b;
-    await tx.playerBossStats.create({ data: { playerId: player.playerId, totalDamage: max(viewerDamage, known.damage),
-      totalAttacks: max(viewerAttacks, known.attacks), totalParticipated: max(viewerParticipated, known.participated),
-      totalRewarded: max(viewerRewarded, known.rewarded), finalBlows: max(viewerFinal, known.finalBlows), bestHit: max(viewerBest, known.bestHit) } });
+    await tx.playerBossStats.create({ data: { playerId: player.playerId, ...stats } });
   }
   return { bosses, participants, excludedParticipants, rewards, divergences, attacks: 0, operations: 0 };
 }

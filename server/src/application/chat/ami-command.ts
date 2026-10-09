@@ -5,6 +5,8 @@ import type { PlayerCommandContext } from './player-command-context.js';
 import { playerReferenceName, samePlayerReference } from './player-reference.js';
 import { friendshipTier, type FriendAction } from '../social/friendship-service.js';
 import { friendshipPhrases } from '../social/friendship-phrases.js';
+import { entryParts } from './chat-command-format.js';
+import { commandSource } from '../player/player-command-execution.js';
 
 const levelText = (level: number) => `${Math.min(1000, level)} [${friendshipTier(level)}] ${level >= 1000 ? '💞' : level >= 300 ? '🌟' : level >= 100 ? '💖' : '💛'}`;
 type Friend = Awaited<ReturnType<ChatCommandServices['socialService']['friends']>>['friends'][number];
@@ -14,7 +16,7 @@ const detail = (actor: string, target: string, friend: Friend) => `🤝 Amitié 
 export async function amiCommand(identity: PlayerExecutionActor, args: readonly string[], commandMessageId: string,
   social: ChatCommandServices['socialService'], chat: PlayerCommandContext,
   findPlayer: (name: string) => Promise<{ id: string; displayName: string } | null>,
-  compact: (values: readonly string[], limit?: number) => string, syntax: string): Promise<string> {
+  compact: (values: readonly string[], limit?: number) => string, syntax: string): Promise<string | readonly string[]> {
   const actor = await social.actor(identity), state = await social.friends(identity);
   const label = (id: string) => state.players.find(player => player.id === id)?.displayName ?? 'Joueur';
   const action = args[0]?.toLocaleLowerCase('fr-FR') ?? '';
@@ -26,6 +28,11 @@ export async function amiCommand(identity: PlayerExecutionActor, args: readonly 
   };
   if (!action) return `ℹ️ ${actor.displayName} | Amis : ${state.summary.activeFriends} | Cœurs disponibles : ${state.summary.available} | Demandes : ${state.requests.length} | Commandes : !ami pseudo · !ami demandes · !ami coeur pseudo · !ami coeur all`;
   if (action === 'demandes' && args.length === 1) {
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return entryParts('📨 Demandes d’ami :',
+      (['RECEIVED', 'SENT'] as const).flatMap(direction => {
+        const entries = state.requests.filter(request => request.direction === direction).map(request => `${direction === 'RECEIVED' ? '📥 Reçue de' : '📤 Envoyée à'} ${label(request.playerId)}`);
+        return entries.length ? entries : [`${direction === 'RECEIVED' ? 'Reçues' : 'Envoyées'} : aucune`];
+      }), '📨 Demandes d’ami (suite) :');
     const requests = (direction: 'RECEIVED' | 'SENT') => {
       const entries = state.requests.filter(request => request.direction === direction).map(request => label(request.playerId));
       return entries.length ? boundedList(entries, 210) : 'aucune';

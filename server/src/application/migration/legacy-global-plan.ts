@@ -23,9 +23,9 @@ export type LegacyGlobalPlan = { snapshotHash: string; players: PlannedPlayer[];
   deferredIdentityFacts: ReturnType<typeof planDeferredIdentityFacts>; sourceProfiles: number; approvedPopulation: number; quarantined: number; ownerDiscarded: number;
   ownerDiscardedKeys: string[]; discardedSharedFacts: ReturnType<typeof planDeferredIdentityFacts>; unapprovedAdditional: number };
 
-export const isIdentityQuarantined = (plan: LegacyGlobalPlan, login: unknown) => typeof login === 'string'
+export const isIdentityQuarantined = (plan: Pick<LegacyGlobalPlan, 'identityQuarantined'>, login: unknown) => typeof login === 'string'
   && (plan.identityQuarantined ?? []).includes(normalizeLegacyName(login));
-export const isOwnerDiscarded = (plan: LegacyGlobalPlan, login: unknown) => typeof login === 'string'
+export const isOwnerDiscarded = (plan: Pick<LegacyGlobalPlan, 'ownerDiscardedKeys'>, login: unknown) => typeof login === 'string'
   && (plan.ownerDiscardedKeys ?? []).includes(normalizeLegacyName(login));
 
 /** Shared CLI DTO intentionally omits individual logins, IDs, source values and message text. */

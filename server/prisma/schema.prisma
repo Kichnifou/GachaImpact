@@ -1306,6 +1306,7 @@ model GiveawayAnnouncement {
   kind String @db.Text
   sourceEventId String? @unique(map: "giveaway_announcements_source_event_key") @map("source_event_id") @db.Text
   text String @db.Text
+  fullText String? @map("full_text") @db.Text
   state String @default("PENDING") @db.Text
   attempts Int @default(0)
   twitchMessageId String? @unique(map: "giveaway_announcements_twitch_message_key") @map("twitch_message_id") @db.Text

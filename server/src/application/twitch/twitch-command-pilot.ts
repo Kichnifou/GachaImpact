@@ -9,7 +9,10 @@ import { z } from 'zod';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
-import { findChatCommand, parseChatCommand } from '../chat/chat-command-registry.js';
+import { findChatCommand } from '../chat/chat-command-registry.js';
+import { parseTwitchChatCommand } from './twitch-command-parser.js';
+import { twitchResponseEntries } from './twitch-response-format.js';
+export { twitchResponseSegments } from './twitch-response-format.js';
 import type { FrozenCommandIntent } from './twitch-command-intent.js';
 import { TwitchObservationConflict } from './twitch-event-observer.js';
 import { twitchCommandOwner } from './twitch-command-coverage.js';
@@ -25,7 +28,7 @@ const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type
   source_broadcaster_user_id: twitchId.nullish(), chatter_user_login: z.string().max(128).optional(), chatter_user_name: z.string().max(128).optional(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string() }).nullish(),
 }) });
 const response = z.object({ text: z.string(), status: z.enum(['PENDING', 'SENDING', 'SENT', 'FAILED', 'AMBIGUOUS']),
-  messageId: z.string().optional(), error: z.string().optional() });
+  messageId: z.string().optional(), error: z.string().optional(), fullText: z.string().optional() });
 const frozenIntent = z.object({ now: z.iso.datetime(), reads: z.record(z.string(), z.array(z.json())), memory: z.record(z.string(), z.string()),
   mutation: z.object({ path: z.string(), args: z.json() }).optional(), output: z.json().optional(), bannerId: z.string().optional(),
   targets: z.object({ gachaTargetId: z.string().nullable().optional(), eventEditionId: z.string().optional(), bannerId: z.string().optional(),
@@ -39,17 +42,6 @@ const execution = z.object({ version: z.literal(1), playerId: z.string(), actorN
 type Execution = z.infer<typeof execution>;
 export type TwitchCommandExecutor = { capturedAt?(): Date; prepare?(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, businessAt?: string): Promise<FrozenCommandIntent>; execute(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, intent?: FrozenCommandIntent): Promise<string | readonly string[]> };
 export type TwitchCommandSubscriptionInspector = Pick<TwitchEventSubSubscriptionManager, 'activationAvailable' | 'inspectPilotChatTransport'>;
-
-/** Preserve presentation segments; split only an oversized segment, by Unicode characters. */
-export function twitchResponseSegments(value: string | readonly string[]): string[] {
-  return (typeof value === 'string' ? [value] : value).flatMap(segment => {
-    const chars = Array.from(segment.replace(/[\r\n\u2028\u2029]/gu, ' ').trim());
-    const chunks: string[] = [];
-    for (let index = 0; index < chars.length; index += 500) chunks.push(chars.slice(index, index + 500).join('').trim());
-    return chunks.filter(Boolean);
-  });
-}
-
 
 export class TwitchCommandPilot {
   private transport?: PilotChatTransport;
@@ -208,7 +200,7 @@ export class TwitchCommandPilot {
       }
     }
     if (!executeCommands || !event.message.text.startsWith('!')) return;
-    const { root, args } = parseChatCommand(event.message.text);
+    const { root, args } = parseTwitchChatCommand(event.message.text);
     const definition = this.parser(root);
     const handler = definition?.handler ?? undefined;
     if (!definition || !handler || definition.permission !== 'PLAYER' || !definition.twitch || twitchCommandOwner(definition.name) !== 'GENERIC_NATIVE') {
@@ -261,13 +253,13 @@ export class TwitchCommandPilot {
         const preimage = structuredClone(saved);
         const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler,
           saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
-        const segments = twitchResponseSegments(output);
+        const segments = twitchResponseEntries(output);
         if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
         await this.locked(receiptId, async tx => {
           const latest = await read(tx);
           if (!latest.saved || latest.saved.stage !== 'EXECUTING' || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
           if (!isDeepStrictEqual(latest.saved, preimage)) throw new Error('TWITCH_COMMAND_RECEIPT_CONFLICT');
-          await save(tx, latest.minimal, { ...saved, stage: 'RESPONSES', responses: segments.map(text => ({ text, status: 'PENDING' })) });
+          await save(tx, latest.minimal, { ...saved, stage: 'RESPONSES', responses: segments.map(entry => ({ ...entry, status: 'PENDING' })) });
         });
       }
       await this.deliver(receiptId, { senderId: transport.receiverId, chatterId: identity.twitchUserId, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id });
@@ -345,7 +337,7 @@ export class TwitchCommandPilot {
       await this.save(tx, receiptId, minimal, { version: 1, playerId: player.id, actorName: player.displayName,
         senderId: transport.receiverId, chatterId: event.chatter_user_id, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id,
         commandKey: 'twitch-message:' + event.broadcaster_user_id + ':' + event.message_id, handler: 'message', stage: 'RESPONSES',
-        responses: twitchResponseSegments(output).map(text => ({ text, status: 'PENDING' })) });
+        responses: twitchResponseEntries(output).map(entry => ({ ...entry, status: 'PENDING' })) });
       return true;
     });
     if (!owned) return;
@@ -426,7 +418,7 @@ export class TwitchCommandPilot {
       await this.save(tx, request.receiptId, { ...current.minimal, executingPityRecovery: { version: 1, auditId: audit.id, operatorPlayerId: request.operatorPlayerId } }, { ...current.saved, intent });
     });
     const output = await this.executor.execute(before.player, 'pity', [], '!pity', request.commandKey, intent);
-    const segments = twitchResponseSegments(output);
+    const segments = twitchResponseEntries(output);
     if (!segments.length) throw blocked();
     await this.locked(request.receiptId, async tx => {
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;
@@ -435,7 +427,7 @@ export class TwitchCommandPilot {
       if (current.saved?.stage === 'RESPONSES') return;
       const verified = await guard(tx, false);
       if (!isDeepStrictEqual(verified.saved.intent, intent)) throw blocked();
-      await this.save(tx, request.receiptId, verified.minimal, { ...verified.saved, stage: 'RESPONSES', responses: segments.map(text => ({ text, status: 'PENDING' })) });
+      await this.save(tx, request.receiptId, verified.minimal, { ...verified.saved, stage: 'RESPONSES', responses: segments.map(entry => ({ ...entry, status: 'PENDING' })) });
     });
     await this.deliver(request.receiptId, { senderId: before.saved.senderId, chatterId: request.twitchUserId,
       broadcasterId: before.saved.broadcasterId, replyParentMessageId: before.saved.replyParentMessageId });
@@ -476,9 +468,10 @@ export class TwitchCommandPilot {
       await this.locked(receiptId, async tx => {
         const { minimal, saved } = await read(tx);
         if (!saved || saved.responses[index]?.status !== 'SENDING') throw new Error('TWITCH_COMMAND_RESPONSE_CONFLICT');
-        saved.responses[index] = failure?.reason === 'PILOT_DISABLED' ? { text, status: 'PENDING' }
-          : failure ? { text, status: failure.certainty === 'CERTAIN' ? 'FAILED' : 'AMBIGUOUS', error: failure.reason }
-          : { text, status: 'SENT', messageId: sentId! };
+        const content = { text, ...(saved.responses[index]!.fullText !== undefined ? { fullText: saved.responses[index]!.fullText } : {}) };
+        saved.responses[index] = failure?.reason === 'PILOT_DISABLED' ? { ...content, status: 'PENDING' }
+          : failure ? { ...content, status: failure.certainty === 'CERTAIN' ? 'FAILED' : 'AMBIGUOUS', error: failure.reason }
+          : { ...content, status: 'SENT', messageId: sentId! };
         await save(tx, minimal, saved, saved.responses.every(row => row.status === 'SENT'), failure?.reason === 'PILOT_DISABLED' ? undefined : failure?.reason);
       });
       if (failure) return;

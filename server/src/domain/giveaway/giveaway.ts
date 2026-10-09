@@ -28,7 +28,7 @@ export function giveawayRanked<T extends { messageCount: bigint; playerId: strin
 }
 
 export function oneLine(text: string): string {
-  return text.replace(/[\r\n\u2028\u2029]+/g, ' ').trim().slice(0, 500);
+  return text.replace(/[\r\n\u2028\u2029]+/g, ' ').trim();
 }
 
 export function resultText(winner: string | null): string {
@@ -36,10 +36,14 @@ export function resultText(winner: string | null): string {
     : 'ℹ️ Le giveaway est terminé. Aucun joueur éligible n’a participé au tirage !wish.';
 }
 
-export function rankingText(ranked: readonly { displayName: string; rank: number; messageCount: bigint; amount: bigint; elementKey: string }[]): string {
-  if (!ranked.length) return '💬 Activité Giveaway : aucun joueur éligible n’a envoyé de message.';
+export function giveawayRankingEntries(ranked: readonly { displayName: string; rank: number; messageCount: bigint; amount: bigint; elementKey: string }[]): string[] {
+  if (!ranked.length) return ['aucun joueur éligible n’a envoyé de message.'];
   const podium = ranked.filter(row => row.rank <= 3).slice(0, 3).map(row =>
     `${row.rank}e ${row.displayName} (${row.messageCount} messages) +${row.amount} particules ${row.elementKey}`);
   const remaining = ranked.length - podium.length;
-  return oneLine(`💬 Activité Giveaway : ${podium.join(' | ')}${remaining ? ` | ${remaining} autre(s) joueur(s) récompensé(s)` : ''}`);
+  return [...podium, ...(remaining ? [`${remaining} autre(s) joueur(s) récompensé(s)`] : [])];
+}
+
+export function rankingText(ranked: Parameters<typeof giveawayRankingEntries>[0]): string {
+  return oneLine(`💬 Activité Giveaway : ${giveawayRankingEntries(ranked).join(' | ')}`);
 }

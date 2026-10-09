@@ -2,7 +2,8 @@ import { randomInt } from 'node:crypto';
 import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import { isElementKey, particleResourceKey } from '../../domain/economy/resources.js';
-import { giveawayRanked, oneLine, rankingText, resultText } from '../../domain/giveaway/giveaway.js';
+import { giveawayRanked, oneLine, resultText } from '../../domain/giveaway/giveaway.js';
+import { giveawayAnnouncementText, giveawayRankingAnnouncements } from './giveaway-announcement-format.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { wishChatResult } from '../../domain/giveaway/wish-chat-result.js';
@@ -98,7 +99,7 @@ export class GiveawayService {
       await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'WISH', sessionId: session?.id, outcome } });
       const count = session ? await tx.giveawayParticipant.count({ where: { sessionId: session.id } }) : 0;
       await tx.giveawayAnnouncement.create({ data: { sourceEventId: commandId, kind: 'WISH', sessionId: session?.id,
-        text: wishChatResult(outcome, name, count) } });
+        ...giveawayAnnouncementText(wishChatResult(outcome, name, count))! } });
       return { outcome, sessionId: session?.id ?? null, playerId, duplicate: false };
     });
   }
@@ -250,8 +251,9 @@ export class GiveawayService {
           operationId: operation.operationId, drawnAt: now, origin: 'NATIVE' } });
       }
       await tx.giveawayAnnouncement.createMany({ data: [
-        { sessionId: open.id, kind: 'RESULT', text: resultText(winner?.player.displayName ?? null) },
-        { sessionId: open.id, kind: 'RANKING', text: rankingText(ranked) },
+        { sessionId: open.id, kind: 'RESULT', ...giveawayAnnouncementText(resultText(winner?.player.displayName ?? null))! },
+        ...giveawayRankingAnnouncements(ranked).map((entry, index) => ({ sessionId: open.id, kind: 'RANKING',
+          sourceEventId: `giveaway-ranking:${open.id}:${String(index).padStart(4, '0')}`, ...entry })),
       ] });
       if (commandId) await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'CLOSE', sessionId: open.id, outcome: 'CLOSED' } });
       return { sessionId: open.id, duplicate: false };

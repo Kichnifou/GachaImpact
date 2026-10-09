@@ -308,6 +308,13 @@ export class PlayerCommandResolver {
             const result = await (action === 'mission' ? this.services.purchaseDailyChallenge : this.services.switchDailyChallenge).execute(identity, commandMessageId, this.sourceChannel);
             const challenge = result.view.challenge;
             await this.chat.rememberCommandRefreshScopes(commandMessageId, ['dailyChallenge', 'resources', 'shop']);
+            if (this.sourceChannel === 'TWITCH') return entryParts(`✅ ${player}, ${action === 'mission' ? 'mission' : 'nouvelle mission'} :`, [
+              `${challenge?.description || challenge?.displayName || 'attribuée'}${challenge ? ` (${challenge.progress}/${challenge.target})` : ''}`,
+              ...(challenge ? [`Récompense 💠${chatNumber(challenge.rewardPrimogems)}`] : []),
+              ...(result.spentMoras !== undefined ? [`${action === 'switch' ? 'Switch' : 'Achat'} : -💰${chatNumber(result.spentMoras)}`] : []),
+              `Reste 💰${chatNumber(result.resources.moras)}`,
+              ...(result.view.nextSwitchCost !== null ? [`🔄 Changer : !shop switch (💰${chatNumber(result.view.nextSwitchCost)})`] : []),
+            ], '🎯 Mission (suite) :');
             return `✅ ${player}, ${action === 'mission' ? 'mission' : 'nouvelle mission'} : ${challenge?.description || challenge?.displayName || 'attribuée'}${challenge ? ` (${challenge.progress}/${challenge.target}) | Récompense 💠${chatNumber(challenge.rewardPrimogems)}` : ''}${result.spentMoras !== undefined ? ` | ${action === 'switch' ? 'Switch' : 'Achat'} : -💰${chatNumber(result.spentMoras)}` : ''} | Reste 💰${chatNumber(result.resources.moras)}${result.view.nextSwitchCost !== null ? ` | 🔄 Changer : !shop switch (💰${chatNumber(result.view.nextSwitchCost)})` : ''}`;
           }
           if (action === 'primos' || action === 'ticket') {
@@ -582,6 +589,10 @@ export class PlayerCommandResolver {
             const result = await this.services.dailyCombatService.fight(identity, commandMessageId, mode === 'go' ? 'ACTIVE_TEAM' : 'AUTO', this.sourceChannel);
             const team = (result.result.characters ?? result.view.loadout?.slots.flatMap(slot => slot.character ? [slot.character] : []) ?? []).map(character => `${characterLabel(character)} (C${character.constellation})`);
             const label = result.result.mode === 'AUTO' ? 'Team auto temporaire' : 'Team';
+            if (this.sourceChannel === 'TWITCH') return entryParts(`${result.result.won ? '✅' : '❌'} ⚔️ ${player} ${result.result.won ? 'gagne le combat !' : 'perd le combat.'} Chance de victoire : ${result.result.chanceHalfPoints / 2}% |`, [
+              ...(result.result.won ? [`Gain : +${resourceText('primogems', result.view.reward.primogems)}`, `+${resourceText('moras', result.view.reward.moras)}`] : []),
+              ...team.map(character => `${label} : ${character}${result.result.won ? '' : ' · KO jusqu’à demain'}`),
+            ], '⚔️ Combat (suite) :');
             return entryParts(`${result.result.won ? '✅' : '❌'} ⚔️ ${player} ${result.result.won ? 'gagne le combat !' : 'perd le combat.'} Chance de victoire : ${result.result.chanceHalfPoints / 2}% |`, result.result.won
               ? [`Gain : +${resourceText('primogems', result.view.reward.primogems)}`, `+${resourceText('moras', result.view.reward.moras)}`, `${label} : ${team.join(' - ')}`]
               : [`${label} : ${team.join(' - ')}`, `Personnages KO jusqu’à demain : ${team.join(' - ')}`], '⚔️ Combat (suite) :');

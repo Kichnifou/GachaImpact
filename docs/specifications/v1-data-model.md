@@ -1,5 +1,10 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Complément R1063 — preuve privée des réponses longues
+
+Le modèle physique candidat ajoute `GiveawayAnnouncement.fullText` nullable, preuve opérateur du texte intégral exceptionnellement indivisible au-delà du budget Twitch450. `text` reste le message exact à envoyer/rejouer ; le DTO joueur ne renvoie pas `fullText`. Aucun autre nouveau modèle économique : les restaurations de domaines utilisent les tables propriétaires et les journaux `MigrationBatch`. [Contrat](../architecture/legacy-domains-r1063.md), [DDL067](../architecture/postgresql-schema-v1.md).
+
+
 <a id="player-recovery-20261009"></a>
 
 ## Player.legacyRecovery — reprise ciblée, candidat 066

@@ -19,7 +19,12 @@ function knownInstant(value: unknown): Date | null {
   return parsed;
 }
 
-export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot: Snapshot, plan: LegacyGlobalPlan, batchId: string) {
+export type LegacyGiveawayPlan = Pick<LegacyGlobalPlan, 'identityQuarantined' | 'ownerDiscardedKeys'> & {
+  players: Pick<LegacyGlobalPlan['players'][number], 'legacyUsername' | 'playerId' | 'personalImport'>[];
+};
+
+export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot: Snapshot, plan: LegacyGiveawayPlan, batchId: string,
+  legacySessionKey = `streamerbot:${snapshot.hash}`) {
   const source = object(snapshot.sources['giveaway.json']);
   const byName = new Map(plan.players.map(player => [normalizeLegacyName(player.legacyUsername), player.playerId]));
   if (source.status !== 'closed') throw new Error('Open Giveaway requires a dedicated cutover contract.');
@@ -41,7 +46,7 @@ export async function applyLegacyGiveaway(tx: Prisma.TransactionClient, snapshot
   const closedByPlayerId = typeof source.closedBy === 'string' ? byName.get(normalizeLegacyName(source.closedBy)) ?? null : null;
   const participants = Array.isArray(source.participants) ? source.participants : [];
   const messageCounts = object(source.messageCounts);
-  const session = await tx.giveawaySession.create({ data: { legacySessionKey: `streamerbot:${snapshot.hash}`,
+  const session = await tx.giveawaySession.create({ data: { legacySessionKey,
     status: 'CLOSED', winnerPlayerId: winnerId ?? null, previousWinnerPlayerId: previousWinnerId ?? null,
     openedByPlayerId, closedByPlayerId,
     openedAt: knownInstant(source.openedAt),

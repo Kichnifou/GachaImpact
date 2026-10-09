@@ -1,4 +1,4 @@
-import { randomUUID, createHmac } from 'node:crypto';
+import { randomUUID, createHmac, createHash } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { PULL_COST } from '../src/domain/gacha/pull.js';
@@ -6,7 +6,12 @@ import { SourceChannel } from '../generated/prisma/client.js';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { buildApp } from '../src/app.js';
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
-import { GetCurrentGacha, PerformGachaPull } from '../src/application/gacha/gacha-services.js';
+import { GetCurrentGacha, PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
+import { GetCurrentPlayerBox } from '../src/application/box/box-services.js';
+import { PrismaBoxStore } from '../src/infrastructure/database/prisma-box-store.js';
+import { GetCurrentPlayerInventory } from '../src/application/inventory/inventory-services.js';
+import { PrismaInventoryStore } from '../src/infrastructure/database/prisma-inventory-store.js';
+import { verifiedPlayerActor } from '../src/application/player/player-execution-actor.js';
 import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-store.js';
 import { SocialService } from '../src/application/social/social-service.js';
 import { TwitchEventObserver } from '../src/application/twitch/twitch-event-observer.js';
@@ -37,9 +42,21 @@ const specialized = { consume: vi.fn(async () => undefined) };
 const business = vi.fn<ReturnType<typeof twitchPlayerCommandExecutor>['execute']>();
 let presence: TwitchFavorChatPresenceConsumer;
 let core: ReturnType<typeof twitchPlayerCommandExecutor>;
+let gacha: GetCurrentGacha, selectTarget: SetGachaTarget;
 const subscriptions = { activationAvailable: true, inspectPilotChatTransport: vi.fn(async () => ({ subscriptionId: 'private-subscription', broadcasterId: '123', receiverId: '123', callback: config.twitchEventSub.callbackUrl })) };
 beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
+  // A fresh local catalog need not contain an activated rotation. Keep this
+  // transport fixture self-contained in its isolated schema.
+  if (!await db.bannerRotation.findFirst({ where: { status: 'ACTIVE' } })) {
+    const five = await db.character.findMany({ where: { isActive: true, rarity: 5 }, orderBy: { externalKey: 'asc' }, take: 4 });
+    const four = await db.character.findMany({ where: { isActive: true, rarity: 4 }, orderBy: { externalKey: 'asc' }, take: 6 });
+    await db.bannerRotation.create({ data: { startsAt: new Date('2026-10-04T22:00:00Z'), endsAt: new Date('2026-10-11T22:00:00Z'), status: 'ACTIVE',
+      generationVoteSnapshot: { privateFixture: true }, featuredCharacters: { create: [
+        ...five.map((character, index) => ({ characterId: character.id, rarity: 5, slot: index + 1, selectionSource: 'RANDOM' as const })),
+        ...four.map((character, index) => ({ characterId: character.id, rarity: 4, slot: index + 1, selectionSource: 'RANDOM' as const })),
+      ] } } });
+  }
   const player = await db.player.create({ data: { displayName: 'Private command fixture', elementKey: 'hydro',
     gachaState: { create: {} }, economyStats: { create: {} }, wheelStats: { create: {} }, dailyRewardState: { create: {} } } }); playerId = player.id;
   const other = await db.player.create({ data: { displayName: 'Other private viewer', elementKey: 'geo' } });
@@ -55,7 +72,10 @@ beforeAll(async () => {
   config.twitch.pilotPlayerIds = [playerId];
   const clock = { now: () => new Date((current.banner.startsAt.getTime() + current.banner.endsAt.getTime()) / 2) };
   const getPlayer = new GetCurrentPlayer({ findByIdentity: async () => { throw new Error('No Supabase identity allowed in Twitch'); }, provision: async () => { throw new Error('No web provisioning allowed'); } });
-  const services = { ...harness().services, getCurrentGacha: new GetCurrentGacha(getPlayer, store),
+  gacha = new GetCurrentGacha(getPlayer, store); selectTarget = new SetGachaTarget(getPlayer, store);
+  const services = { ...harness().services, getCurrentGacha: gacha, setGachaTarget: selectTarget,
+    getCurrentPlayerBox: new GetCurrentPlayerBox(getPlayer, new PrismaBoxStore(db)),
+    getCurrentPlayerInventory: new GetCurrentPlayerInventory(getPlayer, new PrismaInventoryStore(db)),
     socialService: new SocialService(getPlayer, db, clock), performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, { nextInt: upper => upper - 1 }, SourceChannel.TWITCH) } as unknown as ChatCommandServices;
   core = twitchPlayerCommandExecutor(db, services, clock); business.mockImplementation((...args) => core.execute(...args));
   pilot = new TwitchCommandPilot(db, config, { execute: business, prepare: core.prepare, capturedAt: core.capturedAt }, outbound, parser, subscriptions);
@@ -249,6 +269,72 @@ describe('real multi-pull idempotence and segmented delivery', () => {
     expect(await state()).toEqual(committed); expect(outbound.send).toHaveBeenCalledTimes(sends + (partial ? 4 : 3));
     expect(business).toHaveBeenCalledTimes(executions + 1);
     expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
+  }, 60_000);
+});
+
+describe('R1063 repeated commands and selection parity', () => {
+  it('reads full aliases/pity/Box/quotis/sac for fresh message IDs and never reexecutes a redelivery or changes the economy', async () => {
+    const catalog = await db.character.findMany({ where: { isActive: true, rarity: { in: [4, 5] } }, orderBy: { name: 'asc' } });
+    await db.playerCharacter.createMany({ data: catalog.map((character, index) => ({ playerId, characterId: character.id, constellation: index % 7, copies: index % 7 + 1, firstObtainedAt: new Date('2026-01-01') })), skipDuplicates: true });
+    const possessions = await db.playerCharacter.findMany({ where: { playerId }, include: { character: true } });
+    await db.c6CompetitionProgress.createMany({ data: possessions.filter(row => row.character.rarity === 5 && row.constellation === 6).map(row => ({ playerId, characterId: row.characterId,
+      unlockedAt: new Date('2026-01-01'), strength: 1, intelligence: 1, beauty: 1, charisma: 1, popularity: 1 })), skipDuplicates: true });
+    const before = await state(), executions = business.mock.calls.length;
+    const commands = ['!ban', '!ban', '!BAN', '!banniere', '!bannière', '!ban \u034f', '!pity', '!pity', '!box', '!box', '!quotis', '!quotis', '!sac', '!sac'];
+    for (const text of commands) {
+      const body = event(text), request = signed(body), calls = business.mock.calls.length;
+      const response = await post(request); expect(response.statusCode, `${text}: ${response.body}`).toBe(204);
+      const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+      const saved = (receipt.payloadMinimal as { contentHash: string; commandPilot: { args: string[]; responses: { text: string; status: string }[] } });
+      expect(receipt.state).toBe('PROCESSED'); expect(saved.contentHash).toBe(createHash('sha256').update(text).digest('hex'));
+      expect(saved.commandPilot.args).toEqual([]);
+      expect(saved.commandPilot.responses.every(part => part.status === 'SENT' && Array.from(part.text).length <= 450)).toBe(true);
+      const output = saved.commandPilot.responses.map(part => part.text);
+      expect(output.join('\n')).not.toContain('Syntaxe');
+      if (text === '!box') {
+        expect(output.length).toBeGreaterThan(3);
+        for (const owned of possessions) expect(output.filter(part => part.includes(`${owned.character.name} (C${owned.constellation})`))).toHaveLength(1);
+        expect(output.some(part => part.includes('Yoimiya (C'))).toBe(true);
+      }
+      const sends = outbound.send.mock.calls.length;
+      expect((await post(request)).statusCode).toBe(204);
+      expect((await post(signed(body))).statusCode).toBe(204); // Different delivery UUID, same immutable chat message ID.
+      expect(business).toHaveBeenCalledTimes(calls + 1); expect(outbound.send).toHaveBeenCalledTimes(sends);
+    }
+    expect(business).toHaveBeenCalledTimes(executions + commands.length);
+    expect(await state()).toEqual(before);
+    expect(await db.globalChatMessage.count()).toBe(0); expect(await db.webIdentity.count()).toBe(0);
+    const invalid = signed(event('!ban visible \u034f'));
+    expect((await post(invalid)).statusCode).toBe(204);
+    const invalidReceipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: invalid.headers['twitch-eventsub-message-id'] } });
+    expect(invalidReceipt.payloadMinimal).toMatchObject({ commandPilot: { args: ['visible'], responses: [{ text: 'Syntaxe : !banniere.', status: 'SENT' }] } });
+    expect(await state()).toEqual(before);
+  }, 60_000);
+  it('shares the target with the standalone owner and never lets an old Twitch receipt undo a later choice', async () => {
+    const player = await db.player.findUniqueOrThrow({ where: { id: playerId } }), actor = verifiedPlayerActor(player);
+    const current = await gacha.execute(actor), previous = current.banner.featuredFiveStars.find(row => row.id === current.playerState.selectedBannerCharacterId)!;
+    const next = current.banner.featuredFiveStars.find(row => row.id !== previous.id)!;
+    const economic = await state();
+    const submit = async (text: string) => { const body = event(text), request = signed(body); const response = await post(request); expect(response.statusCode, response.body).toBe(204); return { body, request,
+      receipt: await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } }) }; };
+    const already = await submit(`!select ${previous.name}`);
+    expect(already.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ text: `⚠️ ${previous.name} est déjà ciblé.` }] } });
+    const changed = await submit(`!select ${next.name}`);
+    expect(changed.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ text: `✅ Cible 5★ sélectionnée : ${next.name}. Utilise !pull pour invoquer.` }] } });
+    expect((await gacha.execute(actor)).playerState.selectedBannerCharacterId).toBe(next.id);
+    const absent = await submit('!select Personnage absent de la bannière');
+    expect(absent.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ text: expect.stringContaining('introuvable sur la bannière') }] } });
+    expect((await gacha.execute(actor)).playerState.selectedBannerCharacterId).toBe(next.id);
+    await selectTarget.execute(actor, previous.id, randomUUID(), SourceChannel.UI);
+    const ban = await submit('!ban');
+    expect(ban.receipt.payloadMinimal).toMatchObject({ commandPilot: { responses: [{ text: expect.stringContaining(`5★ ciblé :`) }] } });
+    expect(JSON.stringify(ban.receipt.payloadMinimal)).toContain(previous.name);
+    const after = await state(), sends = outbound.send.mock.calls.length, executions = business.mock.calls.length;
+    expect((await post(changed.request)).statusCode).toBe(204); expect((await post(signed(changed.body))).statusCode).toBe(204);
+    expect(await state()).toEqual(after); expect((await gacha.execute(actor)).playerState.selectedBannerCharacterId).toBe(previous.id);
+    expect(business).toHaveBeenCalledTimes(executions); expect(outbound.send).toHaveBeenCalledTimes(sends);
+    expect(after.wallet).toBe(economic.wallet); expect(after.pulls).toBe(economic.pulls); expect(after.movements).toBe(economic.movements);
+    expect(after.gacha.totalPulls).toBe(economic.gacha.totalPulls);
   }, 60_000);
 });
 

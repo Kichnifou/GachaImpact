@@ -1,5 +1,20 @@
 # Cutover legacy — runbook opératoire
 
+<a id="r1063-restauration-domaines"></a>
+
+## R1063 — reprise des domaines après R1062
+
+R1062/imports/extension sont acquis et ne se rejouent pas. La confirmation F5 R1062 et la sélection bidirectionnelle sont acquises. Le mandat R1063 poursuit dans cette même mission jusqu'à application contrôlée des faits sûrs après reviewer indépendant. [Contrat, sources, diagnostic et compensation](../architecture/legacy-domains-r1063.md), [Master](../master/PROJECT_MASTER_PLAN.md).
+
+1. Conserver le CANARY public pendant développement ; tester uniquement dans PostgreSQL privé loopback. Vérifier sources17/manifests, rapports d'import exacts et Helix frais, 43 historiques + test, exclusions171/2, marqueurs40, domaine vide de mutations natives. Planifier chaque profil et conserver l'ensemble acquis.
+2. Tests ciblés, répétition sur capture réelle, interruption/reprise, compensation exacte conditionnelle, concurrence et verify:full ; publier review, vrai diff/blobs GitHub, reviewer distinct et correction/re-review de tout bloquant avant FF main. Backup public complet vérifié avant DDL067 ; Prisma preDeploy normal, Railway/Cloudflare exacts, health et contrôles physiques.
+3. Après préparation, OFF par owner/révision, capacité false réellement déployée, aucune opération/outbound incertain. Figer les sources, identité/provenance et plans frais ; backup fsync avant chaque première écriture. Archiver Boss/Giveaway ; appliquer EVENT/BOSS/GIVEAWAY individuellement pour les 40 profils sûrs ; message partagé après Event ; quinze paires sociales prouvées via owner R1056. Un conflit isole le fait/profil, jamais de force SQL.
+4. Lire les journaux acquis avant reprise : pas de recrédit après gameplay, aucun réimport. Pour les paires ayant un endpoint commun, vérifier backup/postimage propre et IDs canoniques avant de sauter un journal acquis, plutôt que réexécuter l'owner avec une preuve globale devenue différente. Conserver les deux faits exclus.
+5. Postflight : faits/totaux attendus, retrait de chaque restriction, claims sans paiement, anciens rows/archives/tirages/ressources exacts ou variations natives expliquées, cible44 inchangée, aucun PENDING/incertain. Réarmer l'ensemble CANARY persisté uniquement ; capacité true effectivement déployée et transport réel vérifié avant recette. Aucun nouvel extend/transfert, annonce ou GLOBAL.
+6. Recette ciblée : indications runtime après le dernier redémarrage si la session authentifiée est humaine ; Festival/Boss/Giveaway/social et nouveaux messages répétés de consultation par joueur disponible, sans dépense automatique ni replay historique. Son absence ne bloque pas les contrôles indépendants et ne vaut pas une recette réussie. Actualiser les preuves et le Master à l'état effectivement atteint.
+
+Les anciennes étapes R1062 ci-dessous sont historiques. Leur statut en attente de F5 est remplacé par la confirmation propriétaire du 09/10.
+
 <a id="reprise-p0-r1062"></a>
 
 ## Reprise P0 R1062 — mandat consolidé du 09/10

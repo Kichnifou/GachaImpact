@@ -3,10 +3,30 @@ import { describe, expect, it } from 'vitest';
 import { pullChatResult, stellaChatResult } from '../src/application/chat/gacha-command-result.js';
 import type { GachaPullResult, PullResultRecord } from '../src/application/gacha/gacha-store.js';
 import type { StellaUseResult } from '../src/application/box/box-store.js';
+import { withPlayerCommandExecution } from '../src/application/player/player-command-execution.js';
 
 const base: PullResultRecord = { index: 1, resultType: 'character', character: { id: 'royal', name: 'Étoile Royale', rarity: 5, elementKey: 'pyro', externalKey: 'royal', classKey: null, region: null, weaponType: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null }, rarity: 5, resourceKey: null, resourceAmount: null, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 8, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null, passiveEffects: [], pity5AtPull: 30, backToBack: true };
 const result = (rows: readonly PullResultRecord[]): GachaPullResult => ({ operation: { id: 'op', pullCount: rows.length as GachaPullResult['operation']['pullCount'], primogemCost: BigInt(rows.length) * 160n, createdAt: new Date(), alreadyProcessed: false }, results: rows, playerState: {} as GachaPullResult['playerState'] });
 describe('Authoritative Gacha chat presentation', () => {
+  it('packs long Twitch x10 results by facts at 450, preserving names, constellations, gains and replay order', () => {
+    const actor = 'Voyageur 👩🏽‍🚀 ' + 'é'.repeat(25), name = 'Yoimiya 👩🏽‍🚀 ' + 'e\u0301'.repeat(20);
+    const rows = Array.from({ length: 10 }, (_, index): PullResultRecord => ({ ...base, index: index + 1, character: { ...base.character!, name }, c6Progression: { type: 'maxed' },
+      resourceTotalsAfter: { primogems: '9223372036854775807', moras: '9223372036854775807' },
+      bonusRewards: [{ resourceKey: 'primogems', amount: 160n, causeKey: 'gacha.c6-duplicate-refund' }, { resourceKey: 'moras', amount: 100000n, causeKey: 'gacha.c6-maxed-compensation' },
+        { resourceKey: 'primogems', amount: 800n, causeKey: 'player.xp.level-reward' }],
+      passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: 1n, xpAfter: 2001n, levelsReached: [99, 100], overflowRewardsGranted: 1 },
+        { elementKey: 'electro', type: 'pity5', amount: 2, requestedAmount: 2 }, { elementKey: 'anemo', type: 'primogem_recovery', amount: 80n },
+        { elementKey: 'dendro', type: 'resource_bundle', rewards: [{ resourceKey: 'primogems', amount: 40n }, { resourceKey: 'moras', amount: 1000n }, { resourceKey: 'particles_cryo', amount: 5n }] }],
+    }));
+    const recorded = result(rows), before = structuredClone(recorded);
+    const render = () => withPlayerCommandExecution({ now: new Date(), source: 'TWITCH' }, () => pullChatResult(actor, recorded));
+    const parts = render(); expect(parts.length).toBeGreaterThan(10); expect(parts.every(part => Array.from(part).length <= 450)).toBe(true);
+    const full = parts.join('\n');
+    for (let index = 1; index <= 10; index++) expect(parts.filter(part => part.includes(`[${index}/10] ${actor} obtient`))).toHaveLength(1);
+    for (const fact of [name, 'Déjà C6 : remboursement +160 primos', '🌟 Stats au maximum', '+100 000 💰 moras', 'Niveau : +800 primos', 'niveaux 99, 100', '+2 pity 5★', '+80 primos', '+5 ❄️ chacun'])
+      expect(full.split(fact)).toHaveLength(11);
+    expect(render()).toEqual(parts); expect(recorded).toEqual(before);
+  });
   it('returns exactly ten independent bounded results including every recorded gain and passive', () => {
     const row: PullResultRecord = { ...base, bonusRewards: [{ resourceKey: 'primogems', amount: 160n, causeKey: 'gacha.c6-duplicate-refund' }, { resourceKey: 'moras', amount: 100000n, causeKey: 'gacha.c6-maxed-compensation' }, { resourceKey: 'primogems', amount: 80n, causeKey: 'team.passive.anemo.primogem-recovery' }, { resourceKey: 'moras', amount: 1000n, causeKey: 'team.passive.dendro.bundle' }], c6Progression: { type: 'maxed' }, passiveEffects: [{ elementKey: 'cryo', type: 'xp', amount: 4n, xpAfter: 30n, levelsReached: [1], overflowRewardsGranted: 0 }, { elementKey: 'electro', type: 'pity5', amount: 1, requestedAmount: 2 }, { elementKey: 'anemo', type: 'primogem_recovery', amount: 80n }, { elementKey: 'dendro', type: 'resource_bundle', rewards: [{ resourceKey: 'moras', amount: 1000n }, { resourceKey: 'primogems', amount: 40n }, { resourceKey: 'particles_dendro', amount: 5n }] }] };
     const parts = pullChatResult('Axel', result(Array.from({ length: 10 }, (_, i) => ({ ...row, index: i + 1 }))));

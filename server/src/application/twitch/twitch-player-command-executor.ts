@@ -7,7 +7,8 @@ import { withPlayerCommandExecution } from '../player/player-command-execution.j
 import { PlayerCommandResolver, type ChatCommandServices } from '../chat/player-command-resolver.js';
 import type { PlayerCommandContext } from '../chat/player-command-context.js';
 import { commandMissionFeedback } from '../chat/command-mission-feedback.js';
-import { twitchResponseSegments, type TwitchCommandExecutor } from './twitch-command-pilot.js';
+import type { TwitchCommandExecutor } from './twitch-command-pilot.js';
+import { chatLength, TWITCH_RESPONSE_LIMIT } from '../chat/chat-list-result.js';
 import { CommandPrepared, commandIntentServices, freezeCommandValue, thawCommandValue, type FrozenCommandIntent } from './twitch-command-intent.js';
 
 export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatCommandServices, clock: Clock = { now: () => new Date() }): TwitchCommandExecutor {
@@ -21,11 +22,11 @@ export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatComm
     hasConfirmedCommandMutation: () => confirmed(playerId, key),
   });
   const finalize = async (playerId: string, key: string, output: string | readonly string[]) => {
-    const segments = twitchResponseSegments(output);
+    const segments = typeof output === 'string' ? [output] : [...output];
     for (const text of await commandMissionFeedback(db, playerId, SourceChannel.TWITCH, key)) {
       const last = segments.at(-1);
-      if (last && Array.from(`${last} ${text}`).length <= 500) segments[segments.length - 1] = `${last} ${text}`;
-      else segments.push(...twitchResponseSegments(text));
+      if (last && chatLength(`${last} ${text}`) <= TWITCH_RESPONSE_LIMIT) segments[segments.length - 1] = `${last} ${text}`;
+      else segments.push(text);
     }
     return segments;
   };

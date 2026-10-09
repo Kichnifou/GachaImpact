@@ -1,7 +1,8 @@
 import type { GachaPullResult } from '../gacha/gacha-store.js';
 import type { StellaUseResult } from '../box/box-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
-import { chatElementEmojis } from './chat-list-result.js';
+import { chatElementEmojis, chatLength, logicalChatParts, TWITCH_RESPONSE_LIMIT } from './chat-list-result.js';
+import { commandSource } from '../player/player-command-execution.js';
 import { chatElementNames } from './chat-list-result.js';
 import { chatNumber } from './chat-command-format.js';
 
@@ -10,7 +11,7 @@ export const characterLabel = (character: { name: string; elementKey: string }) 
 
 /** Presentation uses the recorded transaction, including each gain and triggered passive. */
 export function pullChatResult(actorName: string, result: GachaPullResult): readonly string[] {
-  return result.results.map(row => {
+  return result.results.flatMap(row => {
     const prefixes: string[] = [];
     if (row.pity5AtPull === 74) prefixes.push('⚠️ Tu entres en soft pity...');
     if (row.pity5AtPull === 80) prefixes.push('💀 Outch la hard...');
@@ -81,11 +82,13 @@ export function pullChatResult(actorName: string, result: GachaPullResult): read
           }
         }
       }
-      return [...prefixes, [principal, ...suffix].join(compact ? '|' : ' | ')].join(' ');
+      return { text: [...prefixes, [principal, ...suffix].join(compact ? '|' : ' | ')].join(' '), atoms: [...prefixes, principal, ...suffix] };
     };
     const message = render(false);
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return chatLength(message.text) <= TWITCH_RESPONSE_LIMIT ? [message.text]
+      : logicalChatParts('', message.atoms.map(text => ({ text, separator: ' | ' })), `🎲 ${result.operation.pullCount > 1 ? `[${row.index}/${result.operation.pullCount}] ` : ''}Invocation (suite) :`);
     // Compact only numeric typography and labels, keeping player/character names intact.
-    return Array.from(message).length <= 500 ? message : render(true);
+    return chatLength(message.text) <= 500 ? [message.text] : [render(true).text];
   });
 }
 

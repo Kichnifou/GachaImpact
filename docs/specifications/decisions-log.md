@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1063 — Domaines communautaires après import et fiabilité Twitch (2026-10-09)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : restaurer les faits Event/Boss/Giveaway et sociaux prouvés sur les Players définitifs, lever les restrictions individuellement après contrôle, sans réimporter les 44 NATIVE ni réattribuer les historiques ARCHIVED. Préserver les mutations natives, les combats Boss globaux, les participations/gagnants Giveaway historiques et les protections de claims. Les non-inscrits Event ne deviennent pas inscrits artificiellement ; les endpoints sociaux exclus restent historiques.
+
+Le complément confirme publiquement la sélection bidirectionnelle Twitch/standalone ; tests de non-régression uniquement. Diagnostiquer le !ban intermittent depuis les receipts réels, sans inventer le texte absent ni supprimer l'idempotence. Nouveaux messages distincts répétables, redelivery du même ID sans second gain. Réponses Twitch à 450 caractères Unicode préfixes compris, séparation entre éléments complets, ordre/contenu conservés ; exception indivisible explicite et texte intégral durable. Préserver les réponses déjà persistées et l'incertitude d'envoi.
+
+Mission unique préautorisée jusqu'à review indépendante du SHA publié, corrections, promotion stricte, déploiements/migration normale, sauvegardes, gates fraîches, application et recette. OFF seulement pour l'économie qui l'exige, fenêtre préparée courte, reprise des 44 cibles persistées sans extension. Aucun GLOBAL ; préparer seulement son évaluation. Les incertitudes isolées ne bloquent pas les domaines indépendants sûrs. [Contrat technique et faits](../architecture/legacy-domains-r1063.md), [état réel](../master/PROJECT_MASTER_PLAN.md).
+
 ## R1062 — Reprise P0 ciblée des profils historiques, mission consolidée (2026-10-09)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : rétablir dans la même mission les 43 identités historiques R1041, avec Kichni_Test séparé ; Streamer.bot déclaré arrêté depuis cinq jours reste arrêté. Les trois historiques déjà NATIVE et Kichni_Test ne sont jamais réimportés. Les 171 écartés et deux quarantaines restent exclus ; aucune purge globale et GLOBAL toujours false. Un profil sans élément peut être repris s'il appartient à cette population fixe. Aucun rapprochement par pseudo ni choix R1055 à la place d'un joueur.

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { PrismaClient } from '../generated/prisma/client.js';
 import { RankingService, findRanking, rankingRegistry } from '../src/application/ranking/ranking-service.js';
+import { withPlayerCommandExecution } from '../src/application/player/player-command-execution.js';
 
 function player(id: string, xp: bigint, overrides: Record<string, 'PUBLIC' | 'FRIENDS' | 'PRIVATE'> = {}) {
   return {
@@ -23,6 +24,15 @@ function harness(rows: ReturnType<typeof player>[]) {
   return { service: new RankingService(database), findMany, findUnique };
 }
 describe('global rankings R714–R727', () => {
+  it('uses 450 for Twitch while keeping entire ranked rows and the personal rank', async () => {
+    const rows = Array.from({ length: 7 }, (_, index) => ({ ...player(`P${index}`, BigInt(100 - index)), displayName: `P${index} ${'👩🏽‍🚀 e\u0301'.repeat(22)}` }));
+    const { service } = harness(rows);
+    const result = await withPlayerCommandExecution({ now: new Date(), source: 'TWITCH' }, () => service.chatTop(findRanking('xp')!, 'P6'));
+    const parts = typeof result === 'string' ? [result] : result;
+    expect(parts.every(part => Array.from(part).length <= 450)).toBe(true);
+    for (const [index, row] of rows.slice(0, 5).entries()) expect(parts.filter(part => part.includes(`#${index + 1} ${row.displayName} — ${100 - index}`))).toHaveLength(1);
+    expect(parts.join(' ')).toContain('Vous : #7'); expect(parts.join(' ')).not.toContain(rows[5]!.displayName);
+  });
   it('splits all five ranked entries and the eligible personal rank without cutting Unicode names', async () => {
     const rows = Array.from({ length: 7 }, (_, index) => ({ ...player(`P${index}`, BigInt(100 - index)), displayName: `P${index} ${'Étoile🌟'.repeat(25)}` }));
     const { service } = harness(rows);

@@ -16,7 +16,8 @@ export class TwitchGiveawayChatClient {
     private readonly request: typeof fetch = fetch) {}
 
   async send(playerId: string, broadcasterId: string, text: string): Promise<string> {
-    if (!text || oneLine(text) !== text || text.length > 500) throw new TwitchGiveawaySendError('CERTAIN', 'INVALID_TEXT');
+    // Keep the transport ceiling for old frozen replies; new owners freeze 450.
+    if (!text || oneLine(text) !== text || Array.from(text).length > 500) throw new TwitchGiveawaySendError('CERTAIN', 'INVALID_TEXT');
     for (let attempt = 0; attempt < 2; attempt++) {
       const token = await this.tokens.getToken(playerId);
       let response: Response;

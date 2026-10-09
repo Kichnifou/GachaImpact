@@ -3,9 +3,10 @@ import type { PlayerTeam, PlayerTeams } from '../team/team-store.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import type { PlayerCommandContext } from './player-command-context.js';
-import { chatElementEmojis } from './chat-list-result.js';
+import { chatElementEmojis, chatLength, TWITCH_RESPONSE_LIMIT } from './chat-list-result.js';
 import { deriveActiveTeamGachaEffects } from '../../domain/team/team-passives.js';
 import { entryParts } from './chat-command-format.js';
+import { commandSource } from '../player/player-command-execution.js';
 
 type Intent = { kind: 'apply' | 'rename' | 'new' | 'add' | 'remove' | 'clear'; teamId: string; position: number; characterId: string; name: string | null; error?: string };
 const label = (team: PlayerTeam) => `Team ${team.position}${team.name ? ` « ${team.name} »` : ''}${team.active ? ' ⭐ active' : ''}`;
@@ -26,9 +27,13 @@ function compactPassive(passive: PlayerTeam['passives'][number]): string {
   }
 }
 export function viewTeam(player: string, team: PlayerTeam): readonly string[] {
-  return entryParts(`✅ Team ${player} :`, [composition(team).join(' - ') || 'vide',
-    team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif',
+  const entries = [composition(team).join(' - ') || 'vide',
+    team.passives.length ? '🧩 Passifs actifs : ' + team.passives.map(compactPassive).join(', ') : '🧩 Aucun passif actif'];
+  if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`✅ Team suite : ${text}`) > TWITCH_RESPONSE_LIMIT)) return entryParts(`✅ Team ${player} :`, [
+    ...(composition(team).length ? composition(team) : ['vide']),
+    ...(team.passives.length ? team.passives.map(passive => `🧩 Passif actif : ${compactPassive(passive)}`) : ['🧩 Aucun passif actif']),
   ], '✅ Team suite :');
+  return entryParts(`✅ Team ${player} :`, entries, '✅ Team suite :');
 }
 export async function teamCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string, services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string | readonly string[]> {
   const first = normalizePlayerSearch(args[0] ?? '');
@@ -54,10 +59,14 @@ export async function teamCommand(identity: PlayerExecutionActor, args: readonly
     const slice = [...state.teams].sort((a, b) => a.position - b.position).slice((page - 1) * 10, page * 10);
     const visible = slice.filter(row => row.active || row.slots.some(slot => slot.character));
     const empty = slice.length - visible.length;
-    return entryParts(`💾 Teams de ${actor.displayName} ${page}/${pages} :`, [
-      ...visible.map(row => `${label(row)} (${composition(row).length}/4) : ${composition(row).join(', ') || 'vide'}`),
-      ...(empty ? [`${empty} emplacements vides`] : []),
-    ], '💾 Teams suite :');
+    const entries = [...visible.map(row => `${label(row)} (${composition(row).length}/4) : ${composition(row).join(', ') || 'vide'}`),
+      ...(empty ? [`${empty} emplacements vides`] : [])];
+    if (commandSource('INTERNAL_CHAT') === 'TWITCH' && entries.some(text => chatLength(`💾 Teams suite : ${text}`) > TWITCH_RESPONSE_LIMIT)) return [
+      `💾 Teams de ${actor.displayName} ${page}/${pages} :`,
+      ...visible.flatMap(row => entryParts(`💾 ${label(row)} (${composition(row).length}/4) :`, composition(row).length ? composition(row) : ['vide'], `💾 Team ${row.position} (suite) :`, ', ')),
+      ...(empty ? [`💾 ${empty} emplacements vides`] : []),
+    ];
+    return entryParts(`💾 Teams de ${actor.displayName} ${page}/${pages} :`, entries, '💾 Teams suite :');
   }
   const intent: Intent = { kind: 'clear', teamId: team?.id ?? '', position: 0, characterId: '', name: null };
   if (!team && action !== 'new') intent.error = `⚠️ ${actor.displayName}, cette Team est introuvable.`;
