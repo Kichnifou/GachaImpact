@@ -57,7 +57,7 @@ export function isolatedBatchDatabase() {
         // Annual Festival codes are system catalog. Operator-authored codes and
         // all claims stay out of the fixture.
         if (!options.prismaMigrations) {
-          await admin.query(`INSERT INTO "${schema}"."gift_codes" SELECT (jsonb_populate_record(NULL::"${schema}"."gift_codes", to_jsonb(row) || '{"created_by_id":null,"updated_by_id":null}'::jsonb)).* FROM public."gift_codes" AS row WHERE row.token LIKE 'FESTIVAL%'`);
+          await admin.query(`INSERT INTO "${schema}"."gift_codes" SELECT (jsonb_populate_record(NULL::"${schema}"."gift_codes", '{"stella_amount":0,"event_points":0,"event_currency":0}'::jsonb || to_jsonb(row) || '{"created_by_id":null,"updated_by_id":null}'::jsonb)).* FROM public."gift_codes" AS row WHERE row.token LIKE 'FESTIVAL%'`);
           for (const table of ['gift_code_editions', 'gift_code_rewards']) {
             await admin.query(`INSERT INTO "${schema}"."${table}" SELECT (jsonb_populate_record(NULL::"${schema}"."${table}", to_jsonb(row))).* FROM public."${table}" AS row WHERE gift_code_id IN (SELECT id FROM "${schema}"."gift_codes")`);
           }

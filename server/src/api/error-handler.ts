@@ -5,6 +5,8 @@ import { AppError } from './errors.js';
 import { isArchivedPlayerWriteError } from '../infrastructure/database/archived-player-error.js';
 
 const businessStatusCodes: Readonly<Record<BusinessErrorCode, number>> = {
+  EVENT_POINTS_OVERFLOW: 409,
+  STELLA_INVALID_AMOUNT: 422,
   FAVOR_IDEMPOTENCY_CONFLICT: 409,
   FAVOR_PROOF_INVALID: 400,
   TRADE_STOCK_CHANGED: 409,

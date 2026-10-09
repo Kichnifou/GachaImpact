@@ -4,6 +4,8 @@
 
 31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. GLOBAL R1064 est activé après review indépendante, déploiements et gates fraîches ; état et limites humaines réellement obtenus au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Priorité immédiate aux Codes cadeaux enrichis R1057 dans le même cycle. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
 
+R1057 est fabriqué et validé localement, en attente de publication/review indépendante puis promotion, migration et postflight ; aucune livraison publique revendiquée. [Contrat du candidat](../architecture/gift-code-enriched-r1057.md). Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire, sans bloquer cette suite.
+
 ## Historique — intercalaire UI/UX avant canary R1055
 
 Lot A–E livré en candidat review au-dessus de 0fd2413 : « Tout supprimer », Configuration sans Apparence, accès Compte/Déconnexion avant élément, liaison Twitch unifiée et choix définitif Web/Twitch ([R1055](../specifications/decisions-log.md)). Ce paragraphe conserve le périmètre historique du candidat ; sa promotion et les migrations062/063 ont depuis été contrôlées. La prochaine action et les canaries réellement exécutés appartiennent exclusivement au Master. R1052 retrait Apparence est implémenté ; nouveautés, unlockedAt/tri/date/recherche restent futurs. Ordre des canaries/population/cutover/gate de révélation ci-dessous inchangé ; preuves au [Master](../master/PROJECT_MASTER_PLAN.md).

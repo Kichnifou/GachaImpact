@@ -2,14 +2,17 @@ import { commandNow } from '../player/player-command-execution.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { GiftCodeStatus, GiftCodeType, NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
-import { isElementKey, isResourceKey, type ResourceKey } from '../../domain/economy/resources.js';
+import { isElementKey, isResourceKey } from '../../domain/economy/resources.js';
+import { creditMasterlessStellaFortuna } from '../../infrastructure/database/prisma-box-store.js';
+import { extraCodeRewardNames, giftCodeRewardKeys, type GiftCodeRewardKey, type GrantedCodeReward } from './gift-code-rewards.js';
+import type { EventService } from '../event/event-service.js';
 import { getBusinessDate, getBusinessDayStartAt, type Clock } from '../../domain/time/business-date.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 
-export type GiftCodeRewardInput = Readonly<{ resourceKey: ResourceKey; amount: bigint }>;
+export type GiftCodeRewardInput = Readonly<{ resourceKey: GiftCodeRewardKey; amount: bigint }>;
 export type GiftCodeDraftInput = Readonly<{
   token?: string;
   title: string;
@@ -60,7 +63,7 @@ const noExpiry = new Date('9999-12-31T23:59:59.999Z');
 export class GiftCodeService {
   private readonly economy = new PrismaEconomyService();
 
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly maintenanceScope: GiftCodeMaintenanceScope = {}) {}
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly database: PrismaClient, private readonly clock: Clock, private readonly maintenanceScope: GiftCodeMaintenanceScope = {}, private readonly eventRewards?: Pick<EventService, 'creditGiftCodeRewards'>) {}
 
   public async listForPlayer(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
@@ -85,6 +88,8 @@ export class GiftCodeService {
     await this.materializeAnnualEditions(this.database, now);
     let alreadyProcessed = false;
     let operationId = '';
+    let grantedRewards: readonly GrantedCodeReward[] | undefined;
+    let eventReward: { granted: boolean; reason: string | null; editionId: string | null; milestones: number[] } | undefined;
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const result = await this.database.$transaction(async (tx) => {
@@ -93,32 +98,50 @@ export class GiftCodeService {
           if (existingOperation) {
             const request = readJsonRecord(existingOperation.resultSummary)?.request;
             if (existingOperation.playerId !== player.id || existingOperation.operationType !== 'gift-code.claim' || readJsonRecord(request)?.editionId !== editionId || existingOperation.status !== OperationStatus.COMPLETED) throw new BusinessError('GIFT_CODE_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence appartient à une autre opération.');
-            return { operationId: existingOperation.id, alreadyProcessed: true };
+            return { operationId: existingOperation.id, alreadyProcessed: true, ...readGrantedResult(existingOperation.resultSummary) };
           }
           await tx.$queryRaw`SELECT id FROM gift_codes WHERE id = (SELECT gift_code_id FROM gift_code_editions WHERE id = ${editionId}::uuid) FOR UPDATE`;
           const edition = await tx.giftCodeEdition.findUnique({
             where: { id: editionId },
-            include: { giftCode: { include: { rewards: true } }, claims: { where: { playerId: player.id }, take: 1 } },
+            include: { giftCode: { include: { rewards: { include: { resource: true } } } }, claims: { where: { playerId: player.id }, take: 1, include: { operation: true } } },
           });
           if (!edition) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
           if (!isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now)) throw new BusinessError('GIFT_CODE_UNAVAILABLE', 'Ce code cadeau n’est pas disponible.');
           if (edition.claims.length > 0) {
             if (!edition.claims[0]!.operationId) throw new BusinessError('GIFT_CODE_ALREADY_CLAIMED', 'Ce code cadeau a déjà été utilisé.');
-            return { operationId: edition.claims[0]!.operationId, alreadyProcessed: true };
+            return { operationId: edition.claims[0]!.operationId, alreadyProcessed: true, ...readGrantedResult(edition.claims[0]!.operation?.resultSummary) };
           }
           const playerElementKey = player.elementKey && isElementKey(player.elementKey) ? player.elementKey : null;
           const operation = await tx.businessOperation.create({ data: { playerId: player.id, operationType: 'gift-code.claim', sourceChannel, idempotencyKey, status: OperationStatus.PENDING, resultSummary: { request: { editionId } } } });
           await tx.giftCodeClaim.create({ data: { giftCodeEditionId: edition.id, playerId: player.id, sourceChannel, operationId: operation.id, claimedAt: now } });
+          const granted: GrantedCodeReward[] = [];
           for (const reward of edition.giftCode.rewards) {
             if (reward.amount <= 0n || !isResourceKey(reward.resourceKey)) continue;
             await this.economy.credit(tx, { playerId: player.id, playerElementKey, resourceKey: reward.resourceKey, amount: reward.amount, causeKey: `gift-code.${edition.giftCode.token}`, domainKey: 'gift-codes', operationId: operation.id, sourceChannel });
+            granted.push({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() });
           }
-          await tx.notification.updateMany({ where: { playerId: player.id, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id, state: { in: [...activeNotificationStates] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now } });
-          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { request: { editionId }, claimed: true } } });
-          return { operationId: operation.id, alreadyProcessed: false };
+          if (edition.giftCode.stellaAmount > 0n) {
+            await creditMasterlessStellaFortuna(tx, { playerId: player.id, amount: edition.giftCode.stellaAmount, operationId: operation.id, sourceKey: 'GIFT_CODE', provenance: { codeId: edition.giftCode.id, editionId }, now });
+            granted.push({ resourceKey: 'masterless-stella-fortuna', displayName: extraCodeRewardNames['masterless-stella-fortuna'], amount: edition.giftCode.stellaAmount.toString() });
+          }
+          let event: typeof eventReward;
+          if (edition.giftCode.eventPoints > 0 || edition.giftCode.eventCurrency > 0n) {
+            if (!this.eventRewards) throw new Error('Event reward owner is required for enriched gift codes.');
+            const result = await this.eventRewards.creditGiftCodeRewards(tx, player.id, edition.giftCode.eventPoints, edition.giftCode.eventCurrency);
+            event = { granted: result.granted, reason: result.reason, editionId: result.editionId, milestones: result.milestones };
+            const definitions = await tx.resourceDefinition.findMany({ where: { key: { in: result.rewards.filter(({ displayName }) => !displayName).map(({ resourceKey }) => resourceKey) } }, select: { key: true, displayName: true } });
+            const names = new Map(definitions.map(({ key, displayName }) => [key, displayName]));
+            for (const reward of result.rewards) granted.push({ ...reward, displayName: reward.displayName ?? names.get(reward.resourceKey) ?? reward.resourceKey });
+          }
+          const actualRewards = aggregateRewards(granted);
+          await tx.notification.updateMany({ where: { playerId: player.id, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id, state: { in: [...activeNotificationStates] } }, data: { state: NotificationState.RESOLVED, resolvedAt: now, payload: jsonSafe({ title: edition.giftCode.title, token: edition.giftCode.token, rewards: actualRewards, eventReward: event }) } });
+          await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, resultSummary: jsonSafe({ request: { editionId }, claimed: true, grantedRewards: actualRewards, eventReward: event }) } });
+          return { operationId: operation.id, alreadyProcessed: false, grantedRewards: actualRewards, eventReward: event };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
         operationId = result.operationId;
         alreadyProcessed = result.alreadyProcessed;
+        grantedRewards = result.grantedRewards;
+        eventReward = result.eventReward;
         break;
       } catch (error) {
         if (attempt < 2 && isPrismaConcurrencyCollision(error)) continue;
@@ -126,7 +149,7 @@ export class GiftCodeService {
       }
     }
     const [codes, resources] = await Promise.all([this.playerSnapshot(player.id, now), this.resources(player.id)]);
-    return { ...codes, resources, operation: { id: operationId, alreadyProcessed } };
+    return { ...codes, resources, grantedRewards, eventReward, operation: { id: operationId, alreadyProcessed } };
   }
 
   public async reconcileNotificationsForPlayer(playerId: string, now = commandNow(this.clock), materialize = true): Promise<void> {
@@ -147,7 +170,7 @@ export class GiftCodeService {
       });
       const activeIds = editions.map(({ id }) => id);
       for (const edition of editions) {
-        const rewards = edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount.toString() }));
+        const rewards = configuredRewards(edition.giftCode).map(({ resourceKey, amount }) => ({ resourceKey, amount }));
         const deduplicationKey = `gift-code:${playerId}:${edition.id}`;
         const existing = await tx.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true } });
         const content = { payload: { title: edition.giftCode.title, token: edition.giftCode.token, rewards }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id };
@@ -217,7 +240,7 @@ export class GiftCodeService {
     const oneOffStartsAt = input.startsAt ?? commandNow(this.clock);
     const oneOffEndsAt = input.endsAt ?? noExpiry;
     const codeId = await this.adminMutation(actor.id, 'create', input.idempotencyKey, { ...input, token, rewards: input.rewards.map(stringifyReward) }, async (tx, operationId) => {
-      const code = await tx.giftCode.create({ data: { token, title: input.title.trim(), description: input.description.trim(), type: input.type, status: GiftCodeStatus.DRAFT, recurringMonth: input.type === 'ANNUAL' ? input.recurringMonth : null, startsAt: input.type === 'ONE_OFF' ? oneOffStartsAt : null, endsAt: input.type === 'ONE_OFF' ? oneOffEndsAt : null, createdById: actor.id, updatedById: actor.id, rewards: { create: input.rewards.filter(({ amount }) => amount > 0n).map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount })) } } });
+      const code = await tx.giftCode.create({ data: { token, title: input.title.trim(), description: input.description.trim(), type: input.type, status: GiftCodeStatus.DRAFT, recurringMonth: input.type === 'ANNUAL' ? input.recurringMonth : null, startsAt: input.type === 'ONE_OFF' ? oneOffStartsAt : null, endsAt: input.type === 'ONE_OFF' ? oneOffEndsAt : null, createdById: actor.id, updatedById: actor.id, ...extendedRewardData(input.rewards), rewards: { create: classicRewards(input.rewards) } } });
       return [{}, { codeId: code.id, token, status: code.status }, code.id, operationId];
     });
     return { code: await this.adminCodeById(codeId) };
@@ -228,7 +251,7 @@ export class GiftCodeService {
     const affectedCodeId = await this.adminMutation(actor.id, 'publish', idempotencyKey, { codeId }, async (tx, operationId) => {
       const before = await tx.giftCode.findUnique({ where: { id: codeId }, include: { rewards: true } });
       if (!before) throw new BusinessError('GIFT_CODE_NOT_FOUND', 'Ce code cadeau n’existe pas.');
-      if (before.rewards.length === 0) throw invalidConfiguration();
+      if (configuredRewards(before).length === 0) throw invalidConfiguration();
       const after = await tx.giftCode.update({ where: { id: codeId }, data: { status: GiftCodeStatus.PUBLISHED, publishedAt: before.publishedAt ?? now, disabledAt: null, updatedById: actor.id } });
       if (after.type === GiftCodeType.ONE_OFF) await tx.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: codeId, editionKey: 'once' } }, create: { giftCodeId: codeId, editionKey: 'once', startsAt: after.startsAt!, endsAt: after.endsAt! }, update: { startsAt: after.startsAt!, endsAt: after.endsAt! } });
       return [{ status: before.status }, { status: after.status }, codeId, operationId];
@@ -267,7 +290,8 @@ export class GiftCodeService {
         data: {
           token: input.token === undefined ? undefined : normalizeToken(input.token),
           title: input.title?.trim(), description: input.description?.trim(), type, recurringMonth, startsAt, endsAt,
-          rewards: input.rewards ? { deleteMany: {}, create: input.rewards.filter(({ amount }) => amount > 0n).map((reward) => ({ resourceKey: reward.resourceKey, amount: reward.amount })) } : undefined,
+          ...(input.rewards ? extendedRewardData(input.rewards) : {}),
+          rewards: input.rewards ? { deleteMany: {}, create: classicRewards(input.rewards) } : undefined,
           status: input.disabled === undefined ? undefined : input.disabled ? GiftCodeStatus.DISABLED : GiftCodeStatus.PUBLISHED,
           disabledAt: input.disabled === undefined ? undefined : input.disabled ? commandNow(this.clock) : null,
           publishedAt: input.disabled === false ? before.publishedAt ?? commandNow(this.clock) : undefined,
@@ -284,7 +308,7 @@ export class GiftCodeService {
           data: { state: NotificationState.RESOLVED, resolvedAt: commandNow(this.clock) },
         });
       }
-      const snapshot = (code: typeof before | typeof after) => ({ token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, rewards: code.rewards.map(({ resourceKey, amount }) => ({ resourceKey, amount: amount.toString() })) });
+      const snapshot = (code: typeof before | typeof after) => ({ token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, rewards: configuredRewards(code) });
       return [snapshot(before), snapshot(after), codeId, operationId];
     });
     await this.materializeAnnualEditionForCode(this.database, affectedCodeId, commandNow(this.clock));
@@ -315,7 +339,7 @@ export class GiftCodeService {
   private async playerSnapshot(playerId: string, now: Date) {
     const editions = await this.database.giftCodeEdition.findMany({
       where: { OR: [{ giftCode: { status: GiftCodeStatus.PUBLISHED }, startsAt: { lte: now }, endsAt: { gt: now } }, { claims: { some: { playerId } } }] },
-      include: { giftCode: { include: { rewards: { include: { resource: true }, orderBy: { resourceKey: 'asc' } } } }, claims: { where: { playerId }, take: 1 } },
+      include: { giftCode: { include: { rewards: { include: { resource: true }, orderBy: { resourceKey: 'asc' } } } }, claims: { where: { playerId }, take: 1, include: { operation: { select: { resultSummary: true } } } } },
       orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
     });
     const entries = editions.map((edition) => serializePlayerCode(edition, now));
@@ -332,7 +356,8 @@ export class GiftCodeService {
     const [yearText, monthText] = getBusinessDate(now).split('-'); const year = Number(yearText); const month = Number(monthText);
     const codes = await database.giftCode.findMany({ where: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month, ...(this.maintenanceScope.annualCodeIds ? { id: { in: [...this.maintenanceScope.annualCodeIds] } } : {}) }, select: { id: true } });
     const startsAt = monthStart(year, month); const endsAt = month === 12 ? monthStart(year + 1, 1) : monthStart(year, month + 1);
-    for (const code of codes) await database.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: code.id, editionKey: String(year) } }, create: { giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }, update: {} });
+    // INSERT ON CONFLICT keeps simultaneous claims/discovery from racing an emulated upsert.
+    for (const code of codes) await database.giftCodeEdition.createMany({ data: [{ giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }], skipDuplicates: true });
   }
 
   private async materializeAnnualEditionForCode(database: Database, codeId: string, now: Date): Promise<void> {
@@ -340,7 +365,7 @@ export class GiftCodeService {
     const code = await database.giftCode.findFirst({ where: { id: codeId, status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month }, select: { id: true } });
     if (!code) return;
     const startsAt = monthStart(year, month); const endsAt = month === 12 ? monthStart(year + 1, 1) : monthStart(year, month + 1);
-    await database.giftCodeEdition.upsert({ where: { giftCodeId_editionKey: { giftCodeId: code.id, editionKey: String(year) } }, create: { giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }, update: {} });
+    await database.giftCodeEdition.createMany({ data: [{ giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }], skipDuplicates: true });
   }
 
   private async adminCodeById(codeId: string) {
@@ -429,13 +454,14 @@ function adminOrder(sort: GiftCodeAdminQuery['sort'], direction: GiftCodeAdminQu
   if (sort === 'claims') return Prisma.sql`COALESCE(claim_stats.claim_count, 0) ${order}`;
   return Prisma.sql`gc.created_at ${order}`;
 }
-function serializePlayerCode(edition: Prisma.GiftCodeEditionGetPayload<{ include: { giftCode: { include: { rewards: { include: { resource: true } } } }; claims: true } }>, now: Date) {
+function serializePlayerCode(edition: Prisma.GiftCodeEditionGetPayload<{ include: { giftCode: { include: { rewards: { include: { resource: true } } } }; claims: { include: { operation: { select: { resultSummary: true } } } } } }>, now: Date) {
   const claim = edition.claims[0];
-  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt?.toISOString() ?? null, rewards: edition.giftCode.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })) };
+  const actual = readGrantedResult(claim?.operation?.resultSummary);
+  return { id: edition.giftCode.id, editionId: edition.id, token: edition.giftCode.token, title: edition.giftCode.title, description: edition.giftCode.description, type: edition.giftCode.type, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, available: isEditionAvailable(edition.giftCode.status, edition.startsAt, edition.endsAt, now), claimed: Boolean(claim), claimedAt: claim?.claimedAt?.toISOString() ?? null, rewards: actual.grantedRewards ?? configuredRewards(edition.giftCode), eventReward: actual.eventReward };
 }
 function serializeAdminCode(code: Prisma.GiftCodeGetPayload<{ include: { rewards: { include: { resource: true } }; editions: { include: { _count: { select: { claims: true } } } } } }>) {
   const claimCount = code.editions.reduce((total, edition) => total + edition._count.claims, 0);
-  return { id: code.id, token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, createdAt: code.createdAt.toISOString(), publishedAt: code.publishedAt?.toISOString() ?? null, claimCount, locked: claimCount > 0, rewards: code.rewards.map((reward) => ({ resourceKey: reward.resourceKey, displayName: reward.resource.displayName, amount: reward.amount.toString() })), editions: code.editions.map((edition) => ({ id: edition.id, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, claimCount: edition._count.claims })) };
+  return { id: code.id, token: code.token, title: code.title, description: code.description, type: code.type, status: code.status, recurringMonth: code.recurringMonth, startsAt: code.startsAt?.toISOString() ?? null, endsAt: code.endsAt?.toISOString() ?? null, createdAt: code.createdAt.toISOString(), publishedAt: code.publishedAt?.toISOString() ?? null, claimCount, locked: claimCount > 0, rewards: configuredRewards(code), editions: code.editions.map((edition) => ({ id: edition.id, editionKey: edition.editionKey, startsAt: edition.startsAt?.toISOString() ?? null, endsAt: edition.endsAt?.toISOString() ?? null, claimCount: edition._count.claims })) };
 }
 function validateDraft(input: GiftCodeDraftInput) {
   if (!input.title.trim() || !input.description.trim()) throw invalidConfiguration();
@@ -444,7 +470,28 @@ function validateDraft(input: GiftCodeDraftInput) {
   if (input.type === 'ONE_OFF' && input.startsAt && input.endsAt && input.endsAt <= input.startsAt) throw invalidConfiguration();
 }
 function validateRewards(rewards: readonly GiftCodeRewardInput[]) {
-  if (rewards.filter(({ amount }) => amount > 0n).length === 0 || rewards.some(({ amount, resourceKey }) => amount < 0n || !isResourceKey(resourceKey)) || new Set(rewards.map(({ resourceKey }) => resourceKey)).size !== rewards.length) throw invalidConfiguration();
+  if (rewards.filter(({ amount }) => amount > 0n).length === 0 || rewards.some(({ amount, resourceKey }) => amount < 0n || amount > 9_223_372_036_854_775_807n || (resourceKey === 'event_points' && amount > 2_147_483_647n) || !(giftCodeRewardKeys as readonly string[]).includes(resourceKey)) || new Set(rewards.map(({ resourceKey }) => resourceKey)).size !== rewards.length) throw invalidConfiguration();
+}
+function classicRewards(rewards: readonly GiftCodeRewardInput[]) { return rewards.filter(({ resourceKey, amount }) => isResourceKey(resourceKey) && amount > 0n).map(({ resourceKey, amount }) => ({ resourceKey, amount })); }
+function extendedRewardData(rewards: readonly GiftCodeRewardInput[]) {
+  const amounts = new Map(rewards.map(({ resourceKey, amount }) => [resourceKey, amount]));
+  return { stellaAmount: amounts.get('masterless-stella-fortuna') ?? 0n, eventPoints: Number(amounts.get('event_points') ?? 0n), eventCurrency: amounts.get('event_currency') ?? 0n };
+}
+function configuredRewards(code: { rewards: readonly { resourceKey: string; amount: bigint; resource?: { displayName: string } }[]; stellaAmount: bigint; eventPoints: number; eventCurrency: bigint }): GrantedCodeReward[] {
+  const rewards = code.rewards.filter(({ amount }) => amount > 0n).map(({ resourceKey, amount, resource }) => ({ resourceKey, displayName: resource?.displayName ?? resourceKey, amount: amount.toString() }));
+  for (const [resourceKey, amount] of [['masterless-stella-fortuna', code.stellaAmount], ['event_points', BigInt(code.eventPoints)], ['event_currency', code.eventCurrency]] as const) {
+    if (amount > 0n) rewards.push({ resourceKey, displayName: extraCodeRewardNames[resourceKey], amount: amount.toString() });
+  }
+  return rewards;
+}
+function aggregateRewards(rewards: readonly GrantedCodeReward[]): GrantedCodeReward[] {
+  const amounts = new Map<string, GrantedCodeReward>();
+  for (const reward of rewards) { const previous = amounts.get(reward.resourceKey); amounts.set(reward.resourceKey, { ...reward, amount: (BigInt(previous?.amount ?? '0') + BigInt(reward.amount)).toString() }); }
+  return [...amounts.values()];
+}
+function readGrantedResult(value: unknown) {
+  const summary = readJsonRecord(value);
+  return { grantedRewards: summary?.grantedRewards as GrantedCodeReward[] | undefined, eventReward: summary?.eventReward as { granted: boolean; reason: string | null; editionId: string | null; milestones: number[] } | undefined };
 }
 function normalizeToken(value: string) { const token = value.trim().toUpperCase().replace(/\s+/g, '-'); if (!/^[A-Z0-9_-]{4,64}$/.test(token)) throw invalidConfiguration(); return token; }
 function invalidConfiguration() { return new BusinessError('GIFT_CODE_INVALID_CONFIGURATION', 'La configuration du code cadeau est invalide.'); }

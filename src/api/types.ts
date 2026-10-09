@@ -617,10 +617,11 @@ export type NotificationDto = Readonly<{
 }>
 export type NotificationsDto = Readonly<{ unreadCount: number; notifications: readonly NotificationDto[]; expedition?: ExpeditionDto }>
 
-export type GiftCodeRewardDto = Readonly<{ resourceKey: 'primogems' | 'moras' | `particles_${ElementKey}`; displayName: string; amount: string }>
-export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string | null; endsAt: string | null; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[] }>
+export type GiftCodeRewardDto = Readonly<{ resourceKey: 'primogems' | 'moras' | `particles_${ElementKey}` | 'masterless-stella-fortuna' | 'event_points' | 'event_currency'; displayName: string; amount: string }>
+export type GiftCodeEventRewardDto = Readonly<{ granted: boolean; reason: string | null; editionId: string | null; milestones: readonly number[] }>
+export type GiftCodeDto = Readonly<{ id: string; editionId: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; editionKey: string; startsAt: string | null; endsAt: string | null; available: boolean; claimed: boolean; claimedAt: string | null; rewards: readonly GiftCodeRewardDto[]; eventReward?: GiftCodeEventRewardDto }>
 export type PlayerGiftCodesDto = Readonly<{ available: readonly GiftCodeDto[]; claimed: readonly GiftCodeDto[] }>
-export type GiftCodeClaimDto = PlayerGiftCodesDto & Readonly<{ resources: PlayerResourcesDto; operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+export type GiftCodeClaimDto = PlayerGiftCodesDto & Readonly<{ resources: PlayerResourcesDto; grantedRewards?: readonly GiftCodeRewardDto[]; eventReward?: GiftCodeEventRewardDto; operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type AdminGiftCodeDto = Readonly<{ id: string; token: string; title: string; description: string; type: 'ONE_OFF' | 'ANNUAL'; status: 'DRAFT' | 'PUBLISHED' | 'DISABLED'; recurringMonth: number | null; startsAt: string | null; endsAt: string | null; createdAt: string; publishedAt: string | null; claimCount: number; locked: boolean; rewards: readonly GiftCodeRewardDto[]; editions: readonly Readonly<{ id: string; editionKey: string; startsAt: string | null; endsAt: string | null; claimCount: number }>[] }>
 export type GiftCodeAdminQuery = Readonly<{ page: number; search?: string; status?: AdminGiftCodeDto['status']; type?: AdminGiftCodeDto['type']; availability?: 'CURRENT' | 'FUTURE' | 'OUTSIDE'; sort: 'createdAt' | 'publishedAt' | 'title' | 'claims'; direction: 'asc' | 'desc' }>
 export type AdminGiftCodesDto = Readonly<{ actorPlayerId: string; page: number; pageSize: 20; total: number; totalPages: number; codes: readonly AdminGiftCodeDto[] }>

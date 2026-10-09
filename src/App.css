@@ -7029,6 +7029,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .gift-code-card > button { min-width: 130px; min-height: 38px; cursor: pointer; color: #eff8ff; border: 1px solid rgba(83, 210, 255, .48); border-radius: 9px; background: linear-gradient(180deg, #2381d8, #1760ad); box-shadow: 0 8px 18px rgba(16, 92, 171, .2); }
 .gift-code-claimed { color: #8ce2b0; }
 .gift-code-card.claimed { opacity: .82; }
+.gift-code-condition { grid-column: 1 / -1; color: #a4b8d2; }
 .gift-codes-empty, .gift-codes-feedback { margin: 20px; text-align: center; color: #96abc5; }
 .gift-codes-feedback.error { color: #ff9ea8; }
 

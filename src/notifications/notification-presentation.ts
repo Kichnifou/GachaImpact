@@ -57,7 +57,12 @@ export function resolveNotificationPresentation(notification: NotificationDto): 
 function giftCodeMessage(notification: NotificationDto) {
   const title = text(notification.payload.title, '')
   const token = text(notification.payload.token, '')
-  if (title && token) return `${title} · ${token}`
+  if (title && token) {
+    const event = notification.payload.eventReward
+    if (event && typeof event === 'object' && 'granted' in event && event.granted === false) return `${title} · ${token} · Aucun gain Event accordé.`
+    const conditional = Array.isArray(notification.payload.rewards) && notification.payload.rewards.some(reward => reward && typeof reward === 'object' && 'resourceKey' in reward && ['event_points', 'event_currency'].includes(String(reward.resourceKey)))
+    return `${title} · ${token}${conditional ? ' · Gains Event : inscription au Festival actif requise.' : ''}`
+  }
   return title || token || 'Un nouveau code peut être récupéré.'
 }
 

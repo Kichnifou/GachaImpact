@@ -22,6 +22,6 @@ export function scopesForOperation(type: string): ChatRefreshScope[] {
   if (type === 'monthly-boss.attack') return ['monthlyBoss', 'resources', 'notifications', 'teams'];
   if (type.startsWith('expedition.')) return ['expedition', 'resources', 'notifications'];
   if (type.startsWith('event.')) return ['event', 'resources', 'inventory', 'notifications'];
-  if (type === 'gift-code.claim') return ['giftCodes', 'resources', 'event', 'notifications'];
+  if (type === 'gift-code.claim') return ['giftCodes', 'resources', 'box', 'inventory', 'event', 'notifications'];
   return [];
 }

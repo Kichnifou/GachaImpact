@@ -1678,6 +1678,8 @@ Le Classement actif ne matérialise aucun nouveau modèle : il projette au plus 
 
 ## 27.1 `GiftCode`
 
+R1057 ajoute des quantités configurables Stella, points Event et monnaie de l'édition courante à la définition. Le claim conserve les gains réellement accordés ; l'absence d'inscription/édition active ignore la part Event sans créer de droit différé. Les propriétaires Stella/Event restent autoritaires, avec paliers et claim atomiques. [Contrat physique](../architecture/gift-code-enriched-r1057.md), [décision](decisions-log.md#codes-enrichis-r1057).
+
 Définition durable du code :
 
 - ID

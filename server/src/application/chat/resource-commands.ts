@@ -79,7 +79,8 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
     const result = await services.giftCodeService.claim(identity, editionId, commandId, chat.sourceChannel ?? 'INTERNAL_CHAT');
     if (result.operation.alreadyProcessed && !confirmed) return already();
     const claimed = result.claimed.find(entry => entry.editionId === editionId) ?? code;
-    const rewards = new Map(claimed.rewards.filter(reward => BigInt(reward.amount) > 0n).map(reward => [reward.resourceKey, reward.amount]));
+    const actualRewards = result.grantedRewards ?? claimed.rewards;
+    const rewards = new Map(actualRewards.filter(reward => BigInt(reward.amount) > 0n).map(reward => [reward.resourceKey, reward.amount]));
     const texts: string[] = [];
     if (rewards.has('primogems')) texts.push(`+💠${numberText(rewards.get('primogems')!)} Primogemmes (${numberText(result.resources.primogems)})`);
     if (rewards.has('moras')) texts.push(`+🪙${numberText(rewards.get('moras')!)} Moras (${numberText(result.resources.moras)})`);
@@ -87,6 +88,10 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
       const amount = rewards.get(`particles_${element}`);
       if (amount) texts.push(`+${numberText(amount)} particules ${chatElementEmojis[element]} ${chatElementNames[element]} (${numberText(result.resources.particles[element] ?? '0')})`);
     }
+    for (const reward of actualRewards) {
+      if (['masterless-stella-fortuna', 'event_points', 'event_currency'].includes(reward.resourceKey) && BigInt(reward.amount) > 0n) texts.push(`+${numberText(reward.amount)} ${reward.displayName}`);
+    }
+    if (result.eventReward?.granted === false) texts.push('Gains Event non accordés : inscription au Festival actif requise.');
     const description = claimed.description?.trim();
     if (commandSource('INTERNAL_CHAT') === 'TWITCH') return logicalChatParts(`✅ ${actor.displayName} a utilisé ${claimed.token} !`,
       [...texts, ...(description ? [description] : [])].map(text => ({ text, separator: ' | ' })), '🎁 Code cadeau (suite) :');

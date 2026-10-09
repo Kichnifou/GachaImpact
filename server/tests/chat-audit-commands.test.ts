@@ -166,6 +166,19 @@ describe('Codes and Coffre Chat contract', () => {
     const h = harness(); expect(await h.codeRun('cadeau')).toBe('✅ Axel a utilisé CADEAU ! +💠1 600 Primogemmes (12 500) | +🪙200 000 Moras (850 000) | +200 particules 🔥 Pyro (1 250) | +20 particules ☄️ Geo (50) | Bonne fête !');
     expect(h.services.giftCodeService.claim).toHaveBeenCalledWith(actor, 'edition', 'code', 'INTERNAL_CHAT');
   });
+  it('reports actual enriched gains and never announces a skipped configured Event reward', async () => {
+    const h = harness();
+    const original = await h.services.giftCodeService.claim();
+    h.services.giftCodeService.claim.mockImplementation(async () => ({ ...original,
+      grantedRewards: [{ resourceKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: '2' }],
+      eventReward: { granted: false, reason: 'NOT_JOINED', editionId: null, milestones: [] },
+    }));
+    const text = await h.codeRun('CADEAU');
+    expect(text).toContain('+2 Masterless Stella Fortuna');
+    expect(text).toContain('Gains Event non accordés');
+    expect(text).not.toContain('Primogemmes');
+    expect(text).not.toContain('+80');
+  });
   it('omits empty description, refuses unavailable codes and already claimed', async () => {
     const h = harness(); h.code.description = ''; expect(await h.codeRun('cadeau')).not.toMatch(/\| $/);
     const unknown = harness(); unknown.codes.available = []; expect(await unknown.codeRun('inconnu')).toBe('⚠️ Ce code cadeau n’est pas disponible.');

@@ -618,6 +618,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!code`
 
+Extension candidate R1057 : le claim commun peut créditer Stella, points Event et monnaie du Festival actif, en plus des gains classiques. Édition active et inscription existante requises pour la part Event ; aucun auto-enrollment ou rattrapage ultérieur. La réponse annonce seulement les gains réellement accordés, y compris tous les nouveaux paliers payés atomiquement, et signale une part Event ignorée. Découpage Twitch logique acquis à 450 caractères, receipts/replays conservés. [Contrat et état R1057](../architecture/gift-code-enriched-r1057.md).
+
 - **Statut audit :** CLÔTURÉ — Domaine Codes cadeaux après R691
 - **But :** consulter et réclamer les Codes cadeaux actuellement disponibles
 - **Disponible chat GachaImpact :** oui

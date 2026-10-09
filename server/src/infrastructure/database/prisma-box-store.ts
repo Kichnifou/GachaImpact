@@ -16,6 +16,22 @@ import { PermanentMissionService } from '../../application/missions/permanent-mi
 
 const BOX_SORT_PREFERENCE_KEY = 'box.sort';
 const MAX_ATTEMPTS = 5;
+
+/** Called inside the owning business transaction, with the Player mutation lock held. */
+export async function creditMasterlessStellaFortuna(tx: Prisma.TransactionClient, input: Readonly<{
+  playerId: string; amount: bigint; operationId: string; sourceKey: string; provenance: Prisma.InputJsonValue; now: Date;
+}>) {
+  if (input.amount <= 0n) throw new BusinessError('STELLA_INVALID_AMOUNT', 'La quantité de Stella est invalide.');
+  const item = await tx.itemDefinition.findUnique({ where: { externalKey: MASTERLESS_STELLA_FORTUNA_KEY }, select: { id: true, isActive: true } });
+  if (!item?.isActive) throw new BusinessError('STELLA_UNAVAILABLE', 'La Stella est indisponible.');
+  const previous = await tx.playerItem.findUnique({ where: { playerId_itemId: { playerId: input.playerId, itemId: item.id } }, select: { firstObtainedAt: true } });
+  await tx.playerItem.upsert({
+    where: { playerId_itemId: { playerId: input.playerId, itemId: item.id } },
+    create: { playerId: input.playerId, itemId: item.id, quantity: input.amount, firstObtainedAt: input.now },
+    update: { quantity: { increment: input.amount }, firstObtainedAt: previous ? previous.firstObtainedAt : input.now, updatedAt: input.now },
+  });
+  await tx.itemAcquisition.create({ data: { playerId: input.playerId, itemId: item.id, quantity: input.amount, operationId: input.operationId, sourceKey: input.sourceKey, provenance: input.provenance, acquiredAt: input.now } });
+}
 const boxSelection = {
   characterId: true, constellation: true, copies: true, firstObtainedAt: true, favorite: true,
   character: { select: {

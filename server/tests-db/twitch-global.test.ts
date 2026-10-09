@@ -26,6 +26,7 @@ import { PrismaPlayerElementStore } from '../src/infrastructure/database/prisma-
 import { ClaimDailyReward } from '../src/application/daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-daily-reward-store.js';
 import { EventService } from '../src/application/event/event-service.js';
+import { GiftCodeService } from '../src/application/gift-code/gift-code-service.js';
 import { MonthlyBossService } from '../src/application/combat/monthly-boss-service.js';
 import { SocialService } from '../src/application/social/social-service.js';
 import { verifiedPlayerActor } from '../src/application/player/player-execution-actor.js';
@@ -47,6 +48,7 @@ let at = new Date('2026-10-05T12:00:00Z');
 const clock = { now: () => new Date(at) }, random = { nextInt: (upper: number) => upper - 1 };
 const current = new GetCurrentPlayer({ findByIdentity: async () => { throw Error('No unverified web identity'); }, provision: async () => { throw Error('No web bootstrap from chat'); } });
 const daily = new ClaimDailyReward(current, new PrismaDailyRewardStore(db), clock), events = new EventService(current, db, clock, random);
+const giftCodes = new GiftCodeService(current, db, clock, {}, events);
 const activity = new TwitchMessageActivity(db, clock, random, daily, events);
 const specialized = { consume: vi.fn(async () => undefined) }, presence = { consume: vi.fn(async () => undefined) }, giveaway = { consume: vi.fn(async () => false) };
 const provision = (id: string, login = 'excluded_old_name') => players.resolve({ twitchUserId: id, login, displayName: login, observedAt: at });
@@ -66,9 +68,9 @@ const immutable44 = async () => ({
 });
 function message(id: string, text: string) { return { subscription: { id: 'global-private', type: 'channel.chat.message', version: '1', status: 'enabled', condition: { broadcaster_user_id: '810000', user_id: '810001' }, transport: { method: 'webhook', callback: config.twitchEventSub.callbackUrl } },
   event: { broadcaster_user_id: '810000', chatter_user_id: id, chatter_user_login: 'fresh_viewer', chatter_user_name: 'FreshViewer', message_id: randomUUID(), message_type: 'text', message: { text } } }; }
-async function post(body: ReturnType<typeof message>, externalId = randomUUID()) {
+async function post(body: ReturnType<typeof message>, externalId = randomUUID(), timestamp = new Date().toISOString()) {
   const start = performance.now();
-  const payload = JSON.stringify(body), timestamp = new Date().toISOString();
+  const payload = JSON.stringify(body);
   const response = await app.inject({ method: 'POST', url: '/api/v1/twitch/eventsub', payload, headers: { 'content-type': 'application/json', 'twitch-eventsub-message-id': externalId, 'twitch-eventsub-message-timestamp': timestamp, 'twitch-eventsub-message-type': 'notification',
     'twitch-eventsub-message-signature': 'sha256=' + createHmac('sha256', secret).update(externalId).update(timestamp).update(payload).digest('hex') } });
   httpMetrics.push({ ms: performance.now() - start, status: response.statusCode }); return response;
@@ -96,7 +98,7 @@ beforeAll(async () => {
     setGachaTarget: new SetGachaTarget(current, gacha), performGachaPullChat: new PerformGachaPull(current, gacha, clock, random, SourceChannel.TWITCH),
     getCurrentPlayerBox: new GetCurrentPlayerBox(current, new PrismaBoxStore(db)), getCurrentPlayerInventory: new GetCurrentPlayerInventory(current, new PrismaInventoryStore(db)),
     choosePlayerElement: new ChoosePlayerElement(current, new PrismaPlayerElementStore(db)), socialService: new SocialService(current, db, clock), eventService: events,
-    monthlyBossService: new MonthlyBossService(current, db, clock, random),
+    monthlyBossService: new MonthlyBossService(current, db, clock, random), giftCodeService: giftCodes,
   } as unknown as ChatCommandServices, clock);
   const resolve = players.resolve.bind(players);
   vi.spyOn(players, 'resolve').mockImplementation(async input => { const start = performance.now(); const result = await resolve(input); provisionMetrics.push({ id: input.twitchUserId, ms: performance.now() - start }); return result; });
@@ -108,7 +110,7 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await fixture.cleanup(); expect(fixture.poolSnapshot()).toMatchObject({ total: 0, idle: 0, waiting: 0 }); }, 60_000);
 
 it('opens GLOBAL at an explicit revision, preserves 44 acquired Players, and admits a zero normal null-element profile', async () => {
-  expect(fixture.migrationStatus).toContain('67 migrations');
+  expect(fixture.migrationStatus).toContain('68 migrations');
   const before = await immutable44();
   expect(await provision('920001')).toBeNull();
   await expect(authority.configure(operatorId, 'GLOBAL', [], ACK)).rejects.toMatchObject({ code: 'TWITCH_NATIVE_REVISION_REQUIRED' });
@@ -336,7 +338,7 @@ it('measures signed HTTP load with 44 preserved canaries, 48 fresh chatters, red
   expect(requests.every(row => row.status === 204)).toBe(true);
   const locks = await db.$queryRaw<{ waiting: bigint }[]>`SELECT count(*)::bigint AS waiting FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()`;
   expect(locks[0]!.waiting).toBe(0n);
-  process.stdout.write('R1064_PRIVATE_LOAD ' + JSON.stringify({ migrations: 67, canaries: 44, fresh: 48, concurrentClients: 8, pool: fixture.poolSnapshot(), errors: 0,
+  process.stdout.write('R1064_PRIVATE_LOAD ' + JSON.stringify({ migrations: 68, canaries: 44, fresh: 48, concurrentClients: 8, pool: fixture.poolSnapshot(), errors: 0,
     requests: requests.length, responseAvgMs: times.reduce((a, b) => a + b, 0) / times.length, responseP95Ms: percentile(times, .95), firstProvisionP95Ms: percentile(provisions, .95), rateLimitedDeliveriesRecovered: limited.length,
     responses: responses.length, duplicates: 0, lost: 0, waitingLocks: Number(locks[0]!.waiting), preserved44Hash: createHash('sha256').update(JSON.stringify(before, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)).digest('hex') }) + '\n');
 }, 180_000);
@@ -379,4 +381,50 @@ it('freezes four real Twitch Boss members and victory gains through redelivery, 
   expect(await db.resourceMovement.findMany({ where: { playerId: fresh.playerId }, orderBy: { id: 'asc' } })).toEqual(movements);
   expect((await db.twitchEventReceipt.findUniqueOrThrow({ where: { id: receipt.id } })).payloadMinimal).toEqual(receipt.payloadMinimal);
   expect(outbound.send).toHaveBeenCalledTimes(sends + parts.length);
+});
+
+it('claims an enriched code through signed EventSub once, preserves 44 NATIVE, and replays frozen sends after month change', async () => {
+  if ((await authority.read()).desiredMode !== 'GLOBAL') await global();
+  const native = await provision(canaries[0]!), before = await immutable44();
+  if (!native) throw Error('Private canary operator required');
+  const actor = verifiedPlayerActor(native.player);
+  const draft = await giftCodes.createDraft(actor, { token: 'R1057-PRIVATE-TWITCH', title: 'Private only', description: 'Private reward', type: 'ONE_OFF', startsAt: new Date('2020-01-01T00:00:00Z'), endsAt: new Date('2999-01-01T00:00:00Z'), rewards: [{ resourceKey: 'masterless-stella-fortuna', amount: 2n }, { resourceKey: 'event_points', amount: 80n }, { resourceKey: 'event_currency', amount: 3n }, { resourceKey: 'primogems', amount: 5n }], idempotencyKey: randomUUID() });
+  const published = await giftCodes.publish(actor, draft.code.id, randomUUID());
+  // A fresh Twitch-first private profile admitted by the canonical GLOBAL owner.
+  const fresh = (await provision('980001'))!;
+  const context = await events.resolveCurrentEdition(db, at);
+  await db.eventParticipant.create({ data: { eventEditionId: context.edition.id, playerId: fresh.player.id, points: 0, joinedAt: at } });
+  const body = message('980001', '!code R1057-PRIVATE-TWITCH'), externalId = randomUUID(), deliveryTimestamp = new Date().toISOString();
+  outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+  expect((await post(body, externalId, deliveryTimestamp)).statusCode).toBe(204);
+  const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: externalId } });
+  const operation = await db.businessOperation.findFirstOrThrow({ where: { playerId: fresh.player.id, operationType: 'gift-code.claim' } });
+  expect(await db.giftCodeClaim.count({ where: { playerId: fresh.player.id, giftCodeEditionId: published.code.editions[0]!.id } })).toBe(1);
+  expect(await db.itemAcquisition.count({ where: { playerId: fresh.player.id } })).toBe(1);
+  expect(await db.eventMilestoneClaim.count({ where: { playerId: fresh.player.id } })).toBe(8);
+  const saved = receipt.payloadMinimal as unknown as { commandPilot: { responses: { text: string; status: string }[] } };
+  expect(saved.commandPilot.responses.some(response => response.status === 'FAILED')).toBe(true);
+  const text = saved.commandPilot.responses.map(response => response.text).join(' ');
+  expect(text).toContain('Masterless Stella Fortuna'); expect(text).toContain('80 Points Event');
+  expect(text).toContain('21 ' + context.editionSnapshot.config.currency.label);
+  for (const response of saved.commandPilot.responses) expect(Array.from(response.text).length).toBeLessThanOrEqual(450);
+  const frozenAt = at;
+  try {
+    at = new Date('2027-01-15T12:00:00Z');
+    const restarted = new TwitchCommandPilot(db, config, core, outbound, undefined, subscriptions, activity);
+    expect(await restarted.retryResponses(operatorId, receipt.id)).toMatchObject({ state: 'PROCESSED' });
+    // A faithful EventSub redelivery retains its signed source timestamp too.
+    const redelivery = await post(body, externalId, deliveryTimestamp); expect(redelivery.statusCode, redelivery.body).toBe(204);
+    const repeated = message('980001', '!code R1057-PRIVATE-TWITCH');
+    expect((await post(repeated)).statusCode).toBe(204);
+    expect(await db.businessOperation.count({ where: { playerId: fresh.player.id, operationType: 'gift-code.claim' } })).toBe(1);
+    expect(await db.businessOperation.findUnique({ where: { id: operation.id } })).toEqual(operation);
+    const replayed = await db.twitchEventReceipt.findUniqueOrThrow({ where: { id: receipt.id } });
+    const responses = replayed.payloadMinimal as unknown as typeof saved;
+    expect(responses.commandPilot.responses.map(response => response.text)).toEqual(saved.commandPilot.responses.map(response => response.text));
+    expect(responses.commandPilot.responses.every(response => response.status === 'SENT')).toBe(true);
+    expect(await db.itemAcquisition.count({ where: { playerId: fresh.player.id } })).toBe(1);
+    expect(await db.eventMilestoneClaim.count({ where: { playerId: fresh.player.id } })).toBe(8);
+    expect(await immutable44()).toEqual(before);
+  } finally { at = frozenAt; }
 });

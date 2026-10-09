@@ -365,6 +365,12 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
     inventoryCache.clear()
     return result
   }, [inventoryCache, onPurchaseEventCollection])
+  const claimGiftCode = useCallback(async (editionId: string, key: string) => {
+    const result = await onClaimGiftCode(editionId, key)
+    boxCache.clear()
+    inventoryCache.clear()
+    return result
+  }, [boxCache, inventoryCache, onClaimGiftCode])
   const convertParticles = useCallback(async (amount: string, idempotencyKey: string) => {
     const result = await onConvertParticles(amount, idempotencyKey)
     inventoryCache.applyParticleConversion(player.id, player.elementKey!, result.resources.particles[player.elementKey!], result.resources.primogems)
@@ -551,7 +557,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
       case 'moderation':
         return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
       case 'codes':
-        return <GiftCodesScreen refreshToken={chatOwnerRevision} onLoad={onLoadGiftCodes} onClaim={onClaimGiftCode} />
+        return <GiftCodesScreen refreshToken={chatOwnerRevision} onLoad={onLoadGiftCodes} onClaim={claimGiftCode} />
       case 'shop':
         return <ShopScreen initialShop={shopCache.read(player.id)} refreshToken={chatOwnerRevision} onLoad={loadShop} onLoadHistory={onLoadShopHistory} onOpenGlobalHistory={() => openHistory('shop')} onPurchase={purchaseShop} onNavigateBank={() => navigate('bank')} />
       case 'activities-dailies':

@@ -24,6 +24,18 @@ async function waitFor(predicate: () => boolean, message: string) {
 }
 
 describe('GiftCodesScreen', () => {
+  it('explains conditional Event gains and displays only the actual claimed rewards', async () => {
+    const container = document.createElement('div'), root = createRoot(container); roots.push(root)
+    const enriched: GiftCodeDto = { ...code, rewards: [...code.rewards, { resourceKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: '2' }, { resourceKey: 'event_points', displayName: 'Points Event', amount: '80' }] }
+    const actual: GiftCodeDto = { ...enriched, claimed: true, rewards: enriched.rewards.filter(reward => reward.resourceKey !== 'event_points'), eventReward: { granted: false, reason: 'NOT_JOINED', editionId: null, milestones: [] } }
+    await act(async () => { root.render(<GiftCodesScreen onLoad={async () => ({ available: [enriched], claimed: [] })} onClaim={async () => ({ available: [], claimed: [actual], resources: { primogems: '1600', moras: '200000', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } }, operation: { id: 'claim', alreadyProcessed: false } })} />) })
+    expect(container.textContent).toContain('Gains Event réservés aux joueurs déjà inscrits')
+    expect(container.textContent).toContain('Points Event')
+    await act(async () => { container.querySelector<HTMLButtonElement>('.gift-code-card > button')!.click() })
+    expect(container.textContent).toContain('Aucun gain Event accordé')
+    expect(container.querySelector('.gift-code-rewards')?.textContent).not.toContain('Points Event')
+    expect(container.querySelector('.gift-code-rewards')?.textContent).toContain('Masterless Stella Fortuna')
+  })
   it('shows exact rewards and moves a claimed edition to Récupérés', async () => {
     const container = document.createElement('div'); const root = createRoot(container); roots.push(root)
     const onClaim = vi.fn(async () => ({ available: [], claimed: [{ ...code, claimed: true, claimedAt: '2026-09-14T12:00:00.000Z' }], resources: { primogems: '1600', moras: '200000', particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' } }, operation: { id: 'operation-1', alreadyProcessed: false } }))
@@ -69,6 +81,9 @@ describe('GiftCodesScreen', () => {
 
     const locked = await renderAdmin({ ...adminCode, claimCount: 1, locked: true })
     expect(document.querySelector<HTMLInputElement>('.gift-code-edit-modal input[value="CADEAU-TEST"]')?.disabled).toBe(true)
+    const rewardInputs = [...document.querySelectorAll<HTMLInputElement>('.gift-code-edit-modal .gift-code-admin-rewards input')]
+    expect(rewardInputs).toHaveLength(12)
+    expect(rewardInputs.every(input => input.disabled)).toBe(true)
     await act(async () => { document.querySelector<HTMLFormElement>('.gift-code-edit-modal')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await Promise.resolve(); await Promise.resolve() })
     const lockedInput = locked.onUpdate.mock.calls[0]![1]
     expect(lockedInput).not.toHaveProperty('token')

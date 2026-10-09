@@ -306,7 +306,7 @@ function resourceDetail(resource: InventoryResourceDto, amount: string) {
 }
 
 function formatInventoryDate(value: string) { return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(value)) }
-function acquisitionSourceLabel(value: string) { return value === 'EVENT' ? 'Événement' : value === 'LEGACY_MIGRATION' ? 'Migration historique' : value }
+function acquisitionSourceLabel(value: string) { return value === 'EVENT' ? 'Événement' : value === 'GIFT_CODE' ? 'Code cadeau' : value === 'LEGACY_MIGRATION' ? 'Migration historique' : value }
 
 function combatStateFor(combat: DailyCombatDto | undefined, characterId: string) {
   const character = combat?.availableCharacters.find(({ id }) => id === characterId)

@@ -2646,6 +2646,9 @@ model GiftCode {
   publishedAt    DateTime?         @map("published_at") @db.Timestamptz(6)
   disabledAt     DateTime?         @map("disabled_at") @db.Timestamptz(6)
   legacyProvenance Json?           @map("legacy_provenance") @db.JsonB
+  stellaAmount    BigInt            @default(0) @map("stella_amount")
+  eventPoints     Int               @default(0) @map("event_points")
+  eventCurrency   BigInt            @default(0) @map("event_currency")
   createdById    String?           @map("created_by_id") @db.Uuid
   updatedById    String?           @map("updated_by_id") @db.Uuid
   createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)

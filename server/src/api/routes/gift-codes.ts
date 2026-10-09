@@ -2,7 +2,7 @@ import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
 
 import type { GiftCodeService } from '../../application/gift-code/gift-code-service.js';
-import { resourceKeys } from '../../domain/economy/resources.js';
+import { giftCodeRewardKeys } from '../../application/gift-code/gift-code-rewards.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 
@@ -11,7 +11,7 @@ const uuid = z.uuid();
 const idempotencyKey = z.uuid();
 const codeParams = z.object({ codeId: uuid }).strict();
 const editionParams = z.object({ editionId: uuid }).strict();
-const rewardsSchema = z.array(z.object({ resourceKey: z.enum(resourceKeys), amount: z.string().regex(/^\d+$/) }).strict()).min(1).max(9);
+const rewardsSchema = z.array(z.object({ resourceKey: z.enum(giftCodeRewardKeys), amount: z.string().max(19).regex(/^\d+$/) }).strict()).min(1).max(12);
 const draftSchema = z.object({
   token: z.string().max(64).optional(), title: z.string().trim().min(1).max(120), description: z.string().trim().min(1).max(500),
   type: z.enum(['ONE_OFF', 'ANNUAL']), recurringMonth: z.number().int().min(1).max(12).optional(),

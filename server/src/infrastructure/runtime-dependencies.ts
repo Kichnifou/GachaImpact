@@ -146,9 +146,11 @@ export function createRuntimeDependencies(config: AppConfig) {
   const monthlyBossScheduler = new MonthlyBossScheduler(monthlyBossService, clock);
   const contestService = new ContestService(getCurrentPlayer, database, clock, random);
   const contestScheduler = new ContestScheduler(contestService);
-  const giftCodeService = new GiftCodeService(getCurrentPlayer, database, clock);
+  const eventService: EventService = new EventService(getCurrentPlayer, database, clock, random, {
+    festivalAvailability: (...args: Parameters<GiftCodeService['festivalAvailability']>) => giftCodeService.festivalAvailability(...args),
+  });
+  const giftCodeService: GiftCodeService = new GiftCodeService(getCurrentPlayer, database, clock, {}, eventService);
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
-  const eventService = new EventService(getCurrentPlayer, database, clock, random, giftCodeService);
   const missionEconomy = new PrismaEconomyService();
   const permanentMissionService = new PermanentMissionService(missionEconomy);
   const getCurrentPlayerMissions = new GetCurrentPlayerMissions(getCurrentPlayer, database, clock, permanentMissionService);

@@ -9,6 +9,11 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('distinguishes configured conditional code gains from a resolved claim without Event credit', () => {
+    const code: NotificationDto = { ...pending, domainKey: 'gift-codes', typeKey: 'GIFT_CODE_AVAILABLE', actionKey: 'OPEN_GIFT_CODE', payload: { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'event_points', amount: '80' }] } }
+    expect(resolveNotificationPresentation(code).message).toContain('inscription au Festival actif requise')
+    expect(resolveNotificationPresentation({ ...code, payload: { ...code.payload, rewards: [], eventReward: { granted: false } } }).message).toContain('Aucun gain Event accordé')
+  })
   it('presents a permanent Mission with its structured reward and Missions destination', () => {
     expect(resolveNotificationPresentation({ ...pending, domainKey: 'missions', typeKey: 'PERMANENT_MISSION_COMPLETED', actionKey: 'OPEN_MISSIONS', payload: { missionExternalKey: 'messages_b', rank: 'B', displayName: 'Bavard du jour', rewardPrimogems: '160' } })).toEqual({ title: 'Mission terminée', message: 'Bavard du jour', rewards: [{ resourceKey: 'primogems', label: 'Primogemmes', amount: '160' }], destination: 'missions' })
   })

@@ -2405,6 +2405,8 @@ Index unique `operation_id`, index `player_id` ; le préfixe de la PK couvre `ev
 
 ## 29.1 `gift_codes`
 
+Extension R1057 : `stella_amount bigint NOT NULL DEFAULT 0`, `event_points integer NOT NULL DEFAULT 0`, `event_currency bigint NOT NULL DEFAULT 0`, CHECK commun non négatif. Les récompenses classiques conservent leurs FK ; aucune nouvelle ResourceDefinition. Les gains effectivement accordés restent dans le résultat de BusinessOperation du claim, sans réécriture des claims historiques. [Contrat et état physique R1057](gift-code-enriched-r1057.md).
+
 Colonnes :
 
 - `id uuid PRIMARY KEY DEFAULT gen_random_uuid()`

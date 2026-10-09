@@ -644,15 +644,48 @@ export class EventService {
     await tx.playerEventCurrencyBalance.update({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: definitionId } }, data: { amount: { decrement: amount }, updatedAt: now } });
   }
 
-  private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date) {
-    await assertPlayerDomainReady(tx, playerId, 'EVENT');
-    const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
-    await this.grantReachedEventMilestones(tx, context, playerId, participant.points, now);
+  /** Code claims never materialize an edition, enroll a participant or resolve a frozen past month. */
+  public async creditGiftCodeRewards(tx: Prisma.TransactionClient, playerId: string, points: number, currency: bigint) {
+    const period = resolveCurrentEventPeriod(this.clock.now());
+    const definition = await tx.eventDefinition.findFirst({ where: { calendarMonth: period.month, isActive: true } });
+    const edition = definition ? await tx.eventEdition.findUnique({ where: { eventDefinitionId_year: { eventDefinitionId: definition.id, year: period.year } } }) : null;
+    const rewards: Array<{ resourceKey: string; amount: string; displayName?: string }> = [];
+    const skipped = (reason: string) => ({ granted: false, reason, editionId: null, rewards, milestones: [] as number[] });
+    if (!definition || !edition) return skipped('NO_ACTIVE_EDITION');
+    await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${edition.id}::uuid FOR SHARE`;
+    const current = await tx.eventEdition.findUniqueOrThrow({ where: { id: edition.id } });
+    const now = this.clock.now();
+    const actualPeriod = resolveCurrentEventPeriod(now);
+    if (current.status !== EventEditionStatus.ACTIVE || current.startsAt > now || current.endsAt <= now || actualPeriod.year !== period.year || actualPeriod.month !== period.month) return skipped('NO_ACTIVE_EDITION');
+    const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: current.id, playerId } }, select: { points: true } });
+    if (!participant) return skipped('NOT_JOINED');
+    if (!await isPlayerDomainReady(tx, playerId, 'EVENT')) return skipped('DOMAIN_UNAVAILABLE');
+    if (participant.points + points > 2_147_483_647) throw new BusinessError('EVENT_POINTS_OVERFLOW', 'Le total de points dépasse la capacité du Festival.');
+    const context = { period, definition, edition: current, editionSnapshot: parseEditionSnapshot(current.snapshot) };
+    const currencyName = context.editionSnapshot.config.currency.label;
+    const milestones = points > 0 ? await this.awardEventPoints(tx, context, playerId, points, now, participant.points) : [];
+    if (points > 0) rewards.push({ resourceKey: 'event_points', amount: points.toString(), displayName: 'Points Event' });
+    if (currency > 0n) {
+      await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: definition.id } }, create: { playerId, eventDefinitionId: definition.id, amount: currency, updatedAt: now }, update: { amount: { increment: currency }, updatedAt: now } });
+      rewards.push({ resourceKey: 'event_currency', amount: currency.toString(), displayName: currencyName });
+    }
+    for (const milestone of milestones) {
+      if (milestone.resourceKey) rewards.push({ resourceKey: milestone.resourceKey, amount: milestone.resourceAmount.toString() });
+      if (milestone.currencyAmount > 0n) rewards.push({ resourceKey: 'event_currency', amount: milestone.currencyAmount.toString(), displayName: currencyName });
+    }
+    return { granted: true, reason: null, editionId: current.id, rewards, milestones: milestones.map(({ milestone }) => milestone) };
   }
 
-  private async grantReachedEventMilestones(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, points: number, now: Date) {
-    const reached = EVENT_MILESTONES.filter((milestone) => milestone <= points);
-    if (reached.length === 0) return;
+  private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date, previousPoints = 0) {
+    await assertPlayerDomainReady(tx, playerId, 'EVENT');
+    const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
+    return this.grantReachedEventMilestones(tx, context, playerId, participant.points, now, previousPoints);
+  }
+
+  private async grantReachedEventMilestones(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, points: number, now: Date, previousPoints = 0) {
+    const reached = EVENT_MILESTONES.filter((milestone) => milestone > previousPoints && milestone <= points);
+    const granted: Array<{ milestone: number; resourceKey: ResourceKey | null; resourceAmount: bigint; currencyAmount: bigint }> = [];
+    if (reached.length === 0) return granted;
     const claims = await tx.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } });
     const claimed = new Set(claims.map(({ milestone }) => milestone));
     const player = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { elementKey: true } });
@@ -678,7 +711,9 @@ export class EventService {
       if (resourceKey) await economy.credit(tx, { playerId, playerElementKey: personalElement, resourceKey, amount: resourceAmount, causeKey: `event.milestone.${milestone}`, domainKey: 'event', operationId: operation.id, sourceChannel: SourceChannel.SYSTEM });
       if (currencyAmount > 0n) await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } }, create: { playerId, eventDefinitionId: context.definition.id, amount: currencyAmount, updatedAt: now }, update: { amount: { increment: currencyAmount }, updatedAt: now } });
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now } });
+      granted.push({ milestone, resourceKey, resourceAmount, currencyAmount });
     }
+    return granted;
   }
 
   public async resolveCurrentEdition(database: Database, now: Date) {

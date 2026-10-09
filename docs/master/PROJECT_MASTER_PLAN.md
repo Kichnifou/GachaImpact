@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1064 — GLOBAL actif ; R1057 en préparation.
+Version : R1064 — GLOBAL actif ; candidat R1057 validé localement.
 Date : 2026-10-09
 Statut : **GLOBAL 19 réellement activé le 09/10/2026.** Code `797a2ebc22d3ab01b3f0ed27d1806bc744a1d70f` approuvé indépendamment, promu par fast-forward strict et déployé Railway/Cloudflare SUCCESS au SHA exact ; Prisma 67 à jour et contrôles physiques conformes. Capacité GLOBAL true déployée d'abord en CANARY 18, confirmation runtime propriétaire acquise après F5, puis transition canonique/auditée GLOBAL 19. Les 44 NATIVE, R1062/R1063, la sélection bidirectionnelle, Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
@@ -15,7 +15,11 @@ R1064 corrige l'admission atomique après OAuth vérifié, les échos, le draina
 
 **Contrôles R1064 acquis :** 48 contenus/blobs GitHub vérifiés par auteur et reviewer distinct ; APPROVED final. Prisma validate, verify:full 8/8, 1 381 tests frontend et 2 115 serveur ; campagne PostgreSQL réelle 67 migrations 47/47, charge 289 requêtes/245 réponses/pool3 sans erreur finale/perte/doublon, P95 1 010 ms local. Douze cas visuels synthétiques du vrai GameShell/CSS PASS. Les journaux d'échecs antérieurs et corrections restent conservés ; aucune fixture ne vaut recette humaine.
 
-Prochaine fabrication autorisée : Codes enrichis R1057, moteur GiftCodeService et owners Stella/Event existants, quantités configurables, inscription/édition active requises, paliers atomiques et anciens claims préservés. Analyse en cours ; aucun code cadeau réel créé/publié, aucune modification économique publique R1057. Ses tests PostgreSQL privés, review indépendante, déploiement et postflight restent à faire. Preuves R1064 privées sous `local-data/identity-resolutions/r1064-20261009/` et `local-data/r1064-account-visual/`.
+**Candidat R1057 fabriqué, non déployé :** GiftCodeService/Admin/claim/Chat/historique étendus avec Stella, points et monnaie Event configurables. Même inventaire Stella et propriétaires Event ; édition existante ACTIVE/inscription requises, aucun auto-enrollment, tous les nouveaux paliers atomiques/uniques, gains réels persistés. Migration additive 068 avec défauts zéro ; aucun code cadeau réel créé/publié ni crédit public. Les claims et dates inconnues historiques restent conservés. Une course annuelle P2002 reproduite avant claim est corrigée par INSERT ON CONFLICT, sans réécriture des éditions existantes. [Contrat et preuves R1057](../architecture/gift-code-enriched-r1057.md).
+
+**Contrôles R1057 acquis :** PostgreSQL privé 68 migrations réellement appliquées/enregistrées et status à jour ; campagne 69/69, puis suite enrichie finale 22/22 avec conservation d'une date Stella inconnue (70 cas distincts au total). EventSub signé/claim réel/retry des réponses gelées après changement de mois, conservation des 44 privés, concurrence, rollback et anciens claims couverts. verify:full 8/8, 1 383 tests frontend / 2 117 serveur ; dernier delta borné Stella/libellé Sac vérifié par PostgreSQL et 11 tests Sac, contrôle statique final verify:quick 5/5 acquis avant commit. Seize états visuels GameShell/CSS réels sur quatre viewports PASS, aucun appel externe ; trois captures inspectées puis restitution joueur relue après ajustement de largeur du texte conditionnel. Aucun test synthétique ne vaut recette publique.
+
+Prochaine gate autorisée : publier le candidat R1057 sur review, vérifier les vrais contenus GitHub et obtenir la review indépendante du SHA ; corriger/reviewer si nécessaire puis promotion fast-forward, migration Prisma normale, déploiements exacts et postflight public avec les 44 NATIVE. GLOBAL 19 reste actif pendant la fabrication. Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire ; ne pas les redemander ni les annoncer réussies. Preuves R1057 privées sous `local-data/identity-resolutions/r1057-20261009/` et `local-data/r1057-code-visual/` ; preuves R1064 conservées.
 
 
 <a id="community-complements-20261008"></a>

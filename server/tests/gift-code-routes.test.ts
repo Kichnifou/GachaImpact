@@ -36,4 +36,15 @@ describe('Gift code HTTP contracts', () => {
     await app.inject({ url: `/api/v1/moderation/gift-codes/${codeId}/claimants?page=3&search=myno&editionKey=2026`, headers });
     expect(service.claimants).toHaveBeenCalledWith(expect.objectContaining({ subject: 'subject' }), codeId, { page: 3, search: 'myno', editionKey: '2026' });
   });
+  it('accepts all twelve configured reward keys with lossless quantities and rejects unrelated keys', async () => {
+    const { app, service } = await setup(), headers = { authorization: 'Bearer token' };
+    const rewards = [{ resourceKey: 'masterless-stella-fortuna', amount: '3' }, { resourceKey: 'event_points', amount: '80' }, { resourceKey: 'event_currency', amount: '9223372036854775807' }];
+    const payload = { title: 'Private test', description: 'Private only', type: 'ONE_OFF', rewards, idempotencyKey: randomUUID() };
+    const response = await app.inject({ method: 'POST', url: '/api/v1/moderation/gift-codes', headers, payload });
+    expect(response.statusCode).toBe(200);
+    expect(service.createDraft).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ rewards: rewards.map(reward => ({ ...reward, amount: BigInt(reward.amount) })) }));
+    for (const invalid of [{ resourceKey: 'xp', amount: '1' }, { resourceKey: 'event_currency', amount: '1'.repeat(100) }, { resourceKey: 'event_points', amount: '-1' }]) {
+      expect((await app.inject({ method: 'POST', url: '/api/v1/moderation/gift-codes', headers, payload: { ...payload, rewards: [invalid] } })).statusCode).toBe(400);
+    }
+  });
 });

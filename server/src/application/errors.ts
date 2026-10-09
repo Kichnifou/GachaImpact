@@ -9,6 +9,8 @@ export class BusinessError extends Error {
 }
 
 export type BusinessErrorCode =
+  | 'EVENT_POINTS_OVERFLOW'
+  | 'STELLA_INVALID_AMOUNT'
   | 'CONTEST_TEMPORARILY_UNAVAILABLE'
   | 'FAVOR_IDEMPOTENCY_CONFLICT'
   | 'FAVOR_PROOF_INVALID'
