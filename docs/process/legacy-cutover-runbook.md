@@ -23,6 +23,8 @@ La confirmation humaine R1062 reste acquise dans son périmètre. La gate F5 R10
 
 Les anciennes étapes R1062 ci-dessous sont historiques. Leur statut en attente de F5 est remplacé par la confirmation propriétaire du 09/10.
 
+**Recette complémentaire acquise à `87ff4ba` :** runtime quatre indications confirmé, puis fenêtre Boss et octobre Twitch huit contributions/interrompu confirmés. Ne pas réinvestiguer le bouton de calcul « Dégâts prévus », distinct de l'historique. La demande suivante retire seulement la ligne native septembre « Non vaincu » de la projection. Tests de visibilité/count/pagination et conservation en PostgreSQL privé, review indépendante du SHA puis déploiements normaux ; aucun OFF, DDL, import ou apply économique. Postflight HTTP en lecture seule : total historique diminué d'une seule entrée, septembre Twitch conservé, trois archives/27 contributions identiques et classement du combat actuel conservé. Les preuves originales restent présentes, y compris le classement direct du combat masqué. Nouvelle gate runtime après ce redémarrage avant un éventuel smoke Twitch ; la recette visuelle de la modale reste acquise.
+
 <a id="reprise-p0-r1062"></a>
 
 ## Reprise P0 R1062 — mandat consolidé du 09/10

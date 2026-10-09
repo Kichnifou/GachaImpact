@@ -354,6 +354,11 @@ export class MonthlyBossService {
   public async getHistory(page: number) {
     if (!Number.isSafeInteger(page) || page < 1) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Cette page d’historique est invalide.');
     const currentMonth = businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));
+    // R1063 owner request (2026-10-09): hide only this unsuccessful September
+    // instance from player-facing history. Keep its combat facts and scaling.
+    const nativeHistoryWhere: Prisma.MonthlyBossWhereInput = { monthStart: { lt: currentMonth }, NOT: {
+      id: '9e9caa8e-f94c-457c-ad0d-af83e69ad76e', monthStart: businessDateToDatabaseDate('2026-09-01'), defeatedAt: null,
+    } };
     let archives: TwitchBossHistoryEntry[];
     let archiveStatus: 'AVAILABLE' | 'NONE' | 'UNAVAILABLE';
     try { archives = await readTwitchBossHistory(this.database); archiveStatus = archives.length ? 'AVAILABLE' : 'NONE'; }
@@ -363,15 +368,15 @@ export class MonthlyBossService {
     }
     // Only the small native instance index is merged. Combat rows and attacks
     // are loaded for the selected page, never for the whole native history.
-    const index = archives.length ? await this.database.monthlyBoss.findMany({ where: { monthStart: { lt: currentMonth } },
+    const index = archives.length ? await this.database.monthlyBoss.findMany({ where: nativeHistoryWhere,
       select: { id: true, monthStart: true }, orderBy: { monthStart: 'desc' } }) : null;
     const ordered = index ? [...index.map(boss => ({ id: boss.id, monthStart: databaseDateToBusinessDate(boss.monthStart), origin: 'NATIVE' as const })),
       ...archives.map(boss => ({ id: boss.id, monthStart: boss.monthStart, origin: boss.origin }))]
       .sort((a, b) => b.monthStart.localeCompare(a.monthStart) || a.origin.localeCompare(b.origin) || a.id.localeCompare(b.id)) : null;
     const selected = ordered?.slice((page - 1) * HISTORY_PAGE_SIZE, page * HISTORY_PAGE_SIZE);
-    const total = ordered?.length ?? await this.database.monthlyBoss.count({ where: { monthStart: { lt: currentMonth } } });
+    const total = ordered?.length ?? await this.database.monthlyBoss.count({ where: nativeHistoryWhere });
     const bosses = await this.database.monthlyBoss.findMany({
-      where: selected ? { id: { in: selected.filter(row => row.origin === 'NATIVE').map(row => row.id) } } : { monthStart: { lt: currentMonth } },
+      where: selected ? { id: { in: selected.filter(row => row.origin === 'NATIVE').map(row => row.id) } } : nativeHistoryWhere,
       orderBy: { monthStart: 'desc' },
       skip: selected ? 0 : (page - 1) * HISTORY_PAGE_SIZE,
       take: HISTORY_PAGE_SIZE,
