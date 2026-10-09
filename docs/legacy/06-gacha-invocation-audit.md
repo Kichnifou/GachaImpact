@@ -1,5 +1,11 @@
 # 06 — Audit legacy : Gacha / Invocation
 
+## R1061 — amendement Vote par identité Twitch prouvée sans Player, candidat
+
+Décision propriétaire du 09/10 : [contrat R1061](../architecture/legacy-banner-votes-r1061.md) complète R104/R105/R106/R111/R113–R116. Chaque bulletin source prouvé peut rester Twitch-only ; une identité/cycle vaut un poids natif+externe dédoublonné, futur rattachement après choix R1055 sans nouvelle contribution. Clôture durable, reprise après échec et rotation pondérée normales inchangées ; aucun ancien résultat inventé ou figé réécrit. 065/code candidat review uniquement, aucune restitution publique. La confirmation F5 212da08 est acquise.
+
+Prévisualisation : Céotryd IMPORT, trois EXTERNAL_PROVEN, quatre Raiden sans collision ; les données publiques n'ont pas changé. L'ancienne rotation compte désormais 28 opérations/226 résultats, avec les 16/115 initiaux exacts ; conservation de **tout** ce gameplay obligatoire. Nouvelle review indépendante puis promotion/application distinctes avant le 12/10 00:00 Paris ; après cette échéance STOP pour arbitrage. Les anciennes descriptions DEFERRED/arbitrage en attente ci-dessous décrivent le checkpoint précédent.
+
 ## R1060 — code déployé, restitution du cycle du 5 octobre non appliquée
 
 Le propriétaire valide la priorité de la composition legacy vérifiée 05→12/10/2026 : Chiori/Durin/Varesa/YaeMiko et Aino/Collei/Fréminet/Kaeya/Sayu/Yaoyao, puis rotation normale du lundi 00:00 Europe/Paris. Les 16 opérations/115 résultats restent acquis sur leur rotation d'origine ; aucun recalcul/remboursement/double gain, pity/garanties/Capture/possessions/statistiques préservés. [R1060](../specifications/decisions-log.md#r1060--priorité-de-la-bannière-legacy-prouvée-du-5-octobre-sans-annuler-les-invocations-natives-2026-10-08).

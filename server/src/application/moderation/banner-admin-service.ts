@@ -6,6 +6,7 @@ import { getParisWeekWindow, type FeaturedSelection } from '../../domain/gacha/g
 import { validateSelections } from '../../infrastructure/database/prisma-gacha-store.js';
 import type { WeeklyBannerScheduler } from '../gacha/weekly-banner-scheduler.js';
 import { AdminOperation } from './admin-operation.js';
+import { bannerVoteContributions } from '../gacha/banner-vote-contributions.js';
 
 const BANNER_LOCK = 70422401;
 
@@ -24,16 +25,16 @@ export class BannerAdminService {
       this.database.bannerRotation.findFirst({ where: { startsAt: { gt: now } }, orderBy: { startsAt: 'asc' },
         include: { featuredCharacters: { include: { character: { select: { name: true, isActive: true, rarity: true } } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } } }),
     ]);
-    const counts = active ? await this.database.bannerVote.groupBy({ by: ['characterId'], where: { bannerRotationId: active.id }, _count: { _all: true } }) : [];
+    const tally = active ? await this.database.$transaction(tx => bannerVoteContributions(tx, active.id), { isolationLevel: 'RepeatableRead' }) : null;
     const excluded = new Set(active?.featuredCharacters.map(row => row.characterId) ?? []);
     const candidates = active ? await this.database.character.findMany({ where: { rarity: 5, isActive: true, id: { notIn: [...excluded] } }, select: { id: true, name: true }, orderBy: { name: 'asc' } }) : [];
-    const votes = new Map(counts.map(row => [row.characterId, row._count._all]));
+    const votes = tally?.counts ?? new Map<string, number>();
     const diagnostics = active ? {
       validComposition: active.featuredCharacters.filter(row => row.rarity === 5).length === 4 && active.featuredCharacters.filter(row => row.rarity === 4).length === 6 && new Set(active.featuredCharacters.map(row => row.characterId)).size === 10,
       withinWindow: active.startsAt <= now && now < active.endsAt,
       inactiveFeatured: active.featuredCharacters.filter(row => !row.character.isActive).map(row => row.characterId),
     } : { validComposition: false, withinWindow: false, inactiveFeatured: [] };
-    return { active, next, currentWeek: getParisWeekWindow(now), voteCycle: { candidates: candidates.map(row => ({ ...row, voteCount: votes.get(row.id) ?? 0 })), totalVotes: counts.reduce((sum, row) => sum + row._count._all, 0) }, diagnostics };
+    return { active, next, currentWeek: getParisWeekWindow(now), voteCycle: { candidates: candidates.map(row => ({ ...row, voteCount: votes.get(row.id) ?? 0 })), totalVotes: tally?.totalVotes ?? 0 }, diagnostics };
   }
 
   async correct(identity: AuthenticatedIdentity, rotationId: string, input: { fiveStarIds: string[]; fourStarIds: string[]; idempotencyKey: string }) {
@@ -55,6 +56,8 @@ export class BannerAdminService {
         });
         try { validateSelections(proposed); } catch { throw invalid(); }
         if (proposed.slice(0, 4).some(row => row.character.rarity !== 5) || proposed.slice(4).some(row => row.character.rarity !== 4)) throw invalid();
+        const tally = await bannerVoteContributions(tx, rotationId);
+        if (input.fiveStarIds.some(id => tally.counts.has(id))) throw new AppError('Un personnage ayant reçu des votes ne peut pas être ajouté à cette bannière.', 409, 'BANNER_ADMIN_VOTE_COLLISION');
         const before = rotation.featuredCharacters.map(row => ({ characterId: row.characterId, rarity: row.rarity, slot: row.slot, selectionSource: row.selectionSource }));
         const after = proposed.map(row => ({ characterId: row.character.id, rarity: row.character.rarity, slot: row.slot,
           selectionSource: before.find(old => old.rarity === row.character.rarity && old.slot === row.slot && old.characterId === row.character.id)?.selectionSource ?? 'LEGACY_UNKNOWN' as const }));

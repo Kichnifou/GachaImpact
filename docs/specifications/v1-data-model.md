@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Extension R1061 — ExternalBannerVote, candidat 065
+
+Une preuve individuelle lie la semaine, la rotation officielle, le Character, le Twitch User ID historique vérifié et ses hashes/provenances. Player nullable : trois votants prouvés ne deviennent pas des Players. Unicités cycle/Twitch ID et cycle/Player nullable ; FK RESTRICT, historique des rattachements R1055 et gel. `BannerVote` natif reste conservé ; le total communautaire est l'union dédoublonnée des deux sources, jamais leur somme brute. Aucun changement d'un snapshot fermé. [Owner Vote, sécurité et application distincte](../architecture/legacy-banner-votes-r1061.md) ; 065 non déployée publiquement dans ce candidat.
+
 ## Extension R1055/R1056 — 063 déployée
 
 `TwitchCanonicalizationPlan` représente une autorisation opérateur expirante pour un choix précis, pas un choix du joueur. Il lie la WebIdentity, les deux Players, le Twitch ID immuable, l'opérateur, le fingerprint complet, le backup et les conséquences ; consommation atomique avec `TwitchLinkResolution`. Consentement humain supplémentaire et preuve fraîche obligatoires.

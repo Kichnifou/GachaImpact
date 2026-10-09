@@ -1,13 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1056/R1060 — code promu et Prisma 064 déployée ; données communautaires en attente.
+Version : R1061 — registre de votes Twitch candidat sur review ; production 212da08 / Prisma 064, restitution en attente.
 Date : 2026-10-09
-Statut : **COMMUNITY_CODE_PROMOTED_DATA_PENDING — CONTRÔLES CANONIQUES ACQUIS ; AUCUNE RESTAURATION MÉTIER.** Candidat approuvé 15a16a192b0f2a5a3ceb93b8090e7b4429c35041 promu par fast-forward strict ; Railway/Cloudflare SUCCESS au SHA exact, Prisma 64 conforme. Quatre NATIVE/CANARY 12, GLOBAL false, A ARCHIVED sans accès/B ACTIVE Web+Twitch conservés. Une seule bannière ACTIVE native, aucun remplacement R1060. Event B et onze faits sociaux toujours en attente. Aucune migration personnelle, batch 43 ou GLOBAL. Le checkpoint documentaire de clôture ne change pas ce code ; ses références Git et contrôles finaux sont rapportés séparément.
+Statut : **LEGACY_VOTES_CANDIDATE_REVIEW_PENDING — R1061 VALIDÉE ; CODE/065 CANDIDATS, AUCUNE RESTAURATION PUBLIQUE.** Main/public restent au checkpoint 212da08, Prisma 64 ; registre externe développé et testé en privé uniquement. Quatre NATIVE/CANARY 12, GLOBAL false, A ARCHIVED/B ACTIVE Web+Twitch conservés. Une seule bannière ACTIVE native ; Event B, bannière/votes et onze faits sociaux en attente. Aucune migration personnelle, batch43 ou GLOBAL. Prochaine étape : review indépendante du candidat, STOP avant main.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
 <a id="community-complements-20261008"></a>
 
-## Point courant — code communautaire promu, arbitrage des votes requis
+## Point courant — décision R1061 validée, candidat sensible avant review indépendante
+
+La mission propriétaire du 09/10 autorise le registre durable des quatre votes legacy par ID Twitch immuable, sans contraindre les trois votants à migrer. **Gate F5 de 212da08 acquise**, capacité/armement/effectif ON et Chat activé confirmés ; aucun nouveau déploiement dans ce lot, aucune confirmation redemandée. [Décision R1061](../specifications/decisions-log.md), [contrat, prévisualisation et procédure complète](../architecture/legacy-banner-votes-r1061.md).
+
+Le candidat ajoute `ExternalBannerVote` et **065**, uniquement préparée/testée en PostgreSQL local privé. Un seul comptage natif/externe par identité ; collisions bloquantes, rattachement canonique après R1055, clôture durable et scheduler normal. R1060 v2 conserve tous les tirages et journal/backup/compensation exacts ; les anciennes preuves v1 restent intactes. Aucune restauration Event/social/personnelle et aucun batch43/GLOBAL. La classification de purge bloque la destruction des preuves externes et conserve CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT.
+
+Prévisualisation READ ONLY du 09/10 : source récente/manifests/43+171+2 et Helix ciblé par IDs vérifiés, Céotryd B **IMPORT**, fred_night0wl/plumereveuse66/kadraw18 **EXTERNAL_PROVEN**. Quatre poids Raiden calculables, zéro collision détectée, composition exacte R1060. Aucun vote effectivement intégré en public. Les 16 opérations/115 résultats d'origine sont exacts ; la rotation native active porte désormais **28 opérations/226 résultats**, tous à préserver lors d'un éventuel apply frais. Ne pas traiter ce gameplay postérieur comme une dérive à annuler.
+
+**Validation : 151 tests PostgreSQL privés PASS sur huit suites, dont 39 de remplacement/conservation/identités/votes ; Prisma validate et deploy/status privés 65 PASS. verify:full 8/8 PASS : frontend 1 378, backend non-DB 1 985, builds/typechecks/lint/diff-check.** [Détail, échecs intermédiaires et limites](../architecture/legacy-banner-votes-r1061.md#validation-du-candidat). Review indépendante en attente ; aucun déploiement, migration publique, désarmement ou apply métier. Production reste au SHA `212da08e6b601d0bf5d83e550a5629ed90d21376`, registre 64. A ARCHIVED sans accès/B ACTIVE/NATIVE, quatre canaries persistées, Event proposé 15/23 à réévaluer (source14/21/palier10 sans double gain), onze faits sociaux DEFERRED et population fixe conservés.
+
+**Prochaine opération exacte : review indépendante ChatGPT du SHA review et de son vrai diff depuis main, incluant migration/owners/tests. STOP avant main.** Une mission ultérieure distincte devra promouvoir/déployer 065, valider CANARY/transport après redémarrage, puis obtenir une autorisation métier et refaire OFF/capacité false/backup/fingerprint/gates avant apply. Échéance stricte : lundi **12/10/2026 00:00 Europe/Paris = 11/10 22:00 UTC** ; passé ce point, STOP pour arbitrage, aucun résultat figé ou temps réel réécrit. Roadmap inchangée.
+
+## État historique au checkpoint 212da08 — avant la décision R1061
 
 Review indépendante du diff cumulé approuvée pour **code et migration uniquement**. Promotion stricte du candidat 15a16a192b0f2a5a3ceb93b8090e7b4429c35041 le 09/10/2026, main/review alors identiques et divergence 0/0, sans commit préalable artificiel. Railway et Cloudflare SUCCESS exacts, backend Online/health 200 ; preDeploy Prisma seul a appliqué 064. Registre 64/noms/checksums et migrate status conformes, colonne/indexes/CHECK physiques validés. [Preuves et limites de promotion](../architecture/community-complements-20261008.md#promotion-code-20261009).
 

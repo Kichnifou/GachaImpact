@@ -81,15 +81,17 @@ export async function restorePrivateBackup(client: pg.Client, schema: string, fi
   try {
     // A physical rehearsal restore must also restore archived preimages. This
     // narrow exception exists only in this test helper, on loopback PostgreSQL,
-    // and names only this schema's archive triggers. FK/check guards stay on.
-    const archiveGuards = (await client.query<{ table_name: string; enabled: string }>(`
-      SELECT c.relname AS table_name,t.tgenabled AS enabled FROM pg_trigger t
+    // and names only archive guards and the immutable ballot guard. FK/CHECK stay on.
+    const archiveGuards = (await client.query<{ table_name: string; trigger_name: string; enabled: string }>(`
+      SELECT c.relname AS table_name,t.tgname AS trigger_name,t.tgenabled AS enabled FROM pg_trigger t
       JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE n.nspname=$1 AND t.tgname='archived_player_write_guard' AND NOT t.tgisinternal ORDER BY c.relname`, [schema])).rows;
+      WHERE n.nspname=$1 AND (t.tgname='archived_player_write_guard'
+        OR (c.relname='external_banner_votes' AND t.tgname='external_banner_vote_guard'))
+        AND NOT t.tgisinternal ORDER BY c.relname,t.tgname`, [schema])).rows;
     if (archiveGuards.length) {
       const host = (await client.query<{ host: string | null }>('SELECT host(inet_server_addr()) AS host')).rows[0]?.host;
       if (host !== '127.0.0.1' && host !== '::1') throw new Error('Archived fixture restore requires loopback PostgreSQL.');
-      for (const trigger of archiveGuards) await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} DISABLE TRIGGER archived_player_write_guard`);
+      for (const trigger of archiveGuards) await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} DISABLE TRIGGER ${identifier(trigger.trigger_name)}`);
     }
     for (const name of backup.deleteOrder) await client.query(`DELETE FROM ${identifier(schema)}.${identifier(name)}`);
     for (const name of [...backup.deleteOrder].reverse()) {
@@ -99,7 +101,7 @@ export async function restorePrivateBackup(client: pg.Client, schema: string, fi
     const modes: Record<string, string> = { O: 'ENABLE', A: 'ENABLE ALWAYS', R: 'ENABLE REPLICA', D: 'DISABLE' };
     for (const trigger of archiveGuards) {
       if (!modes[trigger.enabled]) throw new Error('Unknown archived trigger mode.');
-      await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} ${modes[trigger.enabled]} TRIGGER archived_player_write_guard`);
+      await client.query(`ALTER TABLE ${identifier(schema)}.${identifier(trigger.table_name)} ${modes[trigger.enabled]} TRIGGER ${identifier(trigger.trigger_name)}`);
     }
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK'); throw error; }

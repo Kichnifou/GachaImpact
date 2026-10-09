@@ -1,5 +1,11 @@
 # R1056 / 31B — compléments communautaires, 08/10/2026
 
+## État courant R1061 — votes Twitch sans Player, candidat review du 09/10
+
+L'arbitrage propriétaire est acquis : [R1061](legacy-banner-votes-r1061.md) remplace l'attente de décision décrite au contrôle précédent. Registre externe backend-only 065 et propriétaires Vote/R1055/rotation/remplacement adaptés ; code candidat, **aucun déploiement ni apply public**. Céotryd IMPORT et trois EXTERNAL_PROVEN produisent quatre poids Raiden dans la prévisualisation ; le runtime public 212da08/064 garde encore l'ancien plan bloqué. Aucune migration des trois votants nécessaire. Gate F5 212da08 confirmée acquise, sans nouveau redémarrage.
+
+La rotation native contient désormais 28 opérations/226 résultats, dont les 16/115 initiaux vérifiés exactement ; tous restent définitivement acquis. Fenêtre jusqu'au 12/10 00:00 Paris seulement. Review indépendante du candidat obligatoire avant promotion, puis autorisation métier et gates fraîches distinctes. Event 15/23 proposé à recalculer, palier10 sans double gain ; onze faits sociaux DEFERRED et quatre canaries inchangés. La [procédure R1061](legacy-banner-votes-r1061.md#mission-opérateur-ultérieure-non-exécutée-ici) n'a pas été exécutée ; les constats/arbitrages antérieurs ci-dessous restent datés.
+
 ## Périmètre et état
 
 Continuation depuis e9967ae, rectifications propriétaire intégrées. Quatre canaries NATIVE/CANARY révision 12, GLOBAL false ; aucun import, OAuth, choix R1055, transfert de progression, restauration publique ou batch43 exécuté dans ce lot. Les preuves brutes, UUID, identités Twitch, manifests, hashes individuels et backups restent dans les dossiers locaux ignorés, préservés.

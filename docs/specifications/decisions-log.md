@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1061 — Votes historiques par identité Twitch vérifiée sans Player (2026-10-09)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : conserver et compter chaque bulletin legacy réel par Twitch User ID immuable prouvé, même sans Player définitif. Aucun Player fantôme, TwitchIdentity artificielle, vote natif factice, migration personnelle ou gain. Un seul bulletin/poids par identité et cycle ; même choix natif dédoublonné, divergence explicite et bloquante. Population R1041/R1048 fixe, sources/rapports frais et provenance individuelle obligatoires ; exclus/quarantaines/preuve absente ou ambiguë refusés. Le rattachement ultérieur suit le Player canonique et le choix humain R1055 WEB/TWITCH, jamais un pseudo ni un gagnant deviné.
+
+R1060 reste applicable au **5–12 octobre 2026**, avec la composition legacy exacte, une seule ACTIVE et conservation intégrale de la rotation native remplacée et de tous ses tirages. Les quatre votes Raiden prouvés sont à préserver une fois ; la pondération ne garantit pas le gagnant. Le comptage commun alimente consultation, Vote, clôture durable et scheduler existant ; aucun résultat figé réécrit. Après lundi 12/10 00:00 Europe/Paris, STOP pour nouvel arbitrage, aucun input.now public antidaté.
+
+Autorisation limitée au **candidat complet, tests PostgreSQL locaux privés et publication review**, suivie d'une review indépendante ChatGPT avant toute promotion. Nouvelle table justifiée par l'absence de Player, migration additive 065 backend-only, purge/compensation explicitement classées ; aucun déploiement ni restitution publique ici. Event/social/imports/batch43/GLOBAL restent hors périmètre. La gate F5 de **212da08** est confirmée acquise par le propriétaire ; ne pas la redemander sans nouveau déploiement. [Mécanisme et procédure future](../architecture/legacy-banner-votes-r1061.md).
+
 ## R1060 — Priorité de la bannière legacy prouvée du 5 octobre, sans annuler les invocations natives (2026-10-08)
 
 VALIDÉ PAR LE PROPRIÉTAIRE pendant R1056/31B : pour la semaine du **5 au 12 octobre 2026 Europe/Paris**, la composition du snapshot legacy vérifié prime sur la composition native concurrente. Conserver exactement ses quatre 5★ et six 4★ jusqu'au lundi suivant à 00:00 Paris, puis utiliser le scheduler normal. Une seule bannière ACTIVE subsiste. Cette décision ne donne aucune priorité implicite à une autre source ou période en conflit.

@@ -21,7 +21,7 @@ export const canonicalizationOwnedTables = new Set<string>([...personalReplaceme
 const owned = canonicalizationOwnedTables;
 const housekeeping = new Set(['web_identities', 'twitch_identities', 'player_sessions', 'twitch_link_states', 'twitch_link_resolutions', 'twitch_canonicalization_plans',
   'migration_previews', 'global_chat_read_states']);
-const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages']);
+const historical = new Set(['admin_audit_entries', 'twitch_native_audit', 'twitch_canary_imports', 'global_chat_messages', 'external_banner_votes']);
 const signature = (fk: ForeignKey) => `${fk.child}(${fk.child_columns.join(',')})->${fk.parent}(${fk.parent_columns.join(',')})`;
 
 /** SQL classification for existing rows; unknown tables/FKs always fail closed. */

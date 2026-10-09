@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1061 — candidat de votes Twitch externes, 09/10/2026
+
+Le [registre externe](legacy-banner-votes-r1061.md) conserve les preuves des votants sans Player, sans créer d'identité ou de gameplay. `bannerVoteContributions` est le comptage partagé de consultation/Vote UI-Chat-Twitch/admin/clôture ; même identité+choix dédoublonnée, divergence 409. R1055 rattache après choix terminal et garde les aliases historiques sans transfert économique. Verrou 70422401 avant Players, snapshot de fermeture durable repris par le scheduler existant, aucun second tirage communautaire. Le remplacement v2 inclut les preuves dans son fingerprint/journal/postimage et refuse la compensation après mutation. 065/code sur review uniquement, review indépendante et promotion/application futures séparées ; public 212da08/064 inchangé.
+
 ## R1055/R1056 déployé — abandon contrôlé et relations communautaires, 08/10/2026
 
 [Contrat et audit des 23 catégories](r1055-operator-resolution.md), [état et preuves](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008). Mécanisme sensible approuvé puis déployé : préparation opérateur sans effet, choix humain WEB/TWITCH atomique avec consentement frais, archive protégée des nouveaux gains et conservation des tiers. Import B indépendant de l'archivage A. Registre durable des amitiés legacy, différé puis matérialisation, versions lors d'un changement de Player, collisions bloquantes et aucun merge économique. Backup canary v3 social et rollback exact ; anciens backups conservés. Aucune priorité générale de sauvegarde : JSON autoritaires pour le legacy, choix humain autoritaire pour la sauvegarde jouable.

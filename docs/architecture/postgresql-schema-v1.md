@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 065 — registre externe de votes, candidat R1061 non déployé
+
+`20261009120000_065_add_external_banner_votes` ajoute `external_banner_votes` : cycle/TwitchID unique, cycle/Player nullable unique, rotation/Character/Player FK RESTRICT indexées, provenance/hash source et historique de rattachement, gel durable. RLS sans policy frontend et droits PUBLIC/anon/authenticated révoqués. Trigger sous 70422401 : source/choix/cycle immuables, insertion sur cycle officiel non fermé seulement, preuve gelée non supprimable. Aucune écriture de données métier par migration. Tests via `prisma migrate deploy/status` exclusivement en schémas privés sur PostgreSQL loopback ; **registre public reste 64**. [Contrat et limites de purge/compensation](legacy-banner-votes-r1061.md).
+
 ## Migration 064 — rotations remplacées conservées (déployée le 09/10/2026)
 
 20261008220000_064_preserve_superseded_banner_rotations est appliquée par le preDeploy Prisma normal au candidat approuvé 15a16a192b0f2a5a3ceb93b8090e7b4429c35041. Registre public **64** terminé, noms/checksums exacts et migrate status up-to-date ; aucune migration manuelle parallèle. banner_rotations reçoit superseded_at TIMESTAMPTZ(6) nullable, un CHECK imposant ENDED si supersédée, unicité partielle starts_at WHERE superseded_at IS NULL et index de lookup ; l'ancien starts_at unique est retiré. L'index one_active existant reste strictement inchangé. Sauvegarde fraîche publique applicative vérifiée avant DDL.

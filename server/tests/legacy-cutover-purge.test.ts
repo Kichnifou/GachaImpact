@@ -7,6 +7,7 @@ function database(extra: string[] = [], fks: { child: string; parent: string }[]
     ? [...referenceTables, ...preservedTables, ...clearTables, ...extra].map(tablename => ({ tablename }))
     : sql.includes('pg_constraint') ? fks : [{ count: 1n }]);
   return { $queryRawUnsafe: query, $executeRawUnsafe: vi.fn(), twitchLinkResolution: { findMany: vi.fn(async () => []) }, twitchNativeTarget: { findMany: vi.fn(async () => []) },
+    externalBannerVote: { count: vi.fn(async () => 0) },
     twitchCanonicalizationPlan: { count: vi.fn(async () => proofs.plans) }, friendship: { count: vi.fn(async () => proofs.legacyRelations) } } as unknown as PrismaClient;
 }
 
@@ -42,6 +43,12 @@ describe('exhaustive cutover purge contract', () => {
     const db = database();
     const plan = await buildCutoverPurgePlan(db, 'public');
     await expect(applyPrivateCutoverPurge(db, plan)).rejects.toThrow('Public cutover mutation is unavailable');
+    expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
+  });
+  it('retains external ballot proof by refusing the unreviewed global purge', async () => {
+    const db = database();
+    vi.mocked(db.externalBannerVote.count).mockResolvedValue(3);
+    await expect(buildCutoverPurgePlan(db, 'batch_test_' + 'c'.repeat(32))).rejects.toThrow('CUTOVER_LEGACY_VOTE_PROOFS_PRESENT');
     expect(db.$executeRawUnsafe).not.toHaveBeenCalled();
   });
 });

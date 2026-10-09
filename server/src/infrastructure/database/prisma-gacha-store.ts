@@ -1,4 +1,5 @@
 import { assertCommandTargets, commandBannerId } from '../../application/player/player-command-execution.js';
+import { bannerVoteContributions } from '../../application/gacha/banner-vote-contributions.js';
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
 import { GACHA_HISTORY_PAGE_SIZE, type CurrentBanner, type GachaHistoryPage, type GachaPassiveEffect, type GachaPullInput, type GachaPullResult, type GachaStore, type PlayerGachaState, type PullResultRecord } from '../../application/gacha/gacha-store.js';
@@ -462,8 +463,7 @@ export class PrismaGachaStore implements GachaStore {
       const previous = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: true, votes: true } });
       if (!previous || readClosedVoteSnapshot(previous.generationVoteSnapshot, previous.id)) return;
       const catalog = (await tx.character.findMany({ where: { isActive: true, rarity: 5 }, select: characterSelection })).map(toCharacter);
-      const counts = new Map<string, number>();
-      for (const vote of previous.votes) counts.set(vote.characterId, (counts.get(vote.characterId) ?? 0) + 1);
+      const { counts } = await bannerVoteContributions(tx, previous.id);
       const closed = closeBannerVoteSnapshot(previous.id, new Date(), catalog,
         new Set(previous.featuredCharacters.map(row => row.characterId)),
         [...counts].map(([characterId, votes]) => ({ characterId, votes })));
@@ -472,6 +472,7 @@ export class PrismaGachaStore implements GachaStore {
       await tx.bannerRotation.update({ where: { id: previous.id }, data: {
         generationVoteSnapshot: { ...final, closedVoteSnapshot: closed } as Prisma.InputJsonObject,
       } });
+      await tx.externalBannerVote.updateMany({ where: { bannerRotationId: previous.id, frozenAt: null }, data: { frozenAt: new Date(closed.capturedAt) } });
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 

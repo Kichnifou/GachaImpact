@@ -57,6 +57,7 @@ const operatorEdges = new Set([
 export async function lockCanonicalizationPair(tx: Tx, ids: string[], twitchUserId: string) {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${twitchUserId}`},0))::text`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
   const meta = await targetedRowMetadata(tx), endpoints = new Set(ids);
   const roots = meta.fks.filter(fk => fk.parent === 'players' && fk.child_columns.length === 1 && !technical.has(fk.child));
   const branches: string[] = [];

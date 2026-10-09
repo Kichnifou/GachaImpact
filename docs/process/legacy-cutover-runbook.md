@@ -1,5 +1,11 @@
 # Cutover legacy — runbook opératoire
 
+## Reprise courante R1061 — review indépendante avant toute opération publique
+
+La [procédure détaillée R1061](../architecture/legacy-banner-votes-r1061.md#mission-opérateur-ultérieure-non-exécutée-ici) fait autorité pour le candidat de votes externes et le remplacement v2. Séquence future : SHA review approuvé → promotion/déploiement Prisma 065 normal → CANARY/transport frais → autorisation métier distincte → OFF canonique/révision fraîche et drainage → capacité false contrôlée → backup/preuves/fingerprint frais → apply atomique unique et réconciliation de tout retour ambigu → postflight exact → capacité restaurée et reprise de l'ensemble canary **persisté** → transport effectif → recette ciblée si demandée. **Aucune étape publique de cette séquence exécutée ici.**
+
+La gate humaine F5 212da08 est confirmée acquise par la mission du 09/10 ; pas de nouvelle demande sans déploiement. Public reste 212da08/064/CANARY, aucun désarmement. Les trois votes sans Player passent de DEFERRED à EXTERNAL_PROVEN uniquement dans le candidat complet ; aucun réimport personnel. Le plan frais doit conserver tous les tirages désormais présents, dont 16/115 initiaux exacts (28/226 au contrôle). Backup/journal v2 obligatoires, anciens v1 conservés sans conversion. Fenêtre 05→12/10, arrêt absolu après 12/10 00:00 Paris ; jamais input.now public. Les procédures et statuts antérieurs ci-dessous sont historiques.
+
 ## Point courant 31B — code promu, données et votes en attente
 
 Candidat approuvé 15a16a192b0f2a5a3ceb93b8090e7b4429c35041 promu strictement le 09/10 ; Railway/Cloudflare SUCCESS exacts, health 200, Prisma **64** déployée par preDeploy normal et status conforme. Aucun apply métier exécuté. [Preuves et arbitrage](../architecture/community-complements-20261008.md#promotion-code-20261009). Le checkpoint documentaire de clôture ne modifie pas le code approuvé et reçoit son propre contrôle GitHub/déploiement, sans boucle de SHA.

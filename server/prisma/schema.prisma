@@ -416,6 +416,7 @@ model Player {
   progression           PlayerProgression?
   gachaState            PlayerGachaState?
   bannerVotes           BannerVote[]
+  externalBannerVotes   ExternalBannerVote[]
   characters            PlayerCharacter[]
   c6Progress            C6CompetitionProgress[]
   pullOperations        PullOperation[]
@@ -738,6 +739,7 @@ model Character {
   element                   Element                        @relation(fields: [elementKey], references: [key], onDelete: Restrict)
   bannerAppearances         BannerFeaturedCharacter[]
   bannerVotes               BannerVote[]
+  externalBannerVotes       ExternalBannerVote[]
   selectedByGachaStates     PlayerGachaState[]
   playerPossessions         PlayerCharacter[]
   avatarCosmetic             CosmeticDefinition?
@@ -771,6 +773,7 @@ model BannerRotation {
   createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
   featuredCharacters BannerFeaturedCharacter[]
   votes              BannerVote[]
+  externalVotes      ExternalBannerVote[]
   pullOperations     PullOperation[]
 
   @@index([status], map: "banner_rotations_status_idx")
@@ -808,6 +811,31 @@ model BannerVote {
   @@unique([bannerRotationId, playerId], map: "banner_votes_banner_player_key")
   @@index([bannerRotationId, characterId], map: "banner_votes_banner_character_idx")
   @@map("banner_votes")
+}
+
+// Backend-only immutable source ballots; binding changes never change their weight.
+model ExternalBannerVote {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cycleStartsAt DateTime @map("cycle_starts_at") @db.Timestamptz(6)
+  bannerRotationId String @map("banner_rotation_id") @db.Uuid
+  twitchUserId String @map("twitch_user_id") @db.Text
+  characterId String @map("character_id") @db.Uuid
+  playerId String? @map("player_id") @db.Uuid
+  proofHash String @map("proof_hash") @db.Text
+  provenance Json @db.JsonB
+  bindingHistory Json @default("[]") @map("binding_history") @db.JsonB
+  frozenAt DateTime? @map("frozen_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  bannerRotation BannerRotation @relation(fields: [bannerRotationId], references: [id], onDelete: Restrict, map: "external_banner_votes_rotation_fk")
+  character Character @relation(fields: [characterId], references: [id], onDelete: Restrict, map: "external_banner_votes_character_fk")
+  player Player? @relation(fields: [playerId], references: [id], onDelete: Restrict, map: "external_banner_votes_player_fk")
+  @@unique([cycleStartsAt, twitchUserId], map: "external_banner_votes_cycle_twitch_key")
+  @@unique([cycleStartsAt, playerId], map: "external_banner_votes_cycle_player_key")
+  @@index([bannerRotationId, characterId], map: "external_banner_votes_rotation_character_idx")
+  @@index([characterId], map: "external_banner_votes_character_idx")
+  @@index([playerId], map: "external_banner_votes_player_idx")
+  @@index([twitchUserId], map: "external_banner_votes_twitch_idx")
+  @@map("external_banner_votes")
 }
 
 model PlayerGachaState {

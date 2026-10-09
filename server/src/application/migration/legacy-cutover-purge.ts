@@ -19,7 +19,7 @@ export const preservedTables = [
 export const clearTables = [
   'admin_audit_entries', 'player_sessions', 'trade_requests', 'trade_executions', 'player_cosmetics', 'player_permanent_mission_states',
   'player_permanent_mission_progress', 'player_daily_challenges', 'player_items', 'item_acquisitions',
-  'banner_rotations', 'banner_featured_characters', 'banner_votes', 'player_gacha_states',
+  'banner_rotations', 'banner_featured_characters', 'banner_votes', 'external_banner_votes', 'player_gacha_states',
   'player_progression', 'twitch_link_states', 'migration_previews', 'migration_runs',
   'migration_batches', 'migration_source_files', 'migration_mappings', 'migration_issues',
   'boss_legacy_contributions', 'boss_legacy_aggregates', 'contest_legacy_daily_locks', 'friendship_legacy_heart_state', 'player_favor_states',
@@ -103,6 +103,9 @@ async function buildPurgePlan(db: PrismaClient, schema: string, protectedPlayerI
   if (!operatorProofFingerprint && (await db.twitchCanonicalizationPlan.count() || await db.friendship.count({ where: { legacyFactId: { not: null } } })))
     throw new Error('CUTOVER_OPERATOR_RELATION_PROOFS_PRESENT');
   const clear = new Set<string>(clearTables);
+  // No global purge compensation contract covers immutable external ballots.
+  // Classify the table explicitly, but never delete proof or its referenced cycle.
+  if (await db.externalBannerVote.count()) throw new Error('CUTOVER_LEGACY_VOTE_PROOFS_PRESENT');
   for (const { child, parent } of fks) if (!clear.has(child) && clear.has(parent)) throw new Error(`Preserved table ${child} references cleared table ${parent}.`);
   const dependencies = new Map<string, Set<string>>(clearTables.map(table => [table, new Set<string>()]));
   for (const { child, parent } of fks) if (clear.has(child) && clear.has(parent) && child !== parent) dependencies.get(parent)!.add(child);

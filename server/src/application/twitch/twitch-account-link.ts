@@ -11,6 +11,7 @@ import type { AppConfig } from '../../config/environment.js';
 import { currentOperatorPlans, executeOperatorClosure, lockCanonicalizationPair, type OperatorPlans } from './twitch-canonicalization-operator.js';
 import { legacyFriendshipDecisionEvidence, reconcileLegacyFriendships, assertLegacyFriendshipResolutionReady } from '../migration/legacy-friendship-reconciliation.js';
 import { carryRetiredFriendshipUsage } from '../social/progression-retirement.js';
+import { reconcileExternalBannerVotes } from '../gacha/banner-vote-contributions.js';
 
 type Tx = Prisma.TransactionClient;
 export type ProgressionChoice = 'WEB' | 'TWITCH';
@@ -44,7 +45,10 @@ async function decisionState(tx:Tx,webId:string,twitchId:string,twitchUserId:str
     }
   }
   const operatorPlans=await currentOperatorPlans(tx,{webIdentityId,webPlayerId:webId,twitchPlayerId:twitchId,twitchUserId},config);
-  const legacyFingerprint=createHash('sha256').update(JSON.stringify(await legacyFriendshipDecisionEvidence(tx,[twitchUserId]),(_key,value:unknown)=>typeof value==='bigint'?value.toString():value)).digest('hex');
+  const legacyFingerprint=createHash('sha256').update(JSON.stringify({
+    friendships: await legacyFriendshipDecisionEvidence(tx,[twitchUserId]),
+    votes: await tx.externalBannerVote.findMany({ where: { OR: [{ twitchUserId }, { playerId: { in: [webId,twitchId] } }] }, orderBy: { id: 'asc' } }),
+  },(_key,value:unknown)=>typeof value==='bigint'?value.toString():value)).digest('hex');
   return {version:1,presentation:{web:await summary(tx,webId),twitch:await summary(tx,twitchId)},fingerprints:{web:web.fingerprint,twitch:twitch.fingerprint},legacyFingerprint,safety,
     ...(Object.keys(operatorPlans).length?{operatorPlans}:{})};
 }
@@ -90,17 +94,20 @@ export class TwitchAccountLink {
         const native = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
         if (native?.playerId && native.playerId !== web.playerId || native?.dataAuthority === 'MIGRATION_PENDING') throw conflict();
         await tx.twitchIdentity.create({ data: { playerId: web.playerId, twitchUserId, login, displayName } });
+        await reconcileExternalBannerVotes(tx, twitchUserId);
         if (native && !native.playerId) await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { playerId: web.playerId } });
         return { linked: true, playerId: web.playerId, resolutionRequired: false };
       }
       const pair = await validatePair(tx, webIdentityId, expectedPlayerId, current.playerId, twitchUserId);
       if (pair.web.playerId === pair.twitch.playerId) {
         await tx.twitchIdentity.update({ where: { twitchUserId }, data: { login, displayName } });
+        await reconcileExternalBannerVotes(tx, twitchUserId);
         return { linked: true, playerId: pair.web.playerId, resolutionRequired: false };
       }
       if (await isDisposableWebPlayer(tx, pair.web.playerId)) {
         await moveDisposableWebIdentity(tx, pair.web.id, pair.web.playerId, pair.twitch.playerId);
         await tx.twitchIdentity.update({ where: { twitchUserId }, data: { login, displayName } });
+        await reconcileExternalBannerVotes(tx, twitchUserId);
         return { linked: true, playerId: pair.twitch.playerId, resolutionRequired: false };
       }
       const now = new Date();
@@ -132,6 +139,7 @@ export class TwitchAccountLink {
         const winner = record.choice === 'WEB' ? record.webPlayerId : record.twitchPlayerId;
         const twitch = await tx.twitchIdentity.findUnique({ where: { twitchUserId: record.twitchUserId } });
         if (record.choice !== choice || web?.playerId !== winner || twitch?.playerId !== winner) throw changed();
+        await reconcileExternalBannerVotes(tx, record.twitchUserId);
         return { linked: true, playerId: winner, resolutionRequired: false };
       }
       if (record.expiresAt <= new Date()) throw new AppError('La vérification Twitch a expiré. Recommencez la liaison.', 409, 'TWITCH_RESOLUTION_EXPIRED');
@@ -179,6 +187,7 @@ export class TwitchAccountLink {
       }
       await tx.player.update({ where: { id: loser }, data: { status: 'ARCHIVED' } });
       await tx.twitchLinkResolution.update({ where: { id: record.id }, data: { choice, completedAt: now } });
+      await reconcileExternalBannerVotes(tx, record.twitchUserId);
       await reconcileLegacyFriendships(tx,{now,twitchUserIds:[record.twitchUserId]});
       await carryRetiredFriendshipUsage(tx,{loser,winner,now});
       await tx.playerSession.deleteMany({ where: { playerId: { in: [winner, loser] } } });
