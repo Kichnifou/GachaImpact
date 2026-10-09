@@ -1,5 +1,15 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+<a id="player-recovery-20261009"></a>
+
+## Player.legacyRecovery — reprise ciblée, candidat 066
+
+`Player.legacyRecovery` est un JSONB nullable privé du serveur. `null` conserve le comportement des Players existants. Sa version 1 porte `operationId`, `importId` (UUID), `populationHash`, `snapshotHash`, `backupHash` (SHA-256) et `restrictedDomains`, liste sans doublon parmi `EVENT`, `BOSS`, `GIVEAWAY`. L'application valide strictement toute la forme ; une valeur non nulle invalide ne rend aucun domaine disponible. Les nouveaux profils de cette opération reçoivent les trois restrictions dans la transaction de leur import, sans ajouter de WebIdentity.
+
+Le marqueur lie la disponibilité aux preuves durables `TwitchCanaryImport`/backup et au journal `MigrationBatch`. Avant NATIVE/CANARY, il ferme les mutations du profil ; après transfert, seules les restrictions nommées demeurent. Il n'est pas une préférence utilisateur, un payload client ni une autorisation de purger/restaurer les anciens Players. Les claims Codes et la cible de bannière restent dans leurs modèles existants ; aucune nouvelle table de gain. [Mapping, compensation et domaines](../architecture/legacy-migration-v1.md#reprise-ciblee-readiness-20261009), [DDL 066](../architecture/postgresql-schema-v1.md#reprise-ciblee-migration-066). Statut d'application au Master.
+
+Un droit Twitch authentifié reçu avant activation peut porter `TwitchEventReceipt.payloadMinimal.recoveryDeferred` : version 1, propriétaire `FAVOR` ou `GIFT_SUPREME`, Player ID et copie exacte de `legacyRecovery`. Le reçu reste `RECEIVED` sans référence ni effet consommé. Cette extension du journal existant n'ajoute ni table ni état de queue ; le contrat migration définit la validation, l'exception d'activation limitée et le replay par le propriétaire original.
+
 ## Extension R1061 — ExternalBannerVote, candidat 065
 
 Une preuve individuelle lie la semaine, la rotation officielle, le Character, le Twitch User ID historique vérifié et ses hashes/provenances. Player nullable : trois votants prouvés ne deviennent pas des Players. Unicités cycle/Twitch ID et cycle/Player nullable ; FK RESTRICT, historique des rattachements R1055 et gel. `BannerVote` natif reste conservé ; le total communautaire est l'union dédoublonnée des deux sources, jamais leur somme brute. Aucun changement d'un snapshot fermé. [Owner Vote, sécurité et application distincte](../architecture/legacy-banner-votes-r1061.md) ; 065 non déployée publiquement dans ce candidat.

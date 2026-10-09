@@ -6,6 +6,8 @@ import { giveawayRanked, oneLine, rankingText, resultText } from '../../domain/g
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { wishChatResult } from '../../domain/giveaway/wish-chat-result.js';
+import { assertPlayerDomainReady, isPlayerDomainReady, recoveryAllowsDomain } from '../player/player-recovery-readiness.js';
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 
 type Transaction = Prisma.TransactionClient;
 type CommandAction = 'OPEN' | 'CLOSE' | 'WISH';
@@ -44,12 +46,14 @@ export class GiveawayService {
       id: true, status: true, rolesGranted: { where: { revokedAt: null }, select: { role: true } },
     } });
     if (!actor || actor.status !== 'ACTIVE' || !actor.rolesGranted.some(row => row.role === 'ADMIN' || row.role === 'MODERATOR')) throw forbidden();
+    await assertPlayerDomainReady(tx, actorPlayerId, 'GIVEAWAY');
   }
 
   async open(actorPlayerId: string, source: SourceChannel, commandId?: string) {
     await this.bridge.assertActive();
     return this.transaction(async tx => {
       await currentLock(tx);
+      await lockPlayerMutation(tx, actorPlayerId);
       await this.authorize(tx, actorPlayerId);
       const previous = await this.command(tx, commandId, 'OPEN');
       if (previous) return { sessionId: previous.sessionId, duplicate: true };
@@ -84,8 +88,11 @@ export class GiveawayService {
         else {
           playerId = identity.playerId;
           name = identity.player.displayName;
-          const inserted = await tx.giveawayParticipant.createMany({ data: [{ sessionId: session.id, playerId }], skipDuplicates: true });
-          outcome = inserted.count ? 'JOINED' : 'ALREADY_JOINED';
+          if (!await lockPlayerMutationState(tx, playerId) || !await isPlayerDomainReady(tx, playerId, 'GIVEAWAY')) outcome = 'RECOVERY_UNAVAILABLE';
+          else {
+            const inserted = await tx.giveawayParticipant.createMany({ data: [{ sessionId: session.id, playerId }], skipDuplicates: true });
+            outcome = inserted.count ? 'JOINED' : 'ALREADY_JOINED';
+          }
         }
       }
       await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'WISH', sessionId: session?.id, outcome } });
@@ -108,6 +115,7 @@ export class GiveawayService {
       } });
       if (!identity || identity.linkedAt > input.observedAt || identity.player.status !== 'ACTIVE'
         || !identity.player.elementKey || !isElementKey(identity.player.elementKey)) return false;
+      if (!await lockPlayerMutationState(tx, identity.playerId) || !await isPlayerDomainReady(tx, identity.playerId, 'GIVEAWAY')) return false;
       const sender = await tx.twitchGiveawayCredential.findFirst({ where: { twitchUserId: input.twitchUserId, enabled: true }, select: { playerId: true } });
       if (sender && input.text === undefined && await tx.giveawayAnnouncement.findFirst({ where: { state: { in: ['RESERVED', 'AMBIGUOUS'] } }, select: { id: true } })) {
         await tx.giveawayDeferredMessage.createMany({ data: [{ twitchMessageId: input.twitchMessageId,
@@ -143,8 +151,12 @@ export class GiveawayService {
       await currentLock(tx);
       if (await tx.giveawayAnnouncement.findFirst({ where: { state: { in: ['RESERVED', 'AMBIGUOUS'] } }, select: { id: true } })) return 0;
       const deferred = await tx.giveawayDeferredMessage.findMany({ orderBy: { observedAt: 'asc' } });
+      const ready = new Set<string>();
+      for (const playerId of [...new Set(deferred.map(row => row.playerId))].sort())
+        if (await lockPlayerMutationState(tx, playerId) && await isPlayerDomainReady(tx, playerId, 'GIVEAWAY')) ready.add(playerId);
       let counted = 0;
       for (const row of deferred) {
+        if (!ready.has(row.playerId)) continue;
         const outbound = await tx.giveawayAnnouncement.findUnique({ where: { twitchMessageId: row.twitchMessageId }, select: { id: true } });
         const session = await tx.giveawaySession.findUnique({ where: { id: row.sessionId }, select: { status: true } });
         if (!outbound && session?.status === 'OPEN') {
@@ -175,16 +187,26 @@ export class GiveawayService {
         throw noOpen();
       }
       if (requestedSessionId && requestedSessionId !== open.id) throw new AppError('La session a changé.', 409, 'GIVEAWAY_SESSION_CHANGED');
-      if (await tx.giveawayDeferredMessage.findFirst({ where: { sessionId: open.id }, select: { twitchMessageId: true } }))
+      const pending = await tx.giveawayDeferredMessage.findMany({ where: { sessionId: open.id }, select: { playerId: true } });
+      for (const row of pending) if (await isPlayerDomainReady(tx, row.playerId, 'GIVEAWAY'))
         throw new AppError('Des messages Twitch attendent une résolution d’annonce.', 409, 'GIVEAWAY_MESSAGES_PENDING');
       const [participants, counts] = await Promise.all([
-        tx.giveawayParticipant.findMany({ where: { sessionId: open.id }, select: { playerId: true, player: { select: { status: true, elementKey: true, displayName: true } } }, orderBy: { playerId: 'asc' } }),
+        tx.giveawayParticipant.findMany({ where: { sessionId: open.id }, select: { playerId: true, player: { select: { status: true, elementKey: true, displayName: true, legacyRecovery: true } } }, orderBy: { playerId: 'asc' } }),
         tx.giveawayChatStat.findMany({ where: { sessionId: open.id }, select: { playerId: true, messageCount: true,
-          player: { select: { status: true, elementKey: true, displayName: true } } } }),
+          player: { select: { status: true, elementKey: true, displayName: true, legacyRecovery: true } } } }),
       ]);
-      const eligible = participants.filter(row => row.player.status === 'ACTIVE' && row.player.elementKey && isElementKey(row.player.elementKey));
+      const ready = new Set<string>();
+      const candidates = [...new Set([actorPlayerId, ...[...participants, ...counts].filter(row => row.player.status === 'ACTIVE').map(row => row.playerId)])].sort();
+      for (const playerId of candidates) {
+        const mutable = await lockPlayerMutationState(tx, playerId);
+        if (!mutable && playerId === actorPlayerId) await lockPlayerMutation(tx, playerId);
+        if (mutable && await isPlayerDomainReady(tx, playerId, 'GIVEAWAY')) ready.add(playerId);
+      }
+      // Revalidate the moderator after the same ordered locks as all beneficiaries.
+      await this.authorize(tx, actorPlayerId);
+      const eligible = participants.filter(row => ready.has(row.playerId) && row.player.elementKey && isElementKey(row.player.elementKey));
       const winner = eligible.length ? eligible[this.draw(eligible.length)]! : null;
-      const ranked = giveawayRanked(counts.filter(row => row.messageCount > 0n && row.player.status === 'ACTIVE'
+      const ranked = giveawayRanked(counts.filter(row => row.messageCount > 0n && ready.has(row.playerId)
         && row.player.elementKey && isElementKey(row.player.elementKey)).map(row => ({ playerId: row.playerId,
         displayName: row.player.displayName, elementKey: row.player.elementKey!, messageCount: row.messageCount })));
       const now = this.now();
@@ -240,13 +262,15 @@ export class GiveawayService {
     const session = await this.db.giveawaySession.findFirst({ where: { origin: 'NATIVE' },
       orderBy: [{ openedAt: 'desc' }, { id: 'desc' }], select: { id: true, status: true, openedAt: true, closedAt: true,
         openedBy: { select: { displayName: true, status: true } }, winner: { select: { displayName: true, status: true } },
-        participants: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true } }, chatStats: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true, messageCount: true,
-          player: { select: { displayName: true } } } }, announcements: { select: { id: true, kind: true, state: true, errorCode: true, attempts: true } } } });
-    const ranked = session ? giveawayRanked(session.chatStats.map(row => ({ playerId: row.playerId,
+        participants: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true, player: { select: { legacyRecovery: true } } } }, chatStats: { where: { player: { status: { not: 'ARCHIVED' } } }, select: { playerId: true, messageCount: true,
+          player: { select: { displayName: true, legacyRecovery: true } } } }, announcements: { select: { id: true, kind: true, state: true, errorCode: true, attempts: true } } } });
+    const participants = session?.participants.filter(row => session.status !== 'OPEN' || recoveryAllowsDomain(row.player.legacyRecovery, 'GIVEAWAY')) ?? [];
+    const chatStats = session?.chatStats.filter(row => session.status !== 'OPEN' || recoveryAllowsDomain(row.player.legacyRecovery, 'GIVEAWAY')) ?? [];
+    const ranked = session ? giveawayRanked(chatStats.map(row => ({ playerId: row.playerId,
       displayName: row.player.displayName, messageCount: row.messageCount }))) : [];
     return { session: session ? { id: session.id, status: session.status, openedAt: session.openedAt?.toISOString() ?? null,
       closedAt: session.closedAt?.toISOString() ?? null, openedBy: session.openedBy?.status === 'ARCHIVED' ? 'Progression archivée' : session.openedBy?.displayName ?? null,
-      winner: session.winner?.status === 'ARCHIVED' ? 'Progression archivée' : session.winner?.displayName ?? null, participantCount: session.participants.length, chatterCount: session.chatStats.length,
+      winner: session.winner?.status === 'ARCHIVED' ? 'Progression archivée' : session.winner?.displayName ?? null, participantCount: participants.length, chatterCount: chatStats.length,
       top: ranked.slice(0, 3).map(row => ({ playerId: row.playerId, displayName: row.displayName,
         messageCount: row.messageCount.toString(), rank: row.rank })), announcements: session.announcements } : null,
       bridge: await this.bridge.status() };

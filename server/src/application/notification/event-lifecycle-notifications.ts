@@ -1,4 +1,5 @@
 import { lockPlayerMutationState } from '../player/player-mutation-guard.js';
+import { isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { NotificationState, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
@@ -11,6 +12,7 @@ export class EventLifecycleNotificationReconciler implements NotificationReconci
   public constructor(private readonly database: PrismaClient, private readonly events: Pick<EventService, 'resolveCurrentEdition'>) {}
 
   public async reconcileNotificationsForPlayer(playerId: string, now = new Date()) {
+    if (!await isPlayerDomainReady(this.database, playerId, 'EVENT')) return;
     let context: Awaited<ReturnType<EventService['resolveCurrentEdition']>> | null = null;
     try { context = await this.events.resolveCurrentEdition(this.database, now); }
     catch (error) { if (!(error instanceof BusinessError && error.code === 'EVENT_CONFIGURATION_MISSING')) throw error; }
@@ -22,7 +24,7 @@ export class EventLifecycleNotificationReconciler implements NotificationReconci
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
         await this.database.$transaction(async (tx) => {
-          if (!await lockPlayerMutationState(tx, playerId)) return;
+          if (!await lockPlayerMutationState(tx, playerId) || !await isPlayerDomainReady(tx, playerId, 'EVENT')) return;
           await tx.notification.updateMany({ where: { playerId, domainKey: 'event', typeKey: { in: ['EVENT_EDITION_AVAILABLE', 'EVENT_EDITION_LAST_DAY'] }, state: { in: [NotificationState.UNREAD, NotificationState.READ] },
             ...(active ? { OR: [
               { actionTargetId: { not: edition!.id } },

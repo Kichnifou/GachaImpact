@@ -31,6 +31,14 @@ async function player(elementKey: ElementKey | null = 'cryo', stock = 500n) {
   return p.id;
 }
 const request = (a: string, b: string, amount: bigint | undefined = 300n, key = randomUUID()) => service.create(a, b, amount, key);
+it('does not reserve a trade or notification toward a staged recovery profile', async () => {
+  const sender = await player('cryo'), recipient = await player('pyro');
+  await db.player.update({ where: { id: recipient }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),
+    snapshotHash: 'a'.repeat(64), populationHash: 'b'.repeat(64), backupHash: 'c'.repeat(64), restrictedDomains: ['EVENT','BOSS','GIVEAWAY'] } } });
+  await expect(request(sender, recipient)).rejects.toMatchObject({ code: 'PLAYER_RECOVERY_NOT_ACTIVATED' });
+  expect(await db.tradeRequest.count({ where: { recipientPlayerId: recipient } })).toBe(0);
+  expect(await db.notification.count({ where: { playerId: recipient } })).toBe(0);
+});
 const balance = async (id: string, resourceKey: string) => (await db.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey } } })).amount;
 const stock = async (id: string, resourceKey = 'particles_pyro') => (await service.snapshot(id)).stocks.find(s => s.resourceKey === resourceKey)!;
 const notification = (id: string) => db.notification.findUniqueOrThrow({ where: { deduplicationKey: `trades:pending:${id}` } });

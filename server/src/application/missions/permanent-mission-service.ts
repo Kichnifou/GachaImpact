@@ -7,6 +7,7 @@ import {
   type PermanentMissionMetricKey,
 } from '../../domain/missions/permanent-mission-catalog.js';
 import { MAX_PLAYER_LEVEL, XP_PER_LEVEL } from '../../domain/player/player-progression.js';
+import { lockPlayerMutation } from '../player/player-mutation-guard.js';
 
 const rankOrder = { B: 0, A: 1, S: 2, Z: 3 } as const;
 const chainRanks = [PermanentMissionRank.B, PermanentMissionRank.A, PermanentMissionRank.S] as const;
@@ -231,10 +232,7 @@ export class PermanentMissionService {
   }
 }
 
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string) {
-  const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
-  if (!rows[0]) throw new Error('Player not found while reconciling Permanent Missions.');
-}
+const lockPlayer = lockPlayerMutation;
 async function readDefinitions(transaction: Prisma.TransactionClient) {
   return transaction.permanentMissionDefinition.findMany({ where: { isActive: true }, orderBy: [{ rank: 'asc' }, { displayOrder: 'asc' }] });
 }

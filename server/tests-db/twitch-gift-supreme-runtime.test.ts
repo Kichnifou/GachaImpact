@@ -51,6 +51,45 @@ const effects = async (playerId: string, resourceKey = 'particles_pyro') => ({ b
   stats: (await db.playerEconomyStats.findUniqueOrThrow({ where: { playerId } })).totalMainElementParticlesEarned, notifications: await db.notification.count({ where: { playerId } }),
   operations: await db.businessOperation.count({ where: { playerId } }), movements: await db.resourceMovement.count({ where: { playerId } }) });
 describe('Gift signed webhook to economy, settlement and at-most-once announcement, private DB only', () => {
+  it.each(['extra', 'missing', 'duplicate'] as const)('rejects a changed bounded recovery scope (%s) before any payment or remote mutation', async change => {
+    const selected = await target(`Bounded Selected ${change}`), outsider = await target(`Bounded Outsider ${change}`);
+    const ids = [randomUUID(), randomUUID()], outside = randomUUID();
+    f.state.redemptionInputs[ids[0]!] = selected.displayName; f.state.redemptionInputs[ids[1]!] = selected.displayName;
+    f.state.redemptionInputs[outside] = outsider.displayName;
+    const actual = change === 'extra' ? [...ids, outside] : change === 'missing' ? [ids[0]!] : ids;
+    f.state.unfulfilledIds = actual;
+    const canonicalList = f.manager.helix!.listUnfulfilledRedemptions.bind(f.manager.helix!);
+    const duplicateList = change === 'duplicate' ? vi.spyOn(f.manager.helix!, 'listUnfulfilledRedemptions').mockImplementation(async (...args) => {
+      const rows = await canonicalList(...args); return [rows[0]!, rows[0]!];
+    }) : null;
+    const before = [await effects(selected.id), await effects(outsider.id), await db.twitchEventReceipt.count(), announcementCalls()];
+    const settlements = f.network.mock.calls.filter(([, options]) => options?.method === 'PATCH').length;
+    try {
+      await expect(runtime.recoverUnfulfilled(f.linked.playerId, { expectedRedemptionIds: ids }))
+        .rejects.toMatchObject({ statusCode: 409, code: 'TWITCH_GIFT_RECOVERY_SCOPE_CHANGED' });
+      expect([await effects(selected.id), await effects(outsider.id), await db.twitchEventReceipt.count(), announcementCalls()]).toEqual(before);
+      expect(f.network.mock.calls.filter(([, options]) => options?.method === 'PATCH')).toHaveLength(settlements);
+      expect(f.state.unfulfilledIds).toEqual(actual);
+    } finally { duplicateList?.mockRestore(); f.state.unfulfilledIds = []; }
+  });
+  it('requires a nonempty unique bounded scope and recovers the exact canonical set once regardless of order', async () => {
+    const selected = await target('Bounded Exact Selected'), ids = [randomUUID(), randomUUID()];
+    const list = vi.spyOn(f.manager.helix!, 'listUnfulfilledRedemptions');
+    for (const expectedRedemptionIds of [[], [ids[0]!, ids[0]!], [''], [' padded ']])
+      await expect(runtime.recoverUnfulfilled(f.linked.playerId, { expectedRedemptionIds })).rejects.toMatchObject({ code: 'TWITCH_GIFT_RECOVERY_SCOPE_CHANGED' });
+    expect(list).not.toHaveBeenCalled(); list.mockRestore();
+    for (const id of ids) f.state.redemptionInputs[id] = selected.displayName;
+    const before = announcementCalls(); f.state.unfulfilledIds = [...ids].reverse();
+    expect(await runtime.recoverUnfulfilled(f.linked.playerId, { expectedRedemptionIds: ids })).toEqual({ recovered: 2 });
+    expect(await effects(selected.id)).toMatchObject({ balance: 3300n, notifications: 2, operations: 2, movements: 2 });
+    expect(announcementCalls()).toBe(before + 2); expect(f.state.unfulfilledIds).toEqual([]);
+    for (const id of ids) {
+      expect((await receipt(id)).payloadMinimal).toMatchObject({ result: { action: 'FULFILL', targetPlayerId: selected.id }, remote: { settlementState: 'FULFILLED', announcementState: 'SENT' } });
+      expect((await post(signed(payload(selected.displayName, id)))).statusCode).toBe(204);
+    }
+    expect(await effects(selected.id)).toMatchObject({ balance: 3300n, notifications: 2, operations: 2, movements: 2 });
+    expect(announcementCalls()).toBe(before + 2);
+  });
   it('credits exactly 1600, stats and notification, confirms settlement before one exact announcement and safely replays', async () => {
     const p = await target('Runtime Success Target'), body = payload(p.displayName), delivery = signed(body), before = announcementCalls();
     expect((await post(delivery)).statusCode).toBe(204); expect(await effects(p.id)).toEqual({ balance: 1700n, stats: 1600n, notifications: 1, operations: 1, movements: 1 });

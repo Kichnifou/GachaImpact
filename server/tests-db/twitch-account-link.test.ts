@@ -12,6 +12,7 @@ import { buildCutoverPurgePlan, applyPrivateCutoverPurge } from '../src/applicat
 import { assessPlayerCanonicalizationSafety } from '../src/application/twitch/player-canonicalization-safety.js';
 import { assessBaselineCanonicalizationSafety } from './canonicalization-safety-reference.js';
 import { readLegacyAccountProjection } from './legacy-account-projection.js';
+import { isDisposableWebPlayer } from '../src/application/twitch/twitch-profile-claim.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database, link = new TwitchAccountLink(db);
 let sequence = 0;
@@ -43,6 +44,13 @@ async function profiles(significant = true) {
   const identity = await db.webIdentity.findUniqueOrThrow({ where: { playerId: web.id } });
   return { web, twitch, subject, twitchUserId, identity };
 }
+it('keeps empty Web classification with migration 066 but never discards a recovery marker', async () => {
+  const f = await profiles(false);
+  expect(await db.$transaction(tx => isDisposableWebPlayer(tx, f.web.id))).toBe(true);
+  await db.player.update({ where: { id: f.web.id }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),
+    snapshotHash: 'a'.repeat(64), populationHash: 'b'.repeat(64), backupHash: 'c'.repeat(64), restrictedDomains: ['EVENT','BOSS','GIVEAWAY'] } } });
+  expect(await db.$transaction(tx => isDisposableWebPlayer(tx, f.web.id))).toBe(false);
+});
 it('links an unknown verified Twitch ID to the same significant Web Player without replacing gameplay', async () => {
   const f = await profiles(), unknown = String(970000000000 + sequence);
   const balances = await db.playerResourceBalance.findMany({ where: { playerId: f.web.id } });

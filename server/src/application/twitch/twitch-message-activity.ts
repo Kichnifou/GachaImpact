@@ -16,6 +16,7 @@ import { withPlayerCommandExecution } from '../player/player-command-execution.j
 import type { ClaimDailyReward } from '../daily-reward/claim-daily-reward.js';
 import type { EventService } from '../event/event-service.js';
 import { EventChatPresence, type EventChatPresenceIntent } from '../event/event-chat-presence.js';
+import { isPlayerDomainReady, isRecoveryUnavailable } from '../player/player-recovery-readiness.js';
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import { firstDailyMessageResult } from '../chat/daily-reward-chat-result.js';
@@ -79,13 +80,13 @@ export class TwitchMessageActivity {
             const element = player.elementKey;
             if (!daily.alreadyClaimed && element && isElementKey(element)) output.push(firstDailyMessageResult(player.displayName, element, daily));
           }
-          if (presence.event && this.events) {
+          if (presence.event && this.events && await isPlayerDomainReady(this.db, player.id, 'EVENT')) {
             if (presence.event.bonus) {
               try {
                 const result = await this.events.claimDailyBonus(actor, `event-daily:${key}`, 'TWITCH');
                 output.push(`🎪 ${presence.event.title} : +1 ${presence.event.currency} · solde ${result.currency.amount}.`);
               } catch (error) {
-                if (!(error instanceof BusinessError && ['EVENT_DAILY_BONUS_ALREADY_CLAIMED', 'EVENT_NOT_JOINED'].includes(error.code))) throw error;
+                if (!isRecoveryUnavailable(error) && !(error instanceof BusinessError && ['EVENT_DAILY_BONUS_ALREADY_CLAIMED', 'EVENT_NOT_JOINED'].includes(error.code))) throw error;
               }
             }
             output.push(...await new EventChatPresence(this.db, this.events).deliver(player, presence.event, key, now));

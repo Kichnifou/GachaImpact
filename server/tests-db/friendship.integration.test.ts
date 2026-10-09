@@ -50,6 +50,19 @@ const balance = async (id: string) => (await db.playerResourceBalance.findUnique
 const sent = async (id: string) => (await db.playerSocialStats.findUnique({ where: { playerId: id } }))?.totalFriendHeartsSent ?? 0n;
 
 describe('Friendship isolated PostgreSQL', () => {
+  it('confines staged recovery actors and recipients while all-hearts continues for ready friends', async () => {
+    const actor = await player(), ready = await player(), staged = await player();
+    await befriend(actor, ready); await befriend(actor, staged);
+    await db.player.update({ where: { id: staged }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),
+      snapshotHash: 'a'.repeat(64), populationHash: 'b'.repeat(64), backupHash: 'c'.repeat(64), restrictedDomains: ['EVENT','BOSS','GIVEAWAY'] } } });
+    const before = await db.friendship.findMany({ where: { OR: [{ playerAId: staged }, { playerBId: staged }] } });
+    expect(await service.sendHearts(actor, 'all', randomUUID())).toMatchObject({ sent: 1, unavailable: 1, senderReward: '5' });
+    expect(await balance(staged)).toBe(0n); expect(await balance(ready)).toBe(5n);
+    expect(await db.friendHeart.count({ where: { recipientPlayerId: staged } })).toBe(0);
+    await expect(service.sendHearts(staged, actor, randomUUID())).rejects.toMatchObject({ code: 'PLAYER_RECOVERY_NOT_ACTIVATED' });
+    await expect(service.mutate(actor, staged, 'REMOVE', randomUUID())).rejects.toMatchObject({ code: 'SOCIAL_UNAVAILABLE' });
+    expect(await db.friendship.findMany({ where: { OR: [{ playerAId: staged }, { playerBId: staged }] } })).toEqual(before);
+  });
   it('replays standalone polyvalent ADD/ACCEPT without duplicate requests or notifications and restores real level', async () => {
     const a = await player(), b = await player();
     const target = await db.player.findUniqueOrThrow({ where: { id: b } });

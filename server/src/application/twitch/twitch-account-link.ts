@@ -68,6 +68,8 @@ async function validatePair(tx: Tx, webIdentityId: string, webPlayerId: string, 
   if (!web || web.state !== 'ACTIVE' || web.playerId !== webPlayerId || web.player.status !== 'ACTIVE' || !twitch || twitch.playerId !== twitchPlayerId || twitch.player.status !== 'ACTIVE') throw changed();
   if (webPlayerId !== twitchPlayerId && (await tx.webIdentity.findUnique({ where: { playerId: twitchPlayerId } }) || await tx.twitchIdentity.findUnique({ where: { playerId: webPlayerId } }))) throw conflict();
   const native = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
+  if (twitch.player.legacyRecovery !== null && native?.dataAuthority !== 'NATIVE')
+    throw new AppError('La reprise de cette progression est en cours. Réessayez après sa remise en service.', 409, 'PLAYER_RECOVERY_NOT_ACTIVATED');
   if (native?.dataAuthority === 'MIGRATION_PENDING' || native?.playerId && native.playerId !== twitchPlayerId) throw conflict();
   return { web, twitch };
 }

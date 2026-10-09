@@ -7,6 +7,7 @@ import { entryParts, durationText, sacCommand } from './chat-command-format.js';
 import { pullChatResult } from './gacha-command-result.js';
 import { viewTeam } from './team-command.js';
 import { BusinessError } from '../errors.js';
+import { optionalRecoveryDomain } from '../player/player-recovery-readiness.js';
 import { AppError } from '../../api/errors.js';
 import { bossDailyState, expeditionDailyState, eventHasActionableContentToday } from '../../domain/dailies/daily-completion.js';
 export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'monthlyBossService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
@@ -63,16 +64,16 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
         services.getTodayWheelState.execute(identity), services.getDailyChallenge.execute(identity),
         services.dailyCombatService.getDaily(identity), services.expeditionService.getState(identity),
         services.getTodayDailyReward.execute(identity), services.socialService.friends(identity),
-        services.eventService.getCurrent(identity), services.socialService.favor(identity, actor.id),
-        services.monthlyBossService.getCurrentForChat(identity),
+        optionalRecoveryDomain(services.eventService.getCurrent(identity)), services.socialService.favor(identity, actor.id),
+        optionalRecoveryDomain(services.monthlyBossService.getCurrentForChat(identity)),
       ]);
       const mark = (state: string) => state === 'completed' ? '✅' : state === 'ineligible' ? '➖' : '⏳';
       return entryParts('📅 Quotidiennes :', [
         `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
         `Shop ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
-        `Boss ${mark(bossDailyState(boss))}`, `Expédition ${mark(expeditionDailyState(expedition))}`,
+        boss ? `Boss ${mark(bossDailyState(boss))}` : 'Boss : temporairement indisponible', `Expédition ${mark(expeditionDailyState(expedition))}`,
         `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
-        `Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}`,
+        event ? `Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}` : 'Event : temporairement indisponible',
         `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
       ], '📅 Quotidiennes (suite) :');
     }

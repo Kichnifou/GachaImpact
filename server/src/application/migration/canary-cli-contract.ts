@@ -35,4 +35,11 @@ export const canaryBackupSchema = z.discriminatedUnion('version', [
     social: z.object({ version: z.literal(1), schema: z.string(), sourcePairKeyHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)), playerIds: z.array(z.uuid()),
       rows: z.object({ legacy_friendship_facts: z.array(z.string()), friendships: z.array(z.string()), friend_hearts: z.array(z.string()), friendship_legacy_heart_state: z.array(z.string()) }).strict(),
       hash: z.string().regex(/^[a-f0-9]{64}$/) }).strict() }).strict(),
+  z.object({ ...canaryBackupFields, version: z.literal(4), retention: z.object({ version: z.literal(1), foreignKeys: z.array(z.string()),
+    operations: z.array(z.string()), references: z.array(z.object({ foreignKey: z.string(), rows: z.array(z.string()) }).strict()) }).strict(),
+    social: z.object({ version: z.literal(1), schema: z.string(), sourcePairKeyHashes: z.array(z.string().regex(/^[a-f0-9]{64}$/)), playerIds: z.array(z.uuid()),
+      rows: z.object({ legacy_friendship_facts: z.array(z.string()), friendships: z.array(z.string()), friend_hearts: z.array(z.string()), friendship_legacy_heart_state: z.array(z.string()) }).strict(),
+      hash: z.string().regex(/^[a-f0-9]{64}$/) }).strict(),
+    recovery: z.object({ operationId: z.uuid(), populationHash: z.string().regex(/^[a-f0-9]{64}$/), externalVotes: z.array(z.string()) }).strict(),
+  }).strict(),
 ]);

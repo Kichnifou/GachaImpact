@@ -44,7 +44,7 @@ it('deploys migration 065 privately with backend-only RLS/grants, indexed restri
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=current_schema() AND c.relname='external_banner_votes'`;
   expect(rows).toEqual([{ rls: true, anon: false, authenticated: false }]);
   const migrations = await db.$queryRaw<{ count: number }[]>`SELECT count(*)::int AS count FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`;
-  expect(migrations[0]!.count).toBe(65);
+  expect(migrations[0]!.count).toBe(66);
   const indexes = await db.$queryRaw<{ indexname: string }[]>`SELECT indexname FROM pg_indexes WHERE schemaname=current_schema() AND tablename='external_banner_votes'`;
   expect(indexes.map(i => i.indexname)).toEqual(expect.arrayContaining(['external_banner_votes_cycle_twitch_key', 'external_banner_votes_rotation_character_idx', 'external_banner_votes_character_idx', 'external_banner_votes_player_idx']));
 });

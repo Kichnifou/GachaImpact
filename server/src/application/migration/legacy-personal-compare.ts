@@ -3,7 +3,7 @@ import type { Prisma } from '../../../generated/prisma/client.js';
 import type { SnapshotPilotService } from './snapshot-pilot-service.js';
 import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
-import { businessDateToDatabaseDate } from '../../domain/time/business-date.js';
+import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import { assertDerivedPlayerCosmeticsExact } from '../appearance/derived-player-cosmetics.js';
 
 type Mapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>;
@@ -21,7 +21,7 @@ export async function compareLegacyPersonalState(tx: Prisma.TransactionClient, p
   const resources = await tx.playerResourceBalance.findMany({ where });
   const expectedResources = new Map<string, bigint>(mapping.resources);
   if (resources.length !== expectedResources.size || resources.some(row => expectedResources.get(row.resourceKey) !== row.amount)) throw new Error('CANARY_COMPARISON_FAILED_RESOURCES');
-  subset(await tx.playerBankAccount.findUnique({ where }), { balance: mapping.bankBalance }, 'BANK');
+  subset(await tx.playerBankAccount.findUnique({ where }), { balance: mapping.bankBalance, lastInterestDate: businessDateToDatabaseDate(getBusinessDate(at)) }, 'BANK');
   subset(await tx.playerGachaState.findUnique({ where }), { ...mapping.gachaState, legacyLastPullWasFiveStar: facts.legacyLastPullWasFiveStar }, 'GACHA');
   subset(await tx.playerEconomyStats.findUnique({ where }), mapping.economyState, 'ECONOMY');
   subset(await tx.playerSocialStats.findUnique({ where }), mapping.socialState, 'SOCIAL');
@@ -44,7 +44,7 @@ export async function compareLegacyPersonalState(tx: Prisma.TransactionClient, p
   const missions = await tx.playerPermanentMissionProgress.findMany({ where });
   if (missions.length !== mapping.missionMapping.rows.length) throw new Error('CANARY_COMPARISON_FAILED_MISSIONS');
   for (const row of mapping.missionMapping.rows) subset(missions.find(item => item.definitionId === row.definitionId) ?? null, row, 'MISSIONS');
-  subset(await tx.playerPermanentMissionState.findUnique({ where }), { zUnlockedAt: mapping.missionMapping.zUnlockedAt }, 'MISSION_STATE');
+  subset(await tx.playerPermanentMissionState.findUnique({ where }), { zUnlockedAt: mapping.missionMapping.zUnlockedAt, standaloneCatchupCompletedAt: at }, 'MISSION_STATE');
   const c6 = await tx.c6CompetitionProgress.findMany({ where });
   if (c6.length !== mapping.c6Rows.length) throw new Error('CANARY_COMPARISON_FAILED_C6');
   for (const row of mapping.c6Rows) subset(c6.find(item => item.characterId === row.characterId) ?? null, row, 'C6');
@@ -52,8 +52,15 @@ export async function compareLegacyPersonalState(tx: Prisma.TransactionClient, p
   if (combat.length !== mapping.characterCombatRows.length) throw new Error('CANARY_COMPARISON_FAILED_CHARACTER_COMBAT');
   for (const row of mapping.characterCombatRows) subset(combat.find(item => item.characterId === row.characterId) ?? null, row, 'CHARACTER_COMBAT');
   subset(await tx.playerWheelStats.findUnique({ where }), { totalSpins: mapping.wheel.totalSpins, totalJackpots: mapping.wheel.totalJackpots }, 'WHEEL');
+  const wheelDaily = await tx.playerWheelDailyState.findMany({ where });
+  if (mapping.wheel.lastWheelDate === getBusinessDate(at)) {
+    if (wheelDaily.length !== 1) throw new Error('CANARY_COMPARISON_FAILED_WHEEL_DAILY');
+    subset(wheelDaily[0]!, { businessDate: businessDateToDatabaseDate(getBusinessDate(at)), resultKnown: false }, 'WHEEL_DAILY');
+  } else if (wheelDaily.length) throw new Error('CANARY_COMPARISON_FAILED_WHEEL_DAILY');
   subset(await tx.playerDailyRewardState.findUnique({ where }), { lastClaimDate: mapping.wheel.lastDailyRewardDate ? businessDateToDatabaseDate(mapping.wheel.lastDailyRewardDate) : null }, 'DAILY_REWARD');
   if (facts.favor) subset(await tx.playerFavorState.findUnique({ where }), facts.favor.state, 'FAVOR');
+  if (facts.favor?.claimDate) subset(await tx.favorDailyClaim.findUnique({ where: { playerId_businessDate: { playerId: player.playerId, businessDate: facts.favor.claimDate } } }),
+    { origin: 'LEGACY', operationId: null, claimedAt: null }, 'FAVOR_CLAIM');
   if (mapping.dailyData) subset(await tx.playerDailyChallenge.findFirst({ where }), mapping.dailyData, 'DAILY_CHALLENGE');
   else if (await tx.playerDailyChallenge.count({ where })) throw new Error('CANARY_COMPARISON_FAILED_DAILY_CHALLENGE');
 }

@@ -9,6 +9,7 @@ import type { PlayerResourceBalances } from '../../application/player/player-res
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
+import { lockPlayerMutation } from '../../application/player/player-mutation-guard.js';
 
 const MAX_ATTEMPTS = 4;
 
@@ -357,7 +358,7 @@ function rarity(value: number): 4 | 5 { if (value === 4 || value === 5) return v
 function elementKey(value: string): ElementKey { if (isElementKey(value)) return value; throw new Error(`Unsupported element ${value}.`); }
 function relationMap(rows: readonly { attackerElementKey: string; defenderElementKey: string; relation: number }[]) { return new Map(rows.map((row) => [`${row.attackerElementKey}:${row.defenderElementKey}`, row.relation])); }
 async function ensureLoadout(transaction: Prisma.TransactionClient, playerId: string) { await transaction.playerDailyCombatLoadout.upsert({ where: { playerId }, create: { playerId }, update: {} }); }
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string) { const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`; if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'Aucun joueur n’est lié à ce compte.'); }
+const lockPlayer = lockPlayerMutation;
 async function isKo(client: Client, playerId: string, encounterId: string, characterId: string) { return Boolean(await client.playerDailyCombatKo.findUnique({ where: { playerId_encounterId_characterId: { playerId, encounterId, characterId } } })); }
 async function readBalances(client: Client, playerId: string): Promise<PlayerResourceBalances> {
   const rows = await client.playerResourceBalance.findMany({ where: { playerId, resourceKey: { in: [...resourceKeys] } }, select: { resourceKey: true, amount: true } });

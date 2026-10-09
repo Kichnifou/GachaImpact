@@ -218,14 +218,20 @@ describe('DirectMessagePanel', () => {
 
   it('replaces the receipt with the other participant typing, then restores it after TTL', async () => {
     const own = { ...message, own: true, authorPlayerId: ownId, readByOther: false }
-    directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1, otherTypingUntil: new Date(Date.now() + 120).toISOString() })
     const container = await mount({ ...baseConversation, lastMessage: own })
-    await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() }); await settle()
-    const status = container.querySelector<HTMLElement>('.dm-latest-status')!
-    expect(status.textContent).toBe('Aster est en train d’écrire…')
-    expect(appCss).toContain('.dm-latest-status { align-self: flex-end; min-height: 16px;')
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 150)) })
-    expect(status.textContent).toBe('Envoyé')
+    // The TTL starts with the response and advances explicitly; machine load
+    // while mounting must not consume this test's 120 ms typing window.
+    vi.useFakeTimers()
+    try {
+      directMessages.messages.mockResolvedValue({ messages: [own], nextCursor: null, windowSize: 1, otherTypingUntil: new Date(Date.now() + 120).toISOString() })
+      await act(async () => { container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click() })
+      await act(async () => { await vi.advanceTimersByTimeAsync(25) })
+      const status = container.querySelector<HTMLElement>('.dm-latest-status')!
+      expect(status.textContent).toBe('Aster est en train d’écrire…')
+      expect(appCss).toContain('.dm-latest-status { align-self: flex-end; min-height: 16px;')
+      await act(async () => { await vi.advanceTimersByTimeAsync(150) })
+      expect(status.textContent).toBe('Envoyé')
+    } finally { vi.useRealTimers() }
   })
 
   it('polls only unread while hidden and refreshes the full view on visibility return', async () => {

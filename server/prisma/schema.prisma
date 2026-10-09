@@ -373,6 +373,7 @@ model Player {
   updatedAt             DateTime                     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   migrationRunId        String?                      @map("migration_run_id") @db.Uuid
   legacyUsername        String?                      @map("legacy_username") @db.Text
+  legacyRecovery        Json?                        @map("legacy_recovery") @db.JsonB
   element               Element?                     @relation(fields: [elementKey], references: [key], onDelete: Restrict)
   webIdentity           WebIdentity?
   twitchIdentity        TwitchIdentity?

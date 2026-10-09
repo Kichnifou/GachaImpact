@@ -59,8 +59,8 @@ async function isUnclaimedAvailabilityNotice(tx: Prisma.TransactionClient, row: 
 export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, playerId: string): Promise<boolean> {
   const player = await tx.player.findUnique({ where: { id: playerId } });
   if (!player || player.status !== 'ACTIVE' || player.elementKey !== null || player.legacyUsername !== null
-    || player.migrationRunId !== null || player.equippedAvatarCosmeticId !== null || player.equippedTitleCosmeticId !== null) return false;
-  const playerKeys = new Set(['id', 'displayName', 'elementKey', 'equippedAvatarCosmeticId', 'equippedTitleCosmeticId', 'status', 'createdAt', 'updatedAt', 'migrationRunId', 'legacyUsername']);
+    || player.migrationRunId !== null || player.legacyRecovery !== null || player.equippedAvatarCosmeticId !== null || player.equippedTitleCosmeticId !== null) return false;
+  const playerKeys = new Set(['id', 'displayName', 'elementKey', 'equippedAvatarCosmeticId', 'equippedTitleCosmeticId', 'status', 'createdAt', 'updatedAt', 'migrationRunId', 'legacyUsername', 'legacyRecovery']);
   const playerColumns = await tx.$queryRaw<{ count: bigint }[]>`SELECT count(*)::bigint count FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='players'`;
   if (Object.keys(player).some(key => !playerKeys.has(key)) || playerColumns[0]!.count !== BigInt(playerKeys.size)) return false;
   const web = await tx.webIdentity.findUnique({ where: { playerId } });

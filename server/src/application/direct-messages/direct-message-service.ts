@@ -10,6 +10,7 @@ import { PRIVATE_MESSAGES_CATEGORY } from '../social/contact-permission.js';
 import { applyPlayerBlock, removePlayerBlock } from '../social/player-block-service.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
+import { assertPlayerRecoveryActivated } from '../player/player-mutation-guard.js';
 
 const presenceAccess = (value: PresenceStatus | undefined) => value ? { access: 'ALLOWED' as const, data: value } : { access: 'PRIVATE' as const };
 const invalid = (message: string) => new AppError(message, 400, 'DIRECT_MESSAGE_INVALID');
@@ -72,6 +73,7 @@ export class DirectMessageService {
   }
   private async lockPlayers(tx: Prisma.TransactionClient, ids: string[]) {
     await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join([...new Set(ids)].sort().map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
+    for (const id of new Set(ids)) await assertPlayerRecoveryActivated(tx, id);
   }
   private async replay<T extends OperationResult>(tx: Prisma.TransactionClient, playerId: string, key: string, type: string, fingerprint: string): Promise<T | null> {
     const row = await tx.businessOperation.findFirst({ where: { sourceChannel: 'UI', idempotencyKey: key } });

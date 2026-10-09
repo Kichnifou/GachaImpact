@@ -6,6 +6,8 @@ import { elementKeys, isElementKey, particleResourceKey } from '../../domain/eco
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { matchGiftSupremeTarget } from './gift-supreme-matching.js';
+import { lockPlayerMutation } from '../player/player-mutation-guard.js';
+import { checkedRecoveryDeferred, deferRecoveryReceipt, recoveryDeferredError } from '../twitch/twitch-recovery-deferrals.js';
 
 export const GIFT_SUPREME_EVENT_TYPE = 'channel.channel_points_custom_reward_redemption.add';
 const identifier = z.string().trim().min(1).max(128);
@@ -27,14 +29,14 @@ export class GiftSupremeIdempotencyConflict extends Error {
   constructor() { super('Conflicting Gift Suprême redemption proof.'); }
 }
 
-/** Internal authenticated-adapter boundary only. Not wired to any browser route or runtime. */
+/** Internal authenticated-adapter boundary shared with the signed Twitch runtime. */
 export class GiftSupremeService {
   constructor(private readonly database: PrismaClient, private readonly clock: Clock, private readonly giftSupremeRewardId: string,
     private readonly economy = new PrismaEconomyService(() => clock.now())) {
     this.giftSupremeRewardId = identifier.parse(giftSupremeRewardId);
   }
 
-  async process(value: GiftSupremeInput): Promise<GiftSupremeResult | { action: 'IGNORE'; reason: 'OTHER_REWARD' }> {
+  async process(value: GiftSupremeInput): Promise<GiftSupremeResult | { action: 'IGNORE'; reason: 'OTHER_REWARD' } | { action: 'DEFERRED'; receiptId: string }> {
     const input = giftSupremeInput.parse(value), key = `gift-supreme:${input.redemptionId}`;
     const proof = { redemptionId: input.redemptionId, rewardId: input.rewardId, gifterTwitchUserId: input.gifterTwitchUserId,
       redeemedAt: new Date(input.redeemedAt).toISOString(), inputHash: createHash('sha256').update(input.userInput).digest('hex') };
@@ -55,24 +57,36 @@ export class GiftSupremeService {
           }
           if (input.rewardId !== this.giftSupremeRewardId) return { action: 'IGNORE' as const, reason: 'OTHER_REWARD' as const };
           if (current.state !== 'RECEIVED') throw new Error('Invalid Gift Suprême receipt state.');
+          const deferred = checkedRecoveryDeferred(current, 'GIFT_SUPREME');
           const now = this.clock.now();
           const finalize = async (result: GiftSupremeResult, targetPlayerId: string | null = null) => {
             await tx.twitchEventReceipt.update({ where: { id: receipt.id }, data: { state: 'PROCESSED', processedAt: now,
               externalReference: result.action === 'FULFILL' ? `gift-supreme:operation:${result.operationId}` : `gift-supreme:invalid:${result.reason}`,
               errorMessage: result.action === 'CANCEL' ? result.reason : null,
               payloadMinimal: { proof, gifterDisplayName: input.gifterDisplayName ?? input.gifterLogin ?? input.gifterTwitchUserId,
+                ...(deferred ? { recoveryDeferred: deferred } : {}),
                 targetPlayerId, localOutcome: result.action === 'FULFILL' ? 'SUCCESS' : 'INVALID', result } } });
             return result;
           };
-          const players = await tx.player.findMany({ select: { id: true, displayName: true, status: true, elementKey: true } });
-          // Explicitly naming an ineligible account must not fall through to a fuzzy neighbour.
-          const direct = matchGiftSupremeTarget(input.userInput, players, false);
-          const eligible = players.filter(player => player.status === 'ACTIVE' && player.elementKey && isElementKey(player.elementKey));
-          const matched = direct.status === 'MATCH' || direct.reason !== 'TARGET_NOT_FOUND' ? direct : matchGiftSupremeTarget(input.userInput, eligible);
-          if (matched.status === 'INVALID') return finalize({ action: 'CANCEL', reason: matched.reason });
-          await tx.$queryRaw`SELECT id FROM players WHERE id = ${matched.target.id}::uuid FOR UPDATE`;
-          const target = await tx.player.findUnique({ where: { id: matched.target.id }, select: { id: true, displayName: true, status: true, elementKey: true } });
-          if (!target || target.status !== 'ACTIVE') return finalize({ action: 'CANCEL', reason: 'TARGET_INACTIVE' }, matched.target.id);
+          let targetId = deferred?.playerId;
+          if (!targetId) {
+            const players = await tx.player.findMany({ select: { id: true, displayName: true, status: true, elementKey: true } });
+            // Explicitly naming an ineligible account must not fall through to a fuzzy neighbour.
+            const direct = matchGiftSupremeTarget(input.userInput, players, false);
+            const eligible = players.filter(player => player.status === 'ACTIVE' && player.elementKey && isElementKey(player.elementKey));
+            const matched = direct.status === 'MATCH' || direct.reason !== 'TARGET_NOT_FOUND' ? direct : matchGiftSupremeTarget(input.userInput, eligible);
+            if (matched.status === 'INVALID') return finalize({ action: 'CANCEL', reason: matched.reason });
+            targetId = matched.target.id;
+          }
+          // A replay keeps the proven beneficiary even after a display-name change.
+          await tx.$queryRaw`SELECT id FROM players WHERE id = ${targetId}::uuid FOR UPDATE`;
+          const target = await tx.player.findUnique({ where: { id: targetId }, select: { id: true, displayName: true, status: true, elementKey: true } });
+          if (!target || target.status !== 'ACTIVE') {
+            if (deferred) throw recoveryDeferredError();
+            return finalize({ action: 'CANCEL', reason: 'TARGET_INACTIVE' }, targetId);
+          }
+          if (await deferRecoveryReceipt(tx, current.id, target.id, 'GIFT_SUPREME')) return { action: 'DEFERRED' as const, receiptId: current.id };
+          await lockPlayerMutation(tx, target.id);
           if (!target.elementKey || !isElementKey(target.elementKey)) return finalize({ action: 'CANCEL', reason: 'TARGET_ELEMENT_MISSING' }, target.id);
           const operation = await tx.businessOperation.create({ data: { playerId: target.id, operationType: 'gift-supreme.redeem',
             sourceChannel: 'TWITCH', idempotencyKey: key, startedAt: now } });

@@ -1,4 +1,5 @@
 import { lockPlayerMutationState } from '../player/player-mutation-guard.js';
+import { isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { NotificationState, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import type { NotificationReconciler } from './notification-service.js';
@@ -7,6 +8,7 @@ type Database = PrismaClient | Prisma.TransactionClient;
 const TYPE_KEY = 'EVENT_MESSAGES_PENDING';
 
 export async function reconcileEventMessageAggregate(database: Database, recipientPlayerId: string, editionId: string | null, businessDate: string, now: Date, newMessage = false) {
+  if (!await isPlayerDomainReady(database, recipientPlayerId, 'EVENT')) return;
   const deduplicationKey = editionId ? `event-messages:${recipientPlayerId}:${editionId}:${businessDate}` : null;
   await database.notification.updateMany({
     where: { playerId: recipientPlayerId, typeKey: TYPE_KEY, state: { in: [NotificationState.UNREAD, NotificationState.READ] }, ...(deduplicationKey ? { deduplicationKey: { not: deduplicationKey } } : {}) },
@@ -34,7 +36,7 @@ export class EventMessageNotificationReconciler implements NotificationReconcile
   public async reconcileNotificationsForPlayer(playerId: string, now = new Date()) {
     const businessDate = getBusinessDate(now);
     await this.database.$transaction(async (tx) => {
-      if (!await lockPlayerMutationState(tx, playerId)) return;
+      if (!await lockPlayerMutationState(tx, playerId) || !await isPlayerDomainReady(tx, playerId, 'EVENT')) return;
       const message = await tx.eventSocialMessage.findFirst({ where: { recipientPlayerId: playerId, businessDate: businessDateToDatabaseDate(businessDate), viewedAt: null }, select: { eventEditionId: true } });
       await reconcileEventMessageAggregate(tx, playerId, message?.eventEditionId ?? null, businessDate, now);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

@@ -1,11 +1,25 @@
+import { isDeepStrictEqual } from 'node:util';
+import { z } from 'zod';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
-import { assessTwitchOperationsInFlight } from './twitch-operations-in-flight.js';
+import { assessTwitchOperationsInFlight, receiptSafety } from './twitch-operations-in-flight.js';
+import { assertRecoveryTransferIntegrity } from '../migration/legacy-recovery-integrity.js';
+import { isRecoveryDeferredReceipt } from './twitch-recovery-deferrals.js';
 
 export const STREAMERBOT_PATH_DISABLED = 'STREAMERBOT_PATH_DISABLED';
 export type NativeAuthorityMode = 'OFF' | 'CANARY' | 'GLOBAL';
 export type NativeAuthorityState = { desiredMode: NativeAuthorityMode; revision: number; operatorPlayerId: string | null };
+const recoveryProofSchema = z.object({ version: z.literal(1), operationId: z.uuid(), importId: z.uuid(),
+  snapshotHash: z.string().regex(/^[a-f0-9]{64}$/), populationHash: z.string().regex(/^[a-f0-9]{64}$/),
+  restrictedDomains: z.array(z.enum(['EVENT', 'BOSS', 'GIVEAWAY'])).max(3)
+    .refine(domains => new Set(domains).size === domains.length),
+}).strict();
+const importedCanaryAdditionSchema = z.object({ twitchUserId: z.string().regex(/^[1-9][0-9]{0,127}$/),
+  expectedPlayerId: z.string().regex(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i),
+  backupHash: z.string().regex(/^[a-f0-9]{64}$/), expectedRecovery: recoveryProofSchema.optional(),
+}).strict();
+export type ImportedCanaryAddition = z.infer<typeof importedCanaryAdditionSchema>;
 export interface NativeAuthorityStore {
   read(db?: Prisma.TransactionClient): Promise<NativeAuthorityState>;
   covers(twitchUserId: string, db?: Prisma.TransactionClient): Promise<boolean>;
@@ -85,9 +99,14 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       const operations = await assessTwitchOperationsInFlight(tx, twitchUserId, target.playerId);
       if (operations.unresolvedOutbound)
         throw new AppError('Réponse Twitch incertaine : contrôle opérateur requis avant rollback.', 409, 'TWITCH_NATIVE_ROLLBACK_BLOCKED');
-      if (!await tx.twitchCanaryImport.findFirst({ where: { twitchUserId, playerId: target.playerId, backupHash, status: 'DATA_IMPORTED' } })
-        || operations.blocked)
+      const imported = await tx.twitchCanaryImport.findFirst({ where: { twitchUserId, playerId: target.playerId, backupHash, status: 'DATA_IMPORTED' },
+        orderBy: [{ importedAt: 'desc' }, { id: 'desc' }] });
+      if (!imported || operations.blocked)
         throw new AppError('Provenance ou opérations en cours à contrôler.', 409, 'TWITCH_NATIVE_ROLLBACK_BLOCKED');
+      const player = await tx.player.findUniqueOrThrow({ where: { id: target.playerId }, select: { legacyRecovery: true } });
+      if (player.legacyRecovery !== null && await tx.twitchNativeAudit.count({ where: { twitchUserId, action: 'AUTHORITY_TRANSFERRED',
+        createdAt: { gte: imported.importedAt } } }))
+        throw new AppError('Une reprise déjà activée exige une nouvelle procédure de compensation.', 409, 'TWITCH_NATIVE_ROLLBACK_BLOCKED');
       await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { dataAuthority: 'LEGACY', canary: false, acknowledgement: null, transferredAt: null } });
       if (control) await tx.twitchNativeAuthority.update({ where: { id: key }, data: { revision: { increment: 1 } } });
       await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, twitchUserId, action: 'ROLLBACK_AUTHORITY_RETURNED_TO_LEGACY' } });
@@ -109,56 +128,102 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
   /** Local-only extension: preserve every existing native canary and transfer exactly one imported target. */
   async extendImportedCanary(actor: string, twitchUserId: string, expectedPlayerId: string, backupHash: string,
     acknowledgement: string, expectedRevision: number): Promise<NativeAuthorityState> {
+    return this.extendImportedCanaries(actor, [{ twitchUserId, expectedPlayerId, backupHash }], acknowledgement, expectedRevision);
+  }
+  /** One atomic extension of the persisted set; every addition has its own exact import proof. */
+  async extendImportedCanaries(actor: string, input: readonly ImportedCanaryAddition[],
+    acknowledgement: string, expectedRevision: number): Promise<NativeAuthorityState> {
     if (this.config.twitchCommandPilot?.enabled !== true)
       throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
+    if (this.config.twitchCommandPilot.globalEnabled !== false)
+      throw new AppError('La couverture globale doit rester désactivée.', 409, 'TWITCH_NATIVE_GLOBAL_UNAVAILABLE');
     if (acknowledgement !== STREAMERBOT_PATH_DISABLED)
       throw new AppError('Confirmez la désactivation réelle des chemins Streamer.bot concernés.', 409, 'TWITCH_NATIVE_ACK_REQUIRED');
-    if (!/^[1-9][0-9]{0,127}$/.test(twitchUserId) || !/^[a-f0-9]{64}$/.test(backupHash)
-      || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(expectedPlayerId)
+    const parsed = z.array(importedCanaryAdditionSchema).min(1).max(100).safeParse(input);
+    if (!parsed.success || new Set(parsed.data.map(row => row.twitchUserId)).size !== parsed.data.length
+      || new Set(parsed.data.map(row => row.expectedPlayerId.toLowerCase())).size !== parsed.data.length
       || !Number.isSafeInteger(expectedRevision) || expectedRevision < 1 || expectedRevision >= 2_147_483_647)
       throw new AppError('Paramètres d’extension invalides.', 400, 'VALIDATION_ERROR');
+    const additions = parsed.data.slice().sort((a, b) => a.twitchUserId.localeCompare(b.twitchUserId));
+    const addedIds = additions.map(row => row.twitchUserId), byId = new Map(additions.map(row => [row.twitchUserId, row]));
     return this.db.$transaction(async tx => {
       await this.requireOperator(tx, actor);
+      if (additions.some(row => row.expectedRecovery)) await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = ${key} FOR UPDATE`;
       const control = await tx.twitchNativeAuthority.findUnique({ where: { id: key } });
       if (!control || control.revision !== expectedRevision)
         throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
       if (control.desiredMode !== 'OFF')
         throw new AppError('Désactivez le pilote avant d’étendre la canary.', 409, 'TWITCH_NATIVE_CANARY_EXTENSION_OFF_REQUIRED');
-      await tx.$queryRaw`SELECT twitch_user_id FROM twitch_native_targets
-        WHERE canary = true OR twitch_user_id = ${twitchUserId} ORDER BY twitch_user_id FOR UPDATE`;
-      const targets = await tx.twitchNativeTarget.findMany({ where: { OR: [{ canary: true }, { twitchUserId }] }, orderBy: { twitchUserId: 'asc' } });
-      const existing = targets.filter(target => target.canary), added = targets.find(target => target.twitchUserId === twitchUserId);
+      await tx.$queryRaw(Prisma.sql`SELECT twitch_user_id FROM twitch_native_targets
+        WHERE canary = true OR twitch_user_id IN (${Prisma.join(addedIds)}) ORDER BY twitch_user_id FOR UPDATE`);
+      const targets = await tx.twitchNativeTarget.findMany({ where: { OR: [{ canary: true }, { twitchUserId: { in: addedIds } }] }, orderBy: { twitchUserId: 'asc' } });
+      const existing = targets.filter(target => target.canary), targetById = new Map(targets.map(target => [target.twitchUserId, target]));
       const blocked = () => new AppError('Cibles, imports ou opérations incompatibles : extension refusée.', 409, 'TWITCH_IMPORTED_CANARY_EXTENSION_BLOCKED');
-      if (!existing.length || existing.length >= 100 || !added || added.canary || added.dataAuthority !== 'LEGACY'
-        || added.playerId !== expectedPlayerId) throw blocked();
+      if (!existing.length || existing.length + additions.length > 100 || additions.some(addition => {
+        const target = targetById.get(addition.twitchUserId);
+        return !target || target.canary || target.dataAuthority !== 'LEGACY' || target.playerId !== addition.expectedPlayerId;
+      })) throw blocked();
       const playerIds = [...new Set([actor, ...targets.flatMap(target => target.playerId ? [target.playerId] : [])])].sort();
-      for (const playerId of playerIds) await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM players
+        WHERE id IN (${Prisma.join(playerIds.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
       await this.requireOperator(tx, actor);
+      const twitchIds = targets.map(target => target.twitchUserId);
+      await tx.$queryRaw(Prisma.sql`SELECT twitch_user_id FROM twitch_identities
+        WHERE twitch_user_id IN (${Prisma.join(twitchIds)}) ORDER BY twitch_user_id FOR UPDATE`);
+      const identities = new Map((await tx.twitchIdentity.findMany({ where: { twitchUserId: { in: twitchIds } }, include: { player: true } }))
+        .map(identity => [identity.twitchUserId, identity]));
+      await tx.$queryRaw(Prisma.sql`SELECT id FROM twitch_canary_imports
+        WHERE twitch_user_id IN (${Prisma.join(twitchIds)}) ORDER BY twitch_user_id, imported_at, id FOR UPDATE`);
+      const imports = await tx.twitchCanaryImport.findMany({ where: { twitchUserId: { in: twitchIds } },
+        orderBy: [{ importedAt: 'desc' }, { id: 'desc' }] });
+      const latestImports = new Map<string, typeof imports[number]>();
+      for (const imported of imports) if (!latestImports.has(imported.twitchUserId)) latestImports.set(imported.twitchUserId, imported);
       for (const target of targets) {
         if (!target.playerId || target.canary && (target.dataAuthority !== 'NATIVE'
           || target.acknowledgement !== STREAMERBOT_PATH_DISABLED || !target.transferredAt)) throw blocked();
-        await tx.$queryRaw`SELECT twitch_user_id FROM twitch_identities WHERE twitch_user_id = ${target.twitchUserId} FOR UPDATE`;
-        const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId: target.twitchUserId }, include: { player: true } });
+        const identity = identities.get(target.twitchUserId);
         if (identity?.playerId !== target.playerId || identity.player.status !== 'ACTIVE') throw blocked();
-        await tx.$queryRaw`SELECT id FROM twitch_canary_imports WHERE twitch_user_id = ${target.twitchUserId} FOR UPDATE`;
-        const imported = await tx.twitchCanaryImport.findFirst({ where: { twitchUserId: target.twitchUserId }, orderBy: [{ importedAt: 'desc' }, { id: 'desc' }] });
+        const imported = latestImports.get(target.twitchUserId), addition = byId.get(target.twitchUserId);
         if (!imported || imported.status !== 'DATA_IMPORTED' || imported.rolledBackAt !== null || imported.playerId !== target.playerId
-          || target.twitchUserId === twitchUserId && imported.backupHash !== backupHash) throw blocked();
-        const operations = await assessTwitchOperationsInFlight(tx, target.twitchUserId, target.playerId);
-        if (operations.blocked || operations.unresolvedOutbound) throw blocked();
-        // A committed result still waiting to send is not idle, even when outbound is not yet uncertain.
-        const receipts = await tx.twitchEventReceipt.findMany({ where: { twitchUserId: target.twitchUserId }, select: { payloadMinimal: true } });
-        if (receipts.some(receipt => {
-          const pilot = (receipt.payloadMinimal as Prisma.JsonObject | null)?.commandPilot as Prisma.JsonObject | undefined;
-          return Array.isArray(pilot?.responses) && pilot.responses.some(response =>
-            response !== null && typeof response === 'object' && !Array.isArray(response) && response.status === 'PENDING');
-        })) throw blocked();
+          || addition && imported.backupHash !== addition.backupHash) throw blocked();
+        if (addition) {
+          const recovery = identity.player.legacyRecovery;
+          if (recovery === null ? addition.expectedRecovery !== undefined : !addition.expectedRecovery
+            || !isDeepStrictEqual(recovery, { ...addition.expectedRecovery, backupHash: addition.backupHash })
+            || addition.expectedRecovery.importId !== imported.id || addition.expectedRecovery.snapshotHash !== imported.snapshotHash) throw blocked();
+        }
       }
-      // No updateMany/re-import: existing targets (including updatedAt) and all imports stay byte-for-byte intact.
-      await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { dataAuthority: 'NATIVE', canary: true,
-        acknowledgement, transferredAt: new Date() } });
-      await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: 'AUTHORITY_TRANSFERRED', twitchUserId, acknowledgement } });
+      if (await tx.businessOperation.count({ where: { playerId: { in: targets.map(target => target.playerId!) }, status: 'PENDING' } })) throw blocked();
+      const deferredAdditions = additions.flatMap(a => a.expectedRecovery ? [{ playerId: a.expectedPlayerId,
+        recovery: { ...a.expectedRecovery, backupHash: a.backupHash } }] : []);
+      const receipts = await tx.twitchEventReceipt.findMany({ where: { OR: [{ twitchUserId: { in: twitchIds } },
+        ...deferredAdditions.map(a => ({ payloadMinimal: { path: ['recoveryDeferred', 'playerId'], equals: a.playerId } }))] } });
+      // A Gift delivery can arrive after its core was deferred and before a
+      // marker was copied onto that transport row. Inspect that exact relation
+      // even when the gifter is outside the bounded canary population.
+      const heldRedemptions = [...new Set(receipts.filter(r => r.externalEventId.startsWith('gift-supreme:'))
+        .map(r => r.externalEventId.slice('gift-supreme:'.length)))];
+      if (heldRedemptions.length) {
+        const linked = await tx.twitchEventReceipt.findMany({ where: { eventType: 'channel.channel_points_custom_reward_redemption.add',
+          state: 'RECEIVED', OR: heldRedemptions.map(id => ({ payloadMinimal: { path: ['redemptionId'], equals: id } })) } });
+        const seen = new Set(receipts.map(r => r.id));
+        receipts.push(...linked.filter(r => !seen.has(r.id)));
+      }
+      for (const receipt of receipts) {
+        if (receiptSafety(receipt).blocking && !await isRecoveryDeferredReceipt(tx, receipt, deferredAdditions)) throw blocked();
+        // A committed result still waiting to send is not idle, even before outbound becomes uncertain.
+        const pilot = (receipt.payloadMinimal as Prisma.JsonObject | null)?.commandPilot as Prisma.JsonObject | undefined;
+        if (Array.isArray(pilot?.responses) && pilot.responses.some(response =>
+          response !== null && typeof response === 'object' && !Array.isArray(response) && response.status === 'PENDING')) throw blocked();
+      }
+      await assertRecoveryTransferIntegrity(tx, additions.flatMap(a => a.expectedRecovery ? [{ playerId: a.expectedPlayerId, importId: a.expectedRecovery.importId }] : []));
+      // Only the exact additions are updated. Existing targets (including updatedAt) and imports stay intact.
+      const transferred = await tx.twitchNativeTarget.updateMany({ where: { twitchUserId: { in: addedIds } },
+        data: { dataAuthority: 'NATIVE', canary: true, acknowledgement, transferredAt: new Date() } });
+      if (transferred.count !== additions.length) throw blocked();
+      await tx.twitchNativeAudit.createMany({ data: additions.map(addition => ({ actorPlayerId: actor, action: 'AUTHORITY_TRANSFERRED',
+        twitchUserId: addition.twitchUserId, acknowledgement, revision: expectedRevision + 1 })) });
       const row = await tx.twitchNativeAuthority.update({ where: { id: key }, data: { desiredMode: 'CANARY', revision: { increment: 1 },
         operatorPlayerId: actor, acknowledgement, acknowledgedAt: new Date() } });
       await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: 'DESIRED_AUTHORITY_CHANGED', mode: 'CANARY', revision: row.revision, acknowledgement } });
@@ -202,6 +267,8 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
         for (const twitchUserId of ids) {
           const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
           const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId }, include: { player: true } });
+          if (identity?.player.legacyRecovery != null && target?.dataAuthority !== 'NATIVE')
+            throw new AppError('La reprise de ce profil exige le transfert contrôlé avec vérification de sauvegarde.', 409, 'TWITCH_IMPORTED_CANARY_EXTENSION_BLOCKED');
           if (target?.dataAuthority === 'MIGRATION_PENDING' || identity && target?.playerId && identity.playerId !== target.playerId)
             throw new AppError('Migration ou identité à contrôler.', 409, 'TWITCH_NATIVE_TARGET_CONFLICT');
           if (identity?.player.legacyUsername && !await tx.twitchCanaryImport.findFirst({ where: { twitchUserId, playerId: identity.playerId, status: 'DATA_IMPORTED' } }))

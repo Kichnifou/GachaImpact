@@ -39,6 +39,14 @@ async function player(online = true) {
   return { id: row.id, identity };
 }
 type Player = Awaited<ReturnType<typeof player>>;
+it('does not reserve an invitation or notify a staged recovery opponent', async () => {
+  const sender = await player(), recipient = await player();
+  await db.player.update({ where: { id: recipient.id }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),
+    snapshotHash: 'a'.repeat(64), populationHash: 'b'.repeat(64), backupHash: 'c'.repeat(64), restrictedDomains: ['EVENT','BOSS','GIVEAWAY'] } } });
+  await expect(invite(sender, recipient)).rejects.toMatchObject({ code: 'PLAYER_RECOVERY_NOT_ACTIVATED' });
+  expect(await db.arcadeInvitation.count({ where: { guestPlayerId: recipient.id } })).toBe(0);
+  expect(await db.notification.count({ where: { playerId: recipient.id, typeKey: 'ARCADE_INVITE' } })).toBe(0);
+});
 const tick = () => { now = new Date(now.getTime() + 1000); };
 async function invite(a: Player, b: Player, game: ArcadeGame = 'TIC_TAC_TOE', difficulty: ArcadeDifficulty = 'MEDIUM') {
   tick();

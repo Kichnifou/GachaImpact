@@ -1,3 +1,4 @@
+import { assertPlayerDomainReady, isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { assertCommandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
@@ -169,6 +170,8 @@ export class MonthlyBossService {
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
       await lockPlayerMutation(transaction, context.playerId);
+
+      await assertPlayerDomainReady(transaction, context.playerId, 'BOSS');
       const possession = await transaction.playerCharacter.findUnique({ where: { playerId_characterId: { playerId: context.playerId, characterId } }, select: possessionSelection });
       if (!possession) throw new BusinessError('BOSS_CHARACTER_NOT_OWNED', 'Ce personnage ne fait pas partie de votre Box.');
       if (!possession.character.isActive) throw new BusinessError('BOSS_CHARACTER_INACTIVE', 'Ce personnage n’est plus disponible.');
@@ -190,6 +193,8 @@ export class MonthlyBossService {
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
       await lockPlayerMutation(transaction, context.playerId);
+
+      await assertPlayerDomainReady(transaction, context.playerId, 'BOSS');
       await ensureLoadout(transaction, context.playerId);
       await transaction.playerBossLoadoutSlot.deleteMany({ where: { playerId: context.playerId, position } });
     });
@@ -201,6 +206,8 @@ export class MonthlyBossService {
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
       await lockPlayerMutation(transaction, context.playerId);
+
+      await assertPlayerDomainReady(transaction, context.playerId, 'BOSS');
       const team = await transaction.team.findFirst({ where: { playerId: context.playerId, isActive: true }, include: { members: { include: { character: true }, orderBy: { position: 'asc' } } } });
       const members = team?.members.filter(({ character }) => character.isActive).slice(0, 4) ?? [];
       await ensureLoadout(transaction, context.playerId);
@@ -215,6 +222,8 @@ export class MonthlyBossService {
     const bossId = await this.ensureCurrentBoss(context.now);
     await this.database.$transaction(async (transaction) => {
       await lockPlayerMutation(transaction, context.playerId);
+
+      await assertPlayerDomainReady(transaction, context.playerId, 'BOSS');
       await ensureLoadout(transaction, context.playerId);
       await transaction.playerBossLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
     });
@@ -231,6 +240,8 @@ export class MonthlyBossService {
       try {
         const committed = await this.database.$transaction(async (transaction) => {
           await lockPlayerMutation(transaction, context.playerId);
+
+          await assertPlayerDomainReady(transaction, context.playerId, 'BOSS');
           await transaction.$queryRaw`SELECT id FROM monthly_bosses WHERE id = ${bossId}::uuid FOR UPDATE`;
           const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: operationKey } });
           if (existing) {
@@ -375,6 +386,7 @@ export class MonthlyBossService {
 
   private async context(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
+    await assertPlayerDomainReady(this.database, player.id, 'BOSS');
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
     const now = commandNow(this.clock);
     return { playerId: player.id, playerElementKey: player.elementKey, now, businessDate: getBusinessDate(now) } as const;
@@ -382,7 +394,7 @@ export class MonthlyBossService {
 
   private async clearInactiveSlots(playerId: string): Promise<boolean> {
     return this.database.$transaction(async tx => {
-      if (!await lockPlayerMutationState(tx, playerId)) return false;
+      if (!await lockPlayerMutationState(tx, playerId) || !await isPlayerDomainReady(tx, playerId, 'BOSS')) return false;
       const result = await tx.playerBossLoadoutSlot.deleteMany({ where: { playerId, character: { isActive: false } } });
       return result.count > 0;
     });
@@ -391,7 +403,7 @@ export class MonthlyBossService {
   private async rewardParticipants(transaction: Prisma.TransactionClient, bossId: string, bossName: string, finalBlowPlayerId: string, now: Date) {
     const participants = await transaction.playerBossParticipation.findMany({ where: { bossId, player: { status: { not: 'ARCHIVED' } } }, include: { player: { select: { elementKey: true } } }, orderBy: { playerId: 'asc' } });
     for (const participant of participants) {
-      if (!await lockPlayerMutationState(transaction, participant.playerId)) continue;
+      if (!await lockPlayerMutationState(transaction, participant.playerId) || !await isPlayerDomainReady(transaction, participant.playerId, 'BOSS')) continue;
       if (!participant.player.elementKey || !isElementKey(participant.player.elementKey)) throw new Error(`Boss participant ${participant.playerId} has no valid element.`);
       const rewardOperation = await transaction.businessOperation.create({ data: {
         playerId: participant.playerId,

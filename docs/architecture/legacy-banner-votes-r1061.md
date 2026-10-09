@@ -2,6 +2,8 @@
 
 Décision propriétaire du 09/10/2026, prolongement de R1060. Baseline publique : `212da08e6b601d0bf5d83e550a5629ed90d21376`, Prisma 064. Le nouveau mécanisme et 065 sont candidats sur `review` ; review indépendante obligatoire avant promotion. Aucune migration, désactivation Twitch ou restitution publique effectuée dans cette mission.
 
+**Mandat P0 R1062 ultérieur le même jour :** revue, corrections, promotion, déploiement et application sont désormais préautorisés dans la même exécution, après leurs gates. Les exigences de mission distincte des sections historiques suivantes sont remplacées par le [runbook courant](../process/legacy-cutover-runbook.md#reprise-p0-r1062). L'état public et la recette restent uniquement au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Autorité et preuves
 
 ### Correction issue de la revue indépendante P0 du 09/10

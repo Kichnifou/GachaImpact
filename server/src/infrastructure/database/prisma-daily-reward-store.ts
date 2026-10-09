@@ -6,6 +6,7 @@ import { isElementKey, particleResourceKey } from '../../domain/economy/resource
 import { businessDateToDatabaseDate, databaseDateToBusinessDate } from '../../domain/time/business-date.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
+import { lockPlayerMutation } from '../../application/player/player-mutation-guard.js';
 
 const MAX_CLAIM_ATTEMPTS = 2;
 type LockedPlayer = Readonly<{ elementKey: string | null }>;
@@ -33,6 +34,7 @@ export class PrismaDailyRewardStore implements DailyRewardStore {
 
   private async claimInTransaction(input: DailyRewardClaimInput): Promise<DailyRewardClaimResult> {
     return this.database.$transaction(async (transaction) => {
+      await lockPlayerMutation(transaction, input.playerId);
       const players = await transaction.$queryRaw<LockedPlayer[]>`
         SELECT element_key AS "elementKey" FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE
       `;

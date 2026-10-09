@@ -1,4 +1,5 @@
 import { commandTargets } from '../player/player-command-execution.js';
+import { assertPlayerRecoveryActivated } from '../player/player-mutation-guard.js';
 import { commandNow } from '../player/player-command-execution.js';
 import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
@@ -46,6 +47,7 @@ export class TradeService {
   }
   private async lockPlayers(tx: Prisma.TransactionClient, ids: string[]) {
     await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join([...new Set(ids)].sort().map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
+    for (const id of new Set(ids)) await assertPlayerRecoveryActivated(tx, id);
   }
   private async lockResources(tx: Prisma.TransactionClient, ids: string[], resources: string[]) {
     const rows = await tx.$queryRaw<{ player_id: string; resource_key: string }[]>(Prisma.sql`SELECT player_id, resource_key FROM player_resource_balances

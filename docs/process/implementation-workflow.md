@@ -16,6 +16,14 @@ Documents liés :
 
 Les règles produit restent dans les documents spécialisés et le journal des décisions. L’état courant reste dans le Master. Les commandes, valeurs et contrôles propres au déploiement restent dans le document de déploiement.
 
+## Missions consolidées préautorisées — règle du 09/10/2026
+
+Lorsqu'une mission autorise explicitement revue, corrections, promotion, déploiement et application métier, Codex poursuit ces étapes dans la même exécution après leurs contrôles, sans redemander un GO générique. Pour un mécanisme sensible, la revue indépendante reste obligatoire : reviewer distinct, contexte séparé, lecture seule du vrai diff/SHA publié et des tests, findings précis, verdict attaché au SHA. Corriger les blocages dans un commit séparé sur review puis faire revoir le delta avant main. Un simple résumé de tests ne constitue pas une approbation.
+
+Le parcours conserve publication review → vérification des vrais diff/blobs GitHub → ancestry et absence de concurrent inattendu → fast-forward strict main → SHA distants → déploiements exacts et migrations normales → gates métier → application préautorisée → postflight et recette. L'autorisation ne dépasse jamais la population, l'économie ni les actions nommées dans le mandat. Aucun arrêt cérémoniel après un succès ; arrêter devant une preuve/accès indispensable manquant, un risque non résolu, une ambiguïté humaine ou un reviewer indisponible. Ne pas immobiliser les sous-ensembles indépendants sûrs. Le Master distingue toujours candidat, déployé, appliqué et recette humaine.
+
+Cette règle prime, pour ces missions, sur les passages historiques exigeant systématiquement un prompt de promotion ou d'application séparé. Hors préautorisation explicite, leurs limites restent applicables. [R1062](../specifications/decisions-log.md) est le mandat P0 courant.
+
 ## Protocole propriétaire — étape 29 uniquement (R1036)
 
 **Clôture R1039 :** protocole historique ci-dessous conservé. Recette publique représentative R1038 acquise selon le propriétaire hors des derniers retours listés ; corrections/test automatiques puis promotion immédiate du même candidat et clôture 29 explicitement autorisées sans review intermédiaire ni nouveau gate manuel. Corrections finales non présumées individuellement retestées publiquement. STOP après publication ; 30 foundation/rehearsal privée prochaine, non commencée. Hors de 29, workflow normal et promotion dédiée inchangés. État/preuves au Master.

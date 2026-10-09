@@ -16,6 +16,11 @@ import { assessTwitchOperationsInFlight } from '../twitch/twitch-operations-in-f
 import type { AppConfig } from '../../config/environment.js';
 import { captureLegacyFriendshipBackup, legacyFriendshipBackupPostHash, restoreLegacyFriendshipBackup, type LegacyFriendshipBackup } from './legacy-friendship-backup.js';
 import { registerLegacyFriendships, reconcileLegacyFriendships, planLegacyFriendshipImport } from './legacy-friendship-reconciliation.js';
+import { assertRecoveryDailyFacts, recoveryExternalRows, recoverySupplementPostimage, restoreRecoveryCodeClaims, restoreRecoveryExternalRows, restoreRecoveryTarget, reconcileExternalBannerVotes } from './legacy-recovery-facts.js';
+import { communityHash } from './legacy-community-proof.js';
+import { getBusinessDate } from '../../domain/time/business-date.js';
+import { playerRecoverySchema } from '../player/player-recovery-readiness.js';
+import { recoveryIntegrityHash } from './legacy-recovery-integrity.js';
 
 export type CanaryPlan = { snapshot: Snapshot; report: VerifiedTwitchReport; identityReportHash: string; cutoverAt: Date; player: PlannedPlayer;
   expectedPlayerId: string | null; mapping: Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']>>; blockers: string[];
@@ -23,7 +28,10 @@ export type CanaryPlan = { snapshot: Snapshot; report: VerifiedTwitchReport; ide
   social: Awaited<ReturnType<typeof planLegacyFriendshipImport>> | null };
 export type CanaryBackup = { kind: 'TARGETED_LEGACY_CANARY'; twitchUserId: string; snapshotHash: string; identityReportHash: string; hash: string;
   target: Prisma.TwitchNativeTargetGetPayload<Record<string, never>> | null; rows: RowGraph } & ({ version: 1 } | { version: 2; retention: TargetedRetention }
-    | { version: 3; retention: TargetedRetention; social: LegacyFriendshipBackup });
+    | { version: 3; retention: TargetedRetention; social: LegacyFriendshipBackup }
+    | { version: 4; retention: TargetedRetention; social: LegacyFriendshipBackup;
+      recovery: { operationId: string; populationHash: string; externalVotes: string[] } });
+export type RecoveryImport = { operationId: string; populationHash: string };
 function canonicalBackup(value: unknown): unknown {
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonicalBackup);
@@ -86,13 +94,14 @@ async function assertCanaryIdle(db: Prisma.TransactionClient, twitchUserId: stri
 
 /** Callable from the guarded local CLI/private fixtures only. No public HTTP application endpoint. */
 export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, actorPlayerId: string, plan: CanaryPlan,
-  frozenAcknowledgement: string, writeBackup: (backup: CanaryBackup) => Promise<void>) {
+  frozenAcknowledgement: string, writeBackup: (backup: CanaryBackup) => Promise<void>, recovery?: RecoveryImport) {
   if (plan.blockers.length || frozenAcknowledgement !== STREAMERBOT_PATH_DISABLED) throw new Error('CANARY_PREFLIGHT_BLOCKED');
   validateVerifiedTwitchReport(plan.report, plan.snapshot, new Date(), { kind: 'CANARY', legacyLogin: plan.player.legacyUsername });
   return db.$transaction(async tx => {
     await new TwitchNativeAuthority(db, config).requireOperator(tx, actorPlayerId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${plan.player.twitchUserId}`},0))::text`;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
     const social = await captureLegacyFriendshipBackup(tx, { snapshot: plan.snapshot, report: plan.report,
       ownerTwitchUserId: plan.player.twitchUserId, ownerPlayerId: plan.player.playerId });
     await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(social.playerIds.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
@@ -101,6 +110,12 @@ export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, act
     const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: plan.player.twitchUserId } });
     if ((identity?.playerId ?? null) !== plan.expectedPlayerId || target && (target.dataAuthority !== 'LEGACY' || target.canary)
       || target?.playerId && target.playerId !== identity?.playerId) throw new Error('CANARY_TARGET_CHANGED');
+    if (recovery) {
+      if (identity || plan.expectedPlayerId !== null || await tx.player.count({ where: { id: plan.player.playerId } })
+        || await tx.twitchCanaryImport.count({ where: { twitchUserId: plan.player.twitchUserId, status: 'DATA_IMPORTED' } })) throw new Error('LEGACY_RECOVERY_REIMPORT_FORBIDDEN');
+      assertRecoveryDailyFacts(plan.snapshot, plan.player, plan.cutoverAt);
+      playerRecoverySchema.parse({ version: 1, ...recovery, snapshotHash: plan.snapshot.hash, importId: randomUUID(), backupHash: '0'.repeat(64), restrictedDomains: ['EVENT', 'BOSS', 'GIVEAWAY'] });
+    }
     const socialPlan = await planLegacyFriendshipImport(tx, { snapshot: plan.snapshot, report: plan.report,
       ownerTwitchUserId: plan.player.twitchUserId, ownerPlayerId: plan.player.playerId, now: new Date() });
     if (!plan.social || socialPlan.fingerprint !== plan.social.fingerprint) throw new Error('CANARY_SOCIAL_PREFLIGHT_CHANGED');
@@ -111,7 +126,9 @@ export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, act
     await assertTargetedDeletionSafe(tx, rows, new Set<string>(personalReplacementTables), retention);
     const preimage: Omit<CanaryBackup, 'hash'> & { version: 3; retention: TargetedRetention; social: LegacyFriendshipBackup } = { version: 3, kind: 'TARGETED_LEGACY_CANARY', twitchUserId: plan.player.twitchUserId,
       snapshotHash: plan.snapshot.hash, identityReportHash: plan.identityReportHash, target, rows, retention, social };
-    const backup: CanaryBackup = { ...preimage, hash: canaryBackupHash(preimage) };
+    const extended = recovery ? { ...preimage, version: 4 as const, recovery: { ...recovery, externalVotes: await recoveryExternalRows(tx, plan.player.twitchUserId) } } : preimage;
+    const backup: CanaryBackup = { ...extended, hash: canaryBackupHash(extended) };
+    if (recovery && rows.schema === 'public' && getBusinessDate((await tx.$queryRaw<{ now: Date }[]>`SELECT clock_timestamp() AS now`)[0]!.now) !== getBusinessDate(plan.cutoverAt)) throw new Error('LEGACY_RECOVERY_CUTOVER_DAY_CHANGED');
     await writeBackup(backup); // Durable ignored local preimage must exist before the first business write.
     await tx.twitchNativeTarget.upsert({ where: { twitchUserId: plan.player.twitchUserId }, create: { twitchUserId: plan.player.twitchUserId, dataAuthority: 'MIGRATION_PENDING' },
       update: { dataAuthority: 'MIGRATION_PENDING', canary: false } });
@@ -132,11 +149,24 @@ export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, act
     await tx.twitchNativeTarget.update({ where: { twitchUserId: plan.player.twitchUserId }, data: { dataAuthority: 'LEGACY', playerId: plan.player.playerId } });
     const run = await tx.twitchCanaryImport.create({ data: { twitchUserId: plan.player.twitchUserId, playerId: plan.player.playerId,
       snapshotHash: plan.snapshot.hash, identityReportHash: plan.identityReportHash, backupHash: backup.hash, status: 'DATA_IMPORTED' } });
+    let recoveryProof: Prisma.JsonObject | undefined;
+    if (recovery) {
+      const codes = await restoreRecoveryCodeClaims(tx, plan.snapshot, plan.player, batch.id, plan.cutoverAt);
+      const targetCharacterId = await restoreRecoveryTarget(tx, plan.snapshot, plan.player, plan.cutoverAt);
+      await reconcileExternalBannerVotes(tx, plan.player.twitchUserId);
+      const marker = playerRecoverySchema.parse({ version: 1, ...recovery, snapshotHash: plan.snapshot.hash, importId: run.id, backupHash: backup.hash,
+        restrictedDomains: ['EVENT', 'BOSS', 'GIVEAWAY'] });
+      await tx.player.update({ where: { id: plan.player.playerId }, data: { legacyRecovery: marker } });
+      recoveryProof = { ...marker, ...codes, targetCharacterId,
+        integrityHash: await recoveryIntegrityHash(tx, plan.player.playerId),
+        supplementHash: communityHash(await recoverySupplementPostimage(tx, plan.player.playerId, plan.player.twitchUserId, codes)),
+        playerPostHash: (await captureTargetedPlayerRows(tx, [plan.player.playerId])).hash };
+    }
     await registerLegacyFriendships(tx, { snapshot: plan.snapshot, report: plan.report, ownerTwitchUserId: plan.player.twitchUserId, now: new Date() });
     const restoredSocial = await reconcileLegacyFriendships(tx, { now: new Date(), twitchUserIds: [plan.player.twitchUserId] });
     const socialPostHash = await legacyFriendshipBackupPostHash(tx, social);
     await tx.migrationBatch.update({ where: { id: batch.id }, data: { summary: { ...(batch.summary as Prisma.JsonObject),
-      socialRestoration: { version: 1, backupHash: backup.hash, postHash: socialPostHash, ...restoredSocial } } } });
+      socialRestoration: { version: 1, backupHash: backup.hash, postHash: socialPostHash, ...restoredSocial }, ...(recoveryProof ? { recovery: recoveryProof } : {}) } } });
     await tx.twitchNativeAudit.create({ data: { actorPlayerId, twitchUserId: plan.player.twitchUserId, action: 'DATA_IMPORTED', acknowledgement: frozenAcknowledgement } });
     return { runId: run.id, backupHash: backup.hash, playerId: plan.player.playerId, dataAuthority: 'LEGACY', status: 'DATA_IMPORTED' };
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 120_000 });
@@ -144,8 +174,8 @@ export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, act
 
 /** The caller must explicitly switch OFF and relinquish Native ownership first; no import implicitly does so. */
 export async function rollbackLegacyCanary(db: PrismaClient, config: AppConfig, actorPlayerId: string, backup: CanaryBackup) {
-  if (![1, 2, 3].includes(backup.version) || backup.kind !== 'TARGETED_LEGACY_CANARY' || backup.version !== 1 && !backup.retention
-    || backup.version === 3 && !backup.social) throw new Error('CANARY_BACKUP_INVALID');
+  if (![1, 2, 3, 4].includes(backup.version) || backup.kind !== 'TARGETED_LEGACY_CANARY' || backup.version !== 1 && !backup.retention
+    || backup.version >= 3 && !('social' in backup && backup.social)) throw new Error('CANARY_BACKUP_INVALID');
   const { hash, ...preimage } = backup;
   if (canaryBackupHash(preimage) !== hash) throw new Error('CANARY_BACKUP_HASH_MISMATCH');
   return db.$transaction(async tx => {
@@ -153,19 +183,38 @@ export async function rollbackLegacyCanary(db: PrismaClient, config: AppConfig, 
     await authority.requireOperator(tx, actorPlayerId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${backup.twitchUserId}`},0))::text`;
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
     const control = await tx.twitchNativeAuthority.findUnique({ where: { id: 'twitch-commands' } });
     if (control?.desiredMode && control.desiredMode !== 'OFF') throw new Error('CANARY_ROLLBACK_OFF_REQUIRED');
     const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: backup.twitchUserId } });
     const playerId = backup.rows.playerIds[0]!;
     if (!target || target.dataAuthority !== 'LEGACY' || target.canary || target.playerId !== playerId) throw new Error('CANARY_ROLLBACK_LEGACY_REQUIRED');
-    const lockedIds = backup.version === 3 ? backup.social.playerIds : [playerId];
+    const lockedIds = 'social' in backup ? backup.social.playerIds : [playerId];
     await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join([...lockedIds].sort().map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
     await tx.$queryRaw`SELECT id FROM business_operations WHERE player_id=${playerId}::uuid FOR UPDATE`;
     await assertCanaryIdle(tx, backup.twitchUserId, playerId);
     const run = await tx.twitchCanaryImport.findFirst({ where: { twitchUserId: backup.twitchUserId, playerId, status: 'DATA_IMPORTED' }, orderBy: { importedAt: 'desc' } });
     if (!run || run.backupHash !== backup.hash || run.snapshotHash !== backup.snapshotHash || run.identityReportHash !== backup.identityReportHash)
       throw new Error('CANARY_ROLLBACK_PROVENANCE_MISMATCH');
-    if (backup.version === 3) {
+    if (backup.version === 4) {
+      if (await tx.twitchNativeAudit.count({ where: { twitchUserId: backup.twitchUserId, action: 'AUTHORITY_TRANSFERRED', createdAt: { gte: run.importedAt } } })) throw new Error('LEGACY_RECOVERY_ALREADY_TRANSFERRED');
+      const batches = await tx.migrationBatch.findMany({ where: { summary: { path: ['recovery', 'importId'], equals: run.id } }, select: { summary: true } });
+      const proof = batches.length === 1 ? (batches[0]!.summary as Prisma.JsonObject).recovery as Prisma.JsonObject : null;
+      if (!proof || proof.backupHash !== backup.hash || proof.operationId !== backup.recovery.operationId
+        || proof.populationHash !== backup.recovery.populationHash
+        || proof.playerPostHash !== (await captureTargetedPlayerRows(tx, [playerId])).hash
+        || proof.supplementHash !== communityHash(await recoverySupplementPostimage(tx, playerId, backup.twitchUserId,
+          { createdCodes: proof.createdCodes as string[], createdEditions: proof.createdEditions as string[] }))) throw new Error('LEGACY_RECOVERY_COMPENSATION_DRIFT');
+      await restoreRecoveryExternalRows(tx, backup.twitchUserId, backup.recovery.externalVotes);
+      await tx.giftCodeClaim.deleteMany({ where: { playerId } });
+      for (const id of proof.createdEditions as string[]) {
+        if (await tx.giftCodeClaim.count({ where: { giftCodeEditionId: id } }) === 0) await tx.giftCodeEdition.delete({ where: { id } });
+      }
+      for (const id of proof.createdCodes as string[]) {
+        if (await tx.giftCodeEdition.count({ where: { giftCodeId: id } }) === 0) await tx.giftCode.delete({ where: { id } });
+      }
+    }
+    if ('social' in backup) {
       const batches = await tx.migrationBatch.findMany({ where: { summary: { path: ['socialRestoration', 'backupHash'], equals: backup.hash } }, select: { summary: true } });
       const proof = batches.length === 1 ? (batches[0]!.summary as { socialRestoration?: { postHash?: string } }).socialRestoration : null;
       if (!proof?.postHash || !/^[a-f0-9]{64}$/.test(proof.postHash)) throw new Error('CANARY_SOCIAL_ROLLBACK_PROOF_MISSING');

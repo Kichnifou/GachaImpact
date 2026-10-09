@@ -10,6 +10,7 @@ import { unblockedRecipient } from './contact-permission.js';
 import { randomInt } from 'node:crypto';
 import { friendshipPhrases } from './friendship-phrases.js';
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
+import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 
 export type FriendAction = 'ADD' | 'ACCEPT' | 'REFUSE' | 'CANCEL' | 'REMOVE';
 export type FriendshipSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
@@ -48,6 +49,7 @@ export class FriendshipService {
   }
   private async requireActor(tx: Prisma.TransactionClient, id: string) {
     if (!await tx.player.findFirst({ where: { id, status: 'ACTIVE' }, select: { id: true } })) throw unavailable();
+    await lockPlayerMutation(tx, id);
   }
   private async replay<T>(tx: Prisma.TransactionClient, playerId: string, key: string, source: SourceChannel, type: string, target: string): Promise<T | null> {
     const row = await tx.businessOperation.findFirst({ where: { sourceChannel: source, idempotencyKey: key } });
@@ -66,6 +68,8 @@ export class FriendshipService {
     return this.transaction(async tx => {
       await this.lockPlayers(tx, [playerId, target]);
       await this.requireActor(tx, playerId);
+      const recipient = await tx.player.findUnique({ where: { id: target }, select: { legacyRecovery: true } });
+      if (recipient?.legacyRecovery != null && !await lockPlayerMutationState(tx, target)) throw unavailable();
       const type = `friendship.${action.toLowerCase()}`;
       const intentTarget = requestId ? `${target}:${requestId}` : target;
       const replay = await this.replay<FriendMutationResult>(tx, playerId, key, source, type, intentTarget);
@@ -126,6 +130,9 @@ export class FriendshipService {
       if (target !== 'all' && !relations.length) throw unavailable();
       const now = commandNow(this.clock), date = businessDateToDatabaseDate(getBusinessDate(now));
       const eligible = new Set((await tx.player.findMany({ where: { AND: [unblockedRecipient(playerId), { id: { in: relations.map(r => r.playerAId === playerId ? r.playerBId : r.playerAId) } }] }, select: { id: true } })).map(p => p.id));
+      // All rows are already held in UUID order. Staged imports cannot receive
+      // hearts/mission rewards, while other friends remain independently usable.
+      for (const id of eligible) if (!await lockPlayerMutationState(tx, id)) eligible.delete(id);
       const nativeHearts = await tx.friendHeart.findMany({ where: { senderPlayerId: playerId, businessDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
       const legacyHearts = await tx.friendshipLegacyHeartState.findMany({ where: { senderPlayerId: playerId, lastHeartSentDate: date, friendshipId: { in: relations.map(r => r.id) } }, select: { friendshipId: true } });
       const existing = new Set([...nativeHearts, ...legacyHearts].map(h => h.friendshipId));

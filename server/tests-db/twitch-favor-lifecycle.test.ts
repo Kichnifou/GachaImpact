@@ -26,6 +26,8 @@ afterAll(async () => {
 }, 60_000);
 async function setup() {
   const player = await db.player.create({ data: { displayName: `Private lifecycle ${randomUUID().slice(0, 8)}` } });
+  const identity = { subject: `private-lifecycle-${randomUUID()}` };
+  await db.webIdentity.create({ data: { playerId: player.id, provider: 'supabase', providerSubject: identity.subject } });
   const userId = String(Date.now()) + String(Math.floor(Math.random() * 1_000_000));
   await db.twitchIdentity.create({ data: { playerId: player.id, twitchUserId: userId, login: 'private_pilot' } });
   const config = { host: '127.0.0.1', port: 3001, supabase: {}, twitch: { clientId: 'private-client', clientSecret: 'private-client-secret', redirectUri: 'https://backend.example/api/v1/me/twitch/callback', pilotPlayerIds: [player.id], pilotLogin: 'private_pilot' },
@@ -33,7 +35,7 @@ async function setup() {
   const network = vi.fn<typeof fetch>(), tokenNetwork = vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({ access_token: 'private-app-token', token_type: 'bearer', expires_in: 1000 })));
   const manager = new TwitchEventSubSubscriptionManager(db, config, new TwitchEventSubClient('private-client', new TwitchAppAccessTokenProvider('private-client', 'private-client-secret', tokenNetwork), network));
   const service = new TwitchPilotService(db, { execute: async () => ({ id: player.id }) } as unknown as GetCurrentPlayer, config, keys, manager);
-  return { player, userId, service, network, manager, identity: { subject: 'private-lifecycle-subject' } };
+  return { player, userId, service, network, manager, identity };
 }
 async function oauth(userId: string, nonce: string, beforeProfile?: () => Promise<void>) {
   const token = await new SignJWT({ sub: userId, nonce }).setProtectedHeader({ alg: 'RS256', kid: 'private-test' })

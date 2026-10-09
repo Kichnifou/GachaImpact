@@ -24,6 +24,14 @@ beforeAll(async () => fixture.setup(), 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 
 describe('Direct-message foundations on isolated PostgreSQL', () => {
+  it('does not create a conversation or request toward a staged recovery profile', async () => {
+    const sender = await player('Recovery sender'), recipient = await player('Recovery recipient');
+    await db.player.update({ where: { id: recipient }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),
+      snapshotHash: 'a'.repeat(64), populationHash: 'b'.repeat(64), backupHash: 'c'.repeat(64), restrictedDomains: ['EVENT','BOSS','GIVEAWAY'] } } });
+    await expect(service.initiate(as(sender), recipient, 'Bonjour', randomUUID())).rejects.toMatchObject({ code: 'PLAYER_RECOVERY_NOT_ACTIVATED' });
+    expect(await db.directConversation.count({ where: { OR: [{ playerAId: recipient }, { playerBId: recipient }] } })).toBe(0);
+    expect(await db.notification.count({ where: { playerId: recipient } })).toBe(0);
+  });
   it('projects authorized presence in batches for live/archive/search and hides PRIVATE/blocked/inactive', async () => {
     const viewer = await player('Presence viewer'), online = await player('Presence online'), away = await player('Presence away'), offline = await player('Presence offline'), hidden = await player('Presence private');
     for (const id of [online,away]) await db.playerSession.create({ data: { playerId:id,sessionTokenHash:randomUUID(),startedAt:new Date(+now-12*60000),lastHeartbeatAt:now,lastActivityAt:id===online?now:new Date(+now-11*60000) } });

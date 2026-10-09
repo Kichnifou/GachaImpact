@@ -2,6 +2,7 @@ import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import { BusinessError } from '../errors.js';
 import { FavorService } from '../favor/favor-service.js';
+import { AppError } from '../../api/errors.js';
 
 /** The signed transport classifies text in memory; only its existing hash is observed. */
 export function isFavorEligibleTwitchChatMessage(text: string): boolean {
@@ -25,8 +26,9 @@ export class TwitchFavorChatPresenceConsumer {
     if (!identity || identity.linkedAt > receipt.receivedAt || identity.player.status !== 'ACTIVE') return { status: 'IGNORED' as const };
     try { return await this.favor.claimToday(identity.playerId, 'TWITCH'); }
     catch (error) {
-      // A Player archived between resolution and the core lock remains an ordinary no-op.
-      if (error instanceof BusinessError && error.code === 'PLAYER_NOT_FOUND') return { status: 'IGNORED' as const };
+      // An archived or not-yet-activated Player cannot earn through passive chat.
+      if (error instanceof BusinessError && ['PLAYER_NOT_FOUND', 'PLAYER_ARCHIVED'].includes(error.code)
+        || error instanceof AppError && error.code === 'PLAYER_RECOVERY_NOT_ACTIVATED') return { status: 'IGNORED' as const };
       throw error;
     }
   }

@@ -1,4 +1,5 @@
-import { lockPlayerMutation } from '../player/player-mutation-guard.js';
+import { lockPlayerMutationState } from '../player/player-mutation-guard.js';
+import { isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
@@ -12,6 +13,7 @@ export type EventChatPresenceIntent = { editionId: string; title: string; curren
 export class EventChatPresence {
   constructor(private readonly db: PrismaClient, private readonly events: EventService) {}
   async prepare(player: CurrentPlayer, now: Date): Promise<EventChatPresenceIntent | null> {
+    if (!await isPlayerDomainReady(this.db, player.id, 'EVENT')) return null;
     let context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>;
     try { context = await this.events.resolveCurrentEdition(this.db, now); }
     catch (error) { if (error instanceof BusinessError && error.code === 'EVENT_CONFIGURATION_MISSING') return null; throw error; }
@@ -30,7 +32,7 @@ export class EventChatPresence {
     for (let retry = 0; ; retry++) {
       try {
         return await this.db.$transaction(async tx => {
-          await lockPlayerMutation(tx, player.id);
+          if (!await lockPlayerMutationState(tx, player.id) || !await isPlayerDomainReady(tx, player.id, 'EVENT')) return [];
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: 'TWITCH', idempotencyKey: `event-presence:${key}` } });
           if (previous) return (previous.resultSummary as { responses: string[] }).responses;
           const responses: string[] = [];

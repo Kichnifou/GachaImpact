@@ -12,6 +12,10 @@
 
 ---
 
+# Mission consolidée préautorisée
+
+Depuis la règle propriétaire du 09/10/2026, un mandat peut autoriser revue, corrections, review→main, déploiement et application métier dans une même mission. Ne pas ajouter de prompt séparé ou de GO générique entre contrôles réussis. Une nouvelle mécanique sensible exige toujours une revue par un agent réellement distinct, en lecture seule, du vrai SHA publié ; corriger et faire revoir les findings avant promotion. Les gates techniques et métier restent obligatoires, l'autorisation reste bornée au mandat, et un vrai blocker ou arbitrage humain indispensable suspend uniquement le travail dépendant. Le [workflow canonique](../docs/process/implementation-workflow.md#missions-consolidées-préautorisées--règle-du-09102026) porte ce parcours ; le Master porte l'état réel. Distinguer code déployé, données appliquées, transport effectif et recette humaine.
+
 # 1. Projet
 
 Repository public :

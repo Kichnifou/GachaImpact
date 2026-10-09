@@ -17,6 +17,7 @@ import type { DailyChallengeProgressor } from '../../application/daily-challenge
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 import { unlockCharacterAvatars } from '../../application/appearance/character-avatar-unlocks.js';
+import { lockPlayerMutation } from '../../application/player/player-mutation-guard.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -64,8 +65,8 @@ export class PrismaGachaStore implements GachaStore {
       // Cycle first, including UI requests without a key: eligibility and its
       // write must serialize with rotation/replacement before any Player lock.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
+      await lockPlayerMutation(tx, playerId);
       if (idempotencyKey) {
-        await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
         const key = `gacha.target:${playerId}:${idempotencyKey}`;
         const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: key } });
         if (previous) {
@@ -162,6 +163,7 @@ export class PrismaGachaStore implements GachaStore {
     return this.database.$transaction(async (transaction) => {
       // Match votes, weekly rotation and reviewed same-week replacement before Player locks.
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
+      await lockPlayerMutation(transaction, input.playerId);
       const lockedPlayers = await transaction.$queryRaw<{ elementKey: string | null }[]>`
         SELECT element_key AS "elementKey" FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE
       `;

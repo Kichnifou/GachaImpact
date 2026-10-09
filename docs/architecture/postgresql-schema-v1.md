@@ -1,5 +1,13 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+<a id="reprise-ciblee-migration-066"></a>
+
+## Migration 066 — disponibilité des profils repris, candidate
+
+[`20261009130000_066_add_player_legacy_recovery`](../../server/prisma/migrations/20261009130000_066_add_player_legacy_recovery/migration.sql) ajoute `players.legacy_recovery JSONB` nullable, sans défaut ni backfill métier. Le CHECK `players_legacy_recovery_object` autorise SQL NULL ou une forme minimale objet/version 1/`restrictedDomains` tableau ; le schéma applicatif impose en plus les UUID, hashes, propriétés exactes et domaines uniques. La DDL ne prouve pas à elle seule la validité de la reprise.
+
+Les droits PUBLIC/anon/authenticated sur `players` restent révoqués ; aucune policy RLS ni écriture navigateur n'est ouverte. Le champ reste privé, mappé par Prisma `Player.legacyRecovery`. Le confinement avant transfert et les restrictions Event/Boss/Giveaway appartiennent aux propriétaires applicatifs ; aucun nouveau trigger économique, paiement ou donnée source n'est créé par la migration. [Contrat de reprise](legacy-migration-v1.md#reprise-ciblee-readiness-20261009), [modèle](../specifications/v1-data-model.md#player-recovery-20261009). Application suivie par Prisma et statut public dans le Master ; ce paragraphe décrit le candidat.
+
 ## Migration 065 — registre externe de votes, candidat R1061 non déployé
 
 `20261009120000_065_add_external_banner_votes` ajoute `external_banner_votes` : cycle/TwitchID unique, cycle/Player nullable unique, rotation/Character/Player FK RESTRICT indexées, provenance/hash source et historique de rattachement, gel durable. RLS sans policy frontend et droits PUBLIC/anon/authenticated révoqués. Trigger sous 70422401 : source/choix/cycle immuables, insertion sur cycle officiel non fermé seulement, preuve gelée non supprimable. Aucune écriture de données métier par migration. Tests via `prisma migrate deploy/status` exclusivement en schémas privés sur PostgreSQL loopback ; **registre public reste 64**. [Contrat et limites de purge/compensation](legacy-banner-votes-r1061.md).

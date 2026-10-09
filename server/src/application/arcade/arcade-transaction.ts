@@ -3,11 +3,13 @@ import { AppError } from '../../api/errors.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { elementKeys, type ElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
+import { assertPlayerRecoveryActivated } from '../player/player-mutation-guard.js';
 
 export const arcadeJson = (value: unknown) => JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
 export const arcadeConflict = (message: string, code = 'ARCADE_CONFLICT') => new AppError(message, 409, code);
 export async function lockArcadePlayers(tx: Prisma.TransactionClient, ids: readonly string[]) {
   for (const id of [...new Set(ids)].sort()) await tx.$queryRaw`SELECT id FROM players WHERE id = ${id}::uuid FOR UPDATE`;
+  for (const id of new Set(ids)) await assertPlayerRecoveryActivated(tx, id);
 }
 export async function arcadeTransaction<T extends { operationId: string; alreadyProcessed: boolean }>(db: PrismaClient, clock: Clock,
   actorId: string, ids: readonly string[], key: string, intent: unknown,

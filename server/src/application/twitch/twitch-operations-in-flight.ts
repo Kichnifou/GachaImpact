@@ -28,7 +28,11 @@ export async function assessTwitchOperationsInFlight(
 ) {
   const pendingBusinessOperation = playerId !== undefined
     && await db.businessOperation.count({ where: { playerId, status: 'PENDING' } }) > 0;
-  const receipts = await db.twitchEventReceipt.findMany({ where: { twitchUserId }, select: {
+  // A gift offered by an outsider is journaled under the gifter's Twitch identity.
+  // Its held beneficiary proof must also prevent compensation of that Player.
+  const receipts = await db.twitchEventReceipt.findMany({ where: playerId === undefined ? { twitchUserId } : {
+    OR: [{ twitchUserId }, { payloadMinimal: { path: ['recoveryDeferred', 'playerId'], equals: playerId } }],
+  }, select: {
     eventType: true, state: true, processedAt: true, externalReference: true, payloadMinimal: true,
   } });
   const safety = receipts.map(receiptSafety);

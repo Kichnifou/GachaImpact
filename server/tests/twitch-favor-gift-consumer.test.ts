@@ -10,10 +10,10 @@ function setup(player: unknown) {
     state: 'RECEIVED', twitchUserId: '123', payloadMinimal: {
       subscriptionGiftProof: { broadcasterTwitchId: '12', tier: '2000', total: 10, isAnonymous: false },
     } };
-  const tx = { $queryRaw: vi.fn().mockResolvedValue([]),
+  const tx = { $queryRaw: vi.fn().mockResolvedValue([{ status: 'ACTIVE', legacy_recovery: null }]),
     twitchEventReceipt: { findUniqueOrThrow: vi.fn().mockResolvedValue(receipt), update: vi.fn().mockImplementation(async ({ data }) => ({ ...receipt, ...data })) },
     twitchIdentity: { findUnique: vi.fn().mockResolvedValue({ playerId: randomUUID() }) },
-    player: { findUnique: vi.fn().mockResolvedValue(player) },
+    player: { findUnique: vi.fn().mockResolvedValue(player), findUniqueOrThrow: vi.fn().mockResolvedValue({ legacyRecovery: null }) },
   };
   const db = { $transaction: vi.fn().mockImplementation(async run => run(tx)) };
   const favor = { recoverGifterBonus: vi.fn().mockResolvedValue(null), creditGifterBonus: vi.fn() };

@@ -6,6 +6,7 @@ import { PrismaEconomyService } from '../../infrastructure/database/prisma-econo
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { BusinessError } from '../errors.js';
 import { isElementKey } from '../../domain/economy/resources.js';
+import { lockPlayerMutation } from '../player/player-mutation-guard.js';
 
 export type FavorClaimSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
 /** Trusted internal adapter input. Proof verification/resolution belongs to the transport. */
@@ -192,7 +193,7 @@ export class FavorService {
   }
 
   private async lockPlayer(tx: Prisma.TransactionClient, playerId: string) {
-    await tx.$queryRaw`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+    await lockPlayerMutation(tx, playerId);
   }
 
   private async transaction<T>(run: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {

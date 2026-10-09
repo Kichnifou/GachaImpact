@@ -72,6 +72,16 @@ function normalize(input: TwitchObservedEvent) {
   };
 }
 
+/** Validate a stored original observation even after a trusted owner adds its journal. */
+export function matchesTwitchObservationHash(receipt: TwitchEventReceipt): boolean {
+  try {
+    const event = normalize(receipt.payloadMinimal as unknown as TwitchObservedEvent);
+    return event.externalEventId === receipt.externalEventId && event.eventType === receipt.eventType
+      && event.twitchUserId === receipt.twitchUserId
+      && createHash('sha256').update(JSON.stringify(event)).digest('hex') === receipt.payloadHash;
+  } catch { return false; }
+}
+
 export class TwitchEventObserver {
   constructor(private readonly db: PrismaClient, private readonly retention = new TwitchReceiptRetention(db)) {}
 

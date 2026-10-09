@@ -7,6 +7,7 @@ import { GiftSupremeService, GIFT_SUPREME_EVENT_TYPE, type GiftSupremeInput } fr
 import { TwitchObservationConflict } from './twitch-event-observer.js';
 import { twitchGiftSupremeRedemption } from './twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeManager } from './twitch-gift-supreme-manager.js';
+import { matchesRecoveryGiftDelivery, recoveryDeferredError } from './twitch-recovery-deferrals.js';
 
 const object = (value: Prisma.JsonValue | undefined): Prisma.JsonObject => value && typeof value === 'object' && !Array.isArray(value) ? value : {};
 
@@ -27,14 +28,24 @@ export class TwitchGiftSupremeRuntime {
       });
     } catch (error) {
       this.logFailure(stage, error, event.broadcaster_user_id, event.reward.id, event.id, transport.messageId);
+      if (error instanceof AppError && error.code === 'PLAYER_RECOVERY_NOT_ACTIVATED') throw new AppError(error.message, 503, error.code);
       throw error;
     }
   }
-  async recoverUnfulfilled(playerId: string) {
+  async recoverUnfulfilled(playerId: string, options: { expectedRedemptionIds?: readonly string[] } = {}) {
+    const scopeChanged = () => new AppError('Les cadeaux en attente ont changé. Vérifiez le périmètre avant de reprendre.', 409, 'TWITCH_GIFT_RECOVERY_SCOPE_CHANGED');
+    const ids = options.expectedRedemptionIds;
+    if (ids !== undefined && (!Array.isArray(ids) || ids.length === 0 || ids.length > 500
+      || ids.some(id => typeof id !== 'string' || !id.length || id.length > 128 || id.trim() !== id)
+      || new Set(ids).size !== ids.length)) throw scopeChanged();
+    const expected = ids === undefined ? null : new Set(ids);
     return this.manager.withRecovery(playerId, async (row, helix) => {
       let redemptions;
       try { redemptions = await helix.listUnfulfilledRedemptions(row.playerId, row.twitchUserId, row.rewardId!); }
       catch (error) { this.logFailure('recovery-list', error, row.twitchUserId, row.rewardId!); throw error; }
+      // Check the owner's own canonical list before creating a receipt or paying any target.
+      if (expected && (redemptions.length !== expected.size || new Set(redemptions.map(row => row.id)).size !== expected.size
+        || redemptions.some(row => !expected.has(row.id)))) throw scopeChanged();
       for (const redemption of redemptions) {
         let stage = 'recovery-token';
         try {
@@ -54,13 +65,14 @@ export class TwitchGiftSupremeRuntime {
   private async processTrustedGiftRedemption(row: TwitchGiftSupremeCredential, helix: TwitchGiftHelixClient,
     input: GiftSupremeInput, stage: (value: string) => void, transport?: { messageId: string; payloadHash: string }) {
       // Only a real signed EventSub notification has a transport receipt.
-      const delivery = transport ? await this.recordDelivery(transport, input.redemptionId, input.rewardId, row.twitchUserId,
-        input.gifterTwitchUserId) : null;
+      if (transport) await this.recordDelivery(transport, input.redemptionId, input.rewardId, row.twitchUserId,
+        input.gifterTwitchUserId);
       stage('token');
       await this.manager.tokens!.getToken(row.playerId);
       stage('core');
       const result = await new GiftSupremeService(this.db, this.clock, row.rewardId!).process(input);
       if (result.action === 'IGNORE') return result;
+      if (result.action === 'DEFERRED') throw recoveryDeferredError();
       const receipt = await this.db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: `gift-supreme:${input.redemptionId}` } });
       const desired = result.action === 'FULFILL' ? 'FULFILLED' as const : 'CANCELED' as const;
       const journal = object(receipt.payloadMinimal), remote = object(journal['remote']);
@@ -97,11 +109,17 @@ export class TwitchGiftSupremeRuntime {
           if (messageId) await this.journal(receipt.id, value => ({ ...value, announcementState: 'SENT', messageId, announcedAt: this.clock.now().toISOString() }));
         }
       }
-      if (delivery) {
-        stage('delivery-complete');
-        await this.db.twitchEventReceipt.update({ where: { id: delivery.id }, data: { state: 'PROCESSED', processedAt: this.clock.now(),
-          externalReference: `gift-supreme:receipt:${receipt.id}` } });
-      }
+      // Recovery from canonical Helix closes every prior signed delivery as well.
+      stage('delivery-complete');
+      await this.db.$transaction(async tx => {
+        const deliveries = await tx.twitchEventReceipt.findMany({ where: { eventType: GIFT_SUPREME_EVENT_TYPE, state: 'RECEIVED',
+          payloadMinimal: { path: ['redemptionId'], equals: input.redemptionId } }, orderBy: { id: 'asc' } });
+        for (const delivery of deliveries) {
+          if (!matchesRecoveryGiftDelivery(delivery, { ...input, broadcasterId: row.twitchUserId }, receipt)) throw new TwitchObservationConflict();
+          await tx.twitchEventReceipt.update({ where: { id: delivery.id }, data: { state: 'PROCESSED', processedAt: this.clock.now(),
+            externalReference: `gift-supreme:receipt:${receipt.id}` } });
+        }
+      });
       return result;
   }
   private logFailure(stage: string, error: unknown, broadcasterId: string, rewardId: string, redemptionId?: string, messageId?: string) {

@@ -1,3 +1,4 @@
+import { assertPlayerDomainReady, isPlayerDomainReady, recoveryAllowsDomain } from '../player/player-recovery-readiness.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { commandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
@@ -99,8 +100,14 @@ export class EventService {
     private readonly giftCodes?: Pick<GiftCodeService, 'festivalAvailability'>,
   ) {}
 
-  public async getCurrent(identity: PlayerExecutionActor) {
+  private async readyPlayer(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
+    await assertPlayerDomainReady(this.database, player.id, 'EVENT');
+    return player;
+  }
+
+  public async getCurrent(identity: PlayerExecutionActor) {
+    const player = await this.readyPlayer(identity);
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -108,6 +115,8 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           return this.snapshot(tx, player.id, context, now, true);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
@@ -119,7 +128,7 @@ export class EventService {
   }
 
   public async getRanking(identity: PlayerExecutionActor) {
-    const viewer = await this.getPlayer.execute(identity);
+    const viewer = await this.readyPlayer(identity);
     const context = await this.resolveCurrentEdition(this.database, commandNow(this.clock));
     const participants = await this.database.eventParticipant.findMany({
       where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } } },
@@ -137,7 +146,7 @@ export class EventService {
   }
 
   public async join(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.join');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, creditedCurrency: Number(replay.summary.creditedCurrency ?? 0) };
     const now = commandNow(this.clock);
@@ -151,6 +160,8 @@ export class EventService {
         const result = await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${businessDateToDatabaseDate(context.period.businessDate)}::date FOR UPDATE`;
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const existingOperation = await tx.businessOperation.findFirst({
             where: { sourceChannel, idempotencyKey },
           });
@@ -228,7 +239,7 @@ export class EventService {
   }
 
   public async attemptGameA(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-a.attempt');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { succeeded: replay.summary.succeeded === true, reward: { points: replay.summary.succeeded === true ? 1 : 0, currency: replay.summary.succeeded === true ? 1 : 0 } } };
     const now = commandNow(this.clock);
@@ -240,6 +251,8 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
@@ -284,7 +297,7 @@ export class EventService {
 
   public async attemptGameB(identity: PlayerExecutionActor, code: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     if (!isEventGameBCode(code)) throw new BusinessError('EVENT_GAME_B_INVALID_CODE', 'Le code doit contenir exactement cinq chiffres 0 ou 1.');
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-b.attempt', { code });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, attempt: { kind: parseGameBResultKind(replay.summary.kind), reward: { points: replay.summary.kind === 'CORRECT' ? 1 : 0, currency: replay.summary.kind === 'CORRECT' ? 1 : 0 } } };
     const now = commandNow(this.clock);
@@ -297,6 +310,8 @@ export class EventService {
         return await this.database.$transaction(async (tx) => {
           await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states WHERE event_edition_id = ${context.edition.id}::uuid AND business_date = ${key.businessDate}::date FOR UPDATE`;
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const existingOperation = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (existingOperation) {
             const summary = readRecord(existingOperation.resultSummary);
@@ -324,7 +339,7 @@ export class EventService {
             if (kind === 'CORRECT') {
               const participants = await tx.eventParticipant.findMany({ where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } } }, orderBy: { playerId: 'asc' }, select: { playerId: true } });
               for (const entry of participants) {
-                if (!await lockPlayerMutationState(tx, entry.playerId)) continue;
+                if (!await lockPlayerMutationState(tx, entry.playerId) || !await isPlayerDomainReady(tx, entry.playerId, 'EVENT')) continue;
                 await this.awardEventPoints(tx, context, entry.playerId, 1, now);
                 await tx.playerEventCurrencyBalance.upsert({ where: { playerId_eventDefinitionId: { playerId: entry.playerId, eventDefinitionId: context.definition.id } }, create: { playerId: entry.playerId, eventDefinitionId: context.definition.id, amount: 1n, updatedAt: now }, update: { amount: { increment: 1n }, updatedAt: now } });
               }
@@ -343,7 +358,7 @@ export class EventService {
   }
 
   public async searchGameCRecipients(identity: PlayerExecutionActor, query: Readonly<{ q: string; elementKey?: 'pyro' | 'hydro' | 'cryo' | 'electro' | 'anemo' | 'geo' | 'dendro'; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     if (player.status !== 'ACTIVE') throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
     const q = query.q.trim();
     if (q.length > 100 || !Number.isInteger(query.page) || query.page < 1 || query.page > 50) throw new BusinessError('EVENT_GAME_C_INVALID_SEARCH', 'La recherche de joueur est invalide.');
@@ -371,10 +386,12 @@ export class EventService {
   public async sendGameC(identity: PlayerExecutionActor, recipientPlayerId: string, message: string, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const content = message.trim();
     if (!content || content.length > 500) throw new BusinessError('EVENT_GAME_C_INVALID_MESSAGE', 'Le message doit contenir entre 1 et 500 caractères.');
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     if (player.id === recipientPlayerId) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.game-c.send', { recipientPlayerId, content });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, reward: { points: 1, currency: 1 } };
+    const recipient = await this.database.player.findFirst({ where: { ...eligibleContactRecipient(player.id), id: recipientPlayerId }, select: { legacyRecovery: true } });
+    if (!recipient || !recoveryAllowsDomain(recipient.legacyRecovery, 'EVENT')) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -386,6 +403,8 @@ export class EventService {
           // Keep the contact owner's indistinguishable refusal for absent/private
           // recipients; only the authenticated actor uses the archive guard.
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const previousRequest = readRecord(readRecord(previous.resultSummary)?.request);
@@ -394,7 +413,7 @@ export class EventService {
           }
           const sender = await tx.player.findUnique({ where: { id: player.id }, select: { status: true } });
           const recipient = await tx.player.findFirst({ where: { ...eligibleContactRecipient(player.id), id: recipientPlayerId }, select: { id: true } });
-          if (sender?.status !== 'ACTIVE' || !recipient) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
+          if (sender?.status !== 'ACTIVE' || !recipient || !await isPlayerDomainReady(tx, recipientPlayerId, 'EVENT')) throw new BusinessError('EVENT_GAME_C_CONTACT_UNAVAILABLE', 'Ce message ne peut pas être envoyé.');
           const participant = await tx.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
           if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
           const daily = await this.ensureDailyState(tx, context.edition.id, player.id, context.period.businessDate, now);
@@ -419,12 +438,14 @@ export class EventService {
   }
 
   public async consultGameCMessages(identity: PlayerExecutionActor) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
     return this.database.$transaction(async (tx) => {
       await lockPlayerMutation(tx, player.id);
+
+      await assertPlayerDomainReady(tx, player.id, 'EVENT');
       await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
       await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
       return this.snapshot(tx, player.id, context, now, false);
@@ -432,7 +453,7 @@ export class EventService {
   }
 
   public async claimCalendar(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.calendar.claim');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, calendarClaim: { day: Number(replay.summary.day), reward: Number(replay.summary.reward) } };
     const now = commandNow(this.clock);
@@ -443,6 +464,8 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           // A confirmed opening remains replayable after midnight or the end of December.
           if (previous) {
@@ -479,7 +502,7 @@ export class EventService {
   }
 
   public async claimDailyBonus(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -487,6 +510,8 @@ export class EventService {
       try {
         return await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const request = readRecord(readRecord(previous.resultSummary)?.request);
@@ -516,7 +541,7 @@ export class EventService {
 
   public async convertShop(identity: PlayerExecutionActor, target: EventShopTarget, quantity: number, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
     const units = eventShopQuantity(quantity);
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.convert', { target, quantity });
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true }, conversion: { resourceKey: target === 'PRIMOGEMS' ? 'primogems' : 'moras', amount: String(replay.summary.amount), quantity } };
     const now = commandNow(this.clock);
@@ -527,6 +552,8 @@ export class EventService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
@@ -554,7 +581,7 @@ export class EventService {
   }
 
   public async purchaseCollection(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
-    const player = await this.getPlayer.execute(identity);
+    const player = await this.readyPlayer(identity);
     const replay = await this.replayChatOperation(player.id, idempotencyKey, sourceChannel, 'event.shop.collection');
     if (replay) return { ...replay.snapshot, operation: { id: replay.id, alreadyProcessed: true } };
     const now = commandNow(this.clock);
@@ -565,6 +592,8 @@ export class EventService {
       try {
         const result = await this.database.$transaction(async (tx) => {
           await lockPlayerMutation(tx, player.id);
+
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey } });
           if (previous) {
             const original = readRecord(readRecord(previous.resultSummary)?.request);
@@ -616,6 +645,7 @@ export class EventService {
   }
 
   private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date) {
+    await assertPlayerDomainReady(tx, playerId, 'EVENT');
     const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
     await this.grantReachedEventMilestones(tx, context, playerId, participant.points, now);
   }

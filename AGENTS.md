@@ -171,4 +171,6 @@ Ne pas sur-concevoir le projet pour des besoins hypothétiques à très long ter
 
 Pour explorer le code, chercher d'abord les symboles/usages avec `rg`, lire les plages utiles, puis ouvrir un gros fichier entier seulement si nécessaire ; ne pas scanner tout le dépôt par défaut. Pour les commandes bavardes, garder le log complet dans un fichier temporaire et remonter bilan et erreurs pertinentes en vérifiant le code de retour : aucun tronquage ne doit masquer le diagnostic.
 
+Une mission explicitement consolidée peut préautoriser revue, corrections, promotion, déploiement et application dans la même exécution : poursuivre après chaque gate acquis sans GO générique. Les mécanismes sensibles exigent une revue réellement indépendante du SHA publié ; corriger puis faire revoir les findings avant promotion. Le [workflow](docs/process/implementation-workflow.md#missions-consolidées-préautorisées--règle-du-09102026) définit ce parcours et ses limites. Aucun état testé localement ne vaut déploiement ou recette humaine.
+
 Toujours respecter le périmètre exact de l'étape demandée. Une orientation future documentée dans ce fichier n'est pas, à elle seule, une autorisation d'implémentation.

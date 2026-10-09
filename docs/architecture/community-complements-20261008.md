@@ -1,6 +1,10 @@
 # R1056 / 31B — compléments communautaires, 08/10/2026
 
-## État courant R1061 — votes Twitch sans Player, candidat review du 09/10
+## Mandat courant R1062 — reprise P0 consolidée
+
+Le propriétaire autorise désormais revue indépendante intégrée, corrections, promotion/déploiement et restitutions suffisamment prouvées dans la même mission. Aucun GO générique supplémentaire ; tous les gates restent obligatoires. Les imports ciblés des autres historiques peuvent rattacher les trois votants aux vrais Players sans double poids. Les quatre NATIVE restent protégés ; Event Céotryd se recalcule depuis les opérations présentes, jamais depuis une ancienne valeur proposée. [Runbook courant](../process/legacy-cutover-runbook.md#reprise-p0-r1062), [disponibilité par domaine](legacy-migration-v1.md#reprise-ciblee-readiness-20261009), [état réellement exécuté](../master/PROJECT_MASTER_PLAN.md). Les statuts ci-dessous sont historiques.
+
+## Historique R1061 — votes Twitch sans Player, candidat review du 09/10
 
 L'arbitrage propriétaire est acquis : [R1061](legacy-banner-votes-r1061.md) remplace l'attente de décision décrite au contrôle précédent. Registre externe backend-only 065 et propriétaires Vote/R1055/rotation/remplacement adaptés ; code candidat, **aucun déploiement ni apply public**. Céotryd IMPORT et trois EXTERNAL_PROVEN produisent quatre poids Raiden dans la prévisualisation ; le runtime public 212da08/064 garde encore l'ancien plan bloqué. Aucune migration des trois votants nécessaire. Gate F5 212da08 confirmée acquise, sans nouveau redémarrage.
 
