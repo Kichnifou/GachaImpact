@@ -12,6 +12,7 @@ const slotBody = z.object({ characterId: z.string().uuid() }).strict();
 const bossParams = z.object({ bossId: z.string().uuid() }).strict();
 const attackBody = z.object({ bossId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict();
 const historyQuery = z.object({ page: z.coerce.number().int().min(1).default(1) }).strict();
+const archiveParams = z.object({ archiveId: z.string().regex(/^twitch-[a-f0-9]{64}$/) }).strict();
 
 export const registerMonthlyBossRoutes: FastifyPluginAsync<Options> = async (app, options) => {
   app.get('/api/v1/me/combat/boss', { preHandler: options.authenticate }, async (request) => serializeView(await options.service.getCurrent(requireAuthenticatedIdentity(request))));
@@ -40,14 +41,20 @@ export const registerMonthlyBossRoutes: FastifyPluginAsync<Options> = async (app
     const result = await options.service.getHistory(query.page);
     return { ...result, bosses: result.bosses.map((boss) => ({
       ...boss,
-      baseHp: boss.baseHp.toString(),
+      baseHp: boss.baseHp?.toString() ?? null,
       maxHp: boss.maxHp.toString(),
       currentHp: boss.currentHp.toString(),
       defeatedAt: boss.defeatedAt?.toISOString() ?? null,
-      nextBaseAdjustment: boss.nextBaseAdjustment.toString(),
+      nextBaseAdjustment: boss.nextBaseAdjustment?.toString() ?? null,
       community: serializeCommunity(boss.community),
       records: serializeRecords(boss.records),
+      contributions: boss.contributions ? { ...boss.contributions, entries: boss.contributions.entries.map(serializeRanking) } : null,
     })) };
+  });
+  app.get('/api/v1/combat/boss/archives/:archiveId/contributions', async (request) => {
+    const { archiveId } = parse(archiveParams, request.params), { page } = parse(historyQuery, request.query);
+    const result = await options.service.readArchiveContributions(archiveId, page);
+    return { ...result, entries: result.entries.map(serializeRanking) };
   });
 };
 
@@ -81,10 +88,12 @@ function serializeSummary(summary: MonthlyBossSummary) {
 function serializeCharacter(character: MonthlyBossView['availableCharacters'][number]) { return { ...character, firstObtainedAt: character.firstObtainedAt.toISOString() }; }
 function serializeRanking(entry: MonthlyBossView['ranking'][number]) { return { ...entry, totalDamage: entry.totalDamage.toString(), attackCount: entry.attackCount.toString(), bestHit: entry.bestHit.toString() }; }
 function serializeCommunity(community: NonNullable<MonthlyBossView['defeatedSummary']>['community']) { return { ...community, attackCount: community.attackCount.toString(), totalDamage: community.totalDamage.toString(), averageDamage: community.averageDamage.toString() }; }
-function serializeRecords(records: NonNullable<MonthlyBossView['defeatedSummary']>['records']) { return {
+function serializeRecords(records: Omit<NonNullable<MonthlyBossView['defeatedSummary']>['records'], 'biggestHit'> & {
+  biggestHit: { playerId: string; displayName: string; damage: bigint; createdAt: Date | null } | null;
+}) { return {
   ...records,
   topContributor: records.topContributor ? serializeRanking(records.topContributor) : null,
-  biggestHit: records.biggestHit ? { ...records.biggestHit, damage: records.biggestHit.damage.toString(), createdAt: records.biggestHit.createdAt.toISOString() } : null,
+  biggestHit: records.biggestHit ? { ...records.biggestHit, damage: records.biggestHit.damage.toString(), createdAt: records.biggestHit.createdAt?.toISOString() ?? null } : null,
   mostAttacks: records.mostAttacks ? serializeRanking(records.mostAttacks) : null,
   topThree: records.topThree.map(serializeRanking),
 }; }

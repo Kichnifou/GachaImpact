@@ -238,6 +238,7 @@ describe('monthly Boss persistence', () => {
     expect(archived).toMatchObject({ baseHp: boss.boss.baseHp, maxHp: boss.boss.maxHp, currentHp: 0n, status: 'DEFEATED', victoryDayCount: 13, daysRemainingAfterVictory: 17, nextBaseAdjustment: 1_275_000n, community: { participantCount: 3, attackCount: 5n, totalDamage: 54_000n, averageDamage: 10_800n } });
     expect(archived.records.biggestHit).toMatchObject({ playerId: bravo.id, damage: 20_000n });
     const failed = history.bosses.find(({ monthStart }) => monthStart === '2098-05-01')!;
+    if (failed.origin !== 'NATIVE') throw new Error('Native history fixture required');
     expect(failed).toMatchObject({ status: 'FAILED', nextBaseAdjustment: calculateNextBossBase({ baseHp: failed.baseHp, currentHp: failed.currentHp, monthStart: failed.monthStart, defeatedAt: null }).adjustment, community: { participantCount: 0, attackCount: 0n, totalDamage: 0n, averageDamage: 0n } });
   }, 30_000);
 });

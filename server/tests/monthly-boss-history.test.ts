@@ -19,6 +19,7 @@ function setup(total: number) {
   }));
   const findMany = vi.fn(async ({ skip, take }: { skip: number; take: number }) => bosses.slice(skip, skip + take));
   const database = {
+    $queryRaw: vi.fn(async () => []),
     monthlyBoss: { count: vi.fn(async () => total), findMany },
     playerBossParticipation: { findMany: vi.fn(async () => []) },
     bossAttack: { findMany: vi.fn(async () => []) },

@@ -463,7 +463,7 @@ export type MonthlyBossRankingEntryDto = Readonly<{ rank: number; playerId: stri
 export type MonthlyBossCommunitySummaryDto = Readonly<{ participantCount: number; attackCount: string; totalDamage: string; averageDamage: string }>
 export type MonthlyBossRecordsDto = Readonly<{
   topContributor: MonthlyBossRankingEntryDto | null
-  biggestHit: Readonly<{ playerId: string; displayName: string; damage: string; createdAt: string }> | null
+  biggestHit: Readonly<{ playerId: string; displayName: string; damage: string; createdAt: string | null }> | null
   mostAttacks: MonthlyBossRankingEntryDto | null
   finalBlow: Readonly<{ id: string; displayName: string }> | null
   topThree: readonly MonthlyBossRankingEntryDto[]
@@ -486,8 +486,17 @@ export type MonthlyBossDto = Readonly<{
   playerStats: Readonly<{ totalDamage: string; totalAttacks: string; totalParticipated: string; totalRewarded: string; finalBlows: string; bestHit: string }>
 }>
 export type MonthlyBossAttackDto = Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; result: Readonly<{ damage: string; defeated: boolean }>; view: MonthlyBossDto; resources: PlayerResourcesDto }>
-export type MonthlyBossHistoryEntryDto = Readonly<{ id: string; monthStart: string; name: string; baseHp: string; maxHp: string; currentHp: string; resistanceElementKey: ElementKey; status: 'DEFEATED' | 'FAILED'; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null; victoryDayCount: number | null; daysRemainingAfterVictory: number | null; nextBaseAdjustment: string; community: MonthlyBossCommunitySummaryDto; records: MonthlyBossRecordsDto }>
-export type MonthlyBossHistoryDto = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; bosses: readonly MonthlyBossHistoryEntryDto[] }>
+export type MonthlyBossArchiveContributionsDto = Readonly<{ archiveId: string; page: number; pageSize: number; total: number; totalPages: number; entries: readonly MonthlyBossRankingEntryDto[] }>
+export type MonthlyBossHistoryEntryDto = Readonly<{
+  id: string; monthStart: string; name: string; baseHp: string | null; maxHp: string; currentHp: string; resistanceElementKey: ElementKey
+  status: 'DEFEATED' | 'FAILED' | 'INTERRUPTED'; defeatedAt: string | null; finalBlowPlayer: Readonly<{ id: string; displayName: string }> | null
+  victoryDayCount: number | null; daysRemainingAfterVictory: number | null; nextBaseAdjustment: string | null
+  community: MonthlyBossCommunitySummaryDto; records: MonthlyBossRecordsDto
+  origin?: 'NATIVE' | 'TWITCH_ARCHIVE'
+  historicalRewardsDistributed?: boolean | null
+  contributions?: MonthlyBossArchiveContributionsDto | null
+}>
+export type MonthlyBossHistoryDto = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; bosses: readonly MonthlyBossHistoryEntryDto[]; archiveStatus?: 'AVAILABLE' | 'NONE' | 'UNAVAILABLE' }>
 
 export type ContestThemeDto = Readonly<{ key: 'STRENGTH' | 'INTELLIGENCE' | 'BEAUTY' | 'CHARISMA' | 'POPULARITY'; label: string; title: string; statKey: 'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity' }>
 export type ContestParticipantDto = Readonly<{

@@ -3,13 +3,14 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { MonthlyBossDto } from '../api/types'
+import type { MonthlyBossArchiveContributionsDto, MonthlyBossDto, MonthlyBossHistoryEntryDto } from '../api/types'
+import * as gameApi from '../api/game-api'
 import MonthlyBossScreen from './MonthlyBossScreen'
 
 const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
-afterEach(() => document.body.replaceChildren())
+afterEach(() => { document.body.replaceChildren(); vi.restoreAllMocks() })
 
 const value: MonthlyBossDto = {
   businessDate: '2026-09-13', boss: { id: '11111111-1111-1111-1111-111111111111', monthStart: '2026-09-01', name: 'Seigneur des Ruines Oubliées', baseHp: '1500000', hpVariationPercent: 0, maxHp: '1500000', currentHp: '1490000', resistanceElementKey: 'hydro', defeatedAt: null, finalBlowPlayer: null, nextBaseAdjustment: null },
@@ -156,16 +157,74 @@ describe('MonthlyBossScreen', () => {
     expect(container.textContent).toContain('✅ Vaincu')
     expect(container.querySelectorAll('.boss-history article')).toHaveLength(10)
     await act(async () => { container.querySelector<HTMLButtonElement>('.boss-history article button')!.click() })
-    expect(container.textContent).toContain('1 500 000 PV')
-    expect(container.textContent).toContain('Dégâts totaux')
-    const historyDetails = Array.from(container.querySelectorAll<HTMLElement>('[role="dialog"]')).find((dialog) => dialog.getAttribute('aria-labelledby') === 'boss-history-details-title')!
+    const historyDetails = document.querySelector<HTMLElement>('.boss-history-details')!
+    expect(historyDetails.textContent).toContain('1 500 000 PV')
+    expect(historyDetails.textContent).toContain('Dégâts totaux')
+    expect(historyDetails.parentElement?.parentElement).toBe(document.body)
     await act(async () => { historyDetails.querySelector<HTMLButtonElement>('button[aria-label="Fermer"]')!.click() })
-    expect(container.querySelector('#boss-history-details-title')).toBeNull()
+    expect(document.querySelector('#boss-history-details-title')).toBeNull()
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find((button) => button.textContent === 'Suivant')!.click(); await Promise.resolve() })
     expect(onLoadHistory).toHaveBeenLastCalledWith(2)
     expect(container.textContent).toContain('225 000 PV restants')
     await act(async () => { container.querySelector<HTMLButtonElement>('.boss-history article button')!.click() })
-    expect(container.textContent).toContain('225 000 PV restants → −225 000 baseHp le mois suivant')
+    expect(document.querySelector('.boss-history-details')?.textContent).toContain('225 000 PV restants → −225 000 baseHp le mois suivant')
+    act(() => root.unmount())
+  })
+
+  it('paginates a separate interrupted Twitch archive without inventing rewards or losing the parent and focus', async () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    const archiveId = 'twitch-' + 'a'.repeat(64)
+    const entries = Array.from({ length: 12 }, (_, index) => ({ rank: index + 1, playerId: 'player-' + index, displayName: 'Participant ' + index, totalDamage: '10000', attackCount: '2', bestHit: '6000' }))
+    const archive: MonthlyBossHistoryEntryDto = {
+      id: archiveId, origin: 'TWITCH_ARCHIVE', monthStart: '2026-10-01', name: 'Boss Twitch', baseHp: null,
+      maxHp: '1500000', currentHp: '1000000', resistanceElementKey: 'pyro', status: 'INTERRUPTED',
+      defeatedAt: null, finalBlowPlayer: null, victoryDayCount: null, daysRemainingAfterVictory: null, nextBaseAdjustment: null,
+      historicalRewardsDistributed: false, community: { participantCount: 12, attackCount: '24', totalDamage: '120000', averageDamage: '5000' },
+      records: { topContributor: entries[0]!, biggestHit: { playerId: entries[0]!.playerId, displayName: entries[0]!.displayName, damage: '6000', createdAt: null }, mostAttacks: entries[0]!, finalBlow: null, topThree: entries.slice(0, 3) },
+      contributions: { archiveId, page: 1, pageSize: 10, total: 12, totalPages: 2, entries: entries.slice(0, 10) },
+    }
+    let finish!: (value: MonthlyBossArchiveContributionsDto) => void
+    const read = vi.fn(() => new Promise<MonthlyBossArchiveContributionsDto>(resolve => { finish = resolve }))
+    vi.spyOn(gameApi, 'getGameApiClient').mockReturnValue({ getMonthlyBossArchiveContributions: read } as unknown as ReturnType<typeof gameApi.getGameApiClient>)
+    const onLoadHistory = vi.fn(async () => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, bosses: [archive] }))
+    act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} onLoadHistory={onLoadHistory} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Bilan →')!.click())
+    expect(container.textContent).toContain('Contributions au combat actuel.')
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Historique')!.click() })
+    const opener = container.querySelector<HTMLButtonElement>('.boss-history article button')!
+    act(() => { opener.focus(); opener.click() })
+    const dialog = document.querySelector<HTMLElement>('.boss-history-details')!
+    expect(dialog.parentElement?.parentElement).toBe(document.body)
+    expect(dialog.textContent).toContain('Archive Twitch')
+    expect(dialog.textContent).toContain('Combat interrompu')
+    expect(dialog.textContent).not.toContain('baseHp')
+    expect(dialog.textContent).not.toContain('16 000')
+    expect(dialog.querySelectorAll('.boss-archive-contributions li')).toHaveLength(10)
+    const next = dialog.querySelector<HTMLButtonElement>('footer button:last-child')!
+    act(() => { next.click(); next.click() })
+    expect(read).toHaveBeenCalledExactlyOnceWith(archiveId, 2)
+    expect(next.disabled).toBe(true)
+    await act(async () => { finish({ archiveId, page: 2, pageSize: 10, total: 12, totalPages: 2, entries: entries.slice(10) }) })
+    expect(dialog.querySelectorAll('.boss-archive-contributions li')).toHaveLength(2)
+    expect(dialog.querySelector('.boss-archive-contributions')?.textContent).toContain('Participant 11')
+    expect(dialog.querySelector('footer')?.textContent).toContain('Page 2 / 2')
+    act(() => dialog.querySelector<HTMLButtonElement>('[aria-label="Fermer"]')!.focus())
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(document.querySelector('.boss-history-details')).toBeNull()
+    expect(container.querySelector('[aria-label="Bilan Boss"]')).not.toBeNull()
+    expect(document.activeElement).toBe(opener)
+    expect(onLoadHistory).toHaveBeenCalledTimes(1)
+    act(() => root.unmount())
+  })
+
+  it('reports an unavailable archive without hiding the native history controls', async () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    const onLoadHistory = vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [], archiveStatus: 'UNAVAILABLE' as const }))
+    act(() => root.render(<MonthlyBossScreen value={value} {...callbacks} onLoadHistory={onLoadHistory} />))
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Bilan →')!.click())
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button => button.textContent === 'Historique')!.click() })
+    expect(container.querySelector('[role="status"]')?.textContent).toContain('Les combats GachaImpact restent consultables.')
+    expect(container.querySelector('.boss-history footer')?.textContent).toContain('1 / 1')
     act(() => root.unmount())
   })
 

@@ -26,6 +26,7 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import type { PlayerResourceBalances } from '../player/player-resource-store.js';
 import { PrismaEconomyService } from '../../infrastructure/database/prisma-economy-service.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
+import { BossArchiveUnavailableError, readTwitchBossContributions, readTwitchBossHistory, type TwitchBossHistoryEntry } from './monthly-boss-archive-history.js';
 
 const MAX_TRANSACTION_ATTEMPTS = 4;
 const HISTORY_PAGE_SIZE = 10;
@@ -351,21 +352,37 @@ export class MonthlyBossService {
   }
 
   public async getHistory(page: number) {
-    if (!Number.isInteger(page) || page < 1) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Cette page d’historique est invalide.');
+    if (!Number.isSafeInteger(page) || page < 1) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Cette page d’historique est invalide.');
     const currentMonth = businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));
-    const total = await this.database.monthlyBoss.count({ where: { monthStart: { lt: currentMonth } } });
+    let archives: TwitchBossHistoryEntry[];
+    let archiveStatus: 'AVAILABLE' | 'NONE' | 'UNAVAILABLE';
+    try { archives = await readTwitchBossHistory(this.database); archiveStatus = archives.length ? 'AVAILABLE' : 'NONE'; }
+    catch (error) {
+      if (!(error instanceof BossArchiveUnavailableError)) throw error;
+      archives = []; archiveStatus = 'UNAVAILABLE';
+    }
+    // Only the small native instance index is merged. Combat rows and attacks
+    // are loaded for the selected page, never for the whole native history.
+    const index = archives.length ? await this.database.monthlyBoss.findMany({ where: { monthStart: { lt: currentMonth } },
+      select: { id: true, monthStart: true }, orderBy: { monthStart: 'desc' } }) : null;
+    const ordered = index ? [...index.map(boss => ({ id: boss.id, monthStart: databaseDateToBusinessDate(boss.monthStart), origin: 'NATIVE' as const })),
+      ...archives.map(boss => ({ id: boss.id, monthStart: boss.monthStart, origin: boss.origin }))]
+      .sort((a, b) => b.monthStart.localeCompare(a.monthStart) || a.origin.localeCompare(b.origin) || a.id.localeCompare(b.id)) : null;
+    const selected = ordered?.slice((page - 1) * HISTORY_PAGE_SIZE, page * HISTORY_PAGE_SIZE);
+    const total = ordered?.length ?? await this.database.monthlyBoss.count({ where: { monthStart: { lt: currentMonth } } });
     const bosses = await this.database.monthlyBoss.findMany({
-      where: { monthStart: { lt: currentMonth } },
+      where: selected ? { id: { in: selected.filter(row => row.origin === 'NATIVE').map(row => row.id) } } : { monthStart: { lt: currentMonth } },
       orderBy: { monthStart: 'desc' },
-      skip: (page - 1) * HISTORY_PAGE_SIZE,
+      skip: selected ? 0 : (page - 1) * HISTORY_PAGE_SIZE,
       take: HISTORY_PAGE_SIZE,
       include: { finalBlowPlayer: { select: { id: true, displayName: true, status: true } } },
     });
     const summaries = await readBossSummaries(this.database, bosses);
-    return { page, pageSize: HISTORY_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), bosses: bosses.map((boss) => {
+    const nativeEntries = bosses.map((boss) => {
       const summary = summaries.get(boss.id)!.summary;
       return {
         id: boss.id,
+        origin: 'NATIVE' as const,
         monthStart: databaseDateToBusinessDate(boss.monthStart),
         name: boss.nameSnapshot,
         baseHp: boss.baseHp,
@@ -380,8 +397,17 @@ export class MonthlyBossService {
         nextBaseAdjustment: calculateNextBossBase({ baseHp: boss.baseHp, currentHp: boss.currentHp, monthStart: databaseDateToBusinessDate(boss.monthStart), defeatedAt: boss.defeatedAt }).adjustment,
         community: summary.community,
         records: summary.records,
+        historicalRewardsDistributed: null,
+        contributions: null,
       };
-    }) };
+    });
+    const entries = new Map([...nativeEntries, ...archives].map(entry => [entry.id, entry]));
+    return { page, pageSize: HISTORY_PAGE_SIZE, total, totalPages: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), archiveStatus,
+      bosses: selected ? selected.map(row => entries.get(row.id)!) : nativeEntries };
+  }
+
+  public async readArchiveContributions(archiveId: string, page: number) {
+    return readTwitchBossContributions(this.database, archiveId, page);
   }
 
   private async context(identity: PlayerExecutionActor) {

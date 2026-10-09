@@ -21,6 +21,8 @@ describe('monthly Boss HTTP contract', () => {
       getCurrent: vi.fn(async () => currentView), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view), copyActiveTeam: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
       attack: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, result: { damage: 10_000n, defeated: false }, view, resources: { primogems: 0n, moras: 0n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n } })),
       getRanking: vi.fn(async () => ({ boss: { id: bossId, nameSnapshot: view.boss.name, monthStart: view.boss.monthStart, defeatedAt: null }, ranking: [{ rank: 1, playerId, displayName: 'Fixture', totalDamage: 10_000n, attackCount: 1n, bestHit: 10_000n }] })),
+      readArchiveContributions: vi.fn(async (archiveId: string, page: number) => ({ archiveId, page, pageSize: 10, total: 11, totalPages: 2,
+        entries: [{ rank: 11, playerId, displayName: 'Fixture', totalDamage: 10_000n, attackCount: 1n, bestHit: 10_000n }] })),
       getHistory: vi.fn(async () => ({ page: 1, pageSize: 10, total: 1, totalPages: 1, bosses: [{
         id: bossId, monthStart: '2026-08-01', name: 'Monstre Abyssal', baseHp: 1_500_000n, maxHp: 1_600_000n, currentHp: 0n, resistanceElementKey: 'hydro' as const, status: 'DEFEATED' as const,
         defeatedAt: new Date('2026-08-14T10:00:00Z'), finalBlowPlayer: { id: playerId, displayName: 'Fixture' }, victoryDayCount: 14, daysRemainingAfterVictory: 17, nextBaseAdjustment: 1_275_000n,
@@ -64,6 +66,28 @@ describe('monthly Boss HTTP contract', () => {
     expect(current.statusCode).toBe(200); expect(current.json()).toMatchObject({ boss: { id: bossId, maxHp: '1500000', currentHp: '1490000' }, reward: { primogems: '16000', moras: '500000' } });
     const ranking = await app.inject({ url: `/api/v1/combat/boss/${bossId}/ranking` });
     expect(ranking.statusCode).toBe(200); expect(ranking.json().ranking[0]).toMatchObject({ playerId, totalDamage: '10000' });
+  });
+
+  it('serializes archive nulls and paginated contributions without inventing dates, scaling or rewards', async () => {
+    const { app, service } = await setup();
+    const native = await service.getHistory();
+    const archiveId = 'twitch-' + 'a'.repeat(64);
+    const source = native.bosses[0]!;
+    const contributions = { archiveId, page: 1, pageSize: 10, total: 1, totalPages: 1, entries: source.records.topThree };
+    service.getHistory.mockResolvedValueOnce({ ...native, bosses: [{ ...source, id: archiveId, origin: 'TWITCH_ARCHIVE', status: 'INTERRUPTED',
+      baseHp: null, nextBaseAdjustment: null, victoryDayCount: null, daysRemainingAfterVictory: null, defeatedAt: null,
+      historicalRewardsDistributed: false, contributions, records: { ...source.records, biggestHit: { ...source.records.biggestHit, createdAt: null } } }] } as never);
+    const response = await app.inject({ url: '/api/v1/combat/boss/history?page=1' });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().bosses[0]).toMatchObject({ origin: 'TWITCH_ARCHIVE', status: 'INTERRUPTED', baseHp: null, nextBaseAdjustment: null,
+      defeatedAt: null, historicalRewardsDistributed: false, records: { biggestHit: { createdAt: null, damage: '500000' } },
+      contributions: { archiveId, page: 1, entries: [{ totalDamage: '900000', attackCount: '2', bestHit: '500000' }] } });
+    const page2 = await app.inject({ url: `/api/v1/combat/boss/archives/${archiveId}/contributions?page=2` });
+    expect(page2.statusCode).toBe(200);
+    expect(page2.json()).toMatchObject({ archiveId, page: 2, total: 11, entries: [{ rank: 11, totalDamage: '10000' }] });
+    expect(service.readArchiveContributions).toHaveBeenCalledWith(archiveId, 2);
+    expect((await app.inject({ url: '/api/v1/combat/boss/archives/not-an-archive/contributions?page=1' })).statusCode).toBe(400);
+    expect((await app.inject({ url: `/api/v1/combat/boss/archives/${archiveId}/contributions?page=0` })).statusCode).toBe(400);
   });
 
   it('accepts only the stable server-safe mutation payloads', async () => {

@@ -8275,13 +8275,26 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-details > p, .boss-details > ul, .boss-details > footer { margin: 12px 18px; }
 .boss-details ul { display: grid; gap: 7px; padding: 0; list-style: none; }
 .boss-details li { display: flex; justify-content: space-between; gap: 12px; padding: 9px; border-radius: 7px; background: rgba(18, 47, 72, .55); }
-.boss-history > div { display: grid; gap: 8px; margin-top: 12px; }
+.boss-history-list { display: grid; gap: 8px; margin-top: 12px; }
+.boss-history-heading { display: grid; gap: 8px; }
+.boss-history-heading p { margin: 0; color: #f0c784; font-size: 12px; }
 .boss-history article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px; border-radius: 8px; background: rgba(18, 47, 72, .55); }
 .boss-history article > div { display: grid; }
 .boss-history article p { margin: 0; }
 .boss-history article > button { min-height: 31px; padding: 0 10px; flex: 0 0 auto; color: #8edfff; border: 1px solid rgba(105, 212, 255, .25); border-radius: 7px; background: rgba(13, 50, 76, .75); cursor: pointer; }
 .boss-history footer { display: flex; justify-content: center; align-items: center; gap: 12px; margin-top: 14px; }
-.boss-history-details { width: min(720px, calc(100vw - 24px)); max-height: min(760px, calc(100dvh - 30px)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.boss-history-details-layer { padding: 12px; }
+.boss-history-details { box-sizing: border-box; width: min(720px, 100%); min-width: 0; min-height: 0; max-height: min(760px, calc(100dvh - 24px)); display: grid; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+.boss-history-details.has-contributions { height: min(760px, calc(100dvh - 24px)); grid-template-rows: auto minmax(0, 1fr) auto; }
+.boss-history-details > header { min-width: 0; }
+.boss-history-details > header > div { min-width: 0; overflow-wrap: anywhere; }
+.boss-contribution-scope { margin: 0 0 12px; color: var(--muted); }
+.boss-archive-notice, .boss-history-details-body > .boss-archive-contributions { grid-column: 1 / -1; }
+.boss-archive-notice { margin: 0; color: var(--muted); }
+.boss-archive-pagination { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 12px; border-top: 1px solid rgba(108, 145, 205, .16); }
+.boss-archive-pagination span { text-align: center; color: var(--muted); font-size: 11px; }
+.boss-archive-contributions li { grid-template-columns: 30px minmax(0, 1fr); overflow-wrap: anywhere; }
+.boss-archive-contributions li strong, .boss-archive-contributions li small { grid-column: 2; }
 .boss-history-details-body { min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; gap: 14px; padding: 15px 18px 18px; overflow-y: auto; }
 .boss-history-details-body section { min-width: 0; padding: 12px; border-radius: 9px; background: rgba(18, 47, 72, .55); }
 .boss-history-details-body h3 { margin: 0 0 8px; color: #dceeff; }
@@ -8419,9 +8432,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-command-panel.compact .boss-preview button { font-size: 8px; }
 .history-modal.boss-bilan-modal { width: min(900px, calc(100vw - 24px)); height: min(640px, calc(100dvh - 24px)); max-height: calc(100dvh - 24px); }
 .boss-bilan-body { min-height: 0; overflow-y: auto; }
+.boss-bilan-body.boss-bilan-history-body { overflow: hidden; }
 .boss-history { box-sizing: border-box; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
-.boss-history > div { min-height: 0; display: grid; grid-template-rows: repeat(10, minmax(0, 1fr)); gap: 3px; overflow: hidden; }
-.boss-history article { min-height: 0; padding: 4px 8px; }
+.boss-history-list { min-height: 0; display: grid; grid-auto-rows: max-content; align-content: start; gap: 8px; overflow-y: auto; }
+.boss-history article { min-height: 56px; padding: 8px; overflow-wrap: anywhere; }
 .boss-history article > button { min-height: 27px; }
 .boss-history footer { margin-top: 6px; }
 
@@ -8478,7 +8492,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .contest-title-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .contest-history-list { grid-template-rows: none; grid-auto-rows: minmax(70px, auto); overflow-y: auto; }
   .history-modal.boss-bilan-modal { height: calc(100dvh - 16px); }
-  .boss-history > div { grid-template-rows: none; grid-auto-rows: minmax(86px, auto); overflow-y: auto; }
+  .boss-history article { min-height: 0; }
 }
 
 /* Candidate 0.94 — reactive Contest feedback and stable compact geometry */

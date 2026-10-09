@@ -334,6 +334,7 @@ describe('game API client', () => {
     const characterId = crypto.randomUUID(); const bossId = crypto.randomUUID(); const key = crypto.randomUUID()
     await client.getMonthlyBoss(); await client.setMonthlyBossSlot(2, characterId); await client.removeMonthlyBossSlot(2)
     await client.copyActiveTeamToMonthlyBoss(); await client.clearMonthlyBossLoadout(); await client.attackMonthlyBoss(bossId, key); await client.getMonthlyBossHistory(3)
+    await client.getMonthlyBossArchiveContributions('twitch-' + 'a'.repeat(64), 2)
     expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
       ['http://127.0.0.1:3001/api/v1/me/combat/boss', undefined, null],
       ['http://127.0.0.1:3001/api/v1/me/combat/boss/loadout/slots/2', 'PUT', { characterId }],
@@ -342,6 +343,7 @@ describe('game API client', () => {
       ['http://127.0.0.1:3001/api/v1/me/combat/boss/loadout/clear', 'POST', null],
       ['http://127.0.0.1:3001/api/v1/me/combat/boss/attack', 'POST', { bossId, idempotencyKey: key }],
       ['http://127.0.0.1:3001/api/v1/combat/boss/history?page=3', undefined, null],
+      [`http://127.0.0.1:3001/api/v1/combat/boss/archives/twitch-${'a'.repeat(64)}/contributions?page=2`, undefined, null],
     ])
   })
 
