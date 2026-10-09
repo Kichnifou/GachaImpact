@@ -15,6 +15,12 @@ R1062/imports/extension sont acquis et ne se rejouent pas. La confirmation F5 R1
 
 Incident préalable R1063 : les deux premiers essais n'ont créé aucun journal de restauration. Une lecture complète des receipts a dépassé la borne de transaction ; le transport a été repris en CANARY 16 avant réparation du filtre de lecture. Ne pas garder OFF pendant cette réparation ni compenser une économie qui n'a pas été modifiée. Avant la nouvelle fenêtre, conserver les anciennes preuves, publier/reviewer le correctif, renouveler les preuves de déploiement, la capture, les plans et la révision ; utiliser toujours les mêmes imports personnels acquis.
 
+**Checkpoint acquis le 09/10/2026 :** code `7769be060b10bc26a38d8a07ba54f610e6a683e6` approuvé indépendamment et déployé, Prisma 67 conforme. OFF 17 puis capacité false réellement déployée ; application terminée à 15:03 UTC : 120 domaines, trois opérations partagées et quinze paires sociales, zéro blocage. Après redéploiement de la capacité true, reprise des mêmes 44 targets par l'owner en **CANARY 18**, transport PostgreSQL/configuration/Helix PASS, GLOBAL false. Aucun réimport, extension ou replay de commande historique. Postflight complet acquis, verdict économique indépendant et recette humaine portés au Master. **Ne pas rejouer l'application acquise.**
+
+Après un échec ou une interruption, vérifier que l'ancien processus est arrêté, puis relire journaux et backups avant toute reprise. Un PID PostgreSQL seul ne prouve pas l'identité d'un ancien helper : le pool peut le réutiliser. Ne jamais fermer une connexion par simple ancien PID ni faire de nettoyage global. Une postimage modifiée par le gameplay interdit la compensation aveugle et ne justifie aucun recrédit.
+
+La confirmation humaine R1062 reste acquise dans son périmètre. La nouvelle gate F5 doit se rapporter au dernier redémarrage R1063 : capacité disponible, armement ON, état effectif ON et réception du chat activée, avant les nouvelles commandes de recette. L'environnement ne possède aucune session navigateur authentifiée ; la sonde canonique ne constitue pas une preuve HTTP authentifiée ou de rendu client. Coordonner le dernier checkpoint pour éviter une répétition artificielle de cette gate.
+
 Les anciennes étapes R1062 ci-dessous sont historiques. Leur statut en attente de F5 est remplacé par la confirmation propriétaire du 09/10.
 
 <a id="reprise-p0-r1062"></a>
