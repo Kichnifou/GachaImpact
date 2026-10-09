@@ -1,5 +1,9 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
+## Extension GLOBAL R1064
+
+Pour les nouvelles admissions, l'identité unique Twitch/Web, les échos et la reprise explicite après OFF, suivre [le contrat R1064](../architecture/twitch-global-r1064.md) et [le runbook GLOBAL](legacy-cutover-runbook.md#r1064-global). Les fondations et imports ci-dessous restent des preuves acquises ; aucun réimport NATIVE. Le [Master](../master/PROJECT_MASTER_PLAN.md) distingue candidat, capacité déployée, autorité réellement activée et recette humaine.
+
 
 ## Reprise courante — mission consolidée R1062
 

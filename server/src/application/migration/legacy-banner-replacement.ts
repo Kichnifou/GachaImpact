@@ -98,6 +98,7 @@ export async function planLegacyBannerReplacement(db: PrismaClient, input: Input
 async function locks(tx: Tx, input: Input) {
   await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
   for (const id of [...new Set([...input.bindings.map(b => b.twitchUserId), ...input.voterProof?.voterReports.flatMap(r => r.users.map(u => u.twitchUserId)) ?? []])].sort()) await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${id}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`; // Same cycle lock as native votes and scheduler.
   await tx.$executeRaw`LOCK TABLE players IN SHARE ROW EXCLUSIVE MODE`; // No new Player can pull outside the bounded row set.
   await tx.$queryRaw`SELECT id FROM players ORDER BY id FOR UPDATE`; // Native pulls hold this same row lock.
@@ -105,7 +106,6 @@ async function locks(tx: Tx, input: Input) {
   // cycle. Lock its updated row too, so a stale snapshot fails before backup,
   // including when the selected character stays compatible with the new cycle.
   await tx.$queryRaw`SELECT player_id FROM player_gacha_states ORDER BY player_id FOR UPDATE`;
-  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
 }
 async function currentHash(tx: Tx, input: Input, newRotationId: string) {
   const rotations = await tx.bannerRotation.findMany({ where: { id: { in: [input.expectedNativeRotationId, newRotationId] } }, orderBy: { id: 'asc' }, include: { featuredCharacters: { orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] }, votes: { orderBy: { playerId: 'asc' } } } });

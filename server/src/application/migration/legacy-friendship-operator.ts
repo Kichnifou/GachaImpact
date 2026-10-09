@@ -66,6 +66,7 @@ async function gates(tx: Tx, config: AppConfig, input: Scope) {
 
 async function prefixLocks(tx: Tx, twitchUserIds: readonly string[]) {
   for (const id of [...new Set(twitchUserIds)].sort()) await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${id}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
 }
 async function playerLocks(tx: Tx, ids: readonly string[]) {
@@ -109,7 +110,6 @@ export async function applyLegacySocialPair(db: PrismaClient, config: AppConfig,
       ownerPlayerId: identity.playerId, sourcePairKeyHash: input.sourcePairKeyHash });
     const playerIds = [...new Set([...plan.playerIds, ...preimage.playerIds, input.operatorPlayerId])].sort();
     await playerLocks(tx, playerIds);
-    await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
     const locked = await inspect(tx, config, input, verified);
     if (locked.fingerprint !== plan.fingerprint) return fail('PLAN_CHANGED');
     const prior = await journal(tx, input.operationId);
@@ -150,7 +150,6 @@ export async function rollbackLegacySocialPair(db: PrismaClient, config: AppConf
     await prefixLocks(tx, backup.twitchUserIds);
     const affected = await legacyFriendshipAffectedPlayers(tx, backup.twitchUserIds);
     await playerLocks(tx, [...backup.playerIds, ...backup.preimage.playerIds, ...affected]);
-    await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
     await gates(tx, config, input);
     const prior = await journal(tx, backup.operationId);
     if (!prior || prior.summary.backupHash !== backup.hash || prior.summary.inputHash !== backup.inputHash || prior.summary.fingerprint !== backup.fingerprint

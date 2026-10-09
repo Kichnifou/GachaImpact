@@ -220,7 +220,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const controlCommandPilot = (disarm: boolean) => void run(async () => {
     commandRevision.current++
     if (disarm) await api.disarmTwitchCommandPilot()
-    else { if (!streamerbotAcknowledged) return; await api.armTwitchCommandPilot('STREAMERBOT_PATH_DISABLED') }
+    else { if (!streamerbotAcknowledged) return; await api.armTwitchCommandPilot('STREAMERBOT_PATH_DISABLED', account?.resumeAuthority ?? 'CANARY') }
     setAccount(await api.getTwitchAccount())
   }, disarm)
   const confirmAction = () => {
@@ -247,9 +247,10 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     <h4>Pilote commandes Twitch</h4>
     <p className={account.commandPilotEnabled ? 'account-twitch-active' : undefined}>{account.commandPilotEnabled ? '● Activé' : commandArmed ? 'Armé · inactif' : !account.runtimeChatActive ? 'Préparation requise' : 'Non activé'}</p>
     <p>{account.commandPilotCapabilityEnabled ? 'Disponible sur ce serveur.' : 'Indisponible sur ce serveur.'} Armement : {account.commandPilotArmed ? 'ON' : 'OFF'} · État effectif : {account.commandPilotEnabled ? 'ON' : 'OFF'}.</p>
+    <p>Autorité demandée : {account.desiredAuthority ?? 'OFF'} · Autorité effective : {account.effectiveAuthority ?? 'OFF'}.{!commandArmed && ` Reprise prévue : ${account.resumeAuthority ?? 'CANARY'}.`}</p>
     <p className="account-twitch-description">{account.runtimeChatActive ? 'La réception du chat Twitch est active. Le pilote s’active uniquement sur votre demande.' : commandArmed ? 'Le statut du chat Twitch est dégradé. Le pilote peut être désactivé.' : 'Autorisez d’abord la réception du chat Twitch.'}</p>
     {!commandArmed && <label><input type="checkbox" checked={streamerbotAcknowledged} disabled={pending || applying} onChange={event => setStreamerbotAcknowledged(event.target.checked)} /> J’ai désactivé les chemins Streamer.bot concernés.</label>}
-    <AppButton disabled={pending || applying || !commandArmed && (!streamerbotAcknowledged || runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : 'Activer le pilote commandes'}</AppButton>
+    <AppButton disabled={pending || applying || !commandArmed && (account.authorityUnavailable || !streamerbotAcknowledged || runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : account.resumeAuthority === 'GLOBAL' ? 'Réactiver le pilote commandes (GLOBAL)' : 'Activer le pilote commandes'}</AppButton>
   </div>
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">

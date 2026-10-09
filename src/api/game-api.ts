@@ -226,7 +226,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getTwitchLinkResolution: (signal?: AbortSignal) => request<TwitchLinkResolutionDto | null>('/api/v1/me/twitch/resolution', { signal }),
     resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH', decisionRevision: string, operatorPlanId?: string) => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, decisionRevision, ...(operatorPlanId ? { operatorPlanId, operatorConfirmation: 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS' } : {}), confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),
     getTwitchAccount: (signal?: AbortSignal) => request<TwitchAccountDto>('/api/v1/me/twitch', { signal }),
-    armTwitchCommandPilot: (acknowledgement: 'STREAMERBOT_PATH_DISABLED') => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'POST', body: JSON.stringify({ acknowledgement }) }),
+    armTwitchCommandPilot: (acknowledgement: 'STREAMERBOT_PATH_DISABLED', authorityMode?: 'CANARY' | 'GLOBAL') => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'POST', body: JSON.stringify({ acknowledgement, ...(authorityMode ? { authorityMode } : {}) }) }),
     startTwitchProfileRecovery: () => request<{ url: string }>('/api/v1/me/twitch/recover/start', { method: 'POST' }),
     disarmTwitchCommandPilot: () => request<TwitchCommandPilotDto>('/api/v1/me/twitch/commands/pilot', { method: 'DELETE' }),
     startTwitchLink: () => request<{ url: string }>('/api/v1/me/twitch/start', { method: 'POST' }),

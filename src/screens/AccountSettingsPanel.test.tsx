@@ -571,6 +571,17 @@ const commandAccount = { ...linkedAccount, commandPilotAvailable: true, commandP
 describe('explicit Twitch command pilot controls', () => {
   const armLabel = 'Activer le pilote commandes'
   const disarmLabel = 'D\u00e9sactiver le pilote commandes'
+  it('shows OFF/GLOBAL scope and explicitly resumes GLOBAL without rebuilding canaries', async () => {
+    api.getTwitchAccount.mockResolvedValue({ ...commandAccount, desiredAuthority: 'OFF', effectiveAuthority: 'OFF', resumeAuthority: 'GLOBAL' })
+    const container = await mount()
+    expect(container.textContent).toContain('Autorité demandée : OFF · Autorité effective : OFF. Reprise prévue : GLOBAL.')
+    const resume = button(container, 'Réactiver le pilote commandes (GLOBAL)')
+    expect(resume.disabled).toBe(true)
+    await act(async () => container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click())
+    await act(async () => resume.click())
+    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith('STREAMERBOT_PATH_DISABLED', 'GLOBAL')
+    expect(api.startTwitchRuntime).not.toHaveBeenCalled()
+  })
   it.each([{}, { commandPilotCapabilityEnabled: false }, { eligible: false, commandPilotCapabilityEnabled: true, commandPilotAvailable: true }])('hides unavailable controls: %j', async flags => {
     api.getTwitchAccount.mockResolvedValue({ ...linkedAccount, ...flags })
     const container = await mount()
@@ -592,7 +603,7 @@ describe('explicit Twitch command pilot controls', () => {
     expect(container.textContent).toContain('Non activ\u00e9')
     await act(async () => container.querySelector<HTMLInputElement>('input[type=checkbox]')!.click());
     await act(async () => { button(container, armLabel).click(); button(container, armLabel).click() })
-    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith('STREAMERBOT_PATH_DISABLED')
+    expect(api.armTwitchCommandPilot).toHaveBeenCalledExactlyOnceWith('STREAMERBOT_PATH_DISABLED', 'CANARY')
     expect(button(container, 'Délier Twitch')).toBeUndefined()
     await act(async () => release())
     expect(api.getTwitchAccount).toHaveBeenCalledTimes(2)

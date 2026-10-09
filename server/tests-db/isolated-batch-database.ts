@@ -32,17 +32,21 @@ export function isolatedBatchDatabase() {
       await admin.query(`CREATE SCHEMA "${schema}"`); created = true;
       await admin.query(`REVOKE ALL ON SCHEMA "${schema}" FROM PUBLIC, anon, authenticated`);
       await admin.query(`SET search_path TO "${schema}", public`);
-      if (options.prismaMigrations) { migrationStatus = await rehearsePrivateMigrations(admin, schema, connectionString); return; }
-      const ddl = execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-empty', '--to-schema', 'prisma/schema.prisma', '--script'], { encoding: 'utf8' }).replace('CREATE SCHEMA IF NOT EXISTS "public";', '');
-      if (/"public"\.|\bpublic\./.test(ddl)) throw new Error('Fixture DDL targets public');
-      await admin.query(ddl);
+      if (options.prismaMigrations) {
+        migrationStatus = await rehearsePrivateMigrations(admin, schema, connectionString);
+        if (!options.seedPublicCatalog) return;
+      } else {
+        const ddl = execFileSync(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', 'diff', '--from-empty', '--to-schema', 'prisma/schema.prisma', '--script'], { encoding: 'utf8' }).replace('CREATE SCHEMA IF NOT EXISTS "public";', '');
+        if (/"public"\.|\bpublic\./.test(ddl)) throw new Error('Fixture DDL targets public');
+        await admin.query(ddl);
+      }
       await admin.query(`REVOKE ALL ON ALL TABLES IN SCHEMA "${schema}" FROM PUBLIC, anon, authenticated`);
       const currentSchema = (await database.$queryRawUnsafe<{ current_schema: string }[]>('SELECT current_schema()'))[0]?.current_schema;
       if (currentSchema !== schema) throw new Error(`Mutable DB fixture escaped its private schema: ${currentSchema}`);
       if (options.seedPublicCatalog) {
         // Only immutable/reference catalogs are read from public. No Player or business row is copied.
         for (const table of ['elements', 'resource_definitions', 'characters', 'item_definitions', 'daily_challenge_definitions', 'shop_item_definitions', 'event_definitions', 'element_combat_matchups']) {
-          await admin.query(`INSERT INTO "${schema}"."${table}" SELECT * FROM public."${table}"`);
+          await admin.query(`INSERT INTO "${schema}"."${table}" SELECT * FROM public."${table}" ON CONFLICT DO NOTHING`);
         }
         // Rotation and featured slots are reference state for pull tests. JSON
         // conversion maps public enum values into this schema's enum types.
@@ -52,9 +56,11 @@ export function isolatedBatchDatabase() {
         await admin.query(`INSERT INTO "${schema}"."event_editions" SELECT (json_populate_record(NULL::"${schema}"."event_editions", to_json(row))).* FROM public."event_editions" AS row`);
         // Annual Festival codes are system catalog. Operator-authored codes and
         // all claims stay out of the fixture.
-        await admin.query(`INSERT INTO "${schema}"."gift_codes" SELECT (jsonb_populate_record(NULL::"${schema}"."gift_codes", to_jsonb(row) || '{"created_by_id":null,"updated_by_id":null}'::jsonb)).* FROM public."gift_codes" AS row WHERE row.token LIKE 'FESTIVAL%'`);
-        for (const table of ['gift_code_editions', 'gift_code_rewards']) {
-          await admin.query(`INSERT INTO "${schema}"."${table}" SELECT (jsonb_populate_record(NULL::"${schema}"."${table}", to_jsonb(row))).* FROM public."${table}" AS row WHERE gift_code_id IN (SELECT id FROM "${schema}"."gift_codes")`);
+        if (!options.prismaMigrations) {
+          await admin.query(`INSERT INTO "${schema}"."gift_codes" SELECT (jsonb_populate_record(NULL::"${schema}"."gift_codes", to_jsonb(row) || '{"created_by_id":null,"updated_by_id":null}'::jsonb)).* FROM public."gift_codes" AS row WHERE row.token LIKE 'FESTIVAL%'`);
+          for (const table of ['gift_code_editions', 'gift_code_rewards']) {
+            await admin.query(`INSERT INTO "${schema}"."${table}" SELECT (jsonb_populate_record(NULL::"${schema}"."${table}", to_jsonb(row))).* FROM public."${table}" AS row WHERE gift_code_id IN (SELECT id FROM "${schema}"."gift_codes")`);
+          }
         }
         // Prisma's schema diff omits migration-only CHECK constraints, partial
         // indexes and RLS flags. Mirror those physical guards into the private
@@ -103,7 +109,7 @@ export function isolatedBatchDatabase() {
         }
         await admin.query(physicalSql.join('\n'));
       }
-      await database.permanentMissionDefinition.createMany({ data: permanentMissionCatalog.map(entry => ({ ...entry })) });
+      await database.permanentMissionDefinition.createMany({ data: permanentMissionCatalog.map(entry => ({ ...entry })), skipDuplicates: true });
     },
     async installMigrationOnlySql(path: URL) {
       const sql = readFileSync(path, 'utf8');

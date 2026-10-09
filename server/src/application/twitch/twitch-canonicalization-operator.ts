@@ -53,9 +53,10 @@ const operatorEdges = new Set([
   'resource_movements(operation_id)->business_operations(id):external',
 ]);
 
-/** Twitch, then Social, then every affected Player in UUID order, before owners run. */
+/** Twitch identity, authority, Social/cycle, then affected Players in UUID order. */
 export async function lockCanonicalizationPair(tx: Tx, ids: string[], twitchUserId: string) {
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${twitchUserId}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR SHARE`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
   const meta = await targetedRowMetadata(tx), endpoints = new Set(ids);

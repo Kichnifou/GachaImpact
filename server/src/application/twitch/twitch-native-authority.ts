@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { AppError } from '../../api/errors.js';
-import { assessTwitchOperationsInFlight, receiptSafety } from './twitch-operations-in-flight.js';
+import { assessTwitchOperationsInFlight, receiptSafety, receiptSafetyCandidates } from './twitch-operations-in-flight.js';
 import { assertRecoveryTransferIntegrity } from '../migration/legacy-recovery-integrity.js';
 import { isRecoveryDeferredReceipt } from './twitch-recovery-deferrals.js';
 
@@ -24,6 +24,7 @@ export interface NativeAuthorityStore {
   read(db?: Prisma.TransactionClient): Promise<NativeAuthorityState>;
   covers(twitchUserId: string, db?: Prisma.TransactionClient): Promise<boolean>;
   hasPersistedCanary(): Promise<boolean>;
+  resumableMode(): Promise<'CANARY' | 'GLOBAL'>;
   resumePersistedCanary(actor: string, acknowledgement: string | undefined, expectedRevision: number): Promise<NativeAuthorityState>;
   configure(actor: string, mode: NativeAuthorityMode, ids: readonly string[], acknowledgement?: string, expectedRevision?: number): Promise<NativeAuthorityState>;
 }
@@ -39,6 +40,35 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
   }
   async hasPersistedCanary() {
     return await this.db.twitchNativeTarget.count({ where: { canary: true } }) > 0;
+  }
+  /** The audited last non-OFF decision survives OFF and process restarts. */
+  async resumableMode(): Promise<'CANARY' | 'GLOBAL'> {
+    const last = await this.db.twitchNativeAudit.findFirst({ where: { action: 'DESIRED_AUTHORITY_CHANGED', mode: { in: ['CANARY', 'GLOBAL'] }, revision: { not: null } }, orderBy: [{ revision: 'desc' }, { id: 'desc' }] });
+    return last?.mode === 'GLOBAL' ? 'GLOBAL' : 'CANARY';
+  }
+  private async assertGlobalReady(tx: Prisma.TransactionClient) {
+    const blocked = () => new AppError('Identités ou opérations Twitch en cours à contrôler avant GLOBAL.', 409, 'TWITCH_NATIVE_GLOBAL_BLOCKED');
+    const targets = await tx.twitchNativeTarget.findMany({ orderBy: { twitchUserId: 'asc' } });
+    const identities = await tx.twitchIdentity.findMany({ include: { player: { select: { status: true } } } });
+    for (const target of targets) {
+      const identity = identities.find(row => row.twitchUserId === target.twitchUserId);
+      if (target.playerId ? identity?.playerId !== target.playerId : identity !== undefined) throw blocked();
+      if (target.dataAuthority === 'NATIVE' && (target.acknowledgement !== STREAMERBOT_PATH_DISABLED || !target.transferredAt)) throw blocked();
+    }
+    if (await tx.businessOperation.count({ where: { status: 'PENDING' } })) throw blocked();
+    if (await tx.giveawayAnnouncement.count({ where: { state: { in: ['RESERVED', 'AMBIGUOUS'] } } })) throw blocked();
+    const receipts = await tx.twitchEventReceipt.findMany({ where: { OR: [receiptSafetyCandidates(),
+      { payloadMinimal: { path: ['remote', 'announcementState'], equals: 'RESERVED' } },
+      { payloadMinimal: { path: ['remote', 'announcementState'], equals: 'AMBIGUOUS' } },
+    ] }, select: { state: true, processedAt: true, eventType: true, externalReference: true, payloadMinimal: true } });
+    if (receipts.some(row => {
+      const payload = row.payloadMinimal as Prisma.JsonObject | null;
+      const pilot = payload?.commandPilot as Prisma.JsonObject | undefined;
+      const remote = payload?.remote as Prisma.JsonObject | undefined;
+      return receiptSafety(row).blocking || Array.isArray(pilot?.responses) && pilot.responses.some(value =>
+        value && typeof value === 'object' && !Array.isArray(value) && value.status === 'PENDING')
+        || ['RESERVED', 'AMBIGUOUS'].includes(String(remote?.announcementState));
+    })) throw blocked();
   }
   /** Resume the exact persisted set after OFF; this is not a data authority transfer. */
   async resumePersistedCanary(actor: string, acknowledgement: string | undefined, expectedRevision: number) {
@@ -76,16 +106,21 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
   }
   async covers(twitchUserId: string, db: Prisma.TransactionClient = this.db) {
     if (this.config.twitchCommandPilot?.enabled !== true) return false;
-    const state = await this.read(db);
-    if (state.desiredMode === 'OFF' || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled !== true) return false;
-    const target = await db.twitchNativeTarget.findUnique({ where: { twitchUserId } });
-    if (target) {
-      const identity = await db.twitchIdentity.findUnique({ where: { twitchUserId } });
-      return target.dataAuthority === 'NATIVE' && target.acknowledgement === STREAMERBOT_PATH_DISABLED
-        && (state.desiredMode === 'GLOBAL' || target.canary) && (!identity || target.playerId === identity.playerId);
-    }
-    // GLOBAL can provision a new identity, never silently take over an existing legacy Player.
-    return state.desiredMode === 'GLOBAL' && !await db.twitchIdentity.findUnique({ where: { twitchUserId } });
+    // One PostgreSQL snapshot: separate target/identity reads can straddle a
+    // concurrent first provision and wrongly reject a genuine new message.
+    const rows = await db.$queryRaw<{ covered: boolean | null }[]>`
+      SELECT (a.desired_mode = 'CANARY' OR a.desired_mode = 'GLOBAL' AND ${this.config.twitchCommandPilot.globalEnabled === true})
+        AND NOT EXISTS (SELECT 1 FROM twitch_link_resolutions r WHERE r.twitch_user_id = ${twitchUserId} AND r.completed_at IS NULL AND r.expires_at > now())
+        AND ((t.twitch_user_id IS NULL AND i.twitch_user_id IS NULL AND a.desired_mode = 'GLOBAL')
+          OR (t.data_authority = 'NATIVE' AND t.acknowledgement = ${STREAMERBOT_PATH_DISABLED} AND t.transferred_at IS NOT NULL
+            AND (a.desired_mode = 'GLOBAL' OR t.canary)
+            AND ((t.player_id IS NULL AND i.player_id IS NULL) OR (t.player_id = i.player_id AND p.status = 'ACTIVE')))) AS covered
+      FROM twitch_native_authorities a
+      LEFT JOIN twitch_native_targets t ON t.twitch_user_id = ${twitchUserId}
+      LEFT JOIN twitch_identities i ON i.twitch_user_id = ${twitchUserId}
+      LEFT JOIN players p ON p.id = i.player_id
+      WHERE a.id = ${key}`;
+    return rows[0]?.covered === true;
   }
   async relinquishForRollback(actor: string, twitchUserId: string, backupHash: string) {
     return this.db.$transaction(async tx => {
@@ -148,8 +183,8 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
     const addedIds = additions.map(row => row.twitchUserId), byId = new Map(additions.map(row => [row.twitchUserId, row]));
     return this.db.$transaction(async tx => {
       await this.requireOperator(tx, actor);
-      if (additions.some(row => row.expectedRecovery)) await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = ${key} FOR UPDATE`;
+      if (additions.some(row => row.expectedRecovery)) await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
       const control = await tx.twitchNativeAuthority.findUnique({ where: { id: key } });
       if (!control || control.revision !== expectedRevision)
         throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
@@ -239,6 +274,8 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
     if (mode === 'GLOBAL' && this.config.twitchCommandPilot?.globalEnabled !== true)
       throw new AppError('Autorité globale indisponible avant le cutover final.', 409, 'TWITCH_NATIVE_GLOBAL_UNAVAILABLE');
+    if (mode === 'GLOBAL' && (!Number.isSafeInteger(expectedRevision) || expectedRevision! < 1))
+      throw new AppError('Révision explicite requise pour GLOBAL.', 400, 'TWITCH_NATIVE_REVISION_REQUIRED');
     if (mode !== 'OFF' && (acknowledgement !== STREAMERBOT_PATH_DISABLED || mode === 'CANARY' && !ids.length))
       throw new AppError('Confirmez la désactivation réelle des chemins Streamer.bot concernés.', 409, 'TWITCH_NATIVE_ACK_REQUIRED');
     return this.db.$transaction(async tx => {
@@ -249,6 +286,7 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       const previous = await tx.twitchNativeAuthority.findUniqueOrThrow({ where: { id: key } });
       if (expectedRevision !== undefined && previous.revision !== expectedRevision && !(expectedRevision === 0 && previous.revision === 1))
         throw new AppError('Autorité modifiée : relisez son état.', 409, 'TWITCH_NATIVE_AUTHORITY_CHANGED');
+      if (mode === 'GLOBAL') await this.assertGlobalReady(tx);
       if (importedTarget) {
         const twitchUserId = ids[0]!;
         const target = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
@@ -283,6 +321,8 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
         revision: { increment: 1 }, acknowledgement: mode === 'OFF' ? null : acknowledgement, acknowledgedAt: mode === 'OFF' ? null : new Date() } });
       await tx.twitchNativeAudit.create({ data: { actorPlayerId: actor, action: mode === 'OFF' ? 'KILL_SWITCH' : 'DESIRED_AUTHORITY_CHANGED', mode, revision: row.revision, acknowledgement } });
       return { desiredMode: row.desiredMode as NativeAuthorityMode, revision: row.revision, operatorPlayerId: row.operatorPlayerId };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
+    // GLOBAL serializes admission/reservations on the authority row. ReadCommitted
+    // gives its readiness queries a fresh snapshot after waiting for that barrier.
+    }, { isolationLevel: mode === 'GLOBAL' ? Prisma.TransactionIsolationLevel.ReadCommitted : Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
   }
 }

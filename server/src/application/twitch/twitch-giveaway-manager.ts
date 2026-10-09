@@ -149,8 +149,11 @@ export class TwitchGiveawayManager implements GiveawayBridgeProof {
       await this.db.giveawayAnnouncement.updateMany({ where: { id, state: row.state }, data: { state: 'FAILED', errorCode: 'BRIDGE_INACTIVE' } });
       return { state: 'FAILED' as const, error: 'BRIDGE_INACTIVE' };
     }
-    const reserved = await this.db.giveawayAnnouncement.updateMany({ where: { id, state: row.state },
-      data: { state: 'RESERVED', attempts: { increment: 1 }, reservedAt: new Date(), errorCode: null } });
+    const reserved = await this.db.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR SHARE`;
+      return tx.giveawayAnnouncement.updateMany({ where: { id, state: row.state },
+        data: { state: 'RESERVED', attempts: { increment: 1 }, reservedAt: new Date(), errorCode: null } });
+    });
     if (!reserved.count) return { state: 'RESERVED' as const };
     let state: 'SENT' | 'FAILED' | 'AMBIGUOUS';
     let messageId: string | undefined;

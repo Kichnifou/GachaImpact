@@ -41,6 +41,7 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
     read: async () => ({ ...state }),
     covers: async id => enabled && state.desiredMode === 'CANARY' && canaries.has(id),
     hasPersistedCanary: async () => canaries.size > 0,
+    resumableMode: async () => 'CANARY',
     resumePersistedCanary: async (actor, acknowledgement, revision) => {
       if (actor !== playerId || !config.twitch.pilotPlayerIds.includes(actor)) throw Object.assign(new Error(), { statusCode: 403, code: 'TWITCH_COMMAND_PILOT_FORBIDDEN' });
       if (revision !== state.revision) throw Object.assign(new Error(), { statusCode: 409, code: 'TWITCH_NATIVE_AUTHORITY_CHANGED' });
@@ -62,6 +63,21 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it.each(['upstream rejection', 'timeout'])('preserves GLOBAL and its kill switch when transport inspection fails: %s', async reason => {
+    const f = await fixture();
+    Object.assign(f.config.twitchCommandPilot, { globalEnabled: true });
+    await f.authority.configure(playerId, 'GLOBAL', [], 'STREAMERBOT_PATH_DISABLED');
+    f.subscriptions.inspectPilotChatTransport.mockRejectedValue(Object.assign(new Error(reason), { name: reason === 'timeout' ? 'TimeoutError' : 'Error' }));
+    const restarted = new TwitchCommandPilot(f.db, f.config, f.executor, f.outbound, f.parser, f.subscriptions, undefined, f.authority);
+    expect(await restarted.status()).toMatchObject({ desiredAuthority: 'GLOBAL', commandPilotArmed: true, effectiveAuthority: 'OFF', commandPilotEnabled: false, resumeAuthority: 'GLOBAL' });
+    expect((await restarted.status()).authorityUnavailable).not.toBe(true);
+    expect(await restarted.disarm(playerId)).toMatchObject({ desiredAuthority: 'OFF', commandPilotArmed: false });
+  });
+  it('distinguishes an unreadable authority from a transport failure', async () => {
+    const f = await fixture();
+    vi.spyOn(f.authority, 'read').mockRejectedValue(new Error('private database unavailable'));
+    expect(await f.pilot.status()).toMatchObject({ authorityUnavailable: true, commandPilotEnabled: false });
+  });
   it('freezes the verified thread-name budget before preparation and retains it through concurrent redelivery', async () => {
     const f = await fixture();
     const body = { ...commandEnvelope('!box'), event: { ...commandEnvelope('!box').event,
@@ -124,7 +140,8 @@ describe('Kichnifou-operated command pilot with independent viewer actors', () =
     } } };
     f.tx.twitchEventReceipt.findUnique.mockImplementation(async (...args: unknown[]) =>
       structuredClone((args[0] as { where: { id: string } }).where.id === 'canonical' ? canonical : f.receipt));
-    f.tx.twitchEventReceipt.findFirst.mockResolvedValueOnce(null).mockResolvedValueOnce(canonical as never);
+    f.tx.twitchEventReceipt.findFirst.mockImplementation(async (...args: unknown[]) =>
+      JSON.stringify(args[0]).includes('messageActivity') ? canonical as never : null);
     f.executor.execute.mockResolvedValue(['A'.repeat(400)]);
     const activity = { capturedAt: () => new Date(), prepare: vi.fn(),
       consume: vi.fn(async (...args: unknown[]) => { expect(args[7]).toBe(320); return text.startsWith('!') ? [] : ['A'.repeat(400)]; }) };

@@ -41,6 +41,27 @@ const message = (twitchUserId: string, twitchMessageId = randomUUID()) => servic
 const close = (sessionId: string) => service.close(adminId, 'ADMIN', sessionId, `admin:${randomUUID()}`);
 
 describe('Giveaway native runtime, private PostgreSQL schema', () => {
+  it('recognizes its echo when an uncertain announcement commits SENT between lookups', async () => {
+    const text = 'Private race announcement', twitchMessageId = randomUUID();
+    const announcement = await db.giveawayAnnouncement.create({ data: { kind: 'COMMAND', text, state: 'RESERVED' } });
+    const unique = db.giveawayAnnouncement.findUnique.bind(db.giveawayAnnouncement), first = db.giveawayAnnouncement.findFirst.bind(db.giveawayAnnouncement);
+    let transitioned = false;
+    const commitAfterSnapshot = async () => {
+      if (transitioned) return;
+      transitioned = true;
+      await db.giveawayAnnouncement.update({ where: { id: announcement.id }, data: { state: 'SENT', twitchMessageId, sentAt: new Date() } });
+    };
+    const uniqueSpy = vi.spyOn(db.giveawayAnnouncement, 'findUnique').mockImplementation((async (args: Parameters<typeof unique>[0]) => {
+      const result = await unique(args); await commitAfterSnapshot(); return result;
+    }) as never);
+    const firstSpy = vi.spyOn(db.giveawayAnnouncement, 'findFirst').mockImplementation((async (args: Parameters<typeof first>[0]) => {
+      const result = await first(args); await commitAfterSnapshot(); return result;
+    }) as never);
+    try { expect(await service.isOutboundMessage({ twitchUserId: adminTwitchId, twitchMessageId, text })).toBe(true); expect(transitioned).toBe(true); }
+    finally { uniqueSpy.mockRestore(); firstSpy.mockRestore(); }
+    expect(await service.isOutboundMessage({ twitchUserId: adminTwitchId, twitchMessageId, text })).toBe(true);
+    expect(await service.isOutboundMessage({ twitchUserId: 'unrelated', twitchMessageId: randomUUID(), text })).toBe(false);
+  });
   it('tracks exactly the repository migrations, RLS/revoke and one OPEN constraint', async () => {
     const migrations = await fixture.admin.query('SELECT migration_name FROM _prisma_migrations ORDER BY migration_name');
     const expected = readdirSync(new URL('../prisma/migrations/', import.meta.url), { withFileTypes: true })

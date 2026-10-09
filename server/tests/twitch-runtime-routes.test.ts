@@ -92,7 +92,7 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     const result = await app.inject({ method, url, headers, ...(method === 'POST' ? { payload: { acknowledgement: 'STREAMERBOT_PATH_DISABLED' } } : {}) });
     expect(result.statusCode).toBe(200); expect(result.headers['cache-control']).toBe('no-store');
     expect(result.json()).toMatchObject({ commandPilotCapabilityEnabled: true, commandPilotArmed: method === 'POST', commandPilotEnabled: method === 'POST' });
-    if (method === 'POST') expect(commandPilot.arm).toHaveBeenCalledExactlyOnceWith('verified-player', 'STREAMERBOT_PATH_DISABLED', undefined);
+    if (method === 'POST') expect(commandPilot.arm).toHaveBeenCalledExactlyOnceWith('verified-player', 'STREAMERBOT_PATH_DISABLED', undefined, undefined);
     else expect(commandPilot.disarm).toHaveBeenCalledExactlyOnceWith('verified-player');
     expect(twitch.startRuntime).not.toHaveBeenCalled(); expect(twitch.start).not.toHaveBeenCalled();
     expect(twitch.unlink).not.toHaveBeenCalled(); expect(twitch.disableRuntime).not.toHaveBeenCalled();

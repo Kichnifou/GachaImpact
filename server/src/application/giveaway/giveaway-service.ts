@@ -134,12 +134,15 @@ export class GiveawayService {
 
   /** A known Twitch ID or exact in-flight outbound text must not trigger Giveaway or Favor. */
   async isOutboundMessage(input: { twitchUserId: string; twitchMessageId: string; text: string }) {
-    if (await this.db.giveawayAnnouncement.findUnique({ where: { twitchMessageId: input.twitchMessageId }, select: { id: true } })) return true;
     const sender = await this.db.twitchGiveawayCredential.findFirst({ where: { twitchUserId: input.twitchUserId }, select: { playerId: true } });
-    if (!sender) return false;
-    const candidate = await this.db.giveawayAnnouncement.findFirst({ where: { text: input.text,
-      state: { in: ['RESERVED', 'AMBIGUOUS'] } }, orderBy: { createdAt: 'desc' }, select: { id: true } });
+    // A single snapshot closes the RESERVED -> SENT/messageId race. Exact
+    // text is evidence only for the verified outbound credential's sender.
+    const candidate = await this.db.giveawayAnnouncement.findFirst({ where: { OR: [
+      { twitchMessageId: input.twitchMessageId },
+      ...(sender ? [{ text: input.text, state: { in: ['RESERVED', 'AMBIGUOUS'] } }] : []),
+    ] }, orderBy: { createdAt: 'desc' }, select: { id: true, twitchMessageId: true } });
     if (!candidate) return false;
+    if (candidate.twitchMessageId === input.twitchMessageId) return true;
     await this.db.giveawayAnnouncement.updateMany({ where: { id: candidate.id, state: { in: ['RESERVED', 'AMBIGUOUS'] }, twitchMessageId: null },
       data: { state: 'SENT', twitchMessageId: input.twitchMessageId, sentAt: this.now(), errorCode: null } });
     await this.settleDeferred();

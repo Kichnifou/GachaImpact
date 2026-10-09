@@ -41,7 +41,7 @@ import { entryParts } from './chat-command-format.js';
 import { chatNumber, durationText } from './chat-command-format.js';
 import { teamCommand } from './team-command.js';
 import { bankCommand, codeCommand, coffreCommand } from './resource-commands.js';
-import { chatElementEmojis } from './chat-list-result.js';
+import { chatElementEmojis, logicalChatParts } from './chat-list-result.js';
 import { passifsCommand, sacCommand, resourceText } from './chat-command-format.js';
 import { chatElementNames } from './chat-list-result.js';
 import { isElementKey } from '../../domain/economy/resources.js';
@@ -566,7 +566,14 @@ export class PlayerCommandResolver {
             if (args.length === 2) {
               const result = await this.services.monthlyBossService.attackWithActiveTeam(identity, commandMessageId, this.sourceChannel);
               const actor = await this.services.socialService.actor(identity);
-              return entryParts(`⚔️ ${actor.displayName} inflige ${chatNumber(result.result.damage)} dégâts à ${result.view.boss.name} !`, [`❤️ PV restants : ${chatNumber(result.view.boss.currentHp)}/${chatNumber(result.view.boss.maxHp)}`, ...(result.result.defeated ? ['👑 Boss vaincu !', `Récompense des participants : +${resourceText('primogems', result.view.reward.primogems)} | +${resourceText('moras', result.view.reward.moras)}`] : [])], '⚔️ Boss (suite) :');
+              const members = result.result.members.map(member => `${isElementKey(member.elementKeySnapshot) ? chatElementEmojis[member.elementKeySnapshot] : member.elementKeySnapshot} ${member.characterNameSnapshot} (C${member.constellationSnapshot})`);
+              const headline = `⚔️ ${actor.displayName} inflige ${chatNumber(result.result.damage)} DMG à ${result.view.boss.name}`;
+              const hp = `❤️ PV restants : ${chatNumber(result.view.boss.currentHp)}/${chatNumber(result.view.boss.maxHp)}`;
+              return logicalChatParts(headline, [
+                ...members.map((member, index) => ({ text: `${index === 0 ? 'grâce à sa team [' : ''}${member}${index === members.length - 1 ? ']' : ''}`, separator: ' - ' })),
+                { text: hp, separator: ' | ' },
+                ...(result.result.defeated ? [{ text: '👑 Boss vaincu !', separator: ' | ' }, { text: `Récompense des participants : +${resourceText('primogems', result.view.reward.primogems)} | +${resourceText('moras', result.view.reward.moras)}`, separator: ' | ' }] : []),
+              ], '⚔️ Boss (suite) :');
             }
             const boss = await this.services.monthlyBossService.getCurrentForChat(identity);
             if (boss.status === 'DEFEATED') {

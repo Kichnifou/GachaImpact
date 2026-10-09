@@ -147,6 +147,7 @@ export class TwitchGiftSupremeRuntime {
   }
   private async journal(receiptId: string, change: (remote: Prisma.JsonObject) => Prisma.JsonObject) {
     return this.db.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR SHARE`;
       await tx.$queryRaw`SELECT id FROM twitch_event_receipts WHERE id = ${receiptId}::uuid FOR NO KEY UPDATE`;
       const receipt = await tx.twitchEventReceipt.findUniqueOrThrow({ where: { id: receiptId } });
       const payload = object(receipt.payloadMinimal);

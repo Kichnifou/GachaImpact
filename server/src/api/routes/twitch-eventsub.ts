@@ -6,6 +6,7 @@ import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/t
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-favor-resub-consumer.js';
 import { isFavorEligibleTwitchChatMessage, type TwitchFavorChatPresenceConsumer } from '../../application/twitch/twitch-favor-chat-presence-consumer.js';
+import { isEligibleNativeChat } from '../../application/twitch/twitch-chat-eligibility.js';
 import { twitchGiftSupremeRedemption } from '../../application/twitch/twitch-gift-supreme-redemption.js';
 import type { TwitchGiftSupremeRuntime } from '../../application/twitch/twitch-gift-supreme-runtime.js';
 import type { TwitchGiveawayConsumer } from '../../application/twitch/twitch-giveaway-consumer.js';
@@ -151,7 +152,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
         contentHash: createHash('sha256').update(parsed.data.event.message.text).digest('hex'),
         transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
       });
-      const nativeOutbound = await options.commandPilot?.isNativeOutboundMessage?.(body) ?? false;
+      const nativeOutbound = !isEligibleNativeChat(parsed.data.event) || (await options.commandPilot?.isNativeOutboundMessage?.(body) ?? false);
       const giveawayOutbound = !nativeOutbound && options.giveaway && parsed.data.event.broadcaster_user_id && parsed.data.event.message_id
         ? await options.giveaway.consume({ broadcasterUserId: parsed.data.event.broadcaster_user_id,
           chatterUserId: parsed.data.event.chatter_user_id, messageId: parsed.data.event.message_id,

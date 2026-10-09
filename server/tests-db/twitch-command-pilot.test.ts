@@ -45,7 +45,7 @@ let core: ReturnType<typeof twitchPlayerCommandExecutor>;
 let gacha: GetCurrentGacha, selectTarget: SetGachaTarget;
 const subscriptions = { activationAvailable: true, inspectPilotChatTransport: vi.fn(async () => ({ subscriptionId: 'private-subscription', broadcasterId: '123', receiverId: '123', callback: config.twitchEventSub.callbackUrl })) };
 beforeAll(async () => {
-  await fixture.setup({ seedPublicCatalog: true });
+  await fixture.setup({ seedPublicCatalog: true, prismaMigrations: true });
   // A fresh local catalog need not contain an activated rotation. Keep this
   // transport fixture self-contained in its isolated schema.
   if (!await db.bannerRotation.findFirst({ where: { status: 'ACTIVE' } })) {
@@ -453,7 +453,9 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     for (const value of [body('!pull', '456'), body('ordinary', '456'), body('!pull', '999'), body('ordinary', '999'), wrongChannel, wrongReceiver, shared]) {
       expect((await deliver(signed(value))).statusCode).toBe(204);
     }
-    await db.player.update({ where: { id: viewerId }, data: { status: 'ARCHIVED' } });
+    // ARCHIVED is irreversible under migration 063; this reusable viewer uses
+    // suspension. The dedicated GLOBAL suite keeps a separate archived graph.
+    await db.player.update({ where: { id: viewerId }, data: { status: 'SUSPENDED' } });
     try { expect((await deliver(signed(body('!pull')))).statusCode).toBe(204); expect((await deliver(signed(body('ordinary')))).statusCode).toBe(204); }
     finally { await db.player.update({ where: { id: viewerId }, data: { status: 'ACTIVE' } }); }
     expect(await progression()).toEqual(initial); expect(await db.pullOperation.count()).toBe(pulls);
@@ -487,4 +489,68 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     expect(await viewerPilot.isNativeOutboundMessage(echo)).toBe(true);
     await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: receipt.payloadMinimal! } });
   }, 60_000);
+  it.each(['SENDING', 'AMBIGUOUS'])('excludes a mentioned %s echo before messageId persistence beyond 100 newer receipts', async status => {
+    const request = signed(body('!pity')); expect((await deliver(request)).statusCode).toBe(204);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const payload = structuredClone(receipt.payloadMinimal) as { commandPilot: { responses: { messageId?: string; status: string; text: string }[] } };
+    const answer = payload.commandPilot.responses[0]!; delete answer.messageId; answer.status = status;
+    await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: payload } });
+    await db.twitchEventReceipt.createMany({ data: Array.from({ length: 110 }, (_, index) => ({ externalEventId: randomUUID(), eventType: 'channel.chat.message', twitchUserId: chatter,
+      state: 'PROCESSED' as const, externalReference: `command-pilot:r1064-noise:${randomUUID()}`, receivedAt: new Date(Date.now() + index + 1000),
+      payloadMinimal: { commandPilot: { ...payload.commandPilot, replyParentMessageId: randomUUID(), responses: [] } } })) });
+    const echo = body(`@ThreadOwner ${answer.text}`, receiver);
+    Object.assign(echo.event, { reply: { parent_message_id: JSON.parse(request.payload).event.message_id, parent_user_name: 'ParentOwner', thread_user_name: 'ThreadOwner' } });
+    const initial = await progression(), before = await state(), favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length, sends = send.mock.calls.length, players = await db.player.count();
+    expect(await viewerPilot.isNativeOutboundMessage(echo)).toBe(true);
+    expect((await deliver(signed(echo))).statusCode).toBe(204);
+    expect(await db.player.count()).toBe(players); expect(await progression()).toEqual(initial); expect(await state()).toEqual(before);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways); expect(send).toHaveBeenCalledTimes(sends);
+    for (const changed of [body(echo.event.message.text, '777'), body(`@SomeoneElse ${answer.text}`, receiver), body('!pity', receiver)]) {
+      Object.assign(changed.event, { reply: (echo.event as unknown as { reply: object }).reply });
+      expect(await viewerPilot.isNativeOutboundMessage(changed)).toBe(false);
+    }
+    const wrongParent = structuredClone(echo); Object.assign(wrongParent.event, { reply: { parent_message_id: randomUUID(), thread_user_name: 'ThreadOwner' } });
+    expect(await viewerPilot.isNativeOutboundMessage(wrongParent)).toBe(false);
+    await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: receipt.payloadMinimal! } });
+  }, 60_000);
+  it('recognizes an echo while its outbound commits SENDING to SENT during the lookup', async () => {
+    const request = signed(body('!pity')); expect((await deliver(request)).statusCode).toBe(204);
+    const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+    const payload = structuredClone(receipt.payloadMinimal) as { commandPilot: { responses: { messageId?: string; status: string; text: string }[] } };
+    const answer = payload.commandPilot.responses[0]!, echo = body(`@ThreadOwner ${answer.text}`, receiver);
+    Object.assign(echo.event, { reply: { parent_message_id: JSON.parse(request.payload).event.message_id, thread_user_name: 'ThreadOwner' } });
+    delete answer.messageId; answer.status = 'SENDING';
+    await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: payload } });
+    const first = db.twitchEventReceipt.findFirst.bind(db.twitchEventReceipt), many = db.twitchEventReceipt.findMany.bind(db.twitchEventReceipt);
+    let transitioned = false, lookups = 0;
+    const commitAfterSnapshot = async (args: unknown) => {
+      if (!JSON.stringify(args).includes('commandPilot')) return;
+      lookups++;
+      if (!transitioned) {
+        transitioned = true; answer.messageId = echo.event.message_id; answer.status = 'SENT';
+        await db.twitchEventReceipt.update({ where: { id: receipt.id }, data: { payloadMinimal: payload } });
+      }
+    };
+    const firstSpy = vi.spyOn(db.twitchEventReceipt, 'findFirst').mockImplementation((async (args: Parameters<typeof first>[0]) => {
+      const result = await first(args); await commitAfterSnapshot(args); return result;
+    }) as never);
+    const manySpy = vi.spyOn(db.twitchEventReceipt, 'findMany').mockImplementation((async (args: Parameters<typeof many>[0]) => {
+      const result = await many(args); await commitAfterSnapshot(args); return result;
+    }) as never);
+    try { expect(await viewerPilot.isNativeOutboundMessage(echo)).toBe(true); expect(transitioned).toBe(true); expect(lookups).toBe(1); }
+    finally { firstSpy.mockRestore(); manySpy.mockRestore(); }
+    const initial = await progression(), before = await state(), favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length, sends = send.mock.calls.length, players = await db.player.count();
+    expect((await deliver(signed(echo))).statusCode).toBe(204);
+    expect(await db.player.count()).toBe(players); expect(await progression()).toEqual(initial); expect(await state()).toEqual(before);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways); expect(send).toHaveBeenCalledTimes(sends);
+  });
+  it('keeps system notifications and bot-badged messages out of every gameplay consumer', async () => {
+    const players = await db.player.count(), before = await state(), favors = vi.mocked(presence.consume).mock.calls.length, giveaways = giveaway.consume.mock.calls.length;
+    for (const flags of [{ message_type: 'notification' }, { message_type: 'text', badges: [{ set_id: 'bot' }] }]) {
+      const value = body('ordinary system message', '990098'); Object.assign(value.event, flags);
+      expect((await deliver(signed(value))).statusCode).toBe(204);
+    }
+    expect(await db.player.count()).toBe(players); expect(await state()).toEqual(before);
+    expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways);
+  });
 });

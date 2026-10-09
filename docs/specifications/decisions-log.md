@@ -1,5 +1,15 @@
 # Journal des décisions validées
 
+## R1064 — Ouverture GLOBAL, identité unique Twitch/Web et réponse Boss (2026-10-09)
+
+VALIDÉ PAR LE PROPRIÉTAIRE : finaliser et activer GLOBAL dans la même mission consolidée, après tests PostgreSQL privés avec migrations réelles, review indépendante du diff cumulé publié, correction/re-review, promotion stricte et déploiements exacts. Les 43 historiques et Kichni_Test restent NATIVE sans réimport ; Streamer.bot reste arrêté. Capacité serveur d'abord déployée sous CANARY, puis bascule canonique atomique/auditée à révision explicite après transport frais, cohérence des identités, sauvegarde et absence d'opération/livraison incertaine. Aucun lancement officiel du standalone.
+
+Un nouvel ID Twitch vérifié et non réservé commence normalement sans élément ni possessions legacy. La liaison Web-first établit atomiquement sa target NATIVE compatible ; le Web jetable rejoint le même Player Twitch. Deux progressions significatives conservent le choix R1055 et ses gates opérateur, sans fusion. Les 171 exclus et deux quarantaines ne récupèrent aucune progression par pseudo ; un nouveau départ est permis si aucune preuve immuable contradictoire ne réserve l'identité. Le rapprochement de votes R1061 reste limité à ses preuves immuables déjà autorisées et dédupliquées ; aucune restauration arbitraire.
+
+Les réponses natives, Giveaway et Gift ne deviennent jamais activité joueur ; conserver IDs, incertitude d'envoi et idempotence économique. OFF conserve les profils ; l'écran affiche désir/effectif et reprend explicitement le dernier périmètre audité, sans convertir un ancien CANARY en GLOBAL. La désactivation reste accessible si Helix échoue. `!combat boss go` retrouve le format legacy avec les quatre membres ordonnés figés par l'attaque réelle, éléments/constellations, dégâts/PV et continuations 450 caractères mention comprise ; aucune formule, archive ou récompense changée.
+
+Priorité propriétaire complémentaire : après GLOBAL suffisamment stabilisé, réaliser R1057 dans la même session si possible, sans retarder ni fragiliser l'ouverture. Réutiliser GiftCodeService, Event et Stella ; aucun code public réel créé sans décision. [Contrat et contrôles R1064](../architecture/twitch-global-r1064.md), [état exécuté au Master](../master/PROJECT_MASTER_PLAN.md), [procédure](../process/legacy-cutover-runbook.md#r1064-global).
+
 ## R1063 — Domaines communautaires après import et fiabilité Twitch (2026-10-09)
 
 VALIDÉ PAR LE PROPRIÉTAIRE : restaurer les faits Event/Boss/Giveaway et sociaux prouvés sur les Players définitifs, lever les restrictions individuellement après contrôle, sans réimporter les 44 NATIVE ni réattribuer les historiques ARCHIVED. Préserver les mutations natives, les combats Boss globaux, les participations/gagnants Giveaway historiques et les protections de claims. Les non-inscrits Event ne deviennent pas inscrits artificiellement ; les endpoints sociaux exclus restent historiques.

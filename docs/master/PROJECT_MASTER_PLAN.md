@@ -1,13 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1063 — Boss validé, correction du budget de mention Twitch.
+Version : R1064 — candidat GLOBAL en validation ; R1057 prioritaire après stabilisation.
 Date : 2026-10-09
 Statut : **R1063 DÉPLOYÉ ET APPLIQUÉ — Event/Boss/Giveaway ouverts pour les 40 profils repris.** Code `7769be060b10bc26a38d8a07ba54f610e6a683e6` approuvé indépendamment, promu strictement et déployé Railway/Cloudflare ; Prisma 67 vérifié. Restauration publique terminée le 09/10 à 15:03 UTC, puis reprise CANARY 18/44 NATIVE, capacité true, GLOBAL false et Chat ACTIVE. Le propriétaire confirme les quatre indications runtime après F5 au checkpoint `dc02072`, ainsi que la recette Festival/Giveaway/Amis ; deux retours Boss sont traités ci-dessous. Les validations R1062 et la sélection bidirectionnelle restent acquises ; Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont distincts et conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
+## Point courant — R1064, candidat avant review indépendante
+
+GLOBAL est autorisé mais **pas encore activé**. Baseline distante fraîche `716ebd5b4c19e1f0827b1f190a165c15804e4a23`, main/review 0/0 et Railway SUCCESS exact ; Prisma 67, CANARY 18/44 NATIVE, capacité commandes true, GLOBAL false et Chat ACTIVE relus. R1063, sa dernière recette Box complète et la sélection bidirectionnelle restent acquis. Aucun changement public R1064 au stade candidat.
+
+La mission préautorise review/corrections, promotion, déploiements puis activation contrôlée GLOBAL. [Décision R1064](../specifications/decisions-log.md), [contrat et preuves](../architecture/twitch-global-r1064.md), [gates opératoires](../process/legacy-cutover-runbook.md#r1064-global). Le contrôle canonique ne vaut jamais GET authentifié ni recette navigateur.
+
+Le Web-first sans target et l'écho mentionné avant persistance de messageId sont reproduits sur la baseline dans PostgreSQL privé migré. Le candidat corrige l'admission atomique après liaison vérifiée, conserve R1055 et le nouveau départ zéro sans pseudo, reprend explicitement GLOBAL après OFF et fige les quatre membres exécutés du Boss. La pré-review distincte a identifié les courses SENDING→SENT, le kill switch masqué sur erreur Helix, le Giveaway incertain omis et le drainage concurrent ; corrections et tests dédiés intégrés avant publication. L'ordre identité→autorité→domaine→Players est harmonisé avec les owners de réparation, sans les exécuter publiquement.
+
+Preuves synthétiques conservées sous `local-data/identity-resolutions/r1064-20261009/` et `local-data/r1064-account-visual/`. Après GLOBAL suffisamment stabilisé, poursuivre les Codes enrichis R1057 : Stella, points et monnaie Event selon inscription/édition existantes, paliers atomiques, anciens claims préservés. Aucun vrai code cadeau publié sans décision ; R1057 et les nouveaux parcours humains ne sont pas déclarés livrés à ce stade.
+
+**Contrôles candidat acquis :** Prisma validate ; verify:full final 8/8, 1 381 tests frontend et 2 114 serveur non-DB ; 17 tests GLOBAL privés et campagnes des owners impactés sous migrations réelles, dont échos/drainage déterministes, première invocation et Boss/victoire sans second paiement. Charge privée 44+48 chatters, 289 requêtes/245 réponses, pool3, zéro perte/doublon/erreur finale, P95 790 ms local. Douze cas visuels synthétiques du vrai GameShell/CSS sur quatre viewports PASS, captures inspectées. Review indépendante du SHA publié, déploiements, activation et recette humaine restent à acquérir ; détails et échecs corrigés au contrat R1064.
+
 <a id="community-complements-20261008"></a>
 
-## Point courant — R1063 consolidé
+## Historique acquis — R1063 consolidé
 
 Mandat : terminer Event, Boss, Giveaway et les faits sociaux prouvés, corriger les réponses Twitch dans le même cycle review indépendante → main → déploiement → application contrôlée. [Contrat et diagnostic R1063](../architecture/legacy-domains-r1063.md), [procédure](../process/legacy-cutover-runbook.md#r1063-restauration-domaines).
 

@@ -156,6 +156,7 @@ async function locks(tx: Tx, input: SharedRecoveryInput, proof: ReturnType<typeo
   await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`recovery-shared:${proof.sourceKey}`},0))::text`;
   for (const id of proof.population.approved.map(m => m.twitchUserId).sort()) await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${id}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   if (input.kind === 'GIVEAWAY_HISTORY') await tx.$executeRaw`SELECT pg_advisory_xact_lock(7861450867001::bigint)`;
   const map = await mappings(tx, proof);
   // The Boss archive writes no Player and needs no broad Player lock. Message
@@ -167,7 +168,6 @@ async function locks(tx: Tx, input: SharedRecoveryInput, proof: ReturnType<typeo
     ...(Array.isArray(giveaway.participants) ? giveaway.participants : []), ...Object.keys(record(giveaway.messageCounts))].map(n => normalizeLegacyName(String(n))) : [];
   const ids = [...new Set([input.operatorPlayerId, ...messageIds, ...map.filter(m => giveawayNames.includes(m.legacyKey)).map(m => m.playerId)])].sort();
   await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
-  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
 }
 
 export async function planSharedRecovery(db: PrismaClient, config: AppConfig, input: SharedRecoveryInput) {

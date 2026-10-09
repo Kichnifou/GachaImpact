@@ -108,10 +108,10 @@ export async function planNativeLegacyEvent(db: PrismaClient, input: Input) {
 async function locks(tx: Tx, input: Input) {
   await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${input.twitchUserId}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   // Native Game B takes its edition/day lock before Player locks. Match that ordering.
   await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states ORDER BY event_edition_id,business_date FOR UPDATE`;
   await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join([...new Set([input.playerId, input.operatorPlayerId])].sort().map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
-  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
 }
 async function stateHash(tx: Tx, input: CommunityProof, eventEditionId: string, eventDefinitionId: string) {
   const playerId = input.playerId;

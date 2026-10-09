@@ -15,6 +15,7 @@ import { twitchReplyBodyLimit, twitchResponseEntries } from './twitch-response-f
 export { twitchResponseSegments } from './twitch-response-format.js';
 import type { FrozenCommandIntent } from './twitch-command-intent.js';
 import { TwitchObservationConflict } from './twitch-event-observer.js';
+import { isEligibleNativeChat } from './twitch-chat-eligibility.js';
 import { twitchCommandOwner } from './twitch-command-coverage.js';
 import type { PilotChatTransport, TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 import { TwitchCommandSendError, type TwitchCommandChatClient } from '../../infrastructure/twitch/twitch-command-chat-client.js';
@@ -25,6 +26,7 @@ const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type
   condition: z.object({ broadcaster_user_id: twitchId, user_id: twitchId }).strict(),
   transport: z.object({ method: z.literal('webhook'), callback: z.string().optional() }),
 }), event: z.object({ chatter_user_id: twitchId, broadcaster_user_id: twitchId,
+  message_type: z.string().optional(), badges: z.array(z.object({ set_id: z.string() })).optional(),
   source_broadcaster_user_id: twitchId.nullish(), chatter_user_login: z.string().max(128).optional(), chatter_user_name: z.string().max(128).optional(), message_id: z.string().min(1).max(256), message: z.object({ text: z.string().max(2000) }), reply: z.object({ parent_message_id: z.string(),
     parent_user_name: z.string().max(128).optional(), parent_user_login: z.string().max(128).optional(),
     thread_user_name: z.string().max(128).optional(), thread_user_login: z.string().max(128).optional(),
@@ -84,16 +86,21 @@ export class TwitchCommandPilot {
 
   async status() {
     const capability = this.config.twitchCommandPilot?.enabled === true;
+    let state: NativeAuthorityState;
     try {
-      const state = await this.authority.read();
-      const valid = capability && await this.validateTransport(state);
-      return { commandPilotCapabilityEnabled: capability, commandPilotArmed: state.desiredMode !== 'OFF',
-        commandPilotEnabled: valid, desiredAuthority: state.desiredMode, effectiveAuthority: valid ? state.desiredMode : 'OFF', transportValid: valid };
+      state = await this.authority.read();
     } catch {
       this.transport = undefined;
       return { commandPilotCapabilityEnabled: capability, commandPilotArmed: false, commandPilotEnabled: false,
         desiredAuthority: 'OFF', effectiveAuthority: 'OFF', transportValid: false, authorityUnavailable: true };
     }
+    // A Helix failure invalidates transport, not the persisted operator decision.
+    // Keep the kill switch accessible even after a restart with degraded Helix.
+    const valid = capability && await this.validateTransport(state).catch(() => { this.transport = undefined; return false; });
+    const resumeAuthority = state.desiredMode === 'OFF' ? await this.authority.resumableMode().catch(() => undefined) : state.desiredMode;
+    return { commandPilotCapabilityEnabled: capability, commandPilotArmed: state.desiredMode !== 'OFF', resumeAuthority,
+      commandPilotEnabled: valid, desiredAuthority: state.desiredMode, effectiveAuthority: valid ? state.desiredMode : 'OFF', transportValid: valid,
+      ...(resumeAuthority === undefined ? { authorityUnavailable: true } : {}) };
   }
   private async enabled(twitchUserId?: string) {
     if (!(await this.status()).commandPilotEnabled) return false;
@@ -105,7 +112,7 @@ export class TwitchCommandPilot {
     this.transport = undefined;
     return this.status();
   }
-  async arm(playerId: string, acknowledgement?: string, ids?: readonly string[]) {
+  async arm(playerId: string, acknowledgement?: string, ids?: readonly string[], requestedMode?: 'CANARY' | 'GLOBAL') {
     if (this.config.twitchCommandPilot?.enabled !== true)
       throw new AppError('Capacité du pilote de commandes inactive.', 409, 'TWITCH_COMMAND_PILOT_OFF');
     const state = await this.authority.read();
@@ -119,7 +126,14 @@ export class TwitchCommandPilot {
     if (!transport || transport.broadcasterId !== identity.twitchUserId || !twitchId.safeParse(transport.receiverId).success
       || this.config.twitchEventSub?.callbackUrl && transport.callback !== this.config.twitchEventSub.callbackUrl)
       throw new AppError('Une subscription Chat active compatible est nécessaire.', 409, 'TWITCH_COMMAND_SUBSCRIPTION_INACTIVE');
-    if (ids === undefined && await this.authority.hasPersistedCanary()) {
+    const resumable = await this.authority.resumableMode();
+    if (requestedMode === 'GLOBAL' && (resumable !== 'GLOBAL' || ids !== undefined)
+      || requestedMode === undefined && resumable === 'GLOBAL')
+      throw new AppError('Confirmez explicitement le périmètre GLOBAL précédemment utilisé.', 409, 'TWITCH_NATIVE_RESUME_MODE_REQUIRED');
+    if (requestedMode === 'GLOBAL') {
+      if (state.desiredMode !== 'OFF') throw new AppError('Désactivez le pilote avant de reprendre GLOBAL.', 409, 'TWITCH_NATIVE_RESUME_OFF_REQUIRED');
+      await this.authority.configure(playerId, 'GLOBAL', [], acknowledgement, state.revision);
+    } else if (ids === undefined && await this.authority.hasPersistedCanary()) {
       await this.authority.resumePersistedCanary(playerId, acknowledgement, state.revision);
     } else {
       await this.authority.configure(playerId, 'CANARY', ids ?? [identity.twitchUserId], acknowledgement, state.revision);
@@ -148,6 +162,7 @@ export class TwitchCommandPilot {
 
   private async locked<T>(receiptId: string, action: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     return this.db.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;
       await tx.$queryRaw`SELECT id FROM twitch_event_receipts WHERE id = ${receiptId}::uuid FOR UPDATE`;
       return action(tx);
     }, { timeout: 60_000, maxWait: 10_000 });
@@ -186,9 +201,9 @@ export class TwitchCommandPilot {
       || subscription.transport.callback !== transport.callback
       || event.source_broadcaster_user_id && event.source_broadcaster_user_id !== transport.broadcasterId) return;
     // Authority precedes identity/provisioning, parser and every business effect.
-    if (!executeCommands || !await this.enabled(event.chatter_user_id) || !event.message.text.trim()) return;
+    if (!executeCommands || !isEligibleNativeChat(event) || !await this.enabled(event.chatter_user_id) || !event.message.text.trim()) return;
     const existing = await this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } });
-    if (!existing && await this.isNativeOutboundMessage(raw)) return;
+    if (await this.isNativeOutboundMessage(raw)) return;
     const identity = existing ?? await this.players.resolve({ twitchUserId: event.chatter_user_id,
       login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt: this.executor.capturedAt?.() ?? new Date() });
     if (!await this.enabled(event.chatter_user_id) || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
@@ -197,7 +212,6 @@ export class TwitchCommandPilot {
     let activityBodyLimit: number | undefined;
     if (this.messageActivity) {
       const activity = await this.consumeMessageActivity(identity.player, event, receiptId);
-      if (activity === null) return; // Native outbound echo, not a player message.
       activityBodyLimit = activity.responseBodyLimit;
       if (!event.message.text.startsWith('!')) {
         if (activity.output.length) await this.deliverActivityResponses(identity.player, event, receiptId, activity.output, transport, activityBodyLimit);
@@ -217,6 +231,7 @@ export class TwitchCommandPilot {
     const save = (tx: Prisma.TransactionClient, minimal: Record<string, Prisma.JsonValue>, state: Execution) => this.save(tx, receiptId, minimal, state);
     // Commit the retention exemption BEFORE the business call, including its recoverable crash window.
     const owned = await this.locked(receiptId, async tx => {
+      if (!await this.enabledInTransaction(tx, event.chatter_user_id)) return false;
       const key = `twitch-command:${event.broadcaster_user_id}:${event.message_id}`;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
       const { receipt, minimal, saved } = await read(tx);
@@ -277,18 +292,34 @@ export class TwitchCommandPilot {
   async isNativeOutboundMessage(raw: unknown): Promise<boolean> {
     const parsed = envelope.safeParse(raw); if (!parsed.success) return false;
     const event = parsed.data.event;
-    if (await this.db.twitchEventReceipt.findFirst({ where: { eventType: 'channel.chat.message', AND: [
+    // One statement sees either the uncertain send or its committed messageId.
+    // Separate lookups could miss SENDING -> SENT between their snapshots.
+    // The parent predicate also avoids an arbitrary recent-receipts limit.
+    const replies = await this.db.twitchEventReceipt.findMany({ where: { eventType: 'channel.chat.message', AND: [
       { payloadMinimal: { path: ['commandPilot', 'senderId'], equals: event.chatter_user_id } },
       { payloadMinimal: { path: ['commandPilot', 'broadcasterId'], equals: event.broadcaster_user_id } },
-      { payloadMinimal: { path: ['commandPilot', 'responses'], array_contains: [{ messageId: event.message_id }] } },
-    ] } })) return true;
-    const replies = await this.db.twitchEventReceipt.findMany({ where: { eventType: 'channel.chat.message', externalReference: { startsWith: 'command-pilot:' }, payloadMinimal: { path: ['commandPilot', 'senderId'], equals: event.chatter_user_id } }, orderBy: { receivedAt: 'desc' }, take: 100 });
+      { OR: [{ payloadMinimal: { path: ['commandPilot', 'responses'], array_contains: [{ messageId: event.message_id }] } },
+        ...(event.reply ? [{ AND: [
+          { externalReference: { startsWith: 'command-pilot:' } },
+          { payloadMinimal: { path: ['commandPilot', 'replyParentMessageId'], equals: event.reply.parent_message_id } },
+          { OR: ['SENDING', 'AMBIGUOUS'].map(status => ({ payloadMinimal: { path: ['commandPilot', 'responses'], array_contains: [{ status }] } })) },
+        ] }] : [])] },
+    ] }, select: { payloadMinimal: true } });
+    const replyNames = [event.reply?.parent_user_name, event.reply?.parent_user_login, event.reply?.thread_user_name, event.reply?.thread_user_login].filter((name): name is string => Boolean(name));
     if (replies.some(receipt => {
       const parsed = execution.safeParse((receipt.payloadMinimal as Record<string, Prisma.JsonValue> | null)?.commandPilot);
       return parsed.success && parsed.data.broadcasterId === event.broadcaster_user_id && parsed.data.senderId === event.chatter_user_id && parsed.data.responses.some(response => response.messageId === event.message_id
-        || event.reply?.parent_message_id === parsed.data.replyParentMessageId && response.text === event.message.text && ['SENDING', 'AMBIGUOUS'].includes(response.status));
+        || event.reply?.parent_message_id === parsed.data.replyParentMessageId && ['SENDING', 'AMBIGUOUS'].includes(response.status)
+          && (response.text === event.message.text || replyNames.some(name => event.message.text === `@${name} ${response.text}`)));
     })) return true;
-    const gifts = await this.db.twitchEventReceipt.findMany({ where: { eventType: 'channel.channel_points_custom_reward_redemption.add', payloadMinimal: { path: ['remote', 'broadcasterId'], equals: event.broadcaster_user_id } }, orderBy: { receivedAt: 'desc' }, take: 100 });
+    if (event.chatter_user_id !== event.broadcaster_user_id) return false;
+    const gifts = await this.db.twitchEventReceipt.findMany({ where: { eventType: 'channel.channel_points_custom_reward_redemption.add', AND: [
+      { payloadMinimal: { path: ['remote', 'broadcasterId'], equals: event.broadcaster_user_id } },
+      { OR: [{ payloadMinimal: { path: ['remote', 'messageId'], equals: event.message_id } }, { AND: [
+        { payloadMinimal: { path: ['remote', 'announcementText'], equals: event.message.text } },
+        { OR: ['RESERVED', 'AMBIGUOUS'].map(state => ({ payloadMinimal: { path: ['remote', 'announcementState'], equals: state } })) },
+      ] }] },
+    ] } });
     return event.chatter_user_id === event.broadcaster_user_id && gifts.some(receipt => {
       const remote = (receipt.payloadMinimal as Prisma.JsonObject)?.remote as Prisma.JsonObject | undefined;
       return remote?.messageId === event.message_id || remote?.announcementText === event.message.text && ['RESERVED', 'AMBIGUOUS'].includes(String(remote?.announcementState));
@@ -300,10 +331,11 @@ export class TwitchCommandPilot {
   }
 
   private async consumeMessageActivity(player: CurrentPlayer, event: z.infer<typeof envelope>['event'], receiptId: string) {
-    if (await this.isNativeOutboundMessage({ subscription: { id: 'echo', type: 'channel.chat.message', version: '1', status: 'enabled', condition: { broadcaster_user_id: event.broadcaster_user_id, user_id: event.chatter_user_id }, transport: { method: 'webhook' } }, event })) return null;
+    // consumeAuthenticated already excludes echoes before resolving/provisioning.
     const normal = event.message.text.trim().length > 0 && !event.message.text.trimStart().startsWith('!');
     const length = Array.from(event.message.text.trim()).length;
     const canonical = await this.locked(receiptId, async tx => {
+      if (!await this.enabledInTransaction(tx, event.chatter_user_id)) return null;
       const key = 'twitch-message:' + event.broadcaster_user_id + ':' + event.message_id;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
       const { minimal, receipt } = await this.read(tx, receiptId, event.chatter_user_id);
@@ -317,6 +349,7 @@ export class TwitchCommandPilot {
         payloadMinimal: { ...minimal, messageActivity: { key, now: now.toISOString(), messageId: event.message_id, normal, length, responseBodyLimit: twitchReplyBodyLimit(event) } } } });
       return receiptId;
     });
+    if (canonical === null) return { output: [] as string[], responseBodyLimit: undefined };
     // Reservation is committed before Event preparation can reconcile its existing owners.
     const initial = await this.read(this.db, canonical, event.chatter_user_id);
     const previous = initial.minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };

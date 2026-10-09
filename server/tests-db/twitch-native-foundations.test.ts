@@ -40,7 +40,7 @@ async function delivery(pilot: TwitchCommandPilot, twitchUserId: string, text = 
   return receipt.id;
 }
 beforeAll(async () => {
-  await fixture.setup({ seedPublicCatalog: true });
+  await fixture.setup({ prismaMigrations: true, seedPublicCatalog: true });
   const operator = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private operator',
     twitchIdentity: { twitchUserId: '80001', login: 'kichnifou', displayName: 'Private operator', firstSeenAt: at } }));
   operatorId = operator.id; config.twitch.pilotPlayerIds.push(operatorId);
@@ -115,7 +115,7 @@ describe('PostgreSQL Native authority and Twitch-only bootstrap', () => {
   it('simulates gated GLOBAL without silently taking over an existing untransferred identity', async () => {
     const globalConfig = { ...config, twitchCommandPilot: { enabled: true, globalEnabled: true } };
     const globalAuthority = new TwitchNativeAuthority(db, globalConfig);
-    await globalAuthority.configure(operatorId, 'GLOBAL', [], STREAMERBOT_PATH_DISABLED);
+    await globalAuthority.configure(operatorId, 'GLOBAL', [], STREAMERBOT_PATH_DISABLED, (await globalAuthority.read()).revision);
     const globalPlayers = new PrismaTwitchPlayerStore(db, globalAuthority);
     expect(await globalPlayers.resolve({ twitchUserId: '81005', login: 'same_name', displayName: 'Same name', observedAt: at })).toBeTruthy();
     expect(await globalAuthority.covers('80001')).toBe(false);

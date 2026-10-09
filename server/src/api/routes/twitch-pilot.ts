@@ -39,11 +39,12 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     app.post('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
       reply.header('cache-control', 'no-store');
       const parameters = z.object({ acknowledgement: z.literal('STREAMERBOT_PATH_DISABLED'),
+          authorityMode: z.enum(['CANARY', 'GLOBAL']).optional(),
         twitchUserIds: z.array(z.string().regex(/^[1-9][0-9]{0,127}$/)).min(1).max(100).optional() }).strict().safeParse(request.body);
       if (!parameters.success || Object.keys(request.query as object).length)
         throw new AppError('Confirmation Streamer.bot et paramètres canary requis.', 400, 'VALIDATION_ERROR');
       const player = await options.twitch.requirePilot(requireAuthenticatedIdentity(request));
-      return options.commandPilot!.arm(player.id, parameters.data.acknowledgement, parameters.data.twitchUserIds);
+      return options.commandPilot!.arm(player.id, parameters.data.acknowledgement, parameters.data.twitchUserIds, parameters.data.authorityMode);
     });
     app.delete('/api/v1/me/twitch/commands/pilot', authenticated, async (request, reply) => {
       reply.header('cache-control', 'no-store'); commandControlParameters(request);

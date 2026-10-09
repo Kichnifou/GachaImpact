@@ -12,6 +12,7 @@ import { currentOperatorPlans, executeOperatorClosure, lockCanonicalizationPair,
 import { legacyFriendshipDecisionEvidence, reconcileLegacyFriendships, assertLegacyFriendshipResolutionReady } from '../migration/legacy-friendship-reconciliation.js';
 import { carryRetiredFriendshipUsage } from '../social/progression-retirement.js';
 import { reconcileExternalBannerVotes } from '../gacha/banner-vote-contributions.js';
+import { admitLinkedNativePlayer, lockTwitchNativeAdmission } from './twitch-native-admission.js';
 
 type Tx = Prisma.TransactionClient;
 export type ProgressionChoice = 'WEB' | 'TWITCH';
@@ -60,6 +61,7 @@ function matchesDecision(current:DecisionState,previous:Prisma.JsonValue) {
 }
 const resolutionDto = (record:{id:string;expiresAt:Date},state:DecisionSnapshot) => ({id:record.id,expiresAt:record.expiresAt.toISOString(),revision:state.revision,...state.presentation,safety:state.safety,...(state.operatorPlans?{operatorPlans:state.operatorPlans}:{})});
 async function lock(tx: Tx, ids: string[], twitchUserId: string) {
+  await lockTwitchNativeAdmission(tx, twitchUserId);
   await lockCanonicalizationPair(tx,ids,twitchUserId);
 }
 async function validatePair(tx: Tx, webIdentityId: string, webPlayerId: string, twitchPlayerId: string, twitchUserId: string) {
@@ -70,7 +72,7 @@ async function validatePair(tx: Tx, webIdentityId: string, webPlayerId: string, 
   const native = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
   if (twitch.player.legacyRecovery !== null && native?.dataAuthority !== 'NATIVE')
     throw new AppError('La reprise de cette progression est en cours. Réessayez après sa remise en service.', 409, 'PLAYER_RECOVERY_NOT_ACTIVATED');
-  if (native?.dataAuthority === 'MIGRATION_PENDING' || native?.playerId && native.playerId !== twitchPlayerId) throw conflict();
+  if (native && native.dataAuthority !== 'NATIVE' || native?.playerId && native.playerId !== twitchPlayerId) throw conflict();
   return { web, twitch };
 }
 
@@ -94,22 +96,24 @@ export class TwitchAccountLink {
       if (!current) {
         if (await tx.twitchIdentity.findUnique({ where: { playerId: web.playerId } })) throw conflict();
         const native = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId } });
-        if (native?.playerId && native.playerId !== web.playerId || native?.dataAuthority === 'MIGRATION_PENDING') throw conflict();
+        if (native?.playerId && native.playerId !== web.playerId || native && native.dataAuthority !== 'NATIVE') throw conflict();
         await tx.twitchIdentity.create({ data: { playerId: web.playerId, twitchUserId, login, displayName } });
         await reconcileExternalBannerVotes(tx, twitchUserId);
-        if (native && !native.playerId) await tx.twitchNativeTarget.update({ where: { twitchUserId }, data: { playerId: web.playerId } });
+        await admitLinkedNativePlayer(tx, twitchUserId, web.playerId);
         return { linked: true, playerId: web.playerId, resolutionRequired: false };
       }
       const pair = await validatePair(tx, webIdentityId, expectedPlayerId, current.playerId, twitchUserId);
       if (pair.web.playerId === pair.twitch.playerId) {
         await tx.twitchIdentity.update({ where: { twitchUserId }, data: { login, displayName } });
         await reconcileExternalBannerVotes(tx, twitchUserId);
+        await admitLinkedNativePlayer(tx, twitchUserId, pair.web.playerId);
         return { linked: true, playerId: pair.web.playerId, resolutionRequired: false };
       }
       if (await isDisposableWebPlayer(tx, pair.web.playerId)) {
         await moveDisposableWebIdentity(tx, pair.web.id, pair.web.playerId, pair.twitch.playerId);
         await tx.twitchIdentity.update({ where: { twitchUserId }, data: { login, displayName } });
         await reconcileExternalBannerVotes(tx, twitchUserId);
+        await admitLinkedNativePlayer(tx, twitchUserId, pair.twitch.playerId);
         return { linked: true, playerId: pair.twitch.playerId, resolutionRequired: false };
       }
       const now = new Date();
@@ -142,6 +146,7 @@ export class TwitchAccountLink {
         const twitch = await tx.twitchIdentity.findUnique({ where: { twitchUserId: record.twitchUserId } });
         if (record.choice !== choice || web?.playerId !== winner || twitch?.playerId !== winner) throw changed();
         await reconcileExternalBannerVotes(tx, record.twitchUserId);
+        await admitLinkedNativePlayer(tx, record.twitchUserId, winner);
         return { linked: true, playerId: winner, resolutionRequired: false };
       }
       if (record.expiresAt <= new Date()) throw new AppError('La vérification Twitch a expiré. Recommencez la liaison.', 409, 'TWITCH_RESOLUTION_EXPIRED');
@@ -189,6 +194,7 @@ export class TwitchAccountLink {
       }
       await tx.player.update({ where: { id: loser }, data: { status: 'ARCHIVED' } });
       await tx.twitchLinkResolution.update({ where: { id: record.id }, data: { choice, completedAt: now } });
+      await admitLinkedNativePlayer(tx, record.twitchUserId, winner, now);
       await reconcileExternalBannerVotes(tx, record.twitchUserId);
       await reconcileLegacyFriendships(tx,{now,twitchUserIds:[record.twitchUserId]});
       await carryRetiredFriendshipUsage(tx,{loser,winner,now});

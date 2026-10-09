@@ -154,13 +154,13 @@ async function inspect(tx: Tx, input: RecoveryDomainInput, checked: ReturnType<t
 async function locks(tx: Tx, input: RecoveryDomainInput) {
   await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${input.twitchUserId}`},0))::text`;
+  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   if (input.domain === 'EVENT') await tx.$queryRaw`SELECT event_edition_id FROM event_game_b_daily_states ORDER BY event_edition_id,business_date FOR UPDATE`;
   if (input.domain === 'GIVEAWAY') await tx.$executeRaw`SELECT pg_advisory_xact_lock(7861450867001::bigint)`;
   // No native Boss is mutated here. The Player lock serializes the beneficiary
   // with attacks/rewards without introducing a Boss -> Player lock inversion.
   const ids = [...new Set([input.playerId, input.operatorPlayerId])].sort();
   await tx.$queryRaw(Prisma.sql`SELECT id FROM players WHERE id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))}) ORDER BY id FOR UPDATE`);
-  await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
 }
 
 async function prior(tx: Tx, operationId: string, input: RecoveryDomainInput, checked: ReturnType<typeof inputs>, fingerprint: string) {

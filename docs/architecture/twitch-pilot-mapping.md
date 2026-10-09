@@ -1,5 +1,9 @@
 # Pilote Kichnifou — correspondance du snapshot figé
 
+## Autorité actuelle et GLOBAL R1064
+
+La matrice historique ci-dessous ne décide ni de l'admission des nouveaux joueurs ni d'un droit de réimport NATIVE. [R1064](twitch-global-r1064.md) porte les parcours Twitch/Web, le nouveau départ sans restauration, les échos et la reprise explicite du périmètre ; [Master](../master/PROJECT_MASTER_PLAN.md) porte l'activation réellement exécutée. Le snapshot pilote reste une preuve historique conservée.
+
 ## Amendement R1048 — frontière personnelle et procédures ciblées
 
 Le pilote historique ci-dessous demeure une référence de mapping, pas un droit de refresh NATIVE. [R1048](../specifications/decisions-log.md#fondations-pré-cutover-twitch-et-population-finale--r1048-2026-10-06) et [le guide opératoire](../process/twitch-native-foundations.md) s'appliquent aux nouvelles fondations : import seulement LEGACY, canary CLI sans purge globale, backup/compare/rollback ciblés, DATA_IMPORTED séparé du transfert. L'ancien apply snapshot HTTP refuse désormais les cibles NATIVE ou MIGRATION_PENDING. Le claim R1046 et le remplacement opérateur du vrai compte web Ceo sont des procédures distinctes, toutes deux par ID vérifié.

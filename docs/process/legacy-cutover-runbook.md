@@ -1,5 +1,20 @@
 # Cutover legacy — runbook opératoire
 
+<a id="r1064-global"></a>
+
+## R1064 — ouverture contrôlée GLOBAL
+
+Cette mission consolidée préautorise l'exécution après chaque gate ; [contrat](../architecture/twitch-global-r1064.md), [état réel](../master/PROJECT_MASTER_PLAN.md). Imports, restaurations R1063, choix historiques et recettes acquises ne se rejouent pas.
+
+1. Candidat complet et contrôles privés verts ; publier review puis vérifier SHA/blobs GitHub. Reviewer distinct sur le diff cumulé depuis `716ebd5`, corrections/re-review avant FF strict main. Déploiements Railway/Cloudflare SUCCESS exacts, Prisma 67/contrôles physiques/preDeploy normal seulement. Aucune variable Railway modifiée avant le code approuvé et déployé.
+2. Sauvegarde applicative complète durable, contrôles des 44 identités/targets/imports/graphes, Céo ARCHIVED/Céotryd ACTIVE, votes/rotations/claims/social/domaines ; conserver sources et backups. Déployer la capacité serveur GLOBAL en laissant le désir CANARY. Contrôler le nouveau déploiement, CANARY effectif et transport Chat ACTIVE frais, aucune livraison incertaine. Un contrôle PostgreSQL/configuration/Helix ne prétend pas être HTTP authentifié ; demander la confirmation runtime indispensable après redémarrage si aucune session process authentifiée n'est disponible.
+3. Relire opérateur, révision, identité/autorité, capacité réellement déployée, Streamer.bot OFF et drainage. Employer exclusivement `node --import tsx scripts/configure-twitch-authority.mts --operator-player <UUID> --mode GLOBAL --expected-revision <révision> --acknowledgement STREAMERBOT_PATH_DISABLED`, depuis server avec l'environnement public contrôlé et borné. Le CLI appelle l'owner canonique ; aucun import, extension ou transfert individuel. Refus atomique si révision changée, identité incohérente ou opération/livraison en cours. Ne jamais forcer ni supprimer les receipts pour passer le gate.
+4. Postflight cohérent en lecture seule : GLOBAL désiré/effectif, transport valide, mêmes 44 progressions, identités nouvelles admises par la politique sans créer de faux joueur public, réservations/inactifs refusés, zéro doublon, Faveur/Gift/Giveaway conservés, backend sain. Une nouvelle mutation de joueur se distingue des différences de déploiement ; aucun écrasement d'une progression récente.
+5. Une seule salve de recette propriétaire : vrai nouveau Twitch `!pity`, `!box`, `!quotis` et reconnexion ; Web-first vierge autorisé→actions gratuites→OAuth→commande même Player ; Twitch-first→Web vierge même progression. Aucun OAuth ni commande à la place du joueur. Absence de volontaire : preuve technique et recette non réalisée séparées, sans bloquer les travaux indépendants. Boss testé en privé ; attaque publique seulement volontaire, jamais rejouée.
+6. Retour d'urgence : même CLI `--mode OFF --expected-revision <fraîche>` ; UI Désactiver possible en transport dégradé. Reprise GLOBAL explicitement annoncée depuis OFF ; retour CANARY par `--mode CANARY` avec ACK et révision reprend les cibles persistées. Aucun effacement des nouveaux profils GLOBAL. Les subscriptions indépendantes ne changent pas.
+
+Après GLOBAL suffisamment stabilisé, priorité aux Codes enrichis R1057 selon sa décision et le complément propriétaire. Ni code public réel, ni second claim historique ; ne pas retarder GLOBAL pour ce chantier. Conserver les preuves d'exécution, pas de commit documentaire uniquement pour recopier son propre SHA.
+
 <a id="r1063-restauration-domaines"></a>
 
 ## R1063 — reprise des domaines après R1062

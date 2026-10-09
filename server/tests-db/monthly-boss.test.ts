@@ -11,7 +11,7 @@ import { calculateContributionBasisPoints, calculateNextBossBase, MONTHLY_BOSS_R
 const config = loadConfig(); if (!config.databaseUrl) throw new Error('DATABASE_URL is required for monthly Boss database tests.');
 const isolated = isolatedBatchDatabase();
 const database = isolated.database;
-beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+beforeAll(() => isolated.setup({ seedPublicCatalog: true, prismaMigrations: true }), 180_000);
 afterAll(() => isolated.cleanup(), 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
@@ -144,11 +144,17 @@ describe('monthly Boss persistence', () => {
     expect((await player.service.getCurrentForChat(identity)).preview?.totalDamage).toBeGreaterThan(0n);
     expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
     const first = await player.service.attackWithActiveTeam(identity, key);
+    expect(first.result.members.map(member => member.characterId)).toEqual(player.characters.map(character => character.id));
+    expect(first.result.members.map(member => member.constellationSnapshot)).toEqual([0, 1, 2, 3]);
+    await database.teamMember.deleteMany({ where: { team: { playerId: player.id } } });
+    await database.playerBossLoadoutSlot.deleteMany({ where: { playerId: player.id } });
+    await database.playerCharacter.updateMany({ where: { playerId: player.id }, data: { constellation: 6, copies: 7 } });
     const replay = await player.service.attackWithActiveTeam(identity, key);
     expect(first.result.damage).toBeGreaterThan(0n);
     expect(replay.operation).toMatchObject({ id: first.operation.id, alreadyProcessed: true });
+    expect(replay.result.members).toEqual(first.result.members);
     expect(await database.bossAttack.count({ where: { playerId: player.id } })).toBe(1);
-    expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(4);
+    expect(await database.playerBossLoadoutSlot.count({ where: { playerId: player.id } })).toBe(0);
     expect(await database.businessOperation.findUniqueOrThrow({ where: { id: first.operation.id } })).toMatchObject({ sourceChannel: 'INTERNAL_CHAT' });
   });
 

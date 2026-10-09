@@ -327,11 +327,13 @@ export class MonthlyBossService {
           } });
           return { operationId: operation.id, alreadyProcessed: false, damage: damage.totalDamage, defeated };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
-        const [view, resources] = await Promise.all([
+        const [view, resources, attack] = await Promise.all([
           readView(this.database, context.playerId, context.businessDate, bossId),
           readBalances(this.database, context.playerId),
+          this.database.bossAttack.findUniqueOrThrow({ where: { operationId: committed.operationId },
+            select: { members: { orderBy: { position: 'asc' }, select: { characterId: true, characterNameSnapshot: true, elementKeySnapshot: true, constellationSnapshot: true, position: true } } } }),
         ]);
-        return { operation: { id: committed.operationId, alreadyProcessed: committed.alreadyProcessed }, result: { damage: committed.damage, defeated: committed.defeated }, view, resources };
+        return { operation: { id: committed.operationId, alreadyProcessed: committed.alreadyProcessed }, result: { damage: committed.damage, defeated: committed.defeated, members: attack.members }, view, resources };
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attemptNumber === MAX_TRANSACTION_ATTEMPTS) throw error;
       }
