@@ -19,15 +19,25 @@ export async function bannerVoteContributions(tx: Tx, rotationId: string) {
   ]);
   const identities = await tx.twitchIdentity.findMany({ where: { OR: [
     { playerId: { in: native.map(v => v.playerId) } }, { twitchUserId: { in: external.map(v => v.twitchUserId) } },
-  ] }, include: { player: { select: { status: true } } } });
+  ] } });
   const aliases = new Map<string, string>();
   const alias = (playerId: string, twitchId: string) => {
     if (aliases.has(playerId) && aliases.get(playerId) !== twitchId) return conflict();
     aliases.set(playerId, twitchId);
   };
   for (const identity of identities) {
-    if (identity.player.status !== 'ACTIVE') return conflict();
     alias(identity.playerId, identity.twitchUserId);
+  }
+  // Suspension/retirement never revokes an acquired ballot. A completed R1055
+  // decision proves both former Players represent this identity, irrespective
+  // of which side already owned the external proof. Pending choices do not.
+  const voterIds = [...new Set([...native.map(v => v.playerId), ...external.flatMap(v => history(v.bindingHistory).map(b => b.playerId))])];
+  const resolutions = await tx.twitchLinkResolution.findMany({ where: { completedAt: { not: null }, choice: { in: ['WEB', 'TWITCH'] }, OR: [
+    { webPlayerId: { in: voterIds } }, { twitchPlayerId: { in: voterIds } }, { twitchUserId: { in: external.map(v => v.twitchUserId) } },
+  ] } });
+  for (const resolution of resolutions) {
+    alias(resolution.webPlayerId, resolution.twitchUserId);
+    alias(resolution.twitchPlayerId, resolution.twitchUserId);
   }
   for (const vote of external) {
     const provenance = vote.provenance;
@@ -67,14 +77,19 @@ export async function bannerVoteContributions(tx: Tx, rotationId: string) {
  * Pending WEB/TWITCH decisions never select a winner. Frozen counts stay untouched. */
 export async function reconcileExternalBannerVotes(tx: Tx, twitchUserId: string) {
   const rows = await tx.externalBannerVote.findMany({ where: { twitchUserId }, orderBy: { id: 'asc' } });
-  if (!rows.length) return;
   const identity = await tx.twitchIdentity.findUnique({ where: { twitchUserId }, include: { player: true } });
   if (!identity) return; // A proof remains valid without a Player, including after unlink.
   if (identity.player.status !== 'ACTIVE') return conflict();
   if (await tx.twitchLinkResolution.findFirst({ where: { twitchUserId, completedAt: null, expiresAt: { gt: new Date() } } })) return;
+  const completed = await tx.twitchLinkResolution.findMany({ where: { twitchUserId, completedAt: { not: null }, choice: { in: ['WEB', 'TWITCH'] } } });
+  const affectedIds = [...new Set([identity.playerId, ...completed.flatMap(r => [r.webPlayerId, r.twitchPlayerId])])];
+  const nativeCycles = await tx.bannerVote.findMany({ where: { playerId: { in: affectedIds } }, select: { bannerRotationId: true }, distinct: ['bannerRotationId'] });
   for (const row of rows) {
     const previous = history(row.bindingHistory);
-    if (row.playerId === identity.playerId) continue;
+    if (row.playerId === identity.playerId) {
+      await bannerVoteContributions(tx, row.bannerRotationId);
+      continue;
+    }
     let resolutionId: string | null = null;
     if (row.playerId) {
       const resolution = await tx.twitchLinkResolution.findFirst({ where: { twitchUserId, completedAt: { not: null }, OR: [
@@ -90,4 +105,7 @@ export async function reconcileExternalBannerVotes(tx: Tx, twitchUserId: string)
       bindingHistory: [...previous, { playerId: identity.playerId, resolutionId }] } });
     await bannerVoteContributions(tx, row.bannerRotationId); // Fail closed if any old alias contradicts the identity.
   }
+  // Includes native-only ballots of a retired side, even when no external row
+  // needed rebinding. A collision aborts the enclosing canonicalization.
+  for (const rotationId of new Set(nativeCycles.map(v => v.bannerRotationId))) await bannerVoteContributions(tx, rotationId);
 }

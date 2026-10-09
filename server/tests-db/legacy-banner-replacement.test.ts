@@ -126,6 +126,52 @@ async function fourVoters(nativeChoice?: number) {
 }
 const tally = (rotationId: string) => db.$transaction(tx => bannerVoteContributions(tx, rotationId), { isolationLevel: 'RepeatableRead' });
 
+it.each(['SUSPENDED', 'ARCHIVED'] as const)('keeps acquired %s ballots readable and closable without permitting a new vote', async status => {
+  const s = await scenario(8);
+  if (status === 'ARCHIVED') await db.twitchIdentity.delete({ where: { playerId: s.player.id } });
+  await db.player.update({ where: { id: s.player.id }, data: { status } });
+  expect((await tally(s.native.id)).totalVotes).toBe(1);
+  const reader = new BannerVoteService({ execute: async () => ({ id: actor }) } as unknown as GetCurrentPlayer, db, { now: () => s.at });
+  expect((await reader.getCurrent({ subject: 'private' })).candidates.find(c => c.characterId === s.byKey.get(8)!.id)?.voteCount).toBe(1);
+  const writer = new BannerVoteService({ execute: async () => ({ id: s.player.id }) } as unknown as GetCurrentPlayer, db, { now: () => s.at });
+  await expect(writer.vote({ subject: 'private' }, s.byKey.get(8)!.id, s.native.id)).rejects.toMatchObject({ code: 'PLAYER_NOT_FOUND' });
+  await expect(new PrismaGachaStore(db).ensureRotation(s.finish, new Date(+s.finish + 7 * 86400_000), () => { throw Error('Private closure acquired'); })).rejects.toThrow('Private closure acquired');
+});
+
+it.each([false, true])('deduplicates the archived Web ballot after TWITCH choice; closed=%s', async closed => {
+  const s = await fourVoters(), f = await prepare(s), result = await applyLegacyBannerReplacement(db, config, f.input, f.write);
+  const twitch = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private target', twitchIdentity: { twitchUserId: s.ids[1]!, login: s.names[1]!, displayName: 'Private target', firstSeenAt: new Date() } }));
+  await db.$transaction(tx => reconcileExternalBannerVotes(tx, s.ids[1]!));
+  const web = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private web voter', webIdentity: { provider: 'supabase', providerSubject: randomUUID() } }));
+  await db.player.update({ where: { id: web.id }, data: { elementKey: 'pyro' } });
+  await db.bannerVote.create({ data: { bannerRotationId: result.rotationId, playerId: web.id, characterId: s.byKey.get(8)!.id, sourceChannel: 'UI' } });
+  if (closed) await expect(new PrismaGachaStore(db).ensureRotation(s.finish, new Date(+s.finish + 7 * 86400_000), () => { throw Error('Private closed'); })).rejects.toThrow('Private closed');
+  const frozen = (await db.bannerRotation.findUniqueOrThrow({ where: { id: result.rotationId } })).generationVoteSnapshot;
+  const wi = await db.webIdentity.findUniqueOrThrow({ where: { playerId: web.id } }), link = new TwitchAccountLink(db);
+  await link.verified(wi.id, web.id, s.ids[1]!, s.names[1]!, 'Private voter');
+  const pending = await link.pending(wi.id);
+  expect(await link.resolve(wi.id, pending!.id, 'TWITCH', pending!.revision)).toMatchObject({ linked: true, playerId: twitch.id });
+  expect((await tally(result.rotationId)).totalVotes).toBe(4);
+  expect((await db.bannerRotation.findUniqueOrThrow({ where: { id: result.rotationId } })).generationVoteSnapshot).toEqual(frozen);
+});
+
+it.each([false, true])('rejects divergent Web ballot at TWITCH choice atomically; closed=%s', async closed => {
+  const s = await fourVoters(), f = await prepare(s), result = await applyLegacyBannerReplacement(db, config, f.input, f.write);
+  const twitch = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private target', twitchIdentity: { twitchUserId: s.ids[1]!, login: s.names[1]!, displayName: 'Private target', firstSeenAt: new Date() } }));
+  await db.$transaction(tx => reconcileExternalBannerVotes(tx, s.ids[1]!));
+  const web = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Private web voter', webIdentity: { provider: 'supabase', providerSubject: randomUUID() } }));
+  await db.player.update({ where: { id: web.id }, data: { elementKey: 'pyro' } });
+  await db.bannerVote.create({ data: { bannerRotationId: result.rotationId, playerId: web.id, characterId: s.byKey.get(9)!.id, sourceChannel: 'UI' } });
+  if (closed) await expect(new PrismaGachaStore(db).ensureRotation(s.finish, new Date(+s.finish + 7 * 86400_000), () => { throw Error('Private closed'); })).rejects.toThrow('Private closed');
+  const wi = await db.webIdentity.findUniqueOrThrow({ where: { playerId: web.id } }), link = new TwitchAccountLink(db);
+  await link.verified(wi.id, web.id, s.ids[1]!, s.names[1]!, 'Private voter');
+  const pending = await link.pending(wi.id);
+  await expect(link.resolve(wi.id, pending!.id, 'TWITCH', pending!.revision)).rejects.toMatchObject({ code: 'BANNER_VOTE_IDENTITY_CONFLICT' });
+  expect((await db.player.findUniqueOrThrow({ where: { id: web.id } })).status).toBe('ACTIVE');
+  expect((await db.webIdentity.findUniqueOrThrow({ where: { id: wi.id } })).playerId).toBe(web.id);
+  expect((await db.twitchIdentity.findUniqueOrThrow({ where: { twitchUserId: s.ids[1]! } })).playerId).toBe(twitch.id);
+});
+
 it.each([undefined, 8])('counts four proven Twitch identities exactly once, with three absent Players and native choice %s', async nativeChoice => {
   const s = await fourVoters(nativeChoice), f = await prepare(s), before = await pullGraph(s.player.id), players = await db.player.count();
   expect(f.plan).toMatchObject({ status: 'READY', applicationGate: null, externalProvenVotes: 3, unresolvedLegacyVotes: 0,
