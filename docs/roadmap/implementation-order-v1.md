@@ -2,7 +2,7 @@
 
 ## Priorité d'exécution R1064 puis R1057 — 09/10/2026
 
-31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. Mission R1064 autorisée jusqu'à l'ouverture GLOBAL contrôlée, après review indépendante, déploiements et gates fraîches ; état réellement obtenu au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Dès stabilisation suffisante, priorité immédiate aux Codes cadeaux enrichis R1057 dans le même cycle si possible. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
+31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. GLOBAL R1064 est activé après review indépendante, déploiements et gates fraîches ; état et limites humaines réellement obtenus au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Priorité immédiate aux Codes cadeaux enrichis R1057 dans le même cycle. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
 
 ## Historique — intercalaire UI/UX avant canary R1055
 
