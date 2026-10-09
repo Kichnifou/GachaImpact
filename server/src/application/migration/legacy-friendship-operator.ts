@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
 import { STREAMERBOT_PATH_DISABLED, TwitchNativeAuthority } from '../twitch/twitch-native-authority.js';
-import { receiptSafety } from '../twitch/twitch-operations-in-flight.js';
+import { receiptSafety, receiptSafetyCandidates } from '../twitch/twitch-operations-in-flight.js';
 import { captureLegacyFriendshipBackup, legacyFriendshipBackupPostHash, restoreLegacyFriendshipBackup, type LegacyFriendshipBackup } from './legacy-friendship-backup.js';
 import { legacyFriendshipAffectedPlayers, legacyFriendshipDecisionEvidence, planLegacyFriendshipRegistration, reconcileLegacyFriendships, registerLegacyFriendships } from './legacy-friendship-reconciliation.js';
 import { identityProofHash } from './owner-approved-population.js';
@@ -58,7 +58,8 @@ async function gates(tx: Tx, config: AppConfig, input: Scope) {
   const control = await tx.twitchNativeAuthority.findUnique({ where: { id: 'twitch-commands' } });
   if (config.twitchCommandPilot?.enabled !== false || control?.desiredMode !== 'OFF' || control.revision !== input.expectedRevision) return fail('OFF_GATE_REQUIRED');
   if (await tx.businessOperation.count({ where: { status: 'PENDING' } })) return fail('OPERATION_IN_FLIGHT');
-  const receipts = await tx.twitchEventReceipt.findMany({ select: { eventType: true, state: true, processedAt: true, externalReference: true, payloadMinimal: true } });
+  const receipts = await tx.twitchEventReceipt.findMany({ where: receiptSafetyCandidates(),
+    select: { eventType: true, state: true, processedAt: true, externalReference: true, payloadMinimal: true } });
   if (receipts.some(receipt => receiptSafety(receipt).blocking)
     || await tx.giveawayAnnouncement.count({ where: { state: { in: ['RESERVED', 'AMBIGUOUS'] } } })) return fail('OUTBOUND_IN_FLIGHT');
 }

@@ -1,8 +1,8 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : R1063 — restauration des domaines et réponses Twitch, candidat en validation.
+Version : R1063 — code déployé, correction du contrôle préalable de restauration.
 Date : 2026-10-09
-Statut : **R1063 EN COURS — public R1062 PARTIAL conservé pendant les tests privés.** Code public `c60873afd038134491d46b5ec0d2df1adfce9f08`, Prisma 66, CANARY 14/44 NATIVE, GLOBAL false et Chat ACTIVE. La gate F5 et les consultations réelles R1062 sont maintenant confirmées ; la sélection bidirectionnelle est acquise. Les 40 restrictions Event/Boss/Giveaway restent publiques jusqu’à application revue. Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont distincts et conservés.
+Statut : **R1063 DÉPLOYÉ — restauration publique encore non appliquée.** Code `caaab7c5befa0ac4c76aff7196f8001ef30e6974` approuvé indépendamment, promu strictement et déployé Railway/Cloudflare ; Prisma 67 vérifié. Après deux échecs de lecture préalable sans écriture communautaire, le transport a été rétabli : CANARY 16/44 NATIVE, capacité true, GLOBAL false et Chat ACTIVE, vérifiés le 09/10 à 14:23 UTC. Les 40 restrictions Event/Boss/Giveaway restent effectives. La gate F5 et les consultations R1062 restent acquises historiquement ; la sélection bidirectionnelle est acquise. Céo A ARCHIVED et Céotryd B ACTIVE/NATIVE sont distincts et conservés.
 But : porter l’état réel, les preuves, les décisions et la prochaine reprise du projet.
 
 <a id="community-complements-20261008"></a>
@@ -15,7 +15,9 @@ Mandat : terminer Event, Boss, Giveaway et les faits sociaux prouvés, corriger 
 
 **Cible prouvée, non encore appliquée :** 40 ouvertures par domaine ; neuf participations Event (80 points/128 monnaies/quatre claims sans paiement), trois Boss source conservés distincts des natifs et neuf cumuls non nuls, une session Giveaway close (cinq inscrits/22 compteurs/un gagnant sans paiement), un message Event non lu, quinze relations sociales résolubles sur dix-sept. Deux endpoints exclus restent différés. Les 31 non-participants Event ne sont pas inscrits artificiellement. Aucun réimport personnel, extension ou GLOBAL.
 
-**Prochaine étape active :** achever les contrôles PostgreSQL privés et la répétition sur capture réelle, publier le candidat, obtenir le verdict indépendant du vrai SHA puis poursuivre les gates de déploiement/application préautorisées. Le jeu reste disponible durant cette préparation. Code testé, déployé, données restaurées et recette humaine restent quatre états distincts.
+**Incident préalable et correction ciblée :** les deux tentatives sous OFF 15 ont échoué avant création de plan, backup ciblé ou journal R1063. La première connexion a été interrompue ; la deuxième prouve un dépassement Prisma de 30 s (38,894 s écoulées) pendant la lecture de sécurité. Le chargement complet des 210 receipts transporte environ 3 Mo, dont plus de 99 % dans les historiques terminés. Le correctif sélectionne en PostgreSQL un sur-ensemble de tous les blocages possibles, puis conserve la décision `receiptSafety` et le contrôle PENDING inchangés. Il s'applique aux gates communautaires et sociales, sans modifier les traitements Gift ni l'autorité. Une mesure publique strictement en lecture seule ramène 41 candidats / 22 592 octets en 350 ms. Équivalence PostgreSQL privée PASS sur 153 cas (58 bloquants / 95 sûrs), corpus synthétique de 3 Mo et les 210 receipts de la capture réelle ; gate privée réelle en 19 ms. Trois suites ciblées, 50 tests PASS, typecheck et lint PASS ; les contrôles complets du lot initial restent acquis.
+
+**Prochaine étape active :** publication et review indépendante du correctif testé, promotion/déploiement puis nouvelle capture fraîche et fenêtre économique bornée pour les faits autorisés. Le transport reste CANARY durant cette correction. Le backup public complet avant DDL, les sources et toutes les preuves des essais sont conservés. Une nouvelle gate runtime humaine reste nécessaire après le dernier redémarrage avant tout smoke ; aucune session navigateur authentifiée n'est disponible dans l'environnement.
 
 <a id="point-courant--reprise-p0-appliquée-le-09102026"></a>
 

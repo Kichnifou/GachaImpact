@@ -5,7 +5,7 @@ import { identityProofHash } from './owner-approved-population.js';
 import { validateHistoricalTwitchReport, type VerifiedTwitchReport } from './verified-twitch-report.js';
 import type { AppConfig } from '../../config/environment.js';
 import { STREAMERBOT_PATH_DISABLED, TwitchNativeAuthority } from '../twitch/twitch-native-authority.js';
-import { receiptSafety } from '../twitch/twitch-operations-in-flight.js';
+import { receiptSafety, receiptSafetyCandidates } from '../twitch/twitch-operations-in-flight.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 
 export const communityRecord = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -24,7 +24,8 @@ export async function requireCommunityMutationGates(tx: Prisma.TransactionClient
     || !Number.isSafeInteger(input.expectedRevision) || input.expectedRevision < 1
     || control?.desiredMode !== 'OFF' || control.revision !== input.expectedRevision) throw Error('COMMUNITY_OFF_GATE_REQUIRED');
   if (await tx.businessOperation.count({ where: { status: 'PENDING' } })) throw Error('COMMUNITY_OPERATION_IN_FLIGHT');
-  const receipts = await tx.twitchEventReceipt.findMany({ select: { eventType: true, state: true, processedAt: true, externalReference: true, payloadMinimal: true } });
+  const receipts = await tx.twitchEventReceipt.findMany({ where: receiptSafetyCandidates(),
+    select: { eventType: true, state: true, processedAt: true, externalReference: true, payloadMinimal: true } });
   if (receipts.some(row => {
     const responses = communityRecord(communityRecord(row.payloadMinimal).commandPilot).responses;
     return receiptSafety(row).blocking || Array.isArray(responses) && responses.some(response => communityRecord(response).status === 'PENDING');

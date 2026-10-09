@@ -13,6 +13,8 @@ R1062/imports/extension sont acquis et ne se rejouent pas. La confirmation F5 R1
 5. Postflight : faits/totaux attendus, retrait de chaque restriction, claims sans paiement, anciens rows/archives/tirages/ressources exacts ou variations natives expliquées, cible44 inchangée, aucun PENDING/incertain. Réarmer l'ensemble CANARY persisté uniquement ; capacité true effectivement déployée et transport réel vérifié avant recette. Aucun nouvel extend/transfert, annonce ou GLOBAL.
 6. Recette ciblée : indications runtime après le dernier redémarrage si la session authentifiée est humaine ; Festival/Boss/Giveaway/social et nouveaux messages répétés de consultation par joueur disponible, sans dépense automatique ni replay historique. Son absence ne bloque pas les contrôles indépendants et ne vaut pas une recette réussie. Actualiser les preuves et le Master à l'état effectivement atteint.
 
+Incident préalable R1063 : les deux premiers essais n'ont créé aucun journal de restauration. Une lecture complète des receipts a dépassé la borne de transaction ; le transport a été repris en CANARY 16 avant réparation du filtre de lecture. Ne pas garder OFF pendant cette réparation ni compenser une économie qui n'a pas été modifiée. Avant la nouvelle fenêtre, conserver les anciennes preuves, publier/reviewer le correctif, renouveler les preuves de déploiement, la capture, les plans et la révision ; utiliser toujours les mêmes imports personnels acquis.
+
 Les anciennes étapes R1062 ci-dessous sont historiques. Leur statut en attente de F5 est remplacé par la confirmation propriétaire du 09/10.
 
 <a id="reprise-p0-r1062"></a>

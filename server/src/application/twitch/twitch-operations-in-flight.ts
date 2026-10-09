@@ -5,6 +5,20 @@ type Receipt = Pick<Prisma.TwitchEventReceiptGetPayload<Record<string, never>>,
 const record = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
 
+/** Conservative superset for safety checks, including PENDING used by community
+ * restoration. A terminal receipt can still contain an uncertain outbound.
+ * Always apply the caller's safety decision after reading these candidates. */
+export function receiptSafetyCandidates(): Prisma.TwitchEventReceiptWhereInput {
+  return { OR: [
+    { state: 'RECEIVED' },
+    { externalReference: { startsWith: 'message-native:' }, state: { notIn: ['PROCESSED', 'FAILED'] } },
+    { payloadMinimal: { path: ['commandPilot', 'stage'], equals: 'EXECUTING' } },
+    ...['PENDING', 'SENDING', 'AMBIGUOUS'].map(status => ({
+      payloadMinimal: { path: ['commandPilot', 'responses'], array_contains: [{ status }] },
+    })),
+  ] };
+}
+
 export function receiptSafety(receipt: Receipt) {
   const payload = record(receipt.payloadMinimal), pilot = record(payload?.commandPilot);
   const unresolvedOutbound = Array.isArray(pilot?.responses) && pilot.responses.some(response =>
