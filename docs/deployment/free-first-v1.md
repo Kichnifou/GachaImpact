@@ -59,6 +59,14 @@ Les variables `VITE_*` sont intégrées au build. Elles ne doivent jamais conten
 
 Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans backend ni frontend local, le propriétaire a validé : connexion, chargement du Player réel, élément et ressources persistants, état quotidien de la Roue restauré, logout/login et communication Cloudflare → Railway → Supabase. Le premier lien alpha est disponible.
 
+## R1058 — configuration et preuves requises
+
+Le candidat utilise un retour fixe `/auth/recovery`, servi directement par le fallback SPA Cloudflare Pages. Conserver Site URL `https://gachaimpact.pages.dev` et autoriser explicitement `https://gachaimpact.pages.dev/auth/recovery` ainsi que `http://localhost:5173/auth/recovery` pour le développement. Les origines seules documentées plus haut ne prouvent pas l'autorisation de ces chemins. Aucun wildcard, retour arbitraire, modification SMTP payante ou secret frontend ajouté.
+
+Avant promotion, vérifier réellement l'allowlist, le template de récupération natif (ConfirmationURL), l'expiration des liens, la politique de mot de passe/réauthentification, l'expéditeur SMTP existant et les limites e-mail applicables. La documentation officielle [SMTP Supabase](https://supabase.com/docs/guides/auth/auth-smtp) précise les restrictions du fournisseur intégré ; ne pas supposer une délivrabilité publique sur tous les destinataires. Une requête `/auth/v1/settings` publique ne prouve ni cette configuration privée ni la réception.
+
+Preuve e-mail uniquement dans une boîte contrôlée explicitement autorisée ; aucun envoi aux joueurs, aucun mot de passe demandé. Si l'accès opérateur ou cette preuve manque, conserver le candidat sur review et déclarer la gate manquante au Master. Un GET 200 du chemin valide l'hébergement SPA, pas le callback Auth ni le nouveau bundle. Les tests simulés et les captures locales ne valent jamais envoi/réception réels.
+
 ## À surveiller
 
 - Consommation Railway Hobby ; toute nouvelle dépense ou service payant demande une autorisation explicite de son périmètre.

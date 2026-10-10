@@ -13,6 +13,12 @@
   --green: #61df9a;
 }
 
+.password-form { max-width: 440px; }
+.password-reset-link { margin-top: 12px; }
+.password-form input { width: 100%; min-width: 0; box-sizing: border-box; }
+.history-event-draw { padding-block: 8px; border-block: 1px solid var(--border); margin-block: 12px; }
+.password-recovery-panel h1 { overflow-wrap: anywhere; }
+
 /* Invocation reveal flow: the outer banner frame remains the single visual stage. */
 .banner-change-button.detail {
   color: #c9dcf6;

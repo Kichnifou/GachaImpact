@@ -1,11 +1,29 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Mission du 10/10/2026 — R1053 et consultation des messages Event.
+Version : Mission du 10/10/2026 — candidat R1058 et compléments Codes/Event.
 Date : 2026-10-10
-Statut : **R1053 et correction des messages livrés après review indépendante et postflight ; recette humaine des nouveaux états et premier tirage naturel encore futurs.** Le propriétaire confirme la recette des six correctifs précédents et du résumé !event.
+Statut : **R1058 et compléments Codes/Event implémentés et testés localement ; publication/review indépendante en cours. Promotion et déploiements suspendus aux gates Auth : configuration opérateur et délivrabilité non démontrées.** R1053 reste livré ; premier tirage naturel et recette humaine des nouveaux états encore futurs.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — R1053 et messages Event, mandat complet du 10/10/2026
+## Point courant — R1058, Codes/Missions et restitution du tirage Event
+
+Base réelle vérifiée par fetch et connecteur GitHub : `main = review = fab14c3ba83987befe08f1dc7fb94d812f51e572`, divergence 0/0, worktree initial propre. Mandat consolidé du 10/10 autorisant le cycle complet sous gates ; aucun commit concurrent trouvé. Eclipsia/Story, économie, RNG et identités hors modification.
+
+**Candidat physique :** Compte → Sécurité (indépendant du statut Twitch), mot de passe oublié avec confirmation neutre et récupération native Supabase sur `/auth/recovery`. Client de récupération isolé avant AuthProvider/AppBootstrap, vérification native puis `getUser`, aucune création/restauration Player ou application R1055. Confirmation/longueur, verrou anti-double appel, erreurs filtrées, réauthentification native et champs effacés. SDK 2.115.0 inspecté ; attribut physique `current_password`. [Contrat Auth](../architecture/backend-architecture-v1.md#password-recovery-r1058).
+
+Codes/Missions : assembler commun Twitch/chat interne, ` | ` entre annonces et 🎯 devant chaque Mission ; continuation intacte dans le budget effectif, résultats anciens figés et gains inchangés. Event : fan-out SQL transactionnel à tous les ACTIVE sauf gagnant, déduplication édition/Player, notifications personnelles et ADMIN conservées ; Historique après Top 10, nom scellé ou « Progression archivée », états sans gagnant fidèles et DTO sans données privées. Pas de migration supplémentaire ni reprise économique de COMPLETED. [Contrat Event](../architecture/event-monthly-draw-r1053.md#compléments-de-restitution--mandat-du-10102026), [commandes](../commands/command-reference.md#code).
+
+**Contrôles acquis :** verify:full 8/8 (frontend 1 425, backend 2 262), puis delta Auth et SDK natif/Historiques/Notifications **58/58**, build frontend renouvelé et verify:quick 5/5. Les tests natifs du SDK simulent le HTTP fournisseur : événement PASSWORD_RECOVERY et session isolée, jamais d'e-mail réel. PostgreSQL privé, fichiers séquentiels : tirage **15/15**, Historique **4/4**, Codes enrichis **24/24**, pipeline Twitch signé/replays **31/31**. Fixtures nettoyées, aucune donnée métier publique de test. Captures du vrai GameShell/CSS compilé et formulaires d'entrée : **12 états/captures** sur 390×844, 1366×768 et 1920×1080, inspectés ; aucun débordement horizontal, erreur navigateur ou appel externe. Avertissement de chunk >500 kB et dépréciation pg préexistants. Les premiers échecs d'environnement de fixtures, syntaxe TypeScript, invocation npm PowerShell et chemins d'un script privé restent des échecs initiaux corrigés, pas des PASS ; logs privés conservés sous `local-data/identity-resolutions/r1058-20261010/` et les dossiers verify temporaires référencés.
+
+**Gates réellement ouvertes :** aucun accès navigateur opérateur disponible (inventaire vide, navigateur iab indisponible), aucun accès Management Auth configuré. L'allowlist exacte `/auth/recovery`, le template, l'expiration, SMTP/expéditeur, la politique effective et les quotas ne sont donc pas vérifiés. Une boîte contrôlée explicitement autorisée a été demandée ; aucun e-mail n'a été envoyé ni reçu dans cette mission, aucun mot de passe public modifié. La réception et le parcours public ne sont pas prêts à être déclarés validés. [Configuration requise et limites](../deployment/free-first-v1.md#r1058--configuration-et-preuves-requises).
+
+Preflight public RO du 10/10 à 11:19 UTC : `/` et `/auth/recovery` HTTP 200, même SPA actuelle ; health 200/status ok. Auth settings publics : fournisseur e-mail activé, signup autorisé, autoconfirm false ; ces settings ne prouvent pas les redirects privés ou SMTP. PostgreSQL public : 69 migrations appliquées, **0 tirage / 0 opération récompense R1053**. Aucun tirage, claim rare ou paiement public provoqué. Ces contrôles portent le déploiement de base, pas le candidat.
+
+**Reprise exacte :** publier le candidat sur review, reviewer indépendamment son SHA réel, corriger/re-review les findings ; acquérir les gates configuration/e-mail avant fast-forward main et déploiements/postflight. Ne pas promouvoir le candidat global avec ces gates manquantes. Aucune recette humaine nouvelle présumée. Après clôture de ce mandat seulement : **R1051 — Catalogue Character**.
+
+**À tester en public après livraison :** compte Web contrôlé (modifier, déconnecter/reconnecter, demander/réceptionner un lien, réinitialiser, progression/Twitch intacts) ; observer une Mission naturelle sans nouveau claim rare ; Historique et notices après le premier vrai tirage du **1er novembre 2026 à 00:00 Europe/Paris**, sans faux gagnant en septembre.
+
+## Historique acquis — R1053 et messages Event, mandat complet du 10/10/2026
 
 Base distante vérifiée `17ed0397c59c57e8683334b4c725925bb3cac71b`, main/review communs, divergence 0/0 et worktree initial propre. Le mandat autorise développement, tests, review indépendante du SHA publié, fast-forward, migration normale, déploiements et postflight, sans nouveau GO entre gates. Aucun Eclipsia/Story ni R1058. La production vivante suit le workflow existant : contrôles économiques ciblés, aucune comparaison globale d'activité naturelle.
 

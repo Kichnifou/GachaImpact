@@ -17,6 +17,24 @@ const props = {
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it.each([
+    ['COMPLETED', 'Gagnant du tirage : Hors Top 10'],
+    ['NO_ELIGIBLE', 'Aucun gagnant — aucun participant éligible.'],
+    ['PENDING', 'Tirage en cours de finalisation.'], ['FROZEN', 'Tirage en cours de finalisation.'],
+    ['NOT_RECORDED', 'Aucun tirage enregistré pour cette édition.'],
+  ])('shows public draw state %s after Top 10 and before the personal edition', async (status, expected) => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const value: EventHistoryDto = { ...events, total: 1, entries: [{ id: 'edition', festival: 'Festival figé', month: 10, year: 2026, startsAt: '2026-10-01', endsAt: '2026-11-01', participantCount: 11,
+      top: [{ rank: 1, playerId: 'rank-one', displayName: 'Premier', points: 999 }], personal: null,
+      draw: { status, winnerName: status === 'COMPLETED' ? 'Hors Top 10' : null, reward: status === 'COMPLETED' ? { itemKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: 1 } : null } }] }
+    try {
+      await act(async () => { root.render(<HistoryScreen {...props} initialCategory="event" onBannersOrEvent={async () => value} />) })
+      expect(container.textContent).toContain(expected)
+      expect([...container.querySelectorAll('h3')].map(h => h.textContent)).toEqual(['Top 10', 'Tirage mensuel', 'Votre édition'])
+      expect(container.textContent?.includes('✨ +1 Masterless Stella Fortuna')).toBe(status === 'COMPLETED')
+      expect(container.textContent).toContain('Vous n’avez pas participé')
+    } finally { act(() => root.unmount()) }
+  })
   it.each([[0, 0, 2, 1], [0, 0, 0, 0]])('keeps banner snapshots but presents only positive votes: %j', async (...counts) => {
     const container = document.createElement('div'); const root = createRoot(container)
     const snapshot: BannerHistoryDto = { ...banners, entries: [{ ...banners.entries[0]!, featured: [{ characterId: 'chosen', name: 'Skirk', rarity: 5, slot: 4, source: 'COMMUNITY_VOTE' }],

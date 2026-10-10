@@ -32,6 +32,12 @@ Une attribution bloquée n'est jamais rerollée : corriger la cause technique/di
 
 Le gagnant reçoit `EVENT_MONTHLY_DRAW_WON`, avec le véritable nom du Festival et +1 Masterless Stella Fortuna. Les ADMIN actifs reçoivent `EVENT_MONTHLY_DRAW_ADMIN` avec édition, gagnant, tickets, position, confirmation Stella et opération ; clé par édition/ADMIN. La liste Notifications vérifie encore le rôle ADMIN courant et masque ce payload après révocation. Aucun broadcast Twitch automatique.
 
+## Compléments de restitution — mandat du 10/10/2026
+
+`EVENT_MONTHLY_DRAW_RESULT` informe tous les Players `ACTIVE` sauf le gagnant, y compris les non-participants et les ADMIN. Une insertion SQL groupée dans la transaction existante de récompense/résultat reprend Festival et nom du gagnant persistés dans son snapshot. Clé unique `event-draw-result:<editionId>:<playerId>`, `ON CONFLICT DO NOTHING` ; aucune réactivation de READ/ARCHIVED au retry, aucune notification active aux Players archivés. Le gagnant garde WON et les ADMIN gardent ADMIN en plus de leur information joueur. Une erreur du fan-out annule crédit, opération, notices et COMPLETED ; FROZEN conserve son choix. NO_ELIGIBLE n'annonce aucun gagnant. Un COMPLETED n'est jamais réouvert pour notifier ; aucun backfill de résultat historique ni nouveau paiement.
+
+Historique → Event projette `monthlyDraw.status` et le seul `winnerName` de `BusinessOperation.resultSummary`, jamais le rang #1 ni le pseudo courant. Le statut ARCHIVED du Player substitue « Progression archivée » tout en conservant le résultat original en base. DTO whitelist : statut, nom public et récompense +1 Stella, dans l'entrée d'édition déjà paginée ; aucune graine, population, position, tickets, opération ou identité privée. COMPLETED affiche le résultat ; NO_ELIGIBLE indique aucun participant éligible ; PENDING/FROZEN restent en finalisation ; absence de ligne indique aucun tirage enregistré. Top 10 et résumé personnel inchangés. Aucun nouveau modèle ou migration.
+
 ## Messages : preuve de consultation
 
 `viewedAt` demeure la source du compteur destinataire. Le standalone conserve l'action `consultGameCMessages` lors de l'ouverture réelle de la zone ; collisions Serializable réessayées. L'expéditeur ne devient jamais destinataire de son envoi.

@@ -1,8 +1,8 @@
 # Ordre d’implémentation V1
 
-## Reprise après R1053 — prochaine mission R1058, non commencée — 10/10/2026
+## Reprise R1058 et compléments Codes/Event — 10/10/2026
 
-Les six retouches post-recette et le résumé !event sont confirmés par le propriétaire. Le cycle R1053 + correction des messages déjà présentés est suivi au [Master](../master/PROJECT_MASTER_PLAN.md), seul propriétaire de l'état réel et des limites de recette ; [architecture](../architecture/event-monthly-draw-r1053.md). Prochaine mission : R1058 mots de passe, non commencée ; aucun lancement automatique des domaines suivants.
+R1053 et les messages Event sont livrés. Le mandat suivant couvre R1058, la séparation Codes/Missions, la notification générale du tirage et son affichage dans l'Historique. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul leurs gates et leur état réel. Après leur clôture : R1051 Catalogue Character ; aucun lancement automatique des domaines suivants. L'ordre macro ci-dessous reste inchangé.
 
 31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. GLOBAL R1064 est activé après review indépendante, déploiements et gates fraîches ; état et limites humaines réellement obtenus au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Codes cadeaux enrichis R1057 livrés après GLOBAL. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
 

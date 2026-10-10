@@ -12,6 +12,7 @@ import { PrismaCurrentPlayerStore } from '../src/infrastructure/database/prisma-
 import { verifiedPlayerActor } from '../src/application/player/player-execution-actor.js';
 import { withPlayerCommandExecution } from '../src/application/player/player-command-execution.js';
 import { NotificationService } from '../src/application/notification/notification-service.js';
+import { HistoryService } from '../src/application/history/history-service.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 beforeAll(() => fixture.setup({ prismaMigrations: true, seedPublicCatalog: true }), 180_000);
@@ -155,5 +156,47 @@ describe('private migrated Event monthly draw', () => {
     await db.playerRoleAssignment.updateMany({ where: { playerId: admin.id, role: 'ADMIN' }, data: { revokedAt: f.now } });
     expect((await notifications.list({ subject: 'private-admin' })).notifications.some(row => row.id === notice.id)).toBe(false);
     expect(await db.notification.findUnique({ where: { id: notice.id } })).not.toBeNull();
+  });
+  it('atomically informs active nonparticipants and losers, keeps winner/admin notices, and preserves read state on concurrent retries', async () => {
+    const f = await setup([1, 25]);
+    const outsider = await db.player.create({ data: { displayName: 'Non participant' } });
+    const archived = await db.player.create({ data: { displayName: 'Archived', status: 'ARCHIVED' } });
+    const admin = await db.player.create({ data: { displayName: 'Public and private admin', rolesGranted: { create: { role: 'ADMIN' } } } });
+    const [result] = await Promise.all([f.service.processEdition(f.edition.id), f.service.processEdition(f.edition.id)]);
+    const notices = await db.notification.findMany({ where: { typeKey: 'EVENT_MONTHLY_DRAW_RESULT', payload: { path: ['editionId'], equals: f.edition.id } } });
+    const active = await db.player.count({ where: { status: 'ACTIVE', id: { not: result!.winnerPlayerId! } } });
+    expect(notices).toHaveLength(active); expect(new Set(notices.map(n => n.playerId)).size).toBe(active);
+    expect(notices.some(n => n.playerId === outsider.id)).toBe(true); expect(notices.some(n => n.playerId === admin.id)).toBe(true);
+    expect(notices.some(n => n.playerId === archived.id || n.playerId === result!.winnerPlayerId)).toBe(false);
+    const notice = notices.find(n => n.playerId === outsider.id)!;
+    expect(notice.payload).toMatchObject({ editionId: f.edition.id, winnerName: f.players.find(p => p.id === result!.winnerPlayerId)!.displayName });
+    expect(JSON.stringify(notice.payload)).not.toMatch(/ticketIndex|entropy|operationId|totalTickets/);
+    await db.notification.update({ where: { id: notice.id }, data: { state: 'READ', readAt: f.now } });
+    await f.service.processEdition(f.edition.id);
+    expect((await db.notification.findUniqueOrThrow({ where: { id: notice.id } })).state).toBe('READ');
+    expect(await acquisitions(f.edition.id)).toHaveLength(1);
+    expect(await db.notification.count({ where: { deduplicationKey: `event-draw-admin:${f.edition.id}:${admin.id}` } })).toBe(1);
+    const history = new HistoryService(db, () => f.now);
+    const entry = (await history.events(outsider.id, 1)).entries.find(e => e.id === f.edition.id)!;
+    const snapshotName = f.players.find(p => p.id === result!.winnerPlayerId)!.displayName;
+    expect(entry.draw).toMatchObject({ status: 'COMPLETED', winnerName: snapshotName, reward: { amount: 1 } });
+    expect(entry.personal).toBeNull(); expect(JSON.stringify(entry)).not.toMatch(/entropy|ticketIndex|population|operationId/);
+    await db.player.update({ where: { id: result!.winnerPlayerId! }, data: { displayName: 'Renamed after draw' } });
+    expect((await history.events(outsider.id, 1)).entries.find(e => e.id === f.edition.id)!.draw.winnerName).toBe(snapshotName);
+    await db.player.update({ where: { id: result!.winnerPlayerId! }, data: { status: 'ARCHIVED' } });
+    expect((await history.events(outsider.id, 1)).entries.find(e => e.id === f.edition.id)!.draw.winnerName).toBe('Progression archivée');
+  });
+  it('rolls back Stella and all notices if the general SQL fan-out fails, then resumes the sealed result', async () => {
+    const f = await setup([1]);
+    await db.player.create({ data: { displayName: 'Fanout recipient' } });
+    await fixture.admin.query(`CREATE FUNCTION fail_public_draw() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'PRIVATE_FANOUT_FAILURE'; END $$; CREATE TRIGGER fail_public_draw BEFORE INSERT ON notifications FOR EACH ROW WHEN (NEW.type_key = 'EVENT_MONTHLY_DRAW_RESULT') EXECUTE FUNCTION fail_public_draw()`);
+    try { await expect(f.service.processEdition(f.edition.id)).rejects.toThrow(); }
+    finally { await fixture.admin.query('DROP TRIGGER fail_public_draw ON notifications; DROP FUNCTION fail_public_draw()'); }
+    expect(await acquisitions(f.edition.id)).toHaveLength(0);
+    expect(await db.notification.count({ where: { payload: { path: ['editionId'], equals: f.edition.id } } })).toBe(0);
+    const frozen = await db.eventMonthlyDraw.findUniqueOrThrow({ where: { eventEditionId: f.edition.id } });
+    expect(frozen.status).toBe('FROZEN');
+    await f.service.processEdition(f.edition.id); expect(await acquisitions(f.edition.id)).toHaveLength(1);
+    expect(f.entropy).toHaveBeenCalledOnce();
   });
 });

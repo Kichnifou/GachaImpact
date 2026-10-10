@@ -25,6 +25,7 @@ const resolvers: Readonly<Record<string, Resolver>> = {
   'event:EVENT_EDITION_AVAILABLE': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival du mois est disponible.'), destination: notification.actionKey === 'OPEN_EVENT' ? 'event' : null }),
   'event:EVENT_EDITION_LAST_DAY': (notification) => ({ title: text(notification.payload.title, 'Festival du mois'), message: text(notification.payload.message, 'Le Festival se termine aujourd’hui !'), destination: notification.actionKey === 'OPEN_EVENT_SHOP' ? 'event-shop' : null }),
   'event:EVENT_MONTHLY_DRAW_WON': notification => ({ title: text(notification.payload.title, 'Tirage mensuel du Festival'), message: text(notification.payload.message, '🏆 Tu remportes le tirage du Festival ! ✨ +1 Masterless Stella Fortuna'), destination: null }),
+  'event:EVENT_MONTHLY_DRAW_RESULT': notification => ({ title: text(notification.payload.title, 'Tirage mensuel du Festival'), message: text(notification.payload.message, 'Le résultat du tirage mensuel est disponible dans l’Historique Event.'), destination: null }),
   'event:EVENT_MONTHLY_DRAW_ADMIN': notification => ({ title: 'Tirage mensuel Event — contrôle ADMIN', message: text(notification.payload.message, 'Résultat mensuel disponible pour contrôle.'), destination: null }),
   'expedition:ready': (notification) => ({
     title: 'Expédition terminée',

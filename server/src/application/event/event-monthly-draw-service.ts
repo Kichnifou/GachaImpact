@@ -67,6 +67,14 @@ export class EventMonthlyDrawService {
         winnerTickets: population.find(entry => entry.playerId === winnerPlayerId)!.points, totalTickets: total.toString(), ticketIndex: draw.ticketIndex.toFixed(0), stellaGranted: true, operationId: operation.id };
       await tx.notification.create({ data: { playerId: winnerPlayerId, domainKey: 'event', typeKey: 'EVENT_MONTHLY_DRAW_WON', deduplicationKey: `event-draw-won:${editionId}`, payload: { editionId, title: festival, message: `🏆 Tu remportes le tirage du ${festival} ! ✨ +1 Masterless Stella Fortuna` }, createdAt: now } });
       await this.notifyAdmins(tx, editionId, summary, now);
+      const publicPayload = JSON.stringify({ editionId, title: festival, winnerName: winner.displayName,
+        message: `🏆 Tirage du ${festival} : ${winner.displayName} remporte ✨ 1 Masterless Stella Fortuna !` });
+      // One SQL fan-out, in the same transaction as the sealed reward. No per-player
+      // requests, no reconnect catch-up and no reactivation of read/archived rows.
+      await tx.$executeRaw`INSERT INTO notifications (player_id, domain_key, type_key, deduplication_key, payload, created_at)
+        SELECT id, 'event', 'EVENT_MONTHLY_DRAW_RESULT', 'event-draw-result:' || ${editionId} || ':' || id::text, ${publicPayload}::jsonb, ${now}
+        FROM players WHERE status = 'ACTIVE' AND id <> ${winnerPlayerId}::uuid
+        ON CONFLICT (deduplication_key) DO NOTHING`;
       await tx.businessOperation.update({ where: { id: operation.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: summary } });
       return tx.eventMonthlyDraw.update({ where: { eventEditionId: editionId }, data: { status: 'COMPLETED', winnerPlayerId, operationId: operation.id, completedAt: now } });
     });

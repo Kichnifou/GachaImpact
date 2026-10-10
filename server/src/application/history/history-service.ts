@@ -47,7 +47,8 @@ export class HistoryService {
     const [total, editions] = await Promise.all([
       this.database.eventEdition.count({ where }),
       this.database.eventEdition.findMany({ where, orderBy: [{ endsAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
-        select: { id: true, year: true, startsAt: true, endsAt: true, snapshot: true } }),
+        select: { id: true, year: true, startsAt: true, endsAt: true, snapshot: true,
+          monthlyDraw: { select: { status: true, winner: { select: { status: true } }, operation: { select: { resultSummary: true } } } } } }),
     ]);
     const ids = editions.map(edition => edition.id);
     const [participants, claims, acquisitions] = ids.length ? await Promise.all([
@@ -67,8 +68,18 @@ export class HistoryService {
         month: typeof snapshot.calendarMonth === 'number' ? snapshot.calendarMonth : edition.startsAt.getUTCMonth() + 1,
         year: edition.year, startsAt: edition.startsAt.toISOString(), endsAt: edition.endsAt.toISOString(), participantCount: ranked.length,
         top: ranked.slice(0, 10),
+        draw: publicEventDraw(edition.monthlyDraw),
         personal: own ? { rank: own.rank, points: own.points, milestones: claims.filter(row => row.eventEditionId === edition.id).map(row => row.milestone).sort((a, b) => a - b), collectionAcquired: Boolean(acquired), collectionItemName: acquired?.item.displayName ?? null } : null,
       };
     }) };
   }
+}
+
+/** Whitelist the public result; never spread the draw or the private operation. */
+export function publicEventDraw(draw: { status: string; winner: { status: string } | null; operation: { resultSummary: unknown } | null } | null) {
+  const summary = draw?.operation?.resultSummary;
+  const name = summary && typeof summary === 'object' && 'winnerName' in summary && typeof summary.winnerName === 'string' ? summary.winnerName : null;
+  return { status: draw?.status ?? 'NOT_RECORDED',
+    winnerName: draw?.status === 'COMPLETED' ? draw.winner?.status === 'ARCHIVED' ? 'Progression archivée' : name : null,
+    reward: draw?.status === 'COMPLETED' ? { itemKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: 1 } : null };
 }

@@ -6,9 +6,9 @@ import { verifiedPlayerActor } from '../player/player-execution-actor.js';
 import { withPlayerCommandExecution } from '../player/player-command-execution.js';
 import { PlayerCommandResolver, type ChatCommandServices } from '../chat/player-command-resolver.js';
 import type { PlayerCommandContext } from '../chat/player-command-context.js';
-import { commandMissionFeedback } from '../chat/command-mission-feedback.js';
+import { appendCommandFeedback, commandMissionFeedback } from '../chat/command-mission-feedback.js';
 import type { TwitchCommandExecutor } from './twitch-command-pilot.js';
-import { chatLength, TWITCH_RESPONSE_LIMIT } from '../chat/chat-list-result.js';
+import { TWITCH_RESPONSE_LIMIT } from '../chat/chat-list-result.js';
 import { CommandPrepared, commandIntentServices, freezeCommandValue, thawCommandValue, type FrozenCommandIntent } from './twitch-command-intent.js';
 
 export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatCommandServices, clock: Clock = { now: () => new Date() }): TwitchCommandExecutor {
@@ -22,13 +22,7 @@ export function twitchPlayerCommandExecutor(db: PrismaClient, services: ChatComm
     hasConfirmedCommandMutation: () => confirmed(playerId, key),
   });
   const finalize = async (playerId: string, key: string, output: string | readonly string[], responseBodyLimit = TWITCH_RESPONSE_LIMIT) => {
-    const segments = typeof output === 'string' ? [output] : [...output];
-    for (const text of await commandMissionFeedback(db, playerId, SourceChannel.TWITCH, key)) {
-      const last = segments.at(-1);
-      if (last && chatLength(`${last} ${text}`) <= responseBodyLimit) segments[segments.length - 1] = `${last} ${text}`;
-      else segments.push(text);
-    }
-    return segments;
+    return appendCommandFeedback(output, await commandMissionFeedback(db, playerId, SourceChannel.TWITCH, key), responseBodyLimit);
   };
   const prepare: NonNullable<TwitchCommandExecutor['prepare']> = async (player, handler, args, _usage, key, businessAt, responseBodyLimit) => {
     const actor = verifiedPlayerActor(player);

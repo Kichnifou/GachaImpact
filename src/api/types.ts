@@ -774,6 +774,7 @@ export type EventHistoryDto = Readonly<{
   category: 'event'; page: number; pageSize: 10; total: number; totalPages: number
   entries: readonly Readonly<{
     id: string; festival: string; month: number; year: number; startsAt: string; endsAt: string; participantCount: number
+    draw?: Readonly<{ status: string; winnerName: string | null; reward: Readonly<{ itemKey: string; displayName: string; amount: number }> | null }>
     top: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[]
     personal: Readonly<{ rank: number; points: number; milestones: readonly number[]; collectionAcquired: boolean; collectionItemName: string | null }> | null
   }>[]

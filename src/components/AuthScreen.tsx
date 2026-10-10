@@ -1,8 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 
 import { useAuth } from '../auth/auth-context'
+import { recoveryConfirmation, requestPasswordReset } from '../auth/password-security'
+import { getSupabaseClient } from '../infrastructure/supabase/client'
+import AppButton from './AppButton'
 
-type AuthMode = 'login' | 'register'
+type AuthMode = 'login' | 'register' | 'forgot'
 
 function AuthScreen() {
   const { signIn, signUp } = useAuth()
@@ -13,15 +16,19 @@ function AuthScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const flight = useRef(false)
 
   const switchMode = (nextMode: AuthMode) => {
+    if (flight.current) return
     setMode(nextMode)
+    setPassword(''); setPasswordConfirmation('')
     setMessage(null)
     setErrorMessage(null)
   }
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
+    if (flight.current) return
     setMessage(null)
     setErrorMessage(null)
 
@@ -30,15 +37,18 @@ function AuthScreen() {
       return
     }
 
-    if (password.length < 8) {
+    if (mode !== 'forgot' && password.length < 8) {
       setErrorMessage('Le mot de passe doit contenir au moins 8 caractères.')
       return
     }
 
-    setIsSubmitting(true)
+    flight.current = true; setIsSubmitting(true)
 
     try {
-      if (mode === 'login') {
+      if (mode === 'forgot') {
+        await requestPasswordReset(getSupabaseClient(), email)
+        setMessage(recoveryConfirmation)
+      } else if (mode === 'login') {
         await signIn(email.trim(), password)
       } else {
         const result = await signUp(email.trim(), password)
@@ -49,6 +59,7 @@ function AuthScreen() {
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'L’authentification a échoué.')
     } finally {
+      flight.current = false
       setIsSubmitting(false)
     }
   }
@@ -69,8 +80,9 @@ function AuthScreen() {
           <label htmlFor="auth-email">Adresse e-mail</label>
           <input id="auth-email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
 
-          <label htmlFor="auth-password">Mot de passe</label>
+          {mode !== 'forgot' && <><label htmlFor="auth-password">Mot de passe</label>
           <input id="auth-password" type="password" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} />
+          </>}
 
           {mode === 'register' && (
             <>
@@ -84,9 +96,10 @@ function AuthScreen() {
 
           <button type="submit" className="entry-primary-button" disabled={isSubmitting}>
             {isSubmitting
-              ? mode === 'login' ? 'Connexion…' : 'Création…'
-              : mode === 'login' ? 'Entrer dans le jeu' : 'Créer mon compte'}
+              ? mode === 'forgot' ? 'Envoi…' : mode === 'login' ? 'Connexion…' : 'Création…'
+              : mode === 'forgot' ? 'Envoyer le lien' : mode === 'login' ? 'Entrer dans le jeu' : 'Créer mon compte'}
           </button>
+          {mode !== 'register' && <AppButton className="password-reset-link" disabled={isSubmitting} onClick={() => switchMode(mode === 'forgot' ? 'login' : 'forgot')}>{mode === 'forgot' ? 'Retour à la connexion' : 'Mot de passe oublié ?'}</AppButton>}
         </form>
       </section>
     </main>

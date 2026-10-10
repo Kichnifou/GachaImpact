@@ -1,4 +1,5 @@
 import TwitchProgressionChoice from './TwitchProgressionChoice'
+import AccountSecurityPanel from './AccountSecurityPanel'
 import type { TwitchLinkResolutionDto } from '../api/types'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
@@ -254,6 +255,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   </div>
   return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">
+      {!presentationMode && <AccountSecurityPanel />}
       {error && <p className="configuration-error" role="alert">{error}</p>}
       {!account ? accountLoadFailed ? <AppButton onClick={() => { setError(''); setComparisonAttempt(value => value + 1) }}>Réessayer le compte Twitch</AppButton> : <p data-tutorial-state="loading">Chargement du compte…</p> : <section data-tutorial-anchor="account-player" className="account-section"><h3>Compte Twitch</h3>
         {account.linked ? <><p>Twitch et l’application web utilisent la même progression.</p><p><strong>{account.linked.displayName || account.linked.login}</strong> · Connecté</p><p>Lié le {new Date(account.linked.linkedAt).toLocaleDateString('fr-FR')}</p>
