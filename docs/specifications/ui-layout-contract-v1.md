@@ -119,3 +119,7 @@ Arcade : [contrat étape 28](arcade-v1.md#multijoueur-arcade--étape-28). Bloc c
 ## Correctif post-recette 28 — candidat
 
 Titres : contrat R1027 conservé ; la projection backend utilise le kind canonique de 059 pour les cinq levelRequirement, alimentant réellement heading/ordre descendant/gradients et onglets sticky existants. Quotidiennes : la classe daily-tracker-summary retire uniquement l’uppercase des messages de synthèse (Terminé ✅) ; titres d’activités uppercase conservés. Arcade : réponses serveur appliquées immédiatement, opponents secondaires et cadence adaptative ; aucune modification de géométrie des plateaux. Autostart R1033 réutilise le même gate métier et toute la présentation Tutoriel existante. Sources : [Arcade](arcade-v1.md), [Tutoriel](tutorial-v1.md), [Quotidiennes](home-daily-tracker-v1.md).
+
+## Sélecteur de personnage Team — amendement du 10/10/2026
+
+La modale bornée au viewport utilise quatre lignes : titre/fermeture, recherche/élément, grille flexible, sélection/Confirmer. Seule `.selector-character-scroll` défile ; header, filtres et footer restent fixes, même à 390×844. Réutiliser `useModalDialog` (Tab, Escape, focus rendu) ; durant l’enregistrement, fermeture et contrôles sont désactivés pour préserver la mutation. Aucun changement des règles Team ou de la création UI explicite. Contrôle GameShell/CSS réels et contenu plein/filtré/vide aux quatre viewports du contrat : [preuves](../architecture/command-fixes-20261010.md).

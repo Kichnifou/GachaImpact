@@ -3859,8 +3859,17 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .team-selector {
   width: min(860px, 100%);
-  max-height: min(720px, calc(100vh - 30px));
+  height: min(720px, calc(100dvh - 40px));
+  max-height: calc(100dvh - 40px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  overflow: hidden;
+}
+
+.selector-character-scroll {
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .selector-help {

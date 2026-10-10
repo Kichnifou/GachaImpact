@@ -30,7 +30,7 @@ Rechercher les contradictions et états documentaires en retard. Vérifier aussi
 
 Les modifications suivent le workflow normal : travail sur `review`, commit propre, push normal sur `review`, puis worktree propre. ChatGPT vérifie ensuite le vrai commit GitHub : SHA, parent, diff, fichiers, cohérence du Master et références `main`/`review`. Le rapport local de Codex ne remplace pas cette review indépendante.
 
-Faire corriger et publier les documents nécessaires avant de finaliser la passation, puis vérifier le checkpoint réellement publié. Une promotion vers `main` exige toujours une mission et une approbation explicites ; la passation seule ne l'autorise pas. Préserver la distinction entre checkpoint public et candidat `review`.
+Faire corriger et publier les documents nécessaires avant de finaliser la passation, puis vérifier le checkpoint réellement publié. Une passation seule reste documentaire et ne lance aucun développement. Pour une mission de développement déjà autorisée, appliquer le cycle permanent du 10/10/2026 : publication/review puis promotion et contrôles dans la même mission après gates réussies, sauf exception explicite ou vrai blocker. Ne pas recréer une obligation de prompt de promotion séparé. Préserver la distinction entre checkpoint public et candidat `review`.
 
 ### 5. Préparer le prompt seulement après publication vérifiée
 
@@ -46,7 +46,7 @@ Le prompt de bootstrap reste court et renvoie au repository ; il ne recopie pas 
 4. vérifier les preuves infrastructure ou DB seulement lorsque le Master indique qu'elles sont nécessaires pour comprendre l'état ;
 5. comparer GitHub au Master et signaler toute incohérence avant de développer ;
 6. reformuler une reprise comprenant au minimum les SHA `main`/`review`, leur divergence, la dernière migration, le dernier lot terminé, le niveau de validation publique, les défauts ouverts, la prochaine étape et les hors-scope explicites ;
-7. ne rien modifier pendant cette première reprise, puis attendre la confirmation du propriétaire avant de préparer un nouveau prompt Codex.
+7. pour une reprise seule, ne rien modifier et attendre la confirmation du propriétaire ; si un mandat d’exécution complet accompagne déjà la reprise, son autorisation prévaut et Codex poursuit après bootstrap.
 
 Le prompt rappelle aussi, par renvoi au Guide, de répondre en français avec un style direct, naturel et concret ; de ne pas traiter le propriétaire comme un débutant ; de préparer des prompts Codex complets et copiables ; de reviewer le vrai GitHub après Codex ; de signaler les problèmes réels ; de réutiliser les patterns UI existants ; et de ne générer une image que sur demande explicite.
 
@@ -54,4 +54,4 @@ Le prompt rappelle aussi, par renvoi au Guide, de répondre en français avec un
 
 La nouvelle conversation ne doit jamais avoir besoin de la mémoire de l'ancienne pour comprendre le projet. Les informations nécessaires vivent dans le repository ou sont explicitement fournies par le bootstrap. Les souvenirs de conversation peuvent aider, mais ne sont jamais une source de vérité.
 
-Le développement ne reprend qu'après cette vérification de contexte, la reformulation de reprise et la confirmation du propriétaire.
+Le développement reprend après ce bootstrap et l’autorisation du propriétaire ; un mandat d’exécution déjà fourni satisfait cette autorisation, sans confirmation répétitive.

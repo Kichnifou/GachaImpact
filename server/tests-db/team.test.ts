@@ -44,6 +44,56 @@ afterAll(async () => {
 });
 
 describe('authoritative Team persistence', () => {
+  it('reuses the first completely empty Team, preserving names and occupied compositions', async () => {
+    const player = await createPlayer('Available'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id);
+    await store.setSlot(player.id, initial.teams[0]!.id, 1, activeCharacterIds[0]!);
+    await store.rename(player.id, initial.teams[1]!.id, 'Équipe réservée');
+    const key = randomUUID(), result = await store.selectAvailable(player.id, key);
+    expect(result.teams).toHaveLength(10);
+    expect(result.teams.filter(t => t.active)).toMatchObject([{ position: 2, name: 'Équipe réservée' }]);
+    expect(result.teams[0]!.slots[0]!.character?.id).toBe(activeCharacterIds[0]);
+    await store.setSlot(player.id, initial.teams[1]!.id, 1, activeCharacterIds[1]!);
+    await store.activate(player.id, initial.teams[2]!.id);
+    expect(await store.selectAvailable(player.id, key)).toEqual(result);
+    expect((await store.getOrProvision(player.id)).teams.find(t => t.active)?.position).toBe(3);
+    expect((await store.getOrProvision(player.id)).teams[1]!.slots[0]!.character?.id).toBe(activeCharacterIds[1]);
+  }, 20_000);
+  it('serializes concurrent available selections without creating an unnecessary Team 11', async () => {
+    const player = await createPlayer('Available concurrent');
+    const store = new PrismaTeamStore(database), key = randomUUID();
+    const results = await Promise.all([store.selectAvailable(player.id, key), store.selectAvailable(player.id, key), store.selectAvailable(player.id, randomUUID())]);
+    expect(results[0]).toEqual(results[1]); expect(results.every(r => r.teams.length === 10 && r.teams.filter(t => t.active).length === 1 && r.teams[0]!.active)).toBe(true);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, operationType: 'team.command' } })).toBe(2);
+  }, 20_000);
+  it('creates and activates exactly one extra Team only when all existing Teams are occupied', async () => {
+    const player = await createPlayer('Available full'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), state = await store.getOrProvision(player.id);
+    for (const team of state.teams) await store.setSlot(player.id, team.id, 1, activeCharacterIds[0]!);
+    const results = await Promise.all([store.selectAvailable(player.id, randomUUID()), store.selectAvailable(player.id, randomUUID())]);
+    expect(results.every(r => r.teams.length === 11 && r.teams.find(t => t.active)?.position === 11)).toBe(true);
+    expect((await store.getOrProvision(player.id)).teams.slice(0, 10).every(t => t.slots[0]!.character?.id === activeCharacterIds[0])).toBe(true);
+  }, 25_000);
+  it('rejects a concurrent Chat add instead of replacing the first confirmed member', async () => {
+    const player = await createPlayer('Safe concurrent add'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), state = await store.getOrProvision(player.id), team = state.teams[0]!;
+    const results = await Promise.allSettled(activeCharacterIds.slice(0, 2).map(id => store.setSlot(player.id, team.id, 1, id, randomUUID())));
+    expect(results.filter(r => r.status === 'fulfilled')).toHaveLength(1);
+    const refused = results.find(r => r.status === 'rejected') as PromiseRejectedResult;
+    expect(refused.reason).toMatchObject({ code: 'TEAM_SLOT_CHANGED' });
+    expect(await database.teamMember.count({ where: { teamId: team.id } })).toBe(1);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, operationType: 'team.command' } })).toBe(1);
+  }, 20_000);
+  it('checks the initial removal target but still replays a confirmed removal after replacement', async () => {
+    const player = await createPlayer('Safe removal'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), state = await store.getOrProvision(player.id), team = state.teams[0]!;
+    await store.setSlot(player.id, team.id, 1, activeCharacterIds[1]!);
+    await expect(store.removeSlot(player.id, team.id, 1, randomUUID(), activeCharacterIds[0])).rejects.toMatchObject({ code: 'TEAM_SLOT_CHANGED' });
+    const key = randomUUID(), result = await store.removeSlot(player.id, team.id, 1, key, activeCharacterIds[1]);
+    await store.setSlot(player.id, team.id, 1, activeCharacterIds[2]!);
+    expect(await store.removeSlot(player.id, team.id, 1, key, activeCharacterIds[1])).toEqual(result);
+    expect((await store.getOrProvision(player.id)).teams[0]!.slots[0]!.character?.id).toBe(activeCharacterIds[2]);
+  }, 20_000);
   it('replays a Chat removal without deleting a later character occupying the slot', async () => {
     const player = await createPlayer('Chat replay'); await possess(player.id, activeCharacterIds);
     const store = new PrismaTeamStore(database), state = await store.getOrProvision(player.id), team = state.teams[0]!, key = randomUUID();

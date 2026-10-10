@@ -19,13 +19,13 @@ describe('Final owner recipe, step 29', () => {
     h.services.eventService.getCurrent.mockResolvedValue({ ...event, canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: true, canClaim: false }, gameA: { completedToday: true }, gameB: { solvedToday: true, canAttempt: false }, gameC: { canSend: false, unviewedCount: 0 } } as never);
     h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState: 'USED' } as never);
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: true } } as never);
-    expect(await h.send('!quotis')).toBe('📅 Quotidiennes : Récompense ✅ | Roue ✅ | Shop ✅ | Combat ✅ | Boss ✅ | Expédition ✅ | Amitié ✅ | Event ✅ | Faveur ✅');
+    expect(await h.send('!quotis')).toBe('📅 Quotidiennes : Récompense ✅ | Roue ✅ | Shop ✅ | Combat ✅ | Boss ✅ | Expédition ✅ | Amitié ✅ | Event ✅');
   });
   it.each(['RUNNING', 'READY', 'IDLE'])('keeps an unfinished expedition %s pending and inactive Favor unavailable', async status => {
     const h = harness();
-    h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: status, departureUsedToday: status !== 'IDLE', canStartToday: status === 'IDLE' });
+    h.services.expeditionService.getState.mockResolvedValue({ operationalStatus: status, remainingSeconds: 600, departureUsedToday: status !== 'IDLE', canStartToday: status === 'IDLE' } as never);
     const text = await h.send('!quotis');
-    for (const fragment of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit', 'Faveur ➖']) expect(text).toContain(fragment);
+    for (const fragment of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit']) expect(text).toContain(fragment);
     expect(h.services.expeditionService.claim).not.toHaveBeenCalled();
     expect(h.services.eventService.join).not.toHaveBeenCalled();
   });
@@ -33,7 +33,7 @@ describe('Final owner recipe, step 29', () => {
     const h = harness();
     h.services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, claimedToday: false } } as never);
     h.services.eventService.getCurrent.mockResolvedValue({ ...await h.services.eventService.getCurrent(), canJoin: false, participation: { joined: true }, dailyBonus: { claimedToday: false, canClaim: true } } as never);
-    expect(await h.send('!quotis')).toContain('Event ⏳ | Faveur ⏳');
+    expect(await h.send('!quotis')).toContain('Event ⏳');
   });
   it.each(['!exp', '!exp Skirk', '!exp Autre'])('reports the real ongoing expedition and remaining time for %s', async command => {
     const h = harness();
@@ -68,14 +68,14 @@ describe('Final owner recipe, step 29', () => {
       slots: [{ character: { name: 'Cyno', elementKey: 'electro', constellation: 2 } }, { character: { name: 'Flins', elementKey: 'electro', constellation: 0 } }, { character: { name: 'Ayato', elementKey: 'hydro', constellation: 0 } }, { character: { name: 'Neuvillette', elementKey: 'hydro', constellation: 0 } }],
       passives: deriveTeamPassives(['electro', 'electro', 'hydro', 'hydro']),
     }] } as never);
-    expect(await h.send('!team' + args)).toBe('✅ Team Moi : ⚡ Cyno (C2) - ⚡ Flins (C0) - 💧 Ayato (C0) - 💧 Neuvillette (C0) | 🧩 Passifs actifs : 💧 +0.6% chance 5★, ⚡ 1/20 : +2 pity 5★');
+    expect(await h.send('!team' + args)).toBe('✅ Team Moi : ⚡ Cyno (C2) - ⚡ Flins (C0) - 💧 Ayato (C0) - 💧 Neuvillette (C0) | 🧩 Passifs : 💧 +0.6% chance 5★, ⚡ 1/20 : +2 pity 5★');
     expect(h.services.activatePlayerTeam.execute).not.toHaveBeenCalled();
   });
   it.each(elementKeys)('derives the compact %s passive from the current owner', async element => {
     const h = harness();
     h.services.getCurrentPlayerTeams.execute.mockResolvedValue({ teams: [{ active: true, slots: [], passives: deriveTeamPassives([element, element]) }] } as never);
     const text = await h.send('!team');
-    expect(text).toContain('🧩 Passifs actifs'); expect(text).not.toContain('chance sur'); expect(text).not.toContain('par vœu');
+    expect(text).toContain('🧩 Passifs'); expect(text).not.toContain('chance sur'); expect(text).not.toContain('par vœu');
     const expected = { pyro: '×1,5 particules', hydro: '+0.6%', cryo: '1/10 : +1 XP', electro: '1/20 : +2 pity', anemo: '1/8 : +80 primos', geo: '×1,5 moras', dendro: '1/15 : +40 primos, +1000 moras, +5 particules/élément' };
     expect(text).toContain(expected[element]);
   });

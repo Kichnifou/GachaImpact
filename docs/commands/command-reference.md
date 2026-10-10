@@ -1,5 +1,8 @@
 # Registre des commandes GachaImpact
 
+**Amendement consolidé du 10/10/2026 :** les contrats ci-dessous supersèdent les formulations historiques R1038/R1039 correspondantes : Team `Passifs` (sans « actifs »), confirmation et composition/passifs fusionnées, aide `Syntaxe : !team create | !team N apply | !team add <nom> | !team remove <nom|all> | !team rename "Nom" | !team liste` ; `!team N` consulte sans activer et save reste aide seulement. Combat go Twitch : `Team :` une seule fois, membres ordonnés du snapshot séparés par ` - `, formule/gains/KO inchangés. Event : fenêtres Paris `09h10 à 10h10`, mêmes instants. Défi conversion : `Convertissez <cible> particules (<progression>/<cible>).`, valeurs persistées inchangées. Découpage opt-in entre atomes complets, 450 Unicode mention comprise et anciens résultats Twitch gelés conservés. [Contrôles, concurrence et état de livraison](../architecture/command-fixes-20261010.md).
+
+
 **Présentation Boss R1064 :** `!combat boss go` conserve ses owners/formules et affiche `⚔️ joueur inflige dégâts DMG à boss grâce à sa team [élément personnage (Cn) - …] | ❤️ PV restants : PV/max`. Les quatre membres ordonnés proviennent du snapshot de l'attaque exécutée, jamais d'une Team relue après coup ; résultat et gains restent gelés au replay. Continuations explicites entre membres complets et limite 450 Unicode mention Twitch comprise. [Contrat GLOBAL/Boss](../architecture/twitch-global-r1064.md) ; statut réel au [Master](../master/PROJECT_MASTER_PLAN.md).
 
 **Anti-spoiler temporaire avant révélation publique, 06/10/2026 :** Concours Twitch/chat volontairement opaque, réponse unique « 🏆 Concours : prochainement disponible. » avec ou sans arguments. Aucune URL standalone diffusée. L’aide ne donne aucun lieu d’accès ; réintroduction du vrai accès uniquement lors de la révélation publique. Les deux mentions d’interface dans le résumé `!event` sont neutralisées : calendrier non réclamable « indisponible actuellement », messages reçus « N message(s) à lire », sans changer les actions, compteurs ou récompenses. Documentation interne de déploiement/OAuth/CORS inchangée, aucune nouvelle Rxxx.
@@ -446,19 +449,19 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 
 **Amendement Chat R1038 :** Aliases légende/legendes/légendes/leg. Liste personnelle ou tierce entière des C6 5★ actifs ; détail canonique moi/me personnage ou joueur personnage, nom exact. Cinq stats avec thèmes et titres français. Permissions Box pour liste, Box et Statistiques générales pour détail.
 
-### Correction décidée le 10/10/2026 — cible à implémenter, défaut encore ouvert
+### Correction du 10/10/2026 — contrat implémenté
 
-Retour propriétaire : `!legende skirk` renvoie « Joueur introuvable », tandis que `!legende @Kichnifou skirk` et `!legende kichnifou skirk` fonctionnent. Le resolver actuel cherche un joueur avant de considérer les arguments comme un personnage personnel. La passation ne corrige pas ce code et ne rouvre pas l'audit Concours.
+Retour propriétaire : `!legende skirk` renvoie « Joueur introuvable », tandis que `!legende @Kichnifou skirk` et `!legende kichnifou skirk` fonctionnent. Le resolver considère désormais le nom complet exact normalisé du catalogue actif pour le détail personnel, tout en recherchant la cible joueur exacte. L’audit Concours reste acquis.
 
-Contrat cible partagé Chat/Twitch :
+Contrat partagé Chat/Twitch :
 
 - `!legende` : liste personnelle ; `!legende skirk` : détail personnel de Skirk si admissible ; `!legende Yae Miko` : personnage personnel à plusieurs mots.
 - `!legende Joueur` : liste du joueur ; `!legende Joueur Personnage` : détail chez ce joueur ; `!legende moi Personnage` et `me` restent compatibles.
-- Une référence explicite `@Joueur` impose la cible joueur et lève l'ambiguïté. Pour les collisions implicites entre nom de joueur et nom de personnage, le prochain lot doit arrêter, documenter et tester une résolution déterministe sans fuite ; cette passation ne choisit pas silencieusement une priorité supplémentaire.
+- Une référence explicite `@Joueur` impose la cible joueur et lève l'ambiguïté. Si le nom complet désigne un personnage et une cible joueur, refuser l’ambiguïté et demander `moi` ou `@Joueur` avant toute lecture de Légendes privées. Aucun matching partiel.
 - Préserver les vraies identités, l'admissibilité Box C6 5★ et les accès propriétaire/tiers : BOX pour la liste, BOX et GENERAL_STATISTICS pour le détail. Aucun refus ne révèle noms, nombre ou statistiques privés ; aucun fallback vers une autre cible ne contourne un refus d'accès.
 - Présenter les caractéristiques sous la forme `💪 Force 3 · 🧠 Intelligence 7 · ✨ Beauté 6 · 👑 Charisme 5 · 🎭 Popularité 4` ; conserver Concours, victoires, titres et progression thématique, avec une organisation lisible.
 
-Réutiliser le propriétaire Social/Concours et les formatters communs ; Twitch : 450 caractères Unicode maximum, mention/préfixes compris, continuations explicites entre éléments complets. Tests futurs : formes personnelles/tierces/explicites, noms composés, collisions, confidentialité et découpage ; aucune statistique économique ou règle Concours modifiée. Sources : [Legende.txt](../../legacy/streamerbot/commands/Legende.txt), [resolver moderne](../../server/src/application/chat/player-command-resolver.ts).
+Réutiliser le propriétaire Social/Concours et les formatters communs ; Twitch : 450 caractères Unicode maximum, mention/préfixes compris, continuations explicites entre éléments complets. Tests exécutés : formes personnelles/tierces/explicites, noms composés, collisions, confidentialité et découpage ; aucune statistique économique ou règle Concours modifiée. Sources : [Legende.txt](../../legacy/streamerbot/commands/Legende.txt), [resolver moderne](../../server/src/application/chat/player-command-resolver.ts).
 
 ## `!concours`
 
@@ -736,7 +739,7 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
   - `!team rename "Nom"`
   - `!team list`
   - `!team list <page>`
-  - `!team new`
+  - `!team new` / `!team create`
 - **`apply` :** sélectionne la Team N comme active ; 0..4 autorisé
 - **`add` :** ajoute au premier slot vide de la Team active
 - **`remove` personnage :** retire de la Team active
@@ -744,8 +747,8 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - **`<N> remove` :** vide la Team N côté Twitch/chat ; ne supprime jamais physiquement l'emplacement
 - **`rename` :** nom facultatif, espaces/accents autorisés, cible 20 caractères
 - **`list` :** pagination de 10 Teams ; Team active clairement indiquée ; Teams partielles affichées avec leur remplissage
-- **Alias accepté :** `liste`, mais les helpers recommandent uniquement `list`
-- **`new` :** crée la prochaine Team supplémentaire, vide et non active
+- **Aliases acceptés :** `list` et `liste`, page facultative ; le helper recommande `liste`.
+- **`new` / `create` (texte) :** sélectionne la première Team entièrement vide par position, conserve son nom, puis l’active ; seulement si aucune n’est vide, crée la suivante et l’active. Sélection/création/activation atomiques, résultat figé par clé. La création explicite UI conserve son comportement : nouvelle Team non active.
 - **`save` / `save N` :** aucune mutation cible ; helper vers les commandes actuelles
 - **Saved Teams de base :** positions actuelles 1 à 10 non supprimables
 - **Positions 11+ :** supprimables depuis l'UI si non actives
@@ -897,24 +900,24 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 
 **Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
 
-### Correction Ticket décidée le 10/10/2026 — cible à implémenter, défaut encore ouvert
+### Correction Ticket du 10/10/2026 — contrat implémenté
 
-Lorsqu'un Ticket produit des Moras, la réponse actuelle affiche le gain sans préciser sa nature. Le résultat Moras doit expliciter **`💰 Remboursement de 50 000 Moras`** pour le cas rapporté, en utilisant le montant réellement persisté plutôt qu'une constante de présentation. Conserver prix payé, solde final et gains du reçu. Le terme « remboursement » concerne uniquement le résultat Ticket Moras, jamais les autres résultats Ticket ni les autres achats.
+Lorsqu’un Ticket produit des Moras, le résultat explicite **`💰 Remboursement de 50 000 Moras`** pour le cas rapporté, en utilisant le montant réellement persisté plutôt qu'une constante de présentation. Conserver prix payé, solde final et gains du reçu. Le terme « remboursement » concerne uniquement le résultat Ticket Moras, jamais les autres résultats Ticket ni les autres achats.
 
-Correction de présentation seulement : probabilités, prix, RNG, gains, économie et idempotence inchangés ; anciens résultats déjà gelés/replays conservés. Réutiliser les formatters communs et le découpage logique Twitch à 450 caractères Unicode maximum, mention/préfixes compris. Le prochain lot teste résultat Moras, autres résultats, coût/solde, retry/redelivery et limites en privé, sans refaire un achat payant de recette en production. Source : [Shop.txt, résultat moras](../../legacy/streamerbot/commands/Shop.txt) ; propriétaire moderne : [PlayerCommandResolver](../../server/src/application/chat/player-command-resolver.ts). Aucun code modifié lors de cette passation.
+Correction de présentation seulement : probabilités, prix, RNG, gains, économie et idempotence inchangés ; anciens résultats déjà gelés/replays conservés. Réutiliser les formatters communs et le découpage logique Twitch à 450 caractères Unicode maximum, mention/préfixes compris. Tests privés du résultat Moras, autres résultats et limites ; persistance/RNG/retry contrôlés par la suite Shop PostgreSQL. Aucun achat payant de recette en production. Source : [Shop.txt, résultat moras](../../legacy/streamerbot/commands/Shop.txt) ; propriétaire moderne : [PlayerCommandResolver](../../server/src/application/chat/player-command-resolver.ts). État de publication, contrôles et limites au Master.
 
 ## `!mission`
 
 - **Statut audit :** Clôturé — R299 à R339
-- **État physique :** Chat interne raccordé ; projection personnelle canonique, résumé Défi + permanentes, rangs B/A/S/Z, variantes résumé/récap normalisées. Réponses longues en entrées entières via les parties explicites de `GlobalChatService`.
-- **But :** Consulter la mission quotidienne et les progressions permanentes du joueur.
+- **État physique :** Chat interne raccordé ; projection personnelle canonique, compteurs permanents B/A/S/Z et liste distincte des objectifs accessibles non terminés, variantes résumé/récap normalisées. Réponses longues en entrées entières via les parties explicites de `GlobalChatService`.
+- **But :** Consulter les progressions permanentes du joueur.
 - **Syntaxes cible :**
   - `!mission`
   - `!mission B`
   - `!mission A`
   - `!mission S`
   - `!mission Z`
-- **Alias de compatibilité accepté :** `!mission resume` peut agir comme `!mission`, mais n'est pas mis en avant dans les helpers
+- **Résumé des objectifs :** `!mission resume` (résumé/resumé/récap/recap compatibles) affiche toutes les permanentes accessibles non terminées, même non commencées, avec rang/nom/progression. Z verrouillé reste secret ; rien à poursuivre si toutes les accessibles sont terminées. `!mission` affiche seulement les comptes réels par rang et les deux aides. Aucun Défi quotidien consulté.
 - **Bouton UI équivalent :** `Activités > Missions` avec rangs B / A / S / Z ; l’ancienne quotidienne payante est le `Défi` de Quotidiennes
 - **Disponible chat GachaImpact :** oui
 - **Disponible Twitch :** cible oui ; intégration physique non implémentée
@@ -1003,7 +1006,7 @@ Correction de présentation seulement : probabilités, prix, RNG, gains, économ
 - **Architecture :** chaque activité reste propriétaire de sa logique ; l'écran Quotidiennes et `!quotis` ne font qu'agréger les états
 - **Évolution :** neuf rubriques modernes, dont Boss séparé ; états Expédition/Event partagés avec le hub, selon le contrat Quotis ci-dessus.
 
-**Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, état/récupération Expédition, cœurs, bonus Festival et Faveur ; aucun claim ni achat.
+**Amendement Chat R1038 :** Canonique quotis, aliases quoti/daily. Lectures seules : récompense quotidienne, Roue, Défi, Combat, état/récupération Expédition, cœurs et bonus Festival ; aucun claim ni achat. Depuis le 10/10, Faveur est retirée de ce seul résumé, sa commande et son système restent intacts. RUNNING ajoute immédiatement après le marqueur `· Reste …`, calcul autoritatif restant du service Expédition ; aucun temps ajouté à READY/IDLE. Les marqueurs aujourd’hui/veille restent inchangés.
 
 **Correctif post-cutover du 06/10/2026 :** `!quotis`, `!quoti` et `!daily` affichent tous `Roue ✅` pour une tentative historique consommée, même si son résultat est indisponible. L’existence du spin et le détail de son résultat sont des informations distinctes ; aucun gain n’est reconstruit.
 

@@ -52,6 +52,7 @@ class FakeTeamStore implements TeamStore {
   public activate = vi.fn(async (_playerId: string, requestedTeamId: string) => { this.calls.push('activate'); return snapshot(requestedTeamId); });
   public rename = vi.fn(async () => { this.calls.push('rename'); return snapshot(); });
   public createNext = vi.fn(async () => { this.calls.push('create'); return snapshot(); });
+  public selectAvailable = vi.fn(async () => { this.calls.push('select-available'); return snapshot(); });
   public deleteExtra = vi.fn(async () => { this.calls.push('delete'); return snapshot(); });
   public reorderTeams = vi.fn(async () => { this.calls.push('reorder-teams'); return snapshot(); });
   public setSlot = vi.fn(async () => { this.calls.push('set'); return snapshot(); });

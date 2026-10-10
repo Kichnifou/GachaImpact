@@ -239,7 +239,7 @@ async function readView(client: PrismaClient | Prisma.TransactionClient, playerI
     purchaseCost: DAILY_CHALLENGE_PURCHASE_COST,
     challenge: {
       externalKey: row.definitionExternalKeySnapshot, type, displayName: row.displayNameSnapshot,
-      description: row.descriptionSnapshot, progressLabel: row.progressLabelSnapshot,
+      description: type === 'conversion' ? `Convertissez ${row.targetSnapshot} particules (${row.progress}/${row.targetSnapshot}).` : row.descriptionSnapshot, progressLabel: row.progressLabelSnapshot,
       progress: row.progress, target: row.targetSnapshot, rewardPrimogems: row.rewardPrimogemsSnapshot,
     },
     switchCount: row.switchCount,

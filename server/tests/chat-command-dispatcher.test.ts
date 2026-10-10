@@ -166,7 +166,7 @@ describe('Chat command adapters', () => {
     const { send, services } = harness();
     expect(await send('!pull 11')).toBe('Syntaxe : !pull [1..10].');
     expect(await send('!echanger')).toContain('Partenaires échangeables');
-    expect(await send('!mission inconnu')).toBe('Syntaxe : !mission [B|A|S|Z].');
+    expect(await send('!mission inconnu')).toBe('Syntaxe : !mission [B|A|S|Z|resume].');
     expect(await send('!gift')).toBe('Commande inconnue. Utilise !help.');
     expect(services.performGachaPullChat.execute).not.toHaveBeenCalled();
   });
@@ -189,18 +189,18 @@ describe('Chat command adapters', () => {
   it('formats daily states as player-facing text', async () => {
     const { send } = harness();
     const output = await send('!quotis');
-    for (const text of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit', 'Faveur ➖']) expect(output).toContain(text);
+    for (const text of ['Récompense ⏳', 'Roue ⏳', 'Shop ⏳', 'Combat ⏳', 'Expédition ⏳', 'Amitié ⏳ · 1 cœur(s)', 'Event ⏳ · non inscrit']) expect(output).toContain(text);
   });
 
   it('formats mission summary, compatibility alias and canonical ranks without leaking locked Z', async () => {
     const { send } = harness();
     const summary = await send('!mission');
-    expect(summary).toContain('Défi : disponible, non attribué');
-    expect(summary).toContain('B 1/9 terminées · A 0/9 · S 0/9 · Z verrouillé');
-    expect(await send('!mission resume')).toBe(summary);
+    expect(summary).not.toContain('Défi');
+    expect(summary).toContain('B [1/9] · A [0/9] · S [0/9] · Z verrouillé');
+    expect(await send('!mission resume')).not.toBe(summary);
     expect(await send('!mission b')).toMatch(/^🎯 Missions B : ▶ Mission B 2 1\/9/u);
     expect(await send('!mission Z')).toBe('Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.');
-    expect(await send('!mission pseudo')).toBe('Syntaxe : !mission [B|A|S|Z].');
+    expect(await send('!mission pseudo')).toBe('Syntaxe : !mission [B|A|S|Z|resume].');
   });
 
   it('formats active and completed Défi states plus unlocked Z counts', async () => {
@@ -213,16 +213,18 @@ describe('Chat command adapters', () => {
       { ...unlocked.ranks.B[2]!, externalKey: 'z3', rank: 'Z', status: 'LOCKED' },
       { ...unlocked.ranks.B[3]!, externalKey: 'z4', rank: 'Z', status: 'LOCKED' },
     ] } } as never);
-    expect(await active.send('!mission')).toContain('Défi : Invocations 2/5');
-    expect(await active.send('!mission')).toContain('Z 1/4 terminées');
+    expect(await active.send('!mission')).not.toContain('Défi');
+    expect(active.services.getDailyChallenge.execute).not.toHaveBeenCalled();
+    expect(await active.send('!mission')).toContain('Z [1/4]');
     expect(await active.send('!mission Z')).toContain('Missions Z : ▶');
 
     const completed = harness();
     completed.services.getDailyChallenge.execute.mockResolvedValue({ status: 'COMPLETED', challenge: { displayName: 'Conversion', progress: 1n, target: 1n } } as never);
     const completeView = await completed.services.getCurrentPlayerMissions.execute() as CurrentPlayerMissions;
     completed.services.getCurrentPlayerMissions.execute.mockResolvedValue({ ...completeView, z: { status: 'COMPLETED', unlockedAt: new Date(), missions: [] } } as never);
-    expect(await completed.send('!mission resume')).toContain('Défi : Conversion terminé');
-    expect(await completed.send('!mission resume')).toContain('Z terminé');
+    expect(await completed.send('!mission resume')).not.toContain('Défi');
+    expect(completed.services.getDailyChallenge.execute).not.toHaveBeenCalled();
+    expect(await completed.send('!mission')).toContain('Z [0/0]');
   });
 
   it('refreshes resources only when the personal projection applies R301', async () => {

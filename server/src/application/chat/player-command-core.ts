@@ -67,22 +67,20 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
     }
     case 'quotis': {
       const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
-      const actor = await services.socialService.actor(identity);
-      const [wheel, challenge, combat, expedition, reward, friends, event, favor, boss] = await Promise.all([
+      const [wheel, challenge, combat, expedition, reward, friends, event, boss] = await Promise.all([
         services.getTodayWheelState.execute(identity), services.getDailyChallenge.execute(identity),
         services.dailyCombatService.getDaily(identity), services.expeditionService.getState(identity),
         services.getTodayDailyReward.execute(identity), services.socialService.friends(identity),
-        optionalRecoveryDomain(services.eventService.getCurrent(identity)), services.socialService.favor(identity, actor.id),
+        optionalRecoveryDomain(services.eventService.getCurrent(identity)),
         optionalRecoveryDomain(services.monthlyBossService.getCurrentForChat(identity)),
       ]);
       const mark = (state: string) => state === 'completed' ? '✅' : state === 'ineligible' ? '➖' : '⏳';
       return entryParts('📅 Quotidiennes :', [
         `Récompense ${reward.claimed ? '✅' : '⏳'}`, `Roue ${wheel.spun ? '✅' : '⏳'}`,
         `Shop ${challenge.status === 'COMPLETED' ? '✅' : '⏳'}`, `Combat ${combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳'}`,
-        boss ? `Boss ${mark(bossDailyState(boss))}` : 'Boss : temporairement indisponible', `Expédition ${mark(expeditionDailyState(expedition))}`,
+        boss ? `Boss ${mark(bossDailyState(boss))}` : 'Boss : temporairement indisponible', `Expédition ${mark(expeditionDailyState(expedition))}${expedition.operationalStatus === 'RUNNING' ? ` · Reste ${durationText(expedition.remainingSeconds)}` : ''}`,
         `Amitié ${friends.summary.available === 0 ? '✅' : '⏳ · ' + friends.summary.available + ' cœur(s) à envoyer'}`,
         event ? `Event ${eventHasActionableContentToday(event) ? '⏳' : '✅'}${event.participation.joined ? '' : ' · non inscrit'}` : 'Event : temporairement indisponible',
-        `Faveur ${favor.access === 'ALLOWED' && favor.data.active ? favor.data.claimedToday ? '✅' : '⏳' : '➖'}`,
       ], '📅 Quotidiennes (suite) :');
     }
     case 'team': {

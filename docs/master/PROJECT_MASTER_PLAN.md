@@ -1,11 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Passation officielle ChatGPT + Codex — R1065 clôturé, besoins suivants documentés.
+Version : Mission consolidée V1 du 10/10/2026 — correctifs A–J.
 Date : 2026-10-10
-Statut : **Passation documentaire uniquement sur review ; R1065 reste déployé sur main 2aa7dd5, GLOBAL conservé. Deux défauts ouverts et orientation de contrôle autonome, sans implémentation.** Aucune promotion, donnée publique ou configuration modifiée pendant cette mission.
+Statut : **Candidat A–J en préparation sur review ; main reste 2aa7dd5 jusqu’aux gates de publication/review indépendante.** Aucune mutation de recette sur les joueurs publics.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — passation officielle du 10/10/2026
+## Point courant — mission consolidée A–J du 10/10/2026
+
+Le mandat remplace l’attente de passation : Ticket Moras, résolution personnelle/tierce exacte des Légendes, création/réutilisation atomique Team, modale à grille seule scrollable, description conversion, missions permanentes/résumé distinct, horaires Event, Quotidiennes et composition Combat sont implémentés. Le cycle permanent review → review indépendante du SHA → main ff-only → déploiements → postflight s’applique sans nouveau GO lorsque les gates passent. [Contrats et preuves du lot](../architecture/command-fixes-20261010.md), [workflow permanent](../process/implementation-workflow.md).
+
+Bootstrap : review f10d335a066ee2ab68267f29b4915b4a262a6824, main 2aa7dd584effa421ff804dcd850ab3bbcdc9d8ff, divergence review +2/−0 ; commits documentaires 5317c38/f10d335 conservés. Aucun import, réparation économique, changement d’autorité, migration Prisma, nouvelle infrastructure ni mécanisme d’authentification. Les contrôles existants Railway/Cloudflare/health/SQL/Helix sont réutilisés ; leur niveau de preuve reste explicite.
+
+Les recettes de nouveaux comptes R1064 restent différées. R1053 sera la prochaine mission fonctionnelle après clôture de ce lot, non commencée ; R1058, Catalogue, UX et bêta restent ensuite dans l’ordre durable. Eclipsia et Story hors périmètre.
+
+## Historique — passation officielle du 10/10/2026 (supersédée par le mandat A–J)
 
 **Git :** main/origin/main = 2aa7dd584effa421ff804dcd850ab3bbcdc9d8ff ; base review vérifiée = 5317c38eb27af6f08a72f41c2500a0bc65dc177b (clôture R1065, ahead 1). Cette passation ajoute un seul commit documentaire au-dessus de cette base, publié uniquement sur review ; divergence finale attendue et contrôlée : main behind 2/review ahead 2. Le SHA du nouveau checkpoint est fourni par le rapport et les références GitHub, sans commit supplémentaire pour recopier son propre hash. Les commits 5914d9c/706bcfd/2aa7dd5/5317c38 et leurs preuves restent conservés.
 

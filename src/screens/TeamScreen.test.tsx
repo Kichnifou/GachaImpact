@@ -260,6 +260,30 @@ describe('real Team screen', () => {
     expect(html).toContain('Confirmer')
   })
 
+  it('keeps the selector header and footer outside its grid scroll and supports keyboard focus/close', () => {
+    const previous = document.createElement('button'); document.body.append(previous); previous.focus()
+    const container = document.createElement('div'); document.body.append(container)
+    const root = createRoot(container); mountedRoots.push(root)
+    const onClose = vi.fn(), onConfirm = vi.fn(), onSelect = vi.fn()
+    const props = { team: team(1, 1), characters: catalog, presentIds: new Set<string>(), search: '', elementFilter: 'all' as const, selectedId: 'keqing', pending: false, onSearch: vi.fn(), onElement: vi.fn(), onSelect, onClose, onConfirm }
+    act(() => root.render(<CharacterSelector {...props} />))
+    const dialog = container.querySelector<HTMLElement>('[role="dialog"]')!, scroll = dialog.querySelector('.selector-character-scroll')!
+    expect(scroll.querySelector('.selector-character-grid')).not.toBeNull()
+    expect(scroll.querySelector('.team-selector-filters, .selector-footer, .floating-panel-heading')).toBeNull()
+    expect(document.activeElement).toBe(dialog.querySelector('input[type="search"]'))
+    const confirm = dialog.querySelector<HTMLButtonElement>('.selector-footer button')!, close = dialog.querySelector<HTMLButtonElement>('[aria-label="Fermer"]')!
+    act(() => { confirm.focus(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true })) })
+    expect(document.activeElement).toBe(close)
+    act(() => { close.focus(); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true, cancelable: true })) })
+    expect(document.activeElement).toBe(confirm)
+    act(() => confirm.click()); expect(onConfirm).toHaveBeenCalledOnce()
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))); expect(onClose).toHaveBeenCalledOnce()
+    act(() => root.render(<CharacterSelector {...props} pending />))
+    expect(confirm.disabled).toBe(true); expect(close.disabled).toBe(true)
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))); expect(onClose).toHaveBeenCalledOnce()
+    act(() => root.render(null)); expect(document.activeElement).toBe(previous)
+  })
+
   it('renders a clean unavailable state and mutation errors are player-facing', () => {
     expect(renderToStaticMarkup(<TeamScreen teams={{ teams: [], availableCharacters: [], passiveReference: [] }} {...callbacks} />)).toContain('Aucune équipe disponible')
     expect(teamScreenSource).toContain('setError(apiErrorMessage(reason))')

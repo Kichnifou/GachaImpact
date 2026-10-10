@@ -38,11 +38,11 @@ describe('Chat command registry', () => {
     }
   });
 
-  it('publishes the canonical Mission help without advertising the resume alias', () => {
-    expect(findChatCommand('mission')).toMatchObject({ internalChat: 'READY', syntax: '!mission [B|A|S|Z]' });
+  it('publishes the canonical Mission help including the distinct resume command', () => {
+    expect(findChatCommand('mission')).toMatchObject({ internalChat: 'READY', syntax: '!mission [B|A|S|Z|resume]' });
     expect(chatHelp('activites')).toContain('!mission');
-    expect(chatHelp('mission')).toContain('!mission [B|A|S|Z]');
-    expect(chatHelp('mission')).not.toContain('resume');
+    expect(chatHelp('mission')).toContain('!mission [B|A|S|Z|resume]');
+    expect(chatHelp('mission')).toContain('resume');
   });
 });
 

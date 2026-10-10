@@ -8,7 +8,7 @@ describe('R1047 final owner polish', () => {
   it('keeps only the calendar heading and daily state markers, in the same order', async () => {
     const h = harness();
     const text = (await h.send('!quotis'))!;
-    const labels = ['Récompense', 'Roue', 'Shop', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Event', 'Faveur'];
+    const labels = ['Récompense', 'Roue', 'Shop', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Event'];
     expect(text).toMatch(/^📅 Quotidiennes : Récompense /);
     expect(text).not.toMatch(/🎁|🎡|🛒|⚔️|👹|🧭|💖|🎪|✧/u);
     expect(text).toContain('cœur(s) à envoyer');

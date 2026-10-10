@@ -88,6 +88,25 @@ export class PrismaTeamStore implements TeamStore {
     }, chatKey ? { playerId, chatKey, request: ['create', expectedPosition] } : undefined);
   }
 
+  /** Command-only selection; the UI keeps explicit creation without activation. */
+  public selectAvailable(playerId: string, chatKey: string): Promise<PlayerTeams> {
+    return runTeamTransaction(this.database, async transaction => {
+      await lockPlayer(transaction, playerId);
+      await provisionBaseTeams(transaction, playerId);
+      await cleanupInactiveTeamMembers(transaction, playerId);
+      const teams = await lockPlayerTeams(transaction, playerId);
+      let available = await transaction.team.findFirst({
+        where: { playerId, members: { none: {} } }, orderBy: { displayPosition: 'asc' }, select: { id: true },
+      });
+      if (!available) available = await transaction.team.create({
+        data: { playerId, displayPosition: (teams.at(-1)?.displayPosition ?? BASE_TEAM_COUNT) + 1, isBaseSlot: false }, select: { id: true },
+      });
+      await transaction.team.updateMany({ where: { playerId, isActive: true }, data: { isActive: false } });
+      await transaction.team.update({ where: { id: available.id }, data: { isActive: true } });
+      return readPlayerTeams(transaction, playerId);
+    }, { playerId, chatKey, request: ['select-available'] });
+  }
+
   public deleteExtra(playerId: string, teamId: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
@@ -122,6 +141,10 @@ export class PrismaTeamStore implements TeamStore {
       await lockOwnedTeam(transaction, playerId, teamId);
       await lockPlayerTeams(transaction, playerId);
 
+      if (chatKey) {
+        const occupied = await transaction.teamMember.findUnique({ where: { teamId_position: { teamId, position } } });
+        if (occupied) throw new BusinessError('TEAM_SLOT_CHANGED', 'Cet emplacement a changé. Envoie une nouvelle commande Team.');
+      }
       const possession = await transaction.playerCharacter.findUnique({
         where: { playerId_characterId: { playerId, characterId } },
         select: { character: { select: { isActive: true } } },
@@ -168,13 +191,17 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
-  public removeSlot(playerId: string, teamId: string, position: number, chatKey?: string): Promise<PlayerTeams> {
+  public removeSlot(playerId: string, teamId: string, position: number, chatKey?: string, expectedCharacterId?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
       await lockOwnedTeam(transaction, playerId, teamId);
+      if (expectedCharacterId) {
+        const member = await transaction.teamMember.findUnique({ where: { teamId_position: { teamId, position } } });
+        if (member?.characterId !== expectedCharacterId) throw new BusinessError('TEAM_SLOT_CHANGED', 'Cet emplacement a changé. Envoie une nouvelle commande Team.');
+      }
       await transaction.teamMember.deleteMany({ where: { teamId, position } });
       return readPlayerTeams(transaction, playerId);
-    }, chatKey ? { playerId, chatKey, request: ['remove', teamId, position] } : undefined);
+    }, chatKey ? { playerId, chatKey, request: ['remove', teamId, position, ...(expectedCharacterId ? [expectedCharacterId] : [])] } : undefined);
   }
 
   public clear(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams> {

@@ -16,13 +16,21 @@ Documents liés :
 
 Les règles produit restent dans les documents spécialisés et le journal des décisions. L’état courant reste dans le Master. Les commandes, valeurs et contrôles propres au déploiement restent dans le document de déploiement.
 
-## Missions consolidées préautorisées — règle du 09/10/2026
+## Cycle permanent review → main — décision propriétaire du 10/10/2026
 
-Lorsqu'une mission autorise explicitement revue, corrections, promotion, déploiement et application métier, Codex poursuit ces étapes dans la même exécution après leurs contrôles, sans redemander un GO générique. Pour un mécanisme sensible, la revue indépendante reste obligatoire : reviewer distinct, contexte séparé, lecture seule du vrai diff/SHA publié et des tests, findings précis, verdict attaché au SHA. Corriger les blocages dans un commit séparé sur review puis faire revoir le delta avant main. Un simple résumé de tests ne constitue pas une approbation.
+Toute mission de développement autorisée accomplit par défaut **développement → tests → publication review → review → main → déploiements → postflight**, dans une seule mission. Cette décision étend les méthodes du 07/10 et du 09/10 ; les historiques datés restent des preuves de leurs anciens périmètres. `review` est une gate obligatoire, pas la destination finale habituelle d'un lot approuvé. Ne pas demander un nouveau prompt ni un GO générique entre gates réussies, y compris après la review indépendante.
 
-Le parcours conserve publication review → vérification des vrais diff/blobs GitHub → ancestry et absence de concurrent inattendu → fast-forward strict main → SHA distants → déploiements exacts et migrations normales → gates métier → application préautorisée → postflight et recette. L'autorisation ne dépasse jamais la population, l'économie ni les actions nommées dans le mandat. Aucun arrêt cérémoniel après un succès ; arrêter devant une preuve/accès indispensable manquant, un risque non résolu, une ambiguïté humaine ou un reviewer indisponible. Ne pas immobiliser les sous-ensembles indépendants sûrs. Le Master distingue toujours candidat, déployé, appliqué et recette humaine.
+Le propriétaire ou ChatGPT dans son rôle de pilotage peuvent imposer une exception explicite et motivée : local uniquement, rester sur review, promotion différée, validation humaine spécifique ou fractionnement pour un risque/dépendance réel. Une reprise documentaire seule n'autorise aucun développement. Le cycle permanent ne donne aucune autorisation d'ajouter un lot, de changer l'économie ou le transport Twitch, d'importer/migrer des joueurs, de dépenser ou d'appliquer une opération métier hors mandat.
 
-Cette règle prime, pour ces missions, sur les passages historiques exigeant systématiquement un prompt de promotion ou d'application séparé. Hors préautorisation explicite, leurs limites restent applicables. [R1063](../specifications/decisions-log.md) poursuit le mandat P0 courant après application de R1062.
+Un test critique échoué, finding non résolu, reviewer indépendant obligatoire indisponible, divergence inexpliquée, accès/preuve indispensable manquant, risque de corruption/double gain ou arbitrage humain indispensable suspend l'action risquée correspondante. Poursuivre les sous-ensembles indépendants sûrs, sans promouvoir un candidat global contenant un risque critique.
+
+Pour les mécanismes sensibles (notamment concurrence Team ou nouvelle surface de diagnostic authentifiée), la revue indépendante reste obligatoire : agent réellement distinct, contexte séparé, lecture seule sur le **vrai SHA publié**, inspection des blobs/diff GitHub et tests, findings précis et verdict attaché au SHA. Le résumé de l'implémenteur ne vaut pas approbation. Corriger dans un commit séparé sur review, retester, vérifier le nouveau diff distant et faire revoir le delta avant main.
+
+Le parcours opérationnel est détaillé aux sections 4–6. Le Master distingue toujours candidat, main, déployé, application métier et recette publique ; aucune de ces preuves ne remplace les autres.
+
+<a id="missions-consolidées-préautorisées--règle-du-09102026"></a>
+
+La règle consolidée du 09/10 est désormais incluse dans ce cycle permanent. Son ancien lien est conservé pour les références historiques.
 
 ## Production vivante et comparaisons BEFORE/AFTER — directive propriétaire du 10/10/2026
 
@@ -42,7 +50,7 @@ Si les outils existants ne suffisent pas, une mission ultérieure explicitement 
 
 ## Protocole propriétaire — étape 29 uniquement (R1036)
 
-**Clôture R1039 :** protocole historique ci-dessous conservé. Recette publique représentative R1038 acquise selon le propriétaire hors des derniers retours listés ; corrections/test automatiques puis promotion immédiate du même candidat et clôture 29 explicitement autorisées sans review intermédiaire ni nouveau gate manuel. Corrections finales non présumées individuellement retestées publiquement. STOP après publication ; 30 foundation/rehearsal privée prochaine, non commencée. Hors de 29, workflow normal et promotion dédiée inchangés. État/preuves au Master.
+**Clôture R1039 :** protocole historique ci-dessous conservé. Recette publique représentative R1038 acquise selon le propriétaire hors des derniers retours listés ; corrections/test automatiques puis promotion immédiate du même candidat et clôture 29 explicitement autorisées sans review intermédiaire ni nouveau gate manuel. Corrections finales non présumées individuellement retestées publiquement. STOP après publication ; 30 foundation/rehearsal privée prochaine, non commencée. Historique : la séparation alors en vigueur hors de 29 est supersédée par le cycle permanent du 10/10/2026. État/preuves au Master.
 
 R1036 supersède la restriction de promotion directe au seul lot Ami de R1035. **Amendement R1038 : le propriétaire regroupe les 31 sources restantes dans une mission et délègue leur adaptation.** Les tableaux et validations fichier par fichier ne sont plus requis pour ce périmètre. L'analyse exhaustive reste obligatoire en interne ; les contrats durables et la matrice 37 sources se trouvent dans [la référence des commandes](../commands/command-reference.md) et [son annexe](../commands/step-29-command-coverage.md). Les six premières livraisons ne sont pas rouvertes.
 
@@ -56,7 +64,7 @@ Travailler par groupes avec contrôles ciblés, puis validations complètes. Les
 
 Quand le candidat global est complet : contrôles verts → diff/index/documents exacts → fetch/chaîne distante sans commit inattendu → commit/push normal review → vérification SHA distant → fast-forward strict du **même candidat** vers main → push/fetch final, origin/main == origin/review, divergence 0/0 et worktree propre. Tout est autorisé dans cette mission, **sans review ChatGPT intermédiaire**. Aucun force-push/reset destructif ni commit documentaire uniquement pour inscrire son propre SHA.
 
-Après publication, ChatGPT vérifie le SHA et le déploiement exacts puis donne uniquement la courte [recette essentielle par famille](../commands/step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement), sauf problème bloquant. Implémenté/testé/promu, déployé et validé publiquement restent distincts. Étape 29 reste active tant que sa recette et ses autres responsabilités ne sont pas closes. STOP après publication et rapport ; aucune activation Twitch, réponse réelle, EventSub, cutover, migration 30/31A/31B/32 ni modification d'infrastructure. Streamer.bot reste autoritatif Twitch. Hors de ce périmètre, workflow normal avec review indépendante et promotion dédiée inchangé.
+Après publication, ChatGPT vérifie le SHA et le déploiement exacts puis donne uniquement la courte [recette essentielle par famille](../commands/step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement), sauf problème bloquant. Implémenté/testé/promu, déployé et validé publiquement restent distincts. Étape 29 reste active tant que sa recette et ses autres responsabilités ne sont pas closes. STOP après publication et rapport ; aucune activation Twitch, réponse réelle, EventSub, cutover, migration 30/31A/31B/32 ni modification d'infrastructure. Streamer.bot reste autoritatif Twitch. Historique : hors de ce périmètre, appliquer désormais le cycle permanent du 10/10/2026 et ses gates de review.
 
 ## 1. Concevoir le lot avant le prompt Codex
 
@@ -137,50 +145,27 @@ Pour tout lot DB, la validation confronte le dossier versionné `server/prisma/m
 
 ## 4. Publier le candidat sur `review`
 
-**Méthode propriétaire actualisée le 07/10/2026 :** pour un changement borné, testé et sans blocker utilisant les mécanismes déjà validés, la mission accomplit `review → commit/push → contrôle du vrai diff GitHub → ancestry stricte → fast-forward main → push/fetch → déploiements exacts/health` dans la même conversation, sans nouvelle review indépendante ni prompt de promotion séparé. Cette autorisation permanente reste limitée au périmètre demandé ; elle n’autorise aucune activation, migration, dépense ou autre lot implicite. STOP intermédiaire seulement pour une action humaine indispensable, un vrai blocker ou un nouveau mécanisme sensible non prévu. Dans ce dernier cas, implémentation/tests/publication sur review puis review indépendante avant promotion restent obligatoires ; aucun contournement d’intégrité. Les étapes de review/promotion dédiée ci-dessous s’appliquent à ces périmètres sensibles et aux missions qui l’exigent explicitement. Vérification GitHub réelle avant main, documentation exacte, absence de force-push/rebase destructif, contrôles de déploiement et distinction technique/validation propriétaire restent obligatoires dans les deux parcours.
+Après les contrôles locaux adaptés, vérifier les fichiers modifiés et indexés **exactement**, créer un commit propre et pousser normalement sur la branche permanente review dans la même intervention. Toute correction de review suit le même parcours dans un commit séparé. Seuls le read-only, une instruction local uniquement ou un vrai blocker dispensent de publication ; documenter la limite réelle.
 
-Le workflow Git permanent est le suivant :
+Faire fetch avant publication et promotion : SHA exacts main/review, divergence, chaîne de commits, ascendance et état de l'index/worktree. Préserver les commits parallèles légitimes `docs/Story/**` sans les modifier ni les réécrire. Examiner tout changement distant inattendu avant écriture. Jamais de force-push, rebase destructif, squash ni reset de production.
 
-1. `main` reste le dernier checkpoint promu ; plusieurs petits lots indépendamment reviewés peuvent s'accumuler sur `review` ;
-2. Codex travaille sur un lot borné, exécute les tests pertinents et contrôle son périmètre ;
-3. dans la même intervention, le candidat est committé puis poussé normalement sur la branche permanente `review` ;
-4. ChatGPT inspecte sur GitHub le vrai commit et son diff par rapport à `main` avant de valider ou de demander une correction technique ;
-5. chaque correction éventuelle suit à son tour `modification → tests → commit séparé → push review` ;
-6. ChatGPT re-review le vrai nouveau commit ;
-7. une review approuvée n'impose pas de promotion immédiate : le lot suivant peut partir du HEAD `review` approuvé. Une promotion dédiée intervient pour un test/une activation publique, un changement infrastructure/migration, un checkpoint fonctionnel cohérent ou une décision explicite du propriétaire. ChatGPT fournit alors le modèle/niveau et le prompt de promotion ; son exécution volontaire constitue l'autorisation. La mission finalise les statuts exacts après promotion, pousse le commit documentaire sur `review`, revalide le gate puis avance toute `review` vers `main` par fast-forward strict, sans force-push ;
-8. l’arrivée du commit sur `main` déclenche les déploiements de production ;
-9. ChatGPT vérifie `main == review`, Railway, Cloudflare Pages et le healthcheck ;
-10. ChatGPT fournit immédiatement **À tester en public**, sans attendre une demande : checklist concise basée sur le diff réellement promu, regroupée par parcours utilisateur, limitée aux ajouts/modifications et interactions à risque, sans recopier les tests automatisés ni lister tout le jeu ;
-11. le propriétaire réalise ce test public ;
-12. le checkpoint n’est marqué comme publiquement validé dans le Master qu’après la réussite de ce test.
-
-`review` est uniquement une branche de pré-review Git. Elle ne constitue pas un environnement staging, ne possède ni backend ni base séparés et ne permet de prétendre à aucun test public. Un push sur `main` ne doit jamais servir de moyen de review : `main` reste conceptuellement protégée comme branche de production.
-
-Les commits parallèles légitimes limités à `docs/Story/**` restent dans l'historique sans réécriture ni modification par un lot produit. Un changement distant inattendu hors de ce périmètre impose une nouvelle vérification avant tout push ou promotion ; un lot ne rebase, squash ou force-push jamais ces commits.
-
-Lorsqu’un candidat est publié par Codex ou par le propriétaire, seuls les fichiers vérifiés du lot sont indexés :
-
-```powershell
-git status
-git add -- <fichiers-du-lot>
-git commit -m "message adapté"
-git push -u origin review
-git status
-```
+`review` n'est pas un staging et ne possède aucun backend/base séparés. Un push main ne sert jamais de moyen de review. Après le push review, fetcher et confirmer le vrai SHA distant ; inspecter les vrais blobs/diffs GitHub, le périmètre et l'ascendance. Le rapport local seul ne remplace pas ce contrôle.
 
 ## 5. Review GitHub du candidat
 
-ChatGPT vérifie le HEAD de `review`, le compare au dernier état de `main`, contrôle la liste des fichiers, la documentation et les fichiers critiques. Cette review de référence porte sur le vrai commit GitHub, jamais uniquement sur le résumé d’un worktree local non publié. Il distingue les validations automatisées déjà acquises des validations publiques encore impossibles à ce stade.
+Revoir le candidat réellement publié, sa documentation et les fichiers critiques. Pour un mécanisme sensible, appliquer la review indépendante définie par le cycle permanent. Chaque finding bloquant est corrigé, testé, publié et revu sur son nouveau SHA. Aucune approbation inventée, aucune promotion d'un candidat contenant un risque critique non résolu.
 
-Si le lot n’est pas acceptable, les corrections restent sur `review`. S'il est acceptable, ChatGPT peut préparer le petit lot suivant depuis ce HEAD approuvé, après vérification des deux HEAD et de la divergence attendue. Il fournit un prompt de promotion dédié uniquement lorsque l'un des critères de l'étape 7 le nécessite. Ce prompt ne déclenche rien seul : son exécution volontaire par le propriétaire est l'autorisation explicite requise. ChatGPT ne promeut jamais silencieusement un candidat et ne demande pas une seconde confirmation conversationnelle après avoir fourni ce prompt.
+Une review approuvée et toutes les gates satisfaites entraînent la suite de la **même mission**, sans solliciter de second GO. Seule une exception explicitement décidée ou un vrai blocker justifie de rester sur review. Le propriétaire complète ensuite la recette publique requise ; sa validation n'est jamais présumée.
 
 ## 6. Promouvoir vers `main`, déployer et valider publiquement
 
-Lorsqu'une promotion dédiée est nécessaire et explicitement demandée, le passage contrôlé de la `review` approuvée vers `main` constitue le checkpoint de production. L’équipe vérifie ensuite les déploiements Railway et Cloudflare Pages avant le test public requis sur [gachaimpact.pages.dev](https://gachaimpact.pages.dev). Une review indépendante réussie seule n'autorise ni n'impose cette promotion.
+Finaliser avant promotion les documents dans un état cohérent avec la livraison attendue, sans annoncer comme acquis un déploiement, une application métier ou une recette non exécutés. Ne pas laisser une prochaine étape que le fast-forward rendra fausse.
 
-La mission de promotion ne laisse pas dans le commit promu une prochaine étape devenue fausse par son propre fast-forward, telle que « promouvoir ce candidat » ou « attendre la promotion ». Elle décrit l’état post-promotion réellement attendu, sans anticiper Cloudflare, Railway, le healthcheck ou une validation publique : ces preuves sont contrôlées après le push `main` par ChatGPT. Aucun commit documentaire supplémentaire n’est créé uniquement pour constater la promotion ; il faut un changement d’état réel, par exemple un déploiement vérifié, une validation publique, un défaut, une clôture de lot, un changement de domaine ou une décision produit ou technique.
+Refaire fetch main/review, confirmer le candidat approuvé, l'absence de concurrent inattendu et que main en est strictement ancêtre. Avancer main uniquement par `git merge --ff-only review`, puis push normal, fetch et vérification des SHA distants. Objectif : `origin/main == origin/review`, divergence 0/0, index/worktree propres. Aucun push simultané aveugle des deux branches.
 
-Le Master distingue toujours le commit candidat poussé sur `review`, le commit réellement présent sur `main`, le déploiement réussi et la validation publique du propriétaire. Aucun lot n’est déclaré publiquement validé avant la dernière étape.
+Contrôler séparément Railway et Cloudflare Pages au **SHA exact**, health, migrations normales si concernées, puis postflight adapté à la production vivante. Le succès Railway ne prouve ni Cloudflare ni l'exécution Twitch. Consigner les preuves authentiques et limites dans le propriétaire documentaire si elles changent réellement l'état ; aucun micro-commit pour recopier son propre hash ou répéter une promotion déjà faite.
+
+Fournir immédiatement une courte recette publique représentative du diff réellement livré, seulement pour les preuves humaines/visuelles nécessaires. Pas de F5 répétitif si une équivalence technique est réellement obtenue ; pas d'achat ou consommation rare pour contrôler une formulation. Le Master ne déclare validé publiquement que ce que le propriétaire a effectivement testé.
 
 ## 7. Boucle de feedback suivante
 

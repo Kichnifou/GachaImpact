@@ -7,7 +7,7 @@ type EventView = Awaited<ReturnType<EventService['getCurrent']>>;
 type Phrase = keyof typeof eventChatThemes['shadows'];
 export function eventPhrase(event: EventView, phrase: Phrase, player: string, values: Record<string, string | number> = {}): string {
   const theme = eventChatThemes[event.festival.key as keyof typeof eventChatThemes];
-  const windows = event.gameA.windows.map(window => `${eventClock(window.startAt)}–${eventClock(window.endAt)}`);
+  const windows = event.gameA.windows.map(window => `${eventClock(window.startAt).replace(':', 'h')} à ${eventClock(window.endAt).replace(':', 'h')}`);
   const replacements: Record<string, string | number> = { username: player, maximum: EVENT_GAME_B_MAX_ATTEMPTS,
     triesLeft: event.gameB.attemptsRemaining, winningCode: event.gameB.resolvedCode ?? 'indisponible',
     window1: windows[0] ?? 'indisponible', window2: windows[1] ?? 'indisponible', window3: windows[2] ?? 'indisponible', ...values };

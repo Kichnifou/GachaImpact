@@ -52,6 +52,20 @@ const purchaseInput = (playerId: string, roll: number, idempotencyKey = randomUU
   playerId, playerElementKey: 'hydro' as const, businessDate, now, idempotencyKey, random: { nextInt: () => roll },
 });
 
+it('simplifies only the conversion presentation using the persisted dynamic target/progress', async () => {
+  const playerId = await createPlayer({ moras: 50_000n, particles: 999n });
+  const definition = await database.dailyChallengeDefinition.findUniqueOrThrow({ where: { externalKey: 'daily_convert_particles_320' } });
+  await database.playerDailyChallenge.create({ data: { playerId, businessDate: new Date(`${businessDate}T00:00:00Z`), definitionId: definition.id,
+    definitionExternalKeySnapshot: definition.externalKey, typeSnapshot: definition.type, targetSnapshot: 123n,
+    displayNameSnapshot: definition.displayName, descriptionSnapshot: definition.description, progressLabelSnapshot: definition.progressLabel,
+    rewardPrimogemsSnapshot: definition.rewardPrimogems, progress: 17n, status: 'ACTIVE', assignedAt: now } });
+  const store = new PrismaDailyChallengeStore(database);
+  const view = await store.getView(playerId, businessDate);
+  expect(view.challenge).toMatchObject({ description: 'Convertissez 123 particules (17/123).', progress: 17n, target: 123n, rewardPrimogems: definition.rewardPrimogems });
+  expect((await database.playerDailyChallenge.findUniqueOrThrow({ where: { playerId_businessDate: { playerId, businessDate: new Date(`${businessDate}T00:00:00Z`) } } })).descriptionSnapshot).toBe(definition.description);
+  expect(await database.businessOperation.count({ where: { playerId } })).toBe(0);
+});
+
 describe('Daily Challenge persistence', () => {
   it('replays the exact Chat challenge, cost and balances after later switches and conversions', async () => {
     const playerId = await createPlayer({ moras: 150000n, particles: 1000n });

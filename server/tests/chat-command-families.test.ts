@@ -151,7 +151,8 @@ describe('Complete remaining command families', () => {
     expect(h.services.monthlyBossService.attackWithActiveTeam).not.toHaveBeenCalled();
   });
   it.each(['résumé', 'resumé', 'récap', 'recap'])('normalizes mission summary %s without exposing locked Z', async mode => {
-    const h = harness(); expect(await h.send(`!mission ${mode}`)).toBe(await h.send('!mission'));
+    const h = harness(); expect(await h.send(`!mission ${mode}`)).toBe(await h.send('!mission resume'));
+    expect(await h.send(`!mission ${mode}`)).not.toBe(await h.send('!mission'));
   });
   it.each(['!ga open', '!GA ouvrir', '!ga close', '!ga fermer', '!ga stats', '!ga stat'])('classifies Twitch alias %s without bypassing standalone gates', async text => {
     expect(classifyGiveawayText(text)).toBe(text.toLowerCase().includes('stat') ? 'STATS' : /close|fermer/u.test(text) ? 'CLOSE' : 'OPEN');

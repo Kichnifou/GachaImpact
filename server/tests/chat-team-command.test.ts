@@ -49,7 +49,7 @@ describe('Team text commands', () => {
   it('removes only an exact occupied name and retains the first removal intent', async () => {
     const h = fixture(); h.state.teams = h.state.teams.map(team => team.active ? { ...team, slots: [{ position: 1, character }, ...team.slots.slice(1)] } : team);
     await h.run('remove ETOILE ROYALE'); h.state.teams = h.state.teams.map(team => ({ ...team, slots: team.slots.map(slot => ({ ...slot, character: null })) }));
-    await h.run('remove Étoile Royale'); expect(h.services.removePlayerTeamSlot.execute).toHaveBeenNthCalledWith(2, identity, 'team-1', 1, 'intent');
+    await h.run('remove Étoile Royale'); expect(h.services.removePlayerTeamSlot.execute).toHaveBeenNthCalledWith(2, identity, 'team-1', 1, 'intent', 'character');
   });
   it.each(['remove all', 'remove tout', 'remove tous', '2 remove', '2 delete', '2 supprimer'])('clears %s through the owner without deleting a Team', async input => {
     const h = fixture(); await h.run(input); expect(h.services.clearPlayerTeam.execute).toHaveBeenCalledWith(identity, input.startsWith('2') ? 'team-2' : 'team-1', 'intent');
@@ -59,9 +59,10 @@ describe('Team text commands', () => {
     await h.run('rename ""', 'other'); expect(h.services.renamePlayerTeam.execute).toHaveBeenCalledWith(identity, 'team-1', null, 'other');
     expect(await h.run('rename Boss Électro', 'invalid')).toBe('syntax');
   });
-  it('creates the next extra slot and freezes its number before retry', async () => {
-    const h = fixture(); h.services.createNextPlayerTeam.execute.mockImplementation(async () => { h.state.teams = [...h.state.teams, { ...h.state.teams[1]!, id: 'extra', position: 11 }]; return structuredClone(h.state); });
-    await h.run('new'); await h.run('new'); expect(h.services.createNextPlayerTeam.execute).toHaveBeenNthCalledWith(2, identity, 11, 'intent');
+  it.each(['new', 'create'])('delegates %s to atomic available selection and retains that intent on retry', async action => {
+    const h = fixture();
+    await h.run(action); await h.run(action);
+    expect(h.services.createNextPlayerTeam.execute).toHaveBeenNthCalledWith(2, identity, 'AVAILABLE', 'intent');
   });
   it('lists ten Teams per page, compacting empty slots and preserving complete long entries', async () => {
     const h = fixture(); h.state.teams = Array.from({ length: 22 }, (_, index) => ({ ...h.state.teams[0]!, id: `t-${index}`, position: index + 1, name: `Équipe ${index} composée`, active: index === 0, slots: [{ position: 1, character: { ...character, name: `Personnage ${index} avec nom composé` } }] }));

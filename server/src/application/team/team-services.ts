@@ -30,7 +30,12 @@ export class RenamePlayerTeam {
 
 export class CreateNextPlayerTeam {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: PlayerExecutionActor, expectedPosition: number, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, expectedPosition: number | 'AVAILABLE', chatKey?: string) {
+    if (expectedPosition === 'AVAILABLE') {
+      if (!chatKey) throw new BusinessError('TEAM_COMMAND_KEY_REQUIRED', 'Une clé de commande Team est requise.');
+      const player = await this.getPlayer.execute(identity);
+      return this.store.selectAvailable(player.id, chatKey);
+    }
     if (!Number.isInteger(expectedPosition) || expectedPosition < 11) {
       throw new BusinessError('TEAM_CREATE_POSITION_INVALID', 'La prochaine Team supplémentaire demandée est invalide.');
     }
@@ -77,10 +82,10 @@ export class ReorderPlayerTeamSlots {
 
 export class RemovePlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
-  public async execute(identity: PlayerExecutionActor, teamId: string, position: number, chatKey?: string) {
+  public async execute(identity: PlayerExecutionActor, teamId: string, position: number, chatKey?: string, expectedCharacterId?: string) {
     assertSlotPosition(position);
     const player = await this.getPlayer.execute(identity);
-    return chatKey ? this.store.removeSlot(player.id, teamId, position, chatKey) : this.store.removeSlot(player.id, teamId, position);
+    return chatKey ? this.store.removeSlot(player.id, teamId, position, chatKey, expectedCharacterId) : this.store.removeSlot(player.id, teamId, position);
   }
 }
 

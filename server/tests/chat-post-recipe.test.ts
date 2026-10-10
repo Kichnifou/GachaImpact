@@ -11,12 +11,12 @@ const output = (h: ReturnType<typeof harness>) => {
 };
 
 describe('R1047 post-recipe: modern daily semantics and shared presentation', () => {
-  it.each(['!quotis', '!quoti', '!daily'])('orders and decorates all nine domains for %s', async command => {
+  it.each(['!quotis', '!quoti', '!daily'])('orders and decorates all eight domains for %s', async command => {
     const h = harness();
     h.services.monthlyBossService.getCurrentForChat.mockResolvedValue({ attackState: 'AVAILABLE', availableCharacters: [1, 2, 3, 4] } as never);
     await h.send(command);
     const text = output(h);
-    const labels = ['📅 Quotidiennes :', 'Récompense', 'Roue', 'Shop', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Event', 'Faveur'];
+    const labels = ['📅 Quotidiennes :', 'Récompense', 'Roue', 'Shop', 'Combat', 'Boss', 'Expédition', 'Amitié', 'Event'];
     let previous = -1;
     for (const label of labels) { expect(text).toContain(label); expect(text.indexOf(label)).toBeGreaterThan(previous); previous = text.indexOf(label); }
     expect(h.services.monthlyBossService.getCurrentForChat).toHaveBeenCalledWith(actor);
@@ -135,7 +135,7 @@ describe('R1047 authored presentation, actual owner facts', () => {
     expect(Array.from(output(h)).length).toBeLessThanOrEqual(500);
   });
   it.each([
-    ['EVENT_GAME_A_OUTSIDE_WINDOW', 'Fantôme', 'Fenêtres du jour : 10:00–11:00'],
+    ['EVENT_GAME_A_OUTSIDE_WINDOW', 'Fantôme', 'Fenêtres du jour : 10h00 à 11h00'],
     ['EVENT_GAME_A_ALREADY_COMPLETED', 'Fantôme', 'Reviens demain'],
     ['EVENT_GAME_A_COOLDOWN', 'Fantôme', '2 seconde(s)'],
     ['EVENT_GAME_B_ALREADY_SOLVED', 'Crypte 01010', 'coordonnées 11111'],
