@@ -402,7 +402,11 @@ Si l'élément, la rareté ou les informations essentielles manquent :
 
 La date de release doit être vérifiée sur le web avant activation automatique.
 
-### Hiérarchie de sources — direction actuelle à réévaluer au moment de l'implémentation
+### Hiérarchie actuelle — R1051, 10/10/2026
+
+La politique propriétaire et le contrôle frais du lot 1 sont dans [Character/assets](../architecture/character-catalog-assets-r1051.md) : HoYoverse pour calendrier, **genshin-db prioritaire pour métadonnées**, images locales/manifestes/HoYo/Enka ; secours qualifiés par champ. Suivi des fiches incomplètes et retries bornés, sans écrasement ni doublon. Le rattrapage d'images n'ajoute aucun personnage ni ne change bannières/possessions ; l'importeur quotidien reste à implémenter. Les constats de couverture datés ci-dessous sont historiques et ne fixent plus l'ordre courant.
+
+### Hiérarchie historique — constat du 28/08/2026
 
 La fraîcheur des sites change avec le temps. Ne jamais figer définitivement un fournisseur sans revalidation.
 

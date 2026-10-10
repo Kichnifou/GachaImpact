@@ -6860,7 +6860,7 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   .team-screen {
     height: 100%;
     display: grid;
-    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
     gap: 8px;
     overflow: hidden;
   }
@@ -6881,8 +6881,17 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 
   .team-screen .character-showcase-team .large-character-portrait {
     min-height: 0;
-    aspect-ratio: 1 / 1;
+    aspect-ratio: auto;
+    flex: 1 1 0;
+  }
+
+  .team-screen .character-showcase-team .large-team-copy {
     flex: 0 0 auto;
+    padding: 5px 12px;
+  }
+
+  .team-screen .character-showcase-team .large-team-copy .character-rarity {
+    margin-bottom: 2px;
   }
 
   .team-bonuses { min-height: 0; display: flex; flex-direction: column; padding: 11px 14px; overflow: hidden; }

@@ -1,13 +1,13 @@
 {
   "summary": {
-    "gachaimpactCharacters": 118,
+    "gachaimpactCharacters": 120,
     "hoyoCharacters": 98,
-    "matched": 96,
-    "unmatched": 22,
+    "matched": 120,
+    "unmatched": 0,
     "ambiguous": 0,
     "fullbodyFiles": 118,
     "fullbodyMatched": 118,
-    "fullbodyUnmatched": 0,
+    "fullbodyUnmatched": 2,
     "fullbodyAmbiguous": 0,
     "allGeneratedAssetPathsExist": true,
     "allGeneratedFullbodyPathsExist": true
@@ -114,6 +114,16 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Clorinde.png"
     },
     {
+      "id": 11,
+      "nom": "Columbina",
+      "hoyoId": "10000125",
+      "hoyoName": "Columbina",
+      "iconPath": "/assets/genshin/characters/icons/10000125.png",
+      "splashPath": "/assets/genshin/characters/splash/10000125.png",
+      "wishPath": "/assets/genshin/characters/wish/10000125.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Columbina.png"
+    },
+    {
       "id": 12,
       "nom": "Cyno",
       "hoyoId": "10000071",
@@ -144,6 +154,16 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Diluc.png"
     },
     {
+      "id": 15,
+      "nom": "Durin",
+      "hoyoId": "10000123",
+      "hoyoName": "Durin",
+      "iconPath": "/assets/genshin/characters/icons/10000123.png",
+      "splashPath": "/assets/genshin/characters/splash/10000123.png",
+      "wishPath": "/assets/genshin/characters/wish/10000123.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Durin.png"
+    },
+    {
       "id": 16,
       "nom": "Émilie",
       "hoyoId": "10000099",
@@ -154,6 +174,16 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Emilie.png"
     },
     {
+      "id": 17,
+      "nom": "Escoffier",
+      "hoyoId": "10000112",
+      "hoyoName": "Escoffier",
+      "iconPath": "/assets/genshin/characters/icons/10000112.png",
+      "splashPath": "/assets/genshin/characters/splash/10000112.png",
+      "wishPath": "/assets/genshin/characters/wish/10000112.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Escoffier.png"
+    },
+    {
       "id": 18,
       "nom": "Eula",
       "hoyoId": "10000051",
@@ -162,6 +192,16 @@
       "splashPath": "/assets/genshin/characters/splash/10000051.png",
       "wishPath": "/assets/genshin/characters/wish/10000051.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Eula.png"
+    },
+    {
+      "id": 19,
+      "nom": "Flins",
+      "hoyoId": "10000120",
+      "hoyoName": "Flins",
+      "iconPath": "/assets/genshin/characters/icons/10000120.png",
+      "splashPath": "/assets/genshin/characters/splash/10000120.png",
+      "wishPath": "/assets/genshin/characters/wish/10000120.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Flins.png"
     },
     {
       "id": 20,
@@ -192,6 +232,16 @@
       "splashPath": "/assets/genshin/characters/splash/10000046.png",
       "wishPath": "/assets/genshin/characters/wish/10000046.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Hutao.png"
+    },
+    {
+      "id": 23,
+      "nom": "Ineffa",
+      "hoyoId": "10000116",
+      "hoyoName": "Ineffa",
+      "iconPath": "/assets/genshin/characters/icons/10000116.png",
+      "splashPath": "/assets/genshin/characters/splash/10000116.png",
+      "wishPath": "/assets/genshin/characters/wish/10000116.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ineffa.png"
     },
     {
       "id": 24,
@@ -264,6 +314,26 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Klee.png"
     },
     {
+      "id": 31,
+      "nom": "Lauma",
+      "hoyoId": "10000119",
+      "hoyoName": "Lauma",
+      "iconPath": "/assets/genshin/characters/icons/10000119.png",
+      "splashPath": "/assets/genshin/characters/splash/10000119.png",
+      "wishPath": "/assets/genshin/characters/wish/10000119.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lauma.png"
+    },
+    {
+      "id": 32,
+      "nom": "Linnea",
+      "hoyoId": "10000130",
+      "hoyoName": "Linnea",
+      "iconPath": "/assets/genshin/characters/icons/10000130.png",
+      "splashPath": "/assets/genshin/characters/splash/10000130.png",
+      "wishPath": "/assets/genshin/characters/wish/10000130.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linnea.png"
+    },
+    {
       "id": 33,
       "nom": "Lyney",
       "hoyoId": "10000084",
@@ -322,6 +392,16 @@
       "splashPath": "/assets/genshin/characters/splash/10000091.png",
       "wishPath": "/assets/genshin/characters/wish/10000091.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Navia.png"
+    },
+    {
+      "id": 39,
+      "nom": "Nefer",
+      "hoyoId": "10000122",
+      "hoyoName": "Nefer",
+      "iconPath": "/assets/genshin/characters/icons/10000122.png",
+      "splashPath": "/assets/genshin/characters/splash/10000122.png",
+      "wishPath": "/assets/genshin/characters/wish/10000122.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nefer.png"
     },
     {
       "id": 40,
@@ -404,6 +484,16 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Sigewinne.png"
     },
     {
+      "id": 48,
+      "nom": "Skirk",
+      "hoyoId": "10000114",
+      "hoyoName": "SkirkNew",
+      "iconPath": "/assets/genshin/characters/icons/10000114.png",
+      "splashPath": "/assets/genshin/characters/splash/10000114.png",
+      "wishPath": "/assets/genshin/characters/wish/10000114.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_SkirkNew.png"
+    },
+    {
       "id": 49,
       "nom": "Tartaglia",
       "hoyoId": "10000033",
@@ -432,6 +522,16 @@
       "splashPath": "/assets/genshin/characters/splash/10000111.png",
       "wishPath": "/assets/genshin/characters/wish/10000111.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varesa.png"
+    },
+    {
+      "id": 52,
+      "nom": "Varka",
+      "hoyoId": "10000128",
+      "hoyoName": "Varka",
+      "iconPath": "/assets/genshin/characters/icons/10000128.png",
+      "splashPath": "/assets/genshin/characters/splash/10000128.png",
+      "wishPath": "/assets/genshin/characters/wish/10000128.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varka.png"
     },
     {
       "id": 53,
@@ -534,6 +634,26 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zhongli.png"
     },
     {
+      "id": 63,
+      "nom": "Zibai",
+      "hoyoId": "10000126",
+      "hoyoName": "Zibai",
+      "iconPath": "/assets/genshin/characters/icons/10000126.png",
+      "splashPath": "/assets/genshin/characters/splash/10000126.png",
+      "wishPath": "/assets/genshin/characters/wish/10000126.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zibai.png"
+    },
+    {
+      "id": 64,
+      "nom": "Aino",
+      "hoyoId": "10000121",
+      "hoyoName": "Aino",
+      "iconPath": "/assets/genshin/characters/icons/10000121.png",
+      "splashPath": "/assets/genshin/characters/splash/10000121.png",
+      "wishPath": "/assets/genshin/characters/wish/10000121.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aino.png"
+    },
+    {
       "id": 65,
       "nom": "Amber",
       "hoyoId": "10000021",
@@ -624,6 +744,16 @@
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Collei.png"
     },
     {
+      "id": 74,
+      "nom": "Dahlia",
+      "hoyoId": "10000115",
+      "hoyoName": "Dahlia",
+      "iconPath": "/assets/genshin/characters/icons/10000115.png",
+      "splashPath": "/assets/genshin/characters/splash/10000115.png",
+      "wishPath": "/assets/genshin/characters/wish/10000115.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dahlia.png"
+    },
+    {
       "id": 75,
       "nom": "Diona",
       "hoyoId": "10000039",
@@ -702,6 +832,36 @@
       "splashPath": "/assets/genshin/characters/splash/10000110.png",
       "wishPath": "/assets/genshin/characters/wish/10000110.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Iansan.png"
+    },
+    {
+      "id": 83,
+      "nom": "Ifa",
+      "hoyoId": "10000113",
+      "hoyoName": "Ifa",
+      "iconPath": "/assets/genshin/characters/icons/10000113.png",
+      "splashPath": "/assets/genshin/characters/splash/10000113.png",
+      "wishPath": "/assets/genshin/characters/wish/10000113.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ifa.png"
+    },
+    {
+      "id": 84,
+      "nom": "Illuga",
+      "hoyoId": "10000127",
+      "hoyoName": "Illuga",
+      "iconPath": "/assets/genshin/characters/icons/10000127.png",
+      "splashPath": "/assets/genshin/characters/splash/10000127.png",
+      "wishPath": "/assets/genshin/characters/wish/10000127.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Illuga.png"
+    },
+    {
+      "id": 85,
+      "nom": "Jahoda",
+      "hoyoId": "10000124",
+      "hoyoName": "Jahoda",
+      "iconPath": "/assets/genshin/characters/icons/10000124.png",
+      "splashPath": "/assets/genshin/characters/splash/10000124.png",
+      "wishPath": "/assets/genshin/characters/wish/10000124.png",
+      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Jahoda.png"
     },
     {
       "id": 86,
@@ -972,165 +1132,101 @@
       "splashPath": "/assets/genshin/characters/splash/10000064.png",
       "wishPath": "/assets/genshin/characters/wish/10000064.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Yunjin.png"
-    }
-  ],
-  "unmatched": [
-    {
-      "id": 11,
-      "nom": "Columbina",
-      "rarete": 5,
-      "element": "Hydro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Columbina.png"
-    },
-    {
-      "id": 15,
-      "nom": "Durin",
-      "rarete": 5,
-      "element": "Pyro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Durin.png"
-    },
-    {
-      "id": 17,
-      "nom": "Escoffier",
-      "rarete": 5,
-      "element": "Cryo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Escoffier.png"
-    },
-    {
-      "id": 19,
-      "nom": "Flins",
-      "rarete": 5,
-      "element": "Électro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Flins.png"
-    },
-    {
-      "id": 23,
-      "nom": "Ineffa",
-      "rarete": 5,
-      "element": "Électro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ineffa.png"
-    },
-    {
-      "id": 31,
-      "nom": "Lauma",
-      "rarete": 5,
-      "element": "Dendro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lauma.png"
-    },
-    {
-      "id": 32,
-      "nom": "Linnea",
-      "rarete": 5,
-      "element": "Géo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Linnea.png"
-    },
-    {
-      "id": 39,
-      "nom": "Nefer",
-      "rarete": 5,
-      "element": "Dendro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nefer.png"
-    },
-    {
-      "id": 48,
-      "nom": "Skirk",
-      "rarete": 5,
-      "element": "Cryo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_SkirkNew.png"
-    },
-    {
-      "id": 52,
-      "nom": "Varka",
-      "rarete": 5,
-      "element": "Anémo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Varka.png"
-    },
-    {
-      "id": 63,
-      "nom": "Zibai",
-      "rarete": 5,
-      "element": "Géo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Zibai.png"
-    },
-    {
-      "id": 64,
-      "nom": "Aino",
-      "rarete": 4,
-      "element": "Hydro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Aino.png"
-    },
-    {
-      "id": 74,
-      "nom": "Dahlia",
-      "rarete": 4,
-      "element": "Hydro",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Dahlia.png"
-    },
-    {
-      "id": 83,
-      "nom": "Ifa",
-      "rarete": 4,
-      "element": "Anémo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Ifa.png"
-    },
-    {
-      "id": 84,
-      "nom": "Illuga",
-      "rarete": 4,
-      "element": "Géo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Illuga.png"
-    },
-    {
-      "id": 85,
-      "nom": "Jahoda",
-      "rarete": 4,
-      "element": "Anémo",
-      "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Jahoda.png"
     },
     {
       "id": 113,
       "nom": "Prune",
-      "rarete": 4,
-      "element": "Anémo",
+      "hoyoId": "10000132",
+      "hoyoName": "Prune",
+      "iconPath": "/assets/genshin/characters/icons/10000132.png",
+      "splashPath": "/assets/genshin/characters/splash/10000132.png",
+      "wishPath": "/assets/genshin/characters/wish/10000132.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Prune.png"
     },
     {
       "id": 114,
       "nom": "Nicole",
-      "rarete": 5,
-      "element": "Pyro",
+      "hoyoId": "10000131",
+      "hoyoName": "Nicole",
+      "iconPath": "/assets/genshin/characters/icons/10000131.png",
+      "splashPath": "/assets/genshin/characters/splash/10000131.png",
+      "wishPath": "/assets/genshin/characters/wish/10000131.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Nicole.png"
     },
     {
       "id": 115,
       "nom": "Lohen",
-      "rarete": 5,
-      "element": "Cryo",
+      "hoyoId": "10000129",
+      "hoyoName": "Lohen",
+      "iconPath": "/assets/genshin/characters/icons/10000129.png",
+      "splashPath": "/assets/genshin/characters/splash/10000129.png",
+      "wishPath": "/assets/genshin/characters/wish/10000129.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Lohen.png"
     },
     {
       "id": 116,
       "nom": "Sandrone",
-      "rarete": 5,
-      "element": "Cryo",
+      "hoyoId": "10000133",
+      "hoyoName": "MarionetteNew",
+      "iconPath": "/assets/genshin/characters/icons/10000133.png",
+      "splashPath": "/assets/genshin/characters/splash/10000133.png",
+      "wishPath": "/assets/genshin/characters/wish/10000133.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_MarionetteNew.png"
     },
     {
       "id": 117,
       "nom": "Odette",
-      "rarete": 5,
-      "element": "Cryo",
+      "hoyoId": "10000150",
+      "hoyoName": "Odette",
+      "iconPath": "/assets/genshin/characters/icons/10000150.png",
+      "splashPath": "/assets/genshin/characters/splash/10000150.png",
+      "wishPath": "/assets/genshin/characters/wish/10000150.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Odette.png"
     },
     {
       "id": 118,
       "nom": "Alyosha",
-      "rarete": 4,
-      "element": "Électro",
+      "hoyoId": "10000148",
+      "hoyoName": "Alyosha",
+      "iconPath": "/assets/genshin/characters/icons/10000148.png",
+      "splashPath": "/assets/genshin/characters/splash/10000148.png",
+      "wishPath": "/assets/genshin/characters/wish/10000148.png",
       "fullbodyPath": "/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Alyosha.png"
+    },
+    {
+      "id": 119,
+      "nom": "Vesna",
+      "hoyoId": "10000143",
+      "hoyoName": "Vesna",
+      "iconPath": "/assets/genshin/characters/icons/10000143.png",
+      "splashPath": "/assets/genshin/characters/splash/10000143.png",
+      "wishPath": "/assets/genshin/characters/wish/10000143.png"
+    },
+    {
+      "id": 120,
+      "nom": "Vodyanitsa",
+      "hoyoId": "10000140",
+      "hoyoName": "Vodyanitsa",
+      "iconPath": "/assets/genshin/characters/icons/10000140.png",
+      "splashPath": "/assets/genshin/characters/splash/10000140.png",
+      "wishPath": "/assets/genshin/characters/wish/10000140.png"
     }
   ],
+  "unmatched": [],
   "ambiguous": [],
-  "fullbodyUnmatched": [],
+  "fullbodyUnmatched": [
+    {
+      "id": 119,
+      "nom": "Vesna",
+      "rarete": 5,
+      "element": "Anémo"
+    },
+    {
+      "id": 120,
+      "nom": "Vodyanitsa",
+      "rarete": 5,
+      "element": "Hydro"
+    }
+  ],
   "fullbodyAmbiguous": []
 }

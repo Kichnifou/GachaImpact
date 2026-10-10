@@ -1,0 +1,122 @@
+{
+  "checkedAt": "2026-10-10T16:51:25.119Z",
+  "mode": "dry-run",
+  "gameMutationExecuted": false,
+  "official": {
+    "url": "https://www.hoyolab.com/article/46884007",
+    "endpoint": "https://bbs-api-os.hoyolab.com/community/post/wapi/getPostFull?gids=2&post_id=46884007",
+    "uid": "1015537",
+    "nickname": "Genshin Impact Official",
+    "certification": {
+      "type": 1,
+      "icon_url": "https://hyl-static-res-prod.hoyolab.com/upload/static-resource/2022/02/23/f5a37763f0f2080c0c43cca8638af024_5295925290813405198.webp",
+      "desc": "Official Big Boss"
+    },
+    "postFlagIsOfficial": false,
+    "announcementDate": "2026-09-29T04:01:07.000Z",
+    "sourcePriority": 1
+  },
+  "confirmed": {
+    "name": "Mitya",
+    "title": "Rules Set at Naught",
+    "affiliation": "Royal Energy Commission of Snezhnaya",
+    "role": "Specialist",
+    "region": "Snezhnaya (affiliation)",
+    "element": "Electro",
+    "constellation": "Nodus Gordianus"
+  },
+  "primaryTextChecks": {
+    "Mitya": true,
+    "Rules Set at Naught": true,
+    "Royal Energy Commission of Snezhnaya": true,
+    "Stellar Linchpin: Electro": true,
+    "Nodus Gordianus": true
+  },
+  "unconfirmed": {
+    "rarity": null,
+    "weaponType": null,
+    "numericId": null,
+    "officialReleaseDate": null,
+    "frenchTranslation": null,
+    "internalClass": null
+  },
+  "ownerExpectedRelease": "2026-11-04",
+  "structuredSource": {
+    "priority": 2,
+    "url": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/mitya.json",
+    "status": 404
+  },
+  "images": [
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+      "status": 200,
+      "mime": "image/jpeg",
+      "bytes": 127568,
+      "sha256": "441733b335b2891ac116881803fad68ef5090602a51a4e0671a4695dfd534cdd",
+      "decoded": {
+        "width": 1200,
+        "height": 675
+      },
+      "role": "promotion-only",
+      "publishAsGameAsset": false
+    },
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+      "status": 200,
+      "mime": "image/jpeg",
+      "bytes": 302962,
+      "sha256": "77b27f1071ada6696cb57580c46a27b08a1a41ad5023602a432ecfc782a9724d",
+      "decoded": {
+        "width": 1500,
+        "height": 1500
+      },
+      "role": "promotion-only",
+      "publishAsGameAsset": false
+    },
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+      "status": 200,
+      "mime": "image/jpeg",
+      "bytes": 213247,
+      "sha256": "220ca050531768b9a04da862e0c01fc2ab6d3435a8827531d3b95282560d8ede",
+      "decoded": {
+        "width": 750,
+        "height": 1800
+      },
+      "role": "promotion-only",
+      "publishAsGameAsset": false
+    }
+  ],
+  "unverifiedNameProbes": [
+    {
+      "url": "https://enka.network/ui/UI_AvatarIcon_Mitya.png",
+      "status": 200,
+      "technicalNameUnverified": true,
+      "mime": "image/png",
+      "bytes": 99223,
+      "width": 256,
+      "height": 256,
+      "sha256": "85a2fc599123a0a45e2c338b5823128043ec7aebf587a724825e37807fbf5058",
+      "visualObserved": true,
+      "finalityConfirmed": false,
+      "publishAsGameAsset": false
+    },
+    {
+      "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Mitya.png",
+      "status": 404,
+      "technicalNameUnverified": true
+    },
+    {
+      "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Mitya.png",
+      "status": 404,
+      "technicalNameUnverified": true
+    }
+  ],
+  "eligibility": "BLOCKED",
+  "reasons": [
+    "No official release date; owner expectation outside next seven days on 2026-10-10",
+    "No confirmed rarity or weapon / numeric identity",
+    "No confirmed final game assets: UI icon candidate accessible but identity manifest/finality not established; splash/slice probes 404"
+  ],
+  "adminOverrideUsed": false
+}

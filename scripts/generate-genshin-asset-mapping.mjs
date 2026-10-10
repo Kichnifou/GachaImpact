@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { validateManifest } from './character-asset-manifest.mjs'
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(scriptDirectory, '..')
@@ -64,7 +65,16 @@ function publicFullbodyPath(fileName) {
 
 const gachaimpactSource = readJson(gachaimpactPath)
 const hoyoCharacters = readJson(hoyoPath)
-const gachaimpactCharacters = gachaimpactSource.characters
+const gachaimpactCharacters = [...gachaimpactSource.characters]
+const additions = readJson(path.join(projectRoot, 'server/prisma/data/legacy-character-additions.json'))
+for (const entry of additions) {
+  const existing = gachaimpactCharacters.find(character => character.id === entry.id)
+  if (existing && existing.nom !== entry.nom) throw new Error(`Conflicting catalog identity: ${entry.id}`)
+  if (!existing) gachaimpactCharacters.push(entry)
+}
+if (new Set(gachaimpactCharacters.map(c => c.id)).size !== gachaimpactCharacters.length) throw new Error('Duplicate catalog ID')
+const recovered = new Map(validateManifest(readJson(path.join(metadataDirectory, 'recovered_character_assets.json')), projectRoot)
+  .map(entry => [entry.externalKey, entry]))
 const fullbodyDirectory = path.join(charactersDirectory, 'fullbody')
 const fullbodyFiles = fs
   .readdirSync(fullbodyDirectory)
@@ -141,6 +151,16 @@ for (const character of gachaimpactCharacters) {
 for (const character of gachaimpactCharacters) {
   const normalizedGachaimpactName = normalizeName(character.nom)
   const alias = hoyoAliases[normalizedGachaimpactName]
+  const recovery = recovered.get(`legacy:${character.id}`)
+  if (recovery) {
+    if (character.nom !== recovery.name) throw new Error(`Asset identity conflict: ${character.id}`)
+    matched.push({ id: character.id, nom: character.nom, hoyoId: recovery.genshinId,
+      hoyoName: recovery.technicalName,
+      ...Object.fromEntries(Object.entries(recovery.assets).map(([field, asset]) => [field, asset.path])),
+      ...(fullbodyByCharacterId.has(character.id) ? { fullbodyPath: fullbodyByCharacterId.get(character.id) } : {}),
+    })
+    continue
+  }
   const lookupName = normalizeName(alias ?? character.nom)
   const candidates = hoyoByNormalizedName.get(lookupName) ?? []
   const fullbodyPath = fullbodyByCharacterId.get(character.id)

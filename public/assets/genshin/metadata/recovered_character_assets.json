@@ -1,0 +1,1089 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T16:58:01.101Z",
+  "sourceManifest": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/image/characters.json",
+  "sourceManifestSha256": "3da0d49db479f255ca15f89acf16e10b1887aa0edb78e3a8e24fc1b79b7744c2",
+  "scope": "R1051 lot 1 existing catalog assets only; no metadata replacement or candidate activation",
+  "entries": [
+    {
+      "externalKey": "legacy:11",
+      "name": "Columbina",
+      "genshinId": "10000125",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/columbina.json",
+      "technicalName": "Columbina",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Columbina",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Columbina.png",
+          "sha256": "bd22310bde257c57d5e0c311c8494eebc5ffd48b7fdcee10c230fd859e28072e",
+          "bytes": 98670,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000125.png",
+          "transparentPixels": 28060,
+          "visiblePixels": 45545
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Columbina",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Columbina.png",
+          "sha256": "87c979de7edc812fca30b45b9c0ea1649d1f1067a7265ff837cd61b49ca453b4",
+          "bytes": 3309587,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000125.png",
+          "transparentPixels": 594541,
+          "visiblePixels": 1982199
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Columbina",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Columbina.png",
+          "sha256": "f16fa6652ebd9268861a93135e4b0b5fd954ade997626cbd8cdded7afe3ebaa2",
+          "bytes": 578061,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000125.png",
+          "transparentPixels": 15856,
+          "visiblePixels": 327680
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:113",
+      "name": "Prune",
+      "genshinId": "10000132",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/prune.json",
+      "technicalName": "Prune",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Prune",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Prune.png",
+          "sha256": "7ddb2e9c2de7dfe7f4192189a7211e8da56828837a284089841b8223593555fb",
+          "bytes": 96251,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000132.png",
+          "transparentPixels": 29391,
+          "visiblePixels": 43311
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Prune",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Prune.png",
+          "sha256": "8a02abddd8234e2944d0ebaf7c44ea05987c692924686649a99487ccf29774ed",
+          "bytes": 891664,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000132.png",
+          "transparentPixels": 1814367,
+          "visiblePixels": 430736
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Prune",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Prune.png",
+          "sha256": "e1e64a1b91dfde170b822a8d1faef2115b42b79cb9f8b38e94976b2d1ad69bb3",
+          "bytes": 486689,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000132.png",
+          "transparentPixels": 98157,
+          "visiblePixels": 258351
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:114",
+      "name": "Nicole",
+      "genshinId": "10000131",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/nicole.json",
+      "technicalName": "Nicole",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Nicole",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Nicole.png",
+          "sha256": "4b3c4f1fc480f3e40280e7d15f671cf1cddd4b0e193b1bf215b2f20bced91c0e",
+          "bytes": 94024,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000131.png",
+          "transparentPixels": 31338,
+          "visiblePixels": 38365
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Nicole",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Nicole.png",
+          "sha256": "a0fb8b94657c7aa75d38cf4ff60c8744fc9e0f753acca4f4d811e2fe2245959a",
+          "bytes": 1542550,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000131.png",
+          "transparentPixels": 1682276,
+          "visiblePixels": 790195
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Nicole",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Nicole.png",
+          "sha256": "38eabbe84877dbc6f2b1b43bb9583a8099d60be0baa1708b8fed45abc095b76b",
+          "bytes": 612902,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000131.png",
+          "transparentPixels": 3820,
+          "visiblePixels": 327680
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:115",
+      "name": "Lohen",
+      "genshinId": "10000129",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/lohen.json",
+      "technicalName": "Lohen",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Lohen",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Lohen.png",
+          "sha256": "559e0c4b786b5abbc2e87bf91583136a22a59679a0e6eca7569639b0804ad75d",
+          "bytes": 91322,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000129.png",
+          "transparentPixels": 32109,
+          "visiblePixels": 40012
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Lohen",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Lohen.png",
+          "sha256": "a62937cd51c70949edd0322700a933b9753bc58d7bdb215617c1521b17db6bb0",
+          "bytes": 1517147,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000129.png",
+          "transparentPixels": 1584700,
+          "visiblePixels": 795551
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Lohen",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Lohen.png",
+          "sha256": "b56d2fd5c6018acc941d6e607e9477a08d5c03040be7439612639e3a16aa09ee",
+          "bytes": 539584,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000129.png",
+          "transparentPixels": 60865,
+          "visiblePixels": 287676
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:116",
+      "name": "Sandrone",
+      "genshinId": "10000133",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/sandrone.json",
+      "technicalName": "MarionetteNew",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_MarionetteNew",
+          "url": "https://enka.network/ui/UI_AvatarIcon_MarionetteNew.png",
+          "sha256": "1ab3c4e05cae5db564a174b815ffad7d8d69c5f26d284ce4d10e1b6b6261bba3",
+          "bytes": 89731,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000133.png",
+          "transparentPixels": 29350,
+          "visiblePixels": 42795
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_MarionetteNew",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_MarionetteNew.png",
+          "sha256": "122347dca04cce7217a431d6d72b3fc58cfa6a8d37cb125e72645ed30e63a33d",
+          "bytes": 1142692,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000133.png",
+          "transparentPixels": 1787985,
+          "visiblePixels": 716715
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_MarionetteNew",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_MarionetteNew.png",
+          "sha256": "1b761052e5f5e8472828534e72a791456711845c1919d5f154421cae6af141cf",
+          "bytes": 590840,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000133.png",
+          "transparentPixels": 29657,
+          "visiblePixels": 305854
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:117",
+      "name": "Odette",
+      "genshinId": "10000150",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/odette.json",
+      "technicalName": "Odette",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Odette",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Odette.png",
+          "sha256": "3599641cafa7bb97ae4dcffd635dd2eab4c6f9858828ba366a41024232aefd38",
+          "bytes": 89512,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000150.png",
+          "transparentPixels": 32958,
+          "visiblePixels": 38831
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Odette",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Odette.png",
+          "sha256": "8d132e9d4a54059d63ddad00f5bdbaaa64676427b5c6acbaa0a0b300ecbc6d2a",
+          "bytes": 1755680,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000150.png",
+          "transparentPixels": 1906240,
+          "visiblePixels": 914508
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Odette",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Odette.png",
+          "sha256": "3bcdcf903518daf8f9e2311150418859d75dfdaf534399326a082ff40abac456",
+          "bytes": 610588,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000150.png",
+          "transparentPixels": 71949,
+          "visiblePixels": 326616
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:118",
+      "name": "Alyosha",
+      "genshinId": "10000148",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/alyosha.json",
+      "technicalName": "Alyosha",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Alyosha",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Alyosha.png",
+          "sha256": "3168b1f9634fd28fbfd861db960ed099a0e24aadb2a4897035dd1b886059819d",
+          "bytes": 92907,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000148.png",
+          "transparentPixels": 25192,
+          "visiblePixels": 45274
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Alyosha",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Alyosha.png",
+          "sha256": "aa2b24f8962300f9b706723d6281411d72aa52b6674c1aa1c41fca37f0784335",
+          "bytes": 969335,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000148.png",
+          "transparentPixels": 1868196,
+          "visiblePixels": 429084
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Alyosha",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Alyosha.png",
+          "sha256": "749a59453ebf742e213fa40e28f9a8cb8c664e339d20c7129fe1a3a126942fca",
+          "bytes": 489046,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000148.png",
+          "transparentPixels": 65397,
+          "visiblePixels": 279641
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:119",
+      "name": "Vesna",
+      "genshinId": "10000143",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/vesna.json",
+      "technicalName": "Vesna",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Vesna",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Vesna.png",
+          "sha256": "09b3656a2e92bc170a9018f14b8117c03f68ff3b80bdf2ed6d700cd43fbae580",
+          "bytes": 98707,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000143.png",
+          "transparentPixels": 28115,
+          "visiblePixels": 45105
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Vesna",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Vesna.png",
+          "sha256": "23ff74df797730abccdc42534be4a3bb1d36dea6e6fd30ac07cf8f90355edc27",
+          "bytes": 1370895,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000143.png",
+          "transparentPixels": 1898029,
+          "visiblePixels": 556408
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Vesna",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Vesna.png",
+          "sha256": "98aed0a1a26fcf00841d1b184b1d15dd8f7a8d4332facbc4b46081d31c9a29f2",
+          "bytes": 558873,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000143.png",
+          "transparentPixels": 83979,
+          "visiblePixels": 261557
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:120",
+      "name": "Vodyanitsa",
+      "genshinId": "10000140",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/vodyanitsa.json",
+      "technicalName": "Vodyanitsa",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Vodyanitsa",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Vodyanitsa.png",
+          "sha256": "401347f6f5910f638ee998708f615c6cb6b94f774590b3f4be335f37be7610c8",
+          "bytes": 102033,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000140.png",
+          "transparentPixels": 28177,
+          "visiblePixels": 44694
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Vodyanitsa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Vodyanitsa.png",
+          "sha256": "6c78e4b57935c2466c9bd4b2a9f38ca0adb85377ae637397bdf981822f6d59ca",
+          "bytes": 1690901,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000140.png",
+          "transparentPixels": 1522510,
+          "visiblePixels": 857605
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Vodyanitsa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Vodyanitsa.png",
+          "sha256": "be4b088be4dd78d99c47beecf8d551bc33551c63fb487eb1bf5662673bd09a74",
+          "bytes": 549489,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000140.png",
+          "transparentPixels": 21458,
+          "visiblePixels": 312290
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:15",
+      "name": "Durin",
+      "genshinId": "10000123",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/durin.json",
+      "technicalName": "Durin",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Durin",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Durin.png",
+          "sha256": "0f8ecbd871ee6f520c9fac3b4321bfe63c038751191c6d93e59553c5e95b5eaa",
+          "bytes": 95723,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000123.png",
+          "transparentPixels": 31585,
+          "visiblePixels": 41218
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Durin",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Durin.png",
+          "sha256": "1a5db1f7128dd17d1dda7c1568da47e4248b4e245cc2680186f4ee2274b1d38f",
+          "bytes": 1934260,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000123.png",
+          "transparentPixels": 1622078,
+          "visiblePixels": 1094064
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Durin",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Durin.png",
+          "sha256": "2c5797c2dcb61e8b72558062ffbb0c8e92502a229b3da766189509b4437b219e",
+          "bytes": 660618,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000123.png",
+          "transparentPixels": 39832,
+          "visiblePixels": 327680
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:17",
+      "name": "Escoffier",
+      "genshinId": "10000112",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/escoffier.json",
+      "technicalName": "Escoffier",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Escoffier",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Escoffier.png",
+          "sha256": "20fd7e43a73dbfa472f36f8a5a9b913efe7e707f0f2acdec25f3264ce28b6921",
+          "bytes": 95532,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000112.png",
+          "transparentPixels": 30653,
+          "visiblePixels": 41905
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Escoffier",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Escoffier.png",
+          "sha256": "1c84bcf5091cd3b1715f44502b29c4eb2a8de308f42abc097cd7609606ed2ebd",
+          "bytes": 1349606,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000112.png",
+          "transparentPixels": 1552708,
+          "visiblePixels": 713080
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Escoffier",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Escoffier.png",
+          "sha256": "278c1708e1d6cd8da6eaab41184364d27539c1e5d05c0ec905892031c8a33465",
+          "bytes": 590954,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000112.png",
+          "transparentPixels": 51591,
+          "visiblePixels": 300223
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:19",
+      "name": "Flins",
+      "genshinId": "10000120",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/flins.json",
+      "technicalName": "Flins",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Flins",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Flins.png",
+          "sha256": "def7f88c3a469c39a8e331ccd85ea46011c1c66a525be4059f87c1901a21f3a4",
+          "bytes": 89330,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000120.png",
+          "transparentPixels": 27177,
+          "visiblePixels": 44803
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Flins",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Flins.png",
+          "sha256": "72f68c206a9244f54ef547ecb596f83468d8fbb67c26fddc3827ae10460b1f07",
+          "bytes": 1417158,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000120.png",
+          "transparentPixels": 1417219,
+          "visiblePixels": 1019212
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Flins",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Flins.png",
+          "sha256": "91dad67486b19fa2fe58de1a54c92c337c2fcaa2fb8c9ced120d494320eb3e45",
+          "bytes": 532737,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000120.png",
+          "transparentPixels": 54848,
+          "visiblePixels": 286314
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:23",
+      "name": "Ineffa",
+      "genshinId": "10000116",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/ineffa.json",
+      "technicalName": "Ineffa",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Ineffa",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Ineffa.png",
+          "sha256": "4ec450be6e6dd9c85514dc1d3481fad52eceb39c5765f3bac29550e08c6b90cc",
+          "bytes": 86880,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000116.png",
+          "transparentPixels": 30826,
+          "visiblePixels": 40395
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Ineffa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Ineffa.png",
+          "sha256": "f44c2ec2c02dfd6dd40d39d02339519c674245a062969c177941868cb7483608",
+          "bytes": 1853810,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000116.png",
+          "transparentPixels": 1840576,
+          "visiblePixels": 756851
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Ineffa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Ineffa.png",
+          "sha256": "0a7e12e4acd9a09db41d874dcd6a2f17e16aba4942d9a3fe4e4413b14cb60815",
+          "bytes": 536942,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000116.png",
+          "transparentPixels": 75835,
+          "visiblePixels": 311078
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:31",
+      "name": "Lauma",
+      "genshinId": "10000119",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/lauma.json",
+      "technicalName": "Lauma",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Lauma",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Lauma.png",
+          "sha256": "dc59c234af27d6c387f968c06cbd40263bd34f30ac75bc6b2f045d9cad79c4df",
+          "bytes": 90284,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000119.png",
+          "transparentPixels": 31311,
+          "visiblePixels": 41466
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Lauma",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Lauma.png",
+          "sha256": "b0c229d8907365da916a4d433cdd13b2c9c9cc33414417172e2ac8f25b883b74",
+          "bytes": 1713342,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000119.png",
+          "transparentPixels": 1825424,
+          "visiblePixels": 828412
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Lauma",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Lauma.png",
+          "sha256": "4cc4e887464fc99e507f04795ce9a376e5c9ea8fdc06164ba25db8b5935ea9b3",
+          "bytes": 588627,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000119.png",
+          "transparentPixels": 88116,
+          "visiblePixels": 305781
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:32",
+      "name": "Linnea",
+      "genshinId": "10000130",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/linnea.json",
+      "technicalName": "Linnea",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Linnea",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Linnea.png",
+          "sha256": "2ecb5af2f4f23e41bb2c3f09da09284a1076569b328d0dd9f6259f4b5edfea16",
+          "bytes": 103121,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000130.png",
+          "transparentPixels": 28990,
+          "visiblePixels": 44901
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Linnea",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Linnea.png",
+          "sha256": "409c4353185222663ce4e7d5d536ed626d110999d1e6576e2bdfecff2d822222",
+          "bytes": 1542483,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000130.png",
+          "transparentPixels": 1582254,
+          "visiblePixels": 976471
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Linnea",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Linnea.png",
+          "sha256": "d28eeececa376de2c7db9f383217efceb15a98896cfac62219a6189b32df890e",
+          "bytes": 546399,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000130.png",
+          "transparentPixels": 46060,
+          "visiblePixels": 325808
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:39",
+      "name": "Nefer",
+      "genshinId": "10000122",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/nefer.json",
+      "technicalName": "Nefer",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Nefer",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Nefer.png",
+          "sha256": "134c9cd3bda3673bd25a084ca226b1118e6139256f39ab2e8f255e530eb66e5d",
+          "bytes": 92825,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000122.png",
+          "transparentPixels": 32064,
+          "visiblePixels": 39058
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Nefer",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Nefer.png",
+          "sha256": "a78b20dd5c59f63386e4fba2a446932167ffa76d4db47c7d2a4f2bcc6b594628",
+          "bytes": 1497296,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000122.png",
+          "transparentPixels": 1762029,
+          "visiblePixels": 795570
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Nefer",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Nefer.png",
+          "sha256": "6064eb8df26070ff55d0b0435269a9d51e193f0a3fdbe6c2886d510860974a46",
+          "bytes": 604980,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000122.png",
+          "transparentPixels": 78845,
+          "visiblePixels": 327652
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:48",
+      "name": "Skirk",
+      "genshinId": "10000114",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/skirk.json",
+      "technicalName": "SkirkNew",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_SkirkNew",
+          "url": "https://enka.network/ui/UI_AvatarIcon_SkirkNew.png",
+          "sha256": "d93cbe0bb923cd197a99a582de5728e84abeb17ca306fffadd16fd4fb3f6c828",
+          "bytes": 96254,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000114.png",
+          "transparentPixels": 27040,
+          "visiblePixels": 44511
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_SkirkNew",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_SkirkNew.png",
+          "sha256": "45a546c850b2460ff38ddb4e9364779252e9af0c628a26188d37681994bdd585",
+          "bytes": 1921854,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000114.png",
+          "transparentPixels": 1347962,
+          "visiblePixels": 1254330
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_SkirkNew",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_SkirkNew.png",
+          "sha256": "4a69a7c87088798255a6ae60c45b4ab07d6f0fa7cd7cef91d57c13ba1e95ffb0",
+          "bytes": 590214,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000114.png",
+          "transparentPixels": 6168,
+          "visiblePixels": 327680
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:52",
+      "name": "Varka",
+      "genshinId": "10000128",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/varka.json",
+      "technicalName": "Varka",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Varka",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Varka.png",
+          "sha256": "88b35ab59b8b86a555eba6c6f281ea4d6543a89b21870523df2a9195a39d8636",
+          "bytes": 97174,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000128.png",
+          "transparentPixels": 24260,
+          "visiblePixels": 47607
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Varka",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Varka.png",
+          "sha256": "ca451471e90b6e2acff83b2b314146ad16ca4556e5bfa1086249c14cebea756a",
+          "bytes": 2173414,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000128.png",
+          "transparentPixels": 1240498,
+          "visiblePixels": 1202373
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Varka",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Varka.png",
+          "sha256": "816ee4dd265a2e2eec2125e39895c235d7565bcc3ed8045e89c40dc47abeb778",
+          "bytes": 553603,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000128.png",
+          "transparentPixels": 14688,
+          "visiblePixels": 320096
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:63",
+      "name": "Zibai",
+      "genshinId": "10000126",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/zibai.json",
+      "technicalName": "Zibai",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Zibai",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Zibai.png",
+          "sha256": "1247831177f163bee3a1eb06f3fd4600c7694909ea22226cb4042fa6febf55be",
+          "bytes": 93581,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000126.png",
+          "transparentPixels": 31157,
+          "visiblePixels": 40809
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Zibai",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Zibai.png",
+          "sha256": "24c5c33432854dbbb9b961d3ac1942a86666686ed587e35ac7d527cab6a741b6",
+          "bytes": 2254462,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000126.png",
+          "transparentPixels": 1337348,
+          "visiblePixels": 1203435
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Zibai",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Zibai.png",
+          "sha256": "d313faca3827fbc0d49b5eb5fbef5286cccb1ecab712981a50ff44f7da722688",
+          "bytes": 579005,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000126.png",
+          "transparentPixels": 34638,
+          "visiblePixels": 327680
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:64",
+      "name": "Aino",
+      "genshinId": "10000121",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/aino.json",
+      "technicalName": "Aino",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Aino",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Aino.png",
+          "sha256": "6d0d39fcddf05e7d79ab8225c6117369b951290b43b9d29d7049b93f797fd296",
+          "bytes": 92961,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000121.png",
+          "transparentPixels": 28177,
+          "visiblePixels": 45311
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Aino",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Aino.png",
+          "sha256": "b1db0c8b5b344ff7e5028bc3905d8c98d0806c31436ff33bba5087c4550a4d6f",
+          "bytes": 902843,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000121.png",
+          "transparentPixels": 1875883,
+          "visiblePixels": 425782
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Aino",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Aino.png",
+          "sha256": "36eab316178abe044e1e6846726f643d366cf25e96fe1e2a5095c994a857d61d",
+          "bytes": 454841,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000121.png",
+          "transparentPixels": 83006,
+          "visiblePixels": 264981
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:74",
+      "name": "Dahlia",
+      "genshinId": "10000115",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/dahlia.json",
+      "technicalName": "Dahlia",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Dahlia",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Dahlia.png",
+          "sha256": "46f6aa0f7b17242cd973bf027e71c71a04d4de5df89aeae61dad8b9e67f34bfb",
+          "bytes": 76296,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000115.png",
+          "transparentPixels": 32393,
+          "visiblePixels": 39356
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Dahlia",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Dahlia.png",
+          "sha256": "80da549032f67c6971e963b230626d56ba31dbf754745ce12f646d84775ff690",
+          "bytes": 737647,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000115.png",
+          "transparentPixels": 1866186,
+          "visiblePixels": 350579
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Dahlia",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Dahlia.png",
+          "sha256": "6ffa19f2b6277a554b1484a75447a1d407bb0d80ea1d84eb5d428ff565f0dfcb",
+          "bytes": 421418,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000115.png",
+          "transparentPixels": 104768,
+          "visiblePixels": 235696
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:83",
+      "name": "Ifa",
+      "genshinId": "10000113",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/ifa.json",
+      "technicalName": "Ifa",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Ifa",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Ifa.png",
+          "sha256": "17b4931649dad29602bcf4017bdc78a4c927e9fbff15d72cd3585755abfbd096",
+          "bytes": 96437,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000113.png",
+          "transparentPixels": 23149,
+          "visiblePixels": 48812
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Ifa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Ifa.png",
+          "sha256": "cec64c89963349037f4e69e214d758e0cf38f99ee8bebc46b1c89c392982b872",
+          "bytes": 1189781,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000113.png",
+          "transparentPixels": 1775295,
+          "visiblePixels": 624472
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Ifa",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Ifa.png",
+          "sha256": "14655d16857efeaed7fa5b0372d02d04e7ff0d9acaa044084b1223f8e231982d",
+          "bytes": 469095,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000113.png",
+          "transparentPixels": 61069,
+          "visiblePixels": 279703
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:84",
+      "name": "Illuga",
+      "genshinId": "10000127",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/illuga.json",
+      "technicalName": "Illuga",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Illuga",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Illuga.png",
+          "sha256": "ce9c7715e3dacca078420d3e0420a6bcabd223359b3ecab263d8103119b918a7",
+          "bytes": 79170,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000127.png",
+          "transparentPixels": 31377,
+          "visiblePixels": 40518
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Illuga",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Illuga.png",
+          "sha256": "c352c6ca36cc199e4b1c454de788476431ee142fba3517c4e6fe4a2cd2f72ddc",
+          "bytes": 810252,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000127.png",
+          "transparentPixels": 1869678,
+          "visiblePixels": 423017
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Illuga",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Illuga.png",
+          "sha256": "bd7687193b9964a5b5231178e0095f0bc41c098443a33e9ab0beac01c0d63c18",
+          "bytes": 396301,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000127.png",
+          "transparentPixels": 131979,
+          "visiblePixels": 226380
+        }
+      }
+    },
+    {
+      "externalKey": "legacy:85",
+      "name": "Jahoda",
+      "genshinId": "10000124",
+      "metadataUrl": "https://raw.githubusercontent.com/theBowja/genshin-db/49a6544a6c6ae36089cb42fa591fc46f01de8bcf/src/data/French/characters/jahoda.json",
+      "technicalName": "Jahoda",
+      "assets": {
+        "iconPath": {
+          "technicalName": "UI_AvatarIcon_Jahoda",
+          "url": "https://enka.network/ui/UI_AvatarIcon_Jahoda.png",
+          "sha256": "543c81c8d3bfefeee2b68c742191a57df39efa0313c484cf00ca43bd02901419",
+          "bytes": 90901,
+          "width": 256,
+          "height": 256,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/icons/10000124.png",
+          "transparentPixels": 30149,
+          "visiblePixels": 42117
+        },
+        "splashPath": {
+          "technicalName": "UI_Gacha_AvatarImg_Jahoda",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarImg_Jahoda.png",
+          "sha256": "fcc5b3a627ad5b78b8d7341003afb8555984d5a89d93c7dd67217dcbbd1faff1",
+          "bytes": 714413,
+          "width": 2048,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/splash/10000124.png",
+          "transparentPixels": 1905608,
+          "visiblePixels": 390555
+        },
+        "wishPath": {
+          "technicalName": "UI_Gacha_AvatarIcon_Jahoda",
+          "url": "https://enka.network/ui/UI_Gacha_AvatarIcon_Jahoda.png",
+          "sha256": "ac7ce999e52e024d0658f215497dae7d2ded200637c0cf659011947c37a7e4fe",
+          "bytes": 458007,
+          "width": 320,
+          "height": 1024,
+          "colorType": 6,
+          "path": "/assets/genshin/characters/wish/10000124.png",
+          "transparentPixels": 121877,
+          "visiblePixels": 243326
+        }
+      }
+    }
+  ]
+}
