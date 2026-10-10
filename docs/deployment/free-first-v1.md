@@ -52,7 +52,7 @@ Les variables `VITE_*` sont intégrées au build. Elles ne doivent jamais conten
 
 - `FRONTEND_ORIGIN` Railway : `https://gachaimpact.pages.dev` (origine exacte, sans wildcard).
 - Supabase Auth Site URL : `https://gachaimpact.pages.dev`.
-- Redirect URLs autorisées : `https://gachaimpact.pages.dev` et `http://localhost:5173`.
+- Redirect URLs confirmées par le propriétaire le 10/10/2026 : `https://gachaimpact.pages.dev`, `http://localhost:5173` et leurs deux chemins `/auth/recovery` explicites.
 - Cloudflare Pages et Supabase utilisent leurs offres Free actuelles.
 
 ### Validation publique — FAIT
@@ -63,9 +63,19 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 Le candidat utilise un retour fixe `/auth/recovery`, servi directement par le fallback SPA Cloudflare Pages. Conserver Site URL `https://gachaimpact.pages.dev` et autoriser explicitement `https://gachaimpact.pages.dev/auth/recovery` ainsi que `http://localhost:5173/auth/recovery` pour le développement. Les origines seules documentées plus haut ne prouvent pas l'autorisation de ces chemins. Aucun wildcard, retour arbitraire, modification SMTP payante ou secret frontend ajouté.
 
-Avant promotion, vérifier réellement l'allowlist, le template de récupération natif (ConfirmationURL), l'expiration des liens, la politique de mot de passe/réauthentification, l'expéditeur SMTP existant et les limites e-mail applicables. La documentation officielle [SMTP Supabase](https://supabase.com/docs/guides/auth/auth-smtp) précise les restrictions du fournisseur intégré ; ne pas supposer une délivrabilité publique sur tous les destinataires. Une requête `/auth/v1/settings` publique ne prouve ni cette configuration privée ni la réception.
+Le propriétaire confirme les quatre Redirect URLs et le modèle Reset Password par défaut ; il a personnellement réussi la demande, la réception Supabase, le lien local, la modification puis la reconnexion sur son adresse autorisée d’équipe. La recette visuelle des trois retouches du candidat `a6f28e8` est également validée. Ces preuves ne sont pas une inspection Management Auth par Codex : valeurs privées d’expiration/politique/quota non relevées. La validation native du SDK, le refus des callbacks invalides/expirés, la vérification serveur `getUser`, la séparation des sessions et le filtrage des erreurs restent obligatoires et couverts par les contrôles acquis ; aucune exception de sécurité n’est introduite.
 
-Preuve e-mail uniquement dans une boîte contrôlée explicitement autorisée ; aucun envoi aux joueurs, aucun mot de passe demandé. Si l'accès opérateur ou cette preuve manque, conserver le candidat sur review et déclarer la gate manquante au Master. Un GET 200 du chemin valide l'hébergement SPA, pas le callback Auth ni le nouveau bundle. Les tests simulés et les captures locales ne valent jamais envoi/réception réels.
+**Exception temporaire décidée explicitement le 10/10/2026 :** le propriétaire autorise promotion et déploiements de R1058 malgré la restriction du SMTP intégré. Seule la gate de délivrabilité générale est levée pour cette livraison. Le fournisseur intégré refuse les destinataires hors équipe Supabase ; aucune disponibilité générale de la récupération e-mail ni réception pour les joueurs ordinaires n’est revendiquée. Aucun SMTP personnalisé, fournisseur ou achat supplémentaire configuré. [Restriction officielle Supabase](https://supabase.com/docs/guides/auth/auth-smtp). Une erreur fournisseur reste une erreur, jamais une certitude d’envoi.
+
+Preuve e-mail uniquement dans une boîte contrôlée autorisée ; aucun envoi aux joueurs ni mot de passe demandé. Un GET 200 valide l’hébergement SPA, pas le callback ou une session. Les tests simulés et captures ne valent jamais réception réelle. Suspendre la promotion si un défaut critique de validation/expiration, confidentialité, session ou identité apparaît ; l’exception SMTP ne le couvre pas. État des SHA et déploiements : [Master](../master/PROJECT_MASTER_PLAN.md#point-courant--r1058-codesmissions-et-restitution-du-tirage-event).
+
+## Domaine gachaimpact.fr — pause propriétaire jusqu’au 11/10/2026
+
+Le propriétaire déclare avoir acheté `gachaimpact.fr` chez OVHcloud, enregistré jusqu’au 10 octobre 2029. État transmis : Cloudflare Free sélectionné, domaine ajouté, neuf enregistrements importés, MX OVH et SPF conservés. La délégation DNS reste OVHcloud, aucun changement de serveurs de noms ; DNSSEC OVH affiché « En cours d’activation », aucun DS publié au dernier contrôle public rapporté, onglet DNS des opérations OVH en erreur d’interface. Ces informations sont un état propriétaire, sans nouvelle vérification DNS prétendue pour cette clôture.
+
+**Configuration DNS/Cloudflare/Brevo reportée au 11 octobre 2026.** Brevo et SMTP personnalisé non configurés. Aujourd’hui : aucune écriture OVHcloud, Cloudflare DNS ou Brevo. L’adresse officielle reste `https://gachaimpact.pages.dev` ; CORS, callbacks Twitch, URL Supabase et domaine du standalone inchangés. Cette pause ne bloque pas R1058 sous l’exception SMTP ci-dessus.
+
+À la reprise du 11/10, vérifier d’abord délégation NS, DS publics et état DNSSEC OVH ; résoudre l’incertitude/interface avant toute modification coordonnée DNSSEC/délégation. Contrôler les neuf enregistrements, préserver MX/SPF puis préparer DNS/Cloudflare et l’authentification d’expéditeur Brevo dans le périmètre autorisé. Vérifier ensuite réellement la réception sur une adresse contrôlée hors équipe Supabase avant de déclarer la récupération généralement disponible. Toute éventuelle bascule du domaine du jeu et adaptation CORS/callbacks/redirects relève de cette reprise, pas de la clôture R1058. Aucune nouvelle dépense n’est autorisée implicitement.
 
 ## À surveiller
 
