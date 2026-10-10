@@ -5961,6 +5961,10 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   background: #0a1428;
 }
 
+@media (max-width: 760px) {
+  .team-selector-filters { grid-template-columns: minmax(0, 1fr); }
+}
+
 .selector-character-grid .character-card.disabled {
   cursor: not-allowed;
   filter: grayscale(.82);

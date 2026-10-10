@@ -20,9 +20,13 @@ Mandat propriétaire A–J, après la passation f10d335 ; aucune nouvelle Rxxx n
 ## Contrôles locaux
 
 - verify:full 8/8 et verify:quick 5/5 : 1 390 tests frontend, 2 176 backend non-DB, builds, TypeScript, lint et diff-check. Rapports complets conservés dans le répertoire privé du lot.
-- PostgreSQL isolé, fichier par fichier : Team 20 PASS (réutilisation, création, clés concurrentes, conflit ajout/retrait, replays après édition) ; Défi 11 PASS (cible/progression persistées réelles) ; Shop 10 PASS (cinq résultats Ticket et replay sans reroll) ; Combat 9 PASS. Pilote Twitch en contrôle complémentaire, résultat consigné à la clôture.
+- PostgreSQL isolé, fichier par fichier : Team 20 PASS (réutilisation, création, clés concurrentes, conflit ajout/retrait, replays après édition) ; Défi 11 PASS (cible/progression persistées réelles) ; Shop 10 PASS (cinq résultats Ticket et replay sans reroll) ; Combat 9 PASS ; pilote Twitch 28 PASS au passage complet final, sans exclusion. Total 78 PASS. Avertissement pg de requêtes concurrentes sur un client déjà occupé conservé dans les logs, sans assertion métier échouée au passage final.
 - Tests de format/aliases/confidentialité/limites et mutation Team : nouvelle suite `command-fixes-20261010.test.ts`, suites existantes adaptées aux contrats actuels. Aucun test exclu présenté comme réussi.
 - Test navigateur synthétique privé du vrai GameShell avec index.css/App.css chargés : 1366×768, 1920×1080, 2560×1440, 390×844 ; 80 personnages, grille pleine/filtrée/vide, scroll avant/après, recherche/élément, sélection/confirmation, focus/Tab/Escape/pending. Quatre états de viewport PASS, huit captures, zéro erreur JS et zéro requête extérieure. Captures desktop/mobile inspectées ; aucun résultat visuel humain public revendiqué.
+
+La review indépendante du premier SHA publié `9b23ed90f6c2ac9fb02126761c166648eadf2f0c` a confirmé un P2 : règle globale tardive supplantant la grille mobile, filtre Élément masqué par le débordement de la modale (select jusqu’à x427, panneau jusqu’à x370 à 390px). Correction : règle mobile réaffirmée après le style global ; nouveau contrôle navigateur des bornes de recherche/select/fermeture/confirmation, quatre viewports à nouveau PASS. La première preuve d’absence d’overflow document ne suffisait pas à exclure un contrôle coupé ; le verdict final doit porter sur le delta publié corrigé.
+
+Le premier passage pilote Twitch a atteint la borne 60 s du scénario existant de quatorze commandes/redélivraisons ; son travail asynchrone tardif a perturbé le compteur du test suivant (26 PASS, 2 FAIL). Seule sa borne privée passe à 180 s, toutes les assertions conservées. Nouveau passage complet : 28/28 PASS en 299 s ; aucun échec initial effacé ou déclaré PASS. Après correction CSS : navigateur quatre tailles PASS et verify:quick 5/5.
 
 ## Sauvegarde et preuves runtime
 

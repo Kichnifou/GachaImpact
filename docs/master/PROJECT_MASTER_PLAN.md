@@ -2,7 +2,7 @@
 
 Version : Mission consolidée V1 du 10/10/2026 — correctifs A–J.
 Date : 2026-10-10
-Statut : **Candidat A–J en préparation sur review ; main reste 2aa7dd5 jusqu’aux gates de publication/review indépendante.** Aucune mutation de recette sur les joueurs publics.
+Statut : **Correctifs A–J implémentés et contrôlés ; livraison selon le cycle permanent, preuves de déploiement et postflight consignées après exécution.** Aucune mutation de recette sur les joueurs publics ; validation humaine des nouveaux textes et de la modale non revendiquée.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
 ## Point courant — mission consolidée A–J du 10/10/2026
@@ -10,6 +10,8 @@ But : porter l'état réel, les preuves et la prochaine reprise.
 Le mandat remplace l’attente de passation : Ticket Moras, résolution personnelle/tierce exacte des Légendes, création/réutilisation atomique Team, modale à grille seule scrollable, description conversion, missions permanentes/résumé distinct, horaires Event, Quotidiennes et composition Combat sont implémentés. Le cycle permanent review → review indépendante du SHA → main ff-only → déploiements → postflight s’applique sans nouveau GO lorsque les gates passent. [Contrats et preuves du lot](../architecture/command-fixes-20261010.md), [workflow permanent](../process/implementation-workflow.md).
 
 Bootstrap : review f10d335a066ee2ab68267f29b4915b4a262a6824, main 2aa7dd584effa421ff804dcd850ab3bbcdc9d8ff, divergence review +2/−0 ; commits documentaires 5317c38/f10d335 conservés. Aucun import, réparation économique, changement d’autorité, migration Prisma, nouvelle infrastructure ni mécanisme d’authentification. Les contrôles existants Railway/Cloudflare/health/SQL/Helix sont réutilisés ; leur niveau de preuve reste explicite.
+
+Contrôles : verify:full 8/8 (1 390 frontend, 2 176 backend non-DB), verify:quick 5/5 ; PostgreSQL privé et GameShell/CSS aux quatre viewports détaillés dans la preuve du lot. La review indépendante de 9b23ed9 a détecté le filtre Élément mobile tronqué ; correction responsive et bornes de chaque contrôle vérifiées à nouveau. Toute promotion exige le verdict du delta réellement publié. Les déploiements R1065 de l’historique ne prouvent pas la livraison A–J.
 
 Les recettes de nouveaux comptes R1064 restent différées. R1053 sera la prochaine mission fonctionnelle après clôture de ce lot, non commencée ; R1058, Catalogue, UX et bêta restent ensuite dans l’ordre durable. Eclipsia et Story hors périmètre.
 

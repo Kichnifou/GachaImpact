@@ -1,5 +1,7 @@
 # 11 — Audit legacy Missions / Daily
 
+**Amendement propriétaire du 10/10/2026 :** la consultation textuelle est désormais exclusivement permanente : racine `!mission` = comptes B/A/S/Z, `!mission resume` et aliases = tous les objectifs accessibles non terminés, même non commencés ; Z verrouillé reste secret. Ce contrat supersède les anciens résumés Défi + permanentes et l’alias équivalent, sans changer le système Défi. Description conversion et résumé Quotidiennes (durée autoritative Expédition, retrait de Faveur de ce seul résumé) : [registre courant](../commands/command-reference.md), [contrôles](../architecture/command-fixes-20261010.md). Règles, cibles, compteurs et récompenses conservés ; historiques R1038 et ci-dessous datés.
+
 **Amendement Chat R1038 — étape 29 :** Achat/switch/conversion Chat conservent un snapshot de résultat dans le reçu BusinessOperation existant et source INTERNAL_CHAT ; les appels UI gardent leur source UI. Les récompenses de défi terminé sont annoncées depuis les crédits réels, sans second calcul. Résumé mission normalise résumé/récap, rangs entiers et Z secret inchangés ; quotis/quoti/daily consulte aussi cœurs/Event/Faveur sans acquisition. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
 
 Statut : CLÔTURÉ — R299 À R339 VALIDÉS / DÉRIVÉS

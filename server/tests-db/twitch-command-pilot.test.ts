@@ -339,7 +339,9 @@ describe('R1063 repeated commands and selection parity', () => {
     const invalidReceipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: invalid.headers['twitch-eventsub-message-id'] } });
     expect(invalidReceipt.payloadMinimal).toMatchObject({ commandPilot: { args: ['visible'], responses: [{ text: 'Syntaxe : !banniere.', status: 'SENT' }] } });
     expect(await state()).toEqual(before);
-  }, 60_000);
+  // Fourteen real commands plus both redelivery paths traverse the remote
+  // isolated database. Let this complete before the next shared-mock scenario.
+  }, 180_000);
   it('freezes a long thread-author reply budget once for concurrent deliveries and preserves every Box entry', async () => {
     const before = await state(), executions = business.mock.calls.length, sends = outbound.send.mock.calls.length;
     const body = event('!box');
