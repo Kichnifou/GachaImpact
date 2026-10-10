@@ -2,7 +2,7 @@
 
 Version : Mission consolidée V1 du 10/10/2026 — correctifs A–J.
 Date : 2026-10-10
-Statut : **Correctifs A–J implémentés et contrôlés ; livraison selon le cycle permanent, preuves de déploiement et postflight consignées après exécution.** Aucune mutation de recette sur les joueurs publics ; validation humaine des nouveaux textes et de la modale non revendiquée.
+Statut : **Correctifs A–J déployés et clôturés techniquement ; contrôles et intégrité conformes.** Aucune mutation de recette sur les joueurs publics ; validation humaine des nouveaux textes et de la modale non revendiquée.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
 ## Point courant — mission consolidée A–J du 10/10/2026
@@ -11,7 +11,13 @@ Le mandat remplace l’attente de passation : Ticket Moras, résolution personne
 
 Bootstrap : review f10d335a066ee2ab68267f29b4915b4a262a6824, main 2aa7dd584effa421ff804dcd850ab3bbcdc9d8ff, divergence review +2/−0 ; commits documentaires 5317c38/f10d335 conservés. Aucun import, réparation économique, changement d’autorité, migration Prisma, nouvelle infrastructure ni mécanisme d’authentification. Les contrôles existants Railway/Cloudflare/health/SQL/Helix sont réutilisés ; leur niveau de preuve reste explicite.
 
-Contrôles : verify:full 8/8 (1 390 frontend, 2 176 backend non-DB), verify:quick 5/5 ; PostgreSQL privé et GameShell/CSS aux quatre viewports détaillés dans la preuve du lot. La review indépendante de 9b23ed9 a détecté le filtre Élément mobile tronqué ; correction responsive et bornes de chaque contrôle vérifiées à nouveau. Toute promotion exige le verdict du delta réellement publié. Les déploiements R1065 de l’historique ne prouvent pas la livraison A–J.
+Contrôles : verify:full 8/8 (1 390 frontend, 2 176 backend non-DB), verify:quick 5/5, PostgreSQL privé 78 PASS sans exclusion ; GameShell/CSS aux quatre viewports. La review indépendante de 9b23ed9 a détecté le filtre Élément mobile tronqué ; correction responsive et bornes de chaque contrôle revérifiées. Verdict indépendant **APPROVED de 81223a9c5fc8ef7432267a0353b879b9c67289c6** : 35 puis 7 blobs GitHub, 157 tests ciblés indépendants et quatre viewports recontrôlés. Rapport privé review-independent-delta.md, SHA-256 7457c500dd0de055f8386f18e2f9a0cefbba8fc1a80280f3e1e6f8ee244943fe. Fast-forward strict effectué, refs distantes communes et divergence 0/0 vérifiées avant cette clôture documentaire ; les refs GitHub portent le SHA du checkpoint documentaire final sans recopier son propre hash.
+
+**Déploiement applicatif du 10/10 :** Railway 365541dd-0fbb-4488-9f19-cdac9423be4d SUCCESS au SHA applicatif 81223a9, Online 1/1, zéro crash/pending work ; Cloudflare 61dca8e1-9b54-4945-be52-a9fa028a5acc SUCCESS au même SHA, assets production/preview identiques octet par octet. Backend health 200 à 07:05:55 UTC. Logs pertinents : messages informatifs de chargement Prisma classés stderr, aucun échec opérationnel observé dans cette fenêtre. Les déploiements R1065 conservés ci-dessous ne sont pas utilisés comme preuve A–J.
+
+**Intégrité fraîche :** captures RO cohérentes de 144 tables à 06:51:17 et 07:06:32 UTC, 12 339 contrôles PASS, 143 tables exactes ; seule variation : last_heartbeat_at d’une session, tous ses autres champs identiques. 54 Players conservés, 44 historiques/targets/imports intacts, Céo ARCHIVED/Ceotryd ACTIVE/NATIVE, StreamElements et exclusions/quarantaines inchangés. Zéro nouvelle opération et mouvement économique, zéro PENDING/receipt bloquant/annonce incertaine ; 68 checksums et statut Prisma conformes, backup complet validé conservé. [Détails et limites](../architecture/command-fixes-20261010.md#déploiement-et-postflight-du-candidat-approuvé).
+
+**Niveaux runtime :** configuration Railway activée, DB GLOBAL révision 19 et Chat ACTIVE inspecté réellement via Helix/callback canoniques. Processus servi attesté par déploiement exact, replica et HTTP ; aucun GET authentifié du statut opérateur ni fausse session. Zéro nouveau receipt de commande entre démarrage réussi et capture postflight : l’exécution utilisateur des nouveaux textes après restart n’est pas confirmée. Aucun achat Ticket, Combat, claim ou ressource rare consommé pour une recette ; le rapport fournit seulement la courte recette humaine de présentation restante.
 
 Les recettes de nouveaux comptes R1064 restent différées. R1053 sera la prochaine mission fonctionnelle après clôture de ce lot, non commencée ; R1058, Catalogue, UX et bêta restent ensuite dans l’ordre durable. Eclipsia et Story hors périmètre.
 
