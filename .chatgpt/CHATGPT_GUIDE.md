@@ -18,7 +18,9 @@ Toute mission de développement autorisée accomplit par défaut développement,
 
 # 1. Projet
 
-Les directives permanentes du 10/10/2026 sur le jeu actif et les vérifications autonomes ont une seule source : [production vivante et comparaisons BEFORE/AFTER](../docs/process/implementation-workflow.md#production-vivante-et-comparaisons-beforeafter--directive-propriétaire-du-10102026), [preuves après déploiement](../docs/process/implementation-workflow.md#vérifications-autonomes-après-déploiement--directive-propriétaire-du-10102026). Appliquer ces règles sans transformer une configuration en preuve runtime, inventer un accès authentifié ou demander une manipulation déjà couverte par une preuve équivalente. Une orientation de diagnostic futur ne vaut pas mécanisme livré.
+**Production vivante — règle permanente du 10/10/2026 :** les joueurs continuent de jouer sur Twitch et le standalone pendant les missions. Leurs commandes, nouveaux comptes, sessions, achats, gains et variations ordinaires sont du **bruit de fond à ignorer lorsqu'il est hors périmètre** : ne pas interrompre le travail ni mener d'enquêtes inutiles. Seuls les changements liés au lot, à un contrôle indispensable ou à un risque sérieux (perte, double gain, identité, permissions, sécurité) appellent une investigation. Le [workflow de production vivante](../docs/process/implementation-workflow.md#production-vivante-et-comparaisons-beforeafter--directive-propriétaire-du-10102026) est la source détaillée de cette norme pour ChatGPT et Codex.
+
+Pour les vérifications post-déploiement, suivre les [preuves autonomes](../docs/process/implementation-workflow.md#vérifications-autonomes-après-déploiement--directive-propriétaire-du-10102026) sans confondre configuration, DB, processus, transport et preuve utilisateur, inventer une session authentifiée ou redemander une preuve équivalente déjà acquise. Un outil de diagnostic futur n'est pas présumé livré.
 
 Repository public :
 

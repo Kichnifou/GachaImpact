@@ -34,11 +34,17 @@ La règle consolidée du 09/10 est désormais incluse dans ce cycle permanent. S
 
 ## Production vivante et comparaisons BEFORE/AFTER — directive propriétaire du 10/10/2026
 
-Les joueurs continuent à jouer sur Twitch et le standalone pendant les missions. Entre deux captures, dépenses/gains, invocations, achats, commandes, XP/niveaux, attaques Boss, cœurs, missions, quotidiennes, nouveaux Players sous GLOBAL, présence et sessions sont des changements normaux possibles ; leur seule existence ne prouve pas une régression. Un nombre de Players constaté dans un audit n'est pas une population figée.
+### Activité normale des joueurs — norme permanente précisée le 10/10/2026
 
-Pour chaque comparaison BEFORE/AFTER, relever la fenêtre exacte et la cohérence des captures ; rapprocher chaque écart des opérations métier, receipts, transactions et propriétaires concernés. Distinguer actions légitimes et effets du déploiement ; vérifier Player IDs, montants, consommation/acquisition, unicité et résultats persistés. Une absence de mouvement de ressource ne prouve pas l'absence de mutation d'inventaire ou d'un autre domaine. Alerter sur les écarts non attribués, incohérents ou potentiellement dangereux, avec les preuves et limites utiles. Ne jamais ignorer un écart inexpliqué au motif que le jeu est actif ; suspendre l'action dépendante risquée tant qu'il n'est pas résolu.
+GachaImpact est joué normalement sur Twitch et le standalone pendant les audits, modifications, tests, reviews et déploiements. Messages, commandes, nouveaux Players et sessions, XP, achats, invocations, combats, Missions, Quotidiennes, Event, Boss et variations de ressources sont des événements attendus. Les valeurs observées dans un snapshot (joueurs, soldes, receipts, inventaires, progression) ne sont pas figées pendant une mission.
 
-Éviter un gel général du jeu pour des correctifs de présentation. Réserver interruptions et gates sensibles aux mutations qui les exigent réellement ; ne pas rejouer les actions des joueurs pour expliquer une capture. Conserver preuves, historiques et sauvegardes ; aucune purge ou réparation économique implicite.
+**Par défaut, ignorer opérationnellement ces changements naturels lorsqu'ils sont sans rapport avec le lot.** Ne pas interrompre les travaux, relancer des tests, modifier le code ni consacrer du temps à enquêter sur chaque commande ou chaque mutation de vrai joueur uniquement parce que deux captures diffèrent. Pour un simple correctif d'affichage, ne pas déclencher par réflexe des audits exhaustifs des tables, compteurs ou opérations. Cette activité est du bruit de fond, pas une régression présumée ; poursuivre la mission et limiter les contrôles aux invariants réellement touchés.
+
+**N'investiguer que si nécessaire** : lien direct avec le service ou comportement modifié ; preuve requise par le test ou le gate de sécurité ; indice crédible de perte/corruption, double gain/débit, atteinte aux identités/permissions, incident de sécurité ou régression sérieuse. Ne pas classer sans preuve un échec de test, un invariant violé ou un écart potentiellement dangereux comme « simple activité joueur ». Suspendre seulement l'action risquée dépendante et poursuivre les travaux indépendants sûrs.
+
+Si un contrôle BEFORE/AFTER est nécessaire et proportionné au risque, borner la fenêtre et les domaines, puis expliquer uniquement les écarts pertinents avec les opérations, receipts, transactions, identités, montants et règles d'unicité. Ne jamais attribuer arbitrairement une différence à l'activité des joueurs ni présenter une intégrité non vérifiée comme prouvée. Un audit global reste légitime lorsqu'un mécanisme sensible ou un gate explicite l'exige, mais ne doit pas devenir une routine coûteuse à chaque livraison.
+
+Pas de gel général, de rejeu des actions des joueurs, de réimport ou de réparation/purge implicite. Préserver les sauvegardes et protections économiques. Cette norme remplace les anciennes formulations qui imposaient de justifier systématiquement chaque variation mineure.
 
 ## Vérifications autonomes après déploiement — directive propriétaire du 10/10/2026
 
