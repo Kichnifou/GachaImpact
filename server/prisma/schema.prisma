@@ -469,6 +469,7 @@ model Player {
   giftCodesUpdated      GiftCode[]                   @relation("GiftCodeUpdater")
   eventCurrencyBalances PlayerEventCurrencyBalance[]
   eventParticipations   EventParticipant[]
+  eventMonthlyWins      EventMonthlyDraw[]
   eventMilestoneClaims  EventMilestoneClaim[]
   eventCalendarClaims   EventCalendarClaim[]
   eventDailyStates      EventDailyPlayerState[]
@@ -1428,6 +1429,7 @@ model BusinessOperation {
   giftCodeClaim      GiftCodeClaim?
   eventMilestoneClaim EventMilestoneClaim?
   eventCalendarClaim  EventCalendarClaim?
+  eventMonthlyDraw   EventMonthlyDraw?
   friendHeart        FriendHeart?
   globalChatMessage  GlobalChatMessage?
   directMessage      DirectMessage?
@@ -1473,10 +1475,44 @@ model EventEdition {
   milestoneClaims   EventMilestoneClaim[]
   calendarClaims    EventCalendarClaim[]
   collectionAcquisitions EventCollectionAcquisition[]
+  monthlyDraw       EventMonthlyDraw?
 
   @@unique([eventDefinitionId, year], map: "event_editions_definition_year_key")
   @@index([startsAt, endsAt], map: "event_editions_period_idx")
   @@map("event_editions")
+}
+
+model EventDrawActivation {
+  id                   String   @id @db.Text
+  activatedAt          DateTime @map("activated_at") @db.Timestamptz(6)
+  firstEditionStartsAt DateTime @map("first_edition_starts_at") @db.Timestamptz(6)
+  draws                EventMonthlyDraw[]
+
+  @@map("event_draw_activation")
+}
+
+model EventMonthlyDraw {
+  eventEditionId String    @id @map("event_edition_id") @db.Uuid
+  activationId   String    @map("activation_id") @db.Text
+  closesAt       DateTime  @map("closes_at") @db.Timestamptz(6)
+  status         String    @default("PENDING") @db.Text
+  entropySeed    String    @map("entropy_seed") @db.Text
+  population     Json?     @db.JsonB
+  totalTickets   Decimal?  @map("total_tickets") @db.Decimal(78, 0)
+  ticketIndex    Decimal?  @map("ticket_index") @db.Decimal(78, 0)
+  winnerPlayerId String?   @map("winner_player_id") @db.Uuid
+  operationId    String?   @unique(map: "event_monthly_draws_operation_id_key") @map("operation_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  frozenAt       DateTime? @map("frozen_at") @db.Timestamptz(6)
+  completedAt    DateTime? @map("completed_at") @db.Timestamptz(6)
+  edition        EventEdition @relation(fields: [eventEditionId], references: [id], onDelete: Restrict)
+  activation     EventDrawActivation @relation(fields: [activationId], references: [id], onDelete: Restrict)
+  winner         Player? @relation(fields: [winnerPlayerId], references: [id], onDelete: Restrict)
+  operation      BusinessOperation? @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([status, closesAt], map: "event_monthly_draws_pending_idx")
+  @@index([winnerPlayerId], map: "event_monthly_draws_winner_idx")
+  @@map("event_monthly_draws")
 }
 
 model EventCalendarClaim {

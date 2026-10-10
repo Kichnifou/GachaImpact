@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1053 — résultat mensuel Event et lecture des messages
+
+`EventDrawActivation` fixe la frontière sans arriérés. `EventMonthlyDraw` appartient à une seule `EventEdition` et conserve clôture/état/graine privée/population/poids exacts/position/gagnant/opération et dates. PENDING réserve, FROZEN scelle sans paiement définitif, COMPLETED lie attribution acquise et notifications, NO_ELIGIBLE clôt sans gagnant. Les états terminaux et poids scellés sont immuables ; l'acquisition Stella utilise les modèles et le propriétaire Codes existants. Aucun nouveau stock ni résultat Concours C6. [Modèle physique 069](../architecture/postgresql-schema-v1.md#r1053-migration-069), [invariants et scheduler](../architecture/event-monthly-draw-r1053.md).
+
+`EventSocialMessage.viewedAt` demeure la source unique du non-lu destinataire. Les liens message/indices de toutes les réponses contenant son contenu sont privés dans BusinessOperation/receipt existants ; seul SENT intégral confirmé ou consultation standalone renseigne la lecture. Une tentative, sortie partielle ou ambiguë conserve null et l'historique. La réconciliation des anciennes preuves du jour n'ajoute pas de faux receipt.
+
 ## Complément R1063 — preuve privée des réponses longues
 
 Le modèle physique candidat ajoute `GiveawayAnnouncement.fullText` nullable, preuve opérateur du texte intégral exceptionnellement indivisible au-delà du budget Twitch450. `text` reste le message exact à envoyer/rejouer ; le DTO joueur ne renvoie pas `fullText`. Aucun autre nouveau modèle économique : les restaurations de domaines utilisent les tables propriétaires et les journaux `MigrationBatch`. [Contrat](../architecture/legacy-domains-r1063.md), [DDL067](../architecture/postgresql-schema-v1.md).

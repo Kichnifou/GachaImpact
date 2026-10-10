@@ -1,5 +1,11 @@
 # Notifications V1 — contrat transverse
 
+## Producteurs R1053 et lecture des messages Event
+
+`EVENT_MONTHLY_DRAW_WON` est informationnelle : vrai Festival terminé, texte « 🏆 Tu remportes le tirage du <Festival> ! ✨ +1 Masterless Stella Fortuna », clé `event-draw-won:<editionId>`, aucun claim. `EVENT_MONTHLY_DRAW_ADMIN` est privée aux ADMIN actifs, clé par édition/Player : édition, gagnant, tickets utiles, attribution confirmée et opération ; une édition vide indique explicitement aucun éligible/aucune Stella. La liste vérifie le rôle courant et masque ce type après révocation. Création dans la transaction de récompense/résultat, ou de clôture vide, sans doublon ni broadcast Twitch. [Propriétaire Event et atomicité](../architecture/event-monthly-draw-r1053.md).
+
+Pour `EVENT_MESSAGES_PENDING`, une présentation Twitch confirmée exige SENT de tous les segments identifiés du message avec ID Twitch ; lecture et agrégat committent avec cet accusé. Une préparation/BusinessOperation/FAILED/AMBIGUOUS/SENDING ne résout pas le non-lu. Le standalone conserve la consultation réelle de la zone, un message neuf réactive l'agrégat existant, aucun envoi n'ajoute de compteur expéditeur. Un accusé tardif ne réactive pas l'agrégat de la veille ; historique/reçus conservés. [Contrat de lecture et compatibilité bornée](../architecture/event-monthly-draw-r1053.md#messages--preuve-de-consultation).
+
 ## Archive bulk joueur — micro-polish avant canary
 
 Dernier retour propriétaire : les deux actions partagent une hauteur de 18 px, une police de 9 px et un espacement vertical de 1 px ; leur bloc de 37 px s’aligne au bas et à gauche de la zone droite du heading. Le panneau conserve sa largeur, les états métier ci-dessous sont inchangés. Rendu contrôlé dans le GameShell avec CSS de production aux quatre viewports du contrat, trois états par viewport, focus/hover et transitions lecture/archive ; aucune recette publique présumée.
@@ -36,6 +42,8 @@ Dans le panneau, une ligne avec destination a le curseur `pointer`, même lue. S
 | `event / EVENT_MESSAGES_PENDING` | Actionnable | Consultation ou rollover ; nouvel envoi peut réactiver | Événement > Jeux > Panier |
 | `event / EVENT_EDITION_AVAILABLE` | Actionnable | Fin ou désactivation de l'édition | Événement |
 | `event / EVENT_EDITION_LAST_DAY` | Actionnable | Fin de la journée valide ou désactivation | Événement > Shop |
+| `event / EVENT_MONTHLY_DRAW_WON` | Informationnelle | Cycle général ; Stella déjà attribuée | Aucune |
+| `event / EVENT_MONTHLY_DRAW_ADMIN` | Informationnelle, privée ADMIN courant | Cycle général ; attribution ou absence d'éligible confirmée | Aucune |
 | `social / FRIEND_REQUEST_RECEIVED` | Actionnable | Acceptation, refus ou annulation | Social > Demandes |
 | `social / FRIEND_REQUEST_ACCEPTED` | Informationnelle | Archive au clic validée | Social > Amis |
 | `trades / TRADES_PENDING` | Actionnable | Traitement des demandes | Échanges > Reçues |

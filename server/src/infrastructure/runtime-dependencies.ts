@@ -36,6 +36,7 @@ import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js'
 import { PrismaGachaStore } from './database/prisma-gacha-store.js';
 import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
+import { EventMonthlyDrawScheduler, EventMonthlyDrawService } from '../application/event/event-monthly-draw-service.js';
 import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from '../application/box/box-services.js';
 import { PrismaBoxStore } from './database/prisma-box-store.js';
 import { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from '../application/team/team-services.js';
@@ -151,6 +152,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   });
   const giftCodeService: GiftCodeService = new GiftCodeService(getCurrentPlayer, database, clock, {}, eventService);
   const giftCodeScheduler = new GiftCodeScheduler(giftCodeService);
+  const eventMonthlyDrawScheduler = new EventMonthlyDrawScheduler(new EventMonthlyDrawService(database, clock), eventService, database, clock);
   const missionEconomy = new PrismaEconomyService();
   const permanentMissionService = new PermanentMissionService(missionEconomy);
   const getCurrentPlayerMissions = new GetCurrentPlayerMissions(getCurrentPlayer, database, clock, permanentMissionService);
@@ -259,8 +261,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); contestScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,

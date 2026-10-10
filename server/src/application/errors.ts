@@ -9,6 +9,7 @@ export class BusinessError extends Error {
 }
 
 export type BusinessErrorCode =
+  | 'EVENT_EDITION_CLOSED'
   | 'EVENT_POINTS_OVERFLOW'
   | 'STELLA_INVALID_AMOUNT'
   | 'CONTEST_TEMPORARILY_UNAVAILABLE'

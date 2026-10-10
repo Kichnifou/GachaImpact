@@ -9,6 +9,13 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it.each(['EVENT_MONTHLY_DRAW_WON', 'EVENT_MONTHLY_DRAW_ADMIN'])('presents the confirmed %s result without a claim or inferred navigation', typeKey => {
+    const message = 'Festival des Ombres : +1 Masterless Stella Fortuna, attribution confirmée.'
+    const result = resolveNotificationPresentation({ ...pending, typeKey, payload: { title: 'Festival des Ombres', message }, actionKey: 'OPEN_EVENT_MESSAGES' })
+    expect(result.message).toBe(message)
+    expect(result.destination).toBeNull()
+    expect(result.title).toBe(typeKey === 'EVENT_MONTHLY_DRAW_WON' ? 'Festival des Ombres' : 'Tirage mensuel Event — contrôle ADMIN')
+  })
   it('distinguishes configured conditional code gains from a resolved claim without Event credit', () => {
     const code: NotificationDto = { ...pending, domainKey: 'gift-codes', typeKey: 'GIFT_CODE_AVAILABLE', actionKey: 'OPEN_GIFT_CODE', payload: { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'event_points', amount: '80' }] } }
     expect(resolveNotificationPresentation(code).message).toContain('inscription au Festival actif requise')

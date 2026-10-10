@@ -19,6 +19,7 @@ import { isEligibleNativeChat } from './twitch-chat-eligibility.js';
 import { twitchCommandOwner } from './twitch-command-coverage.js';
 import type { PilotChatTransport, TwitchEventSubSubscriptionManager } from './twitch-eventsub-subscription-manager.js';
 import { TwitchCommandSendError, type TwitchCommandChatClient } from '../../infrastructure/twitch/twitch-command-chat-client.js';
+import { bindEventMessageResponses, confirmEventMessageDeliveries } from '../event/event-message-delivery.js';
 
 const twitchId = z.string().regex(/^\d+$/).max(128);
 const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type: z.literal('channel.chat.message'),
@@ -44,7 +45,9 @@ const frozenIntent = z.object({ now: z.iso.datetime(), responseBodyLimit: respon
   }).optional() });
 const execution = z.object({ version: z.literal(1), playerId: z.string(), actorName: z.string(),
   senderId: twitchId, broadcasterId: twitchId, chatterId: twitchId.optional(), replyParentMessageId: z.string().min(1).max(256),
-  commandKey: z.string(), handler: z.string(), businessAt: z.iso.datetime().optional(), responseBodyLimit: responseBodyLimit.optional(), args: z.array(z.string()).optional(), intent: frozenIntent.optional(), stage: z.enum(['EXECUTING', 'RESPONSES']), responses: z.array(response) });
+  commandKey: z.string(), handler: z.string(), businessAt: z.iso.datetime().optional(), responseBodyLimit: responseBodyLimit.optional(), args: z.array(z.string()).optional(), intent: frozenIntent.optional(),
+  eventMessageBindings: z.array(z.object({ messageId: z.uuid(), responseIndexes: z.array(z.number().int().nonnegative()).min(1) })).optional(),
+  stage: z.enum(['EXECUTING', 'RESPONSES']), responses: z.array(response) });
 type Execution = z.infer<typeof execution>;
 export type TwitchCommandExecutor = { capturedAt?(): Date; prepare?(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, businessAt?: string, responseBodyLimit?: number): Promise<FrozenCommandIntent>; execute(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, intent?: FrozenCommandIntent): Promise<string | readonly string[]> };
 export type TwitchCommandSubscriptionInspector = Pick<TwitchEventSubSubscriptionManager, 'activationAvailable' | 'inspectPilotChatTransport'>;
@@ -377,10 +380,12 @@ export class TwitchCommandPilot {
       if (await tx.twitchEventReceipt.findFirst({ where: { externalReference: 'command-pilot:' + key, id: { not: receiptId } } })) return false;
       const { minimal, saved } = await this.read(tx, receiptId, event.chatter_user_id);
       if (saved) return true;
+      const eventMessageBindings = await bindEventMessageResponses(tx, player.id, key, output, activityBodyLimit);
       await this.save(tx, receiptId, minimal, { version: 1, playerId: player.id, actorName: player.displayName,
         senderId: transport.receiverId, chatterId: event.chatter_user_id, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id,
         commandKey: 'twitch-message:' + event.broadcaster_user_id + ':' + event.message_id, handler: 'message', stage: 'RESPONSES',
         ...(activityBodyLimit !== undefined ? { responseBodyLimit: activityBodyLimit } : {}),
+        ...(eventMessageBindings.length ? { eventMessageBindings } : {}),
         responses: twitchResponseEntries(output, activityBodyLimit).map(entry => ({ ...entry, status: 'PENDING' })) });
       return true;
     });
@@ -537,5 +542,6 @@ export class TwitchCommandPilot {
       processedAt: final ? new Date() : null, errorMessage: error ?? null,
       payloadMinimal: { ...minimal, commandPilot: state } as Prisma.InputJsonValue,
     } });
+    if (state.eventMessageBindings?.length) await confirmEventMessageDeliveries(tx, state.playerId, state.eventMessageBindings, state.responses, new Date());
   }
 }

@@ -22,7 +22,7 @@ const service = new GiftCodeService(getPlayer, db, clock, { activePlayerIds: [] 
 let admin: { subject: string };
 beforeAll(async () => {
   await isolated.setup({ seedPublicCatalog: true, prismaMigrations: true });
-  expect(isolated.migrationStatus).toContain('68 migrations');
+  expect(isolated.migrationStatus).toContain('69 migrations');
   const actor = await player(); admin = actor.identity;
   await db.playerRoleAssignment.create({ data: { playerId: actor.id, role: 'ADMIN', source: 'r1057-private' } });
 }, 180_000);

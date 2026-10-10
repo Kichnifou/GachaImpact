@@ -1,6 +1,8 @@
 # Ordre d’implémentation V1
 
-## Priorité d'exécution — R1065 livré, correctifs et contrôle autonome avant R1053 — 10/10/2026
+## Priorité d'exécution — mission R1053 et messages Event autorisée — 10/10/2026
+
+Les six retouches post-recette et le résumé !event sont confirmés par le propriétaire. Le mandat suivant autorise le cycle complet R1053 + correction des messages déjà présentés, jusqu'au postflight selon les gates ; [architecture](../architecture/event-monthly-draw-r1053.md). Le Master porte seul l'état réel. Après ce lot : R1058 mots de passe, non commencée ; aucun lancement automatique des domaines suivants.
 
 31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. GLOBAL R1064 est activé après review indépendante, déploiements et gates fraîches ; état et limites humaines réellement obtenus au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Codes cadeaux enrichis R1057 livrés après GLOBAL. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
 

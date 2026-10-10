@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Continuité du 10/10/2026 — six correctifs post-recette A–F.
+Version : Mission du 10/10/2026 — R1053 et consultation des messages Event.
 Date : 2026-10-10
-Statut : **Six correctifs post-recette implémentés, testés, approuvés indépendamment, promus et déployés au SHA applicatif 7a5e599.** Recette humaine des nouvelles présentations encore à confirmer.
+Statut : **R1053 et correction des messages en cours de validation, sur review ; aucune activation publique du nouveau tirage à ce stade.** Le propriétaire confirme la recette des six correctifs précédents et du résumé !event.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — six correctifs post-recette du 10/10/2026
+## Point courant — R1053 et messages Event, mandat complet du 10/10/2026
+
+Base distante vérifiée `17ed0397c59c57e8683334b4c725925bb3cac71b`, main/review communs, divergence 0/0 et worktree initial propre. Le mandat autorise développement, tests, review indépendante du SHA publié, fast-forward, migration normale, déploiements et postflight, sans nouveau GO entre gates. Aucun Eclipsia/Story ni R1058. La production vivante suit le workflow existant : contrôles économiques ciblés, aucune comparaison globale d'activité naturelle.
+
+Implémentation candidate : persistance privée activation/résultat par édition (migration additive 069), graine réservée et poids/position scellés, calcul exact BigInt et HMAC/rejet, verrou d'édition et garde des points tardifs, attribution unique de +1 Stella via le propriétaire Codes, notifications gagnant/ADMIN atomiques. Scheduler au démarrage, clôture Paris, rattrapage et arrêt. Aucun paiement historique ; première édition éligible déterminée durablement lors de migration. `Tirage.txt` retrouvé dans les archives autorisées, deux copies identiques et lues, sans réutilisation du moteur manuel legacy. [Architecture, invariants et sources](../architecture/event-monthly-draw-r1053.md).
+
+Messages : IDs/indices durables entre présence, activité et receipt Twitch ; `viewedAt` et agrégat actualisés avec l'accusé SENT de tous les segments concernés seulement. Échecs, ambiguïtés et SENDING interrompu conservés ; consultation standalone et nouveau message cohérents, aucun compteur expéditeur. Réconciliation historique du jour limitée aux preuves précises complètes, sans suppression/renvoi ni déduction à partir d'une BusinessOperation préparée.
+
+Contrôles non-DB acquis : verify:full initial 8/8, puis suites complètes renouvelées frontend **1 392/1 392** et backend **2 250/2 250** ; derniers deltas couverts par 129 tests ciblés, build backend et verify:quick 5/5. Build frontend réussi, avertissement de chunk >500 kB préexistant. Notifications synthétiques dans le vrai GameShell/CSS sur quatre viewports 390/1366/1920/2560 : mesures et captures inspectées, aucun débordement ni appel externe. Aucune fixture ne vaut recette humaine.
+
+PostgreSQL privé acquis : tirage 13/13, messages **18/18** après durcissement historique, Codes enrichis 24/24, six suites Event 45 PASS ; pipeline signé 31 cas distincts couverts par 30 PASS puis trois cas ciblés après correction de l'assertion de reprise FAILED (28 déjà acquis non relancés dans ce passage). GLOBAL : 17 cas PASS ; la charge conserve huit clients/pool3/48 nouveaux privés et toutes ses assertions. Son passage à délai 360 s est marqué timeout, même si les 289 requêtes/245 réponses finissent sans erreur, perte, doublon ou verrou en attente (P95 24 033 ms). Relance ciblée avec délai de campagne 600 s en cours, aucune garantie de latence publique déduite. Migration 069 réellement appliquée et enregistrée, checksums/status, RLS/droits et triggers contrôlés. Les échecs de compilation/mocks, assertion Codes obsolète, timeout d'acquisition et délais de charge restent dans les logs, avec corrections explicites ; aucun échec n'est présenté comme PASS. Review/promotion/migration publique/déploiement/postflight pas encore acquis. Preuves privées sous `local-data/identity-resolutions/r1053-20261010/`.
+
+Prochaine étape dans ce mandat : terminer les gates techniques, publier/revoir le candidat et poursuivre jusqu'au postflight si approuvé. Recette humaine des nouveaux états de messages restant nécessaire, aucun tirage public artificiel. Après clôture du mandat : **R1058 — mots de passe**, non commencée.
+
+## Historique acquis — six correctifs post-recette du 10/10/2026
 
 Le propriétaire juge le fonctionnement général du lot A–J satisfaisant après recette Twitch/standalone et valide six retouches : cadre Box et filtres compacts du picker Team, !banner, avertissement Jeu C non envoyé, résumé Event ordonné, groupes Code/Paliers, résultat Ticket modernisé. Base distante vérifiée d564e4ba1493686715fb295b45ec63d4c0203d5e commune main/review, divergence 0/0, worktree initial propre ; le seul commit depuis 1fe3008 précise la production vivante et reste conservé. [Contrats courants](../commands/command-reference.md), [suivi et preuves](../architecture/command-fixes-20261010.md#suivi-post-recette-af-du-10102026).
 

@@ -105,7 +105,7 @@ describe('monthly Event period resolution', () => {
       eventEdition: { findUnique: vi.fn(async () => edition), upsert: vi.fn() },
       eventParticipant: { findUnique: vi.fn(async () => null) },
       eventMilestoneClaim: { findMany: vi.fn(async () => []) },
-      eventSocialMessage: { findMany: vi.fn(async () => []) },
+      eventSocialMessage: { findFirst: vi.fn(async () => null), findMany: vi.fn(async () => []) },
       player: { findUnique: vi.fn(async () => ({ status: 'ACTIVE', legacyRecovery: null })) },
       playerEventCurrencyBalance: { findUnique: vi.fn(async () => ({ amount: 7n })) },
       playerResourceBalance: { findMany: vi.fn(async () => []) },

@@ -6,6 +6,7 @@ import { isArchivedPlayerWriteError } from '../infrastructure/database/archived-
 
 const businessStatusCodes: Readonly<Record<BusinessErrorCode, number>> = {
   EVENT_POINTS_OVERFLOW: 409,
+  EVENT_EDITION_CLOSED: 409,
   STELLA_INVALID_AMOUNT: 422,
   FAVOR_IDEMPOTENCY_CONFLICT: 409,
   FAVOR_PROOF_INVALID: 400,

@@ -20,7 +20,7 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
     externalReference: null as string | null, payloadMinimal: {} as Record<string, unknown>, processedAt: null, errorMessage: null };
   const identity = { playerId, twitchUserId: '123', login: 'kichnifou', player: { id: playerId, displayName: 'Fixture', elementKey: 'pyro', status: 'ACTIVE' } };
   const identityRead = vi.fn(async ({ where }: { where: { twitchUserId?: string; playerId?: string } }) => where.twitchUserId === '123' || where.playerId === playerId ? identity : null);
-  const tx = { $queryRaw: vi.fn(async () => []), twitchIdentity: { findUnique: identityRead }, twitchEventReceipt: {
+  const tx = { $queryRaw: vi.fn(async () => []), businessOperation: { findFirst: vi.fn(async () => null) }, twitchIdentity: { findUnique: identityRead }, twitchEventReceipt: {
     findUnique: vi.fn(async () => structuredClone(receipt)),
     findFirst: vi.fn(async () => null),
     findMany: vi.fn(async () => []),

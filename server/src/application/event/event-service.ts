@@ -23,6 +23,7 @@ import { eligibleContactRecipient } from '../social/contact-permission.js';
 import { calendarReward, projectCalendar } from '../../domain/event/calendar.js';
 import type { GiftCodeService } from '../gift-code/gift-code-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
+import { reconcileConfirmedEventMessages } from './event-message-delivery.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -108,6 +109,7 @@ export class EventService {
 
   public async getCurrent(identity: PlayerExecutionActor) {
     const player = await this.readyPlayer(identity);
+    await reconcileConfirmedEventMessages(this.database, player.id, this.clock.now());
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
@@ -442,14 +444,17 @@ export class EventService {
     const now = commandNow(this.clock);
     const context = await this.resolveCurrentEdition(this.database, now);
     await this.ensureGameBState(context.edition.id, context.period.businessDate, now);
-    return this.database.$transaction(async (tx) => {
-      await lockPlayerMutation(tx, player.id);
-
-      await assertPlayerDomainReady(tx, player.id, 'EVENT');
-      await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
-      await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
-      return this.snapshot(tx, player.id, context, now, false);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await this.database.$transaction(async (tx) => {
+          await lockPlayerMutation(tx, player.id);
+          await assertPlayerDomainReady(tx, player.id, 'EVENT');
+          await tx.eventSocialMessage.updateMany({ where: { recipientPlayerId: player.id, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate), viewedAt: null }, data: { viewedAt: now } });
+          await reconcileEventMessageAggregate(tx, player.id, context.edition.id, context.period.businessDate, now);
+          return this.snapshot(tx, player.id, context, now, false);
+        }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      } catch (error) { if (attempt < 4 && isPrismaConcurrencyCollision(error)) continue; throw error; }
+    }
   }
 
   public async claimCalendar(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI) {
@@ -677,6 +682,12 @@ export class EventService {
   }
 
   private async awardEventPoints(tx: Prisma.TransactionClient, context: Awaited<ReturnType<EventService['resolveCurrentEdition']>>, playerId: string, amount: number, now: Date, previousPoints = 0) {
+    // The real execution clock fences a frozen/late command intent. Holding this
+    // share lock makes closure wait for every already admitted point writer.
+    await tx.$queryRaw`SELECT id FROM event_editions WHERE id = ${context.edition.id}::uuid FOR SHARE`;
+    const edition = await tx.eventEdition.findUniqueOrThrow({ where: { id: context.edition.id } });
+    const executedAt = this.clock.now();
+    if (edition.status !== EventEditionStatus.ACTIVE || executedAt < edition.startsAt || executedAt >= edition.endsAt) throw new BusinessError('EVENT_EDITION_CLOSED', 'Cette édition du Festival est terminée.');
     await assertPlayerDomainReady(tx, playerId, 'EVENT');
     const participant = await tx.eventParticipant.update({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId } }, data: { points: { increment: amount } }, select: { points: true } });
     return this.grantReachedEventMilestones(tx, context, playerId, participant.points, now, previousPoints);

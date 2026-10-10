@@ -110,7 +110,7 @@ beforeAll(async () => {
 afterAll(async () => { await app?.close(); await fixture.cleanup(); expect(fixture.poolSnapshot()).toMatchObject({ total: 0, idle: 0, waiting: 0 }); }, 60_000);
 
 it('opens GLOBAL at an explicit revision, preserves 44 acquired Players, and admits a zero normal null-element profile', async () => {
-  expect(fixture.migrationStatus).toContain('68 migrations');
+  expect(fixture.migrationStatus).toContain('69 migrations');
   const before = await immutable44();
   expect(await provision('920001')).toBeNull();
   await expect(authority.configure(operatorId, 'GLOBAL', [], ACK)).rejects.toMatchObject({ code: 'TWITCH_NATIVE_REVISION_REQUIRED' });
@@ -338,10 +338,13 @@ it('measures signed HTTP load with 44 preserved canaries, 48 fresh chatters, red
   expect(requests.every(row => row.status === 204)).toBe(true);
   const locks = await db.$queryRaw<{ waiting: bigint }[]>`SELECT count(*)::bigint AS waiting FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()`;
   expect(locks[0]!.waiting).toBe(0n);
-  process.stdout.write('R1064_PRIVATE_LOAD ' + JSON.stringify({ migrations: 68, canaries: 44, fresh: 48, concurrentClients: 8, pool: fixture.poolSnapshot(), errors: 0,
+  process.stdout.write('R1064_PRIVATE_LOAD ' + JSON.stringify({ migrations: 69, canaries: 44, fresh: 48, concurrentClients: 8, pool: fixture.poolSnapshot(), errors: 0,
     requests: requests.length, responseAvgMs: times.reduce((a, b) => a + b, 0) / times.length, responseP95Ms: percentile(times, .95), firstProvisionP95Ms: percentile(provisions, .95), rateLimitedDeliveriesRecovered: limited.length,
     responses: responses.length, duplicates: 0, lost: 0, waitingLocks: Number(locks[0]!.waiting), preserved44Hash: createHash('sha256').update(JSON.stringify(before, (_key, value: unknown) => typeof value === 'bigint' ? value.toString() : value)).digest('hex') }) + '\n');
-}, 180_000);
+// Remote PostgreSQL with eight clients and a pool of three exceeded six
+// minutes. Keep every request/assertion and collect latency rather than leaving
+// timed-out requests running into the following cases and schema cleanup.
+}, 600_000);
 it('keeps new-player Event/Boss prerequisites explicit and has no invented welcome resources', async () => {
   const fresh = (await provision('940001'))!, actor = verifiedPlayerActor(fresh.player);
   const boss = new MonthlyBossService(current, db, clock, random);
@@ -402,11 +405,15 @@ it('claims an enriched code through signed EventSub once, preserves 44 NATIVE, a
   expect(await db.giftCodeClaim.count({ where: { playerId: fresh.player.id, giftCodeEditionId: published.code.editions[0]!.id } })).toBe(1);
   expect(await db.itemAcquisition.count({ where: { playerId: fresh.player.id } })).toBe(1);
   expect(await db.eventMilestoneClaim.count({ where: { playerId: fresh.player.id } })).toBe(8);
+  expect((await db.eventParticipant.findUniqueOrThrow({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: fresh.player.id } } })).points).toBe(80);
+  expect((await db.playerEventCurrencyBalance.findUniqueOrThrow({ where: { playerId_eventDefinitionId: { playerId: fresh.player.id, eventDefinitionId: context.definition.id } } })).amount).toBe(21n);
   const saved = receipt.payloadMinimal as unknown as { commandPilot: { responses: { text: string; status: string }[] } };
   expect(saved.commandPilot.responses.some(response => response.status === 'FAILED')).toBe(true);
   const text = saved.commandPilot.responses.map(response => response.text).join(' ');
-  expect(text).toContain('Masterless Stella Fortuna'); expect(text).toContain('80 Points Event');
-  expect(text).toContain('21 ' + context.editionSnapshot.config.currency.label);
+  expect(text).toContain('Masterless Stella Fortuna'); expect(text).toContain('80 points Event');
+  expect(text).toContain('🎁 Code :'); expect(text).toContain('🏅 Paliers :');
+  expect(text).toContain('3 ' + context.editionSnapshot.config.currency.label);
+  expect(text).toContain('18 ' + context.editionSnapshot.config.currency.label);
   for (const response of saved.commandPilot.responses) expect(Array.from(response.text).length).toBeLessThanOrEqual(450);
   const frozenAt = at;
   try {

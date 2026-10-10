@@ -21,6 +21,7 @@ import { isPlayerDomainReady, isRecoveryUnavailable } from '../player/player-rec
 import { BusinessError } from '../errors.js';
 import { AppError } from '../../api/errors.js';
 import { firstDailyMessageResult } from '../chat/daily-reward-chat-result.js';
+import type { EventMessageBinding } from '../event/event-message-delivery.js';
 
 type MessagePresenceIntent = { daily: boolean; event: EventChatPresenceIntent | null };
 
@@ -73,6 +74,7 @@ export class TwitchMessageActivity {
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000 });
         const presence = intent ?? await this.prepare(player, normal, now);
         const actor = verifiedPlayerActor(player);
+        const eventMessageBindings: EventMessageBinding[] = [];
         const extras = await withPlayerCommandExecution({ now, source: 'TWITCH', eventEditionId: presence.event?.editionId, responseBodyLimit }, async () => {
           const output: string[] = [];
           if (presence.daily && this.dailyReward) {
@@ -89,7 +91,11 @@ export class TwitchMessageActivity {
                 if (!isRecoveryUnavailable(error) && !(error instanceof BusinessError && ['EVENT_DAILY_BONUS_ALREADY_CLAIMED', 'EVENT_NOT_JOINED'].includes(error.code))) throw error;
               }
             }
+            const eventOffset = responses.length + output.length;
             output.push(...await new EventChatPresence(this.db, this.events).deliver(player, presence.event, key, now));
+            const receipt = await this.db.businessOperation.findFirst({ where: { playerId: player.id, sourceChannel: 'TWITCH', operationType: 'event.presence.delivery', idempotencyKey: `event-presence:${key}` } });
+            const bindings = (receipt?.resultSummary as { messageBindings?: EventMessageBinding[] } | null)?.messageBindings ?? [];
+            eventMessageBindings.push(...bindings.map(binding => ({ messageId: binding.messageId, responseIndexes: binding.responseIndexes.map(index => eventOffset + index) })));
           }
           return output;
         });
@@ -97,7 +103,7 @@ export class TwitchMessageActivity {
         await this.db.$transaction(async tx => {
           await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
           const previous = await tx.businessOperation.findFirst({ where: { sourceChannel: 'TWITCH', idempotencyKey: `message-complete:${key}` } });
-          if (!previous) await tx.businessOperation.create({ data: { playerId: player.id, sourceChannel: 'TWITCH', idempotencyKey: `message-complete:${key}`, operationType: 'twitch.message.complete', status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: { length, normal, responses: output } } });
+          if (!previous) await tx.businessOperation.create({ data: { playerId: player.id, sourceChannel: 'TWITCH', idempotencyKey: `message-complete:${key}`, operationType: 'twitch.message.complete', status: 'COMPLETED', startedAt: now, completedAt: now, resultSummary: { length, normal, responses: output, eventMessageBindings } } });
         });
         return output;
       } catch (error) { if (retry < 5 && isPrismaConcurrencyCollision(error)) continue; throw error; }

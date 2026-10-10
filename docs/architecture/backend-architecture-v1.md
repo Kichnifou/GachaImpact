@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## R1053 — clôture mensuelle Event et consultation confirmée
+
+`EventMonthlyDrawService` réserve l'entropie privée, scelle les points sous verrou d'édition puis crédite via le propriétaire Stella partagé Codes, avec résultat/opération/notifications atomiques. `EventMonthlyDrawScheduler` est raccordé au start/close du runtime, résout la nouvelle édition et rattrape les seules éditions post-activation éligibles ; aucun reroll ou paiement historique. Le propriétaire des points refuse une opération tardive sous verrou, la DDL 069 interdit leur mutation après scellement. [Contrat détaillé et limites](event-monthly-draw-r1053.md), [persistance](postgresql-schema-v1.md#r1053-migration-069), état global au Master.
+
+`EventChatPresence` lie IDs de messages et indices de réponses, `TwitchMessageActivity` conserve ces liens dans l'activité gelée et `TwitchCommandPilot.save` actualise `viewedAt`/agrégat dans l'accusé SENT transactionnel. Tous les segments du message doivent être confirmés avec ID Twitch, sans fallback ; échecs/ambiguïtés restent non lus et suivent la politique de reprise existante. Consultation standalone réessayée sur collision, compatibilité historique strictement bornée aux preuves complètes du jour. [Contrat](event-monthly-draw-r1053.md#messages--preuve-de-consultation).
+
 ## Disponibilité par domaine pendant la reprise ciblée — 09/10/2026
 
 `player-recovery-readiness.ts` valide le marqueur serveur privé et expose lecture, refus explicite et test de disponibilité. `player-mutation-guard.ts` conserve le verrou Player commun ; un profil marqué attend une cible NATIVE/CANARY avant tout effet. Sa variante booléenne permet aux traitements collectifs de passer au profil suivant. Les quatre NATIVE existants et les autres marqueurs nuls conservent leur contrat.

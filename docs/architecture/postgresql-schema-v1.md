@@ -1,5 +1,13 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+<a id="r1053-migration-069"></a>
+
+## Migration 069 — activation et résultat mensuel Event
+
+[`20261010110000_069_add_event_monthly_draw`](../../server/prisma/migrations/20261010110000_069_add_event_monthly_draw/migration.sql) ajoute `event_draw_activation` (clé R1053, instant de migration/début du mois Paris) et `event_monthly_draws` (PK/FK édition, FK activation/gagnant/opération unique, clôture, état, graine privée, population JSONB, total/position numeric(78,0), timestamps). CHECK d'états PENDING/FROZEN/COMPLETED/NO_ELIGIBLE ; triggers d'immuabilité du résultat et des participants après scellement. Fonctions invoker avec search_path de migration, droits PUBLIC/anon/authenticated révoqués, RLS sur les deux tables sans policy navigateur. Aucun crédit, recalcul ou gagnant historique dans la DDL. Le registre Prisma/checksum et migrate status sont vérifiés séparément en schéma privé puis au déploiement normal ; état réel au [Master](../master/PROJECT_MASTER_PLAN.md). [Architecture et reprise](event-monthly-draw-r1053.md).
+
+Les messages réutilisent `event_social_messages.viewed_at`, les JSON privés BusinessOperation et TwitchEventReceipt existants pour les liens message/indices et preuves SENT ; aucune nouvelle table de lecture, aucun backfill SQL massif.
+
 ## Migration 067 — preuve privée des annonces Giveaway longues (candidat R1063)
 
 [20261009150000_067_preserve_full_giveaway_text](../../server/prisma/migrations/20261009150000_067_preserve_full_giveaway_text/migration.sql) ajoute seulement giveaway_announcements.full_text TEXT NULL, mappé GiveawayAnnouncement.fullText. Pas de valeur par défaut, backfill, changement des textes envoyés, paiement, policy ou grant nouveau. Les restrictions backend/RLS de la table existante sont conservées. Les anciennes annonces NULL se rejouent selon leur texte gelé ; les nouvelles entrées logiques exceptionnellement trop longues peuvent conserver ici le texte intégral derrière un avis Twitch explicite. Le DTO public exclut ce champ. Publication, déploiement normal et vérification physique restent à constater dans le [Master](../master/PROJECT_MASTER_PLAN.md). [Contrat R1063](legacy-domains-r1063.md).

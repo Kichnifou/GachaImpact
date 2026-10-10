@@ -31,6 +31,8 @@ import { TwitchMessageActivity } from '../src/application/twitch/twitch-message-
 import { ClaimDailyReward } from '../src/application/daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-daily-reward-store.js';
 import { EventService } from '../src/application/event/event-service.js';
+import { getBusinessDate, businessDateToDatabaseDate } from '../src/domain/time/business-date.js';
+import { reconcileEventMessageAggregate } from '../src/application/notification/event-message-notifications.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const secret = 'private-command-webhook-secret';
@@ -394,7 +396,7 @@ describe('R1063 repeated commands and selection parity', () => {
 });
 
 describe('non-broadcaster Player on an independently authorized chat transport', () => {
-  let viewerId: string, viewerApp: FastifyInstance, viewerPilot: TwitchCommandPilot, now: Date;
+  let viewerId: string, viewerApp: FastifyInstance, viewerPilot: TwitchCommandPilot, now: Date, viewerEvents: EventService;
   const send = vi.fn(async (..._args: Parameters<TwitchCommandChatClient['send']>) => randomUUID());
   const receiver = '200', chatter = '300';
   const viewerConfig = { ...config, twitch: { ...config.twitch, pilotPlayerIds: [] as string[] } };
@@ -416,7 +418,8 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     const services = { ...harness().services, getCurrentGacha: new GetCurrentGacha(getPlayer, store), socialService: new SocialService(getPlayer, db, clock),
       performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, random, 'TWITCH') } as unknown as ChatCommandServices;
     const executor = twitchPlayerCommandExecutor(db, services, clock);
-    const activity = new TwitchMessageActivity(db, clock, random, new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock), new EventService(getPlayer, db, clock, random));
+    viewerEvents = new EventService(getPlayer, db, clock, random);
+    const activity = new TwitchMessageActivity(db, clock, random, new ClaimDailyReward(getPlayer, new PrismaDailyRewardStore(db), clock), viewerEvents);
     // Authorized server contract is deliberately distinct from both the Player and channel.
     const transport = { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'viewer-subscription', broadcasterId: '123', receiverId: receiver, callback: config.twitchEventSub.callbackUrl }) };
     viewerPilot = new TwitchCommandPilot(db, viewerConfig, executor, { send }, undefined, transport, activity);
@@ -611,4 +614,45 @@ describe('non-broadcaster Player on an independently authorized chat transport',
     expect(await db.player.count()).toBe(players); expect(await state()).toEqual(before);
     expect(presence.consume).toHaveBeenCalledTimes(favors); expect(giveaway.consume).toHaveBeenCalledTimes(giveaways);
   });
+  it.each(['SUCCESS', 'FAILED', 'AMBIGUOUS'])('acknowledges Event content only after the real signed pipeline durably sends every segment: %s', async outcome => {
+    now = new Date();
+    const context = await viewerEvents.resolveCurrentEdition(db, now), initial = await progression();
+    const message = await db.eventSocialMessage.create({ data: { eventEditionId: context.edition.id, senderPlayerId: playerId, recipientPlayerId: viewerId,
+      businessDate: businessDateToDatabaseDate(getBusinessDate(now)), content: 'x'.repeat(500), createdAt: now } });
+    await reconcileEventMessageAggregate(db, viewerId, context.edition.id, getBusinessDate(now), now, true);
+    let eventSegments = 0;
+    send.mockImplementation(async request => {
+      if (request.message.startsWith('🎁')) {
+        eventSegments++;
+        if (eventSegments === 2 && outcome !== 'SUCCESS') throw new TwitchCommandSendError(outcome === 'FAILED' ? 'CERTAIN' : 'AMBIGUOUS', 'PRIVATE_SEGMENT_FAILURE');
+      }
+      return randomUUID();
+    });
+    const request = signed(body('Message naturel privé ' + randomUUID()));
+    try {
+      expect((await deliver(request)).statusCode).toBe(204);
+      const receipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: request.headers['twitch-eventsub-message-id'] } });
+      const execution = (receipt.payloadMinimal as { commandPilot: { eventMessageBindings: { messageId: string; responseIndexes: number[] }[]; responses: { status: string; messageId?: string }[] } }).commandPilot;
+      const binding = execution.eventMessageBindings.find(entry => entry.messageId === message.id)!;
+      expect(binding.responseIndexes.length).toBeGreaterThan(1); expect(eventSegments).toBe(2);
+      expect(binding.responseIndexes.map(index => execution.responses[index]!.status)).toEqual(outcome === 'SUCCESS' ? ['SENT', 'SENT'] : ['SENT', outcome]);
+      expect((await db.eventSocialMessage.findUniqueOrThrow({ where: { id: message.id } })).viewedAt !== null).toBe(outcome === 'SUCCESS');
+      const progress = await progression();
+      expect(progress.totalMessages).toBe(initial.totalMessages + 1n);
+      if (outcome === 'FAILED') {
+        send.mockImplementation(async () => randomUUID());
+        expect(await viewerPilot.retryResponses(playerId, receipt.id)).toEqual({ state: 'PROCESSED' });
+        expect((await db.eventSocialMessage.findUniqueOrThrow({ where: { id: message.id } })).viewedAt).not.toBeNull();
+      }
+      const sends = send.mock.calls.length;
+      expect((await deliver(request)).statusCode).toBe(204); expect(await progression()).toEqual(progress); expect(send).toHaveBeenCalledTimes(sends);
+      if (outcome === 'AMBIGUOUS') {
+        await expect(viewerPilot.retryResponses(playerId, receipt.id)).rejects.toBeDefined();
+        expect(send).toHaveBeenCalledTimes(sends);
+        const actor = verifiedPlayerActor((await db.player.findUniqueOrThrow({ where: { id: viewerId } })));
+        expect((await viewerEvents.consultGameCMessages(actor)).gameC.unviewedCount).toBe(0);
+      }
+      expect(await db.webIdentity.count()).toBe(0); expect(await db.globalChatMessage.count()).toBe(0);
+    } finally { send.mockImplementation(async () => randomUUID()); }
+  }, 60_000);
 });
