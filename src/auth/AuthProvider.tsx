@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { FrontendConfigurationError } from '../config/environment'
 import { getSupabaseClient } from '../infrastructure/supabase/client'
 import { AuthContext, type AuthContextValue, type AuthStatus } from './auth-context'
+import { confirmationDestination } from './auth-destinations'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -60,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const { data, error } = await getSupabaseClient().auth.signUp({ email, password })
+    const { data, error } = await getSupabaseClient().auth.signUp({ email, password, options: { emailRedirectTo: confirmationDestination() } })
     if (error) throw new Error(authErrorMessage(error.code))
     return { confirmationRequired: !data.session }
   }, [])

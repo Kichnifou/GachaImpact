@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { parseTwitchCredentialKey } from '../infrastructure/twitch/twitch-gift-credential-cipher.js';
+import { validateFrontendOrigin } from './frontend-origins.js';
 
 const optionalUrl = z.url().optional();
 
@@ -7,6 +8,8 @@ const environmentSchema = z.object({
   HOST: z.string().trim().min(1).default('127.0.0.1'),
   PORT: z.coerce.number().int().min(1).max(65_535).default(3001),
   FRONTEND_ORIGIN: z.url().default('http://localhost:5173'),
+  FRONTEND_ORIGINS: z.string().optional(),
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   DATABASE_URL: optionalUrl,
   SUPABASE_URL: optionalUrl,
   SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1).optional(),
@@ -29,6 +32,7 @@ export type AppConfig = Readonly<{
   host: string;
   port: number;
   frontendOrigin?: string;
+  frontendOrigins?: readonly string[];
   databaseUrl?: string;
   supabase: Readonly<{
     url?: string;
@@ -47,6 +51,10 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   if (!parsed.success) {
     throw new Error(`Invalid server environment: ${z.prettifyError(parsed.error)}`);
   }
+  const production = parsed.data.NODE_ENV === 'production';
+  const frontendOrigin = validateFrontendOrigin(parsed.data.FRONTEND_ORIGIN, production);
+  const additionalOrigins = parsed.data.FRONTEND_ORIGINS === undefined ? [] : parsed.data.FRONTEND_ORIGINS.split(',').map(value => value.trim());
+  const frontendOrigins = [...new Set([frontendOrigin, ...additionalOrigins.map(value => validateFrontendOrigin(value, production))])];
   const eventSubEnabled = parsed.data.TWITCH_EVENTSUB_WEBHOOK_ENABLED === 'true';
   const eventSubSecret = parsed.data.TWITCH_EVENTSUB_SECRET;
   const callbackUrl = parsed.data.TWITCH_EVENTSUB_CALLBACK_URL;
@@ -63,7 +71,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   return {
     host: parsed.data.HOST,
     port: parsed.data.PORT,
-    frontendOrigin: parsed.data.FRONTEND_ORIGIN,
+    frontendOrigin,
+    frontendOrigins,
     databaseUrl: parsed.data.DATABASE_URL,
     supabase: {
       url: parsed.data.SUPABASE_URL,

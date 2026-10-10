@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from 'jose';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
+import { frontendReturnOrigin } from '../../config/frontend-origins.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
@@ -13,6 +14,7 @@ import { TWITCH_GIFT_SUPREME_SCOPES } from './twitch-gift-supreme-contract.js';
 import { TWITCH_GIVEAWAY_SCOPES } from './twitch-giveaway-contract.js';
 import type { TwitchGiveawayManager } from './twitch-giveaway-manager.js';
 import { TwitchAccountLink, type ProgressionChoice } from './twitch-account-link.js';
+import { bindOAuthReturn, consumedOAuthReturn, oauthStateEnvelope } from './twitch-oauth-return.js';
 
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 const normalizeLogin = (value: string) => value.trim().normalize('NFKC').toLowerCase();
@@ -21,6 +23,7 @@ export const TWITCH_RUNTIME_SCOPES = ['openid', 'user:read:chat', 'user:write:ch
 export const TWITCH_FAVOR_SCOPES = ['openid', 'channel:read:subscriptions'] as const;
 export type TwitchOAuthPurpose = 'LINK_IDENTITY' | 'CLAIM_TWITCH_PROFILE' | 'AUTHORIZE_RUNTIME' | 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' | 'AUTHORIZE_GIFT_SUPREME' | 'AUTHORIZE_GIVEAWAY';
 export function twitchOAuthPurpose(state: string | undefined): TwitchOAuthPurpose {
+  if (state) state = oauthStateEnvelope(state).legacyState;
   if (state && /^claim_[A-Za-z0-9_-]{43}$/.test(state)) return 'CLAIM_TWITCH_PROFILE';
   if (state && /^runtime_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_RUNTIME';
   if (state && /^favor_[A-Za-z0-9_-]{43}$/.test(state)) return 'AUTHORIZE_FAVOR_SUBSCRIPTIONS';
@@ -147,27 +150,27 @@ export class TwitchPilotService {
     return new TwitchAccountLink(this.db,this.config).resolve((await this.accountWeb(identity)).id, resolutionId, choice, decisionRevision,operatorPlanId);
   }
 
-  async start(identity: AuthenticatedIdentity) {
-    return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE');
+  async start(identity: AuthenticatedIdentity, returnOrigin?: string) {
+    return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE', returnOrigin);
   }
-  async startClaim(identity: AuthenticatedIdentity) { return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE'); }
+  async startClaim(identity: AuthenticatedIdentity, returnOrigin?: string) { return this.startForPurpose(identity, 'CLAIM_TWITCH_PROFILE', returnOrigin); }
 
-  async startRuntime(identity: AuthenticatedIdentity) {
+  async startRuntime(identity: AuthenticatedIdentity, returnOrigin?: string) {
     await this.pilot(identity);
     if (!this.runtimeReady()) throw new AppError('Réception du chat Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
-    return this.startForPurpose(identity, 'AUTHORIZE_RUNTIME');
+    return this.startForPurpose(identity, 'AUTHORIZE_RUNTIME', returnOrigin);
   }
 
-  async startFavor(identity: AuthenticatedIdentity) {
+  async startFavor(identity: AuthenticatedIdentity, returnOrigin?: string) {
     await this.pilot(identity);
     if (!this.runtimeReady()) throw new AppError('Réception des abonnements Twitch indisponible.', 503, 'TWITCH_RUNTIME_UNAVAILABLE');
-    return this.startForPurpose(identity, 'AUTHORIZE_FAVOR_SUBSCRIPTIONS');
+    return this.startForPurpose(identity, 'AUTHORIZE_FAVOR_SUBSCRIPTIONS', returnOrigin);
   }
 
-  async startGiftSupreme(identity: AuthenticatedIdentity) {
+  async startGiftSupreme(identity: AuthenticatedIdentity, returnOrigin?: string) {
     await this.pilot(identity);
     if (!this.gift?.available) throw new AppError('Gift Suprême Twitch indisponible.', 503, 'TWITCH_GIFT_UNAVAILABLE');
-    return this.startForPurpose(identity, 'AUTHORIZE_GIFT_SUPREME');
+    return this.startForPurpose(identity, 'AUTHORIZE_GIFT_SUPREME', returnOrigin);
   }
   private async giveawayAdmin(identity: AuthenticatedIdentity) {
     const player = await this.pilot(identity);
@@ -175,10 +178,10 @@ export class TwitchPilotService {
     if (!role) throw new AppError('Activation Giveaway réservée à l’administration.', 403, 'GIVEAWAY_ADMIN_REQUIRED');
     return player;
   }
-  async startGiveaway(identity: AuthenticatedIdentity) {
+  async startGiveaway(identity: AuthenticatedIdentity, returnOrigin?: string) {
     await this.giveawayAdmin(identity);
     if (!this.giveaway?.available) throw new AppError('Giveaway Twitch indisponible.', 503, 'TWITCH_GIVEAWAY_UNAVAILABLE');
-    return this.startForPurpose(identity, 'AUTHORIZE_GIVEAWAY');
+    return this.startForPurpose(identity, 'AUTHORIZE_GIVEAWAY', returnOrigin);
   }
   async enableGiveaway(identity: AuthenticatedIdentity) {
     const player = await this.giveawayAdmin(identity);
@@ -203,13 +206,15 @@ export class TwitchPilotService {
     return this.gift.disable(player.id);
   }
 
-  private async startForPurpose(identity: AuthenticatedIdentity, purpose: TwitchOAuthPurpose) {
+  private async startForPurpose(identity: AuthenticatedIdentity, purpose: TwitchOAuthPurpose, returnOrigin?: string) {
+    // Validate before bootstrapping/looking up a Player. The full envelope is hashed below.
+    if (returnOrigin !== undefined) frontendReturnOrigin(this.config, returnOrigin);
     const accountPurpose = purpose === 'LINK_IDENTITY' || purpose === 'CLAIM_TWITCH_PROFILE';
     const player = await (accountPurpose ? this.getPlayer.execute(identity) : this.pilot(identity));
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
     if (!accountPurpose && !await this.db.twitchIdentity.findUnique({ where: { playerId: player.id } }))
       throw new AppError('Une identité Twitch liée est nécessaire.', 409, 'TWITCH_RUNTIME_IDENTITY_REQUIRED');
-    const state = (purpose === 'CLAIM_TWITCH_PROFILE' ? 'claim_' : purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url');
+    const state = bindOAuthReturn((purpose === 'CLAIM_TWITCH_PROFILE' ? 'claim_' : purpose === 'AUTHORIZE_RUNTIME' ? 'runtime_' : purpose === 'AUTHORIZE_FAVOR_SUBSCRIPTIONS' ? 'favor_' : purpose === 'AUTHORIZE_GIFT_SUPREME' ? 'gift_' : purpose === 'AUTHORIZE_GIVEAWAY' ? 'giveaway_' : '') + randomBytes(32).toString('base64url'), returnOrigin, this.config);
     const nonce = randomBytes(32).toString('base64url');
     const web = accountPurpose ? await this.db.webIdentity.findUnique({ where: { provider_providerSubject: { provider: 'supabase', providerSubject: identity.subject } } }) : null;
     if (accountPurpose && (!web || web.playerId !== player.id)) throw new AppError('Identité web modifiée.', 409, 'TWITCH_PROFILE_CHANGED');
@@ -226,7 +231,7 @@ export class TwitchPilotService {
     return { url: url.toString() };
   }
 
-  async callback(input: { state?: string; code?: string; error?: string }, expectedPurpose?: TwitchOAuthPurpose) {
+  async callback(input: { state?: string; code?: string; error?: string }, expectedPurpose?: TwitchOAuthPurpose, onValidatedReturnOrigin?: (origin: string) => void) {
     if (!this.oauthReady()) throw new AppError('La liaison Twitch nâ€™est pas configurÃ©e.', 503, 'TWITCH_UNAVAILABLE');
     const purpose = twitchOAuthPurpose(input.state);
     if (expectedPurpose && purpose !== expectedPurpose) throw new AppError('État OAuth invalide.', 400, 'TWITCH_STATE_INVALID');
@@ -235,6 +240,9 @@ export class TwitchPilotService {
     const consumed = await this.db.$queryRaw<{ player_id: string; nonce_hash: string; web_identity_id: string | null }[]>`
       DELETE FROM twitch_link_states WHERE state_hash = ${hash(input.state!)} AND expires_at > now() RETURNING player_id, nonce_hash, web_identity_id`;
     if (consumed.length !== 1) throw new AppError('Ã‰tat OAuth expirÃ© ou dÃ©jÃ  utilisÃ©.', 400, 'TWITCH_STATE_INVALID');
+    // Only a live, server-issued, atomically consumed state can choose the return origin.
+    // Notify before downstream errors so a genuine cancellation also returns to its start site.
+    onValidatedReturnOrigin?.(consumedOAuthReturn(input.state!, this.config));
     const playerId = consumed[0]!.player_id;
     if (purpose === 'AUTHORIZE_GIVEAWAY' && !await this.db.playerRoleAssignment.findFirst({ where: { playerId, role: 'ADMIN', revokedAt: null }, select: { id: true } }))
       throw new AppError('Activation Giveaway réservée à l’administration.', 403, 'GIVEAWAY_ADMIN_REQUIRED');

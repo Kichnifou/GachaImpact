@@ -7,6 +7,7 @@ import { registerFavorRoutes } from './api/routes/favor.js';
 import type { TwitchPilotService } from './application/twitch/twitch-pilot-service.js';
 import type { SnapshotPilotService } from './application/migration/snapshot-pilot-service.js';
 import { registerTwitchPilotRoutes } from './api/routes/twitch-pilot.js';
+import { frontendOrigins } from './config/frontend-origins.js';
 import { registerTwitchEventSubRoutes } from './api/routes/twitch-eventsub.js';
 import type { TwitchEventObserver } from './application/twitch/twitch-event-observer.js';
 import type { TwitchFavorSubscriptionConsumer } from './application/twitch/twitch-favor-subscription-consumer.js';
@@ -198,10 +199,10 @@ export async function buildApp(
 
   registerErrorHandler(app);
 
-  const frontendOrigin = config.frontendOrigin ?? 'http://localhost:5173';
+  const allowedFrontendOrigins = new Set(frontendOrigins(config));
   await app.register(cors, {
     origin: (requestOrigin, callback) => {
-      callback(null, requestOrigin === frontendOrigin);
+      callback(null, requestOrigin !== undefined && allowedFrontendOrigins.has(requestOrigin));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['authorization', 'content-type', 'x-request-id'],

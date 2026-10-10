@@ -31,7 +31,7 @@ Désactivation en deux phases sur la même file Player : Reward OFF confirmée d
 - Service : `GachaImpact` ; environnement : `production`.
 - Dépôt : `Kichnifou/GachaImpact`, branche `main`, Root Directory : `/server`.
 - Le `server/Dockerfile` a construit et démarré le backend avec succès sous Linux/Railway.
-- Variables runtime configurées, sans valeur secrète dans Git : `HOST`, `FRONTEND_ORIGIN`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWT_ISSUER`. Le port est fourni par Railway.
+- Variables runtime configurées, sans valeur secrète dans Git : `HOST`, `FRONTEND_ORIGIN`, `FRONTEND_ORIGINS`, `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_JWT_ISSUER`. Le port est fourni par Railway.
 - Healthcheck : `/health` ; domaine public : [https://gachaimpact-production.up.railway.app](https://gachaimpact-production.up.railway.app). `GET /health` retourne `{"status":"ok"}`.
 - Le vertical Banque utilise un scheduler interne au processus backend : catch-up idempotent au démarrage, puis planification du prochain minuit `Europe/Paris`. Aucune infrastructure cron payante n'est requise ; l'unicité DB par Player/journée protège les intérêts positifs et le checkpoint monotone `lastInterestDate` protège les journées à intérêt nul sans créer d'historique `+0`. Le statut courant des lots appartient au Master.
 
@@ -52,7 +52,7 @@ Les variables `VITE_*` sont intégrées au build. Elles ne doivent jamais conten
 
 - `FRONTEND_ORIGIN` Railway : `https://gachaimpact.pages.dev` (origine exacte, sans wildcard).
 - Supabase Auth Site URL : `https://gachaimpact.pages.dev`.
-- Redirect URLs confirmées par le propriétaire le 10/10/2026 : `https://gachaimpact.pages.dev`, `http://localhost:5173` et leurs deux chemins `/auth/recovery` explicites.
+- Six Redirect URLs confirmées par capture propriétaire le 10/10/2026 : racines `https://gachaimpact.pages.dev`, `https://gachaimpact.fr`, `http://localhost:5173` et les trois chemins `/auth/recovery` explicites. Aucune suppression/wildcard ; Site URL historique conservée.
 - Cloudflare Pages et Supabase utilisent leurs offres Free actuelles.
 
 ### Validation publique — FAIT
@@ -61,7 +61,7 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 ## R1058 — configuration et preuves requises
 
-Le candidat utilise un retour fixe `/auth/recovery`, servi directement par le fallback SPA Cloudflare Pages. Conserver Site URL `https://gachaimpact.pages.dev` et autoriser explicitement `https://gachaimpact.pages.dev/auth/recovery` ainsi que `http://localhost:5173/auth/recovery` pour le développement. Les origines seules documentées plus haut ne prouvent pas l'autorisation de ces chemins. Aucun wildcard, retour arbitraire, modification SMTP payante ou secret frontend ajouté.
+Le candidat utilise un retour fixe `/auth/recovery`, servi directement par le fallback SPA Cloudflare Pages. Conserver Site URL `https://gachaimpact.pages.dev` et autoriser explicitement les chemins `/auth/recovery` des deux domaines HTTPS et de `http://localhost:5173` pour le développement. Les origines seules documentées plus haut ne prouvent pas l'autorisation de ces chemins. Aucun wildcard, retour arbitraire, modification SMTP payante ou secret frontend ajouté.
 
 Le propriétaire confirme les quatre Redirect URLs et le modèle Reset Password par défaut ; il a personnellement réussi la demande, la réception Supabase, le lien local, la modification puis la reconnexion sur son adresse autorisée d’équipe. La recette visuelle des trois retouches du candidat `a6f28e8` est également validée. Ces preuves ne sont pas une inspection Management Auth par Codex : valeurs privées d’expiration/politique/quota non relevées. La validation native du SDK, le refus des callbacks invalides/expirés, la vérification serveur `getUser`, la séparation des sessions et le filtrage des erreurs restent obligatoires et couverts par les contrôles acquis ; aucune exception de sécurité n’est introduite.
 
@@ -73,13 +73,34 @@ Preuve e-mail uniquement dans une boîte contrôlée autorisée ; aucun envoi au
 
 <a id="domaine-gachaimpactfr--pause-propriétaire-jusquau-11102026"></a>
 <a id="gachaimpact-domain-handoff-20261010"></a>
-## Domaine gachaimpact.fr — checkpoint propriétaire du 10/10/2026
+## Domaine gachaimpact.fr — préparation double origine, 10/10/2026
 
-État plus récent que la passation `2397b61` : domaine acquis chez OVHcloud jusqu'au 10/10/2029 ; DNSSEC OVH **OFF**, absence DS au parent .fr confirmée lors des contrôles publics précédents du propriétaire. Cloudflare **Free**, neuf enregistrements importés et vérifiés ; les trois A/CNAME initialement proxied sont temporairement **DNS only**, MX et TXT/SPF OVH conservés. Les NS **anastasia.ns.cloudflare.com** et **tim.ns.cloudflare.com** ont été saisis chez OVH. Activation de ces NS et suppression des NS OVH en cours au dernier contrôle ; Cloudflare encore **pending** sur dernière capture. **Aucune preuve d'activation définitive**, ne pas déduire Active d'une simple observation DNS.
+**État prouvé :** domaine OVH acquis jusqu’au 10/10/2029 selon propriétaire, protection transfert conservée ; DNSSEC OVH OFF confirmé par propriétaire. Cloudflare Free zone **ACTIVE selon capture/confirmation propriétaire**, distinct de l’activation du custom domain Pages. Google DoH RO 10/10 18:29 UTC : NS `anastasia.ns.cloudflare.com` / `tim.ns.cloudflare.com`, DS absent ; A racine et www `213.186.33.5`, aucun CNAME racine, ftp CNAME racine. MX priorités 1/5/100 mx1/mx2/mx3.mail.ovh.net et SPF `v=spf1 include:mx.ovh.com -all` conservés. Aucun DNS écrit dans ce lot. **Activate domain reste en attente propriétaire** ; pas de preuve de certificat ou parcours fr public.
 
-Ce checkpoint supersède les anciennes instructions d'attendre DNSSEC OFF et de saisir les NS, désormais effectuées par le propriétaire. Reprise opérationnelle : vérifier les états frais OVH/DS/NS et Cloudflare sans recopier un ancien statut ; après activation prouvée, préparer séparément le custom domain Pages et ses tests d'origine, CORS backend (FRONTEND_ORIGIN actuellement unique), redirects/recovery Supabase et callbacks Twitch. Préserver messagerie et pages.dev, éviter les déconnexions inutiles ; aucune garantie de zéro reconnexion.
+### Configuration livrable et preuves distinctes
 
-**URL officielle inchangée : https://gachaimpact.pages.dev.** R1051 lot 1 ne modifie ni DNS, custom domain Pages, CORS, Auth, SMTP ni Twitch. Aucun nouveau service payant ou bucket créé. La migration du domaine et le futur SMTP (Brevo Free envisagé, pas configuré) sont des chantiers opérationnels séparés ; délivrabilité hors équipe Supabase encore à prouver avant de déclarer le reset général disponible. R1051 est désormais actif, son pipeline quotidien reste à implémenter après le rattrapage d'images.
+- Railway : conserver `FRONTEND_ORIGIN=https://gachaimpact.pages.dev` ; ajouter seulement `FRONTEND_ORIGINS=https://gachaimpact.pages.dev,https://gachaimpact.fr`. CSV stricte, dédupliquée avec le canonique ; absence = canonique seul ; configuration invalide bloque le démarrage. Docker runtime `NODE_ENV=production` ; aucun localhost de production. Vérifier la variable filtrée puis les réponses du processus public : OPTIONS 204 + ACAO exact sur chaque origine, GET /api/v1/me sans Bearer 401 ; origines inconnues/lookalikes/HTTP/local sans ACAO. Un Origin accepté ne contourne jamais l’authentification. Le postflight effectif est à acquérir après promotion.
+- Auth : six Redirect URLs confirmées par capture propriétaire ci-dessus ; Site URL pages.dev inchangée. Signup `emailRedirectTo` = racine de départ autorisée ; recovery = même origine + `/auth/recovery`. Les sessions navigateur sont séparées par origine : une reconnexion fr est normale et réutilise le même compte/Player, sans transfert de token ni migration de données.
+- **Templates réels :** Reset Password par défaut confirmé auparavant par propriétaire et recette humaine locale R1058 réussie sur adresse d’équipe ; Le propriétaire confirme dans cette mission Confirm sign up par défaut non personnalisé avec ConfirmationURL, les six Redirect URLs, Site URL pages.dev et absence de SMTP personnalisé. Le connecteur ne donne pas accès à Authconfig et aucune surface navigateur n’est connectée : confirmation humaine explicite, aucune inspection Management privée par Codex. Les modèles natifs conservent le lien `{{ .ConfirmationURL }}` ; aucune cible forcée SiteURL/pages.dev n’est signalée. Si un modèle est personnalisé ultérieurement, contrôler RedirectTo selon le contrat fournisseur avant de valider les retours. Aucune modification de template sans nécessité et mandat adaptés. [Documentation Supabase](https://supabase.com/docs/guides/auth/redirect-urls).
+- SMTP intégré limité à l’équipe Supabase : exception temporaire R1058 maintenue, délivrabilité générale NON ACQUISE. Aucun e-mail réel envoyé ni mot de passe modifié par Codex ; Brevo Free séparé et reporté.
+- Twitch : callback enregistré reste `https://gachaimpact-production.up.railway.app/api/v1/me/twitch/callback`, EventSub reste `https://gachaimpact-production.up.railway.app/api/v1/twitch/eventsub`. Retour hash-bound server-side après consommation atomique, six départs couverts, aucun OAuth réel automatique. [Contrat](../architecture/backend-architecture-v1.md#double-origine-auth-twitch-20261010).
+
+### Gate propriétaire — activation Pages et recette
+
+1. Attendre le SHA approuvé/déployé Railway **et** Pages et le postflight CORS strict consigné au Master/rapport. Confirmation propriétaire du modèle signup natif acquise ; la recette réelle e-mail fr reste post-activation et limitée aux destinataires autorisés. Garder pages.dev fonctionnel. Cette préparation ne donne pas à Codex mandat d’activer le domaine.
+2. Le propriétaire ouvre Workers & Pages → projet existant **gachaimpact** → Custom domains → **gachaimpact.fr**, contrôle la proposition A @ OVH → CNAME @ gachaimpact.pages.dev, puis clique lui-même **Activate domain**. Aucun Worker, service payant ou nouveau projet.
+3. Vérifier dans Cloudflare la cible CNAME racine créée ; le flattening d’apex peut exposer A/AAAA au DNS public au lieu d’un CNAME. Vérifier les mêmes NS et MX/TXT/SPF conservés ; ne modifier ni NS, DNSSEC/DS, messagerie, www ou ftp dans cette opération.
+4. Attendre statut custom domain Active et certificat HTTPS valide pour fr. Vérifier HTTPS racine et /auth/recovery (SPA), puis HTTP → HTTPS sans redirection externe ni boucle. Ne pas considérer l’ancienne page OVH ou une requête avec TLS ignoré comme un succès.
+5. Ouvrir le standalone fr PC/mobile, contrôler chargement assets et appels Railway/CORS sans erreur. Reconnexion personnelle au **même compte existant**, puis vérifier même identité/Player, ressources, personnages, progression et Twitch ; aucune création de compte compensatoire, fusion ou copie. Refaire l’accès pages.dev.
+6. Recettes réelles Auth recovery/confirmation et retour Twitch uniquement avec compte autorisé et mandat explicite du propriétaire : pages.dev → pages.dev ; fr → fr ; annulation sûre. Aucune action automatique, gain, achat ou liaison réelle pour tester l’hébergement. La limitation SMTP hors équipe peut empêcher l’e-mail sans être une régression double domaine ; la garder distincte.
+
+**www et ftp séparés :** www reste A OVH et ne devient pas automatiquement un custom domain Pages ; aucune redirection www n’est créée. ftp est alias de la racine : un changement de racine le fera résoudre vers Pages, sans service FTP. Avant tout besoin FTP, faire arbitrer explicitement sa destination ; ne promettre ni le maintien du FTP OVH via cet alias ni changer ce DNS implicitement.
+
+### Repli
+
+Avant activation : continuer sur **https://gachaimpact.pages.dev**, aucun rollback DNS nécessaire. Après activation : si certificat/parcours fr défaillant, maintenir pages.dev comme point d’entrée ; ne pas supprimer Redirect URLs ni changer Site URL/SMTP. Un retrait custom domain/restauration de la cible OVH exige une opération propriétaire distincte, en préservant messagerie/NS/DS/www/ftp. Pour une régression du code, commit `git revert` dédié sur review, tests/review/FF main puis vérification des deux déploiements ; jamais reset/force-push. L’enveloppe OAuth v2 deviendrait invalide avec l’ancien parseur, ses intentions en cours doivent être relancées sur pages.dev après expiration ; aucune identité ou donnée joueur ne dépend de cette enveloppe.
+
+**URL officielle durant cette préparation : https://gachaimpact.pages.dev.** Le futur site officiel visé est fr, seulement après activation/certificat/recette. R1051 lot 1 est validé publiquement (focus traité séparément), pipeline R1051 lot 2 non lancé. [Cloudflare custom domains](https://developers.cloudflare.com/pages/configuration/custom-domains/).
 
 ## À surveiller
 
@@ -110,7 +131,7 @@ Le workflow général de conception, implémentation, review et checkpoint appar
 1. Committer/pousser le candidat sur `review`, faire approuver sa review GitHub, puis appliquer le cycle autorisé du [workflow permanent](../process/implementation-workflow.md) : fast-forward strict vers `main` après acquisition des gates, sans nouveau GO générique. Un vrai blocker suspend la promotion.
 2. Vérifier le déploiement Railway, ses logs et [le healthcheck public](https://gachaimpact-production.up.railway.app/health).
 3. Vérifier le build Pages et que `VITE_API_BASE_URL` cible l’URL Railway HTTPS publique.
-4. Après tout changement d’URL Pages, reporter l’origine exacte dans `FRONTEND_ORIGIN`, redéployer Railway, puis ajuster Site URL et redirects Supabase Auth.
+4. Lors d’un ajout de domaine, étendre explicitement `FRONTEND_ORIGINS` sans changer le canonique `FRONTEND_ORIGIN` ni Site URL pendant la transition ; autoriser racine/recovery exacts dans Supabase. Suivre la gate domaine ci-dessus.
 5. Tester : connexion, confirmation e-mail si concernée, onboarding, élément, ressources, premier spin, navigation, F5, logout/login, PC/mobile et absence d’erreurs réseau.
 6. Ne jamais lancer une migration, un seed ou une réinitialisation PostgreSQL automatiquement au démarrage ; prévoir un export privé avant toute future opération de schéma.
 

@@ -8,11 +8,12 @@ import { AppError } from '../src/api/errors.js';
 import { TwitchPilotService, TWITCH_RUNTIME_SCOPES, TWITCH_FAVOR_SCOPES, twitchOAuthPurpose, verifyTwitchIdToken } from '../src/application/twitch/twitch-pilot-service.js';
 import type { TwitchEventSubSubscriptionManager } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 import { TwitchAccountLink } from '../src/application/twitch/twitch-account-link.js';
+import { bindOAuthReturn } from '../src/application/twitch/twitch-oauth-return.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
 const otherId = '22222222-2222-4222-8222-222222222222';
 const identity = { subject: 'web-subject' } as AuthenticatedIdentity;
-const config = { host: '127.0.0.1', port: 3001, frontendOrigin: 'https://game.example', supabase: {}, twitch: {
+const config = { host: '127.0.0.1', port: 3001, frontendOrigin: 'https://game.example', frontendOrigins: ['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'], supabase: {}, twitch: {
   clientId: 'client', clientSecret: 'server-secret', redirectUri: 'https://api.example/api/v1/me/twitch/callback', pilotPlayerIds: [playerId], pilotLogin: 'kichnifou',
 } };
 const state = 'A'.repeat(43);
@@ -66,6 +67,12 @@ async function mockTwitch(login = 'kichnifou', userId = '12345', scopes: readonl
 afterEach(() => vi.restoreAllMocks());
 
 describe('R1046 verified OAuth purpose', () => {
+  it.each(['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'])('completes the existing verified identity owner with a bound %s return', async origin => {
+    const { service } = setup(otherId); await mockTwitch('renamed_viewer');
+    const returned = vi.fn(), boundState = bindOAuthReturn(`claim_${state}`, origin, config);
+    expect(await service.callback({ state: boundState, code: 'simulated-code' }, undefined, returned)).toEqual({ linked: true, playerId: otherId, resolutionRequired: false });
+    expect(returned).toHaveBeenCalledExactlyOnceWith(origin);
+  });
   it('binds a non-pilot authenticated WebIdentity to a distinct claim consent', async () => {
     const { service, db } = setup(otherId);
     const url = new URL((await service.startClaim(identity)).url);

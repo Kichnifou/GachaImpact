@@ -15,7 +15,7 @@ beforeAll(async () => {
   await fixture.setup();
   const player = await fixture.database.player.create({ data: { displayName: 'Private runtime state' } }); playerId = player.id;
   await fixture.database.twitchIdentity.create({ data: { playerId, twitchUserId: '12345', login: 'kichnifou' } });
-  const config = { host: '127.0.0.1', port: 3001, supabase: {}, twitch: { clientId: 'test-client', clientSecret: 'test-secret', redirectUri: 'https://backend.example/api/v1/me/twitch/callback', pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' },
+  const config = { host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://gachaimpact.pages.dev', frontendOrigins: ['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'], twitch: { clientId: 'test-client', clientSecret: 'test-secret', redirectUri: 'https://backend.example/api/v1/me/twitch/callback', pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' },
     twitchEventSub: { enabled: true, secret: 'private-test-secret', callbackUrl: 'https://backend.example/api/v1/twitch/eventsub' } };
   const tokens = new TwitchAppAccessTokenProvider('test-client', 'test-secret', vi.fn<typeof fetch>().mockImplementation(async () => new Response(JSON.stringify({ access_token: 'private-app', token_type: 'bearer', expires_in: 1_000 }))));
   const manager = new TwitchEventSubSubscriptionManager(fixture.database, config, new TwitchEventSubClient('test-client', tokens, network));
@@ -23,6 +23,33 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(() => fixture.cleanup(), 60_000);
 describe('private DB runtime OAuth states', () => {
+  it.each(['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'])('binds the return origin in PostgreSQL and consumes the complete intention once: %s', async origin => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No live Twitch calls allowed'));
+    try {
+      const before = await fixture.database.player.findUniqueOrThrow({ where: { id: playerId } });
+      const state = new URL((await service.startRuntime(identity, origin)).url).searchParams.get('state')!;
+      const other = origin.endsWith('.fr') ? 'https://gachaimpact.pages.dev' : 'https://gachaimpact.fr';
+      const substituted = state.replace(Buffer.from(origin).toString('base64url'), Buffer.from(other).toString('base64url'));
+      const onReturn = vi.fn();
+      await expect(service.callback({ state: substituted, error: 'access_denied' }, undefined, onReturn)).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+      expect(onReturn).not.toHaveBeenCalled();
+      const results = await Promise.allSettled([service.callback({ state, error: 'access_denied' }, undefined, onReturn), service.callback({ state, error: 'access_denied' }, undefined, onReturn)]);
+      expect(results.map(result => result.status === 'rejected' ? (result.reason as { code: string }).code : 'unexpected-success').sort()).toEqual(['TWITCH_AUTH_DENIED', 'TWITCH_STATE_INVALID']);
+      expect(onReturn).toHaveBeenCalledExactlyOnceWith(origin);
+      expect(await fixture.database.twitchLinkState.count()).toBe(0);
+      expect(await fixture.database.player.findUniqueOrThrow({ where: { id: playerId } })).toEqual(before);
+      expect(await fixture.database.twitchIdentity.count()).toBe(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally { fetchSpy.mockRestore(); }
+  });
+  it('does not release the return origin of an expired bound intention', async () => {
+    const state = new URL((await service.startRuntime(identity, 'https://gachaimpact.fr')).url).searchParams.get('state')!;
+    await fixture.database.twitchLinkState.updateMany({ data: { expiresAt: new Date('2000-01-01') } });
+    const onReturn = vi.fn();
+    await expect(service.callback({ state, error: 'access_denied' }, undefined, onReturn)).rejects.toMatchObject({ code: 'TWITCH_STATE_INVALID' });
+    expect(onReturn).not.toHaveBeenCalled();
+    await fixture.database.twitchLinkState.deleteMany();
+  });
   it('binds the purpose to the whole state and atomically consumes it once under concurrency', async () => {
     const network = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('No live Twitch calls allowed'));
     try {

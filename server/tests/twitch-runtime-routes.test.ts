@@ -28,9 +28,10 @@ async function setup(withCommands = false) {
     disableGiftSupreme: vi.fn(async () => ({ giftSupremeActive: false, giftSupremePending: false })),
     startFavor: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' })),
     disableFavor: vi.fn(async () => ({ favorSubscriptionActive: false, favorSubscriptionPending: false })),
-    callback: vi.fn(async () => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
+    startGiveaway: vi.fn(async () => ({ url: 'https://id.twitch.tv/oauth2/authorize' })),
+    callback: vi.fn(async (_input: { state?: string; code?: string; error?: string }, _expected?: string, _onReturn?: (origin: string) => void) => ({})), unlink: vi.fn(), disableRuntime: vi.fn(async () => ({ runtimeChatActive: false, runtimeChatPending: false })) };
   const subscriptions = { ensurePilotChatSubscription: vi.fn() };
-  const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://game.example' }, {
+  const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {}, frontendOrigin: 'https://game.example', frontendOrigins: ['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'] }, {
     authIdentityVerifier: { verify: async () => ({ subject: 'operator' }) }, getOrProvisionCurrentPlayer: {} as never,
     twitchPilot: twitch as unknown as TwitchPilotService, snapshotPilot: {} as SnapshotPilotService,
     twitchSubscriptions: subscriptions as unknown as TwitchEventSubSubscriptionManager,
@@ -39,6 +40,29 @@ async function setup(withCommands = false) {
   apps.push(app); return { app, twitch, subscriptions, commandPilot };
 }
 describe('Twitch runtime pilot routes with mocked services', () => {
+  it.each(['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'])('passes the exact initiating Origin to all OAuth owners: %s', async origin => {
+    const { app, twitch } = await setup();
+    const paths = [['start', 'start'], ['recover/start', 'startClaim'], ['runtime/start', 'startRuntime'], ['favor/start', 'startFavor'], ['gift-supreme/start', 'startGiftSupreme'], ['giveaway/start', 'startGiveaway']] as const;
+    for (const [path, owner] of paths) {
+      expect((await app.inject({ method: 'POST', url: '/api/v1/me/twitch/' + path, headers: { authorization: 'Bearer test', origin }, payload: {} })).statusCode).toBe(200);
+      expect(twitch[owner]).toHaveBeenCalledExactlyOnceWith({ subject: 'operator' }, origin);
+      twitch[owner].mockClear();
+      expect((await app.inject({ method: 'POST', url: '/api/v1/me/twitch/' + path, headers: { authorization: 'Bearer test', origin: 'https://gachaimpact.fr.evil.example' }, payload: {} })).statusCode).toBe(403);
+      expect(twitch[owner]).not.toHaveBeenCalled();
+    }
+  });
+  it.each(['success', 'cancelled'])('returns a consumed state to its verified origin on %s, ignoring callback redirect parameters', async outcome => {
+    const { app, twitch } = await setup();
+    twitch.callback.mockImplementationOnce(async (_input, _expected, onReturn) => { onReturn?.('https://gachaimpact.fr'); if (outcome === 'cancelled') throw new AppError('Autorisation annulée.', 400, 'TWITCH_AUTH_DENIED'); return {}; });
+    const response = await app.inject({ url: `/api/v1/me/twitch/callback?state=claim_${state}&code=fixture&returnTo=https://evil.example` });
+    expect(response.statusCode).toBe(302); expect(new URL(response.headers.location!).origin).toBe('https://gachaimpact.fr');
+    expect(response.headers.location).not.toMatch(/fixture|evil\.example|state=/);
+  });
+  it('uses the historical canonical origin for an invalid/expired/replayed state even with a forged callback Origin', async () => {
+    const { app, twitch } = await setup(); twitch.callback.mockRejectedValueOnce(new AppError('État expiré.', 400, 'TWITCH_STATE_INVALID'));
+    const response = await app.inject({ url: `/api/v1/me/twitch/callback?state=claim_${state}&error=access_denied&origin=https://evil.example`, headers: { origin: 'https://gachaimpact.fr' } });
+    expect(new URL(response.headers.location!).origin).toBe('https://game.example');
+  });
   it('requires paired explicit operator consent and rejects missing or invented consent', async () => {
     const { app, twitch } = await setup(), url = '/api/v1/me/twitch/resolution', headers = { authorization: 'Bearer test' };
     const payload = { resolutionId: '22222222-2222-4222-8222-222222222222', choice: 'TWITCH', decisionRevision: '33333333-3333-4333-8333-333333333333', confirmation: 'ONE_PROGRESSION_NO_MERGE' };
@@ -70,7 +94,7 @@ describe('Twitch runtime pilot routes with mocked services', () => {
       expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: `${url}?playerId=other`, headers })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url, headers })).statusCode).toBe(200);
-    expect(twitch.startClaim).toHaveBeenCalledExactlyOnceWith({ subject: 'operator' });
+    expect(twitch.startClaim).toHaveBeenCalledExactlyOnceWith({ subject: 'operator' }, 'https://game.example');
     expect(twitch.requirePilot).not.toHaveBeenCalled();
     twitch.callback.mockResolvedValueOnce({ claimed: true, playerId: 'private-target' });
     const response = await app.inject({ method: 'GET', url: `/api/v1/me/twitch/callback?state=claim_${state}&code=private-code` });
@@ -141,7 +165,7 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     const headers = { authorization: 'Bearer test' };
     const response = await app.inject({ method: 'POST', url, headers });
     expect(response.statusCode).toBe(200); expect(response.json()).toEqual({ url: 'https://id.twitch.tv/oauth2/authorize?scope=openid+channel%3Aread%3Asubscriptions' });
-    expect(twitch.startFavor).toHaveBeenCalledWith({ subject: 'operator' }); expect(twitch.startRuntime).not.toHaveBeenCalled();
+    expect(twitch.startFavor).toHaveBeenCalledWith({ subject: 'operator' }, 'https://game.example'); expect(twitch.startRuntime).not.toHaveBeenCalled();
     for (const payload of [{ scopes: ['openid'] }, { broadcaster_user_id: 'other' }, { callback: 'https://evil.example' }, [], 'text'])
       expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: JSON.stringify(payload) })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url, headers: { ...headers, 'content-type': 'application/json' }, payload: 'null' })).statusCode).toBe(400);
@@ -178,7 +202,7 @@ describe('Twitch runtime pilot routes with mocked services', () => {
     expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
     const response = await app.inject({ method: 'POST', url, headers });
     expect(response.statusCode).toBe(200);
-    expect(twitch.startRuntime).toHaveBeenCalledWith({ subject: 'operator' });
+    expect(twitch.startRuntime).toHaveBeenCalledWith({ subject: 'operator' }, 'https://game.example');
     expect(twitch.start).not.toHaveBeenCalled();
     for (const payload of [{ scopes: ['user:write:chat'] }, { callback: 'https://evil.example' }, { user_id: 'other' }, { secret: 'injected' }])
       expect((await app.inject({ method: 'POST', url, headers, payload })).statusCode).toBe(400);

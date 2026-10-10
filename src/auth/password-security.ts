@@ -1,16 +1,11 @@
 import type { SupabaseClient, UserAttributes } from '@supabase/supabase-js'
 
-export const recoveryPath = '/auth/recovery'
+import { recoveryDestination, recoveryPath } from './auth-destinations'
+export { recoveryDestination, recoveryPath } from './auth-destinations'
 export const recoveryConfirmation = 'Si un compte correspond à cette adresse, un e-mail de réinitialisation va être envoyé.'
 
 export function isRecoveryLocation(url = new URL(location.href)) {
   return url.pathname === recoveryPath || new URLSearchParams(url.hash.slice(1)).get('type') === 'recovery'
-}
-
-export function recoveryDestination(origin = location.origin) {
-  // Only the deployed standalone and the documented local development origin.
-  if (!['https://gachaimpact.pages.dev', 'http://localhost:5173'].includes(origin)) throw new Error('La récupération est disponible depuis le site officiel du jeu.')
-  return `${origin}${recoveryPath}`
 }
 
 export class PasswordSecurityError extends Error {

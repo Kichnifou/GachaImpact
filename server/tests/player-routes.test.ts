@@ -104,6 +104,25 @@ describe('authenticated player routes', () => {
     expect(store.provisionInputs).toHaveLength(0);
   });
 
+  it('resolves the same Supabase subject to the existing Player on either frontend origin without provisioning', async () => {
+    const store = new FakeCurrentPlayerStore(); store.player = existingPlayer;
+    const find = vi.spyOn(store, 'findByIdentity');
+    const origins = ['https://gachaimpact.pages.dev', 'https://gachaimpact.fr'];
+    const app = await buildApp({ ...config, frontendOrigin: origins[0], frontendOrigins: origins }, {
+      authIdentityVerifier: { verify: async () => identity },
+      getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(store),
+    }); apps.push(app);
+    for (const origin of origins) {
+      const response = await app.inject({ method: 'GET', url: '/api/v1/me', headers: { origin, authorization: 'Bearer synthetic-token' } });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
+      expect(response.headers['access-control-allow-origin']).toBe(origin);
+    }
+    expect(find).toHaveBeenNthCalledWith(1, 'supabase', identity.subject);
+    expect(find).toHaveBeenNthCalledWith(2, 'supabase', identity.subject);
+    expect(store.provisionInputs).toEqual([]);
+  });
+
   it('requires a valid display name when onboarding a new Player', async () => {
     const app = await createApp(
       { verify: async () => identity },

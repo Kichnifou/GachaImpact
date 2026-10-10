@@ -7,11 +7,12 @@ import type { SnapshotPilotService } from '../../application/migration/snapshot-
 import { SnapshotParseError } from '../../application/migration/streamerbot-snapshot.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
+import { frontendReturnOrigin } from '../../config/frontend-origins.js';
 import type { TwitchCommandPilot } from '../../application/twitch/twitch-command-pilot.js';
 
 const filesSchema = z.object({ files: z.record(z.string(), z.string().max(4_000_000)) }).strict();
 const applySchema = filesSchema.extend({ previewId: z.string().length(94) });
-const callbackSchema = z.object({ state: z.string().optional(), code: z.string().optional(), error: z.string().optional() });
+const callbackSchema = z.object({ state: z.string().max(1024).optional(), code: z.string().optional(), error: z.string().optional() });
 function parseFiles(body: unknown) {
   const result = filesSchema.safeParse(body);
   if (!result.success) throw new AppError('Bundle snapshot invalide.', 400, 'SNAPSHOT_INVALID');
@@ -23,6 +24,7 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
   commandPilot?: TwitchCommandPilot;
 }) {
   const authenticated = { preHandler: options.authenticate };
+  const returnOrigin = (request: { headers: { origin?: string } }) => frontendReturnOrigin(options.config, request.headers.origin);
   app.get('/api/v1/me/twitch', authenticated, async (request, reply) => {
     reply.header('cache-control', 'no-store');
     const identity = requireAuthenticatedIdentity(request);
@@ -71,19 +73,19 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     if (!input.success || Object.keys(request.query as object).length) throw new AppError('Confirmation de progression requise.', 400, 'VALIDATION_ERROR');
     return options.twitch.resolveLink(requireAuthenticatedIdentity(request), input.data.resolutionId, input.data.choice, input.data.decisionRevision,...(input.data.operatorPlanId?[input.data.operatorPlanId]:[]));
   });
-  app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request)));
+  app.post('/api/v1/me/twitch/start', authenticated, request => options.twitch.start(requireAuthenticatedIdentity(request), returnOrigin(request)));
   app.post('/api/v1/me/twitch/recover/start', authenticated, request => {
     commandControlParameters(request);
-    return options.twitch.startClaim(requireAuthenticatedIdentity(request));
+    return options.twitch.startClaim(requireAuthenticatedIdentity(request), returnOrigin(request));
   });
   app.post('/api/v1/me/twitch/runtime/start', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body ?? {}).success) throw new AppError('Paramètres runtime Twitch invalides.', 400, 'VALIDATION_ERROR');
-    return options.twitch.startRuntime(requireAuthenticatedIdentity(request));
+    return options.twitch.startRuntime(requireAuthenticatedIdentity(request), returnOrigin(request));
   });
   app.post('/api/v1/me/twitch/favor/start', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
       throw new AppError('Paramètres Faveur Twitch invalides.', 400, 'VALIDATION_ERROR');
-    return options.twitch.startFavor(requireAuthenticatedIdentity(request));
+    return options.twitch.startFavor(requireAuthenticatedIdentity(request), returnOrigin(request));
   });
   app.delete('/api/v1/me/twitch/favor/subscription', authenticated, request => {
     if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
@@ -94,10 +96,10 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     if (!z.object({}).strict().safeParse(request.body === undefined ? {} : request.body).success || Object.keys(request.query as object).length)
       throw new AppError('Paramètres Gift Suprême invalides.', 400, 'VALIDATION_ERROR');
   };
-  app.post('/api/v1/me/twitch/gift-supreme/start', authenticated, request => { giftParameters(request); return options.twitch.startGiftSupreme(requireAuthenticatedIdentity(request)); });
+  app.post('/api/v1/me/twitch/gift-supreme/start', authenticated, request => { giftParameters(request); return options.twitch.startGiftSupreme(requireAuthenticatedIdentity(request), returnOrigin(request)); });
   app.post('/api/v1/me/twitch/gift-supreme/ensure', authenticated, request => { giftParameters(request); return options.twitch.ensureGiftSupreme(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch/gift-supreme', authenticated, request => { giftParameters(request); return options.twitch.disableGiftSupreme(requireAuthenticatedIdentity(request)); });
-  app.post('/api/v1/me/twitch/giveaway/start', authenticated, request => { giftParameters(request); return options.twitch.startGiveaway(requireAuthenticatedIdentity(request)); });
+  app.post('/api/v1/me/twitch/giveaway/start', authenticated, request => { giftParameters(request); return options.twitch.startGiveaway(requireAuthenticatedIdentity(request), returnOrigin(request)); });
   app.post('/api/v1/me/twitch/giveaway/enable', authenticated, request => { giftParameters(request); return options.twitch.enableGiveaway(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch/giveaway', authenticated, request => { giftParameters(request); return options.twitch.disableGiveaway(requireAuthenticatedIdentity(request)); });
   app.delete('/api/v1/me/twitch', authenticated, request => options.twitch.unlink(requireAuthenticatedIdentity(request)));
@@ -114,6 +116,7 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
     let gift = false;
     let giveaway = false;
     let claim = false;
+    let targetOrigin = frontendReturnOrigin(options.config);
     try { if (query.success) {
       const purpose = twitchOAuthPurpose(query.data.state);
       runtime = purpose === 'AUTHORIZE_RUNTIME';
@@ -121,11 +124,11 @@ export async function registerTwitchPilotRoutes(app: FastifyInstance, options: {
       gift = purpose === 'AUTHORIZE_GIFT_SUPREME';
       giveaway = purpose === 'AUTHORIZE_GIVEAWAY';
       claim = purpose === 'CLAIM_TWITCH_PROFILE';
-      const result = await options.twitch.callback(query.data);
+      const result = await options.twitch.callback(query.data, undefined, origin => { targetOrigin = frontendReturnOrigin(options.config, origin); });
       outcome = 'resolutionRequired' in result && result.resolutionRequired ? 'progression-choice' : claim ? 'profile-recovered' : giveaway ? 'giveaway-activated' : gift ? 'gift-supreme-activated' : favor ? 'favor-runtime-activated' : runtime ? 'runtime-activated' : 'connected';
     } }
     catch (error) { outcome = giveaway ? 'giveaway-error' : gift ? 'gift-supreme-error' : favor ? 'favor-runtime-error' : runtime ? 'runtime-error' : error instanceof AppError ? error.code : 'error'; }
-    const target = new URL(options.config.frontendOrigin ?? 'http://localhost:5173');
+    const target = new URL(targetOrigin);
     target.searchParams.set('twitch', outcome);
     target.hash = giveaway ? 'moderation' : 'configuration';
     reply.header('cache-control', 'no-store');
