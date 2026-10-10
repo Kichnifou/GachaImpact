@@ -49,6 +49,6 @@ export default function PasswordForm({ client, onSuccess }: { client: SupabaseCl
     {error && <p className="form-feedback error" role="alert">{error}</p>}
     {notice && <p className="form-feedback success" role="status">{notice}</p>}
     {success && <p className="form-feedback success" role="status">Votre mot de passe a été modifié.</p>}
-    <AppButton type="submit" disabled={pending}>{pending ? 'Modification…' : 'Valider le nouveau mot de passe'}</AppButton>
+    <AppButton type="submit" variant="primary" className="entry-primary-button" disabled={pending} aria-busy={pending}>{pending ? 'Modification…' : 'Valider le nouveau mot de passe'}</AppButton>
   </form>
 }

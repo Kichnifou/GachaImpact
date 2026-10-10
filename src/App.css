@@ -14,7 +14,6 @@
 }
 
 .password-form { max-width: 440px; }
-.password-reset-link { margin-top: 12px; }
 .password-form input { width: 100%; min-width: 0; box-sizing: border-box; }
 .history-event-draw { padding-block: 8px; border-block: 1px solid var(--border); margin-block: 12px; }
 .password-recovery-panel h1 { overflow-wrap: anywhere; }
@@ -8739,6 +8738,44 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .app-button-danger { color: #fff0f2; border-color: rgba(255, 117, 131, .5); background: rgba(126, 38, 55, .9); }
 .app-button-danger:hover:not(:disabled) { border-color: rgba(255, 152, 162, .8); background: rgba(158, 48, 65, .98); }
 .app-button-icon { width: 36px; min-width: 36px; height: 36px; min-height: 36px; display: inline-grid; place-items: center; padding: 0; border-radius: 9px; }
+
+/* Auth actions share the entry palette; these rules override the generic button variants. */
+.app-button.entry-primary-button {
+  min-height: 42px;
+  padding: 0 20px;
+  color: #07101f;
+  font-size: 10px;
+  font-weight: 900;
+  border: 1px solid rgba(188, 225, 255, .72);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6bd8ff, #7b8dff);
+  box-shadow: 0 8px 24px rgba(50, 142, 232, .22);
+}
+.app-button.entry-primary-button:hover:not(:disabled) { color: #07101f; border-color: #c5edff; background: linear-gradient(135deg, #8be1ff, #96a4ff); }
+.app-button.entry-primary-button:focus-visible { outline: 2px solid #70dcff; outline-offset: 3px; }
+.app-button.entry-primary-button:disabled { cursor: wait; opacity: .58; }
+.password-form > .app-button:not(.entry-primary-button) { align-self: flex-start; margin-top: 12px; }
+
+.app-button.auth-secondary-link {
+  display: block;
+  align-self: flex-end;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 40px;
+  margin: 8px 0 0 auto;
+  padding: 8px 4px 8px 12px;
+  color: #83d9ff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: right;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+}
+.app-button.auth-secondary-link:hover:not(:disabled) { color: #bef0ff; background: transparent; box-shadow: none; text-decoration: underline; transform: none; }
+.app-button.auth-secondary-link:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; background: transparent; box-shadow: none; }
 
 .moderation-tabs { min-width: 0; display: flex; flex-wrap: nowrap; gap: 5px; padding: 8px; border: 1px solid rgba(105, 157, 220, .16); border-radius: 11px; background: rgba(8, 22, 42, .62); }
 .moderation-tabs .app-button { flex: 1 1 0; min-width: 0; padding-inline: 6px; font-size: 12px; white-space: nowrap; }

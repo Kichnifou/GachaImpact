@@ -94,12 +94,12 @@ function AuthScreen() {
           {errorMessage && <p className="form-feedback error" role="alert">{errorMessage}</p>}
           {message && <p className="form-feedback success" role="status">{message}</p>}
 
-          <button type="submit" className="entry-primary-button" disabled={isSubmitting}>
+          <AppButton type="submit" variant="primary" className="entry-primary-button" disabled={isSubmitting} aria-busy={isSubmitting}>
             {isSubmitting
               ? mode === 'forgot' ? 'Envoi…' : mode === 'login' ? 'Connexion…' : 'Création…'
               : mode === 'forgot' ? 'Envoyer le lien' : mode === 'login' ? 'Entrer dans le jeu' : 'Créer mon compte'}
-          </button>
-          {mode !== 'register' && <AppButton className="password-reset-link" disabled={isSubmitting} onClick={() => switchMode(mode === 'forgot' ? 'login' : 'forgot')}>{mode === 'forgot' ? 'Retour à la connexion' : 'Mot de passe oublié ?'}</AppButton>}
+          </AppButton>
+          {mode !== 'register' && <AppButton className="auth-secondary-link" disabled={isSubmitting} onClick={() => switchMode(mode === 'forgot' ? 'login' : 'forgot')}>{mode === 'forgot' ? 'Retour à la connexion' : 'Mot de passe oublié ?'}</AppButton>}
         </form>
       </section>
     </main>

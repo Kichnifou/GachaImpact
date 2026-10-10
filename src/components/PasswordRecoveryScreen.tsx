@@ -40,6 +40,6 @@ export default function PasswordRecoveryScreen() {
     }} />}
     {state === 'done' && <p role="status">Votre mot de passe a été modifié. Vous pouvez vous connecter avec le nouveau mot de passe.</p>}
     {exitError && <p role="alert">{exitError}</p>}
-    {state !== 'loading' && <AppButton onClick={() => void leave()}>Retour à la connexion</AppButton>}
+    {state !== 'loading' && <AppButton className="auth-secondary-link" onClick={() => void leave()}>Retour à la connexion</AppButton>}
   </section></main>
 }
