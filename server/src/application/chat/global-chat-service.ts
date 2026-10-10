@@ -44,7 +44,7 @@ function normalize(content: string) {
   return { value, length, type: value.startsWith('!') ? GlobalChatMessageType.COMMAND : GlobalChatMessageType.PLAYER };
 }
 
-function splitGameResult(content: string): string[] {
+export function splitGameResult(content: string): string[] {
   const parts: string[] = [];
   let remaining = content;
   while (Array.from(remaining).length > 500) {

@@ -5,6 +5,7 @@ import AppButton from './AppButton'
 
 export default function PasswordRecoveryScreen() {
   const [state, setState] = useState<'loading' | 'ready' | 'invalid' | 'done'>('loading')
+  const [exitError, setExitError] = useState('')
   const [client] = useState(getRecoveryClient)
   useEffect(() => {
     let active = true
@@ -20,9 +21,13 @@ export default function PasswordRecoveryScreen() {
     })()
     return () => { active = false }
   }, [client])
+  const closeSession = async () => {
+    const { error } = await client.auth.signOut({ scope: 'local' }).catch(() => ({ error: true }))
+    setExitError(error ? 'La fermeture de la session de récupération n’a pas pu être confirmée. Réessayez avec « Retour à la connexion ».' : '')
+    return !error
+  }
   const leave = async () => {
-    const { error } = await client.auth.signOut({ scope: 'local' })
-    if (error) { setState('invalid'); return }
+    if (!await closeSession()) { if (state !== 'done') setState('invalid'); return }
     location.replace('/')
   }
   return <main className="entry-shell"><section className="entry-panel panel password-recovery-panel" aria-labelledby="recovery-title">
@@ -31,9 +36,10 @@ export default function PasswordRecoveryScreen() {
     {state === 'invalid' && <p role="alert">Ce lien est invalide, expiré ou déjà utilisé. Retournez à la connexion pour demander un nouveau lien.</p>}
     {state === 'ready' && <PasswordForm client={client} onSuccess={async () => {
       // Revoke only this recovery session; the ordinary game session has its own storage.
-      await client.auth.signOut({ scope: 'local' }); setState('done')
+      await closeSession(); setState('done')
     }} />}
     {state === 'done' && <p role="status">Votre mot de passe a été modifié. Vous pouvez vous connecter avec le nouveau mot de passe.</p>}
+    {exitError && <p role="alert">{exitError}</p>}
     {state !== 'loading' && <AppButton onClick={() => void leave()}>Retour à la connexion</AppButton>}
   </section></main>
 }

@@ -93,7 +93,7 @@ Le workflow général de conception, implémentation, review et checkpoint appar
 
 ## Checklist de redéploiement utile
 
-1. Committer/pousser le candidat sur `review`, faire approuver sa review GitHub, puis le promouvoir vers `main` uniquement sur instruction du propriétaire.
+1. Committer/pousser le candidat sur `review`, faire approuver sa review GitHub, puis appliquer le cycle autorisé du [workflow permanent](../process/implementation-workflow.md) : fast-forward strict vers `main` après acquisition des gates, sans nouveau GO générique. Un vrai blocker suspend la promotion.
 2. Vérifier le déploiement Railway, ses logs et [le healthcheck public](https://gachaimpact-production.up.railway.app/health).
 3. Vérifier le build Pages et que `VITE_API_BASE_URL` cible l’URL Railway HTTPS publique.
 4. Après tout changement d’URL Pages, reporter l’origine exacte dans `FRONTEND_ORIGIN`, redéployer Railway, puis ajuster Site URL et redirects Supabase Auth.

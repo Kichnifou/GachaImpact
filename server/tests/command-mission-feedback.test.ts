@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import { appendCommandFeedback } from '../src/application/chat/command-mission-feedback.js';
 import { harness } from './helpers/chat-command-harness.js';
+import { GlobalChatService, splitGameResult } from '../src/application/chat/global-chat-service.js';
 
 const one = '🎯 Mission terminée : Fortune croissante (+1600 Primogemmes).';
 const two = '🎯 Mission terminée : Millionnaire (+16000 Primogemmes).';
@@ -27,3 +28,27 @@ it('uses the same separator in internal chat without repeating a reward', async 
   expect(text).toContain(` | ${one} | ${two}`);
   expect(f.services.giftCodeService.claim).toHaveBeenCalledOnce();
 });
+it('preserves legacy free-text splitting before appending an intact mission', () => {
+  const response = '🌸'.repeat(1001);
+  const parts = appendCommandFeedback(splitGameResult(response), [one], 500);
+  expect(parts.every(p => Array.from(p).length <= 500)).toBe(true);
+  expect(parts.slice(0, -1)).toEqual(['🌸'.repeat(500), '🌸'.repeat(500)]);
+  expect(parts.at(-1)).toBe(`🌸 | ${one}`);
+});
+it('publishes a long internal string and its mission through the real result validator', async () => {
+  const f = harness(); f.services.rankingService.chatTop.mockResolvedValueOnce('🌸'.repeat(501));
+  f.chat.commandMissionCompletions.mockResolvedValueOnce([one]);
+  await f.send('!top xp');
+  const [id, content] = f.chat.publishGameResult.mock.calls[0]!;
+  const saved: string[] = [];
+  const publisher = {
+    database: {
+      globalChatMessage: { findUnique: async () => ({ messageType: 'COMMAND', sourceChannel: 'INTERNAL_CHAT', generation: 0 }) },
+      $transaction: async (action: (tx: unknown) => Promise<void>) => action({ globalChatMessage: { create: async ({ data }: { data: { content: string } }) => { saved.push(data.content); } } }),
+    },
+    findGameResult: async () => null,
+    findGameResults: async () => saved.map(content => ({ content })),
+  };
+  await GlobalChatService.prototype.publishGameResult.call(publisher as unknown as GlobalChatService, id, content);
+  expect(saved).toEqual(['🌸'.repeat(500), `🌸 | ${one}`]);
+})
