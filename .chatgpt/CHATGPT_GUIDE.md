@@ -18,6 +18,8 @@ Depuis la règle propriétaire du 09/10/2026, un mandat peut autoriser revue, co
 
 # 1. Projet
 
+Les directives permanentes du 10/10/2026 sur le jeu actif et les vérifications autonomes ont une seule source : [production vivante et comparaisons BEFORE/AFTER](../docs/process/implementation-workflow.md#production-vivante-et-comparaisons-beforeafter--directive-propriétaire-du-10102026), [preuves après déploiement](../docs/process/implementation-workflow.md#vérifications-autonomes-après-déploiement--directive-propriétaire-du-10102026). Appliquer ces règles sans transformer une configuration en preuve runtime, inventer un accès authentifié ou demander une manipulation déjà couverte par une preuve équivalente. Une orientation de diagnostic futur ne vaut pas mécanisme livré.
+
 Repository public :
 
 `https://github.com/Kichnifou/GachaImpact`
@@ -686,7 +688,7 @@ Principes :
 - transactions économiques sûres ;
 - historique / audit lorsque pertinent.
 
-Le socle réellement retenu et utilisé est PostgreSQL/Supabase avec Prisma côté backend Node.js/TypeScript/Fastify, frontend React/TypeScript/Vite, Railway pour le backend public et Cloudflare Pages pour le frontend public. Le Master porte l'état courant et `PAID_INFRA_APPROVED = false`.
+Le socle réellement retenu et utilisé est PostgreSQL/Supabase avec Prisma côté backend Node.js/TypeScript/Fastify, frontend React/TypeScript/Vite, Railway pour le backend public et Cloudflare Pages pour le frontend public. Le Master porte l'état courant et l'unique registre des autorisations d'infrastructure payante par fournisseur/service ; aucun ancien booléen global ne remplace ce périmètre, conformément à AGENTS.md.
 
 ---
 

@@ -446,6 +446,20 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 
 **Amendement Chat R1038 :** Aliases légende/legendes/légendes/leg. Liste personnelle ou tierce entière des C6 5★ actifs ; détail canonique moi/me personnage ou joueur personnage, nom exact. Cinq stats avec thèmes et titres français. Permissions Box pour liste, Box et Statistiques générales pour détail.
 
+### Correction décidée le 10/10/2026 — cible à implémenter, défaut encore ouvert
+
+Retour propriétaire : `!legende skirk` renvoie « Joueur introuvable », tandis que `!legende @Kichnifou skirk` et `!legende kichnifou skirk` fonctionnent. Le resolver actuel cherche un joueur avant de considérer les arguments comme un personnage personnel. La passation ne corrige pas ce code et ne rouvre pas l'audit Concours.
+
+Contrat cible partagé Chat/Twitch :
+
+- `!legende` : liste personnelle ; `!legende skirk` : détail personnel de Skirk si admissible ; `!legende Yae Miko` : personnage personnel à plusieurs mots.
+- `!legende Joueur` : liste du joueur ; `!legende Joueur Personnage` : détail chez ce joueur ; `!legende moi Personnage` et `me` restent compatibles.
+- Une référence explicite `@Joueur` impose la cible joueur et lève l'ambiguïté. Pour les collisions implicites entre nom de joueur et nom de personnage, le prochain lot doit arrêter, documenter et tester une résolution déterministe sans fuite ; cette passation ne choisit pas silencieusement une priorité supplémentaire.
+- Préserver les vraies identités, l'admissibilité Box C6 5★ et les accès propriétaire/tiers : BOX pour la liste, BOX et GENERAL_STATISTICS pour le détail. Aucun refus ne révèle noms, nombre ou statistiques privés ; aucun fallback vers une autre cible ne contourne un refus d'accès.
+- Présenter les caractéristiques sous la forme `💪 Force 3 · 🧠 Intelligence 7 · ✨ Beauté 6 · 👑 Charisme 5 · 🎭 Popularité 4` ; conserver Concours, victoires, titres et progression thématique, avec une organisation lisible.
+
+Réutiliser le propriétaire Social/Concours et les formatters communs ; Twitch : 450 caractères Unicode maximum, mention/préfixes compris, continuations explicites entre éléments complets. Tests futurs : formes personnelles/tierces/explicites, noms composés, collisions, confidentialité et découpage ; aucune statistique économique ou règle Concours modifiée. Sources : [Legende.txt](../../legacy/streamerbot/commands/Legende.txt), [resolver moderne](../../server/src/application/chat/player-command-resolver.ts).
+
 ## `!concours`
 
 - **Statut audit :** CLÔTURÉ — Domaine Concours / C6 après R593
@@ -882,6 +896,12 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - **Réponses Twitch :** une seule ligne
 
 **Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
+
+### Correction Ticket décidée le 10/10/2026 — cible à implémenter, défaut encore ouvert
+
+Lorsqu'un Ticket produit des Moras, la réponse actuelle affiche le gain sans préciser sa nature. Le résultat Moras doit expliciter **`💰 Remboursement de 50 000 Moras`** pour le cas rapporté, en utilisant le montant réellement persisté plutôt qu'une constante de présentation. Conserver prix payé, solde final et gains du reçu. Le terme « remboursement » concerne uniquement le résultat Ticket Moras, jamais les autres résultats Ticket ni les autres achats.
+
+Correction de présentation seulement : probabilités, prix, RNG, gains, économie et idempotence inchangés ; anciens résultats déjà gelés/replays conservés. Réutiliser les formatters communs et le découpage logique Twitch à 450 caractères Unicode maximum, mention/préfixes compris. Le prochain lot teste résultat Moras, autres résultats, coût/solde, retry/redelivery et limites en privé, sans refaire un achat payant de recette en production. Source : [Shop.txt, résultat moras](../../legacy/streamerbot/commands/Shop.txt) ; propriétaire moderne : [PlayerCommandResolver](../../server/src/application/chat/player-command-resolver.ts). Aucun code modifié lors de cette passation.
 
 ## `!mission`
 

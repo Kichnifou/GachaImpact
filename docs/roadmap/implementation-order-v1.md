@@ -1,10 +1,10 @@
 # Ordre d’implémentation V1
 
-## Priorité d'exécution — R1064/R1057 livrés, stabilisation R1065 livrée — 09/10/2026
+## Priorité d'exécution — R1065 livré, correctifs et contrôle autonome avant R1053 — 10/10/2026
 
 31B/R1062 et domaines R1063 acquis : 44 NATIVE conservés. GLOBAL R1064 est activé après review indépendante, déploiements et gates fraîches ; état et limites humaines réellement obtenus au [Master](../master/PROJECT_MASTER_PLAN.md), contrat [GLOBAL](../architecture/twitch-global-r1064.md). Codes cadeaux enrichis R1057 livrés après GLOBAL. R1057 ne bloque pas GLOBAL et ne constitue pas une annonce officielle du standalone ; les autres gates de pré-release restent suivies séparément.
 
-R1057 est déployé au SHA approuvé `32128cc` après corrections/re-review, fast-forward et migration 068 normale ; contrôles techniques et formulaire public validés. Recette propriétaire réelle CADEAU_PHASE1 acquise et contrôlée en lecture seule, paliers 20/30/40 conformes. Stabilisation/optimisation Supabase R1065 livrée au SHA 2aa7dd5 après reviews indépendantes, correction du téléchargement Docker Hub 429, déploiements exacts, postflight et recette propriétaire ; suppression des UPDATE identiques mesurée en production (+168 lookups, zéro UPDATE sur la fenêtre observée) : [audit](../architecture/supabase-stabilization-r1065.md). Après clôture réelle, tirage mensuel Event R1053 sous mission dédiée. [Contrat et preuves](../architecture/gift-code-enriched-r1057.md). Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire. Les étapes suivantes de pré-release restent distinctes ; aucun chantier suivant lancé automatiquement.
+R1057 est déployé au SHA approuvé `32128cc` après corrections/re-review, fast-forward et migration 068 normale ; contrôles techniques et formulaire public validés. Recette propriétaire réelle CADEAU_PHASE1 acquise et contrôlée en lecture seule, paliers 20/30/40 conformes. Stabilisation/optimisation Supabase R1065 livrée au SHA 2aa7dd5 après reviews indépendantes, correction du téléchargement Docker Hub 429, déploiements exacts, postflight et recette propriétaire ; suppression des UPDATE identiques mesurée en production (+168 lookups, zéro UPDATE sur la fenêtre observée) : [audit](../architecture/supabase-stabilization-r1065.md). Intercalaire décidé le 10/10, non implémenté : corrections de présentation/résolution !shop ticket et !legende, puis contrôle autonome opérateur sûr selon le [workflow](../process/implementation-workflow.md#vérifications-autonomes-après-déploiement--directive-propriétaire-du-10102026), avant le tirage mensuel Event R1053 sous mission dédiée. [Contrats de commandes](../commands/command-reference.md), [contrat et preuves Codes](../architecture/gift-code-enriched-r1057.md). Les trois recettes de nouveaux comptes R1064 restent différées par arbitrage propriétaire. Les étapes suivantes de pré-release restent distinctes ; aucun chantier suivant lancé automatiquement. Le Master porte seul la prochaine reprise précise.
 
 ## Historique — intercalaire UI/UX avant canary R1055
 
@@ -25,14 +25,15 @@ Le propriétaire précise l'ordre V1 après migration ; aucune étape de migrati
 1. Stabilisation silencieuse.
 2. Codes cadeaux enrichis R1057, extension du moteur existant.
 3. Optimisation Supabase (quotas/egress/logs ; audit et décisions d'infrastructure selon les autorisations existantes).
-4. Tirage mensuel Event R1053, contrat fonctionnel inchangé.
-5. Changement/récupération de mot de passe R1058 via Supabase Auth standard.
-6. Catalogue Character R1051 et assets/import/outils ADMIN prévus.
-7. UX cosmétiques R1052.
-8. Passe graphique, ergonomique et mobile, sans dégradation desktop.
-9. Vraie bêta et corrections.
-10. Validation finale V1 et sweep documentation/backlog requis par R1054.
-11. Révélation et ouverture officielle.
+4. Intercalaire propriétaire du 10/10 : corriger !shop ticket et !legende, puis contrôle autonome sécurisé ; orientation documentée seulement lors de la passation.
+5. Tirage mensuel Event R1053, contrat fonctionnel inchangé : clôture, participants à points > 0, un point = un ticket, un gagnant, +1 Masterless Stella Fortuna, scheduler/catch-up exactly-once ; aucun reroll, double gain ou ancien résultat inventé.
+6. Changement/récupération de mot de passe R1058 via Supabase Auth standard.
+7. Catalogue Character R1051 et assets/import/outils ADMIN prévus.
+8. UX cosmétiques R1052.
+9. Passe graphique, ergonomique et mobile, sans dégradation desktop.
+10. Vraie bêta et corrections.
+11. Validation finale V1 et sweep documentation/backlog requis par R1054.
+12. Révélation et ouverture officielle.
 
 Les règles Codes/Event, Auth et l'ordre sont confirmés dans [R1057/R1058](../specifications/decisions-log.md). Les détails techniques Auth et de l'optimisation restent à préciser au début de leurs lots ; aucune implémentation, dépense, purge ou nouvelle configuration ici. Les autres dépendances/gates R1054 sont conservées. Le Master reste propriétaire de l'exécution réelle.
 
