@@ -1,11 +1,21 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : Mission consolidée V1 du 10/10/2026 — correctifs A–J.
+Version : Continuité du 10/10/2026 — six correctifs post-recette A–F.
 Date : 2026-10-10
-Statut : **Correctifs A–J déployés et clôturés techniquement ; contrôles et intégrité conformes.** Aucune mutation de recette sur les joueurs publics ; validation humaine des nouveaux textes et de la modale non revendiquée.
+Statut : **Six correctifs post-recette implémentés et testés localement ; publication, review et déploiements à confirmer.** Recette des nouvelles présentations non revendiquée.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — mission consolidée A–J du 10/10/2026
+## Point courant — six correctifs post-recette du 10/10/2026
+
+Le propriétaire juge le fonctionnement général du lot A–J satisfaisant après recette Twitch/standalone et valide six retouches : cadre Box et filtres compacts du picker Team, !banner, avertissement Jeu C non envoyé, résumé Event ordonné, groupes Code/Paliers, résultat Ticket modernisé. Base distante vérifiée d564e4ba1493686715fb295b45ec63d4c0203d5e commune main/review, divergence 0/0, worktree initial propre ; le seul commit depuis 1fe3008 précise la production vivante et reste conservé. [Contrats courants](../commands/command-reference.md), [suivi et preuves](../architecture/command-fixes-20261010.md#suivi-post-recette-af-du-10102026).
+
+Périmètre : présentation commune Chat/Twitch et CSS, avec seul ajout facultatif rewardResourceBalanceAfter au résultat transactionnel Ticket. Pas de migration, changement d'économie/RNG/règles/permissions, import, réparation, transport ou auth. Les anciens messages gelés et reçus dépourvus de total secondaire sont préservés. Production vivante appliquée selon d564e4b : aucun snapshot économique global ni enquête sur les activités naturelles hors lot.
+
+Contrôles acquis : verify:quick 5/5, verify:full 8/8 (1 390 frontend, 2 220 backend non-DB), 11 tests Shop PostgreSQL en schéma privé, quatre viewports GameShell/CSS et 12 captures. Dernier ajustement singulier Mora/Primogemme réutilisant le formatter : 195 tests ciblés PASS après ce passage complet. La review indépendante obligatoire du snapshot porte ensuite sur le vrai SHA publié. Publication et déploiements ne sont pas présumés par ces contrôles locaux.
+
+Après les gates du cycle permanent, prochaine mission métier : **R1053**, non commencée. R1058, Catalogue et suite restent dans l'ordre existant. Recette humaine minimale des nouvelles présentations après déploiement ; aucun achat Ticket ou claim rare demandé. Eclipsia/Story intouchés.
+
+## Historique — mission consolidée A–J du 10/10/2026
 
 Le mandat remplace l’attente de passation : Ticket Moras, résolution personnelle/tierce exacte des Légendes, création/réutilisation atomique Team, modale à grille seule scrollable, description conversion, missions permanentes/résumé distinct, horaires Event, Quotidiennes et composition Combat sont implémentés. Le cycle permanent review → review indépendante du SHA → main ff-only → déploiements → postflight s’applique sans nouveau GO lorsque les gates passent. [Contrats et preuves du lot](../architecture/command-fixes-20261010.md), [workflow permanent](../process/implementation-workflow.md).
 

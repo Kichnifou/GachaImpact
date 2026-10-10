@@ -4,9 +4,9 @@ import { BusinessError } from '../errors.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import type { PlayerCommandContext } from './player-command-context.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
-import { chatElementEmojis, chatElementNames, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
-import { commandSource } from '../player/player-command-execution.js';
-import { chatNumber, resourceText } from './chat-command-format.js';
+import { chatResponseLimit, logicalChatParts } from './chat-list-result.js';
+import { chatNumber } from './chat-command-format.js';
+import { codeRewardParts, codeRewardText } from './code-reward-result.js';
 
 const collectionEmojis: Readonly<Record<string, string>> = {
   lanterne_nouvel_an: '🎆', coeur_cristallin: '💖', bourgeon_eternel: '🌱', oeuf_enchante: '🥚',
@@ -83,21 +83,19 @@ export async function codeCommand(identity: PlayerExecutionActor, args: readonly
     const actualRewards = claimed.rewardBreakdown?.direct ?? result.grantedRewards ?? claimed.rewards;
     const rewards = new Map(actualRewards.filter(reward => BigInt(reward.amount) > 0n).map(reward => [reward.resourceKey, reward.amount]));
     const texts: string[] = [];
-    if (rewards.has('primogems')) texts.push(`+💠${numberText(rewards.get('primogems')!)} Primogemmes (${numberText(result.resources.primogems)})`);
-    if (rewards.has('moras')) texts.push(`+🪙${numberText(rewards.get('moras')!)} Moras (${numberText(result.resources.moras)})`);
+    if (rewards.has('primogems')) texts.push(`${codeRewardText({ resourceKey: 'primogems', amount: rewards.get('primogems')!, displayName: '' })} (${numberText(result.resources.primogems)})`);
+    if (rewards.has('moras')) texts.push(`${codeRewardText({ resourceKey: 'moras', amount: rewards.get('moras')!, displayName: '' })} (${numberText(result.resources.moras)})`);
     for (const element of elementKeys) {
       const amount = rewards.get(`particles_${element}`);
-      if (amount) texts.push(`+${numberText(amount)} particules ${chatElementEmojis[element]} ${chatElementNames[element]} (${numberText(result.resources.particles[element] ?? '0')})`);
+      if (amount) texts.push(`${codeRewardText({ resourceKey: `particles_${element}`, amount, displayName: '' })} (${numberText(result.resources.particles[element] ?? '0')})`);
     }
     for (const reward of actualRewards) {
-      if (['masterless-stella-fortuna', 'event_points', 'event_currency'].includes(reward.resourceKey) && BigInt(reward.amount) > 0n) texts.push(`+${numberText(reward.amount)} ${reward.displayName}`);
+      if (['masterless-stella-fortuna', 'event_points', 'event_currency'].includes(reward.resourceKey) && BigInt(reward.amount) > 0n) texts.push(codeRewardText(reward));
     }
-    if (claimed.rewardBreakdown?.milestones.length) texts.push(`Paliers Event : ${claimed.rewardBreakdown.milestones.map(reward => reward.resourceKey === 'event_currency' ? `+${numberText(reward.amount)} ${reward.displayName}` : `+${resourceText(reward.resourceKey, reward.amount)}`).join(' + ')}`);
-    if (result.eventReward?.granted === false) texts.push('Gains Event non accordés : inscription au Festival actif requise.');
+    const milestones = (claimed.rewardBreakdown?.milestones ?? []).filter(reward => BigInt(reward.amount) > 0n).map(codeRewardText);
     const description = claimed.description?.trim();
-    if (commandSource('INTERNAL_CHAT') === 'TWITCH') return logicalChatParts(`✅ ${actor.displayName} a utilisé ${claimed.token} !`,
-      [...texts, ...(description ? [description] : [])].map(text => ({ text, separator: ' | ' })), '🎁 Code cadeau (suite) :');
-    return `✅ ${actor.displayName} a utilisé ${claimed.token} ! ${texts.join(' | ')}${description ? ` | ${description}` : ''}`;
+    return codeRewardParts(`✅ ${actor.displayName} a utilisé ${claimed.token} !`, texts, milestones,
+      [...(result.eventReward?.granted === false ? ['Gains Event non accordés : inscription au Festival actif requise.'] : []), ...(description ? [description] : [])]);
   } catch (error) {
     if (error instanceof BusinessError && !await chat.hasConfirmedCommandMutation(commandId)) {
       if (error.code === 'GIFT_CODE_ALREADY_CLAIMED') return already();

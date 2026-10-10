@@ -25,8 +25,8 @@ describe('Ticket presentation', () => {
     const h = setup();
     h.services.purchaseShopItemChat.execute = vi.fn(async () => ({ purchase: { quantity: 1n, displayName: 'Ticket', totalPrice: 150_000n, effect: { type: 'ticket_resource', amount, resourceKey: 'moras' } }, walletMorasAfter: 17n })) as never;
     const text = await h.run('!shop ticket');
-    expect(text).toContain(`💰 Remboursement de ${amount.toLocaleString('fr-FR').replace(/[\u00a0\u202f]/gu, ' ')} Moras`);
-    expect(text).toContain('150 000 Moras'); expect(text).toContain('reste 🪙17 Moras'); bounded(text);
+    expect(joined(text)).toContain(`💰 remboursement +${amount.toLocaleString('fr-FR').replace(/[\u00a0\u202f]/gu, ' ')} Moras`);
+    expect(joined(text)).not.toContain('150 000 Moras'); expect(joined(text)).toContain('Reste 💰 17 Moras'); bounded(text);
     expect(h.services.purchaseShopItemChat.execute).toHaveBeenCalledWith(actor, 'ticket', 1n, 'new-command');
   });
   it.each(['primogems', 'particles_pyro'])('does not label a Ticket %s reward as a refund', async resourceKey => {

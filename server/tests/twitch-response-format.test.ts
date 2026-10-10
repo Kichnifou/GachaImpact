@@ -73,7 +73,7 @@ describe('Twitch-specific repeated command parsing', () => {
     expect(parseTwitchChatCommand('!code TOKEN\u034f').args).toEqual(['TOKEN\u034f']);
     expect(parseTwitchChatCommand('!team rename "👩🏽‍🚀 e\u0301"').args).toEqual(['rename', '"👩🏽‍🚀', 'e\u0301"']);
     expect(parseTwitchChatCommand('!ban \u200d').args).toEqual(['\u200d']);
-    expect(parseTwitchChatCommand('!banner').definition).toBeUndefined();
+    expect(parseTwitchChatCommand('!banner').definition?.name).toBe('banniere');
   });
 });
 

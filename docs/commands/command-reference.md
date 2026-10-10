@@ -248,7 +248,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 ## `!banniere`
 - **Statut audit :** Audité — domaine Gacha / Invocation clôturé
 - **But :** Afficher la bannière active et la cible 5★ personnelle lorsqu'elle est valide.
-- **Syntaxe :** `!banniere` ; aliases `!bannière`, `!ban` (nouveau choix propriétaire R1036), casse tolérée ; `!banner` absent. Argument inutile : `Syntaxe : !banniere.`
+- **Syntaxe :** `!banniere` ; aliases `!bannière`, `!ban` et `!banner` (mandat post-recette du 10/10/2026), casse tolérée. Même définition/handler/permissions/paramètres sur Chat interne et Twitch, sans seconde logique Gacha. Argument inutile : `Syntaxe : !banniere.`
 - **Bouton UI équivalent :** écran Invocation complet
 - **Disponible chat GachaImpact :** oui, sous forme compacte
 - **Disponible Twitch :** oui
@@ -637,7 +637,7 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!code`
 
-**R1065 — présentation :** gains directs et bonus de nouveaux paliers Event distingués seulement si le résultat persisté les prouve. Les anciens résultats gelés restent rejoués exactement, aucun nouveau crédit. [R1057 et recette propriétaire](../architecture/gift-code-enriched-r1057.md).
+**Présentation post-recette du 10/10/2026 :** `✅ P a utilisé CODE ! | 🎁 Code : récompense · récompense | 🏅 Paliers : récompense · récompense | description`. Les groupes distinguent les gains directs des seuls nouveaux paliers prouvés dans le résultat persisté. Emoji avant `+montant`, signe unique, nombres français, singulier/pluriel et soldes autoritatifs disponibles. Aucun groupe Paliers vide ; suites titrées Code/Paliers entre récompenses entières, 450 caractères Unicode mention comprise. Une description longue continue séparément sans perdre son texte. Les anciens messages gelés restent rejoués exactement, aucun nouveau crédit. [R1057 et recette propriétaire](../architecture/gift-code-enriched-r1057.md).
 
 Extension R1057 déployée : le claim commun peut créditer Stella, points Event et monnaie du Festival actif, en plus des gains classiques. Édition active et inscription existante requises pour la part Event ; aucun auto-enrollment ou rattrapage ultérieur. La réponse annonce seulement les gains réellement accordés, y compris tous les nouveaux paliers payés atomiquement, et signale une part Event ignorée. Découpage Twitch logique acquis à 450 caractères, receipts/replays conservés. [Contrat et état R1057](../architecture/gift-code-enriched-r1057.md).
 
@@ -669,11 +669,15 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 
 - `!code` conserve la découverte moderne : `🎁 Codes disponibles : CODE1, CODE2, ... | Récupérés : N.` ; vide : `🎁 Aucun code cadeau disponible actuellement. Récupérés : N.`. Tous les tokens ; split opt-in seulement entre tokens si nécessaire, suites `🎁 Codes suite :`, aucun « et N autres ».
 - `!code <CODE>` insensible à la casse, édition du Player mémorisée pour le retry ; moteur GiftCodeService inchangé, atomique/idempotent, notifications et statistiques autoritatives.
-- Succès : `✅ P a utilisé CODE ! +💠1 600 Primogemmes (12 500) | +🪙200 000 Moras (850 000) | +200 particules 🔥 Pyro (1 250) | description éventuelle`. Valeurs d'exemple seulement : récompenses réellement positives et nouveaux totaux du snapshot resources retourné par claim ; description moderne si non vide. Ordre Primogemmes, Moras, puis Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro ; aucun montant Festival hardcodé.
+- Succès courant : `✅ P a utilisé CODE ! | 🎁 Code : 💠 +1 600 Primogemmes (12 500) · 🪙 +200 000 Moras (850 000) · 🔥 +200 particules Pyro (1 250) | description éventuelle`. Valeurs d'exemple dynamiques : récompenses réellement positives et totaux du snapshot resources retourné par claim ; description moderne si non vide. Ordre Primogemmes, Moras, puis Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro, puis extras ; les paliers forment leur groupe séparé. Aucun montant Festival hardcodé.
 - Déjà récupéré : `⚠️ P, tu as déjà utilisé le code CODE.`. Inconnu/expiré/hors fenêtre/désactivé : `⚠️ Ce code cadeau n’est pas disponible.`, sans détail Admin. Replay technique confirmé continue le claim idempotent sans second paiement.
 - Ponctuel une fois/Player, annuel une fois/Player/édition, Economy/publication/notification/Admin inchangés ; aucun gift_codes.json runtime. Help `!code [CODE]`, aucun alias racine.
 
 ## `!event`
+
+**Présentation post-recette du 10/10/2026 :** après inscription : Festival/emoji → `⏳/✅ !event Jeu A · ⏳/✅ !event Jeu B <code> · ⏳/✅ !event Jeu C <pseudo> "message"` → points/monnaie → prochain palier ou tous atteints → Bonus quotidien → éventuels calendrier/notifications → Boutique/Top → date de fin Europe/Paris, toujours en dernier. ✅ suit l'état quotidien A, communautaire B et individuel C ; ⏳ signifie non accompli, sans promettre une disponibilité immédiate. Supprimer le bloc Jeux redondant, les détails d'essais/fenêtres et 🎒 du résumé inscrit ; `!event sac` reste disponible. Avant inscription, conserver `!event go` et les commandes utiles. Douze thèmes conservés ; suites entre groupes complets sous budget Twitch.
+
+**Syntaxe Jeu C invalide :** commence par ⚠️ et annonce la non-exécution avant un exemple valide entre guillemets. Exemple dynamique d'octobre : `⚠️ Sort non envoyé : le message doit être entre guillemets. Exemple : !event Sort @Kichnifou "AHHHHHH"`. Adapter au nom réel du troisième jeu ; autres syntaxes invalides également explicites. Aucune recherche destinataire ni appel d'envoi dans cette branche : pas de consommation quotidienne, message, point, monnaie ou notification. Succès, destinataires, confidentialité et quota gardent leurs owners existants.
 
 - **Statut audit :** CLÔTURÉ — Domaine Event / monthly après R644
 - **But :** consulter et participer au Festival mensuel courant
@@ -900,9 +904,11 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 
 **Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
 
-### Correction Ticket du 10/10/2026 — contrat implémenté
+### Présentation Ticket post-recette du 10/10/2026 — contrat courant
 
-Lorsqu’un Ticket produit des Moras, le résultat explicite **`💰 Remboursement de 50 000 Moras`** pour le cas rapporté, en utilisant le montant réellement persisté plutôt qu'une constante de présentation. Conserver prix payé, solde final et gains du reçu. Le terme « remboursement » concerne uniquement le résultat Ticket Moras, jamais les autres résultats Ticket ni les autres achats.
+`✅ réaction P utilise 🎟️ Ticket et remporte... récompense | Reste 💰 solde Moras`. Exemple dynamique : `✅ 🔮 P utilise 🎟️ Ticket et remporte... +800 particules 💧 Hydro (total persisté) | Reste 💰 3 988 521 Moras`. Pour Moras : `💰 remboursement +50 000 Moras`, montant réel. Réactions : Moras 🪙, autres particules 🔮, particules principales 🔥, pity ✨, Primogemmes 💥, fallback 🎉. Prix catalogue conservé (150 000), sans répétition dans ce résultat ; autres achats inchangés.
+
+Total secondaire facultatif `rewardResourceBalanceAfter` capturé dans la transaction d'achat et conservé dans BusinessOperation, comme walletMorasAfter ; jamais repris d'un solde courant au retry. Les anciens reçus sans ce champ restent intacts : omettre ce total. Pity utilise grantedAmount/pity5After réels, y compris au plafond. Source historique de la forme remplacée « Remboursement de » : [preuve A–J](../architecture/command-fixes-20261010.md).
 
 Correction de présentation seulement : probabilités, prix, RNG, gains, économie et idempotence inchangés ; anciens résultats déjà gelés/replays conservés. Réutiliser les formatters communs et le découpage logique Twitch à 450 caractères Unicode maximum, mention/préfixes compris. Tests privés du résultat Moras, autres résultats et limites ; persistance/RNG/retry contrôlés par la suite Shop PostgreSQL. Aucun achat payant de recette en production. Source : [Shop.txt, résultat moras](../../legacy/streamerbot/commands/Shop.txt) ; propriétaire moderne : [PlayerCommandResolver](../../server/src/application/chat/player-command-resolver.ts). État de publication, contrôles et limites au Master.
 

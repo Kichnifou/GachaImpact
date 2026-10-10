@@ -89,12 +89,14 @@ export class PrismaShopStore implements ShopStore {
           }, include: purchaseInclude });
           const view = await readView(transaction, input.playerId);
           const walletMorasAfter = view.resources.moras;
+          const rewardResourceBalanceAfter = effect.type !== 'ticket_pity5' && effect.type !== 'resource_bundle' ? view.resources[effect.resourceKey] : undefined;
           await transaction.businessOperation.update({ where: { id: operation.id }, data: {
             status: OperationStatus.COMPLETED,
             completedAt: input.occurredAt,
-            resultSummary: { ...requestSummary(input), purchaseId: purchase.id, walletMorasAfter: walletMorasAfter.toString() },
+            resultSummary: { ...requestSummary(input), purchaseId: purchase.id, walletMorasAfter: walletMorasAfter.toString(),
+              ...(rewardResourceBalanceAfter !== undefined ? { rewardResourceBalanceAfter: rewardResourceBalanceAfter.toString() } : {}) },
           } });
-          return { ...view, walletMorasAfter, purchase: toPurchase(purchase), operation: { id: operation.id, alreadyProcessed: false } };
+          return { ...view, walletMorasAfter, rewardResourceBalanceAfter, purchase: toPurchase(purchase), operation: { id: operation.id, alreadyProcessed: false } };
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
@@ -167,7 +169,9 @@ async function readExistingPurchase(transaction: Prisma.TransactionClient, input
   const purchase = await transaction.shopPurchase.findUnique({ where: { operationId: existing.id }, include: purchaseInclude });
   if (!purchase) throw new BusinessError('SHOP_IDEMPOTENCY_CONFLICT', 'Le résultat de cet achat Boutique est indisponible.');
   const amount = jsonObject(existing.resultSummary)?.walletMorasAfter;
-  return { ...(await readView(transaction, input.playerId)), ...(typeof amount === 'string' ? { walletMorasAfter: BigInt(amount) } : {}), purchase: toPurchase(purchase), operation: { id: existing.id, alreadyProcessed: true } };
+  const rewardBalance = jsonObject(existing.resultSummary)?.rewardResourceBalanceAfter;
+  return { ...(await readView(transaction, input.playerId)), ...(typeof amount === 'string' ? { walletMorasAfter: BigInt(amount) } : {}),
+    ...(typeof rewardBalance === 'string' ? { rewardResourceBalanceAfter: BigInt(rewardBalance) } : {}), purchase: toPurchase(purchase), operation: { id: existing.id, alreadyProcessed: true } };
 }
 
 function assertMatchingRequest(existing: { playerId: string | null; operationType: string; resultSummary: Prisma.JsonValue }, input: ShopPurchaseInput): void {

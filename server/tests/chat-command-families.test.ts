@@ -44,7 +44,7 @@ describe('Complete remaining command families', () => {
   it('reports only actual ticket pity granted at the cap, with the transaction wallet', async () => {
     const h = harness();
     h.services.purchaseShopItemChat.execute.mockResolvedValue({ purchase: { quantity: 1n, displayName: 'Ticket', totalPrice: 150000n, effect: { type: 'ticket_pity5', grantedAmount: 1, requestedAmount: 10, pity5After: 90 } }, walletMorasAfter: 13n } as never);
-    const text = await h.send('!shop ticket'); expect(text).toContain('+1 pity 5★ (90/90)'); expect(text).not.toContain('+10'); expect(text).toContain('reste 🪙13 Moras');
+    const text = await h.send('!shop ticket'); expect(text).toContain('+1 pity 5★ (90/90)'); expect(text).not.toContain('+10'); expect(text).toContain('Reste 💰 13 Moras');
   });
   it.each(['max', 'MAX', 'Max'])('accepts Shop primos %s and retains its quantity if the catalogue disappears before publication', async token => {
     const h = harness(); remember(h);

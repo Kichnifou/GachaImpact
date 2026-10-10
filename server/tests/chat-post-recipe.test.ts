@@ -155,7 +155,7 @@ describe('R1047 authored presentation, actual owner facts', () => {
     const h = harness();
     await h.send('!event Coffre'); expect(output(h)).toContain('3/3 essais restants');
     await h.send('!event Coffre 01234'); expect(output(h)).toContain('5 chiffres 0 ou 1');
-    await h.send('!event Mot doux'); expect(output(h)).toContain('<pseudo> "message"');
+    await h.send('!event Mot doux'); expect(output(h)).toContain('⚠️ Mot doux : envoi non effectué'); expect(output(h)).toContain('!event Mot doux @Kichnifou "AHHHHHH"');
     await h.send('!event Mot doux Moi "secret"'); expect(output(h)).toContain('à toi-même');
     h.services.eventService.searchGameCRecipients.mockResolvedValue({ recipients: [], totalPages: 1 });
     await h.send('!event Mot doux Introuvable "secret"'); expect(output(h)).toContain('destinataire Event introuvable');

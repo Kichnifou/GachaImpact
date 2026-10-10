@@ -163,7 +163,7 @@ describe('Codes and Coffre Chat contract', () => {
     h.codes.available = []; expect(await h.codeRun()).toBe('🎁 Aucun code cadeau disponible actuellement. Récupérés : 0.');
   });
   it('uses authoritative totals, positive rewards in order and description', async () => {
-    const h = harness(); expect(await h.codeRun('cadeau')).toBe('✅ Axel a utilisé CADEAU ! +💠1 600 Primogemmes (12 500) | +🪙200 000 Moras (850 000) | +200 particules 🔥 Pyro (1 250) | +20 particules ☄️ Geo (50) | Bonne fête !');
+    const h = harness(); expect(await h.codeRun('cadeau')).toBe('✅ Axel a utilisé CADEAU ! | 🎁 Code : 💠 +1 600 Primogemmes (12 500) · 🪙 +200 000 Moras (850 000) · 🔥 +200 particules Pyro (1 250) · ☄️ +20 particules Geo (50) | Bonne fête !');
     expect(h.services.giftCodeService.claim).toHaveBeenCalledWith(actor, 'edition', 'code', 'INTERNAL_CHAT');
   });
   it('reports actual enriched gains and never announces a skipped configured Event reward', async () => {

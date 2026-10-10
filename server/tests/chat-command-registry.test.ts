@@ -79,10 +79,10 @@ it('resolves all ten categories against the real player registry', () => {
 });
 
 it('keeps banner aliases canonical and removes Ami list from help', () => {
-  for (const token of ['banniere', 'bannière', 'ban', '!BAN']) {
+  for (const token of ['banniere', 'bannière', 'ban', 'banner', '!BAN']) {
     expect(findChatCommand(token)).toMatchObject({ name: 'banniere', syntax: '!banniere' });
     expect(chatHelp(token)).toContain('!banniere.');
   }
-  expect(findChatCommand('banner')).toBeUndefined();
+  expect(findChatCommand('banner')).toBe(findChatCommand('banniere'));
   expect(chatHelp('ami')).not.toContain('liste');
 });

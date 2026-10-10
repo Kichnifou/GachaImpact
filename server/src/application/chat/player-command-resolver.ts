@@ -41,6 +41,7 @@ import { entryParts } from './chat-command-format.js';
 import { chatNumber, durationText } from './chat-command-format.js';
 import { teamCommand } from './team-command.js';
 import { bankCommand, codeCommand, coffreCommand } from './resource-commands.js';
+import { shopTicketResult } from './shop-ticket-result.js';
 import { chatElementEmojis, logicalChatParts } from './chat-list-result.js';
 import { passifsCommand, sacCommand, resourceText } from './chat-command-format.js';
 import { chatElementNames } from './chat-list-result.js';
@@ -329,7 +330,10 @@ export class PlayerCommandResolver {
             const quantity = action === 'ticket' ? 1n : max
               ? await this.chat.rememberCommandQuantity(commandMessageId, item ? view.resources.moras / item.priceAmount : 0n) : BigInt(args[1]!);
             if (quantity < 1n) return 'Vous ne possédez pas assez de Moras dans votre portefeuille.';
+            const ticketPlayer = action === 'ticket' ? await this.chat.rememberCommandText(commandMessageId, 'eventContext',
+              (playerFromServerActor(identity) ?? await this.services.socialService.actor(identity)).displayName) : null;
             const result = await this.services.purchaseShopItemChat.execute(identity, itemId, quantity, commandMessageId);
+            if (ticketPlayer !== null) return shopTicketResult(ticketPlayer, result);
             const effect = result.purchase.effect;
             const reward = effect.type === 'ticket_pity5' ? `+${effect.grantedAmount} pity 5★ (${effect.pity5After}/90)`
               : effect.type === 'ticket_resource' && effect.resourceKey === 'moras' ? `💰 Remboursement de ${chatNumber(effect.amount)} Moras` : resourceText(effect.resourceKey, effect.amount);
@@ -493,7 +497,11 @@ export class PlayerCommandResolver {
           if (thematic(event.gameC.theme.label) || legacyC && action === legacyC) {
             const offset = legacyC && action === legacyC ? 1 : event.gameC.theme.label.split(/\s+/u).length;
             const match = args.slice(offset).join(' ').match(/^(.+?)\s+"([^"\r\n]+)"$/u);
-            if (!match) return `ℹ️ ${event.festival.emoji} ${event.gameC.theme.label} : !event ${event.gameC.theme.label} <pseudo> "message" | Envoie un message à un autre participant (1/jour).`;
+            const nonSent = event.gameC.theme.label === 'Sort' ? 'Sort non envoyé' : `${event.gameC.theme.label} : envoi non effectué`;
+            if (!match || !match[1]!.trim() || !match[2]!.trim()) {
+              const reason = !args.slice(offset).join(' ').includes('"') ? 'le message doit être entre guillemets' : 'syntaxe invalide, un destinataire et un message non vide entre guillemets sont requis';
+              return `⚠️ ${nonSent} : ${reason}. Exemple : !event ${event.gameC.theme.label} @Kichnifou "AHHHHHH"`;
+            }
             const recipientName = match[1]!.trim();
             if (samePlayerReference(player, recipientName)) return `⚠️ ${eventPhrase(event, 'gameCSelf', player)}`;
             let recipient: { playerId: string; displayName: string } | null = null;
@@ -510,18 +518,17 @@ export class PlayerCommandResolver {
           }
           if (args.length) return syntax(definition.syntax);
           const nextMilestone = event.milestones.thresholds.find(row => !row.reached);
-          return entryParts(`${event.festival.emoji} ${event.festival.title} :`, [
-            event.participation.joined ? `⭐ ${event.participation.points} points · 🎒 ${currency(event.currency.amount)}` : '🎁 Rejoindre avec !event go',
-            `🕒 Fin : ${new Date(event.edition.endsAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '')}`,
-            ...(event.participation.joined ? [nextMilestone ? `🎁 Prochain palier : ${nextMilestone.points} points` : '✅ Tous les paliers atteints',
-              `${event.gameA.theme.label} ${event.gameA.completedToday ? '✅' : event.gameA.canAttempt ? '⏳' : '⏳ hors fenêtre ou en attente'}`,
-              `${event.gameB.theme.label} : ${event.gameB.solvedToday ? '✅ code découvert' : `${event.gameB.attemptsRemaining}/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants`}`,
-              `${event.gameC.theme.label} : ${event.gameC.sentToday ? 'envoyé ✅' : 'à envoyer'}`,
-              `🎁 Bonus quotidien ${event.dailyBonus.claimedToday ? '✅' : '💬 premier message du jour'}`] : []),
+          return entryParts(`${event.festival.emoji} ${event.festival.title} |`, [
+            ...(event.participation.joined ? [
+              `${event.gameA.completedToday ? '✅' : '⏳'} !event ${event.gameA.theme.label} · ${event.gameB.solvedToday ? '✅' : '⏳'} !event ${event.gameB.theme.label} <code> · ${event.gameC.sentToday ? '✅' : '⏳'} !event ${event.gameC.theme.label} <pseudo> "message"`,
+              `⭐ ${chatNumber(event.participation.points)} point${event.participation.points === 1 ? '' : 's'} · ${event.festival.currency.emoji} ${chatNumber(BigInt(event.currency.amount))} ${BigInt(event.currency.amount) === 1n ? event.festival.currency.unit ?? event.festival.currency.label : event.festival.currency.label}`,
+              nextMilestone ? `🎁 Prochain palier : ${nextMilestone.points} points` : '✅ Tous les paliers atteints',
+              `Bonus quotidien ${event.dailyBonus.claimedToday ? '✅' : '⏳'}`,
+            ] : ['🎁 Rejoindre avec !event go', `Jeux : !event ${event.gameA.theme.label} ; !event ${event.gameB.theme.label} <code> ; !event ${event.gameC.theme.label} <pseudo> "message"`]),
             ...(event.calendar ? [`🎄 Calendrier : ${event.calendar.canClaimToday ? '⏳ !event calendrier' : 'indisponible actuellement'}`] : []),
             ...(event.gameC.unviewedCount > 0 ? [`📬 ${event.gameC.unviewedCount} message(s) à lire`] : []),
-            `Jeux : !event ${event.gameA.theme.label} ; !event ${event.gameB.theme.label} <code> ; !event ${event.gameC.theme.label} <pseudo> "message"`,
             '🛒 !event boutique · 🏆 !event top',
+            `🕒 Fin : ${new Date(event.edition.endsAt).toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }).replace(',', '')}`,
           ], `${event.festival.emoji} ${event.festival.title} (suite) :`);
         }
         case 'expedition': {

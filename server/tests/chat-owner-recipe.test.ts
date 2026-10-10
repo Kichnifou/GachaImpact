@@ -3,7 +3,6 @@ import { harness, actor, commandId } from './helpers/chat-command-harness.js';
 import { chatHelp, findChatCommand } from '../src/application/chat/chat-command-registry.js';
 import { deriveTeamPassives } from '../src/domain/team/team-passives.js';
 import { elementKeys } from '../src/domain/economy/resources.js';
-import { EVENT_GAME_B_MAX_ATTEMPTS } from '../src/domain/event/game-b.js';
 import type { TradeEligibility } from '../src/application/trades/trade-service.js';
 
 describe('Final owner recipe, step 29', () => {
@@ -112,7 +111,8 @@ describe('Final owner recipe, step 29', () => {
   it.each([false, true])('renders the exact Event root with Paris time and owner attempt limit, completed=%s', async completed => {
     const h = harness(); const original = await h.services.eventService.getCurrent();
     h.services.eventService.getCurrent.mockResolvedValue({ ...original, festival: { key: 'shadows', emoji: '🎃', title: 'Festival des Ombres', currency: { emoji: '🎃', label: 'Bonbons Maudits' } }, edition: { endsAt: '2026-10-31T23:00:00Z' }, participation: { joined: true, points: 7 }, currency: { amount: '11' }, gameA: { ...original.gameA, theme: { key: 'fantome', label: 'Fantôme' }, completedToday: completed, canAttempt: true }, gameB: { ...original.gameB, theme: { label: 'Crypte' }, solvedToday: completed, attemptsRemaining: completed ? 0 : 2 }, gameC: { ...original.gameC, theme: { label: 'Sort' }, sentToday: completed }, dailyBonus: { claimedToday: completed } } as never);
-    expect(await h.send('!event')).toBe(`🎃 Festival des Ombres : ⭐ 7 points · 🎒 11 🎃 Bonbons Maudits | 🕒 Fin : 01/11/2026 00:00 | 🎁 Prochain palier : 10 points | Fantôme ${completed ? '✅' : '⏳'} | Crypte : ${completed ? '✅ code découvert' : `2/${EVENT_GAME_B_MAX_ATTEMPTS} essais restants`} | Sort : ${completed ? 'envoyé ✅' : 'à envoyer'} | 🎁 Bonus quotidien ${completed ? '✅' : '💬 premier message du jour'} | Jeux : !event Fantôme ; !event Crypte <code> ; !event Sort <pseudo> "message" | 🛒 !event boutique · 🏆 !event top`);
+    const state = completed ? '✅' : '⏳';
+    expect(await h.send('!event')).toBe(`🎃 Festival des Ombres | ${state} !event Fantôme · ${state} !event Crypte <code> · ${state} !event Sort <pseudo> "message" | ⭐ 7 points · 🎃 11 Bonbons Maudits | 🎁 Prochain palier : 10 points | Bonus quotidien ${state} | 🛒 !event boutique · 🏆 !event top | 🕒 Fin : 01/11/2026 00:00`);
     for (const action of ['join', 'attemptGameA', 'attemptGameB', 'sendGameC'] as const) expect(h.services.eventService[action]).not.toHaveBeenCalled();
   });
   it.each([

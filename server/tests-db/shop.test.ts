@@ -170,7 +170,14 @@ describe('Shop persistence', () => {
     for (let branch = 0; branch < 5; branch += 1) {
       const playerId = await createPlayer(150_000n, branch === 3 ? 84 : 12); const random = { nextInt: vi.fn((maximum: number) => maximum === 5 ? branch : 2) }; const store = new PrismaShopStore(database, random); const key = randomUUID();
       const before = await database.playerGachaState.findUniqueOrThrow({ where: { playerId } }); const result = await store.purchase(input(playerId, ticketId, 1n, key)); const calls = random.nextInt.mock.calls.length;
+      if (result.purchase.effect.type !== 'ticket_pity5' && result.purchase.effect.type !== 'resource_bundle') {
+        const resourceKey = result.purchase.effect.resourceKey;
+        expect(result.rewardResourceBalanceAfter).toBe(result.resources[resourceKey]);
+        // A later unrelated balance must never replace the historical purchase total.
+        await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey } }, data: { amount: { increment: 7n } } });
+      }
       const retry = await new PrismaShopStore(database, { nextInt: () => { throw new Error('A persisted Ticket retry must not reroll.'); } }).purchase(input(playerId, ticketId, 1n, key));
+      expect(retry.rewardResourceBalanceAfter).toBe(result.rewardResourceBalanceAfter);
       expect(retry.purchase).toEqual(result.purchase); expect(random.nextInt).toHaveBeenCalledTimes(calls); expect(await database.shopPurchase.count({ where: { playerId } })).toBe(1);
       const persisted = await database.shopPurchase.findFirstOrThrow({ where: { playerId } }); expect(persisted.effectSnapshot).toMatchObject({ type: result.purchase.effect.type });
       expect(await database.playerItem.count({ where: { playerId } })).toBe(0);
@@ -180,9 +187,24 @@ describe('Shop persistence', () => {
       if (branch === 1) { expect(result.purchase.effect).toMatchObject({ type: 'ticket_main_element_particles', elementKey: 'hydro', resourceKey: 'particles_hydro', amount: 1_000n }); expect(stats.totalMainElementParticlesEarned).toBe(1_000n); }
       if (branch === 2) { expect(result.purchase.effect).toMatchObject({ type: 'ticket_other_element_particles', elementKey: 'electro', resourceKey: 'particles_electro', amount: 800n }); expect(stats.totalMainElementParticlesEarned).toBe(0n); }
       if (branch === 3) { expect(result.purchase.effect).toMatchObject({ type: 'ticket_pity5', requestedAmount: 10, grantedAmount: 6, pity5After: 90 }); expect(state.pity5).toBe(90); }
-      if (branch === 4) { expect(result.purchase.effect).toMatchObject({ type: 'ticket_resource', resourceKey: 'moras', amount: 50_000n }); expect(result.resources.moras).toBe(50_000n); expect(stats.totalMorasEarned).toBe(50_000n); }
+      if (branch === 4) { expect(result.purchase.effect).toMatchObject({ type: 'ticket_resource', resourceKey: 'moras', amount: 50_000n }); expect(result.resources.moras).toBe(50_000n); expect(retry.walletMorasAfter).toBe(50_000n); expect(stats.totalMorasEarned).toBe(50_000n); }
     }
   }, 30_000);
+
+  it('leaves historical receipts without a secondary total unchanged on replay', async () => {
+    const playerId = await createPlayer(150_000n), key = randomUUID();
+    const store = new PrismaShopStore(database, { nextInt: () => 0 });
+    const original = await store.purchase(input(playerId, ticketId, 1n, key));
+    const operation = await database.businessOperation.findUniqueOrThrow({ where: { id: original.operation.id } });
+    const historical = { ...(operation.resultSummary as Prisma.JsonObject) };
+    delete historical['rewardResourceBalanceAfter'];
+    await database.businessOperation.update({ where: { id: operation.id }, data: { resultSummary: historical } });
+    await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey: 'primogems' } }, data: { amount: 999_999n } });
+    const replay = await new PrismaShopStore(database, { nextInt: () => { throw new Error('No historical reroll'); } }).purchase(input(playerId, ticketId, 1n, key));
+    expect(replay.rewardResourceBalanceAfter).toBeUndefined();
+    expect(replay.purchase).toEqual(original.purchase);
+    expect((await database.businessOperation.findUniqueOrThrow({ where: { id: operation.id } })).resultSummary).toEqual(historical);
+  });
 
   it('rolls back debit, stats, operation and history when Ticket resolution fails', async () => {
     const playerId = await createPlayer(150_000n); const store = new PrismaShopStore(database, { nextInt: () => { throw new Error('forced Ticket failure'); } });

@@ -61,7 +61,7 @@ export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
   command('element', 'progression', '!element pyro|hydro|cryo|electro|anemo|geo|dendro', 'READY'),
   command('convertir', 'ressources', '!convertir <montant>', 'READY', ['conv']),
   command('echanger', 'ressources', '!echanger [pseudo] [montant|max] | liste | accepter [pseudo|all] | annuler [pseudo|all] | refuser [pseudo|all]', 'READY', ['echange', 'ech']),
-  command('banniere', 'gacha', '!banniere', 'READY', ['bannière', 'ban']),
+  command('banniere', 'gacha', '!banniere', 'READY', ['bannière', 'ban', 'banner']),
   command('select', 'gacha', '!select [nom]', 'READY'),
   command('vote', 'gacha', '!vote [nom] (alias : !votes)', 'READY', ['votes']),
   command('pity', 'gacha', '!pity', 'READY'),

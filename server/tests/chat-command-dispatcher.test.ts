@@ -53,9 +53,9 @@ describe('Chat command adapters', () => {
     expect(await send(command)).toBe('Syntaxe : !banniere.');
     expect(services.getCurrentGacha.execute).not.toHaveBeenCalled();
   });
-  it('keeps banner unknown and localizes only unavailable banner consultation', async () => {
+  it('shares banner alias and localizes only unavailable banner consultation', async () => {
     const { services, send } = harness();
-    expect(await send('!banner')).toBe('Commande inconnue. Utilise !help.');
+    expect(await send('!banner')).toEqual(await send('!banniere'));
     services.getCurrentGacha.execute.mockRejectedValue(new BusinessError('GACHA_BANNER_UNAVAILABLE', 'No active Gacha banner is available.'));
     expect(await send('!ban')).toBe('⚠️ Aucune bannière n’est active pour le moment.');
     expect(await send('!select')).toBe('Action impossible pour le moment.');
@@ -157,7 +157,7 @@ describe('Chat command adapters', () => {
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);
     expect(services.purchaseShopItemChat.execute).toHaveBeenCalledWith(actor, 'primos', 2n, commandId);
-    expect(await send('!code CODE')).toContain('a utilisé CODE ! +💠1 600 Primogemmes (1 800)');
+    expect(await send('!code CODE')).toContain('a utilisé CODE ! | 🎁 Code : 💠 +1 600 Primogemmes (1 800)');
     expect(services.giftCodeService.claim).toHaveBeenCalledWith(actor, 'edition', commandId, 'INTERNAL_CHAT');
     expect(chat.publishGameResult).toHaveBeenCalledTimes(3);
   });

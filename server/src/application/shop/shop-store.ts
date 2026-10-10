@@ -68,6 +68,8 @@ export type ShopView = ShopPlayerSnapshot & Readonly<{
 export type ShopPurchaseResult = ShopView & Readonly<{
   purchase: ShopPurchase;
   walletMorasAfter?: bigint;
+  /** Balance of the awarded resource at purchase time; absent on historical receipts. */
+  rewardResourceBalanceAfter?: bigint;
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
 }>;
 

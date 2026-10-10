@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Polish post-recette Twitch et sélecteur Team (2026-10-10)
+
+VALIDÉ PAR LE PROPRIÉTAIRE après la recette A–J : cadre Box et filtres compacts du sélecteur Team ; alias commun !banner ; avertissement de non-envoi Jeu C ; résumé Event ordonné avec trois commandes/états ; groupes Code/Paliers distincts ; présentation Ticket historique modernisée. Contrats dynamiques dans le [registre](../commands/command-reference.md), UI dans le [contrat](ui-layout-contract-v1.md), état au Master et suivi daté dans la [preuve](../architecture/command-fixes-20261010.md). Économie, règles, RNG, identités, permissions et anciens messages gelés inchangés. Le total secondaire Ticket est un ajout facultatif au résultat transactionnel, sans migration ni nouvelle attribution. Aucune nouvelle Rxxx ; R1053 reste suivante et non commencée.
+
 ## Mandat consolidé V1 — correctifs et cycle permanent (2026-10-10)
 
 VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat A–J : correctifs Ticket/Légendes/Team/modale/Défi/Missions/Event/Quotidiennes/Combat, réutilisation des contrôles runtime sécurisés existants. Contrats textuels dans le [registre](../commands/command-reference.md), réutilisation Team dans son [audit](../legacy/08-team-audit.md), présentation Missions dans son [audit](../legacy/11-missions-daily-audit.md), modale dans le [contrat UI](ui-layout-contract-v1.md). Le [workflow](../process/implementation-workflow.md#cycle-permanent-review--main--décision-propriétaire-du-10102026) porte seul le nouveau cycle permanent complet, avec review indépendante du SHA sensible et exceptions explicites. Aucun nouveau numéro R attribué ; R1053/R1058 restent des missions suivantes. Implémentation/tests/publication/déploiement/recette sont distingués au [Master](../master/PROJECT_MASTER_PLAN.md).
