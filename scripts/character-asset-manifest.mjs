@@ -40,7 +40,8 @@ export function validateManifest(manifest, repositoryRoot) {
 
 export async function verifyPublishedAssets(entries, fetcher = fetch) {
   for (const entry of entries) for (const asset of Object.values(entry.assets)) {
-    const response = await fetcher(`https://gachaimpact.pages.dev${asset.path}`, { signal: AbortSignal.timeout(15000), redirect: 'error' })
+    // Large splash binaries can exceed 15 s even when HTTP/MIME/hash are valid.
+    const response = await fetcher(`https://gachaimpact.pages.dev${asset.path}`, { signal: AbortSignal.timeout(45000), redirect: 'error' })
     if (!response.ok || !response.headers.get('content-type')?.startsWith('image/png')) throw new Error(`Asset unavailable in production: ${asset.path}`)
     validatePng(Buffer.from(await response.arrayBuffer()), asset)
   }
