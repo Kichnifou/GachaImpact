@@ -2,7 +2,7 @@
 
 Version : Continuité du 10/10/2026 — six correctifs post-recette A–F.
 Date : 2026-10-10
-Statut : **Six correctifs post-recette implémentés et testés localement ; publication, review et déploiements à confirmer.** Recette des nouvelles présentations non revendiquée.
+Statut : **Six correctifs post-recette implémentés, testés, approuvés indépendamment, promus et déployés au SHA applicatif 7a5e599.** Recette humaine des nouvelles présentations encore à confirmer.
 But : porter l'état réel, les preuves et la prochaine reprise.
 
 ## Point courant — six correctifs post-recette du 10/10/2026
@@ -11,9 +11,11 @@ Le propriétaire juge le fonctionnement général du lot A–J satisfaisant apr�
 
 Périmètre : présentation commune Chat/Twitch et CSS, avec seul ajout facultatif rewardResourceBalanceAfter au résultat transactionnel Ticket. Pas de migration, changement d'économie/RNG/règles/permissions, import, réparation, transport ou auth. Les anciens messages gelés et reçus dépourvus de total secondaire sont préservés. Production vivante appliquée selon d564e4b : aucun snapshot économique global ni enquête sur les activités naturelles hors lot.
 
-Contrôles acquis : verify:quick 5/5, verify:full 8/8 (1 390 frontend, 2 220 backend non-DB), 11 tests Shop PostgreSQL en schéma privé, quatre viewports GameShell/CSS et 12 captures. Dernier ajustement singulier Mora/Primogemme réutilisant le formatter : 195 tests ciblés PASS après ce passage complet. La review indépendante obligatoire du snapshot porte ensuite sur le vrai SHA publié. Publication et déploiements ne sont pas présumés par ces contrôles locaux.
+Contrôles acquis : verify:quick 5/5, verify:full 8/8 (1 390 frontend, 2 220 backend non-DB), 11 tests Shop PostgreSQL en schéma privé, quatre viewports GameShell/CSS et 12 captures. Dernier ajustement singulier Mora/Primogemme réutilisant le formatter : 195 tests ciblés PASS et build backend réussi après ce passage complet. Review indépendante **APPROVED de 7a5e59990748ec344bc6adce856b6f6107a2303a** : diff/23 blobs GitHub vérifiés, snapshot/replays relus, 138 tests indépendants PASS et quatre viewports recontrôlés ; aucun finding établi. Rapport privé review-independent.md, SHA-256 f2d954d2b69938082f5d132ff0ea5e69c23d3a69af804acaf162f16be943c178.
 
-Après les gates du cycle permanent, prochaine mission métier : **R1053**, non commencée. R1058, Catalogue et suite restent dans l'ordre existant. Recette humaine minimale des nouvelles présentations après déploiement ; aucun achat Ticket ou claim rare demandé. Eclipsia/Story intouchés.
+Fast-forward strict du candidat approuvé effectué ; main/review distants communs, divergence 0/0 et worktree propre vérifiés. Railway **76c52786-e4d6-48a1-896c-074d1e12b797 SUCCESS** à 08:33:41 UTC ; Cloudflare **e4a05acc-1f89-4041-a61f-48871651031e SUCCESS**, SHA exact 7a5e599, assets JS/CSS publics strictement identiques au build et HTTP 200. Health 200/status ok à 08:34:22 UTC. Une réplique saine, aucun crash/incident actif ; les trois entrées stderr Prisma de chargement de configuration/schéma ne sont pas des erreurs applicatives. Transport à 08:34:51 UTC : SQL/configuration Railway/Helix en lecture seule, GLOBAL révision 19, 44 cibles persistées, Chat ACTIVE ; aucun statut HTTP authentifié du processus ni nouvelle commande publique revendiqués. [Preuves et limites](../architecture/command-fixes-20261010.md#suivi-post-recette-af-du-10102026). Cette clôture documentaire ne change pas le code approuvé ; ses éventuels nouveaux builds sont contrôlés séparément dans le rapport final.
+
+Prochaine mission métier : **R1053**, non commencée. R1058, Catalogue et suite restent dans l'ordre existant. Recette humaine minimale encore attendue : banner/event/erreur syntaxe Jeu C/sélecteur Team ; Codes et Ticket seulement si observés naturellement, aucun achat ni claim rare demandé. Eclipsia/Story intouchés.
 
 ## Historique — mission consolidée A–J du 10/10/2026
 
