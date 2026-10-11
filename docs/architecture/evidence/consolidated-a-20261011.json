@@ -56,7 +56,11 @@
     "independentTests": "83 frontend, 9 backend, 2 private PostgreSQL PASS",
     "corrections": "Invalidate character deep links before explicit Add/Edit/Deactivate; fence archiveOne before and after with current owner and revision",
     "regressionTests": "6 new cases; navigation and AdminPanels 29/29, bootstrap/navigation/header 51/51 PASS (overlapping)",
-    "correctionVerdict": "PENDING_PUBLISHED_DELTA_REVIEW"
+    "correctionSha": "2d466cd56843cd07e4d9fc8b035500f2def75676",
+    "correctionVerdict": "APPROVED",
+    "correctionReportSha256": "e3bad7d555184ae7c600fecf0f66bcd2458c0a73a202ae6ed22f8d2e8fb9b15a",
+    "independentCorrectionTests": "75/75 plus both original race reproductions 1/1 each PASS; no remaining P1/P2 identified",
+    "fullSuiteExceptionRetained": true
   },
   "promotion": "NOT_YET_ACQUIRED",
   "deployments": "NOT_YET_ACQUIRED"
