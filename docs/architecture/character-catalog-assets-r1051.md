@@ -32,7 +32,7 @@ Dates : compléter exactement les 35 identités remaining du plan précédent ap
 
 Storage puis quotidien/publication : clé présente ne vaut pas qualification. Capacité gratuite organisation, bucket public PNG 5 Mio à écritures serveur seulement, upload/hash/GET/cache/refus anonymes et utilisateur ordinaire/rejeu/versioning requis avant activation. Quotidien et publication sont deux gates distinctes ; pas d'override des candidats incomplets ni prétention de cycle naturel avant observation.
 
-Les [Invocations partagées et la nouvelle Roue](../specifications/shared-invocations-and-wheel-future.md) sont documentées uniquement, après R1051, sans code ni dépendance bloquante.
+Le report initial des [Invocations partagées et de la nouvelle Roue](../specifications/shared-invocations-and-wheel-future.md), alors uniquement documentées après R1051, est supersédé par le mandat consolidé R1066–R1077 du 11/10/2026. Leurs contrats spécialisés décrivent désormais le code standalone ; tests, revue, déploiement et recette humaine restent des preuves distinctes au Master. Ces parcours ne constituent aucune dépendance bloquante du catalogue.
 
 Reprise traversant minuit : terminer par ID le cycle quotidien dû avec son cutoff et ses fiches traitées conservés ; enregistrer la réussite à la date de ce cycle, puis rattraper la journée Paris courante. Quotidien OFF ne reprend pas automatiquement un ancien quotidien. Les cycles annulés/supersédés restent exclus.
 

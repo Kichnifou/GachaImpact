@@ -1,7 +1,7 @@
 {
   "date": "2026-10-11",
   "lot": "D — Roue graphique intégrée",
-  "state": "Candidat D publié et APPROVED ; checkpoint documentaire, promotion et livraison restent distincts",
+  "state": "D livré techniquement à0de9629 après approbations indépendantes, FF strict, déploiements exacts et postflight RO ; recette humaine distincte",
   "sources": {
     "wheelCommit": "07574ec06b7f789bfdf59306ba7a4868ae8061ea",
     "fullCheckCommit": "15652ed83f577cee1319309dc85e0fb0c3a7e5ca",
@@ -162,8 +162,9 @@
     "Le checkpoint historique d4b797 ajoutait seulement de la documentation ; les preuves finales ci-dessus portent séparément la source combinée actuelle.",
     "Les fixtures privées valident la présentation d’un reçu synthétique ; elles ne constituent aucun spin économique public ni validation humaine.",
     "Le résultat FAIL du contrôle complet demeure explicite malgré les builds, types, lint et contrôles de diff réussis.",
-    "Revue indépendante, promotion, déploiement et recette publique humaine ne sont pas déclarés acquis par cette preuve."
+    "Revue indépendante, promotion et livraison sont acquises dans les sections finales ; recette publique humaine non revendiquée."
   ],
+  "productionDelivery":{"sha":"0de9629b346460f6f1ef3f49794fa71f33eb69a1","checkpointReview":"APPROVED","checkpointReportSha256":"18a49c23031f03e81201e3d21fdf6fb9d85ec311cc23e9c000d3ac84afcb6698","strictFastForward":true,"fourRefsEqualAndCleanBeforeClosure":true,"railway":{"id":"0c303fa6-6c8e-4e35-8977-198d3369cf34","status":"SUCCESS","readyAt":"2026-10-11T20:18:28.000129951Z","migration":"74 found; no pending"},"pages":{"id":"1ebf3f00-73ce-41d9-adc1-0cde269d027f","status":"SUCCESS","completedAt":"2026-10-11T20:17:51Z","exactPreviewLiveAssets":true},"postflight":{"at":"2026-10-11T20:18:59.141Z","health":200,"bothDomainsIdentical":true,"privateGuardRequests":24,"corsExact":true,"migrationCount":74,"statusUpToDate":true,"checksums":true,"historicalLedgerUnchanged":true,"privateRlsTables":9,"browserGrants":false,"sharedConstraints":9,"sharedIndexes":4,"sharedSessions":0,"sharedMembers":0,"characters":120,"dated":120,"protectedUnchanged":true,"outbox":0,"storageObjects":2,"storageBytes":236490,"groupsArchived":2,"receiptsArchived":7,"leaseClear":true,"lastSuccessDate":null,"flagsEnabledPublishDryRun":[true,true,false]},"humanAcceptance":"Not claimed"},
   "finalQualification": {
     "at": "2026-10-11T20:06:23.398Z",
     "sourceSha": "9ade5e36523b78f915e0c9a9c417356d5c5ea320",
