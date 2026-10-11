@@ -1,7 +1,7 @@
 {
   "date": "2026-10-11",
   "lot": "D — Roue graphique intégrée",
-  "state": "Candidat D final qualifié localement ; revue indépendante du vrai SHA publié et livraison restent distinctes",
+  "state": "Candidat D publié et APPROVED ; checkpoint documentaire, promotion et livraison restent distincts",
   "sources": {
     "wheelCommit": "07574ec06b7f789bfdf59306ba7a4868ae8061ea",
     "fullCheckCommit": "15652ed83f577cee1319309dc85e0fb0c3a7e5ca",
@@ -230,6 +230,7 @@
     "migration": "None; public74 unchanged",
     "publicEconomicFixture": false,
     "humanAcceptance": "Not claimed",
-    "independentReview": "Pending published exact SHA"
+    "rootFinalQuick": {"sha":"874243ab9c89c6925d74d706c844ce65e43f4fee","result":"PASS 5/5","privateLog":"local-data/consolidated-20261011/d-root-final-quick.log"},
+    "independentReview": {"sha":"874243ab9c89c6925d74d706c844ce65e43f4fee","verdict":"APPROVED","reportSha256":"c12d20cc9c8cc8220af09bf23ded7e0d2990975a5c1c3ada5f556418171438cd","openP1P2":0,"frontendPassed":37,"backendPassed":31,"additionalIndependentChecksPassed":5,"inspectedPngs":6,"economicEngineAndStoreUnchanged":true,"newMigration":false,"publicEconomicFixture":false}
   }
 }
