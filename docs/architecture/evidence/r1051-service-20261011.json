@@ -1,6 +1,6 @@
 {
-  "at": "2026-10-11T15:25:34.560Z",
-  "status": "REVIEW_FIX_READY_FOR_REMOTE_REVIEW",
+  "at": "2026-10-11T15:44:28.279Z",
+  "status": "DELIVERED_CONFIGURED_ACTIVE_HUMAN_AND_NATURAL_CYCLE_PENDING",
   "initialSha": "afeadbb40d5347ff4d5409eee5a43615a1a54ca1",
   "initial": {
     "activeCharacters": 120,
@@ -119,10 +119,22 @@
   "datePlans": {
     "nullOnly35": "r1051-release-date-complement-20261011.json",
     "authorizedCorrection": "r1051-ayaka-date-correction-20261011.json",
-    "applied": false
+    "applied": true,
+    "result": {
+      "at": "2026-10-11T15:35:25.574Z",
+      "completed": 35,
+      "corrected": 1,
+      "preserved": 84,
+      "dated": 120,
+      "otherCharacterFieldsUnchanged": true,
+      "protectedTrackingUnchanged": true,
+      "protectedOtherFieldsUnchanged": true,
+      "nullOnlyReplayUpdated": 0,
+      "correctionReplayUpdated": 0
+    }
   },
   "tests": {
-    "postgres": 27,
+    "postgres": 31,
     "visualStates": 84,
     "viewports": [
       [
@@ -146,7 +158,9 @@
     "latestDeltas": {
       "frontend": 64,
       "backend": 57,
-      "postgresDateCorrection": "PASS; 1 selected, 26 skipped"
+      "postgresDateCorrection": "PASS; 1 selected, 26 skipped",
+      "postgresIndependent": "31/31 PASS; no skips; 203.90 seconds",
+      "backendIndependent": 57
     },
     "full": {
       "result": "FAIL",
@@ -166,13 +180,13 @@
         "backendFailed": 6,
         "sameFailingTests": true
       },
-      "exception": "Pre-existing portrait fixtures and command warning assertions reproduced in detached initial commit. No unrelated runtime change; independent review must assess regression scope."
+      "exception": "13 pre-existing failures independently reproduced and accepted as bounded; full verification remains FAIL 6/8"
     }
   },
-  "dailyEnabled": false,
-  "publicationEnabled": false,
+  "dailyEnabled": true,
+  "publicationEnabled": true,
   "humanRecipe": "À tester en public",
-  "naturalMidnight": "NOT_YET_OBSERVED",
+  "naturalMidnight": "NOT_YET_OBSERVED; current daily:2026-10-11 remains SUPERSEDED, not a successful cycle",
   "futureFeatures": "DOCUMENTATION_ONLY",
   "review": {
     "initial": {
@@ -189,14 +203,293 @@
     },
     "correction": {
       "implementation": "Resume due daily/manual by persisted ID; daily success belongs to original cycle date, then current-day catch-up",
-      "tests": "PASS: 4 selected PostgreSQL tests; 27 skipped. QUEUED/FAILED/RUNNING crossing midnight and normal publication path. Independent full 31-test replay pending.",
+      "tests": "Independent complete PostgreSQL suite 31/31 PASS; backend 57/57 PASS; no outstanding P1/P2",
       "normalPublicationPath": "PASS_IN_PRIVATE_SCHEMA: engine run/finalize/verify/publish; no override; J+7/provisional/conflict/corrupt bytes blocked; one import and notification, replay deduplicated",
-      "verdict": "PENDING",
-      "cache": "Adapter header fixed; new immutable versions GET/hash/cache/replay qualified and cleaned; existing two objects metadata repaired with same bytes and public cache converged in observed region"
+      "verdict": "APPROVED",
+      "cache": "Adapter header fixed; new immutable versions GET/hash/cache/replay qualified and cleaned; existing two objects metadata repaired with same bytes and public cache converged in observed region",
+      "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+      "reportSha256": "50275a5d47ff4b73e42eb90796f3b1f06c934d26904fb648e739af83c170efb3"
     },
     "cacheAssessment": {
       "reportSha256": "3205f46da64c1e9e913003b8040eb736fac74ea7610708073deab896d865d0d5",
       "scope": "Read-only intermediate cache review; no global CDN propagation claim"
     }
-  }
+  },
+  "applicationSha": "38de0598861e466aa24a6de0d930152cc6047351",
+  "schema": {
+    "migrationCount": 72,
+    "previousChecksumsPreserved": 71,
+    "migration072Checksum": "084eed65b3e6b48e98d113894d2055a76e028d00f416c49ea44547d2613ff898",
+    "normalPrismaPredeploy": true,
+    "privateTables": 7,
+    "rlsAndBrowserRightsPreserved": true,
+    "oldDaily": {
+      "id": "22f396fd-2096-462b-a96a-10ed2692d820",
+      "status": "SUPERSEDED",
+      "previousRemaining": 107
+    }
+  },
+  "notifications": {
+    "at": "2026-10-11T15:35:57.281Z",
+    "planSha256": "e5eebf1922ea7249db7db2672569cd01f86fa90f269a9c43e82a390921bd91a2",
+    "applied": {
+      "legacyRows": 5,
+      "groupsCreated": 0,
+      "eventsArchived": 0,
+      "proofsDeleted": 0
+    },
+    "replay": {
+      "legacyRows": 5,
+      "groupsCreated": 0,
+      "eventsArchived": 0,
+      "proofsDeleted": 0
+    },
+    "existingOtherNotificationsUnchanged": true,
+    "payloadKeysReadAtPreserved": true,
+    "groupActionsExact": true,
+    "alreadyArchivedEventsNotResurrected": true,
+    "activeGroups": [
+      {
+        "candidateId": "3938a61e-dacd-4608-958e-7f4d2d77ffc2",
+        "state": "UNREAD",
+        "count": 1
+      },
+      {
+        "candidateId": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+        "state": "UNREAD",
+        "count": 1
+      }
+    ],
+    "eventReceipts": [
+      {
+        "state": "ARCHIVED",
+        "count": 7
+      }
+    ],
+    "qualificationNote": "First private helper assertion expected a group for already archived events; maintenance correctly made no changes. Assertion corrected to require no resurrection; replay passed."
+  },
+  "controlledCollection": {
+    "at": "2026-10-11T15:37:20.268Z",
+    "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+    "result": {
+      "runId": "f9cd2de5-a21b-44c1-b675-5b33cf717e59",
+      "discovered": 2,
+      "processed": 2,
+      "changed": 2,
+      "remaining": 0
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "executedByPublicDispatcher": true,
+    "runtimeApplyMode": true,
+    "charactersUnchanged": true,
+    "protectedUnchanged": true,
+    "outbox": 0,
+    "dailyEnabled": false,
+    "publicationEnabled": false
+  },
+  "activationQualification": {
+    "at": "2026-10-11T15:43:56.637Z",
+    "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+    "result": {
+      "runId": "621d1446-129c-4074-be51-39fdc93c2f5a",
+      "discovered": 2,
+      "processed": 2,
+      "changed": 0,
+      "remaining": 0
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "executedByPublicDispatcher": true,
+    "runtimeApplyMode": true,
+    "charactersUnchanged": true,
+    "protectedUnchanged": true,
+    "outbox": 0,
+    "intent": "Explicit retry without apply override",
+    "configuration": {
+      "enabled": true,
+      "publish": true,
+      "dryRun": false,
+      "storageKeyPresent": true
+    },
+    "proofLimit": "Retry proves apply mode and preservation of ineligible candidates. Daily/publication flags are configured in exact-SHA deployments; no natural daily cycle or eligible real publication is claimed."
+  },
+  "deployments": {
+    "at": "2026-10-11T15:43:17.369Z",
+    "code": {
+      "id": "0d441282-9680-4963-8260-8f77ad4e5c74",
+      "status": "SUCCESS",
+      "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+      "createdAt": "2026-10-11T15:32:38.022Z"
+    },
+    "daily": {
+      "id": "61536b1a-4bcc-4519-8b73-54931aee00d7",
+      "status": "SUCCESS",
+      "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+      "createdAt": "2026-10-11T15:37:27.725Z"
+    },
+    "publication": {
+      "id": "6fab8c4f-d1c0-44f8-ac2b-50f56ec50f8a",
+      "status": "SUCCESS",
+      "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+      "createdAt": "2026-10-11T15:38:51.112Z"
+    },
+    "applicationReady": {
+      "code": [
+        {
+          "message": "Application ready",
+          "timestamp": "2026-10-11T15:34:24.163976425Z"
+        }
+      ],
+      "daily": [
+        {
+          "message": "Application ready",
+          "timestamp": "2026-10-11T15:38:24.607123314Z"
+        }
+      ],
+      "publication": [
+        {
+          "message": "Application ready",
+          "timestamp": "2026-10-11T15:41:10.898149244Z"
+        }
+      ]
+    },
+    "pages": {
+      "id": "ebf00728-b552-44a4-9e0e-cfcf11580020",
+      "status": "SUCCESS",
+      "sha": "38de0598861e466aa24a6de0d930152cc6047351",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/ebf00728-b552-44a4-9e0e-cfcf11580020"
+    },
+    "configurationChanges": {
+      "daily": {
+        "environment": {
+          "id": "2f3725a1-94a1-4791-83cd-5bd4b1dbb4e3",
+          "name": "production"
+        },
+        "serviceId": "0ea371ef-6354-4386-a706-56c21808318a",
+        "variableNames": [
+          "CHARACTER_CATALOG_DRY_RUN",
+          "CHARACTER_CATALOG_ENABLED",
+          "CHARACTER_CATALOG_PUBLISH_ENABLED"
+        ],
+        "skippedDeploys": false,
+        "staged": null
+      },
+      "publication": {
+        "environment": {
+          "id": "2f3725a1-94a1-4791-83cd-5bd4b1dbb4e3",
+          "name": "production"
+        },
+        "serviceId": "0ea371ef-6354-4386-a706-56c21808318a",
+        "variableNames": [
+          "CHARACTER_CATALOG_PUBLISH_ENABLED"
+        ],
+        "skippedDeploys": false,
+        "staged": null
+      }
+    }
+  },
+  "dryRun": false,
+  "current": {
+    "characters": 120,
+    "dated": 120,
+    "protected": 120,
+    "tracked": 2,
+    "storage": {
+      "objects": 2,
+      "bytes": "236490"
+    },
+    "outbox": 0,
+    "candidates": [
+      {
+        "id": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+        "name": "Mitya",
+        "status": "INCOMPLETE",
+        "characterId": null,
+        "missing": [
+          "splash",
+          "numericId",
+          "rarityConfirmation",
+          "officialReleaseDate"
+        ],
+        "nextCheckAt": "2026-10-11T22:00:00+00:00",
+        "rarity": {
+          "url": "https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds",
+          "value": 5,
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T15:43:10.996Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        },
+        "weapon": {
+          "url": "https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds",
+          "value": "Catalyst",
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T15:43:10.996Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        }
+      },
+      {
+        "id": "3938a61e-dacd-4608-958e-7f4d2d77ffc2",
+        "name": "Valeriy",
+        "status": "CONFLICT",
+        "characterId": null,
+        "missing": [
+          "splash",
+          "numericId",
+          "rarityConfirmation",
+          "officialReleaseDate"
+        ],
+        "nextCheckAt": "2026-10-11T22:00:00+00:00",
+        "rarity": {
+          "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+          "value": 4,
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "conflict": true,
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T11:05:18.202Z",
+          "reliability": "PROVISIONAL",
+          "alternatives": [
+            {
+              "url": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations",
+              "value": 5,
+              "reason": "Cartouche cinq étoiles relevé lors de la lecture datée, contrairement au texte introductif quatre étoiles. Réserve historique à résoudre explicitement ; ce ne sont pas deux sources indépendantes.",
+              "provider": "icy-veins",
+              "fetchedAt": "2026-10-11T10:14:23.000Z",
+              "reliability": "PROVISIONAL",
+              "editorialStatus": "PROVISIONAL"
+            }
+          ],
+          "editorialStatus": "PROVISIONAL"
+        },
+        "weapon": {
+          "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+          "value": "Sword",
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T15:43:10.996Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        }
+      }
+    ]
+  },
+  "nextParisReset": "2026-10-11T22:00:00.000Z",
+  "documentationReviewedUnchanged": [
+    "docs/process/conversation-handoff.md",
+    "docs/process/implementation-workflow.md",
+    "docs/roadmap/implementation-order-v1.md",
+    "docs/roadmap/development-roadmap.md",
+    "docs/specifications/decisions-log.md",
+    "docs/specifications/navigation-shell-v1.md",
+    "docs/specifications/notifications-v1.md",
+    "docs/specifications/ui-layout-contract-v1.md",
+    "docs/commands/command-reference.md",
+    "docs/specifications/shared-invocations-and-wheel-future.md"
+  ]
 }
