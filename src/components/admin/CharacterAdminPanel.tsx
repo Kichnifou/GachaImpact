@@ -122,7 +122,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       <button type="button" aria-pressed={section === 'possessions'} onClick={() => changeSection('possessions')}>Possessions de {playerName}</button></div>
     {section!=='pipeline'&&<><AdminFeedback error={task.error || loadError}/><div className="catalog-feedback" role="status">{!editorOpen&&task.notice}<span className="sr-only">{refreshNotice}</span></div></>}
     {section === 'pipeline' ? <CatalogPipelinePanel initialId={pipelineId} onIntentConsumed={consumeIntent} /> : section === 'catalog' ? <>
-      <button type="button" onClick={() => { resetForm(); setEditorOpen(true) }}>Ajouter un personnage</button>
+      <button type="button" onClick={() => { consumeIntent(); resetForm(); setEditorOpen(true) }}>Ajouter un personnage</button>
       {editorOpen && <CatalogDialog title={selected ? `Modifier ${selected.name}` : 'Ajouter un personnage'} pending={task.pending} onClose={closeEditor}>
       <section className="admin-editor">
         <AdminFeedback error={task.error} />
@@ -149,7 +149,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
         <CatalogRefresh loading={loading} onClick={refresh}/>
       </div></div>{loading&&<p role="status">Chargement du catalogue…</p>}<div className="admin-scroll-list">{list?.entries.map(row => <article className="admin-list-row" key={row.id}><div><strong>{row.name} · {row.rarity}★</strong>
         <small>{row.externalKey} · {catalogValue('element',row.elementKey)} · {row.isActive ? 'Actif' : 'Inactif'}</small><small>{(['icon','splash','wish','fullbody'] as const).filter(role=>!row[`${role}Path`]).length>0&&`Images manquantes : ${(['icon','splash','wish','fullbody'] as const).filter(role=>!row[`${role}Path`]).map(role=>({icon:'Portrait',splash:'Illustration principale',wish:'Illustration de vœu',fullbody:'Personnage en pied'})[role]).join(', ')}`}</small></div>
-        <button type="button" onClick={() => edit(row)}>Modifier</button><button type="button" className={row.isActive ? 'danger' : ''} onClick={() => { const intent = { kind: 'catalog' as const, characterId: row.id, characterName: row.name, isActive: !row.isActive }; if (row.isActive) setConfirm(intent); else void setPresence(intent) }}>{row.isActive ? 'Désactiver' : 'Réactiver'}</button></article>)}
+        <button type="button" onClick={() => { consumeIntent(); edit(row) }}>Modifier</button><button type="button" className={row.isActive ? 'danger' : ''} onClick={() => { consumeIntent(); const intent = { kind: 'catalog' as const, characterId: row.id, characterName: row.name, isActive: !row.isActive }; if (row.isActive) setConfirm(intent); else void setPresence(intent) }}>{row.isActive ? 'Désactiver' : 'Réactiver'}</button></article>)}
         {!list?.entries.length && <p>Aucun personnage.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} pending={task.pending} />}</section>
     </> : <>
       <section className="panel admin-editor"><h2>Ajouter une possession</h2><input aria-label="Rechercher dans le catalogue actif" placeholder="Chercher un personnage actif" value={candidateSearch} onChange={event => setCandidateSearch(event.target.value)} />

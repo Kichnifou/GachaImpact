@@ -48,7 +48,16 @@
   },
   "migrationAdded": false,
   "productionMutation": false,
-  "review": "PENDING_REMOTE_SHA",
+  "review": {
+    "initialSha": "bdef91926012b663f6b4c24429737a4db893b6a7",
+    "initialVerdict": "CHANGES_REQUIRED",
+    "initialReportSha256": "bc3f0d16edc3fa41dbb6900d22512b513352ac932ddbfc19cd574ecf89f14492",
+    "findings": ["P2 delayed character response overriding a newer explicit editor intention", "P2 notification poll restoring an archived catalogue group"],
+    "independentTests": "83 frontend, 9 backend, 2 private PostgreSQL PASS",
+    "corrections": "Invalidate character deep links before explicit Add/Edit/Deactivate; fence archiveOne before and after with current owner and revision",
+    "regressionTests": "6 new cases; navigation and AdminPanels 29/29, bootstrap/navigation/header 51/51 PASS (overlapping)",
+    "correctionVerdict": "PENDING_PUBLISHED_DELTA_REVIEW"
+  },
   "promotion": "NOT_YET_ACQUIRED",
   "deployments": "NOT_YET_ACQUIRED"
 }

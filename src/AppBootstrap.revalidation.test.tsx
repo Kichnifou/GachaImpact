@@ -11,7 +11,7 @@ import { usePresence } from './social/use-presence'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
-  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella', 'claimGiftCode'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
+  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'archiveNotification', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella', 'claimGiftCode'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
   presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
@@ -44,6 +44,29 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); mocks.shell = null; vi.useRealTimers() })
 const mount = () => act(async () => root.render(<AppBootstrap />))
+
+it.each(['before','during'])('does not restore an archived catalogue notification from a poll started %s the archive',async timing=>{
+  const stale={unreadCount:1,notifications:[{id:'catalogue-group'}]},empty={unreadCount:0,notifications:[]}
+  mocks.api.getNotifications.mockResolvedValue(stale);await mount()
+  let resolveRead!:(value:object)=>void,resolveArchive!:(value:object)=>void
+  mocks.api.getNotifications.mockImplementationOnce(()=>new Promise<object>(done=>{resolveRead=done}))
+  mocks.api.archiveNotification.mockImplementationOnce(()=>new Promise<object>(done=>{resolveArchive=done}))
+  let reading!:Promise<unknown>,archiving!:Promise<unknown>
+  await act(async()=>{if(timing==='before')reading=mocks.shell!.onLoadNotifications!();archiving=mocks.shell!.onArchiveNotification!('catalogue-group');if(timing==='during')reading=mocks.shell!.onLoadNotifications!()})
+  await act(async()=>{resolveArchive(empty);await archiving})
+  await act(async()=>{resolveRead(stale);await reading})
+  expect(mocks.shell!.notifications).toEqual(empty)
+})
+
+it('does not apply a late archive response to another signed-in owner',async()=>{
+  await mount();let resolve!:(value:object)=>void
+  mocks.api.archiveNotification.mockImplementationOnce(()=>new Promise<object>(done=>{resolve=done}))
+  let archiving!:Promise<unknown>;await act(async()=>{archiving=mocks.shell!.onArchiveNotification!('catalogue-group')})
+  mocks.status='signedOut';await mount();mocks.status='signedIn';mocks.userId='other-owner'
+  const current={unreadCount:1,notifications:[{id:'current-owner'}]};mocks.api.getNotifications.mockResolvedValue(current);await mount()
+  await act(async()=>{resolve({unreadCount:0,notifications:[]});await archiving})
+  expect(mocks.shell!.notifications).toEqual(current)
+})
 
 it('returns a committed enriched code despite an unavailable Event and a pending notification read', async () => {
   await mount()

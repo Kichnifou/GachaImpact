@@ -26,3 +26,18 @@ it('consumes an unclosed deep link when leaving the Personnages owner and accept
   await act(async()=>{window.history.replaceState(null,'',`#moderation/candidates/${next}`);window.dispatchEvent(new HashChangeEvent('hashchange'))});
   expect(api.getCatalogCandidate).toHaveBeenLastCalledWith(next);expect(document.body.querySelector('[role=dialog]')?.textContent).toContain('Valeriy');
 })
+it.each(['Ajouter un personnage','Modifier','Désactiver'])('ignores a delayed character deep link after the explicit %s intention',async(action)=>{
+  const old={id,name:'Old character',externalKey:'private-old',rarity:5,elementKey:'hydro',isActive:true}
+  const current={...old,id:'00000000-0000-4000-8000-000000000002',name:'Current character'}
+  let resolve!:(value:typeof old)=>void
+  api.getAdminCharacter.mockReturnValue(new Promise<typeof old>(done=>{resolve=done}))
+  api.getAdminCharacters.mockResolvedValue({entries:[current],page:1,totalPages:1})
+  window.history.replaceState(null,'',`#moderation/characters/${id}`);await mount();await click(action)
+  if(action==='Ajouter un personnage')await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('input[maxlength="100"]')!;const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!;setter.call(input,'My new draft');input.dispatchEvent(new Event('input',{bubbles:true}))})
+  await act(async()=>resolve(old))
+  expect(window.location.hash).toBe('#moderation')
+  expect(document.body.querySelector('[role=dialog]')?.textContent).not.toContain('Modifier Old character')
+  if(action==='Ajouter un personnage'){expect(document.body.querySelector('[role=dialog]')?.textContent).toContain('Ajouter un personnage');expect(document.body.querySelector<HTMLInputElement>('input[maxlength="100"]')?.value).toBe('My new draft')}
+  if(action==='Modifier')expect(document.body.querySelector('[role=dialog]')?.textContent).toContain('Modifier Current character')
+  if(action==='Désactiver')expect(document.body.querySelector('[role=dialog]')?.textContent).toContain('Désactiver Current character')
+})
