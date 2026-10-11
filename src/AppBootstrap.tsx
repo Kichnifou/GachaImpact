@@ -31,6 +31,7 @@ import { createMissionLoader } from './missions/load-missions'
 import { createDailyReadCoordinator } from './dailies/daily-read-coordinator'
 import type { DailyId } from './dailies/daily-summary'
 import type { FavorDto } from './api/types'
+import type { CharacterPreparationDto } from './api/types'
 
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
@@ -72,6 +73,7 @@ function AppBootstrap() {
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
   const [gacha, setGacha] = useState<CurrentGachaDto | null>(null)
   const [characters, setCharacters] = useState<readonly GachaCharacterDto[] | null>(null)
+  const [preparations, setPreparations] = useState<readonly CharacterPreparationDto[]>([])
   const [teams, setTeams] = useState<PlayerTeamsDto | null>(null)
   const [permissions, setPermissions] = useState<ModerationPermissionsDto | null>(null)
   const [pendingGachaPull, setPendingGachaPull] = useState<{ sessionId: string | null; count: 1 | 10 } | null>(null)
@@ -249,7 +251,7 @@ function AppBootstrap() {
   const loadGiftCodes = useCallback(() => getGameApiClient().getGiftCodes(), [])
   const loadBannerVotes = useCallback(() => getGameApiClient().getBannerVotes(), [])
   const voteForBanner = useCallback((characterId: string, rotationId: string) => getGameApiClient().voteForBanner(characterId, rotationId), [])
-  const reloadCatalog = useCallback(async () => { setCharacters((await getGameApiClient().getCharacters()).characters) }, [])
+  const reloadCatalog = useCallback(async () => { const catalog=await getGameApiClient().getCharacters(); setCharacters(catalog.characters); setPreparations(catalog.preparations??[]) }, [])
   const claimGiftCode = useCallback(async (editionId: string, idempotencyKey: string) => {
     const result = await getGameApiClient().claimGiftCode(editionId, idempotencyKey)
     setResources(result.resources)
@@ -297,6 +299,7 @@ function AppBootstrap() {
     setNotifications(next.notifications)
     setGacha(next.gacha)
     setCharacters(next.catalog.characters)
+    setPreparations(next.catalog.preparations??[])
     setTeams(next.teams)
     setPermissions(next.permissions)
     setPlayerStateReadRevision(value => value + 1)
@@ -456,6 +459,7 @@ function AppBootstrap() {
           setNotifications(null)
           setGacha(null)
           setCharacters(null)
+          setPreparations([])
           setTeams(null)
           setPermissions(null)
           setFatalError(null)
@@ -629,6 +633,7 @@ function AppBootstrap() {
       }}
       gacha={gacha}
       characters={characters}
+      preparations={preparations}
       teams={teams}
       permissions={permissions}
       onLoadModeration={loadModeration}

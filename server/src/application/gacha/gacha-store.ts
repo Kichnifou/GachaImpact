@@ -77,6 +77,7 @@ export type GachaHistoryPage = Readonly<{
 }>;
 export interface GachaStore {
   listActiveCharacters(): Promise<readonly GachaCharacter[]>;
+  listPreparations?(): Promise<readonly import('../character-catalog/catalog-progressive.js').Preparation[]>;
   getCurrent(playerId: string): Promise<{ banner: CurrentBanner; playerState: PlayerGachaState } | null>;
   setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel?: SourceChannel): Promise<PlayerGachaState>;
   pull(input: GachaPullInput): Promise<GachaPullResult>;

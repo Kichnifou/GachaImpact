@@ -3091,6 +3091,7 @@ model CatalogCandidate {
   trackingElements String[] @default(["name", "originalName", "rarity", "element", "weapon", "region", "numericId", "technicalName", "releaseDate", "title", "constellation", "icon", "splash", "wish", "fullbody", "promotion"]) @map("tracking_elements")
   trackingReason String? @map("tracking_reason") @db.Text
   releaseFollowupAuthorized Boolean @default(false) @map("release_followup_authorized")
+  progressivePolicy Boolean @default(false) @map("progressive_policy")
   character Character? @relation(fields: [characterId], references: [id], onDelete: Restrict)
   identities CatalogIdentity[]
   assets CatalogAsset[]

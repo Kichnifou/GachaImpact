@@ -26,6 +26,7 @@ export function sameEditorialValue(left: Evidence | undefined, right: Evidence |
 export function meaningfulEvidence(value: Evidence | undefined): unknown {
   if (!value) return null;
   return {value:value.value,reliability:value.reliability,conflict:!!value.conflict,locked:!!value.locked,
+    qualification:value.qualification??null,
     adminValidated:!!value.adminValidated,override:!!value.override,editorialStatus:editorialState(value),
     alternatives:[...new Set((value.alternatives??[]).filter(item=>item.value!==value.value).map(item=>JSON.stringify({value:item.value,reliability:item.reliability})))].sort()};
 }

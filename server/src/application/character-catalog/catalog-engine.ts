@@ -3,12 +3,14 @@ import { Prisma, type PrismaClient, type CatalogCandidate } from '../../../gener
 import { getBusinessDate, getNextBusinessResetAt } from '../../domain/time/business-date.js';
 import { eligibility, mergeEvidence, normalizedIdentity, readFields, type CatalogFields } from './catalog-policy.js';
 import { CatalogFetchError, RequestBudget, catalogHttp, type CatalogHttp } from '../../infrastructure/character-catalog/catalog-http.js';
-import { CatalogSources, catalogFieldSources, officialReleaseEvidence, type SourceAttempt, type OfficialPost } from '../../infrastructure/character-catalog/catalog-sources.js';
+import { CatalogSources, catalogFieldSources, officialReleaseEvidence, officialPlayableEvidence, type SourceAttempt, type OfficialPost } from '../../infrastructure/character-catalog/catalog-sources.js';
 import { CatalogImageStorage, validateImage } from '../../infrastructure/character-catalog/catalog-images.js';
-import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue, editorialFingerprint } from './catalog-followup.js';
+import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue, editorialFingerprint, meaningfulEvidence } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
 import { activeCatalogStates, lockCatalogJob } from './catalog-control.js';
 import { notifyCatalogReview } from './catalog-notifications.js';
+import { progressiveEligibility, trustedEvidence, unresolvedEvidence } from './catalog-progressive.js';
+import { optionalWeapon } from './catalog-metadata.js';
 
 type RunMode = 'daily' | 'retry' | 'audit';
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -20,6 +22,7 @@ export class CatalogEngine {
   readonly storage: CatalogImageStorage;
   private activeRunId?: string;
   private controller?: AbortController;
+  private readonly publicationAssetFailures=new Map<string,string>();
   constructor(private readonly db: PrismaClient, readonly settings: CatalogSettings,
     private readonly http: CatalogHttp = catalogHttp, private readonly now: () => Date = () => new Date()) {
     this.storage = new CatalogImageStorage(settings.storageUrl, settings.storageKey, (url, options) => http(url, {...options, signal:this.controller?.signal}), async bytes => {
@@ -71,7 +74,7 @@ export class CatalogEngine {
       run = await this.fenced(token,tx=>tx.catalogRun.update({where:{id:run.id},data:{summary:json({...request,mode,dryRun,apply:mode==='retry'&&!dryRun,...(candidateId?{candidateId}:{})})}}));
       if (candidateId) {
         const target = await this.db.catalogCandidate.findUniqueOrThrow({ where: { id: candidateId } });
-        if (!isTracked(target) || shouldStopAtRelease(target.characterId, readFields(target.fields), started, target.releaseFollowupAuthorized)) {
+        if (!isTracked(target) || (!target.progressivePolicy && shouldStopAtRelease(target.characterId, readFields(target.fields), started, target.releaseFollowupAuthorized))) {
           await this.fenced(token, async tx => {
             if (!dryRun) await this.protectReleased(tx, target.id, target.revision, started);
             await tx.catalogRun.update({ where: { id: run.id }, data: { status: 'COMPLETED', completedAt: this.now(), summary: { mode, candidateId, processed: 0, changed: 0, reason: 'FICHE_PROTEGEE' } } });
@@ -112,7 +115,7 @@ export class CatalogEngine {
       for (const candidate of candidates) {
         try {
           const fields = readFields(candidate.fields);
-          if (!isTracked(candidate) || shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized)) {
+          if (!isTracked(candidate) || (!candidate.progressivePolicy && shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized))) {
             if (!dryRun) await this.fenced(token, tx => this.protectReleased(tx, candidate.id, candidate.revision, started));
             if (batched) processedIds.push(candidate.id);
             continue;
@@ -133,8 +136,11 @@ export class CatalogEngine {
               for (const [field, value] of Object.entries(post.fields)) if (value && canCollect(candidate, field)) merged = mergeEvidence(merged, field as keyof CatalogFields, value);
             const release = officialReleaseEvidence(post, names, started);
             if (release && canCollect(candidate, 'releaseDate')) merged = mergeEvidence(merged, 'releaseDate', release);
+            const playable = officialPlayableEvidence(post,names,started);
+            if(playable && canCollect(candidate,'releaseDate')) merged=mergeEvidence(merged,'playable',playable);
           }
-          reports.push({ candidateId: candidate.id, fields: merged, missing: eligibility(merged, candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started).missing });
+          if(candidate.progressivePolicy) merged=progressiveEligibility(merged,started).fields;
+          reports.push({ candidateId: candidate.id, fields: merged, missing: (candidate.progressivePolicy ? progressiveEligibility(merged,started) : eligibility(merged, candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started)).missing });
           if (dryRun) {
             if (batched) {
               processedIds.push(candidate.id);
@@ -153,8 +159,8 @@ export class CatalogEngine {
             // The unchanged revision proves merged was computed from this snapshot.
             // Merging that result a second time would discard fresh conflicts when
             // the retained primary value equals the previous value.
-            for (const [field, value] of Object.entries(merged)) if (value && canCollect(current, field)) final = { ...final, [field]: value };
-            if (final.numericId) await this.attach(tx, candidate.id, 'genshin', String(final.numericId.value));
+            for (const [field, value] of Object.entries(merged)) if (value && canCollect(current, field==='playable'?'releaseDate':field)) final = { ...final, [field]: value };
+            if (final.numericId && /^1\d{7}$/.test(String(final.numericId.value)) && final.numericId.reliability!=='PROVISIONAL' && !unresolvedEvidence(final.numericId)) await this.attach(tx, candidate.id, 'genshin', String(final.numericId.value));
             for (const [field, value] of Object.entries(final)) if (!sameEditorialValue(readFields(current.fields)[field as keyof CatalogFields], value)) {
               updates.push(`${field}${value!.conflict ? ' : conflit' : ' : nouvelle information'}`);
               await tx.catalogAttempt.create({ data: { runId: run.id, candidateId: candidate.id, provider: value!.provider, field,
@@ -319,7 +325,7 @@ export class CatalogEngine {
   private async protectReleased(tx: Prisma.TransactionClient, id: string, revision: number, now: Date) {
     await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
     const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id } });
-    if (current.revision !== revision || !isTracked(current) || !shouldStopAtRelease(current.characterId, readFields(current.fields), now, current.releaseFollowupAuthorized)) return false;
+    if (current.progressivePolicy || current.revision !== revision || !isTracked(current) || !shouldStopAtRelease(current.characterId, readFields(current.fields), now, current.releaseFollowupAuthorized)) return false;
     await tx.catalogCandidate.update({ where: { id }, data: { trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Sortie officielle confirmée.', revision: { increment: 1 } } });
     await tx.catalogAsset.updateMany({ where: { candidateId: id }, data: { autoLocked: true } });
     return true;
@@ -333,8 +339,8 @@ export class CatalogEngine {
       if (!candidate) {
         const existing = await tx.character.findMany({ where: { name: { equals: name, mode: 'insensitive' } }, take: 2 });
         if (existing.length > 1) throw new CatalogFetchError('IDENTITY_CONFLICT');
-        candidate = existing[0] ? await tx.catalogCandidate.upsert({ where: { characterId: existing[0].id }, create: { name, characterId: existing[0].id, trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} })
-          : await tx.catalogCandidate.create({ data: { name } });
+        candidate = existing[0] ? await tx.catalogCandidate.upsert({ where: { characterId: existing[0].id }, create: { name, characterId: existing[0].id, progressivePolicy:false, trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} })
+          : await tx.catalogCandidate.create({ data: { name, progressivePolicy:true } });
         created = !existing[0];
       }
       await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
@@ -367,25 +373,45 @@ export class CatalogEngine {
         if (value !== null) fields[key] = { value, provider: 'catalog', url: `character:${row.id}`, fetchedAt: this.now().toISOString(), reliability: 'ADMIN', override: true };
       }
       const candidate = await tx.catalogCandidate.upsert({ where: { characterId: row.id }, create: { characterId: row.id, name: row.name, status: 'PUBLISHED', fields: json(fields), publishedAt: row.createdAt,
-        trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} });
+        progressivePolicy:false, trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} });
       await this.attach(tx, candidate.id, 'catalog', row.externalKey);
     });
   }
   private async finalize(token: string, id: string, started: Date, expectedRevision: number) {
     const snapshot = await this.db.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { assets: true } });
-    const pending = eligibility(readFields(snapshot.fields), snapshot.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started);
-    const canPublish = this.settings.enabled && !this.settings.dryRun && this.settings.publish && this.storage.configured;
+    const pending = snapshot.progressivePolicy ? progressiveEligibility(readFields(snapshot.fields),started) : eligibility(readFields(snapshot.fields), snapshot.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started);
+    const canPublish = this.settings.enabled && !this.settings.dryRun && this.settings.publish && (snapshot.progressivePolicy || this.storage.configured);
     const verified = !snapshot.characterId && pending.status === 'ELIGIBLE' && canPublish ? await this.verifyPublication(id) : [];
     await this.fenced(token, async tx => {
       await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
       const candidate = await tx.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { assets: true, character: true } });
       if (candidate.revision !== expectedRevision || !isTracked(candidate)) throw new CatalogFetchError('REVISION_CHANGED');
       const fields = readFields(candidate.fields);
+      if(!candidate.characterId&&candidate.progressivePolicy&&pending.status==='ELIGIBLE'&&canPublish){
+        for(const asset of candidate.assets.filter(asset=>asset.status==='AVAILABLE'&&Object.keys(rolePath).includes(asset.role)&&!verified.includes(asset.id))){
+          await tx.catalogAsset.update({where:{id:asset.id},data:{status:'UNVERIFIED',checkedAt:this.now()}});
+          await tx.catalogAttempt.create({data:{runId:this.activeRunId!,candidateId:id,provider:'storage',field:asset.role,outcome:'ERROR',errorCode:this.publicationAssetFailures.get(asset.id)??'STORAGE_VERIFICATION_FAILED',sourceUrl:asset.url,checkedAt:this.now()}});
+        }
+      }
       const available = candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role);
       if (candidate.character) for (const [role, path] of Object.entries(rolePath)) if (candidate.character[path as 'iconPath']) available.push(role);
-      const result = eligibility(fields, available, started);
+      const result = candidate.progressivePolicy ? progressiveEligibility(fields,started) : eligibility(fields, available, started);
       await tx.catalogCandidate.update({ where: { id }, data: { status: candidate.characterId ? 'PUBLISHED' : result.status, missing: result.missing,
         officialReleaseDate: result.officialDate ? new Date(`${result.officialDate}T00:00:00Z`) : null, checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } });
+      if(candidate.progressivePolicy){
+        const state=progressiveEligibility(fields,started);
+        const critical=['name','originalName','rarity','element','releaseDate','playable'].filter(key=>unresolvedEvidence(fields[key as keyof CatalogFields]));
+        if(state.availabilityConflict)critical.push('availabilityConflict');
+        const economicMismatch=candidate.character&&(['rarity','element'] as const).filter(key=>fields[key]&&String(fields[key]?.value)!==String(key==='rarity'?candidate.character!.rarity:candidate.character!.elementKey));
+        const reasons=critical.length?`Arbitrer les preuves contradictoires : ${critical.join(', ')}.`:economicMismatch&&economicMismatch.length?`Confirmer la contradiction avec le personnage actif (${economicMismatch.join(', ')}) ; aucune correction économique automatique.`:!candidate.characterId&&state.publicVisible&&state.missing.length?`Confirmer les minimums de jeu : ${state.missing.join(', ')}.`:null;
+        if(!candidate.characterId&&state.publicVisible)await this.notifyReview(tx,id,candidate.name,['preparation : visible'],`preparation:${id}`);
+        if(reasons)await this.notifyReview(tx,id,candidate.name,[`intervention : ${reasons}`],`intervention:${reasons}:${editorialFingerprint(Object.fromEntries(['name','originalName','rarity','element','releaseDate','playable'].map(key=>[key,meaningfulEvidence(fields[key as keyof CatalogFields])])) )}`);
+        if(!reasons&&!candidate.characterId&&state.missing.some(key=>['stableIdentity','rarity','rarityConfirmation','element','elementConfirmation'].includes(key))){
+          const attempts=await tx.catalogAttempt.findMany({where:{candidateId:id,field:{in:['metadata','coverage','candidate','secondary-page']},outcome:'ERROR'},orderBy:{checkedAt:'desc'},take:60});
+          const failedRuns=[...new Set(attempts.filter(attempt=>['SCHEMA_CHANGED','AUTHOR_NOT_OFFICIAL','IDENTITY_CONFLICT'].includes(attempt.errorCode??'')).map(attempt=>attempt.runId))];
+          if(failedRuns.length>=3)await this.notifyReview(tx,id,candidate.name,['intervention : Vérifier les sources des minimums de jeu après trois recherches en échec de qualification.'],`retry-exhausted:${[...new Set(attempts.map(attempt=>attempt.errorCode))].sort().join(',')}:${state.missing.join(',')}`);
+        }
+      }
       if (candidate.characterId) {
         // Only explicitly opened image roles may change. Previous immutable objects remain stored.
         for (const [role, path] of Object.entries(rolePath)) {
@@ -394,54 +420,73 @@ export class CatalogEngine {
             await tx.character.updateMany({ where: { id: candidate.characterId, [path]: candidate.character?.[path as 'iconPath'] ?? null }, data: { [path]: asset.url } });
         }
         if (result.officialDate && canCollect(candidate, 'releaseDate')) await tx.character.updateMany({ where: { id: candidate.characterId, releaseDate: null }, data: { releaseDate: new Date(`${result.officialDate}T00:00:00Z`) } });
-        if (fields.weapon && canCollect(candidate, 'weapon') && fields.weapon.reliability !== 'PROVISIONAL') await tx.character.updateMany({ where: { id: candidate.characterId, weaponType: null }, data: { weaponType: String(fields.weapon.value) } });
+        if (fields.weapon && canCollect(candidate, 'weapon') && fields.weapon.reliability !== 'PROVISIONAL' && optionalWeapon(fields.weapon.value)) await tx.character.updateMany({ where: { id: candidate.characterId, weaponType: null }, data: { weaponType: optionalWeapon(fields.weapon.value) } });
         if (fields.region && canCollect(candidate, 'region') && fields.region.reliability !== 'PROVISIONAL') await tx.character.updateMany({ where: { id: candidate.characterId, region: null }, data: { region: String(fields.region.value) } });
-        if (shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized)) await tx.catalogCandidate.update({ where: { id }, data: {
+        if (!candidate.progressivePolicy && shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized)) await tx.catalogCandidate.update({ where: { id }, data: {
           trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Sortie officielle confirmée.', revision: { increment: 1 } } });
       } else if (result.status === 'ELIGIBLE' && canPublish) await this.publish(tx, candidate, fields, false, verified);
     });
   }
   async verifyPublication(candidateId: string): Promise<string[]> {
+    this.publicationAssetFailures.clear();
     const rows = await this.db.catalogAsset.findMany({ where: { candidateId, status: 'AVAILABLE' }, orderBy: [{ checkedAt: 'desc' }, { id: 'asc' }] });
     const verified: string[] = [];
-    for (const role of ['icon', 'splash']) {
+    const candidate = await this.db.catalogCandidate.findUniqueOrThrow({where:{id:candidateId}});
+    for (const role of candidate.progressivePolicy ? Object.keys(rolePath) : ['icon', 'splash']) {
       const asset = rows.find(row => row.role === role);
+      if(!asset && candidate.progressivePolicy)continue;
+      try{
       if (!asset?.url || !this.storage.owns(asset.url, candidateId, role, asset.hash)) throw new CatalogFetchError('STORAGE_ASSET_INVALID');
       await this.checkCancellation();
       const response = await this.http(asset.url, { noRedirect: true, signal:this.controller?.signal });
       if (response.status !== 200 || response.mime !== 'image/png' || createHash('sha256').update(response.body).digest('hex') !== asset.hash)
         throw new CatalogFetchError('STORAGE_VERIFICATION_FAILED', response.status);
       verified.push(asset.id);
+      }catch(error){
+        if(!candidate.progressivePolicy||error instanceof CatalogFetchError&&['CANCELLED','BUDGET_EXHAUSTED','LEASE_LOST'].includes(error.code))throw error;
+        if(asset)this.publicationAssetFailures.set(asset.id,error instanceof CatalogFetchError?error.code:'STORAGE_VERIFICATION_FAILED');
+      }
     }
     return verified;
   }
   async publish(tx: Prisma.TransactionClient, candidate: CatalogCandidate, fields: CatalogFields, overrideWindow = false, verified: readonly string[] = []) {
     if (!isTracked(candidate)) throw new CatalogFetchError('FICHE_PROTEGEE');
+    if(candidate.characterId)throw new CatalogFetchError('ALREADY_PUBLISHED');
     const assets = await tx.catalogAsset.findMany({ where: { candidateId: candidate.id, status: 'AVAILABLE' }, orderBy: [{ checkedAt: 'desc' }, { id: 'asc' }] });
-    const result = eligibility(fields, assets.map(row => row.role), this.now(), overrideWindow);
+    const result = candidate.progressivePolicy ? progressiveEligibility(fields,this.now()) : eligibility(fields, assets.map(row => row.role), this.now(), overrideWindow);
     if (result.status !== 'ELIGIBLE') throw new CatalogFetchError('NOT_ELIGIBLE');
-    for (const role of ['icon', 'splash']) if (!verified.includes(assets.find(row => row.role === role)?.id ?? '')) throw new CatalogFetchError('STORAGE_VERIFICATION_REQUIRED');
-    const numericId = String(fields.numericId!.value);
-    const identity = await tx.catalogIdentity.findUnique({ where: { namespace_externalId: { namespace: 'genshin', externalId: numericId } } });
-    if (identity?.candidateId !== candidate.id) throw new CatalogFetchError('IDENTITY_CONFLICT');
-    const existing = await tx.character.findFirst({ where: { OR: [{ externalKey: `genshin:${numericId}` },
-      ...[fields.name, fields.originalName].filter(Boolean).map(field => ({ name: { equals: String(field!.value), mode: 'insensitive' as const } }))] } });
+    if(!candidate.progressivePolicy)for (const role of ['icon', 'splash']) if (!verified.includes(assets.find(row => row.role === role)?.id ?? '')) throw new CatalogFetchError('STORAGE_VERIFICATION_REQUIRED');
+    const numericId = /^1\d{7}$/.test(String(fields.numericId?.value)) && fields.numericId?.reliability!=='PROVISIONAL' && !unresolvedEvidence(fields.numericId) ? String(fields.numericId!.value) : null;
+    const identities=await tx.catalogIdentity.findMany({where:{candidateId:candidate.id}});
+    const nameIdentity=identities.find(row=>row.namespace==='official-name'&&row.externalId===normalizedIdentity(String(fields.originalName?.value??fields.name?.value)));
+    const officialProof=fields.originalName?.reliability==='OFFICIAL'&&fields.originalName.provider==='hoyoverse'&& /^https:\/\/www\.hoyolab\.com\/article\/\d+$/.test(fields.originalName.url)&&identities.some(row=>row.namespace==='hoyolab-post'&&fields.originalName!.url.endsWith(`/${row.externalId}`));
+    const numericIdentity=numericId&&identities.some(row=>row.namespace==='genshin'&&row.externalId===numericId);
+    const manualIdentity=identities.some(row=>row.namespace==='manual')&&(fields.originalName??fields.name)?.reliability==='ADMIN';
+    if(!numericIdentity && !(candidate.progressivePolicy&&nameIdentity&&(officialProof||manualIdentity)))throw new CatalogFetchError('IDENTITY_CONFLICT');
+    const externalKey=numericId?`genshin:${numericId}`:`catalog:${candidate.id}`;
+    // Serialize global alias checks with concurrent activation, including name-only identities.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422473)`;
+    const existing = await tx.character.findFirst({ where: { OR: [{ externalKey },
+      ...[fields.name, fields.originalName].filter(field=>field&&trustedEvidence(field)&&!unresolvedEvidence(field)).map(field => ({ name: { equals: String(field!.value), mode: 'insensitive' as const } }))] } });
     if (existing) throw new CatalogFetchError('IDENTITY_CONFLICT');
-    const paths = Object.fromEntries(Object.entries(rolePath).map(([role, path]) => [path, assets.find(asset => asset.role === role)?.url ?? null]));
-    const character = await tx.character.create({ data: { externalKey: `genshin:${numericId}`, name: String(fields.name?.value ?? fields.originalName!.value),
-      rarity: Number(fields.rarity!.value), elementKey: String(fields.element!.value), weaponType: fields.weapon ? String(fields.weapon.value) : null,
+    const safeAssets=candidate.progressivePolicy?assets.filter(asset=>verified.includes(asset.id)):assets;
+    const paths = Object.fromEntries(Object.entries(rolePath).map(([role, path]) => [path, safeAssets.find(asset => asset.role === role)?.url ?? null]));
+    const resolved=candidate.progressivePolicy?progressiveEligibility(fields,this.now()).fields:fields;
+    const safeName=trustedEvidence(fields.name)&&!unresolvedEvidence(fields.name)?fields.name:fields.originalName??fields.name;
+    const character = await tx.character.create({ data: { externalKey, name: String(safeName!.value),
+      rarity: Number(resolved.rarity!.value), elementKey: String(resolved.element!.value), weaponType: optionalWeapon(fields.weapon?.value),
       region: fields.region ? String(fields.region.value) : null,
       classKey: fields.classKey?.reliability === 'ADMIN' && fields.classKey.override ? String(fields.classKey.value) : null,
       displayOrder: fields.displayOrder?.reliability === 'ADMIN' && fields.displayOrder.override ? Number(fields.displayOrder.value) : null,
-      releaseDate: new Date(`${result.officialDate}T00:00:00Z`), ...paths,
+      releaseDate: result.officialDate ? new Date(`${result.officialDate}T00:00:00Z`) : null, ...paths,
       sourceMetadata: { catalogCandidateId: candidate.id, genshinId: numericId } } });
     await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { characterId: character.id, status: 'PUBLISHED', publishedAt: this.now(),
-      ...(shouldStopAtRelease(character.id, fields, this.now()) ? { trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Premier import effectué ; personnage officiellement sorti.' } : {}) } });
+      ...(!candidate.progressivePolicy&&shouldStopAtRelease(character.id, fields, this.now()) ? { trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Premier import effectué ; personnage officiellement sorti.' } : {}) } });
     const missing = [...['weapon', 'region'].filter(field => !fields[field as keyof CatalogFields]),
       ...['wish', 'fullbody'].filter(role => !assets.some(asset => asset.role === role))];
     await tx.catalogImportOutbox.create({ data: { candidateId: candidate.id, characterId: character.id, name: character.name,
       payload: { title: `Nouveau personnage ajouté : ${character.name}`,
-        message: `${character.rarity}★ · ${character.elementKey} · Sortie officielle : ${result.officialDate}.${missing.length ? ` À compléter : ${missing.join(', ')}.` : ''} Sources et détails dans Modération > Personnages.`,
+        message: `${character.rarity}★ · ${character.elementKey}${result.officialDate?` · Sortie officielle : ${result.officialDate}`:' · Disponibilité jouable confirmée'}.${resolved.rarity?.reliability==='PROVISIONAL'||resolved.element?.reliability==='PROVISIONAL'?' Informations de jeu provisoires (consensus qualifié).':''}${missing.length ? ` À compléter : ${missing.join(', ')}.` : ''} Sources et détails dans Modération > Personnages.`,
         candidateId: candidate.id, found: { name: character.name, rarity: character.rarity, element: character.elementKey, releaseDate: result.officialDate }, missing } } });
   }
   async deliverNotifications() {

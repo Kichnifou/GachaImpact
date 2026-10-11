@@ -13,6 +13,7 @@ import { SourceChannel } from '../../../generated/prisma/client.js';
 export class GetCharacters {
   public constructor(private readonly store: GachaStore) {}
   public execute() { return this.store.listActiveCharacters(); }
+  public preparations() { return this.store.listPreparations?.() ?? Promise.resolve([]); }
 }
 
 export class GetCurrentGacha {

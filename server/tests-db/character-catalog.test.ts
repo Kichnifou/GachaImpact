@@ -119,7 +119,7 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
   }, 300_000);
   it('missing fundamentals are durable and a manual retry remains idempotent', async () => {
     const candidate = await db.catalogCandidate.findFirstOrThrow({ where: { name: 'Private Catalog' } });
-    expect(candidate.characterId).toBeNull(); expect(candidate.missing).toEqual(expect.arrayContaining(['rarity', 'officialReleaseDate', 'icon']));
+    expect(candidate.characterId).toBeNull(); expect(candidate.missing).toEqual(expect.arrayContaining(['rarity', 'availabilityEvidence']));
     expect(candidate.nextCheckAt.getTime()).toBeGreaterThan(candidate.checkedAt!.getTime());
     expect(candidate.nextCheckAt).toEqual(getNextBusinessResetAt(candidate.checkedAt!));
     const requestId = randomUUID();

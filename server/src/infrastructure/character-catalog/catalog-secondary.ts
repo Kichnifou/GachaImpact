@@ -35,6 +35,22 @@ export function htmlText(html: string) {
     .replace(/&nbsp;|&amp;|&quot;|&#39;/g, value => ({'&nbsp;':' ','&amp;':'&','&quot;':'"','&#39;':"'"})[value]!).replace(/\s+/g,' ').trim();
 }
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+export function articleObservedAt(html:string,name:string,url:string):string {
+  for(const script of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){
+    try{
+      const parsed:unknown=JSON.parse(script[1]!);
+      const records=(value:unknown):Record<string,unknown>[]=>Array.isArray(value)?value.flatMap(records):value&&typeof value==='object'?[value as Record<string,unknown>,...records((value as Record<string,unknown>)['@graph'])]:[];
+      for(const record of records(parsed)){
+        if(![record['@type']].flat().some(type=>['Article','NewsArticle','BlogPosting'].includes(String(type))))continue;
+        const title=String(record['headline']??record['name']??'');
+        if(!new RegExp(`\\b${escape(name)}\\b`,'iu').test(title))continue;
+        const articleUrl=record['url'];if(articleUrl&&articleUrl!==url)continue;
+        const date=record['dateModified']??record['datePublished'];if(typeof date==='string')return date;
+      }
+    }catch{/* Malformed/unbound structured metadata cannot qualify an editor. */}
+  }
+  return '';
+}
 export function linkedCharacterPages(html: string, index: string, names: readonly string[]) {
   const paths = new Set<string>();
   for (const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)) {
@@ -54,8 +70,16 @@ export function parseSecondaryMetadata(html: string, url: string, provider: stri
   if (!description) return {};
   const fields: CatalogFields = {};
   const reason = /\b(leaks?|beta|bêta|datamin)/i.test(text) ? 'Source secondaire contenant des informations de leak/bêta ; confirmation officielle absente.' : 'Source secondaire ; confirmation officielle indépendante absente.';
-  const add = (field: keyof CatalogFields, value: string | number) => { fields[field] = { value, provider, url, fetchedAt: now.toISOString(), reliability:'PROVISIONAL', editorialStatus:'PROVISIONAL', reason } satisfies Evidence; };
+  const observedAt = articleObservedAt(html,name,url);
+  const observed = new Date(observedAt).getTime();
+  const qualified = Number.isFinite(observed) && observed <= now.getTime() && now.getTime()-observed <= 30*86_400_000 && !/\b(leaks?|beta|bêta|datamin|rumou?r|speculat|according to|d'après|source\s*:|credits?\s*:|via\s)/i.test(text);
+  // Attribution to another publisher collapses its vote with that upstream.
+  const upstream = secondaryProviders.find(source=>source.id!==provider && text.toLowerCase().includes(source.id.replace('-',' ')))?.id;
+  const add = (field: keyof CatalogFields, value: string | number) => { fields[field] = { value, provider, url, fetchedAt: now.toISOString(), reliability:'PROVISIONAL', editorialStatus:'PROVISIONAL', reason,
+    consensusSource:{publisher:provider,...(upstream?{upstream}:{}),identity:normalizedIdentity(name),qualified,observedAt} } satisfies Evidence; };
   add('rarity',Number(description[1])); add('element',description[2]!.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
+  const ratings = [...text.matchAll(/(?:Rarity\s*[:：]?\s*|Rating\s*[:：]?\s*)([45])\s*(?:Stars?|★|étoiles)/giu)].map(match=>Number(match[1]));
+  if (ratings.some(rarity=>rarity!==Number(description[1]))) fields.rarity = {...fields.rarity!,conflict:true,alternatives:ratings.filter(rarity=>rarity!==Number(description[1])).map(value=>({...fields.rarity!,value}))};
   if (description[3]) add('weapon',description[3]);
   return fields;
 }
@@ -88,9 +112,7 @@ export class CatalogSecondarySources {
         const html = await this.page(url,provider.id); if (!html) continue;
         for (const [field,value] of Object.entries(parseSecondaryMetadata(html,url,provider.id,names,this.now))) {
           if (!value || !requested.includes(field)) continue;
-          const previous = fields[field as keyof CatalogFields];
-          if (!previous) fields[field as keyof CatalogFields]=value;
-          else if(previous.value!==value.value) fields[field as keyof CatalogFields]={...previous,conflict:true,alternatives:[...(previous.alternatives??[]),value].slice(-5)};
+          Object.assign(fields,mergeEvidence(fields,field as keyof CatalogFields,value));
           await this.attempt({provider:provider.id,field,outcome:'PROVISIONAL',sourceUrl:url,httpStatus:200});
         }
       }

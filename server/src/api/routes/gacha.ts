@@ -21,7 +21,7 @@ export async function registerGachaRoutes(app: FastifyInstance, options: Options
       return options.bannerVotes!.vote(requireAuthenticatedIdentity(request), parsed.data.characterId, parsed.data.bannerRotationId);
     });
   }
-  app.get('/api/v1/characters', { preHandler: options.authenticate }, async () => ({ characters: (await options.getCharacters.execute()).map(characterDto) }));
+  app.get('/api/v1/characters', { preHandler: options.authenticate }, async () => ({ characters: (await options.getCharacters.execute()).map(characterDto), preparations: await options.getCharacters.preparations() }));
   app.get('/api/v1/gacha/current', { preHandler: options.authenticate }, async (request) => {
     const current = await options.getCurrentGacha.execute(requireAuthenticatedIdentity(request));
     return currentDto(current);

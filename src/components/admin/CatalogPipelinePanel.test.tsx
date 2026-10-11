@@ -23,6 +23,16 @@ beforeEach(() => { vi.resetAllMocks(); api.getAdminCharacterOptions.mockResolved
   for (const action of [api.editCatalogCandidate, api.checkCatalogCandidate, api.uploadCatalogImage, api.overrideCatalogWindow]) action.mockResolvedValue({ operationId: 'fixture', alreadyProcessed: false }) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); container?.remove() })
 describe('Character import ADMIN surface', () => {
+  it('separates progressive minimums from optional image gaps and removes the legacy anticipation action',async()=>{
+    const progressive={...candidate,progressivePolicy:true,status:'ELIGIBLE',missing:[],optionalMissing:['icon','splash','numericId'],lastCycleStatus:'INCOMPLETE',publicationStage:'PREPARATION' as const};
+    api.getCatalogCandidates.mockResolvedValue({...overview,entries:[progressive]});api.getCatalogCandidate.mockResolvedValue(progressive);
+    await mount(candidate.id);
+    expect(container.textContent).toContain('Minimums de jeu disponibles');
+    expect(dialog().textContent).toContain('Aucun manque fondamental');
+    expect(dialog().textContent).toContain('Compléments optionnels');
+    expect(dialog().textContent).toContain('ne bloquent pas les minimums de jeu');
+    expect([...dialog().querySelectorAll('button')].some(value=>value.textContent?.includes('Autoriser la publication anticipée'))).toBe(false);
+  })
   it('uses a stored icon before any splash and keeps all image roles in Images',async()=>{
     const asset={id:'icon',role:'icon' as const,status:'AVAILABLE',sourceUrl:null,url:'/assets/icon.png',hash:'hash',mime:'image/png',width:256,height:256,bytes:100,provider:'fixture'};
     api.getCatalogCandidate.mockResolvedValue({...candidate,assets:[{...asset,id:'splash',role:'splash',url:'/assets/splash.png'},asset]});

@@ -63,7 +63,7 @@ describe('field follow-up and provisional provenance',()=>{
   const blocked=async(url:string)=>({url,status:403,mime:'text/html',body:Buffer.from('Forbidden')});
   const source=new CatalogSecondarySources(blocked,async()=>{},new Date('2026-10-11T11:00:00Z'));
   const fields=await source.collect(['Mitya'],['weapon']);
-  expect(fields).toEqual({weapon:expect.objectContaining({value:'Catalyst',reliability:'PROVISIONAL',fetchedAt:'2026-10-11T10:14:23.000Z'})});
+  expect(fields).toEqual({weapon:expect.objectContaining({value:'Catalyseur',rawValue:'Catalyst',reliability:'PROVISIONAL',fetchedAt:'2026-10-11T10:14:23.000Z'})});
   expect(await new CatalogSecondarySources(blocked,async()=>{},new Date('2026-10-20T10:00:00Z')).collect(['Mitya'],['weapon'])).toEqual({});
  });
  it('retains an earlier reviewed contradiction when direct collection recovers with the same primary value',async()=>{

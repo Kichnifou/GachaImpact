@@ -5,9 +5,11 @@ import { readFields } from './catalog-policy.js';
 const labels: Record<string,string> = {name:'Nom',originalName:'Nom original',rarity:'Rareté',element:'Élément',weapon:'Arme',region:'Région',numericId:'Identité officielle',releaseDate:'Sortie officielle',title:'Titre',constellation:'Constellation',icon:'Portrait',splash:'Illustration principale',wish:'Illustration de vœu',fullbody:'Personnage en pied',promotion:'Visuel promotionnel'};
 
 export function catalogReviewPayload(id:string,name:string,changes:string[],conflict:boolean,previousFields:string[]=[]) {
+  const intervention=changes.find(change=>change.startsWith('intervention : '))?.slice('intervention : '.length);
+  const preparation=changes.some(change=>change.startsWith('preparation : '));
   const fields=[...new Set([...previousFields,...changes.map(change=>labels[change.split(' : ')[0]!]??'Informations')])];
-  return {candidateId:id,title:`${conflict?'Conflit à examiner':'Fiche mise à jour'} : ${name}`,
-    message:conflict?'Des informations se contredisent. Consulter la fiche.':`${fields.slice(0,3).join(', ')}${fields.length>3?` et ${fields.length-3} autre(s)`:''} : nouveautés à examiner.`,conflict,fields};
+  return {candidateId:id,title:`${intervention?'Intervention nécessaire':preparation?'Fiche en préparation':conflict?'Conflit à examiner':'Fiche mise à jour'} : ${name}`,
+    message:intervention??(preparation?'La fiche partielle est visible dans le catalogue. Les informations de jeu restent à compléter.':conflict?'Des informations se contredisent. Consulter la fiche.':`${fields.slice(0,3).join(', ')}${fields.length>3?` et ${fields.length-3} autre(s)`:''} : nouveautés à examiner.`),conflict,fields,...(intervention?{expectedAction:intervention}:{}),publicationStage:preparation?'PREPARATION':'ENRICHMENT'};
 }
 
 /** Archived events retain replay receipts independently of group read/archive. */

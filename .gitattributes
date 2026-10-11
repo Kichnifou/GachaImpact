@@ -12,3 +12,4 @@ server/prisma/migrations/20261011090000_071_protect_catalog_followup/migration.s
 server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql text eol=lf
 docs/architecture/evidence/r1051-release-date-complement-20261011.json text eol=lf
 docs/architecture/evidence/r1051-ayaka-date-correction-20261011.json text eol=lf
+server/prisma/migrations/20261011190000_073_catalog_progressive/migration.sql text eol=lf

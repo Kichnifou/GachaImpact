@@ -8,6 +8,10 @@ export function normalizeWeapon(value: string): string {
   if (!normalized) throw new AppError('Choisir une arme du catalogue.', 400, 'CHARACTER_INVALID');
   return normalized;
 }
+export function optionalWeapon(value: unknown): string | null {
+  if(typeof value!=='string')return null;
+  try{return normalizeWeapon(value);}catch{return null;}
+}
 export function normalizeRegion(value: string): string {
   const normalized = value.normalize('NFKC').replace(/\s+/gu, ' ').trim();
   if (!normalized || normalized.length > 100 || /[\p{Cc}\p{Cf}<>]/u.test(normalized)) throw new AppError('Région invalide.', 400, 'CHARACTER_INVALID');

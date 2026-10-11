@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { normalizedIdentity, type CatalogFields, type Evidence, type AssetRole } from '../../application/character-catalog/catalog-policy.js';
+import { mergeEvidence, normalizedIdentity, type CatalogFields, type Evidence, type AssetRole } from '../../application/character-catalog/catalog-policy.js';
 import { CatalogFetchError, type CatalogHttp } from './catalog-http.js';
 import { CatalogSecondarySources, reviewedSecondaryImages } from './catalog-secondary.js';
 
@@ -16,9 +16,9 @@ export const catalogSourceRegistry = {
 // outside this policy; changing an order requires a normal code review.
 export const catalogFieldSources: Record<keyof CatalogFields, readonly string[]> = {
   name: ['genshin-db', 'genshin.dev'], originalName: ['hoyoverse', 'genshin-db', 'genshin.dev'],
-  rarity: ['genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'], element: ['hoyoverse', 'genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'],
+  rarity: ['hoyoverse', 'genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'], element: ['hoyoverse', 'genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'],
   weapon: ['genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'], region: ['genshin-db', 'genshin.dev'],
-  numericId: ['genshin-db'], technicalName: ['genshin-db'], releaseDate: ['hoyoverse'],
+  numericId: ['genshin-db'], technicalName: ['genshin-db'], releaseDate: ['hoyoverse'], playable: ['hoyoverse'],
   title: ['hoyoverse'], constellation: ['hoyoverse', 'genshin-db'], classKey: [], displayOrder: [],
 };
 const providerName = (name: string) => normalizedIdentity(name).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[\s_-]/g, '');
@@ -74,6 +74,15 @@ export function officialReleaseEvidence(post: OfficialPost, names: readonly stri
   const date = new Date(`${value}T00:00:00Z`);
   if (!Number.isFinite(date.getTime()) || date.toISOString().slice(0, 10) !== value) return null;
   return { value, provider: 'hoyoverse', url: post.url, fetchedAt: now.toISOString(), reliability: 'OFFICIAL' };
+}
+
+/** Present availability, on the same nominal statement; an announcement/future wish is insufficient. */
+export function officialPlayableEvidence(post: OfficialPost, names: readonly string[], now: Date): Evidence | null {
+  const line = post.text.split('\n').find(value => names.some(name => name.length >= 3 && value.includes(name)) &&
+    /(?:is now available|now playable|has been released|est (?:d[ée]sormais|maintenant) disponible)/i.test(value) &&
+    /(?:now playable|playable character|personnage jouable|Event Wish)/i.test(value) &&
+    !/\b(?:will|beta|b[êe]ta|leak|test server|available soon|not|never|unavailable|pas|jamais|plus|non[ -]jouable)\b|\b(?:isn|hasn|aren)[’']t\b/i.test(value));
+  return line ? { value:'available',provider:'hoyoverse',url:post.url,fetchedAt:now.toISOString(),reliability:'OFFICIAL',reason:'Disponibilité jouable présente et nominale dans une publication de l’auteur officiel certifié.' } : null;
 }
 
 const structuredSchema = z.object({ id: z.number().int().min(10000000).max(19999999), name: z.string().min(1).max(100),
@@ -164,7 +173,7 @@ export class CatalogSources {
         const field = key as keyof CatalogFields, order = catalogFieldSources[field], previous = fields[field];
         if (!value || !order.includes(value.provider)) continue;
         if (previous && ['rarity', 'element'].includes(field) && previous.value !== value.value) {
-          fields[field] = { ...previous, conflict: true };
+          Object.assign(fields,mergeEvidence(fields,field,value));
           await this.attempt({ provider, field, outcome: 'CONFLICT', errorCode: 'CONTRADICTORY', sourceUrl: value.url });
         } else if (!previous || order.indexOf(value.provider) < order.indexOf(previous.provider)) fields[field] = value;
       }

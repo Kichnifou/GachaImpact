@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1066–R1077 B — publication progressive
+
+`catalog-progressive` dérive l’éligibilité économique et une préparation publique minimale, `catalog-consensus` qualifie les preuves indépendantes datées. Le DTO preparation reste séparé des Character : aucune donnée manquante n’est fabriquée pour satisfaire le modèle économique. `CatalogEngine` sélectionne la politique par marqueur 073, conserve lease/fencing/revision/outbox, vérifie les seules images présentes et continue l’enrichissement autorisé après sortie. Identités uniques existantes et verrou commun sérialisent l’activation. Les bannières, pulls et corrections économiques gardent leurs propriétaires inchangés. [Contrat et seuils](character-catalog-assets-r1051.md#publication-progressive-et-consensus--lot-b-r1066r1077-11102026).
+
 ## R1051 — admission commune et arrêt coopératif
 
 Rejet 409 CATALOG_BUSY d’une autre intention tant qu’un cycle QUEUED/RUNNING/FAILED existe ; même clé via AdminOperation rejouée sans nouvelle tâche. L’admission ADMIN et worker partagent le FOR UPDATE catalog_job existant. Alternatives examinées : count puis create laisse une course ; file, second worker ou Redis ajouteraient une infrastructure et permettraient les recherches involontaires. Le singleton et la lease existants suffisent ; aucun nouveau scheduler transversal.

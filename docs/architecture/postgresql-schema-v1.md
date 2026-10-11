@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 073 — catalogue progressif
+
+`20261011190000_073_catalog_progressive` ajoute `catalog_candidates.progressive_policy BOOLEAN NOT NULL DEFAULT false`. UPDATE borné aux seuls candidats ACTIVE sans Character ; aucun historique protégé, Character, asset, Player ni table économique modifié. Aucune nouvelle table/policy/grant ; les sept tables catalogue gardent RLS et révocations navigateur existantes. La projection publique passe exclusivement par le backend authentifié. Identités uniques namespace/externalId et characterId existantes conservées, activation sérialisée sous verrou de candidat et advisory lock commun pour les aliases. Migration présente ≠ appliquée : registre Prisma/migrate status et tests privés requis avant livraison ; état de production au Master.
+
 ## Migration 072 — admission et annulation R1051
 
 [072](../../server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql) ajoute uniquement catalog_runs.cancel_requested_at et étend sa contrainte aux états CANCELLED/SUPERSEDED. L’ancien quotidien déjà recalculé vide devient SUPERSEDED avec son rapport conservé ; aucune réussite quotidienne inventée. Aucun changement des RLS/droits ni des Players/Character. Le verrou du singleton catalog_job sérialise admission ADMIN/worker et annulation ; toutes les écritures du moteur relisent la demande durable sous ce même verrou. Compteurs de changements committés dans les transactions métier. Application via pre-deploy Prisma normal ; état réel et checksum au Master.

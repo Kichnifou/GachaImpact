@@ -1,0 +1,7 @@
+.catalog-preparation-section { margin-bottom: 1rem; }
+.catalog-preparation-section > h2 { margin: 0 0 .35rem; font-size: 1.05rem; }
+.catalog-preparation-section > p { margin: 0 0 .8rem; color: var(--text-muted, #a9b4c9); }
+.catalog-preparation-card { border: 1px dashed #7184a4; background: linear-gradient(150deg,#25344b,#182234); }
+.catalog-preparation-card .character-card-copy > strong { color: #c8dbf3; font-size: .8rem; }
+.catalog-preparation-card .character-card-copy > p { font-size: .75rem; line-height: 1.35; white-space: normal; overflow: visible; text-overflow: clip; }
+.catalog-screen .catalog-vote-slot > span { display: block; font-size: .75rem; line-height: 1.35; color: #c8dbf3; padding: 0 .65rem .4rem; }

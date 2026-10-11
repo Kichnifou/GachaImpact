@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1066–R1077 B — candidat, préparation, activation
+
+CatalogCandidate porte `progressivePolicy` (073, défaut false), activé explicitement pour les nouveaux candidats et reprises ADMIN. Les Character historiques restent exclus. La préparation publique est une projection dérivée minimale, pas un Character incomplet : rareté et élément nullable ne rejoignent aucune mécanique. L’activation exige identité durable unique et champs économiques valides ; IDs numériques/images/arme/région restent optionnels. Les preuves JSON conservent qualification de consensus, éditeur/amont, identité et date observée ; PROVISIONAL_CONSENSUS ne vaut jamais OFFICIAL. Le suivi après sortie continue uniquement sur les éléments ouverts, sans changement rétroactif des données économiques. [Propriétaire catalogue](../architecture/character-catalog-assets-r1051.md#publication-progressive-et-consensus--lot-b-r1066r1077-11102026).
+
 ## R1051 — cycle unique, annulation et agrégat de nouveautés
 
 CatalogRun conserve l’intention globale/ciblée/audit, les checkpoints et cancelRequestedAt durable ; CANCELLED ne devient pasFAILED et ne reprend pas automatiquement. Les changements déjà committés restent acquis et comptés. SUPERSEDED qualifie uniquement l’ancien cycle obsolète, jamais un succès quotidien. Aucun nouveau catalogue ni modèle joueur.

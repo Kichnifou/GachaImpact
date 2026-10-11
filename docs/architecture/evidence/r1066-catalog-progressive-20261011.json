@@ -1,0 +1,43 @@
+{
+  "date": "2026-10-11",
+  "scope": "Consolidated lot B: progressive catalogue and qualified provisional consensus",
+  "state": "Implemented and verified locally; independent review, public migration and deployment remain separate",
+  "base": "bdef91926012b663f6b4c24429737a4db893b6a7",
+  "migration": "20261011190000_073_catalog_progressive",
+  "checks": {
+    "postgresProgressive": { "passed": 8, "isolation": "private UUID schema, normal Prisma migrations, cleanup completed" },
+    "postgresHistoricalCatalogue": { "passed": 31, "isolation": "private schema, sequential execution, cleanup completed" },
+    "backendTargeted": { "passed": 73, "files": 6 },
+    "frontendTargeted": { "passed": 47, "files": 6 },
+    "quick": { "passed": 5 },
+    "frontendBuild": "PASS; existing bundle size warning",
+    "backendBuild": "PASS",
+    "visual": { "catalogueStates": 24, "adminStates": 12, "viewports": ["390x844", "1366x768", "1920x1080", "2560x1440", "1280x600", "844x390"], "css": "index-DcrbMVAl.css", "pageErrors": 0, "horizontalOverflow": false, "fixture": "private synthetic full GameShell, production CSS, external network blocked" },
+    "transientFailure": "One Fastify test exceeded its existing 5s timeout during concurrent typechecks; unchanged suite passed 73/73 on isolated rerun. No timeout increased."
+  },
+  "verifiedInvariants": [
+    "Preparation does not create Character or enter economy/votes; unknown combat fields are null",
+    "Normal concurrent activation creates one Character and one import outbox entry",
+    "No fake numeric ID, image, date or official qualification",
+    "Three independent editors minimum and two-thirds majority; copies share one vote, ambiguity removes the editor vote",
+    "Stale, withdrawn, invalid-date, identity-mismatched and unqualified leak attestations do not vote",
+    "Same-value provenance refreshes without losing competing publishers",
+    "Optional corrupt image is quarantined and cannot become a Character URL or block valid game minimums",
+    "Post-release enrichment respects ADMIN locks and never automatically changes active rarity/element",
+    "120 protected historical records and existing banner slots remain unchanged; no retroactive economic mutations",
+    "Archived semantic notification receipts prevent identical replay and resurrection",
+    "ADMIN and dry-run diagnostics apply current progressive minimums without collection or writes"
+  ],
+  "realSourceQualification": {
+    "icyVeinsValeriy": { "url": "https://www.icy-veins.com/genshin-impact/valeriy-team-guide", "status": "4-star text and retained 5-star cartouche disagreement from the same publisher: ambiguous, zero votes" },
+    "sephijin": { "urls": ["https://sephijin.fr/mitya-farm/", "https://sephijin.fr/valeriy-farm/"], "status": "Farm articles observed, no exploitable rarity in text; linked exact profiles not qualified after timeouts" },
+    "game8": "Old index and targeted searches do not establish convergence; no general absence claim",
+    "result": "No real Mitya/Valeriy consensus asserted; synthetic fixtures demonstrate the normal qualification circuit"
+  },
+  "limits": [
+    "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
+    "Human acceptance and real source convergence remain open; automated private visuals do not replace human acceptance",
+    "Final pure helper hardening was verified by units/builds after the PostgreSQL runs; no additional PostgreSQL replay or production mutation",
+    "Migration, actual worker observations and promotion are coordinated by the parent mission"
+  ]
+}

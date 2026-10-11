@@ -311,6 +311,7 @@ export type ElementChoiceDto = Readonly<{
 }>
 
 export type GachaCharacterDto = Readonly<{
+  informationProvisional?: boolean
   releaseDate?: string | null
   id: string
   externalKey: string
@@ -346,7 +347,8 @@ export type CurrentGachaDto = Readonly<{
   playerState: PlayerGachaStateDto
 }>
 
-export type CharacterCatalogDto = Readonly<{ characters: readonly GachaCharacterDto[] }>
+export type CharacterPreparationDto = Readonly<{ candidateId: string; name: string; status: 'PREPARATION'; releaseDate: string | null; rarity: 4 | 5 | null; elementKey: string | null; provisional: boolean; iconPath: string | null }>
+export type CharacterCatalogDto = Readonly<{ characters: readonly GachaCharacterDto[]; preparations?: readonly CharacterPreparationDto[] }>
 
 export type BoxCharacterDto = Omit<GachaCharacterDto, 'classKey'> & Readonly<{
   constellation: number

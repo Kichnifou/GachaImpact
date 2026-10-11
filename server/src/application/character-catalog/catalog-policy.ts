@@ -1,12 +1,17 @@
 import { addBusinessDays, getBusinessDate } from '../../domain/time/business-date.js';
+import { evidenceTrail } from './catalog-consensus.js';
+import { optionalWeapon } from './catalog-metadata.js';
 
 export const assetRoles = ['icon', 'splash', 'wish', 'fullbody', 'promotion'] as const;
 export type AssetRole = typeof assetRoles[number];
 export type Evidence = Readonly<{ value: string | number; provider: string; url: string; fetchedAt: string;
   reliability: 'OFFICIAL' | 'STRUCTURED' | 'ADMIN' | 'PROVISIONAL'; override?: boolean; conflict?: boolean;
-  editorialStatus?: 'PROVISIONAL' | 'VALIDATED'; locked?: boolean; adminValidated?: boolean; reason?: string; alternatives?: readonly Evidence[] }>;
+  editorialStatus?: 'PROVISIONAL' | 'VALIDATED'; locked?: boolean; adminValidated?: boolean; reason?: string; alternatives?: readonly Evidence[];
+  qualification?: 'PROVISIONAL' | 'PROVISIONAL_CONSENSUS' | 'CONFLICT'; rawValue?: string | number;
+  consensusSource?: Readonly<{ publisher: string; upstream?: string; identity: string; qualified: boolean; observedAt: string; withdrawn?: boolean }>;
+  consensus?: Readonly<{ editors: number; supportingEditors: number; evaluatedAt: string }> }>;
 export type CatalogFields = Partial<Record<'name' | 'originalName' | 'rarity' | 'element' | 'weapon' | 'region' |
-  'numericId' | 'technicalName' | 'releaseDate' | 'title' | 'constellation' | 'classKey' | 'displayOrder', Evidence>>;
+  'numericId' | 'technicalName' | 'releaseDate' | 'playable' | 'title' | 'constellation' | 'classKey' | 'displayOrder', Evidence>>;
 export type CatalogStatus = 'DETECTED' | 'INCOMPLETE' | 'OUT_OF_WINDOW' | 'CONFLICT' | 'ELIGIBLE' | 'PUBLISHED' | 'TEMPORARY_ERROR' | 'INTERVENTION';
 
 export function readFields(value: unknown): CatalogFields {
@@ -17,24 +22,24 @@ export function normalizedIdentity(value: string): string { return value.normali
 
 /** Higher-priority/ADMIN values survive provider outages and discrepancies. */
 export function mergeEvidence(fields: CatalogFields, key: keyof CatalogFields, evidence: Evidence): CatalogFields {
-  const previous = fields[key];
+  let previous = fields[key];
   if (previous?.override || previous?.locked) return fields;
-  if (previous && previous.value === evidence.value && evidence.conflict) {
-    const alternatives = [...(previous.alternatives ?? [])];
-    for (const item of evidence.alternatives ?? []) if (!alternatives.some(existing => existing.provider === item.provider && existing.url === item.url && existing.value === item.value && existing.reliability === item.reliability)) alternatives.push(item);
-    const primary = previous.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL' ? evidence : previous;
-    return { ...fields, [key]: { ...primary, conflict: true, alternatives: alternatives.slice(-5) } };
+  const canonical=(proof:Evidence):Evidence=>{
+    const value=optionalWeapon(proof.value);
+    return value&&value!==proof.value?{...proof,value,rawValue:proof.value,alternatives:proof.alternatives?.map(canonical)}:proof;
+  };
+  if(key==='weapon'){evidence=canonical(evidence);if(previous)previous=canonical(previous);}
+  if (previous) {
+    const trail = [...evidenceTrail(previous), ...evidenceTrail(evidence)];
+    const rank = (proof: Evidence) => ({ ADMIN: 4, OFFICIAL: 3, STRUCTURED: 2, PROVISIONAL: 1 })[proof.reliability];
+    const refreshed=previous.provider===evidence.provider&&previous.url===evidence.url&&previous.value===evidence.value&&evidence.fetchedAt>=previous.fetchedAt;
+    const primary = rank(evidence) > rank(previous) || refreshed ? {...previous,...evidence} : previous;
+    const alternatives = trail.filter(proof => !(proof.provider === primary.provider && proof.url === primary.url && proof.value === primary.value))
+      .filter((proof, index, rows) => !rows.some((row,other) => row.provider === proof.provider && row.url === proof.url && row.value === proof.value && (row.fetchedAt > proof.fetchedAt || row.fetchedAt === proof.fetchedAt && other > index)));
+    return { ...fields, [key]: { ...primary, fetchedAt: primary.provider === evidence.provider && primary.url === evidence.url && primary.value === evidence.value && evidence.fetchedAt>primary.fetchedAt ? evidence.fetchedAt : primary.fetchedAt,
+      conflict: trail.some(proof => proof.value !== primary.value), alternatives } };
   }
-  if (previous && previous.value !== evidence.value) {
-    if (previous.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL') return { ...fields, [key]: { ...evidence, conflict:true, alternatives:[previous,...(previous.alternatives??[])].slice(0,5) } };
-    // Localised name and original name are separate fields, never fuzzy reconciled.
-    return { ...fields, [key]: { ...previous, conflict: true, alternatives: [...(previous.alternatives ?? []).filter(item => item.provider !== evidence.provider || item.value !== evidence.value), evidence].slice(-5) } };
-  }
-  const promoted = previous?.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL';
-  if (previous && !promoted && (previous.provider !== evidence.provider || previous.url !== evidence.url || previous.reliability !== evidence.reliability)) {
-    return { ...fields, [key]: {...previous,alternatives:[...(previous.alternatives??[]).filter(item=>item.provider!==evidence.provider||item.url!==evidence.url||item.value!==evidence.value),evidence].slice(-5)} };
-  }
-  return { ...fields, [key]: previous && !promoted ? { ...previous, fetchedAt: evidence.fetchedAt } : evidence };
+  return { ...fields, [key]: evidence };
 }
 
 export function eligibility(fields: CatalogFields, available: readonly string[], now: Date, overrideWindow = false) {

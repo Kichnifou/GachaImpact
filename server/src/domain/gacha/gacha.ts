@@ -5,6 +5,7 @@ export type GachaCharacter = Readonly<{
   weaponType: string | null; region: string | null; classKey: string | null;
   iconPath: string | null; splashPath: string | null; wishPath: string | null; fullbodyPath: string | null;
   releaseDate?: Date | null;
+  informationProvisional?: boolean;
 }>;
 
 export type FeaturedSelection = Readonly<{

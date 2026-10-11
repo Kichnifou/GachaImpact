@@ -18,6 +18,8 @@ import { getBusinessDate } from '../../domain/time/business-date.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 import { unlockCharacterAvatars } from '../../application/appearance/character-avatar-unlocks.js';
 import { lockPlayerMutation } from '../../application/player/player-mutation-guard.js';
+import { publicPreparation } from '../../application/character-catalog/catalog-progressive.js';
+import { readFields } from '../../application/character-catalog/catalog-policy.js';
 
 const characterSelection = {
   id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
@@ -47,8 +49,14 @@ export class PrismaGachaStore implements GachaStore {
   }
 
   public async listActiveCharacters(): Promise<readonly GachaCharacter[]> {
-    const rows = await this.database.character.findMany({ where: { isActive: true }, select: { ...characterSelection, releaseDate: true }, orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }] });
-    return rows.map(row => ({ ...toCharacter(row), releaseDate: row.releaseDate }));
+    const rows = await this.database.character.findMany({ where: { isActive: true }, select: { ...characterSelection, releaseDate: true, catalogCandidate:{select:{progressivePolicy:true,fields:true}} }, orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }] });
+    return rows.map(row => ({ ...toCharacter(row), releaseDate: row.releaseDate, ...(row.catalogCandidate?.progressivePolicy?{informationProvisional:Object.values(readFields(row.catalogCandidate.fields)).some(proof=>proof?.reliability==='PROVISIONAL')}:{}) }));
+  }
+
+  public async listPreparations() {
+    const rows=await this.database.catalogCandidate.findMany({where:{progressivePolicy:true,characterId:null},include:{assets:{where:{role:'icon',status:'AVAILABLE'},orderBy:[{checkedAt:'desc'},{id:'asc'}]}},orderBy:[{name:'asc'},{id:'asc'}]});
+    const now=new Date();
+    return rows.flatMap(row=>{const value=publicPreparation(row,now);return value?[value]:[];});
   }
 
   public async getCurrent(playerId: string) {

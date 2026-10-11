@@ -6,12 +6,13 @@ import { AdminOperation } from '../moderation/admin-operation.js';
 import { readFields, type CatalogFields, type AssetRole } from './catalog-policy.js';
 import type { CatalogEngine } from './catalog-engine.js';
 import { validateImage, maxImageBytes } from '../../infrastructure/character-catalog/catalog-images.js';
-import { normalizedIdentity, eligibility } from './catalog-policy.js';
+import { normalizedIdentity } from './catalog-policy.js';
 import type { CharacterAdminPatch } from '../moderation/character-admin-service.js';
 import { trackingElements, type TrackingElement, shouldStopAtRelease } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
 import { activeCatalogStates, lockCatalogJob, admitCatalogRun } from './catalog-control.js';
 import { canonicalRegion, normalizeWeapon } from './catalog-metadata.js';
+import { adminCandidateProjection, progressiveEligibility } from './catalog-progressive.js';
 
 export class CatalogAdminService {
   private readonly operation: AdminOperation;
@@ -34,8 +35,8 @@ export class CatalogAdminService {
           if (value !== undefined && value !== null) fields[field] = { value, provider: 'admin', url: `admin-operation:${idempotencyKey}`,
             fetchedAt: new Date().toISOString(), reliability: 'ADMIN', override: true, locked: true, adminValidated: true, editorialStatus: 'VALIDATED' };
         }
-        const state = eligibility(fields, [], new Date());
-        const row = await tx.catalogCandidate.create({ data: { name: input.name, fields: fields as Prisma.InputJsonValue, status: state.status, missing: state.missing,
+        const state = progressiveEligibility(fields, new Date());
+        const row = await tx.catalogCandidate.create({ data: { name: input.name, progressivePolicy:true, fields: fields as Prisma.InputJsonValue, status: state.status, missing: state.missing,
           identities: { create: [{ namespace: 'manual', externalId: input.externalKey }, { namespace: 'official-name', externalId: normalizedIdentity(input.name) }] } } });
         return { before: { exists: false }, after: { candidateId: row.id, published: false } };
       } });
@@ -49,7 +50,7 @@ export class CatalogAdminService {
     const entries = await this.db.catalogCandidate.findMany({ where,
       include: { assets: true, identities: true, character: { select: { iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } } }, orderBy: [{ discoveredAt: 'desc' }, { id: 'asc' }], take: 20, skip: (currentPage - 1) * 20 });
     const runs = await this.db.catalogRun.findMany({ orderBy: { startedAt: 'desc' }, take: 5 });
-    return { entries, runs, total, page: currentPage, totalPages, activeRun: await this.db.catalogRun.findFirst({where:{status:{in:activeCatalogStates}},orderBy:{startedAt:'asc'}}), job: await this.db.catalogJob.findUnique({ where: { id: 'R1051' }, select: { lastSuccessAt: true, lastSuccessDate: true, leaseUntil: true } }),
+    return { entries:entries.map(row=>adminCandidateProjection(row,new Date())), runs, total, page: currentPage, totalPages, activeRun: await this.db.catalogRun.findFirst({where:{status:{in:activeCatalogStates}},orderBy:{startedAt:'asc'}}), job: await this.db.catalogJob.findUnique({ where: { id: 'R1051' }, select: { lastSuccessAt: true, lastSuccessDate: true, leaseUntil: true } }),
       enabled: this.engine.settings.enabled, dryRun: this.engine.settings.dryRun, publicationEnabled: this.engine.settings.publish,
       storageConfigured: this.engine.storage.configured };
   }
@@ -58,7 +59,7 @@ export class CatalogAdminService {
     const candidate = await this.db.catalogCandidate.findUnique({ where: { id }, include: { assets: true, identities: true, character: true,
       attempts: { orderBy: { checkedAt: 'desc' }, take: 40 } } });
     if (!candidate) throw new AppError('Fiche candidate introuvable.', 404, 'CATALOG_NOT_FOUND');
-    return candidate;
+    return adminCandidateProjection(candidate,new Date());
   }
   async edit(identity: AuthenticatedIdentity, id: string, values: Partial<Record<'name' | 'originalName' | 'rarity' | 'element' | 'weapon' | 'region', string | number>>, key: string) {
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: 'metadata', idempotencyKey: key, request: { id, values },
@@ -100,6 +101,7 @@ export class CatalogAdminService {
         const remaining = action === 'resume' ? selected : action === 'validate' ? candidate.trackingElements.filter(value=>!selected.includes(value as TrackingElement)) : [];
         const state = action === 'pause' ? 'PAUSED' : action === 'protect' || !remaining.length ? 'PROTECTED' : 'ACTIVE';
         const after = await tx.catalogCandidate.update({where:{id},data:{trackingState:state,trackingElements:remaining,trackingReason:reason,fields:fields as Prisma.InputJsonValue,
+          ...(action==='resume'?{progressivePolicy:true}:{}),
           releaseFollowupAuthorized:action==='resume'?shouldStopAtRelease(candidate.characterId,fields,new Date()):action==='validate'?candidate.releaseFollowupAuthorized:false,revision:{increment:1},...(action==='resume'?{nextCheckAt:new Date()}:{})}});
         if (state!=='ACTIVE') await tx.catalogAsset.updateMany({where:{candidateId:id},data:{autoLocked:true}});
         return {before:{candidateId:id,trackingState:candidate.trackingState,elements:candidate.trackingElements},after:{candidateId:id,trackingState:after.trackingState,elements:after.trackingElements,reason}};
