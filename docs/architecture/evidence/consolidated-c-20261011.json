@@ -1,7 +1,7 @@
 {
   "date":"2026-10-11",
   "scope":"Standalone shared invocations, consolidated lot C",
-  "state":"Integrated locally; published exact-SHA review and deployment still required",
+  "state":"Published source independently APPROVED; checkpoint review, strict FF and deployment/postflight remain separate",
   "productionBase":"8a240609a141b68d39b4be372b3d69d8da28a3bf",
   "migration":"20261011200000_074_shared_invocations",
   "rootSourceCommits":["e81fec7","91cb7b6","c981e45","f4f4012","36d1bf0"],
@@ -40,13 +40,14 @@
     "finalVisual":{"states":42,"rotationScenes":9,"lastResultScenes":9,"css":"index-jkWx-xIv.css","cssSha256":"7f59f63e3d1ebcb37d51faca7f537819237cec42125d26c5e63068849fe7537e","pageErrors":0,"summaryKeyboardHomeEnd":true,"summaryEndScrollTopMaximum":true,"tenthResultInViewport":true,"focusRetained":true,"controlsOutsideReadingRegion":true,"inspectedFormats":["390x844","844x390","1366x520"],"privateProofs":["visual-accessible-proof.json","rotation-visual-corrected-accessible-proof.json","rotation-visual-last-visible-proof.json"],"earlierFailedPassesRetained":true},
     "producerBuilds":"Frontend and backend PASS on final correction",
     "rootIntegratedFinalQuick":"PASS 5/5, source36d1bf0, log c-root-final-quick.log",
-    "formalPublishedShaReview":"Pending; local audit is not delivery approval"
+    "formalPublishedShaReview":"APPROVED on c2ecc35f1e2fc4fb51a0da955182c042495bb40a"
   },
+  "publishedIndependentReview":{"sha":"c2ecc35f1e2fc4fb51a0da955182c042495bb40a","verdict":"APPROVED","reportSha256":"c06b98f36f8f90dcdcd23ed674c83aee4adc639a6517df87d7fbd5147b802db0","openP1P2":0,"consultativeFindingsClosed":2,"frontendPassed":75,"backendPassed":67,"independentReproductionsPassed":4,"privatePostgresPassed":17,"privatePostgresSkipped":0,"normalPrismaReplay":true,"privatePostgresSeconds":137.22,"exactSchemaCleanupVerified":true,"inspectedPngs":4,"publicEconomicFixtures":false},
   "limits":[
     "Migration074 is present and tested in private schemas only at this checkpoint",
     "No public Player fixture, pull or shared session created for qualification",
     "Private automated visuals are not two-account human public acceptance",
-    "Corrective regressions pass; published exact-SHA independent review remains required",
+    "Source review approved; documentary checkpoint and actual deployments/postflight remain required",
     "Combined full before those corrections remains FAIL6/8, ten known baseline assertions, and is not a final source full PASS"
   ]
 }
