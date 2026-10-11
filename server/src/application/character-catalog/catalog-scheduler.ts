@@ -1,6 +1,7 @@
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import { getBusinessDate } from '../../domain/time/business-date.js';
 import type { CatalogEngine } from './catalog-engine.js';
+import { activeCatalogStates } from './catalog-control.js';
 
 /** Polling wakes the existing process; the durable Paris key chooses one cycle,
  * including one catch-up for the current day rather than all missed days. */
@@ -13,10 +14,13 @@ export class CatalogScheduler {
   start() { this.stopped = false; void this.tick(); }
   async stop() { this.stopped = true; if (this.timer) clearTimeout(this.timer); await this.running; }
   async catchUp() {
-    const queued = await this.database.catalogRun.findFirst({ where: { cycleKey: { startsWith: 'manual:' }, status: { in: ['QUEUED', 'FAILED', 'RUNNING'] }, nextAttemptAt: { lte: this.now() } }, orderBy: { startedAt: 'asc' } });
+    const queued = await this.database.catalogRun.findFirst({ where: { status: { in: activeCatalogStates }, nextAttemptAt: { lte: this.now() } }, orderBy: { startedAt: 'asc' } });
     if (queued) {
       const summary = queued.summary as { mode?: string; candidateId?: string };
-      await this.engine.run(summary.mode === 'audit' ? 'audit' : 'retry', summary.candidateId, queued.id);
+      // Finish the original daily cutoff before admitting a later business day.
+      // The daily flag controls automatic work; explicit manual requests remain independent.
+      if (!queued.cycleKey.startsWith('daily:') || this.engine.settings.enabled)
+        await this.engine.run(queued.cycleKey.startsWith('daily:') ? 'daily' : summary.mode === 'audit' ? 'audit' : 'retry', summary.candidateId, queued.id);
     }
     const job = await this.database.catalogJob.findUnique({ where: { id: 'R1051' } });
     if (this.engine.settings.enabled && job?.lastSuccessDate !== getBusinessDate(this.now())) await this.engine.run();

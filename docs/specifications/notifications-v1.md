@@ -2,11 +2,11 @@
 
 ## R1051 — un groupe actif et reçus conservés, 11/10/2026
 
-Clé agrégat catalog-review-group:candidat:ADMIN, clé événement catalog-review:candidat:signature:ADMIN conservéeARCHIVED. Une nouvelle valeur, contradiction, promotion éditoriale ou image nouvellement disponible crée son reçu une fois puis actualise le groupe ; checkedAt/fetchedAt/source concordante/absence répétée ne sont pas des nouveautés. Résumé des champs non lus, conflit prioritaire, nouveau contenu réactiveUNREAD même après archive ; simple GET/rejeu non. DestinatairesADMIN actifs et rôle courant relu à l’accès.
+Clé agrégat catalog-review-group:candidat:ADMIN, clé événement catalog-review:candidat:signature:ADMIN conservée ARCHIVED. Une nouvelle valeur, contradiction, promotion éditoriale ou image nouvellement disponible crée son reçu une fois puis actualise le groupe ; checkedAt/fetchedAt/source concordante/absence répétée ne sont pas des nouveautés. Résumé des champs non lus, conflit prioritaire, nouveau contenu réactive UNREAD même après archive ; simple GET/rejeu non. Destinataires ADMIN actifs et rôle courant relu à l’accès.
 
-Action canonique OPEN_ADMIN_CANDIDATE + UUID validé, destination exacte #moderation/candidates/<uuid>, distincte du Character importé. Rapprochement opérateur borné aux anciens CATALOG_REVIEW_ADMIN : plan RO hashé/drift refusé, événements archivés sans effacer payloads/clés/readAt, groupeREAD si tous les actifs déjà lus, aucun groupe nouveau si tout est archivé, groupe existant préservé. Autres types inchangés.
+Action canonique OPEN_ADMIN_CANDIDATE + UUID validé, destination exacte #moderation/candidates/<uuid>, distincte du Character importé. Rapprochement opérateur borné aux anciens CATALOG_REVIEW_ADMIN : plan RO hashé/drift refusé, événements archivés sans effacer payloads/clés/readAt, groupe READ si tous les actifs déjà lus, aucun groupe nouveau si tout est archivé, groupe existant préservé. Autres types inchangés.
 
-Le header aligne réellement ses deux actions sur le bord droit, au clavier et dans les états vide/lu/nonlu/suppression. [Owner](../architecture/character-catalog-assets-r1051.md).
+Le header aligne réellement ses deux actions sur le bord droit, au clavier et dans les états vide/lu/non lu/suppression. [Owner](../architecture/character-catalog-assets-r1051.md).
 
 ## R1051 — nouveauté de fiche privée ADMIN
 

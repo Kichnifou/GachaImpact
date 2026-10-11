@@ -1,6 +1,6 @@
 {
-  "at": "2026-10-11T14:45:05.646Z",
-  "status": "CANDIDATE_BEFORE_INDEPENDENT_REVIEW",
+  "at": "2026-10-11T15:25:34.560Z",
+  "status": "REVIEW_FIX_READY_FOR_REMOTE_REVIEW",
   "initialSha": "afeadbb40d5347ff4d5409eee5a43615a1a54ca1",
   "initial": {
     "activeCharacters": 120,
@@ -25,7 +25,7 @@
         "height": 256,
         "bytes": 117616,
         "publicGet": 200,
-        "cacheControl": "public, 31536000",
+        "cacheControl": "public, max-age=31536000, immutable",
         "anonymousWrite": {
           "http": 400,
           "storageStatus": 403,
@@ -43,7 +43,7 @@
         "height": 256,
         "bytes": 118874,
         "publicGet": 200,
-        "cacheControl": "public, 31536000",
+        "cacheControl": "public, max-age=31536000, immutable",
         "anonymousWrite": {
           "http": 400,
           "storageStatus": 403,
@@ -73,12 +73,47 @@
       "sameHashReplay": true,
       "temporaryObjects": 2,
       "privateDatabaseVersioning": "PASS_IN_POSTGRES_TEST",
+      "publicCacheQualified": true,
+      "cacheHeaders": [
+        {
+          "cacheControl": "public, max-age=31536000, immutable",
+          "cdn": "HIT"
+        },
+        {
+          "cacheControl": "public, max-age=31536000, immutable",
+          "cdn": "HIT"
+        }
+      ],
       "temporaryObjectsCleaned": true
     },
     "characterPublished": false,
     "objectPoliciesReadOnly": {
       "policies": 0,
       "permissiveWritePolicies": 0
+    },
+    "cacheRepair": {
+      "at": "2026-10-11T15:25:04.661Z",
+      "objects": 2,
+      "operation": "PREVIOUS_API_PUT_SAME_BYTES; CURRENT_READ_ONLY_OBSERVATION",
+      "temporaryOrphanCleaned": true,
+      "results": [
+        {
+          "candidateId": "3938a61e-dacd-4608-958e-7f4d2d77ffc2",
+          "bytesUnchanged": true,
+          "metadataCacheControl": "max-age=31536000, immutable",
+          "publicCacheControl": "public, max-age=31536000, immutable",
+          "cdn": "HIT",
+          "publicCacheConverged": true
+        },
+        {
+          "candidateId": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+          "bytesUnchanged": true,
+          "metadataCacheControl": "max-age=31536000, immutable",
+          "publicCacheControl": "public, max-age=31536000, immutable",
+          "cdn": "HIT",
+          "publicCacheConverged": true
+        }
+      ]
     }
   },
   "datePlans": {
@@ -138,5 +173,30 @@
   "publicationEnabled": false,
   "humanRecipe": "À tester en public",
   "naturalMidnight": "NOT_YET_OBSERVED",
-  "futureFeatures": "DOCUMENTATION_ONLY"
+  "futureFeatures": "DOCUMENTATION_ONLY",
+  "review": {
+    "initial": {
+      "sha": "c0a538072aa53ddb9d209eeb2b6c65f284f41f5f",
+      "verdict": "CHANGES_REQUIRED",
+      "reportSha256": "38c89f4c3f3beee5ea795efeac869bd8cee49d0402d0069709bb67eea4250f1f",
+      "finding": "P1: active daily cycle crossing Paris midnight was never resumed",
+      "tests": {
+        "postgres": 27,
+        "frontend": 51,
+        "backend": 17
+      },
+      "baselineExceptionIndependentlyReproduced": true
+    },
+    "correction": {
+      "implementation": "Resume due daily/manual by persisted ID; daily success belongs to original cycle date, then current-day catch-up",
+      "tests": "PASS: 4 selected PostgreSQL tests; 27 skipped. QUEUED/FAILED/RUNNING crossing midnight and normal publication path. Independent full 31-test replay pending.",
+      "normalPublicationPath": "PASS_IN_PRIVATE_SCHEMA: engine run/finalize/verify/publish; no override; J+7/provisional/conflict/corrupt bytes blocked; one import and notification, replay deduplicated",
+      "verdict": "PENDING",
+      "cache": "Adapter header fixed; new immutable versions GET/hash/cache/replay qualified and cleaned; existing two objects metadata repaired with same bytes and public cache converged in observed region"
+    },
+    "cacheAssessment": {
+      "reportSha256": "3205f46da64c1e9e913003b8040eb736fac74ea7610708073deab896d865d0d5",
+      "scope": "Read-only intermediate cache review; no global CDN propagation claim"
+    }
+  }
 }

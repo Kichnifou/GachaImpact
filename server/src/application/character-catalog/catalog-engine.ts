@@ -256,7 +256,7 @@ export class CatalogEngine {
           completedAt: remaining ? null : this.now(), nextAttemptAt: new Date(this.now().getTime() + (remaining ? 60_000 : 0)),
           summary: json({ ...checkpoint(), discovered: posts.filter(row => row.name).length, processed: batched ? processedIds.length : candidates.length,
             changed: committed['changed'] ?? 0, remaining, reports }) } });
-        if (mode === 'daily' && !remaining) await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: businessDate, lastSuccessAt: this.now() } });
+        if (mode === 'daily' && !remaining) await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: run.cycleKey.slice('daily:'.length), lastSuccessAt: this.now() } });
       });
       return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length, changed, remaining };
     } catch (error) {

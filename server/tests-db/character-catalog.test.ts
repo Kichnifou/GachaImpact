@@ -404,6 +404,65 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
       expect(await admin.overview({} as AuthenticatedIdentity,'Private pagination 164',1,'tracked')).toMatchObject({total:1,entries:[{name:'Private pagination 164'}]});
     }finally{await db.catalogCandidate.deleteMany({where:{name:{startsWith:'Private pagination'}}});}
   },60_000);
+  it.each(['QUEUED','FAILED','RUNNING'])('resumes a %s daily cycle across Paris midnight before collecting the current day',async(status)=>{
+    const month=['QUEUED','FAILED','RUNNING'].indexOf(status)+1;
+    const currentDate=`2097-0${month}-02`,oldDate=`2097-0${month}-01`,now=new Date(`${currentDate}T12:00:00Z`);
+    const postponed=await db.catalogCandidate.findMany({where:{trackingState:'ACTIVE'},select:{id:true,nextCheckAt:true}});
+    await db.catalogCandidate.updateMany({where:{id:{in:postponed.map(row=>row.id)}},data:{nextCheckAt:new Date('2099-01-01')}});
+    const target=await db.catalogCandidate.create({data:{name:`Private midnight ${status}`,trackingElements:['rarity'],nextCheckAt:new Date(`${oldDate}T00:00:00Z`)}});
+    const old=await db.catalogRun.create({data:{cycleKey:`daily:${oldDate}`,status,nextAttemptAt:new Date(0),summary:{mode:'daily',dailyCutoff:`${oldDate}T12:00:00Z`,processedCandidateIds:[]}}});
+    if(status==='RUNNING')await db.catalogJob.update({where:{id:'R1051'},data:{leaseToken:randomUUID(),leaseUntil:new Date(0)}});
+    const discovery=vi.spyOn(CatalogSources.prototype,'discover').mockResolvedValue([]);
+    const structured=vi.spyOn(CatalogSources.prototype,'structured').mockResolvedValue(null);
+    const runner=new CatalogEngine(db,{enabled:true,publish:false,dryRun:false},http,()=>now);
+    const execute=vi.spyOn(runner,'run');
+    try{
+      await new CatalogScheduler(db,runner,()=>now).catchUp();
+      expect(execute.mock.calls[0]).toEqual(['daily',undefined,old.id]);
+      expect((await db.catalogRun.findUniqueOrThrow({where:{id:old.id}})).status).toBe('COMPLETED');
+      const current=await db.catalogRun.findUniqueOrThrow({where:{cycleKey:`daily:${currentDate}`}});
+      expect(current.status).toBe('COMPLETED');
+      expect((await db.catalogJob.findUniqueOrThrow({where:{id:'R1051'}})).lastSuccessDate).toBe(currentDate);
+      const calls=execute.mock.calls.length;await new CatalogScheduler(db,runner,()=>now).catchUp();expect(execute.mock.calls).toHaveLength(calls);
+    }finally{
+      discovery.mockRestore();structured.mockRestore();execute.mockRestore();
+      for(const row of postponed)await db.catalogCandidate.update({where:{id:row.id},data:{nextCheckAt:row.nextCheckAt}});
+      await db.catalogAttempt.deleteMany({where:{candidateId:target.id}});await db.catalogCandidate.delete({where:{id:target.id}});
+      await db.catalogRun.updateMany({where:{cycleKey:{in:[`daily:${oldDate}`,`daily:${currentDate}`]},status:{in:['QUEUED','FAILED','RUNNING']}},data:{status:'CANCELLED'}});
+    }
+  },60_000);
+  it('qualifies the normal engine publication path and keeps provisional, conflicting, early and corrupt candidates unpublished',async()=>{
+    const now=new Date('2097-02-01T12:00:00Z'),fields:CatalogFields={};
+    const admin=await db.player.create({data:{displayName:'Private normal publication ADMIN',elementKey:'hydro'}});
+    await db.playerRoleAssignment.create({data:{playerId:admin.id,role:'ADMIN',grantedByPlayerId:admin.id}});
+    for(const[key,value]of [['originalName','Private normal publication'],['rarity',5],['element','electro'],['numericId',19999997],['releaseDate','2097-02-20']]as const)
+      fields[key]={value,provider:'hoyoverse',url:'https://www.hoyolab.com/article/1',reliability:'OFFICIAL',fetchedAt:now.toISOString()};
+    const candidate=await db.catalogCandidate.create({data:{name:'Private normal publication',fields}});
+    const bytes=new Map<string,Buffer>();
+    for(const role of ['icon','splash']as const){
+      const body=await sharp({create:{width:role==='icon'?256:1024,height:role==='icon'?256:512,channels:4,background:{r:100,g:180,b:200,alpha:.8}}}).png().toBuffer();
+      const image=await validateImage(body,'image/png',role),url=`https://fixture.supabase.co/storage/v1/object/public/character-catalog/characters/${candidate.id}/${role}/${image.hash}.png`;
+      bytes.set(url,image.body);await db.catalogAsset.create({data:{candidateId:candidate.id,role,hash:image.hash,provider:'fixture',url,mime:'image/png',width:image.width,height:image.height,bytes:image.bytes,status:'AVAILABLE'}});
+    }
+    const discovery=vi.spyOn(CatalogSources.prototype,'discover').mockResolvedValue([]),structured=vi.spyOn(CatalogSources.prototype,'structured').mockResolvedValue(null);
+    let corrupt=false;const runner=new CatalogEngine(db,{enabled:true,publish:true,dryRun:false,storageUrl:'https://fixture.supabase.co',storageKey:'private_fixture'},async url=>({status:200,mime:'image/png',body:corrupt?Buffer.from('wrong'):bytes.get(url)!,url}),()=>now);
+    const notPublished=async()=>expect((await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).characterId).toBeNull();
+    try{
+      await runner.run('retry',candidate.id);await notPublished();expect((await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).status).toBe('OUT_OF_WINDOW');
+      fields.releaseDate={...fields.releaseDate!,value:'2097-02-02'};fields.rarity={...fields.rarity!,reliability:'PROVISIONAL'};
+      await db.catalogCandidate.update({where:{id:candidate.id},data:{fields}});await runner.run('retry',candidate.id);await notPublished();
+      fields.rarity={...fields.rarity!,reliability:'OFFICIAL',conflict:true};await db.catalogCandidate.update({where:{id:candidate.id},data:{fields}});await runner.run('retry',candidate.id);await notPublished();
+      fields.rarity={...fields.rarity!,conflict:false};await db.catalogCandidate.update({where:{id:candidate.id},data:{fields}});corrupt=true;await runner.run('retry',candidate.id);await notPublished();
+      expect(await db.catalogAttempt.count({where:{candidateId:candidate.id,errorCode:'STORAGE_VERIFICATION_FAILED'}})).toBeGreaterThan(0);
+      corrupt=false;const result=await runner.run('retry',candidate.id);expect(result).toHaveProperty('runId');
+      const published=await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}});expect(published.characterId).not.toBeNull();
+      expect(await runner.run('retry',candidate.id,result.runId)).toEqual({skipped:'ALREADY_COMPLETED'});
+      await runner.run('retry',candidate.id);
+      expect(await db.character.count({where:{externalKey:'genshin:19999997'}})).toBe(1);
+      expect(await db.catalogImportOutbox.count({where:{candidateId:candidate.id}})).toBe(1);
+      expect(await db.notification.count({where:{typeKey:'CHARACTER_IMPORTED_ADMIN',actionTargetId:published.characterId,playerId:admin.id}})).toBe(1);
+    }finally{discovery.mockRestore();structured.mockRestore();}
+  },60_000);
   it('consolidates only legacy catalogue events, preserves read state and refuses a stale maintenance plan',async()=>{
     const candidate=await db.catalogCandidate.create({data:{name:'Private legacy notification'}});
     const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});

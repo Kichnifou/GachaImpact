@@ -1,6 +1,6 @@
 # GachaImpact — Documentation de référence
 
-Références du mandat11/10 : [Catalogue R1051](architecture/character-catalog-assets-r1051.md), [Invocations partagées et Roue — documentation future uniquement](specifications/shared-invocations-and-wheel-future.md). État et prochaine reprise au [Master](master/PROJECT_MASTER_PLAN.md).
+Références du mandat du 11/10 : [Catalogue R1051](architecture/character-catalog-assets-r1051.md), [Invocations partagées et Roue — documentation future uniquement](specifications/shared-invocations-and-wheel-future.md). État et prochaine reprise au [Master](master/PROJECT_MASTER_PLAN.md).
 
 Version documentaire : 0.1  
 Statut : ÉVOLUTIF — IMPLÉMENTATION V1 EN COURS

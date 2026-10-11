@@ -14,6 +14,8 @@ Storage puis quotidien/publication : clé présente ne vaut pas qualification. C
 
 Les [Invocations partagées et la nouvelle Roue](../specifications/shared-invocations-and-wheel-future.md) sont documentées uniquement, après R1051, sans code ni dépendance bloquante.
 
+Reprise traversant minuit : terminer par ID le cycle quotidien dû avec son cutoff et ses fiches traitées conservés ; enregistrer la réussite à la date de ce cycle, puis rattraper la journée Paris courante. Quotidien OFF ne reprend pas automatiquement un ancien quotidien. Les cycles annulés/supersédés restent exclus.
+
 ## Finalisation ciblée — amendement du 11/10/2026
 
 Cette politique **supersède** le parcours quotidien de tous les historiques, le reliquat de 107 et le refus général des remplacements décrits dans le lot 2 historique ci-dessous. État de publication et application au [Master](../master/PROJECT_MASTER_PLAN.md).

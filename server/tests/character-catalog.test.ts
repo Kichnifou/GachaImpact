@@ -122,7 +122,7 @@ describe('secure binary ingestion and immutable storage', () => {
       { body: Buffer.from('{}'), mime: 'application/json', status: 409, url: '' } : { body: validated.body, mime: 'image/png', status: 200, url: '' });
     const store = new CatalogImageStorage('https://test.supabase.co', 'sb_secret_private_fixture', fetcher);
     expect(await store.store('00000000-0000-4000-8000-000000000001', 'icon', validated)).toContain(`/icon/${validated.hash}.png`);
-    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ noRedirect: true, headers: { 'x-upsert': 'false', 'cache-control': '31536000' } });
+    expect(fetcher.mock.calls[0]?.[1]).toMatchObject({ noRedirect: true, headers: { 'x-upsert': 'false', 'cache-control': 'max-age=31536000, immutable' } });
   });
   it('fails on unavailable buckets or changed public bytes without losing a prior asset', async () => {
     const validated = await validateImage(await image(), 'image/png', 'icon');

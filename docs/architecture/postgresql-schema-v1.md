@@ -1,10 +1,10 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
-## Migration072 — admission et annulation R1051
+## Migration 072 — admission et annulation R1051
 
-[072](../../server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql) ajoute uniquement catalog_runs.cancel_requested_at et étend sa contrainte aux étatsCANCELLED/SUPERSEDED. L’ancien quotidien déjà recalculé vide devientSUPERSEDED avec son rapport conservé ; aucune réussite quotidienne inventée. Aucun changement des RLS/droits ni des Players/Character. Le verrou du singleton catalog_job sérialise admission ADMIN/worker et annulation ; toutes les écritures du moteur relisent la demande durable sous ce même verrou. Compteurs de changements committés dans les transactions métier. Application via pre-deploy Prisma normal ; état réel et checksum au Master.
+[072](../../server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql) ajoute uniquement catalog_runs.cancel_requested_at et étend sa contrainte aux états CANCELLED/SUPERSEDED. L’ancien quotidien déjà recalculé vide devient SUPERSEDED avec son rapport conservé ; aucune réussite quotidienne inventée. Aucun changement des RLS/droits ni des Players/Character. Le verrou du singleton catalog_job sérialise admission ADMIN/worker et annulation ; toutes les écritures du moteur relisent la demande durable sous ce même verrou. Compteurs de changements committés dans les transactions métier. Application via pre-deploy Prisma normal ; état réel et checksum au Master.
 
-Deux exceptions applicatives distinctes : plan35 NULL-only et correctionAyaka explicitement autorisée avec expectedCurrentDate ; tous deux refusent une identité/protection changée, plan hashé requis, rejeu sans effet. Le rapprochement des notifications reste dans leurs lignes existantes, preuves/dedup/read conservés, sans nouvelle table.
+Deux exceptions applicatives distinctes : plan de 35 dates NULL-only et correction Ayaka explicitement autorisée avec expectedCurrentDate ; tous deux refusent une identité/protection changée, plan hashé requis, rejeu sans effet. Le rapprochement des notifications reste dans leurs lignes existantes, preuves/dedup/read conservés, sans nouvelle table.
 
 ## Migration 071 — suivi ciblé et protection R1051
 

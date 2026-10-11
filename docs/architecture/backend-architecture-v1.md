@@ -2,7 +2,7 @@
 
 ## R1051 — admission commune et arrêt coopératif
 
-Rejet409 CATALOG_BUSY d’une autre intention tant qu’un cycleQUEUED/RUNNING/FAILED existe ; même clé via AdminOperation rejouée sans nouvelle tâche. L’admission ADMIN et worker partagent le FOR UPDATE catalog_job existant. Alternatives examinées : count puiscreate laisse une course ; file/secondworker/Redis ajouteraient une infrastructure et permettraient les recherches involontaires. Le singleton et la lease existants suffisent ; aucun nouveau scheduler transversal.
+Rejet 409 CATALOG_BUSY d’une autre intention tant qu’un cycle QUEUED/RUNNING/FAILED existe ; même clé via AdminOperation rejouée sans nouvelle tâche. L’admission ADMIN et worker partagent le FOR UPDATE catalog_job existant. Alternatives examinées : count puis create laisse une course ; file, second worker ou Redis ajouteraient une infrastructure et permettraient les recherches involontaires. Le singleton et la lease existants suffisent ; aucun nouveau scheduler transversal.
 
 Annuler journalise cancelRequestedAt ; attente sans lease annulée immédiatement, traitement actif interrompu par AbortSignal et relecture avant chaque transaction fenced. Commit achevé avant demande conservé ; commit suivant refusé. Statut effectifCANCELLED après arrêt, lease libérée ; prochaine journéeParis ou nouvelle intention ADMIN, aucun redémarrage du cycle annulé. L’annulation ne touche pas les autres schedulers. [Owner et limites](character-catalog-assets-r1051.md).
 

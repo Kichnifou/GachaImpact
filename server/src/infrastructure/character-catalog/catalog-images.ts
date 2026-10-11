@@ -48,7 +48,7 @@ export class CatalogImageStorage {
     const endpoint = `${this.url}/storage/v1/object/${catalogBucket}/${key}`;
     const response = await this.http(endpoint, { method: 'POST', noRedirect: true, body: image.body,
       headers: { apikey: this.secretKey, ...(this.secretKey.startsWith('eyJ') ? { authorization: `Bearer ${this.secretKey}` } : {}),
-        'content-type': 'image/png', 'cache-control': '31536000', 'x-upsert': 'false' }, maxBytes: 65536 });
+        'content-type': 'image/png', 'cache-control': 'max-age=31536000, immutable', 'x-upsert': 'false' }, maxBytes: 65536 });
     let existingObject = response.status === 409;
     if (response.status === 400 && response.mime === 'application/json') {
       try {
