@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { CurrentGachaDto, GachaCharacterDto } from '../api/types'
 import BannerHero from './BannerHero'
 
-const character = (id: string, rarity: 4 | 5): GachaCharacterDto => ({ id, externalKey: `legacy:${id}`, name: id, rarity, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', classKey: null, iconPath: `/icon/${id}.png`, splashPath: `/splash/${id}.png`, wishPath: `/wish/${id}.png`, fullbodyPath: `/fullbody/${id}.png` })
+const character = (id: string, rarity: 4 | 5): GachaCharacterDto => ({ id, externalKey: `legacy:${id}`, name: id, rarity, elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', classKey: null, iconPath: `/assets/genshin/characters/icons/${id.replaceAll(" ","-")}.png`, splashPath: `/assets/genshin/characters/splash/${id.replaceAll(" ","-")}.png`, wishPath: `/assets/genshin/characters/wish/${id.replaceAll(" ","-")}.png`, fullbodyPath: `/assets/genshin/characters/fullbody/${id.replaceAll(" ","-")}.png` })
 const five = Array.from({ length: 4 }, (_, index) => character(`Five ${index + 1}`, 5))
 const four = Array.from({ length: 6 }, (_, index) => character(`Four ${index + 1}`, 4))
 function data(target: string | null): CurrentGachaDto { return { banner: { id: 'banner', startsAt: '2026-09-01T00:00:00Z', endsAt: '2026-09-08T00:00:00Z', featuredFiveStars: five, featuredFourStars: four }, playerState: { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: target, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' } } }
@@ -22,8 +22,8 @@ describe('BannerHero real Gacha state', () => {
     expect(html).not.toContain('banner-card-element')
     expect(html).not.toContain('featured-four-stars')
     expect(html).toContain('Choisissez votre cible')
-    expect(html).toContain('src="/icon/Five 1.png"')
-    expect(html).not.toContain('src="/fullbody/Five 1.png"')
+    expect(html).toContain('src="/assets/genshin/characters/icons/Five-1.png"')
+    expect(html).not.toContain('src="/assets/genshin/characters/fullbody/Five-1.png"')
     expect((html.match(/★★★★★/g) ?? [])).toHaveLength(4)
     for (const target of five) expect(html).toContain(`>${target.name}</strong>`)
     for (const featured of four) expect(html).not.toContain(`>${featured.name}</strong>`)
@@ -39,8 +39,8 @@ describe('BannerHero real Gacha state', () => {
   it('shows the selected hero hierarchy, real zero state and active pull controls on Invocation', () => {
     const html = renderToStaticMarkup(<BannerHero gacha={data(five[0]!.id)} onSetTarget={vi.fn()} onPull={vi.fn()} onGetHistory={vi.fn()} showDetails />)
     expect(html).toContain('banner-element-watermark')
-    expect(html).toContain('src="/splash/Five 1.png"')
-    expect(html).not.toContain('src="/icon/Five 1.png"')
+    expect(html).toContain('src="/assets/genshin/characters/splash/Five-1.png"')
+    expect(html).not.toContain('src="/assets/genshin/characters/icons/Five-1.png"')
     expect(html).toContain('Cible 5★ de la rotation hebdomadaire.</p><p>Pity, Garantie et Capture sont conservées entre les rotations.')
     expect(html).toContain('banner-change-button')
     expect(html).toContain('>Détail<')
@@ -60,8 +60,8 @@ describe('BannerHero real Gacha state', () => {
     expect((html.match(/featured-character-portrait/g) ?? [])).toHaveLength(6)
     expect((html.match(/character-portrait-frame/g) ?? [])).toHaveLength(6)
     expect((html.match(/featured-four-copy/g) ?? [])).toHaveLength(6)
-    expect(html).toContain('src="/icon/Four 1.png"')
-    expect(html).not.toContain('src="/fullbody/Four 1.png"')
+    expect(html).toContain('src="/assets/genshin/characters/icons/Four-1.png"')
+    expect(html).not.toContain('src="/assets/genshin/characters/fullbody/Four-1.png"')
     expect(html).not.toContain('character-card-meta')
     expect(html).not.toContain('Épée')
     expect(html).not.toContain('Fontaine')

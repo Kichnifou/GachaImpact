@@ -6,10 +6,12 @@ import type { PlayerGachaState } from '../../application/gacha/gacha-store.js';
 import type { GachaCharacter } from '../../domain/gacha/gacha.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
+import type { SharedInvocations } from '../../application/gacha/shared-invocations.js';
+import { BusinessError } from '../../application/errors.js';
 
-type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull; getGachaHistory?: GetGachaHistory; bannerVotes?: BannerVoteService }>;
-const targetSchema = z.object({ characterId: z.uuid() }).strict();
-const pullSchema = z.object({ count: z.union([z.literal(1), z.literal(10)]), idempotencyKey: z.uuid() }).strict();
+type Options = Readonly<{ authenticate: preHandlerHookHandler; getCharacters: GetCharacters; getCurrentGacha: GetCurrentGacha; setGachaTarget: SetGachaTarget; performGachaPull?: PerformGachaPull; getGachaHistory?: GetGachaHistory; bannerVotes?: BannerVoteService; sharedInvocations?: SharedInvocations }>;
+const targetSchema = z.object({ characterId: z.uuid(), tabId: z.uuid().optional() }).strict();
+const pullSchema = z.object({ count: z.union([z.literal(1), z.literal(10)]), idempotencyKey: z.uuid(), tabId: z.uuid().optional() }).strict();
 const historyQuerySchema = z.object({ page: z.coerce.number().int().min(1).default(1) }).strict();
 
 export async function registerGachaRoutes(app: FastifyInstance, options: Options): Promise<void> {
@@ -29,12 +31,21 @@ export async function registerGachaRoutes(app: FastifyInstance, options: Options
   app.post('/api/v1/gacha/target', { preHandler: options.authenticate }, async (request) => {
     const parsed = targetSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('A valid characterId is required.', 400, 'VALIDATION_ERROR');
-    return { playerState: stateDto(await options.setGachaTarget.execute(requireAuthenticatedIdentity(request), parsed.data.characterId)) };
+    const identity = requireAuthenticatedIdentity(request);
+    await options.sharedInvocations?.assertTarget(identity, parsed.data.tabId);
+    const state = await options.setGachaTarget.execute(identity, parsed.data.characterId, undefined, undefined, parsed.data.tabId);
+    return { playerState: stateDto(state) };
   });
   if (options.performGachaPull) app.post('/api/v1/gacha/pull', { preHandler: options.authenticate }, async (request) => {
     const parsed = pullSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('count must be 1 or 10 and idempotencyKey must be a UUID.', 400, 'VALIDATION_ERROR');
-    return pullDto(await options.performGachaPull!.execute(requireAuthenticatedIdentity(request), parsed.data.count, parsed.data.idempotencyKey));
+    const identity = requireAuthenticatedIdentity(request);
+    await options.sharedInvocations?.preparePull(identity, parsed.data.tabId, parsed.data.idempotencyKey, parsed.data.count);
+    let result;
+    try { result = await options.performGachaPull!.execute(identity, parsed.data.count, parsed.data.idempotencyKey, parsed.data.tabId); }
+    catch(error) { if(error instanceof BusinessError) await options.sharedInvocations?.releaseFailedPull(identity,parsed.data.idempotencyKey); throw error; }
+    await options.sharedInvocations?.publishPull(identity);
+    return pullDto(result);
   });
   if (options.getGachaHistory) app.get('/api/v1/gacha/history', { preHandler: options.authenticate }, async (request) => {
     const parsed = historyQuerySchema.safeParse(request.query);

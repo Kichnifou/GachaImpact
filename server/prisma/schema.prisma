@@ -351,6 +351,8 @@ model ResourceDefinition {
 }
 
 model Player {
+  sharedInvocationSession SharedInvocationSession?
+  sharedInvocationMember SharedInvocationMember?
   arcadeSessions ArcadeSession[] @relation("ArcadeHost")
   arcadeOpponentSessions ArcadeSession[] @relation("ArcadeGuest")
   arcadeInvitationsSent ArcadeInvitation[] @relation("ArcadeInvitationHost")
@@ -3184,4 +3186,34 @@ model CatalogImportOutbox {
   character Character @relation(fields:[characterId], references:[id], onDelete:Restrict, map:"catalog_outbox_character_fk")
   @@index([deliveredAt, createdAt])
   @@map("catalog_import_outbox")
+}
+
+model SharedInvocationSession {
+  presenceRevision BigInt @default(0) @map("presence_revision")
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId String @unique @map("owner_id") @db.Uuid
+  tabId String @map("tab_id") @db.Uuid
+  status String @db.Text
+  lastGestureAt DateTime @default(now()) @map("last_gesture_at") @db.Timestamptz(6)
+  leaseUntil DateTime @map("lease_until") @db.Timestamptz(6)
+  seq Int @default(1)
+  snapshot Json @db.JsonB
+  pendingKey String? @map("pending_key") @db.Uuid
+  completedKey String? @map("completed_key") @db.Uuid
+  pendingCount Int? @map("pending_count")
+  reactions Json @default("[]") @db.JsonB
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  owner Player @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  viewers SharedInvocationMember[]
+  @@index([status, leaseUntil], map: "shared_invocation_sessions_live_idx")
+  @@map("shared_invocation_sessions")
+}
+
+model SharedInvocationMember {
+  playerId String @id @map("player_id") @db.Uuid
+  watchingId String? @map("watching_id") @db.Uuid
+  lastReactionAt DateTime? @map("last_reaction_at") @db.Timestamptz(6)
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  watching SharedInvocationSession? @relation(fields: [watchingId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  @@map("shared_invocation_members")
 }

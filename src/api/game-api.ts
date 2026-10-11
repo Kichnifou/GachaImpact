@@ -1,3 +1,5 @@
+import type { SharedInvocationApi, SharedInvocationList, SharedInvocationState } from './shared-invocations-types'
+import { nextSharedPresenceRevision, establishedSharedInvocationTabId } from '../gacha/shared-invocation-tab'
 import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
 import type { CatalogCandidate, CatalogOverview } from './catalog-types'
 import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
@@ -157,7 +159,17 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     return payload as T
   }
 
+  const sharedInvocations: SharedInvocationApi = {
+    list: () => request<SharedInvocationList>('/api/v1/shared-invocations'),
+    state: (tabId,cursor) => request<SharedInvocationState>('/api/v1/shared-invocations/state?' + new URLSearchParams({tabId,...(cursor?{cursor}:{})})),
+    start: tabId => request<SharedInvocationState>('/api/v1/shared-invocations/start', {method:'POST',body:JSON.stringify({tabId,consent:true})}),
+    watch: (tabId,sessionId) => request<SharedInvocationState>('/api/v1/shared-invocations/watch', {method:'POST',body:JSON.stringify({tabId,sessionId})}),
+    control: (tabId,action,screen,seq,sessionId) => request<SharedInvocationState>('/api/v1/shared-invocations/control', {method:'POST',body:JSON.stringify({tabId,action,screen,...(seq ? {seq}: {}),...((action==='presence'||action==='gesture')?{sessionId,presenceRevision:nextSharedPresenceRevision()}:{})})}),
+    resume:async(tabId,count,idempotencyKey)=>{await request<GachaPullDto>('/api/v1/gacha/pull',{method:'POST',body:JSON.stringify({tabId,count,idempotencyKey})});return sharedInvocations.state(tabId)},
+    react: (tabId,emoji) => request<SharedInvocationState>('/api/v1/shared-invocations/reaction', {method:'POST',body:JSON.stringify({tabId,emoji})}),
+  }
   return {
+    sharedInvocations,
     chat: {
       messages: (cursor?: ChatPageDto['nextCursor']) => request<ChatPageDto>('/api/v1/chat/messages' + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
       updates: (generation: number, cursor: { createdAt: string; id: string } | null, knownIds: string[]) => request<ChatUpdatesDto>('/api/v1/chat/updates', { method: 'POST', body: JSON.stringify({ generation, ...(cursor ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id } : {}), knownIds }) }),
@@ -413,8 +425,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getBannerVotes: () => request<BannerVoteDto>('/api/v1/gacha/vote'),
     voteForBanner: (characterId: string, bannerRotationId: string) => request<BannerVoteDto>('/api/v1/gacha/vote', { method: 'POST', body: JSON.stringify({ characterId, bannerRotationId }) }),
     getCurrentGacha: () => request<CurrentGachaDto>('/api/v1/gacha/current'),
-    setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId }) }),
-    pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey }) }),
+    setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId, tabId: establishedSharedInvocationTabId() }) }),
+    pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey, tabId: establishedSharedInvocationTabId() }) }),
     getGachaHistory: (page = 1) => request<GachaHistoryDto>(`/api/v1/gacha/history?page=${page}`),
     getHistory: (category: 'banners' | 'event', page = 1) => request<BannerHistoryDto | EventHistoryDto>(`/api/v1/me/history?category=${category}&page=${page}`),
     getBox: () => request<PlayerBoxDto>('/api/v1/me/box'),

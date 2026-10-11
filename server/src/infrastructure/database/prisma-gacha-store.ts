@@ -1,3 +1,5 @@
+import { sharedBanner, sharedState } from '../../application/gacha/shared-invocation-projection.js';
+import { assertSharedStandaloneAuthority } from './shared-invocation-guard.js';
 import { assertCommandTargets, commandBannerId } from '../../application/player/player-command-execution.js';
 import { bannerVoteContributions } from '../../application/gacha/banner-vote-contributions.js';
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
@@ -36,6 +38,11 @@ const MAX_PULL_ATTEMPTS = 5;
 export class PrismaGachaStore implements GachaStore {
   private readonly permanentMissions: PermanentMissionService;
 
+  /** Read-only recovery of a consented standalone presentation, never executes a pull. */
+  public findStandalonePresentation(playerId: string, key: string, count: 1 | 10, client: PrismaClient | Prisma.TransactionClient = this.database) {
+    return this.findPersistedPull(playerId, `gacha.pull:${playerId}:${key}`, count, SourceChannel.UI, client);
+  }
+
   public constructor(
     private readonly database: PrismaClient,
     private readonly economy = new PrismaEconomyService(),
@@ -59,20 +66,22 @@ export class PrismaGachaStore implements GachaStore {
     return rows.flatMap(row=>{const value=publicPreparation(row,now);return value?[value]:[];});
   }
 
-  public async getCurrent(playerId: string) {
+  public async getCurrent(playerId: string, client: PrismaClient | Prisma.TransactionClient = this.database) {
     const [banner, state] = await Promise.all([
-      this.database.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } } }),
-      this.database.playerGachaState.findUnique({ where: { playerId }, select: stateSelection }),
+      client.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } } }),
+      client.playerGachaState.findUnique({ where: { playerId }, select: stateSelection }),
     ]);
     if (!banner || !state) return null;
     return { banner: toBanner(banner), playerState: state };
   }
 
-  public async setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<PlayerGachaState> {
+  public async setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI, standaloneTabId?: string, now: Date = new Date()): Promise<PlayerGachaState> {
     return this.database.$transaction(async (tx) => {
       // Cycle first, including UI requests without a key: eligibility and its
       // write must serialize with rotation/replacement before any Player lock.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
+      // Shared mode precedes Player/FK locks, matching session start/watch and avoiding deadlocks.
+      if (sourceChannel === SourceChannel.UI) await assertSharedStandaloneAuthority(tx, playerId, standaloneTabId, now);
       await lockPlayerMutation(tx, playerId);
       if (idempotencyKey) {
         const key = `gacha.target:${playerId}:${idempotencyKey}`;
@@ -91,6 +100,14 @@ export class PrismaGachaStore implements GachaStore {
         playerId, operationType: 'gacha.target', sourceChannel, idempotencyKey: `gacha.target:${playerId}:${idempotencyKey}`,
         status: OperationStatus.COMPLETED, completedAt: new Date(), resultSummary: { characterId },
       } });
+      if (sourceChannel === SourceChannel.UI && standaloneTabId) {
+        // Target and public projection commit together: a crash cannot publish an old target.
+        const banner = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' }, include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } } });
+        if (banner) {
+          const projection = {banner:sharedBanner(toBanner(banner)),playerState:sharedState(state)};
+          await tx.$executeRaw`UPDATE shared_invocation_sessions SET snapshot=jsonb_set(snapshot,'{gacha}',${JSON.stringify(projection)}::jsonb),seq=seq+1,last_gesture_at=${now},updated_at=${now} WHERE owner_id=${playerId}::uuid AND tab_id=${standaloneTabId}::uuid AND status='ACTIVE' AND lease_until>${now} AND last_gesture_at>${new Date(now.getTime()-45*60_000)}`;
+        }
+      }
       return state;
     });
   }
@@ -171,6 +188,7 @@ export class PrismaGachaStore implements GachaStore {
     return this.database.$transaction(async (transaction) => {
       // Match votes, weekly rotation and reviewed same-week replacement before Player locks.
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
+      if (sourceChannel === SourceChannel.UI) await assertSharedStandaloneAuthority(transaction, input.playerId, input.standaloneTabId, input.now, {key:input.idempotencyKey,count:input.count});
       await lockPlayerMutation(transaction, input.playerId);
       const lockedPlayers = await transaction.$queryRaw<{ elementKey: string | null }[]>`
         SELECT element_key AS "elementKey" FROM players WHERE id = ${input.playerId}::uuid FOR UPDATE
@@ -419,9 +437,9 @@ export class PrismaGachaStore implements GachaStore {
     });
   }
 
-  private async findPersistedPull(playerId: string, operationKey: string, count: GachaPullInput['count'], sourceChannel: SourceChannel) {
-    const operation = await this.database.businessOperation.findFirst({ where: { playerId, sourceChannel, idempotencyKey: operationKey }, select: { id: true } });
-    return operation ? this.readPersistedPull(this.database, operation.id, count, true) : null;
+  private async findPersistedPull(playerId: string, operationKey: string, count: GachaPullInput['count'], sourceChannel: SourceChannel, client: PrismaClient | Prisma.TransactionClient = this.database) {
+    const operation = await client.businessOperation.findFirst({ where: { playerId, sourceChannel, idempotencyKey: operationKey }, select: { id: true } });
+    return operation ? this.readPersistedPull(client, operation.id, count, true) : null;
   }
 
   private async readPersistedPull(client: PrismaClient | Prisma.TransactionClient, businessOperationId: string, expectedCount: GachaPullInput['count'], alreadyProcessed: boolean): Promise<GachaPullResult | null> {

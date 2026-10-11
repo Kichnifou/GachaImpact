@@ -1,14 +1,14 @@
 # Invocations partagées et Roue animée — demandes du 11/10/2026
 
-**À FAIRE, NON IMPLÉMENTÉES.** Deux missions dédiées après clôture R1051 ; aucune dépendance bloquante pour l'import. Les demandes ci-dessous sont celles du propriétaire. Les directions techniques sont des propositions, sans choix de transport, bibliothèque ni dépense.
+Le lot C Invocations partagées est implémenté localement dans le mandat consolidé R1067–R1075 ; sa livraison reste distincte et suit A/B. Le [contrat V1](../architecture/shared-invocations-v1.md) décrit les décisions validées, le transport, la projection, les gardes transactionnelles, la reprise et les limites. La section Roue ci-dessous est conservée pour sa mission séparée ; ce changement ne prétend pas la livrer.
 
 ## Invocations partagées
 
 Sous Détail, deux boutons côte à côte et de taille stable : Diffuser et Voir. Diffuser inscrit volontairement la session dans la liste de la modale Voir, devient En diffusion en rouge ; Voir permet de choisir un diffuseur et remplace uniquement la scène centrale Invocation. En spectateur, les commandes de tirage sont désactivées, Voir devient Arrêter en rouge et un indicateur rouge discret marque le direct. Quitter rend ses propres invocations dans leur état frais ; sidebar et compte personnel restent les siens.
 
-Proposition : événements autoritaires serveur, sans vidéo, copie du DOM ni réplication d'une session authentifiée. Résultats committés avant émission ; aucun RNG spectateur, nouveau tirage ou double gain. Payload minimal consenti : pseudo/avatar autorisés, bannière/cible, étapes d'animation et résultats ; soldes, inventaires, messages, identités Auth restent privés. Pity/garantie seulement si explicitement inclus dans le consentement. Liste réservée aux utilisateurs autorisés, aucune mutation au nom du diffuseur.
+Contrat validé : événements autoritaires serveur, résultats committés avant présentation, aucun RNG spectateur ni double gain. Payload consenti : pseudo/avatar, bannière/cible, phases/résultats, pity 4/5, garantie et Capture ; soldes, inventaires, messages et identités Auth restent privés. Liste réservée à tous les joueurs standalone connectés et actifs, aucune mutation au nom du diffuseur.
 
-À cadrer avant développement : une diffusion autoritaire par Player/multi-onglets ; règle lorsqu'un diffuseur commence à regarder ; fermeture/déconnexion/inactivité/expiration ; arrivée pendant l'animation ou entre tirages ; ordre x1/x10, skip, doublons, reconnexions, politique des retardataires et transport ; limitation des rafales/coûts ; arrêt spectateur indépendant, arrêt diffuseur signalé ; retour personnel sans transfert ; inclusion éventuelle des pulls Twitch du même Player. Aucun historique/replay permanent imposé en V1, aucune dépendance payante anticipée.
+Règles implémentées : une diffusion et un onglet autoritaires par Player ; diffuser/regarder exclusifs ; pause hors écran ; expiration 45 minutes depuis un vrai geste authentifié du diffuseur, grâce technique de 60 secondes ; x10 rejoint à l'étape courante et résumé complet ; seul le diffuseur avance/passe/ferme ; arrêt immédiat et retour personnel frais. Réactions emoji fermées avec cooldown trois secondes par Player et effets éphémères bornés. Transport fetch/poll avec curseur et fréquences bornées. Twitch entièrement exclu. Aucune infrastructure payante ni historique public de relecture.
 
 ## Roue animée
 

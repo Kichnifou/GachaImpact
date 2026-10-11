@@ -538,7 +538,7 @@ function AppBootstrap() {
   }
 
   return (
-    <><GameShell
+    <><GameShell sharedInvocationApi={getGameApiClient().sharedInvocations}
       dailyRefresh={{ refresh: refreshDailies, refreshing: dailyRefreshing, errors: dailyErrors, favor: dailyFavor }}
       onRefreshResources={refreshFavorResources}
       externalFeedbackPending={milestoneFeedbacks.length > 0}

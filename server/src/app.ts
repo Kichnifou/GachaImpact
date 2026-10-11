@@ -43,6 +43,8 @@ import type { SpinDailyWheel } from './application/wheel/spin-daily-wheel.js';
 import type { GetTodayWheelState } from './application/wheel/get-today-wheel-state.js';
 import { registerDailyRewardRoutes } from './api/routes/daily-reward.js';
 import { registerGachaRoutes } from './api/routes/gacha.js';
+import { registerSharedInvocationRoutes } from './api/routes/shared-invocations.js';
+import type { SharedInvocations } from './application/gacha/shared-invocations.js';
 import type { BannerVoteService } from './application/gacha/banner-vote-service.js';
 import { registerBoxRoutes } from './api/routes/box.js';
 import { registerTeamRoutes } from './api/routes/team.js';
@@ -136,6 +138,7 @@ export type AppDependencies = Readonly<{
   claimDailyReward?: ClaimDailyReward;
   getCharacters?: GetCharacters;
   getCurrentGacha?: GetCurrentGacha;
+  sharedInvocations?: SharedInvocations;
   bannerVotes?: BannerVoteService;
   setGachaTarget?: SetGachaTarget;
   performGachaPull?: PerformGachaPull;
@@ -268,8 +271,9 @@ export async function buildApp(
     }
     if (dependencies.currentPlayerFavor) await app.register(registerFavorRoutes, { authenticate, service: dependencies.currentPlayerFavor });
     if (dependencies.getCharacters && dependencies.getCurrentGacha && dependencies.setGachaTarget) {
-      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory, bannerVotes: dependencies.bannerVotes });
+      await app.register(registerGachaRoutes, { authenticate, getCharacters: dependencies.getCharacters, getCurrentGacha: dependencies.getCurrentGacha, setGachaTarget: dependencies.setGachaTarget, performGachaPull: dependencies.performGachaPull, getGachaHistory: dependencies.getGachaHistory, bannerVotes: dependencies.bannerVotes, sharedInvocations: dependencies.sharedInvocations });
     }
+    if (dependencies.sharedInvocations) await app.register(registerSharedInvocationRoutes, { authenticate, shared: dependencies.sharedInvocations });
     if (dependencies.getCurrentPlayerBox && dependencies.setBoxCharacterFavorite && dependencies.setBoxSortPreference && dependencies.useMasterlessStella) {
       await app.register(registerBoxRoutes, {
         authenticate, getCurrentPlayerBox: dependencies.getCurrentPlayerBox,

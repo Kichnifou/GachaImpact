@@ -11,6 +11,7 @@ import { HistoryService } from '../application/history/history-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
 import { GetCurrentPlayer } from '../application/player/get-current-player.js';
+import { SharedInvocations } from '../application/gacha/shared-invocations.js';
 import { ArcadeService } from '../application/arcade/arcade-service.js';
 import { ArcadeRecords } from '../application/arcade/arcade-records.js';
 import { CurrentPlayerFavorService } from '../application/favor/current-player-favor-service.js';
@@ -207,8 +208,9 @@ export function createRuntimeDependencies(config: AppConfig) {
     claimDailyReward: new ClaimDailyReward(getCurrentPlayer, dailyRewardStore, clock),
     getCharacters: new GetCharacters(gachaStore),
     getCurrentGacha: new GetCurrentGacha(getCurrentPlayer, gachaStore),
+    sharedInvocations: new SharedInvocations(database, getCurrentPlayer, gachaStore, clock),
     bannerVotes: new BannerVoteService(getCurrentPlayer, database, clock),
-    setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore),
+    setGachaTarget: new SetGachaTarget(getCurrentPlayer, gachaStore, clock),
     performGachaPull: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random),
     performGachaPullChat: new PerformGachaPull(getCurrentPlayer, gachaStore, clock, random, SourceChannel.INTERNAL_CHAT),
     getGachaHistory: new GetGachaHistory(getCurrentPlayer, gachaStore),

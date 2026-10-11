@@ -13,3 +13,4 @@ server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql t
 docs/architecture/evidence/r1051-release-date-complement-20261011.json text eol=lf
 docs/architecture/evidence/r1051-ayaka-date-correction-20261011.json text eol=lf
 server/prisma/migrations/20261011190000_073_catalog_progressive/migration.sql text eol=lf
+server/prisma/migrations/20261011200000_074_shared_invocations/migration.sql text eol=lf

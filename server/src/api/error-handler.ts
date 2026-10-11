@@ -5,6 +5,17 @@ import { AppError } from './errors.js';
 import { isArchivedPlayerWriteError } from '../infrastructure/database/archived-player-error.js';
 
 const businessStatusCodes: Readonly<Record<BusinessErrorCode, number>> = {
+  SHARED_FORBIDDEN: 403,
+  SHARED_AUTHORITY_REQUIRED: 403,
+  SHARED_MODE_CONFLICT: 409,
+  SHARED_UNAVAILABLE: 404,
+  SHARED_PAUSED: 409,
+  SHARED_STALE: 409,
+  SHARED_SPECTATOR_READ_ONLY: 403,
+  SHARED_PULL_PENDING: 409,
+  SHARED_PRESENTATION_PENDING: 409,
+  SHARED_SPECTATOR_REQUIRED: 403,
+  SHARED_REACTION_COOLDOWN: 429,
   EVENT_POINTS_OVERFLOW: 409,
   EVENT_EDITION_CLOSED: 409,
   STELLA_INVALID_AMOUNT: 422,

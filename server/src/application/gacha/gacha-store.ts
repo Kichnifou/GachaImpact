@@ -57,6 +57,7 @@ export type GachaPullInput = Readonly<{
   now: Date;
   random: RandomSource;
   sourceChannel?: SourceChannel;
+  standaloneTabId?: string;
 }>;
 export const GACHA_HISTORY_PAGE_SIZE = 10;
 export type GachaHistoryResult = PullResultRecord & Readonly<{
@@ -79,7 +80,7 @@ export interface GachaStore {
   listActiveCharacters(): Promise<readonly GachaCharacter[]>;
   listPreparations?(): Promise<readonly import('../character-catalog/catalog-progressive.js').Preparation[]>;
   getCurrent(playerId: string): Promise<{ banner: CurrentBanner; playerState: PlayerGachaState } | null>;
-  setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel?: SourceChannel): Promise<PlayerGachaState>;
+  setTarget(playerId: string, characterId: string, idempotencyKey?: string, sourceChannel?: SourceChannel, standaloneTabId?: string, now?: Date): Promise<PlayerGachaState>;
   pull(input: GachaPullInput): Promise<GachaPullResult>;
   getHistory(playerId: string, page: number): Promise<GachaHistoryPage>;
   ensureRotation(startsAt: Date, endsAt: Date, select: (catalog: readonly GachaCharacter[], previous: ReadonlySet<string>, votes: readonly BannerVoteWeight[]) => readonly FeaturedSelection[]): Promise<CurrentBanner>;

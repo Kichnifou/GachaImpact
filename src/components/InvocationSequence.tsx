@@ -22,9 +22,10 @@ type Props = Readonly<{
   onAdvance: () => void
   onSkip: () => void
   onClose: () => void
+  readOnly?: boolean
 }>
 
-function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
+function InvocationSequence({ state, onAdvance, onSkip, onClose, readOnly = false }: Props) {
   const [suspense, setSuspense] = useState(false)
   const [readyCharacterRevealKey, setReadyCharacterRevealKey] = useState<string | null>(null)
   const [unlockedSummaryOperationId, setUnlockedSummaryOperationId] = useState<string | null>(null)
@@ -43,7 +44,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
   const summaryOperationId = state.phase === 'summary' ? state.pull.operation.id : null
   const summaryExitUnlocked = summaryOperationId !== null && unlockedSummaryOperationId === summaryOperationId
   const summaryLocked = state.phase === 'summary' && !summaryExitUnlocked
-  const canUseSurface = canActivateInvocationSurface(state, suspense, characterRevealReady) && !summaryLocked
+  const canUseSurface = !readOnly && canActivateInvocationSurface(state, suspense, characterRevealReady) && !summaryLocked
 
   useEffect(() => {
     if (summaryOperationId === null) return
@@ -52,7 +53,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
   }, [summaryOperationId])
 
   useEffect(() => {
-    if (state.phase !== 'summary') return
+    if (readOnly || state.phase !== 'summary') return
     const handleEscape = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
@@ -61,7 +62,7 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
     }
     document.addEventListener('keydown', handleEscape, true)
     return () => document.removeEventListener('keydown', handleEscape, true)
-  }, [onClose, state.phase, summaryExitUnlocked])
+  }, [onClose, state.phase, summaryExitUnlocked, readOnly])
 
   useEffect(() => {
     if (currentRevealKey === null) return
@@ -154,16 +155,16 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
       {!suspense && state.phase === 'intro' && <div className="sequence-message intro-message">
         <span>Invocation x{state.count}</span>
         <h2>{state.bestRarity === 5 ? 'Une lumière légendaire répond' : state.bestRarity === 4 ? 'Une lueur rare traverse le ciel' : 'Le portail s’ouvre'}</h2>
-        <p>Cliquez dans le cadre pour révéler.</p>
+        <p>{readOnly ? 'Le diffuseur contrôle les révélations.' : 'Cliquez dans le cadre pour révéler.'}</p>
       </div>}
 
       {!suspense && state.phase === 'reveal' && <div className={`sequence-reveal-stage${currentRevealKey ? ` character-reveal character-reveal-${characterRevealReady ? 'ready' : 'focus'}` : ''}`}>
         {revealControls.counter && <div className="sequence-counter reveal-overlay-control">Résultat {state.resultIndex + 1} / {state.pull.results.length}</div>}
         <PullResultCard key={revealResultKey(state.pull.operation.id, state.pull.results[state.resultIndex]!.index)} result={state.pull.results[state.resultIndex]!} />
         {characterRevealReady && c6StatFeedback && <p className="reveal-c6-stat-feedback reveal-overlay-control">{c6StatFeedback}</p>}
-        {revealControls.hint && <p className="sequence-hint reveal-overlay-control">Cliquez pour continuer</p>}
-        {revealControls.skip && <button type="button" className="sequence-control sequence-skip reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
-        {revealControls.close && <button type="button" className="icon-button sequence-control sequence-close reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
+        {!readOnly && revealControls.hint && <p className="sequence-hint reveal-overlay-control">Cliquez pour continuer</p>}
+        {!readOnly && revealControls.skip && <button type="button" className="sequence-control sequence-skip reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
+        {!readOnly && revealControls.close && <button type="button" className="icon-button sequence-control sequence-close reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
       </div>}
 
       {!suspense && state.phase === 'summary' && <div className="sequence-summary">
@@ -171,8 +172,8 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose }: Props) {
         <PullResults pull={state.pull} />
       </div>}
 
-      {state.phase === 'intro' && <button type="button" className="sequence-control sequence-skip" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
-      {state.phase === 'summary' && <button type="button" className="icon-button sequence-control sequence-close" disabled={summaryLocked} onClick={(event) => { stop(event); if (summaryLocked) return; clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
+      {!readOnly && state.phase === 'intro' && <button type="button" className="sequence-control sequence-skip" onClick={(event) => { stop(event); clearPresentation(); onSkip() }}>Passer</button>}
+      {!readOnly && state.phase === 'summary' && <button type="button" className="icon-button sequence-control sequence-close" disabled={summaryLocked} onClick={(event) => { stop(event); if (summaryLocked) return; clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
     </div>
   )
 }

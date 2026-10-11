@@ -1,0 +1,43 @@
+# Invocations partagées standalone V1 — contrat du 11 octobre 2026
+
+Implémentation locale du lot C consolidé, décisions propriétaire R1067–R1075. La publication, la revue indépendante sur SHA distant et la migration Railway sont des étapes de livraison distinctes, coordonnées après A/B. Ce document ne constitue pas une preuve de déploiement.
+
+## Périmètre et consentement
+
+Deux boutons de largeur stable sous Détail : **Diffuser** et **Voir**. Le premier geste Diffuser consent explicitement au partage décrit sous les boutons. Une diffusion est visible uniquement aux joueurs standalone authentifiés et actifs ; elle ne démarre jamais automatiquement. Les modes diffuser/regarder sont exclusifs pour un Player, y compris entre ses onglets. Le diffuseur peut arrêter immédiatement ; chaque spectateur peut arrêter son visionnage indépendamment.
+
+La scène partagée contient uniquement le pseudo, l'avatar équipé, la bannière et sa cible, pity 4/5, garantie, Capture, la phase/index d'animation et les résultats déjà committés. La projection est construite par des listes de champs explicites. Elle exclut PlayerDTO, Auth UUID, tokens, soldes, inventaire, copies possédées, historique, statistiques cumulées et progression XP. Les deltas de récompense du résultat sont visibles, jamais les soldes après attribution. La sidebar et les autres écrans continuent d'appartenir au spectateur.
+
+Après arrêt du visionnage ou disparition du diffuseur, les commandes personnelles restent indisponibles jusqu'à la réussite du rafraîchissement de l'état personnel. Un échec réseau conserve cette barrière et propose **Actualiser mes Invocations** pour réessayer.
+
+Twitch, chat, transports de chat, commandes Twitch et leurs résultats sont exclus. Aucun abonnement, infrastructure ou bibliothèque supplémentaire. Le moteur Gacha, ses probabilités et ses crédits sont réutilisés sans modification de règle.
+
+## Autorité et reprise
+
+Le serveur conserve une session par propriétaire, un onglet autoritaire, un `seq` monotone, un snapshot de présentation et l'identifiant de l'opération économique d'origine. Seul cet onglet peut changer la cible, invoquer, avancer, passer ou fermer les résultats. Le spectateur n'a aucun contrôle de présentation, même par clavier ou requête manuelle. Les gardes se trouvent dans les transactions du moteur UI, en complément de la validation des routes. L'ordre de verrou est rotation Gacha → mode partagé → Player ; les sessions prennent mode partagé avant leurs FK Player. Les lectures de projection sous verrou utilisent la même transaction, sans acquérir une deuxième connexion du pool.
+
+Une intention durable clé/count précède le pull et est aussi écrite dans sa transaction économique : un démarrage de diffusion concurrent ne peut perdre le résultat. La publication/reconstruction relit le reçu UI existant, sans exécuter un second tirage. Après crash entre commit et publication, les lectures propriétaire ou spectateur reconstruisent la même présentation. Après crash avant commit, la clé/count est rendue seulement à l'onglet propriétaire autoritaire, en dehors du snapshot public ; **Reprendre l’Invocation** réutilise exactement cette intention. Aucun timeout ne l'efface silencieusement. Un rejet métier du moteur libère l'intention ; une erreur de publication après commit la conserve.
+
+F5/reconnexion dans les 60 secondes conserve session, opération, phase et index. Un participant arrivant pendant un x10 voit l'étape courante puis les suivantes ; le résumé contient les dix résultats committés. Les commandes de présentation utilisent le `seq` attendu, les doublons anciens sont rejetés. La sortie d'Invocation met la session en pause sans la retirer de la liste et sans perdre la présentation ; le retour reprend cette phase. Les animations CSS sont suspendues pendant la pause.
+
+Chaque présence/activité porte une révision monotone persistée dans sessionStorage et l'ID de session. Le serveur ignore un ancien écran arrivé après une présence plus récente, indépendamment du `seq` des réactions. Un arrêt suivi d'un nouveau démarrage crée un nouvel ID ; une ancienne présence ne peut contrôler la nouvelle diffusion. Les réponses frontend portent une génération d'identité et une révision de requête : une ancienne réponse `null`, un ancien compte ou un transport déconnecté ne peuvent remplacer un état récent.
+
+BroadcastChannel distingue une duplication d'onglet d'un F5, avec une initialisation unique par page. Le canal reste ouvert pour une entrée BFCache (`pagehide.persisted`). Sans BroadcastChannel, une nouvelle page reçoit une nouvelle autorité locale : après F5, l'ancien bail doit expirer avant de rediffuser. Cette dégradation conserve l'exclusivité serveur, au prix de la reprise immédiate sur ces navigateurs.
+
+## Durées, trafic et réactions
+
+L'inactivité de 45 minutes dépend uniquement d'un geste standalone authentifié du diffuseur : pointer/keyboard réellement reçus, cible, tirage ou commande de présentation. Les gestes généraux sont limités à une écriture toutes les 10 secondes ; les présences techniques toutes les 15 secondes renouvellent seulement le bail de connexion de 60 secondes. Poll, heartbeat, lecture spectateur et emoji ne prolongent jamais l'activité du diffuseur. Le serveur valide identité, rôle de session, onglet, écran et révision ; le navigateur transmet uniquement ses événements `isTrusted`. Le serveur ne peut attester physiquement l'origine humaine d'un appel HTTP forgé par le propriétaire authentifié.
+
+Transport : fetch/poll borné à 1 seconde pour une scène Invocation active, 15 secondes ailleurs ou au repos, liste à 5 secondes seulement lorsque sa modale est ouverte. Une lecture inchangée renvoie un petit curseur sans snapshot ; elle n'écrit pas de heartbeat ni de membre. Les réactions expirées invalident ce cache. Les lectures complètes revérifient l'adhésion spectateur pour éviter une course arrêt/redémarrage. Le nettoyage opportuniste expire au plus 100 sessions, vide au plus 1 000 adhésions obsolètes, nettoie au plus 100 ensembles d'emojis et supprime au plus 100 sessions arrêtées de plus d'une heure par passage. Les filtres de validité empêchent de présenter une session expirée même si le lot de nettoyage est plein.
+
+Réactions fermées : 🎉 ✨ ❤️ 😮 👏. Cooldown serveur persistant de trois secondes par Player, commun à ses onglets. Deux Players distincts peuvent réagir simultanément. Au plus 16 effets par session, expiration quatre secondes, animation CSS indépendante de la séquence Gacha. Aucun texte libre, historique permanent, récompense, badge ou déplacement des animations Gacha.
+
+## Persistance, sécurité et validation
+
+Migration Prisma additive `20261011200000_074_shared_invocations`, SQL fixé LF pour checksum Windows/Linux. Tables server-only avec RLS activée et privilèges révoqués à PUBLIC, anon et authenticated. Aucune clé backend n'arrive dans le navigateur. Les routes authentifiées sont strictes (UUID, action, emoji, consentement, curseur borné) et ne prennent aucun ownerId fourni par le client.
+
+Les tests privés PostgreSQL rejouent les migrations Prisma normales, vérifient RLS/privilèges, exclusivité et isolation de permissions, autorité dans le moteur, cible/projection atomiques, intention précommit, reprise postcommit x10, absence de second crédit, séquence/pause, expiration/activité, réaction interonglets et arrêt. Ils utilisent un schéma éphémère et des Players synthétiques, jamais des fixtures publiques ni des Players réels. Des tests frontend couvrent les commandes spectateur, la reprise au bon index et les réponses réseau inversées/changements d'identité. La recette visuelle utilise le GameShell complet et la CSS compilée sur six formats, avec fixtures locales et réseau externe bloqué.
+
+Le détail des contrôles exécutés, leurs résultats et les éventuelles limites de recette est porté par le handoff de livraison du lot C ; ne pas confondre ce contrat avec une validation humaine du service déployé.
+
+Contrôles locaux du 11/10 : 58 tests frontend ciblés (huit fichiers), 13 tests backend ciblés et 15 tests PostgreSQL privés passés ; ces derniers incluent le replay Prisma normal et son statut à jour. Recette visuelle de 42 états sur 390×844, 1366×768, 1920×1080, 2560×1440, 844×390 et 1366×520, sans erreur de page ni débordement horizontal, modale et focus bornés ; les PNG mobile, desktop et paysage ont été inspectés. Les preuves locales ignorées se trouvent sous `local-data/consolidated-20261011/c-qa/`. Cette recette utilise des snapshots synthétiques ; elle ne remplace pas un essai humain authentifié à deux comptes en production après livraison. Les tests privés couvrent le moteur économique et ses reçus réels dans le schéma éphémère.

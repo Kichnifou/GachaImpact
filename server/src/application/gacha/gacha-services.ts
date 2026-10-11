@@ -27,10 +27,10 @@ export class GetCurrentGacha {
 }
 
 export class SetGachaTarget {
-  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore) {}
-  public async execute(identity: PlayerExecutionActor, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: GachaStore, private readonly clock: Clock = {now:()=>new Date()}) {}
+  public async execute(identity: PlayerExecutionActor, characterId: string, idempotencyKey?: string, sourceChannel: SourceChannel = SourceChannel.UI, standaloneTabId?: string) {
     const player = await this.getPlayer.execute(identity);
-    try { return await (idempotencyKey ? this.store.setTarget(player.id, characterId, idempotencyKey, sourceChannel) : this.store.setTarget(player.id, characterId)); }
+    try { return await (standaloneTabId ? this.store.setTarget(player.id, characterId, idempotencyKey, sourceChannel, standaloneTabId, this.clock.now()) : idempotencyKey ? this.store.setTarget(player.id, characterId, idempotencyKey, sourceChannel) : this.store.setTarget(player.id, characterId)); }
     catch (error) {
       if (error instanceof BusinessError) throw error;
       throw error;
@@ -47,11 +47,11 @@ export class PerformGachaPull {
     private readonly sourceChannel: SourceChannel = SourceChannel.UI,
   ) {}
 
-  public async execute(identity: PlayerExecutionActor, count: number, idempotencyKey: string) {
+  public async execute(identity: PlayerExecutionActor, count: number, idempotencyKey: string, standaloneTabId?: string) {
     if (!Number.isInteger(count) || count < 1 || count > 10) throw new BusinessError('GACHA_PULL_COUNT_INVALID', 'Une Invocation doit contenir entre 1 et 10 vœux.');
     const player = await this.getPlayer.execute(identity);
     if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'A permanent element is required to perform a pull.');
-    return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: commandNow(this.clock), random: this.random, sourceChannel: commandSource(this.sourceChannel) });
+    return this.store.pull({ playerId: player.id, playerElementKey: player.elementKey, count: count as PullCount, idempotencyKey, now: commandNow(this.clock), random: this.random, sourceChannel: commandSource(this.sourceChannel), ...(standaloneTabId ? { standaloneTabId } : {}) });
   }
 }
 
