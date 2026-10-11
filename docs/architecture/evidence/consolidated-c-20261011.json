@@ -1,0 +1,52 @@
+{
+  "date":"2026-10-11",
+  "scope":"Standalone shared invocations, consolidated lot C",
+  "state":"Integrated locally; published exact-SHA review and deployment still required",
+  "productionBase":"8a240609a141b68d39b4be372b3d69d8da28a3bf",
+  "migration":"20261011200000_074_shared_invocations",
+  "rootSourceCommits":["e81fec7","91cb7b6","c981e45","f4f4012","36d1bf0"],
+  "checksBeforeAdvisoryCorrections":{
+    "producerFrontend":58,
+    "producerBackendOriginal":13,
+    "producerBackendAfterReceiptBannerFix":15,
+    "rootIntegratedFrontend":32,
+    "rootIntegratedBackend":28,
+    "rootIntegratedQuick":"PASS 5/5",
+    "privatePostgresShared":{"passed":16,"skipped":0,"seconds":132.33,"normalPrismaReplay":"073+074","cleanupCompleted":true},
+    "privatePostgresGacha":{"passed":30,"skipped":0,"seconds":260.77,"normalPrismaReplay":"073+074","assertions":"Original unchanged; ignored harness changes imports, normal migration flag and setup timeout only","cleanupCompleted":true},
+    "visual":{"states":42,"viewports":["390x844","1366x768","1920x1080","2560x1440","844x390","1366x520"],"actualGameShell":true,"externalNetworkBlocked":true,"pageErrors":0,"horizontalOverflow":false,"boundedModalFocus":true,"equalShareButtonWidths":true,"compiledCss":"index-Bhn6-6_2.css","cssSha256":"102acaa6b52b7ea5e224bb5c0fea16a1aaa62f0e0cf1838977cd5ad494021270","inspectedPngs":6,"privateProof":"worktrees/integrated-c/local-data/consolidated-20261011/c-qa/visual-proof.json"}
+  },
+  "consultativeIndependentAudit":{
+    "source":"a2bf199de6c2e325a1f55c0089b94eb21df2fa6b, local integrated checkout before publication",
+    "reportSha256":"8c06fb7f0de8bcb2c5dbccc30d43383018be384d8147df3922a51e94dba97401",
+    "frontendPassed":29,
+    "backendPassed":15,
+    "newRedReproduction":"Broadcaster F5 after rotation with personal target null hides committed shared presentation behind target picker",
+    "additionalSourceFinding":"Idle viewer snapshot can retain previous banner; refresh must preserve rotation/shared lock order and keep active receipt frozen",
+    "deliveryApproval":false
+  },
+  "advisoryCorrections":{
+    "changes":["Broadcaster active presentation uses exact committed receipt before target picker", "Close awaits fresh personal state and retains retry barrier on failure", "Idle cursor detects current banner and allowed Gacha state changes without identical writes", "Start, close and idle refresh lock rotation before shared and read on the same transaction", "Scoped small-height placement keeps sharing controls and continuation hint inside the scene"],
+    "producerCorrectionCommit":"7d28b2bcb7665ca9dc759f819cbc2394721e5ddc",
+    "rootCorrectionCommit":"36d1bf0",
+    "producerFrontendPassed":52,
+    "producerFrontendFiles":9,
+    "producerBackendUnitsPassed":12,
+    "producerQuick":"PASS 5/5 on final correction",
+    "privatePostgres":{"passed":17,"skipped":0,"seconds":135.66,"normalReplay":"Full Prisma chain ending at073+074","cleanupExactSchemaAbsent":true},
+    "firstPostgresAttempt":"16 PASS; new case failed before business assertions with P2002 on duplicate fixture startsAt. Distinct timestamp fixed; original log retained, full rerun above passed.",
+    "independentLocalReproductionsPassed":4,
+    "correctedScenarioVisual":{"states":6,"viewports":["390x844","844x390","1366x520"],"css":"index-C5dFTtti.css","cssSha256":"4251a4191324ac80ff2f180670c4c944677fee3c2cc6681f4a3a210b8637dad4","pageErrors":0,"sharingControlsInsideScene":true,"continuationHintNoOverlap":true,"originalFailedPassesRetained":true,"rootInspectedPngs":3},
+    "finalVisual":{"states":42,"rotationScenes":9,"lastResultScenes":9,"css":"index-jkWx-xIv.css","cssSha256":"7f59f63e3d1ebcb37d51faca7f537819237cec42125d26c5e63068849fe7537e","pageErrors":0,"summaryKeyboardHomeEnd":true,"summaryEndScrollTopMaximum":true,"tenthResultInViewport":true,"focusRetained":true,"controlsOutsideReadingRegion":true,"inspectedFormats":["390x844","844x390","1366x520"],"privateProofs":["visual-accessible-proof.json","rotation-visual-corrected-accessible-proof.json","rotation-visual-last-visible-proof.json"],"earlierFailedPassesRetained":true},
+    "producerBuilds":"Frontend and backend PASS on final correction",
+    "rootIntegratedFinalQuick":"PASS 5/5, source36d1bf0, log c-root-final-quick.log",
+    "formalPublishedShaReview":"Pending; local audit is not delivery approval"
+  },
+  "limits":[
+    "Migration074 is present and tested in private schemas only at this checkpoint",
+    "No public Player fixture, pull or shared session created for qualification",
+    "Private automated visuals are not two-account human public acceptance",
+    "Corrective regressions pass; published exact-SHA independent review remains required",
+    "Combined full before those corrections remains FAIL6/8, ten known baseline assertions, and is not a final source full PASS"
+  ]
+}

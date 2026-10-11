@@ -1,7 +1,7 @@
 {
   "date": "2026-10-11",
   "scope": "Consolidated lot B: progressive catalogue and qualified provisional consensus",
-  "state": "Implemented and verified locally; independent review, public migration and deployment remain separate",
+  "state": "Delivered technically at 8a24060 after independent approval, strict FF, exact deployments and read-only postflight; human acceptance separate",
   "base": "bdef91926012b663f6b4c24429737a4db893b6a7",
   "migration": "20261011190000_073_catalog_progressive",
   "checks": {
@@ -89,6 +89,18 @@
     "remainingP1P2Identified": 0,
     "publicMigration": "Pending exact deployment after private C PostgreSQL cleanup",
     "full": "Previous FAIL6/8 and 13 baseline assertions retained; not rerun or claimed PASS after pure helper fixes"
+  },
+  "productionDelivery": {
+    "sha": "8a240609a141b68d39b4be372b3d69d8da28a3bf",
+    "checkpointReview": "APPROVED",
+    "checkpointReportSha256": "8678811f4b51591dea3d1c1665877a0ab443ff5d2a667b1181ec564a0a4e469c",
+    "strictFastForward": true,
+    "fourRefsEqualAndCleanBeforeC": true,
+    "railway": {"id":"ad947f90-73a7-4db2-a8b3-2c79807c5639","status":"SUCCESS","readyAt":"2026-10-11T19:11:53.980569144Z","migrationAppliedAt":"2026-10-11T19:11:37.298460355Z"},
+    "pages": {"id":"1cf3535e-5f38-4562-b72a-68aebe364ada","status":"SUCCESS","completedAt":"2026-10-11T19:11:31Z","exactPreviewLiveAssets":true},
+    "postflight": {"at":"2026-10-11T19:12:40.592Z","health":200,"bothDomainsIdentical":true,"privateGuardRequests":8,"exactCors":true,"migrationCount":73,"statusUpToDate":true,"committedSqlChecksums":true,"historicalLedgerUnchanged":true,"privateRlsTables":7,"browserGrants":false,"characters":120,"dated":120,"protectedUnchanged":120,"activeWithoutCharacter":2,"outbox":0,"storageObjects":2,"storageBytes":236490,"groupsArchived":2,"receiptsArchived":7,"leaseClear":true,"dailyEnabled":true,"publishEnabled":true,"dryRun":false},
+    "naturalDaily": "12 October midnight Paris still future at this observation; lastSuccessDate null, 11 October SUPERSEDED",
+    "humanAcceptance": "Not claimed"
   },
   "limits": [
     "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
