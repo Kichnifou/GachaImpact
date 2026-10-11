@@ -56,4 +56,11 @@ describe('field follow-up and provisional provenance',()=>{
   expect(fields).toEqual({weapon:expect.objectContaining({value:'Catalyst',reliability:'PROVISIONAL',fetchedAt:'2026-10-11T10:14:23.000Z'})});
   expect(await new CatalogSecondarySources(blocked,async()=>{},new Date('2026-10-20T10:00:00Z')).collect(['Mitya'],['weapon'])).toEqual({});
  });
+ it('retains an earlier reviewed contradiction when direct collection recovers with the same primary value',async()=>{
+  const at=new Date('2026-10-11T11:00:00Z');
+  const live=async(url:string)=>({url,status:200,mime:'text/html',body:Buffer.from(url.includes('icy-veins.com')?'<h1>Valeriy Profile</h1><p>Valeriy is a 4-Star Electro Sword character.</p>':'<h1>Other</h1>')});
+  const fields=await new CatalogSecondarySources(live,async()=>{},at).collect(['Valeriy'],['rarity']);
+  expect(fields.rarity).toMatchObject({value:4,conflict:true,fetchedAt:at.toISOString(),alternatives:[{value:5,fetchedAt:'2026-10-11T10:14:23.000Z'}]});
+  expect(eligibility(fields,[],at).status).toBe('CONFLICT');
+ });
 });

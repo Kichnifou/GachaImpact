@@ -1,4 +1,4 @@
-import { normalizedIdentity, type CatalogFields, type Evidence } from '../../application/character-catalog/catalog-policy.js';
+import { mergeEvidence, normalizedIdentity, type CatalogFields, type Evidence } from '../../application/character-catalog/catalog-policy.js';
 import type { CatalogHttp } from './catalog-http.js';
 import { CatalogFetchError } from './catalog-http.js';
 import type { AttemptSink } from './catalog-sources.js';
@@ -99,10 +99,13 @@ export class CatalogSecondarySources {
       const age=this.now.getTime()-new Date(profile.reviewedAt).getTime();
       if(age<0||age>7*86_400_000||!names.some(name=>normalizedIdentity(name)===normalizedIdentity(profile.name)))continue;
       for(const [field,value] of [['rarity',profile.rarity],['weapon',profile.weapon]] as const){
-        if(!requested.includes(field)||fields[field])continue;
+        if(!requested.includes(field)||(fields[field]&&!(field==='rarity'&&profile.contradictoryRarity)))continue;
         const evidence:Evidence={value,provider:'icy-veins',url:profile.url,fetchedAt:profile.reviewedAt,reliability:'PROVISIONAL',editorialStatus:'PROVISIONAL',
-          reason:'Lecture web examinée le 11/10/2026 ; accès direct du collecteur HTTP403. Source secondaire liée à la préparation bêta/leaks, sans confirmation officielle. Cache de lecture limité à sept jours.'};
-        fields[field]=field==='rarity'&&profile.contradictoryRarity?{...evidence,conflict:true,alternatives:[{...evidence,value:profile.contradictoryRarity,reason:'Le cartouche de la même page affiche cinq étoiles, contrairement au texte introductif. Ce ne sont pas deux sources indépendantes.'}]}:evidence;
+          reason:'Lecture web examinée le 11/10/2026 ; accès direct HTTP403 lors de cette lecture. Source secondaire liée à la préparation bêta/leaks, sans confirmation officielle. Cache de lecture limité à sept jours.'};
+        const reviewed=field==='rarity'&&profile.contradictoryRarity?{...evidence,conflict:true,alternatives:[{...evidence,value:profile.contradictoryRarity,reason:'Cartouche cinq étoiles relevé lors de la lecture datée, contrairement au texte introductif quatre étoiles. Réserve historique à résoudre explicitement ; ce ne sont pas deux sources indépendantes.'}]}:evidence;
+        // A recovered live fetch supplies the primary value, but cannot silently
+        // erase a contradiction already reviewed on this same source.
+        Object.assign(fields,mergeEvidence(fields,field,reviewed));
         await this.attempt({provider:'icy-veins',field,outcome:'REVIEWED_PROVISIONAL',sourceUrl:profile.url});
       }
     }
