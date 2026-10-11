@@ -15,7 +15,7 @@ function services() {
     roles: { setRole: vi.fn(async () => ({ operationId: 'role-operation' })) },
     characters: { list: vi.fn(async () => ({ entries: [] })), create: vi.fn(async () => ({})), update: vi.fn(async () => ({})) },
     catalog: { overview: vi.fn(async () => ({})), detail: vi.fn(async () => ({})), create: vi.fn(async () => ({})),
-      edit: vi.fn(async () => ({})), queue: vi.fn(async () => ({})), upload: vi.fn(async () => ({})), override: vi.fn(async () => ({})) },
+      edit: vi.fn(async () => ({})), queue: vi.fn(async () => ({})), cancel: vi.fn(async () => ({})), upload: vi.fn(async () => ({})), override: vi.fn(async () => ({})) },
     possessions: { list: vi.fn(async () => ({ entries: [] })), change: vi.fn(async () => ({})) },
     banners: { overview: vi.fn(async () => ({})), correct: vi.fn(async () => ({})), retryGeneration: vi.fn(async () => ({})) },
     events: { list: vi.fn(async () => ({ entries: [] })), update: vi.fn(async () => ({})) },
@@ -104,5 +104,19 @@ describe('private administration routes', () => {
     admin.roles.setRole.mockRejectedValueOnce(new AppError('Accès interdit.', 403, 'MODERATION_FORBIDDEN'));
     expect((await app.inject({ method: 'POST', url, headers,
       payload: { role: 'MODERATOR', enabled: true, idempotencyKey: crypto.randomUUID() } })).statusCode).toBe(403);
+  });
+  it('validates catalogue paging and cancellation, preserves authentication and forwards ADMIN denial',async()=>{
+    const{app,admin}=await setup(),runId=crypto.randomUUID(),idempotencyKey=crypto.randomUUID();
+    expect((await app.inject({url:'/api/v1/moderation/catalog-candidates?page=9&filter=protected&search=Ayaka',headers})).statusCode).toBe(200);
+    expect(admin.catalog.overview).toHaveBeenCalledWith(identity,'Ayaka',9,'protected');
+    expect((await app.inject({url:'/api/v1/moderation/catalog-candidates?page=0',headers})).statusCode).toBe(400);
+    const url=`/api/v1/moderation/catalog-runs/${runId}/cancel`;
+    expect((await app.inject({method:'POST',url,payload:{idempotencyKey}})).statusCode).toBe(401);
+    expect((await app.inject({method:'POST',url,headers,payload:{idempotencyKey:'invalid'}})).statusCode).toBe(400);
+    expect(admin.catalog.cancel).not.toHaveBeenCalled();
+    expect((await app.inject({method:'POST',url,headers,payload:{idempotencyKey}})).statusCode).toBe(200);
+    expect(admin.catalog.cancel).toHaveBeenCalledWith(identity,runId,idempotencyKey);
+    admin.catalog.cancel.mockRejectedValueOnce(new AppError('Accès interdit.',403,'MODERATION_FORBIDDEN'));
+    expect((await app.inject({method:'POST',url,headers,payload:{idempotencyKey:crypto.randomUUID()}})).statusCode).toBe(403);
   });
 });

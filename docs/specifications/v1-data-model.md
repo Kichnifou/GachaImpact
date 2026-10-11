@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1051 — cycle unique, annulation et agrégat de nouveautés
+
+CatalogRun conserve l’intention globale/ciblée/audit, les checkpoints et cancelRequestedAt durable ; CANCELLED ne devient pasFAILED et ne reprend pas automatiquement. Les changements déjà committés restent acquis et comptés. SUPERSEDED qualifie uniquement l’ancien cycle obsolète, jamais un succès quotidien. Aucun nouveau catalogue ni modèle joueur.
+
+Notification CATALOG_REVIEW_ADMIN : un agrégat candidat/destinataire et des reçus événementiels ARCHIVED à clés immuables. Lire/archiver l’agrégat ne supprime pas les preuves ; seule une nouveauté éditoriale réactiveUNREAD. [Contrat](notifications-v1.md), [physique072](../architecture/postgresql-schema-v1.md#migration072--admission-et-annulation-r1051).
+
 ## R1053 — résultat mensuel Event et lecture des messages
 
 `EventDrawActivation` fixe la frontière sans arriérés. `EventMonthlyDraw` appartient à une seule `EventEdition` et conserve clôture/état/graine privée/population/poids exacts/position/gagnant/opération et dates. PENDING réserve, FROZEN scelle sans paiement définitif, COMPLETED lie attribution acquise et notifications, NO_ELIGIBLE clôt sans gagnant. Les états terminaux et poids scellés sont immuables ; l'acquisition Stella utilise les modèles et le propriétaire Codes existants. Aucun nouveau stock ni résultat Concours C6. [Modèle physique 069](../architecture/postgresql-schema-v1.md#r1053-migration-069), [invariants et scheduler](../architecture/event-monthly-draw-r1053.md).

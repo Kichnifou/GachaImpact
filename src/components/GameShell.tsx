@@ -609,6 +609,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         onOpenNotification={(notification) => {
           const intent = resolveNotificationNavigation(notification)
           switch (intent.destination) {
+            case 'admin-candidate': if (permissions.capabilities.superTools && intent.targetId) { navigate('moderation'); window.location.hash = `moderation/candidates/${intent.targetId}` } break
             case 'admin-character': if (permissions.capabilities.superTools && intent.targetId) { navigate('moderation'); window.location.hash = `moderation/characters/${intent.targetId}` } break
             case 'arcade-invite': navigate('activities-arcade'); window.dispatchEvent(new Event('arcade:refresh')); break
             case 'profile-personalization': setProfileId(player.id); setAppearanceRequestToken(value => value + 1); navigate('profile'); break

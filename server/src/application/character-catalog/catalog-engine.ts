@@ -7,6 +7,8 @@ import { CatalogSources, catalogFieldSources, officialReleaseEvidence, type Sour
 import { CatalogImageStorage, validateImage } from '../../infrastructure/character-catalog/catalog-images.js';
 import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue, editorialFingerprint } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
+import { activeCatalogStates, lockCatalogJob } from './catalog-control.js';
+import { notifyCatalogReview } from './catalog-notifications.js';
 
 type RunMode = 'daily' | 'retry' | 'audit';
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -16,9 +18,11 @@ export type CatalogSettings = Readonly<{ enabled: boolean; publish: boolean; dry
 
 export class CatalogEngine {
   readonly storage: CatalogImageStorage;
+  private activeRunId?: string;
+  private controller?: AbortController;
   constructor(private readonly db: PrismaClient, readonly settings: CatalogSettings,
     private readonly http: CatalogHttp = catalogHttp, private readonly now: () => Date = () => new Date()) {
-    this.storage = new CatalogImageStorage(settings.storageUrl, settings.storageKey, http, async bytes => {
+    this.storage = new CatalogImageStorage(settings.storageUrl, settings.storageKey, (url, options) => http(url, {...options, signal:this.controller?.signal}), async bytes => {
       const rows = await this.db.$queryRaw<{ bytes: bigint }[]>`SELECT COALESCE(SUM((metadata->>'size')::bigint), 0)::bigint AS bytes FROM storage.objects`;
       if (!rows[0] || rows[0].bytes + BigInt(bytes) > 500n * 1024n * 1024n) throw new CatalogFetchError('STORAGE_CAPACITY_LIMIT');
     });
@@ -26,19 +30,41 @@ export class CatalogEngine {
 
   async run(mode: RunMode = 'daily', candidateId?: string, requestedRunId?: string) {
     const started = this.now(), businessDate = getBusinessDate(started), token = randomUUID();
-    await this.db.catalogJob.upsert({ where: { id: 'R1051' }, create: { id: 'R1051' }, update: {} });
-    const acquired = await this.db.catalogJob.updateMany({ where: { id: 'R1051', OR: [{ leaseUntil: null }, { leaseUntil: { lte: started } }] },
-      data: { leaseToken: token, leaseUntil: new Date(started.getTime() + leaseMs) } });
-    if (!acquired.count) return { skipped: 'LEASE_BUSY' };
-    let runId: string | undefined;
-    try {
+    const admitted = await this.db.$transaction(async tx => {
+      await lockCatalogJob(tx);
       const cycleKey = mode === 'daily' ? `daily:${businessDate}` : `manual:${requestedRunId ?? token}`;
-      let run = requestedRunId ? await this.db.catalogRun.findUniqueOrThrow({ where: { id: requestedRunId } }) : await this.db.catalogRun.upsert({
-        where: { cycleKey }, create: { cycleKey }, update: {} });
-      runId = run.id;
-      if (run.status === 'COMPLETED') return { skipped: 'ALREADY_COMPLETED' };
-      if (run.nextAttemptAt > this.now()) return { skipped: 'BACKOFF' };
-      run = await this.db.catalogRun.update({ where: { id: run.id }, data: { status: 'RUNNING', completedAt: null } });
+      const existing = requestedRunId ? await tx.catalogRun.findUniqueOrThrow({where:{id:requestedRunId}}) : await tx.catalogRun.findUnique({where:{cycleKey}});
+      const job = await tx.catalogJob.findUniqueOrThrow({where:{id:'R1051'}});
+      if (job.leaseUntil && job.leaseUntil > started) return {skipped:'LEASE_BUSY'};
+      if (job.leaseToken || job.leaseUntil) await tx.catalogJob.update({where:{id:'R1051'},data:{leaseToken:null,leaseUntil:null}});
+      if (existing && ['COMPLETED','CANCELLED','SUPERSEDED'].includes(existing.status)) return {skipped:'ALREADY_COMPLETED'};
+      const active = await tx.catalogRun.findFirst({where:{status:{in:activeCatalogStates},...(existing?{id:{not:existing.id}}:{})},orderBy:{startedAt:'asc'}});
+      if (active) return {skipped:'ACTIVE_RUN',runId:active.id};
+      if (existing?.cancelRequestedAt) {
+        await tx.catalogRun.update({where:{id:existing.id},data:{status:'CANCELLED',completedAt:this.now()}});
+        return {skipped:'CANCELLED',runId:existing.id};
+      }
+      if (existing && existing.nextAttemptAt > this.now()) return {skipped:'BACKOFF'};
+      const run = existing ? await tx.catalogRun.update({where:{id:existing.id},data:{status:'RUNNING',completedAt:null}}) : await tx.catalogRun.create({data:{cycleKey,status:'RUNNING'}});
+      await tx.catalogJob.update({where:{id:'R1051'},data:{leaseToken:token,leaseUntil:new Date(started.getTime()+leaseMs)}});
+      return {run};
+    });
+    if (!admitted.run) return admitted;
+    let run = admitted.run;
+    const runId = run.id;
+    this.activeRunId = runId;
+    const controller = new AbortController();
+    this.controller = controller;
+    let checking = false;
+    const cancellationTimer = setInterval(() => {
+      if (checking) return;
+      checking = true;
+      void this.db.catalogRun.findUnique({where:{id:runId}}).then(value => {
+        if (value?.cancelRequestedAt || value?.status === 'CANCELLED') controller.abort();
+      }).catch(() => undefined).finally(() => {checking=false});
+    },500);
+    cancellationTimer.unref?.();
+    try {
       const request = run.summary as Prisma.InputJsonObject;
       const dryRun = mode === 'audit' || (this.settings.dryRun && !(requestedRunId && request['apply'] === true && mode === 'retry'));
       const batched = mode === 'daily' || !candidateId;
@@ -61,7 +87,8 @@ export class CatalogEngine {
         const renewed = await this.db.catalogJob.updateMany({ where: { id: 'R1051', leaseToken: token, leaseUntil: { gt: this.now() } },
           data: { leaseUntil: new Date(this.now().getTime() + leaseMs) } });
         if (!renewed.count) throw new CatalogFetchError('LEASE_LOST');
-        return this.http(url, options);
+        await this.checkCancellation();
+        return this.http(url, {...options, signal:this.controller?.signal});
       });
       let attemptCandidateId: string | undefined;
       const sources = new CatalogSources(budget.request, attempt => record(attempt, attemptCandidateId), started);
@@ -71,13 +98,13 @@ export class CatalogEngine {
         for (const post of posts.filter(row => row.name)) discoveryChanges += await this.discover(token, post, run.id);
         await this.seedHistorical(token);
       }
-      const previous = run.summary as Prisma.InputJsonObject;
+      const previous = (await this.db.catalogRun.findUniqueOrThrow({where:{id:runId}})).summary as Prisma.InputJsonObject;
       const dailyCutoff = batched && typeof previous['dailyCutoff'] === 'string' ? new Date(previous['dailyCutoff']) : this.now();
       const processedIds = batched && Array.isArray(previous['processedCandidateIds']) ?
         previous['processedCandidateIds'].filter((id): id is string => typeof id === 'string') : [];
       const dailyWhere = () => ({ trackingState: 'ACTIVE', trackingElements: { isEmpty: false }, ...(mode === 'daily' ? { nextCheckAt: { lte: dailyCutoff } } : {}), id: { notIn: processedIds } });
       const checkpoint = () => ({ ...previous, mode, dryRun, selectionPolicy: 'protected-v1', scopeRecalculationRequired: false, dailyCutoff: dailyCutoff.toISOString(), processedCandidateIds: processedIds });
-      if (batched) await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+      if (batched) await this.fenced(token, tx => this.saveCheckpoint(tx, run.id, checkpoint()));
       const candidates = await this.db.catalogCandidate.findMany({ where: candidateId ? { id: candidateId } : dailyWhere(),
         orderBy: [{ nextCheckAt: 'asc' }, { id: 'asc' }], take: batched ? 15 : 1, include: { character: true, assets: true, identities: true } });
       const reports: unknown[] = [];
@@ -111,7 +138,7 @@ export class CatalogEngine {
           if (dryRun) {
             if (batched) {
               processedIds.push(candidate.id);
-              await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+              await this.fenced(token, tx => this.saveCheckpoint(tx, run.id, checkpoint()));
             }
             continue;
           }
@@ -135,6 +162,7 @@ export class CatalogEngine {
             }
             await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { fields: json(final), revision: { increment: 1 } } });
             if (updates.length) await this.notifyReview(tx, candidate.id, candidate.name, updates, editorialFingerprint(final));
+            await this.addChanges(tx,runId,updates.length);
             expectedRevision++;
             released = await this.protectReleased(tx, candidate.id, expectedRevision, started);
             return updates.length;
@@ -168,6 +196,7 @@ export class CatalogEngine {
                   const saved = await recordImageVersion(tx, { candidateId: candidate.id, role, image, provider: asset.provider,
                     sourceUrl: asset.url, sourceMime: response.mime, url, editorialStatus: asset.editorialStatus ?? 'VALIDATED', now: this.now() });
                   if (saved.changed) await this.notifyReview(tx,candidate.id,candidate.name,[`${role} : ${url?'image disponible':'source image qualifiée, stockage en attente'}`],`${role}:${image.hash}:${saved.asset.status}:${saved.asset.editorialStatus}`);
+                  await this.addChanges(tx,runId,saved.changed?1:0);
                   return saved.changed;
                 });
                 if (imageChanged) changed++;
@@ -196,6 +225,7 @@ export class CatalogEngine {
                 sourceMime: response.mime, mime: image.mime, width: image.width, height: image.height, bytes: response.body.length,
                 status: 'SOURCE_VALIDATED', officialConfirmed: true, checkedAt: this.now() } });
                 if (saved.count) await this.notifyReview(tx,candidate.id,candidate.name,['promotion : source décodée, distincte des images du jeu'],`promotion:${image.hash}:SOURCE_VALIDATED`);
+                await this.addChanges(tx,runId,saved.count);
                 return saved.count;
               });
               changed += promotionChanges;
@@ -208,27 +238,37 @@ export class CatalogEngine {
           await this.finalize(token, candidate.id, started, expectedRevision);
         } catch (error) {
           const code = error instanceof CatalogFetchError ? error.code : 'INTERVENTION';
-          if (['BUDGET_EXHAUSTED', 'LEASE_LOST'].includes(code)) throw error;
+          if (['BUDGET_EXHAUSTED', 'LEASE_LOST', 'CANCELLED'].includes(code)) throw error;
           await record({ provider: 'pipeline', field: 'candidate', outcome: 'ERROR', errorCode: code }, candidate.id);
           if (!dryRun && code !== 'REVISION_CHANGED') await this.fenced(token, tx => tx.catalogCandidate.updateMany({ where: { id: candidate.id, trackingState: 'ACTIVE', revision: candidate.revision }, data: {
             status: code === 'IDENTITY_CONFLICT' ? 'CONFLICT' : 'TEMPORARY_ERROR', checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } }));
         }
         if (batched) {
           processedIds.push(candidate.id);
-          await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+          await this.fenced(token, tx => this.saveCheckpoint(tx, run.id, checkpoint()));
         }
       }
       if (!dryRun) await this.deliverNotifications();
       const remaining = batched ? await this.db.catalogCandidate.count({ where: dailyWhere() }) : 0;
       await this.fenced(token, async tx => {
+        const committed = (await tx.catalogRun.findUniqueOrThrow({where:{id:runId}})).summary as Prisma.InputJsonObject;
         await tx.catalogRun.update({ where: { id: run.id }, data: { status: remaining ? 'QUEUED' : 'COMPLETED', failureCount: 0,
           completedAt: remaining ? null : this.now(), nextAttemptAt: new Date(this.now().getTime() + (remaining ? 60_000 : 0)),
           summary: json({ ...checkpoint(), discovered: posts.filter(row => row.name).length, processed: batched ? processedIds.length : candidates.length,
-            changed: (typeof previous['changed'] === 'number' ? previous['changed'] : 0) + changed, remaining, reports }) } });
+            changed: committed['changed'] ?? 0, remaining, reports }) } });
         if (mode === 'daily' && !remaining) await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: businessDate, lastSuccessAt: this.now() } });
       });
       return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length, changed, remaining };
     } catch (error) {
+      const cancellation = await this.db.catalogRun.findUnique({where:{id:runId}});
+      if (cancellation?.cancelRequestedAt) {
+        await this.db.$transaction(async tx => {
+          const rows=await tx.$queryRaw<{id:string}[]>`SELECT id FROM catalog_job WHERE id = 'R1051' AND lease_token = ${token}::uuid FOR UPDATE`;
+          if (!rows.length) return;
+          await tx.catalogRun.updateMany({where:{id:runId,status:{in:activeCatalogStates}},data:{status:'CANCELLED',completedAt:this.now()}});
+        });
+        return {runId,cancelled:true};
+      }
       if (runId) await this.fenced(token, async tx => {
         const run = await tx.catalogRun.findUniqueOrThrow({ where: { id: runId } });
         const delay = Math.min(86_400_000, 60_000 * 2 ** Math.min(run.failureCount + 1, 10));
@@ -238,14 +278,33 @@ export class CatalogEngine {
       }).catch(() => undefined);
       throw error;
     } finally {
+      clearInterval(cancellationTimer);
+      this.activeRunId=undefined;
+      this.controller=undefined;
       await this.db.catalogJob.updateMany({ where: { id: 'R1051', leaseToken: token }, data: { leaseToken: null, leaseUntil: null } });
     }
+  }
+
+  private async addChanges(tx: Prisma.TransactionClient, runId: string, count: number) {
+    if (!count) return;
+    await tx.$executeRaw`UPDATE catalog_runs SET summary = jsonb_set(summary, '{changed}', to_jsonb(COALESCE((summary->>'changed')::int,0) + ${count}::int)) WHERE id = ${runId}::uuid`;
+  }
+  private async saveCheckpoint(tx: Prisma.TransactionClient, runId: string, summary: Prisma.InputJsonObject) {
+    const current=(await tx.catalogRun.findUniqueOrThrow({where:{id:runId}})).summary as Prisma.InputJsonObject;
+    return tx.catalogRun.update({where:{id:runId},data:{summary:{...summary,changed:current['changed']??0}}});
+  }
+
+  private async checkCancellation(tx: Prisma.TransactionClient | PrismaClient = this.db) {
+    if (!this.activeRunId) return;
+    const run=await tx.catalogRun.findUniqueOrThrow({where:{id:this.activeRunId}});
+    if (run.cancelRequestedAt || run.status==='CANCELLED') throw new CatalogFetchError('CANCELLED');
   }
 
   private async fenced<T>(token: string, change: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
     return this.db.$transaction(async tx => {
       const rows = await tx.$queryRaw<{ id: string }[]>`SELECT id FROM catalog_job WHERE id = 'R1051' AND lease_token = ${token}::uuid AND lease_until > CURRENT_TIMESTAMP FOR UPDATE`;
       if (rows.length !== 1) throw new CatalogFetchError('LEASE_LOST');
+      await this.checkCancellation(tx);
       return change(tx);
     }, { timeout: 15_000 });
   }
@@ -255,13 +314,7 @@ export class CatalogEngine {
     await tx.catalogIdentity.upsert({ where: { namespace_externalId: { namespace, externalId } }, create: { namespace, externalId, candidateId }, update: {} });
   }
   private async notifyReview(tx: Prisma.TransactionClient, id: string, name: string, changes: string[], signature: string) {
-    const hash = createHash('sha256').update(signature).digest('hex');
-    const admins = await tx.playerRoleAssignment.findMany({ where: { role:'ADMIN',revokedAt:null,player:{status:'ACTIVE'} },select:{playerId:true} });
-    for (const admin of admins) {
-      const deduplicationKey=`catalog-review:${id}:${hash}:${admin.playerId}`;
-      await tx.notification.upsert({where:{deduplicationKey},create:{playerId:admin.playerId,domainKey:'character-catalog',typeKey:'CATALOG_REVIEW_ADMIN',
-        payload:{title:`Fiche à examiner : ${name}`,message:`${changes.join(' ; ')}. Consulter Modération > Personnages > Imports et candidats.`,candidateId:id},deduplicationKey},update:{}});
-    }
+    await notifyCatalogReview(tx,id,name,changes,signature,this.now());
   }
   private async protectReleased(tx: Prisma.TransactionClient, id: string, revision: number, now: Date) {
     await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
@@ -302,6 +355,7 @@ export class CatalogEngine {
         await tx.catalogAsset.create({ data: { candidateId: candidate.id, role: 'promotion', hash: `source:${createHash('sha256').update(url).digest('hex')}`,
           provider: 'hoyoverse', sourceUrl: url, status: 'UNVERIFIED' } });
       }
+      await this.addChanges(tx,runId,created?1:updates.length);
       return created ? 1 : updates.length;
     });
   }
@@ -353,7 +407,8 @@ export class CatalogEngine {
     for (const role of ['icon', 'splash']) {
       const asset = rows.find(row => row.role === role);
       if (!asset?.url || !this.storage.owns(asset.url, candidateId, role, asset.hash)) throw new CatalogFetchError('STORAGE_ASSET_INVALID');
-      const response = await this.http(asset.url, { noRedirect: true });
+      await this.checkCancellation();
+      const response = await this.http(asset.url, { noRedirect: true, signal:this.controller?.signal });
       if (response.status !== 200 || response.mime !== 'image/png' || createHash('sha256').update(response.body).digest('hex') !== asset.hash)
         throw new CatalogFetchError('STORAGE_VERIFICATION_FAILED', response.status);
       verified.push(asset.id);

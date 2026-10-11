@@ -55,7 +55,13 @@ export async function registerAdministrationRoutes(app: FastifyInstance, { authe
       const value=parse(key.extend({action:z.enum(['protect','pause','resume','validate']),elements:z.array(z.enum(['name','originalName','rarity','element','weapon','region','numericId','technicalName','releaseDate','title','constellation','icon','splash','wish','fullbody','promotion'])).max(16),reason:z.string().trim().min(10).max(300),expectedRevision:z.number().int().min(0),confirmed:z.literal(true)}),request.body);
       return catalog.tracking(identity(request),pathId(request.params,'candidateId'),value.action,value.elements,value.reason,value.expectedRevision,value.idempotencyKey);
     });
-    app.get('/api/v1/moderation/catalog-candidates', { preHandler: authenticate }, request => catalog.overview(identity(request), parse(z.object({ search: z.string().max(100).optional() }).strict(), request.query).search));
+    app.post('/api/v1/moderation/catalog-runs/:runId/cancel', { preHandler: authenticate }, request => {
+      const value=parse(key,request.body); return catalog.cancel(identity(request),pathId(request.params,'runId'),value.idempotencyKey);
+    });
+    app.get('/api/v1/moderation/catalog-candidates', { preHandler: authenticate }, request => {
+      const value=parse(page.extend({search:z.string().max(100).optional(),filter:z.enum(['tracked','protected','all','DETECTED','INCOMPLETE','OUT_OF_WINDOW','CONFLICT','ELIGIBLE','PUBLISHED','TEMPORARY_ERROR','INTERVENTION']).optional()}),request.query);
+      return catalog.overview(identity(request),value.search,value.page,value.filter);
+    });
     app.get('/api/v1/moderation/catalog-candidates/:candidateId', { preHandler: authenticate }, request => catalog.detail(identity(request), pathId(request.params, 'candidateId')));
     app.patch('/api/v1/moderation/catalog-candidates/:candidateId', { preHandler: authenticate }, request => {
       const value = parse(z.object({ values: z.object({ name: text.optional(), originalName: text.optional(), rarity: z.union([z.literal(4), z.literal(5)]).optional(),

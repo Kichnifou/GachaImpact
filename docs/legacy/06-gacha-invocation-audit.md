@@ -1,5 +1,9 @@
 # 06 — Audit legacy : Gacha / Invocation
 
+## Demande future du 11/10/2026 — Invocations partagées
+
+[Contrat de cadrage](../specifications/shared-invocations-and-wheel-future.md#invocations-partagées) : Diffuser/Voir sousDétail, observation de la scène centrale et retour personnel, événements serveur autoritaires proposés. DOCUMENTATION UNIQUEMENT, non implémenté ; mission dédiée après R1051. RNG/crédit/pity/garanties et transport existants conservés.
+
 ## R1061 — amendement Vote par identité Twitch prouvée sans Player, candidat
 
 Décision propriétaire du 09/10 : [contrat R1061](../architecture/legacy-banner-votes-r1061.md) complète R104/R105/R106/R111/R113–R116. Chaque bulletin source prouvé peut rester Twitch-only ; une identité/cycle vaut un poids natif+externe dédoublonné, futur rattachement après choix R1055 sans nouvelle contribution. Clôture durable, reprise après échec et rotation pondérée normales inchangées ; aucun ancien résultat inventé ou figé réécrit. 065/code candidat review uniquement, aucune restitution publique. La confirmation F5 212da08 est acquise.

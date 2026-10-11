@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Application bornée R1051 — Catalogue et Imports
+
+Dans Modération > Personnages > Catalogue/Imports, liste seule défilante, filtres/actions et pagination fixes. CiblePlayer inutile masquée dans ces deux sous-contextes, Possessions inchangé. Sur mobile le cadre métier utilise la hauteur viewport disponible après défilement normal du document ; la pile/navigation du shell n’est pas redimensionnée. Actualiser circulaire32px/40px tactile, infobulle hover/focus-visible, état occupé et réduction des animations. Notifications : actions à droite dans les états vide/lu/nonlu/suppression. Aperçu candidat uniquement depuis objets stockés ; preuve locale sous GameShell/CSS compilés et recette humaine distinguées au Master.
+
 Statut : contrat transverse validé. L'état physique courant des lots appartient au Master.
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.

@@ -18,7 +18,7 @@ export function useAdminTask(onDone?: () => void) {
     catch (reason) { setError(apiErrorMessage(reason)); return false }
     finally { pendingRef.current = false; setPending(false) }
   }
-  return { pending, error, notice, execute, setError }
+  return { pending, error, notice, execute, setError, clearFeedback: () => {setError('');setNotice('')} }
 }
 
 export function AdminFeedback({ error, notice }: { error?: string; notice?: string }) {

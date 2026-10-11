@@ -1,13 +1,13 @@
 import type { NotificationDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 
-export type NotificationDestination = 'admin-character' | 'arcade-invite' | 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades' | 'trades-history' | 'profile-personalization' | 'missions'
+export type NotificationDestination = 'admin-character' | 'admin-candidate' | 'arcade-invite' | 'expedition' | 'gift-code' | 'monthly-boss' | 'event-messages' | 'event' | 'event-shop' | 'social-requests' | 'social-friends' | 'trades' | 'trades-history' | 'profile-personalization' | 'missions'
 export type NotificationRewardPresentation = Readonly<{ resourceKey: string; label: string; amount: string }>
 export type NotificationPresentation = Readonly<{ title: string; message: string; rewards?: readonly NotificationRewardPresentation[]; destination: NotificationDestination | null }>
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
-  'character-catalog:CATALOG_REVIEW_ADMIN': notification => ({title:text(notification.payload.title,'Fiche à examiner'),message:text(notification.payload.message,'Consulter Modération > Personnages > Imports et candidats.'),destination:null}),
+  'character-catalog:CATALOG_REVIEW_ADMIN': notification => ({title:text(notification.payload.title,'Fiche à examiner'),message:text(notification.payload.message,'Consulter Modération > Personnages > Imports et candidats.'),destination:notification.actionKey==='OPEN_ADMIN_CANDIDATE' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(notification.actionTargetId??'')?'admin-candidate':null}),
   'character-catalog:CHARACTER_IMPORTED_ADMIN': notification => ({ title: text(notification.payload.title, 'Nouveau personnage ajouté'), message: text(notification.payload.message, 'Consulter la fiche dans Modération > Personnages.'),
     destination: notification.actionKey === 'OPEN_ADMIN_CHARACTER' && /^[a-f0-9-]{36}$/i.test(notification.actionTargetId ?? '') ? 'admin-character' : null }),
   'arcade:ARCADE_INVITE': notification => ({ title: 'Invitation Arcade', message: text(notification.payload.message, 'Vous avez reçu une invitation Arcade.'), destination: notification.actionKey === 'OPEN_ARCADE_INVITE' ? 'arcade-invite' : null }),

@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## R1051 — notification vers la fiche candidate exacte
+
+OPEN_ADMIN_CANDIDATE / actionTargetId UUID produit côté serveur et résolu comme admin-candidate ouvre Modération > Personnages > Imports puis la même modale candidate. Le hash #moderation/candidates/<uuid> reste autoritaire, y compris lorsqu’une autre fiche est déjà ouverte. Permission superTools requise ; cible invalide/action inconnue non navigable. CHARACTER_IMPORTED_ADMIN conserve sa destinationCharacter. Aucun changement de géométrie/sidebar/chat du GameShell. [ContratADMIN](administration-moderation-v1.md).
+
 ## Comparaison R1055 — abandon contrôlé (candidat 08/10/2026)
 
 Configuration > Compte conserve le parcours existant de liaison. Un plan opérateur frais ajoute, dans la comparaison, les conséquences sociales agrégées et un acquittement explicite d'abandon ; aucun contenu tiers, fingerprint serveur ou token exposé. WEB/TWITCH symétriques : seul le bouton autorisé par sa propre sûreté/son plan devient disponible après les confirmations. Révision/plan modifié : cases réinitialisées. Même conteneur de scroll et boutons partagés, contrôle GameShell local PC/mobile. [Contrat](../architecture/r1055-operator-resolution.md), validation au [Master](../master/PROJECT_MASTER_PLAN.md#r1055-operator-audit-20261008) ; pas de recette publique Ceo revendiquée.

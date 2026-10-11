@@ -1,5 +1,11 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration072 — admission et annulation R1051
+
+[072](../../server/prisma/migrations/20261011150000_072_catalog_cancellation/migration.sql) ajoute uniquement catalog_runs.cancel_requested_at et étend sa contrainte aux étatsCANCELLED/SUPERSEDED. L’ancien quotidien déjà recalculé vide devientSUPERSEDED avec son rapport conservé ; aucune réussite quotidienne inventée. Aucun changement des RLS/droits ni des Players/Character. Le verrou du singleton catalog_job sérialise admission ADMIN/worker et annulation ; toutes les écritures du moteur relisent la demande durable sous ce même verrou. Compteurs de changements committés dans les transactions métier. Application via pre-deploy Prisma normal ; état réel et checksum au Master.
+
+Deux exceptions applicatives distinctes : plan35 NULL-only et correctionAyaka explicitement autorisée avec expectedCurrentDate ; tous deux refusent une identité/protection changée, plan hashé requis, rejeu sans effet. Le rapprochement des notifications reste dans leurs lignes existantes, preuves/dedup/read conservés, sans nouvelle table.
+
 ## Migration 071 — suivi ciblé et protection R1051
 
 [20261011090000_071_protect_catalog_followup](../../server/prisma/migrations/20261011090000_071_protect_catalog_followup/migration.sql) étend uniquement catalog_candidates/catalog_assets : état/périmètre/motif de suivi, exception ciblée après sortie, statut éditorial et verrous/confirmations distincts. CHECK sur états/périmètre, index partiel ACTIVE dû. Protège les candidats déjà liés aux Character et leurs assets, sans changer Character. Préserve cycle/tentatives, conserve previousRemaining et recalcule remaining ; l'ancien reliquat 107 n'est pas une file à vider. Les RLS/droits privés de 070 restent applicables. Application normale via Prisma migrate deploy/status après review ; aucune DDL opérateur hors ledger. Le rattrapage de dates est une opération applicative NULL-only séparée, plan hashé et transaction atomique, modifiant seulement releaseDate/updatedAt et la provenance du candidat protégé. [Owner](character-catalog-assets-r1051.md), état physique au Master.

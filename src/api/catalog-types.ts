@@ -10,5 +10,6 @@ export type CatalogCandidate = Readonly<{ id: string; characterId: string | null
   trackingState?: string; trackingElements?: readonly string[]; trackingReason?: string | null; releaseFollowupAuthorized?: boolean;
   character?: Readonly<{ iconPath: string | null; splashPath: string | null; wishPath: string | null; fullbodyPath: string | null }> | null }>
 export type CatalogOverview = Readonly<{ entries: readonly CatalogCandidate[]; runs: readonly { id: string; status: string; startedAt: string; completedAt: string | null; summary?: {changed?: number; processed?: number; remaining?: number; mode?: string; errorCode?: string}; nextAttemptAt?: string }[];
+  page?:number;totalPages?:number;total?:number;activeRun?:Readonly<{id:string;status:string;cancelRequestedAt?:string|null;summary?:{mode?:string}}>|null;
   job: { lastSuccessAt: string | null; lastSuccessDate: string | null; leaseUntil: string | null } | null;
   enabled: boolean; dryRun: boolean; publicationEnabled: boolean; storageConfigured: boolean }>

@@ -3,9 +3,16 @@ import {mergeEvidence,eligibility,type Evidence} from '../src/application/charac
 import {canCollect,shouldStopAtRelease,sameEditorialValue} from '../src/application/character-catalog/catalog-followup.js';
 import {parseSecondaryMetadata,linkedCharacterPages,CatalogSecondarySources} from '../src/infrastructure/character-catalog/catalog-secondary.js';
 import {releaseDatePlan} from '../src/application/character-catalog/catalog-date-backfill.js';
+import {catalogReviewPayload} from '../src/application/character-catalog/catalog-notifications.js';
 const now=new Date('2026-10-11T23:30:00Z');
 const proof=(value:string|number,reliability:Evidence['reliability']='PROVISIONAL'):Evidence=>({value,reliability,provider:'icy-veins',url:'https://www.icy-veins.com/genshin-impact/private-profile',fetchedAt:now.toISOString()});
 describe('field follow-up and provisional provenance',()=>{
+ it('summarizes all unread changes without duplicating fields and prioritizes a current conflict',()=>{
+   const first=catalogReviewPayload('fixture','Candidat',['rarity : nouvelle information'],false);
+   const second=catalogReviewPayload('fixture','Candidat',['icon : image disponible','rarity : nouvelle information'],false,first.fields);
+   expect(second.fields).toEqual(['Rareté','Portrait']);expect(second.message).toContain('Rareté, Portrait');
+   expect(catalogReviewPayload('fixture','Candidat',['icon : image disponible'],true,second.fields).title).toContain('Conflit');
+ });
  it('retains a newly reported same-value source conflict and deduplicates its alternatives on replay',()=>{
   const incoming={...proof(4),conflict:true,alternatives:[proof(5)]};
   const result=mergeEvidence({rarity:proof(4)},'rarity',incoming);
@@ -26,6 +33,9 @@ describe('field follow-up and provisional provenance',()=>{
  it('requires an actual stronger proof for provisional promotion and excludes timestamp-only changes',()=>{
   const first=proof(5),later={...first,fetchedAt:'2026-10-12T10:00:00Z'};
   expect(sameEditorialValue(first,later)).toBe(true);
+  expect(sameEditorialValue(first,{...later,provider:'game8',url:'https://game8.co/another-source',alternatives:[{...first,provider:'sephijin'}]})).toBe(true);
+  expect(sameEditorialValue(first,{...first,conflict:true,alternatives:[proof(4)]})).toBe(false);
+  expect(sameEditorialValue(first,{...first,editorialStatus:'VALIDATED'})).toBe(false);
   expect(sameEditorialValue(first,JSON.parse(JSON.stringify({reliability:first.reliability,fetchedAt:later.fetchedAt,url:first.url,provider:first.provider,value:first.value})))).toBe(true);
   expect(mergeEvidence({rarity:first},'rarity',later).rarity?.reliability).toBe('PROVISIONAL');
   expect(mergeEvidence({rarity:first},'rarity',proof(5,'OFFICIAL')).rarity?.reliability).toBe('OFFICIAL');

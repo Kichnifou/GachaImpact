@@ -4,6 +4,8 @@ import type { AdminCharacter, AdminCharacterFields, AdminPage, AdminPossession }
 import { elementKeys, type ElementKey } from '../../api/types'
 import { apiErrorMessage } from '../../utils/formatters'
 import { AdminFeedback, AdminPager, ConfirmAction, useAdminTask } from './AdminUi'
+import CatalogRefresh from './CatalogRefresh'
+import { catalogValue } from './catalog-presentation'
 import { CatalogDialog } from './CatalogDialog'
 import CatalogPipelinePanel from './CatalogPipelinePanel'
 
@@ -12,6 +14,7 @@ type CharacterIntent = Readonly<{ kind: 'catalog'; characterId: string; characte
 
 export default function CharacterAdminPanel({ playerId, playerName }: { playerId: string; playerName: string }) {
   const [section, setSection] = useState<'catalog' | 'possessions' | 'pipeline'>(() => window.location.hash.startsWith('#moderation/candidates/') ? 'pipeline' : 'catalog')
+  const [pipelineId,setPipelineId]=useState<string|undefined>(()=>/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])
   const [editorOpen, setEditorOpen] = useState(false)
   const deepRequest = useRef(0)
   const [missingAssets, setMissingAssets] = useState(false)
@@ -54,7 +57,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       ? api.getAdminCharacters({ page, search, rarity: rarity || undefined, elementKey: elementKey || undefined,
         active: active || undefined, missingAssets: missingAssets || undefined, sort, direction }).then(value => { if (live) setList(value) })
       : api.getAdminPossessions(playerId, page, search, rarity || undefined, elementKey || undefined).then(value => { if (live) setPossessions(value) })
-    void promise.then(()=>{if(live&&reload)setRefreshNotice('Résultats enregistrés actualisés.')}).catch(error => { if (live) setLoadError(apiErrorMessage(error)) }).finally(()=>{if(live){setLoading(false);refreshGate.current=false}})
+    void promise.then(()=>{if(live)setRefreshNotice('Lecture terminée.')}).catch(error => { if (live) setLoadError(apiErrorMessage(error)) }).finally(()=>{if(live){setLoading(false);refreshGate.current=false}})
     return () => { live = false }
   }, [section, page, search, rarity, elementKey, active, missingAssets, sort, direction, playerId, reload])
 
@@ -64,6 +67,9 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       .catch(error => { if (live) setLoadError(apiErrorMessage(error)) })
     return () => { live = false }
   }, [section, candidateSearch, reload])
+
+  useEffect(()=>{task.clearFeedback();setRefreshNotice('')},[section,playerId,editorOpen])
+  useEffect(()=>{if(!task.notice)return;const timer=setTimeout(task.clearFeedback,2500);return()=>clearTimeout(timer)},[task.notice])
 
   const edit = (row: AdminCharacter) => { setEditorOpen(true); setSelected(row); setName(row.name); setExternalKey(row.externalKey)
     setEditRarity(row.rarity); setEditElement(row.elementKey); setEditActive(row.isActive)
@@ -98,26 +104,26 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       const revision = ++deepRequest.current
       const match = /^#moderation\/characters\/([a-f0-9-]{36})$/i.exec(window.location.hash)
       if (match) { setSection('catalog'); void getGameApiClient().getAdminCharacter(match[1]!).then(row => { if (revision === deepRequest.current) edit(row) }).catch(error => { if (revision === deepRequest.current) setLoadError(apiErrorMessage(error)) }) }
-      if (window.location.hash.startsWith('#moderation/candidates/')) setSection('pipeline')
+      if (window.location.hash.startsWith('#moderation/candidates/')) {setSection('pipeline');setPipelineId(/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])}
     }
     openHash(); window.addEventListener('hashchange', openHash)
     return () => { deepRequest.current++; window.removeEventListener('hashchange', openHash) }
   }, [])
 
-  return <div className="admin-domain" aria-label="Administration des personnages">
+  return <div className={`admin-domain${section!=='possessions'?' admin-characters-framed':''}`} aria-label="Administration des personnages">
     <div className="admin-subtabs"><button type="button" aria-pressed={section === 'catalog'} onClick={() => { setSection('catalog'); setPage(1) }}>Catalogue</button>
       <button type="button" aria-pressed={section === 'pipeline'} onClick={() => setSection('pipeline')}>Imports et candidats</button>
       <button type="button" aria-pressed={section === 'possessions'} onClick={() => { setSection('possessions'); setPage(1) }}>Possessions de {playerName}</button></div>
-    <AdminFeedback error={task.error || loadError} notice={task.notice || refreshNotice} />
-    {section === 'pipeline' ? <CatalogPipelinePanel initialId={/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1]} /> : section === 'catalog' ? <>
+    {section!=='pipeline'&&<><AdminFeedback error={task.error || loadError}/><div className="catalog-feedback" role="status">{!editorOpen&&task.notice}<span className="sr-only">{refreshNotice}</span></div></>}
+    {section === 'pipeline' ? <CatalogPipelinePanel initialId={pipelineId} /> : section === 'catalog' ? <>
       <button type="button" onClick={() => { resetForm(); setEditorOpen(true) }}>Ajouter un personnage</button>
       {editorOpen && <CatalogDialog title={selected ? `Modifier ${selected.name}` : 'Ajouter un personnage'} pending={task.pending} onClose={() => setEditorOpen(false)}>
       <section className="admin-editor">
-        <AdminFeedback error={task.error} notice={task.notice} />
+        <AdminFeedback error={task.error} />
         <form onSubmit={save}><label>Clé externe<input value={externalKey} disabled={Boolean(selected) || task.pending} onChange={event => setExternalKey(event.target.value)} required /></label>
           <label>Nom<input value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label>
           <label>Rareté<select value={editRarity} onChange={event => setEditRarity(Number(event.target.value) as 4 | 5)}><option value={4}>4★</option><option value={5}>5★</option></select></label>
-          <label>Élément<select value={editElement} onChange={event => setEditElement(event.target.value as ElementKey)}>{elementKeys.map(key => <option key={key}>{key}</option>)}</select></label>
+          <label>Élément<select value={editElement} onChange={event => setEditElement(event.target.value as ElementKey)}>{elementKeys.map(key => <option key={key} value={key}>{catalogValue('element',key)}</option>)}</select></label>
           <label>Arme<input value={weaponType} maxLength={100} onChange={event => setWeaponType(event.target.value)} /></label>
           <label>Région<input value={region} maxLength={100} onChange={event => setRegion(event.target.value)} /></label>
           <label>Classe<input value={classKey} maxLength={100} onChange={event => setClassKey(event.target.value)} /></label>
@@ -129,14 +135,14 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       <section className="panel admin-list"><div className="catalog-toolbar"><h2>Catalogue</h2><div className="admin-filters">
         <input aria-label="Rechercher un personnage" placeholder="Nom ou clé" value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} />
         <select aria-label="Rareté" value={rarity} onChange={event => { setRarity(event.target.value); setPage(1) }}><option value="">Toutes raretés</option><option value="4">4★</option><option value="5">5★</option></select>
-        <select aria-label="Élément" value={elementKey} onChange={event => { setElementKey(event.target.value); setPage(1) }}><option value="">Tous éléments</option>{elementKeys.map(key => <option key={key}>{key}</option>)}</select>
+        <select aria-label="Élément" value={elementKey} onChange={event => { setElementKey(event.target.value); setPage(1) }}><option value="">Tous éléments</option>{elementKeys.map(key => <option key={key} value={key}>{catalogValue('element',key)}</option>)}</select>
         <select aria-label="Statut" value={active} onChange={event => { setActive(event.target.value); setPage(1) }}><option value="">Tous</option><option value="true">Actifs</option><option value="false">Inactifs</option></select>
-        <label className="character-assets-filter"><input type="checkbox" checked={missingAssets} onChange={event => { setMissingAssets(event.target.checked); setPage(1) }} /> Assets manquants</label>
+        <label className="character-assets-filter"><input type="checkbox" checked={missingAssets} onChange={event => { setMissingAssets(event.target.checked); setPage(1) }} /> Images manquantes</label>
         <select aria-label="Trier" value={sort} onChange={event => setSort(event.target.value)}><option value="name">Nom</option><option value="rarity">Rareté</option><option value="createdAt">Création</option></select>
         <button type="button" onClick={() => setDirection(value => value === 'asc' ? 'desc' : 'asc')}>{direction === 'asc' ? '↑' : '↓'}</button>
-        <button type="button" className="catalog-refresh" disabled={loading} aria-busy={loading} onClick={refresh}>{loading?'Actualisation…':'Actualiser'}</button>
+        <CatalogRefresh loading={loading} onClick={refresh}/>
       </div></div>{loading&&<p role="status">Chargement du catalogue…</p>}<div className="admin-scroll-list">{list?.entries.map(row => <article className="admin-list-row" key={row.id}><div><strong>{row.name} · {row.rarity}★</strong>
-        <small>{row.externalKey} · {row.elementKey} · {row.isActive ? 'Actif' : 'Inactif'}</small></div>
+        <small>{row.externalKey} · {catalogValue('element',row.elementKey)} · {row.isActive ? 'Actif' : 'Inactif'}</small></div>
         <button type="button" onClick={() => edit(row)}>Modifier</button><button type="button" className={row.isActive ? 'danger' : ''} onClick={() => { const intent = { kind: 'catalog' as const, characterId: row.id, characterName: row.name, isActive: !row.isActive }; if (row.isActive) setConfirm(intent); else void setPresence(intent) }}>{row.isActive ? 'Désactiver' : 'Réactiver'}</button></article>)}
         {!list?.entries.length && <p>Aucun personnage.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} pending={task.pending} />}</section>
     </> : <>

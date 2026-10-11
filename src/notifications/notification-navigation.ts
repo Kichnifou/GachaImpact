@@ -12,7 +12,7 @@ export function resolveNotificationNavigation(notification: NotificationDto): No
   const destination = resolveNotificationPresentation(notification).destination
   return {
     destination,
-    targetId: (destination === 'expedition' || destination === 'arcade-invite' || destination === 'admin-character') ? notification.actionTargetId : null,
+    targetId: (destination === 'expedition' || destination === 'arcade-invite' || destination === 'admin-character' || destination === 'admin-candidate') ? notification.actionTargetId : null,
     archiveOnOpen: destination !== null && (
       notification.typeKey === 'ARCADE_INVITE' ||
       notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' ||

@@ -21,7 +21,13 @@ export function editorialFingerprint(value: unknown): string {
   return JSON.stringify(stable(value ?? null));
 }
 export function sameEditorialValue(left: Evidence | undefined, right: Evidence | undefined) {
-  return editorialFingerprint(left) === editorialFingerprint(right);
+  return editorialFingerprint(meaningfulEvidence(left)) === editorialFingerprint(meaningfulEvidence(right));
+}
+export function meaningfulEvidence(value: Evidence | undefined): unknown {
+  if (!value) return null;
+  return {value:value.value,reliability:value.reliability,conflict:!!value.conflict,locked:!!value.locked,
+    adminValidated:!!value.adminValidated,override:!!value.override,editorialStatus:editorialState(value),
+    alternatives:[...new Set((value.alternatives??[]).filter(item=>item.value!==value.value).map(item=>JSON.stringify({value:item.value,reliability:item.reliability})))].sort()};
 }
 export function editorialState(evidence: Evidence) {
   return evidence.editorialStatus ?? (evidence.reliability === 'PROVISIONAL' ? 'PROVISIONAL' : 'VALIDATED');

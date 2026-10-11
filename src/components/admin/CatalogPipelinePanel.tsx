@@ -2,20 +2,21 @@ import {useCallback,useEffect,useRef,useState} from 'react'
 import {getGameApiClient} from '../../api/game-api'
 import type {CatalogCandidate,CatalogOverview} from '../../api/catalog-types'
 import {apiErrorMessage} from '../../utils/formatters'
-import {AdminFeedback,useAdminTask} from './AdminUi'
+import {AdminFeedback,AdminPager,useAdminTask} from './AdminUi'
 import CatalogCandidateDialog from './CatalogCandidateDialog'
-import {catalogStatuses as statusLabels,catalogLabels as labels,catalogDate as date,trackingLabel} from './catalog-presentation'
+import CatalogRefresh from './CatalogRefresh'
+import {catalogStatuses as statusLabels,catalogLabels as labels,catalogDate as date,trackingLabel,runLabel} from './catalog-presentation'
 
 export default function CatalogPipelinePanel({initialId}:{initialId?:string}){
   const [overview,setOverview]=useState<CatalogOverview|null>(null),[detail,setDetail]=useState<CatalogCandidate|null>(null)
-  const [loading,setLoading]=useState(true),[detailLoading,setDetailLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('')
-  const [search,setSearch]=useState(''),[filter,setFilter]=useState(''),[reload,setReload]=useState(0)
-  const currentId=useRef<string|null>(null),requestVersion=useRef(0),refreshGate=useRef(false)
-  const detailRefreshGate=useRef(false)
+  const [loading,setLoading]=useState(true),[detailLoading,setDetailLoading]=useState(false),[error,setError]=useState(''),[announcement,setAnnouncement]=useState('')
+  const [search,setSearch]=useState(''),[filter,setFilter]=useState('tracked'),[page,setPage]=useState(1),[reload,setReload]=useState(0)
+  const currentId=useRef<string|null>(null),requestVersion=useRef(0),refreshGate=useRef(false),detailRefreshGate=useRef(false)
   const openerRef=useRef<HTMLElement|null>(null)
   useEffect(()=>()=>{requestVersion.current++},[])
   const refresh=useCallback(()=>{if(refreshGate.current)return;refreshGate.current=true;setReload(value=>value+1)},[])
   const task=useAdminTask(refresh)
+  useEffect(()=>{if(!task.notice)return;const timer=setTimeout(task.clearFeedback,2500);return()=>clearTimeout(timer)},[task.notice])
   const open=useCallback(async(id:string)=>{
     if(!currentId.current&&document.activeElement instanceof HTMLElement)openerRef.current=document.activeElement
     const version=++requestVersion.current;setDetailLoading(true);setError('')
@@ -23,27 +24,27 @@ export default function CatalogPipelinePanel({initialId}:{initialId?:string}){
     catch(cause){if(version===requestVersion.current)setError(apiErrorMessage(cause))}
     finally{if(version===requestVersion.current)setDetailLoading(false)}
   },[])
-  const refreshDetail=()=>{if(!detail||detailRefreshGate.current)return;detailRefreshGate.current=true;setNotice('');void open(detail.id).then(success=>{if(success)setNotice('Résultats enregistrés actualisés.')}).finally(()=>{detailRefreshGate.current=false})}
-  useEffect(()=>{let live=true;setLoading(true);setError('');setNotice('')
-    void getGameApiClient().getCatalogCandidates(search).then(value=>{if(live){setOverview(value);if(reload)setNotice('Résultats enregistrés actualisés.')}})
+  const refreshDetail=()=>{if(!detail||detailRefreshGate.current)return;task.clearFeedback();detailRefreshGate.current=true;setAnnouncement('');void open(detail.id).then(success=>{if(success)setAnnouncement('Lecture terminée.')}).finally(()=>{detailRefreshGate.current=false})}
+  useEffect(()=>{let live=true;setLoading(true);setError('');setAnnouncement('')
+    void getGameApiClient().getCatalogCandidates(search,page,filter).then(value=>{if(live){setOverview(value);setAnnouncement('Lecture terminée.')}})
       .catch(cause=>{if(live)setError(apiErrorMessage(cause))}).finally(()=>{if(live){setLoading(false);refreshGate.current=false}})
     return()=>{live=false}
-  },[search,reload])
-  useEffect(()=>{if(initialId)void open(initialId)},[initialId,open])
+  },[search,page,filter,reload])
+  useEffect(()=>{task.clearFeedback();if(initialId)void open(initialId)},[initialId,open])
   useEffect(()=>{if(currentId.current&&reload)void open(currentId.current)},[reload,open])
-  const pendingRun=overview?.runs.some(run=>['retry','audit'].includes(run.summary?.mode??'')&&['RUNNING','QUEUED'].includes(run.status))
-  useEffect(()=>{if(!pendingRun)return;const timer=setTimeout(refresh,5000);return()=>clearTimeout(timer)},[pendingRun,overview,refresh])
-  const entries=overview?.entries.filter(row=>!filter||row.status===filter)??[]
+  const activeRun=overview?.activeRun??overview?.runs.find(run=>['RUNNING','QUEUED','FAILED'].includes(run.status))
+  useEffect(()=>{if(!activeRun)return;const timer=setTimeout(refresh,5000);return()=>clearTimeout(timer)},[activeRun,overview,refresh])
+  const last=overview?.runs[0]
   return <section className="panel admin-list catalog-pipeline" aria-label="Suivi des imports Character" aria-busy={loading}>
-    <div className="catalog-toolbar"><h2>Imports et candidats</h2><div className="admin-filters"><input aria-label="Rechercher un candidat" placeholder="Nom du candidat" value={search} onChange={event=>setSearch(event.target.value)}/><select aria-label="Statut des candidats" value={filter} onChange={event=>setFilter(event.target.value)}><option value="">Tous les statuts</option>{Object.entries(statusLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select><button type="button" className="catalog-refresh" onClick={refresh} disabled={loading} aria-busy={loading}>{loading?'Actualisation…':'Actualiser'}</button></div></div>
-    <AdminFeedback error={error||task.error} notice={task.notice&&!detail?'Demande enregistrée. Résultat dans Derniers cycles.':notice}/>
-    {overview&&<div className="catalog-badges"><span>Quotidien {overview.enabled?overview.dryRun?'en simulation':'activé':'en attente d’activation'}</span><span>Publication {overview.publicationEnabled&&overview.storageConfigured&&!overview.dryRun?'activée':'désactivée'}</span><span>Stockage {overview.storageConfigured?'configuré · qualification requise':'à configurer'}</span><span>{overview.entries.filter(row=>row.trackingState==='ACTIVE').length} fiches suivies</span></div>}
-    <div className="catalog-actions"><button type="button" disabled={task.pending||loading} onClick={()=>void task.execute('global-retry',key=>getGameApiClient().checkCatalogCandidates('retry',key))}>Rechercher des mises à jour</button><button type="button" disabled={task.pending||loading} onClick={()=>void task.execute('global-audit',key=>getGameApiClient().checkCatalogCandidates('audit',key))}>Comparer sans modifier</button></div>
-    {loading&&<p role="status">Chargement des candidats…</p>}
-    {!loading&&!entries.length&&<p>Aucun candidat dans cette sélection.</p>}
-    <div className="admin-scroll-list">{entries.map(row=><article className="admin-list-row" key={row.id}><div><strong>{row.name} · {statusLabels[row.status]??row.status}</strong><small>{trackingLabel(row.trackingState)} · Vérifié : {date(row.checkedAt)}</small><small>{row.trackingState!=='ACTIVE'?'Suivi suspendu':!overview?.enabled?'Prochain contrôle quotidien : en attente d’activation':`Prochain contrôle : ${date(row.nextCheckAt)}`}</small><small>{row.missing.length?`À compléter : ${row.missing.map(field=>labels[field]??field).join(', ')}`:'Informations et images requises disponibles.'}</small></div><button type="button" disabled={detailLoading} onClick={()=>void open(row.id)}>Consulter</button></article>)}</div>
-    {detailLoading&&!detail&&<p role="status">Ouverture de la fiche…</p>}
-    {overview&&<details><summary>Derniers cycles</summary>{overview.runs.map(run=><p key={run.id}>{date(run.startedAt)} · {run.status==='COMPLETED'?run.summary?.changed?'Terminé avec nouvelles informations':'Terminé sans changement':run.status==='FAILED'?'Erreur, reprise différée':run.status==='QUEUED'?'En attente':'En cours'}{run.summary?.changed!==undefined?` · ${run.summary.changed} modification(s) réelle(s)`:''}{run.summary?.remaining!==undefined?` · ${run.summary.remaining} fiche(s) restante(s)`:''}</p>)}</details>}
-    {detail&&<CatalogCandidateDialog key={detail.id} detail={detail} overview={overview} task={task} error={error} notice={notice} refreshing={detailLoading} returnFocus={openerRef.current} onRefresh={refreshDetail} onClose={()=>{requestVersion.current++;currentId.current=null;setDetail(null);setDetailLoading(false)}}/>}
+    <div className="catalog-toolbar"><h2>Imports et candidats</h2><div className="admin-filters"><input aria-label="Rechercher un candidat" placeholder="Nom du candidat" value={search} onChange={event=>{setSearch(event.target.value);setPage(1)}}/><select aria-label="Statut des candidats" value={filter} onChange={event=>{setFilter(event.target.value);setPage(1)}}><option value="tracked">Encore suivis</option><option value="protected">Protégés</option><option value="all">Toutes les fiches</option>{Object.entries(statusLabels).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select><CatalogRefresh loading={loading} onClick={()=>{task.clearFeedback();refresh()}}/></div></div>
+    <AdminFeedback error={!detail?(error||task.error):''}/>
+    <div className="catalog-feedback" role="status">{!detail&&task.notice?'Demande enregistrée.':''}<span className="sr-only">{announcement}</span></div>
+    <div className="catalog-actions"><button type="button" disabled={task.pending||loading||!!activeRun} onClick={()=>void task.execute('global-retry',key=>getGameApiClient().checkCatalogCandidates('retry',key))}>Rechercher des mises à jour</button>{activeRun&&<><span role="status">{'cancelRequestedAt' in activeRun&&activeRun.cancelRequestedAt?'Annulation demandée…':runLabel(activeRun.status)}</span><button type="button" disabled={task.pending||('cancelRequestedAt' in activeRun&&!!activeRun.cancelRequestedAt)} onClick={()=>void task.execute(`cancel:${activeRun.id}`,key=>getGameApiClient().cancelCatalogRun(activeRun.id,key))}>Annuler la recherche</button></>}</div>
+    <p className="catalog-last-cycle">Dernier cycle : {last?`${date(last.startedAt)} · ${last.summary?.mode==='audit'?'Vérification sans appliquer · ':''}${runLabel(last.status)} · ${last.summary?.changed??0} changement(s)${last.summary?.remaining?` · ${last.summary.remaining} restante(s)`:''}${last.summary?.errorCode?' · erreur, consulter la configuration':''}`:'Aucun'}</p>
+    <details className="catalog-config"><summary>Configuration et outils avancés</summary><div>{overview&&<p>Quotidien : {overview.enabled?overview.dryRun?'simulation':'actif':'désactivé'} · Publication : {overview.publicationEnabled&&!overview.dryRun?'activée':'désactivée'} · Stockage : {overview.storageConfigured?'clé configurée, qualification distincte':'à configurer'}</p>}<button type="button" disabled={task.pending||loading||!!activeRun} onClick={()=>void task.execute('global-audit',key=>getGameApiClient().checkCatalogCandidates('audit',key))}>Vérifier sans appliquer</button><small>Compare les sources sans modifier les fiches.</small>{overview?.runs.map(run=><p key={run.id}>{date(run.startedAt)} · {run.summary?.mode==='audit'?'Simulation · ':''}{runLabel(run.status)}{run.summary?.errorCode?` · ${run.summary.errorCode}`:''}</p>)}</div></details>
+    <div className="admin-scroll-list">{loading?<p role="status">Chargement des candidats…</p>:!overview?.entries.length?<p>Aucun candidat dans cette sélection.</p>:overview.entries.map(row=><article className="admin-list-row" key={row.id}><div><strong>{row.name} · {statusLabels[row.status]??row.status}</strong><small>{trackingLabel(row.trackingState)} · Vérifié : {date(row.checkedAt)}</small><small>{row.missing.length?`À compléter : ${row.missing.map(field=>labels[field]??field).join(', ')}`:'Informations et images requises disponibles.'}</small></div><button type="button" disabled={detailLoading} onClick={()=>{task.clearFeedback();void open(row.id)}}>Consulter</button></article>)}</div>
+    <AdminPager page={overview?.page??page} totalPages={overview?.totalPages??1} onPage={setPage} pending={loading}/>
+    {detailLoading&&!detail&&<span className="sr-only" role="status">Ouverture de la fiche…</span>}
+    {detail&&<CatalogCandidateDialog key={detail.id} detail={detail} overview={overview} task={task} error={error} notice={announcement} refreshing={detailLoading} returnFocus={openerRef.current} onRefresh={refreshDetail} onClose={()=>{requestVersion.current++;currentId.current=null;setDetail(null);setDetailLoading(false);task.clearFeedback()}}/>}
   </section>
 }

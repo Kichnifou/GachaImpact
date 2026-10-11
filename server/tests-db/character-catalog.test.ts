@@ -18,6 +18,8 @@ import { canCollect } from '../src/application/character-catalog/catalog-followu
 import { recordImageVersion } from '../src/application/character-catalog/catalog-image-version.js';
 import { CatalogSources } from '../src/infrastructure/character-catalog/catalog-sources.js';
 import { vi } from 'vitest';
+import { notifyCatalogReview } from '../src/application/character-catalog/catalog-notifications.js';
+import { planCatalogNotificationReconcile,reconcileCatalogNotifications } from '../src/application/character-catalog/catalog-notification-reconcile.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 beforeAll(() => fixture.setup({ prismaMigrations: true, seedPublicCatalog: true }), 180_000);
@@ -253,7 +255,8 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     expect(active.characterId).not.toBeNull();
   });
   it('applies a date plan only to NULL releaseDate, retains protection and replays without changes',async()=>{
-    const candidate=await db.catalogCandidate.findFirstOrThrow({where:{characterId:{not:null},trackingState:'PROTECTED'}});
+    const seed=await db.character.findFirstOrThrow();
+    const candidate=await db.catalogCandidate.upsert({where:{characterId:seed.id},create:{characterId:seed.id,name:seed.name,trackingState:'PROTECTED',trackingElements:[]},update:{}});
     const before=await db.character.findUniqueOrThrow({where:{id:candidate.characterId!}});
     await db.character.update({where:{id:before.id},data:{releaseDate:null}});
     const snapshot=await db.character.findUniqueOrThrow({where:{id:before.id}});
@@ -264,6 +267,12 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     expect(await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).toMatchObject({trackingState:'PROTECTED',trackingElements:[],fields:{releaseDate:{locked:true,reliability:'STRUCTURED'}}});
     expect(await applyReleaseDatePlan(db,plan)).toMatchObject({updated:0,alreadyDated:1});
     expect(await db.character.findUniqueOrThrow({where:{id:before.id}})).toEqual(after);
+    const correction={...plan,operation:'R1051_RELEASE_DATE_REVIEWED_CORRECTION',entries:[{...plan.entries[0]!,expectedCurrentDate:'2022-01-06',releaseDate:'2022-01-07',provider:'playstation-hoyoverse',sourceUrl:'https://blog.playstation.com/2021/07/09/genshin-impact-version-2-0-all-about-inazuma/'}]};
+    await expect(applyReleaseDatePlan(db,correction)).rejects.toThrow('BACKFILL_EXPECTED_DATE_CHANGED');
+    expect(await db.character.findUniqueOrThrow({where:{id:before.id}})).toEqual(after);
+    correction.entries[0]!.expectedCurrentDate='2022-01-05';
+    expect(await applyReleaseDatePlan(db,correction)).toMatchObject({updated:1});
+    expect(await applyReleaseDatePlan(db,correction)).toMatchObject({updated:0,alreadyDated:1});
   });
   it('keeps immutable image versions while selecting a replacement and supports a safe replay',async()=>{
     const candidate=await db.catalogCandidate.create({data:{name:'Private image replacement'}});
@@ -312,4 +321,102 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     const run = await db.catalogRun.findUniqueOrThrow({ where: { id: first.runId } });
     expect((run.summary as { processedCandidateIds: string[] }).processedCandidateIds).toHaveLength(16);
   }, 90_000);
+  it('admits exactly one concurrent ADMIN request, replays its key and cancels the queued work durably',async()=>{
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const admin=new CatalogAdminService(db,{execute:async()=>player} as unknown as GetCurrentPlayer,engine());
+    const secondPlayer=await db.player.create({data:{displayName:'Private concurrent ADMIN',elementKey:'hydro'}});
+    const secondRole=await db.playerRoleAssignment.create({data:{playerId:secondPlayer.id,role:'ADMIN',grantedByPlayerId:player.id}});
+    const secondAdmin=new CatalogAdminService(db,{execute:async()=>secondPlayer} as unknown as GetCurrentPlayer,engine());
+    const identity={} as AuthenticatedIdentity,key=randomUUID(),otherKey=randomUUID();
+    const results=await Promise.allSettled([admin.queue(identity,null,'retry',key),secondAdmin.queue(identity,null,'audit',otherKey)]);
+    expect(results.filter(result=>result.status==='fulfilled')).toHaveLength(1);
+    expect(results.find(result=>result.status==='rejected')).toMatchObject({reason:{code:'CATALOG_BUSY'}});
+    const run=await db.catalogRun.findFirstOrThrow({where:{cycleKey:{in:[`manual:${key}`,`manual:${otherKey}`]}}});
+    const winner=run.cycleKey.slice(7),mode=(run.summary as {mode:'retry'|'audit'}).mode;
+    await (winner===key?admin:secondAdmin).queue(identity,null,mode,winner);
+    expect(await db.catalogRun.count({where:{cycleKey:run.cycleKey}})).toBe(1);
+    expect(await engine().run('retry')).toMatchObject({skipped:'ACTIVE_RUN',runId:run.id});
+    const cancelKey=randomUUID();await admin.cancel(identity,run.id,cancelKey);await admin.cancel(identity,run.id,cancelKey);
+    expect(await db.catalogRun.findUniqueOrThrow({where:{id:run.id}})).toMatchObject({status:'CANCELLED',cancelRequestedAt:expect.any(Date)});
+    expect(await engine().run(mode,undefined,run.id)).toEqual({skipped:'ALREADY_COMPLETED'});
+    await db.playerRoleAssignment.update({where:{id:secondRole.id},data:{revokedAt:new Date()}});
+  },60_000);
+  it('aborts an in-flight image request after cancellation and retains the field already committed',async()=>{
+    const candidate=await db.catalogCandidate.create({data:{name:'Private cancellation',trackingElements:['rarity','icon']}});
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    let reached!:()=>void;const inFlight=new Promise<void>(resolve=>{reached=resolve});
+    const discovery=vi.spyOn(CatalogSources.prototype,'discover').mockResolvedValue([]);
+    const structured=vi.spyOn(CatalogSources.prototype,'structured').mockResolvedValue({fields:{rarity:{value:5,provider:'genshin-db',url:'https://fixture.test/rarity',reliability:'STRUCTURED',fetchedAt:new Date().toISOString()}},images:{icon:[{provider:'technical-manifest',url:'https://fixture.test/image.png'}]}});
+    const runner=new CatalogEngine(db,{enabled:false,publish:false,dryRun:false},async(_url,options)=>{
+      reached();return new Promise((_,reject)=>{const abort=()=>reject(new CatalogFetchError('CANCELLED'));if(options?.signal?.aborted)abort();else options?.signal?.addEventListener('abort',abort,{once:true})});
+    });
+    const admin=new CatalogAdminService(db,{execute:async()=>player} as unknown as GetCurrentPlayer,runner);
+    try{
+      const executing=runner.run('retry',candidate.id);
+      await Promise.race([inFlight,new Promise((_,reject)=>setTimeout(()=>reject(new Error('HTTP_NOT_REACHED')),10000))]);
+      const run=await db.catalogRun.findFirstOrThrow({where:{status:'RUNNING'}});
+      await admin.cancel({} as AuthenticatedIdentity,run.id,randomUUID());
+      expect(await executing).toMatchObject({runId:run.id,cancelled:true});
+      expect(await db.catalogRun.findUniqueOrThrow({where:{id:run.id}})).toMatchObject({status:'CANCELLED',failureCount:0,summary:{changed:1}});
+      expect(await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).toMatchObject({fields:{rarity:{value:5}}});
+      expect(await db.catalogAsset.count({where:{candidateId:candidate.id}})).toBe(0);
+      expect(await db.catalogJob.findUniqueOrThrow({where:{id:'R1051'}})).toMatchObject({leaseToken:null,leaseUntil:null});
+      expect(await engine().run('retry',candidate.id,run.id)).toEqual({skipped:'ALREADY_COMPLETED'});
+      await admin.cancel({} as AuthenticatedIdentity,run.id,randomUUID());
+      expect((await db.catalogRun.findUniqueOrThrow({where:{id:run.id}})).status).toBe('CANCELLED');
+    }finally{discovery.mockRestore();structured.mockRestore();await db.catalogAttempt.deleteMany({where:{candidateId:candidate.id}});await db.catalogCandidate.delete({where:{id:candidate.id}});}
+  },60_000);
+  it('recovers durable cancellation after restart and never reruns the cancelled daily date',async()=>{
+    const now=new Date('2098-01-01T12:00:00Z');
+    const run=await db.catalogRun.create({data:{cycleKey:'daily:2098-01-01',status:'RUNNING',cancelRequestedAt:new Date()}});
+    await db.catalogJob.update({where:{id:'R1051'},data:{leaseToken:randomUUID(),leaseUntil:new Date(0)}});
+    let calls=0;const restarted=new CatalogEngine(db,{enabled:true,publish:false,dryRun:false},async url=>{calls++;return http(url)},()=>now);
+    expect(await restarted.run()).toMatchObject({skipped:'CANCELLED',runId:run.id});
+    expect(await restarted.run()).toEqual({skipped:'ALREADY_COMPLETED'});expect(calls).toBe(0);
+    expect((await db.catalogRun.findUniqueOrThrow({where:{id:run.id}})).status).toBe('CANCELLED');
+  });
+  it('groups meaningful events per current ADMIN and preserves replay proof through read/archive',async()=>{
+    const candidate=await db.catalogCandidate.create({data:{name:'Private notification group'}});
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const event=(signature:string)=>db.$transaction(tx=>notifyCatalogReview(tx,candidate.id,candidate.name,['rarity : nouvelle information'],signature,new Date()));
+    await event('first');
+    const key=`catalog-review-group:${candidate.id}:${player.id}`;
+    const group=await db.notification.findUniqueOrThrow({where:{deduplicationKey:key}});
+    expect(group).toMatchObject({state:'UNREAD',actionKey:'OPEN_ADMIN_CANDIDATE',actionTargetId:candidate.id});
+    await db.notification.update({where:{id:group.id},data:{state:'READ',readAt:new Date()}});await event('first');
+    expect((await db.notification.findUniqueOrThrow({where:{id:group.id}})).state).toBe('READ');
+    await db.notification.update({where:{id:group.id},data:{state:'ARCHIVED',archivedAt:new Date()}});await event('first');
+    expect((await db.notification.findUniqueOrThrow({where:{id:group.id}})).state).toBe('ARCHIVED');
+    await event('second');expect((await db.notification.findUniqueOrThrow({where:{id:group.id}})).state).toBe('UNREAD');
+    expect(await db.notification.count({where:{typeKey:'CATALOG_REVIEW_ADMIN',state:{not:'ARCHIVED'},actionTargetId:candidate.id}})).toBe(1);
+    expect(await db.notification.count({where:{deduplicationKey:{startsWith:`catalog-review:${candidate.id}:`},state:'ARCHIVED'}})).toBe(2);
+    const ordinary=await db.player.findFirstOrThrow({where:{displayName:'Private ordinary'}});
+    expect(await db.notification.count({where:{playerId:ordinary.id,typeKey:'CATALOG_REVIEW_ADMIN'}})).toBe(0);
+    await db.notification.deleteMany({where:{OR:[{actionTargetId:candidate.id},{deduplicationKey:{startsWith:`catalog-review:${candidate.id}:`}}]}});await db.catalogCandidate.delete({where:{id:candidate.id}});
+  });
+  it('paginates and searches all matching candidates beyond the former 150-row ceiling',async()=>{
+    await db.catalogCandidate.createMany({data:Array.from({length:165},(_,i)=>({name:`Private pagination ${String(i).padStart(3,'0')}`,nextCheckAt:new Date('2099-01-01')}))});
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const admin=new CatalogAdminService(db,{execute:async()=>player} as unknown as GetCurrentPlayer,engine());
+    try{
+      const last=await admin.overview({} as AuthenticatedIdentity,'Private pagination',9,'tracked');
+      expect(last).toMatchObject({total:165,totalPages:9,page:9});expect(last.entries).toHaveLength(5);
+      expect(await admin.overview({} as AuthenticatedIdentity,'Private pagination 164',1,'tracked')).toMatchObject({total:1,entries:[{name:'Private pagination 164'}]});
+    }finally{await db.catalogCandidate.deleteMany({where:{name:{startsWith:'Private pagination'}}});}
+  },60_000);
+  it('consolidates only legacy catalogue events, preserves read state and refuses a stale maintenance plan',async()=>{
+    const candidate=await db.catalogCandidate.create({data:{name:'Private legacy notification'}});
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const old=await db.notification.create({data:{playerId:player.id,domainKey:'character-catalog',typeKey:'CATALOG_REVIEW_ADMIN',state:'READ',readAt:new Date(),deduplicationKey:`catalog-review:${candidate.id}:${'f'.repeat(64)}:${player.id}`,payload:{candidateId:candidate.id,changes:['icon : image disponible'],signature:'f'.repeat(64)}}});
+    const unrelated=await db.notification.create({data:{playerId:player.id,domainKey:'fixture',typeKey:'PRIVATE_UNRELATED',payload:{keep:true}}});
+    const plan=await planCatalogNotificationReconcile(db);
+    expect(await reconcileCatalogNotifications(db,plan.fingerprint)).toMatchObject({groupsCreated:1,eventsArchived:1,proofsDeleted:0});
+    expect(await db.notification.findUniqueOrThrow({where:{id:old.id}})).toMatchObject({state:'ARCHIVED',deduplicationKey:old.deduplicationKey,payload:old.payload,readAt:old.readAt});
+    const group=await db.notification.findUniqueOrThrow({where:{deduplicationKey:`catalog-review-group:${candidate.id}:${player.id}`}});
+    expect(group).toMatchObject({state:'READ',actionKey:'OPEN_ADMIN_CANDIDATE',actionTargetId:candidate.id});
+    expect(await db.notification.findUniqueOrThrow({where:{id:unrelated.id}})).toEqual(unrelated);
+    await expect(reconcileCatalogNotifications(db,plan.fingerprint)).rejects.toThrow('NOTIFICATION_RECONCILE_PLAN_CHANGED');
+    const replay=await planCatalogNotificationReconcile(db);expect(await reconcileCatalogNotifications(db,replay.fingerprint)).toMatchObject({groupsCreated:0,eventsArchived:0});
+    await db.notification.deleteMany({where:{id:{in:[old.id,group.id,unrelated.id]}}});await db.catalogCandidate.delete({where:{id:candidate.id}});
+  },60_000);
 });

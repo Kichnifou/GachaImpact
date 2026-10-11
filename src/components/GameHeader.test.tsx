@@ -40,7 +40,7 @@ it('renders a compact pair with shared sizing at the bottom-left of its header z
   await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
   const group = container.querySelector<HTMLElement>('.notification-bulk-actions')!
   const groupStyle = getComputedStyle(group)
-  expect(groupStyle.alignSelf).toBe('flex-end'); expect(groupStyle.justifyContent).toBe('start')
+  expect(groupStyle.alignSelf).toBe('flex-end'); expect(groupStyle.justifyContent).toBe('end')
   expect(Number.parseFloat(groupStyle.gap)).toBeLessThanOrEqual(1)
   const buttons = [...group.querySelectorAll<HTMLButtonElement>('button')].map(button => getComputedStyle(button))
   expect(buttons).toHaveLength(2)

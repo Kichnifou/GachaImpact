@@ -1,5 +1,13 @@
 # Administration et modération V1 — étape 22
 
+## R1051 — recette complémentaire du 11/10/2026
+
+Catalogue/Imports : cadre stable, seul scroll de liste, pagination fixe, filtres/actions compacts à droite ; ciblePlayer masquée pour ces contextes globaux, conservée dans Possessions. Sous1121px, cadre métier borné à la hauteur viewport, dans le flux mobile du shell inchangé. Imports utilise pagination/filtres serveur sans plafond150, sélection par défaut encore suivie. Configuration/diagnostic/audit repliés, dernier cycle fixe, simulation explicite.
+
+Actualiser : icône circulaire, nom accessible/infobulle hover et clavier, spinner/reduced-motion, verrou pendant requête ; lecture uniquement, annonce discrète sans succès en bandeau. Mutation : feedback local réservé, bref, nettoyé à la fermeture/changement de fiche. Une seule collecte active serveur ; action de lancement désactivée globalement, état visible, annulation durable et confirmation d’arrêt distincte de demande reçue.
+
+Résumé : aperçu des seules images stockéesAVAILABLE ou cheminsCharacter existants, En préparation et statuts provisoire/conflit/absence/protection en français. Quatre onglets conservés, informations actuelles immédiates, preuves/alternatives secondaires repliées, concordance distinguée d’autre valeur, Images avec miniatures. Focus conservé après refresh. [Tests et état physique](../master/PROJECT_MASTER_PLAN.md).
+
 ## R1051 — finalisation ciblée du 11/10/2026
 
 La fiche conserve sa modale, organisée en Résumé/Informations/Images/Historique : onglets à navigation clavier, un corps à scroll sombre, focus complet et retour à l'ouvreur, fermeture bloquée pendant mutation. Valeurs/source/date/statut/verrou visibles ; correction volontaire, champs vides conservés. Actions avancées : Terminer le suivi, pause, Reprendre le suivi ciblé et validation/verrouillage des seuls éléments choisis ; motif, confirmation et révision, audit serveur ADMIN. Une validation ADMIN ne prouve pas une source officielle. Publication anticipée remplace l'ancien libellé, sans contourner l'éligibilité ni les verrous. Images françaises, versions précédentes conservées et remplacement manuel maintenant autorisé sous contrôle ; cette précision supersède le refus général du lot 2.

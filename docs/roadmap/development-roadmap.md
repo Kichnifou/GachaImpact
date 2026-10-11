@@ -1,5 +1,9 @@
 # Roadmap de préparation et de développement GachaImpact
 
+## Backlog demandé le11/10/2026, après R1051
+
+[Invocations partagées et vraie Roue animée](../specifications/shared-invocations-and-wheel-future.md) : demandes propriétaire consignées, directions techniques proposées, deux cadrages/missions dédiés après clôtureR1051. Aucun code, transport, bibliothèque ni dépense anticipés ; aucune dépendance bloquante de l’import catalogue. Le Master garde seul la prochaine action effective.
+
 ## Fin du projet : exploitation silencieuse puis pré-release
 
 [R1050/R1054](../specifications/decisions-log.md) rendent distincts le cutover technique et la révélation du standalone. Les comptes Twitch-only NATIVE PostgreSQL continuent d'accumuler leur vrai état par messages/commandes sans OAuth individuel ni création web imposée, avec Faveur/Gift/Giveaway selon leurs owners et sans Streamer.bot autoritaire pour les domaines remplacés. La stabilisation demeure silencieuse. Les parcours des quatre canaries et leurs validations réelles sont portés par le [Master](../master/PROJECT_MASTER_PLAN.md) ; Kichni_Test reste hors des 43 identités historiques, sans ajout automatique à cette population.

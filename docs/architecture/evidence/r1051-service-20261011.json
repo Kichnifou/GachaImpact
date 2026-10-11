@@ -1,0 +1,142 @@
+{
+  "at": "2026-10-11T14:45:05.646Z",
+  "status": "CANDIDATE_BEFORE_INDEPENDENT_REVIEW",
+  "initialSha": "afeadbb40d5347ff4d5409eee5a43615a1a54ca1",
+  "initial": {
+    "activeCharacters": 120,
+    "dated": 85,
+    "protected": 120,
+    "tracked": 2,
+    "storageObjects": 0
+  },
+  "storage": {
+    "at": "2026-10-11T14:12:13.030Z",
+    "bucket": "character-catalog",
+    "capacity": "OWNER_CONFIRMED_FREE_ORGANISATION_QUOTAS",
+    "configuration": true,
+    "portraits": [
+      {
+        "candidateId": "3938a61e-dacd-4608-958e-7f4d2d77ffc2",
+        "sourceUrl": "https://static.icy-veins.com/images/genshin-impact/characters/valeriy.webp",
+        "sourceHash": "aceb91df588ff45aa1b427bbcedf9fe142e30f9ccb3e624cbb4e4d17682fe321",
+        "hash": "f59b429606c89917dea9876c94ee3933620ff117322839f7eb81bd217f4db632",
+        "publicUrl": "https://rmkpjudimoibyjsjtubh.supabase.co/storage/v1/object/public/character-catalog/characters/3938a61e-dacd-4608-958e-7f4d2d77ffc2/icon/f59b429606c89917dea9876c94ee3933620ff117322839f7eb81bd217f4db632.png",
+        "width": 256,
+        "height": 256,
+        "bytes": 117616,
+        "publicGet": 200,
+        "cacheControl": "public, 31536000",
+        "anonymousWrite": {
+          "http": 400,
+          "storageStatus": 403,
+          "code": "Unauthorized"
+        },
+        "replay": true
+      },
+      {
+        "candidateId": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+        "sourceUrl": "https://static.icy-veins.com/images/genshin-impact/characters/mitya.webp",
+        "sourceHash": "fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d",
+        "hash": "1d70d83732861bfd0c565a8c1f38824f668e3a62031ece6d15924fac7891489b",
+        "publicUrl": "https://rmkpjudimoibyjsjtubh.supabase.co/storage/v1/object/public/character-catalog/characters/c46794a6-8db1-4cef-a3ec-947319b7e3c0/icon/1d70d83732861bfd0c565a8c1f38824f668e3a62031ece6d15924fac7891489b.png",
+        "width": 256,
+        "height": 256,
+        "bytes": 118874,
+        "publicGet": 200,
+        "cacheControl": "public, 31536000",
+        "anonymousWrite": {
+          "http": 400,
+          "storageStatus": 403,
+          "code": "Unauthorized"
+        },
+        "replay": true
+      }
+    ],
+    "ordinaryUserWrite": {
+      "at": "2026-10-11T14:34:25.587Z",
+      "proof": "OWNER_EXECUTED_REAL_ORDINARY_SESSION",
+      "ordinarySessionValidated": true,
+      "anonymous": {
+        "http": 400,
+        "storageStatus": 403,
+        "code": "Unauthorized"
+      },
+      "authenticated": {
+        "http": 400,
+        "storageStatus": 403,
+        "code": "Unauthorized"
+      }
+    },
+    "versionReplacement": {
+      "immutableUrlsDistinct": true,
+      "oldAndNewPublicGetHash": true,
+      "sameHashReplay": true,
+      "temporaryObjects": 2,
+      "privateDatabaseVersioning": "PASS_IN_POSTGRES_TEST",
+      "temporaryObjectsCleaned": true
+    },
+    "characterPublished": false,
+    "objectPoliciesReadOnly": {
+      "policies": 0,
+      "permissiveWritePolicies": 0
+    }
+  },
+  "datePlans": {
+    "nullOnly35": "r1051-release-date-complement-20261011.json",
+    "authorizedCorrection": "r1051-ayaka-date-correction-20261011.json",
+    "applied": false
+  },
+  "tests": {
+    "postgres": 27,
+    "visualStates": 84,
+    "viewports": [
+      [
+        390,
+        844
+      ],
+      [
+        1366,
+        768
+      ],
+      [
+        1920,
+        1080
+      ],
+      [
+        2560,
+        1440
+      ]
+    ],
+    "quick": "5/5",
+    "latestDeltas": {
+      "frontend": 64,
+      "backend": 57,
+      "postgresDateCorrection": "PASS; 1 selected, 26 skipped"
+    },
+    "full": {
+      "result": "FAIL",
+      "stepsPassed": 6,
+      "stepsTotal": 8,
+      "frontend": {
+        "passed": 1461,
+        "failed": 7
+      },
+      "backend": {
+        "passed": 2367,
+        "failed": 6
+      },
+      "baseline": {
+        "sha": "afeadbb40d5347ff4d5409eee5a43615a1a54ca1",
+        "frontendFailed": 7,
+        "backendFailed": 6,
+        "sameFailingTests": true
+      },
+      "exception": "Pre-existing portrait fixtures and command warning assertions reproduced in detached initial commit. No unrelated runtime change; independent review must assess regression scope."
+    }
+  },
+  "dailyEnabled": false,
+  "publicationEnabled": false,
+  "humanRecipe": "À tester en public",
+  "naturalMidnight": "NOT_YET_OBSERVED",
+  "futureFeatures": "DOCUMENTATION_ONLY"
+}

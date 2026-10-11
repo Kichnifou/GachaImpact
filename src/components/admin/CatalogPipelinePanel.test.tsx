@@ -14,7 +14,7 @@ const candidate: CatalogCandidate = { id: '00000000-0000-4000-8000-000000000001'
 const overview: CatalogOverview = { entries: [candidate], runs: [], job: null, enabled: true, dryRun: false, publicationEnabled: false, storageConfigured: false }
 let root: Root, container: HTMLDivElement
 async function mount(initialId?: string) { container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => { root.render(<CatalogPipelinePanel initialId={initialId} />) }) }
-const button = (name: string) => Array.from((document.body.querySelector('[role=dialog]')??document.body).querySelectorAll<HTMLButtonElement>('button')).find(value => value.textContent?.includes(name))!
+const button = (name: string) => Array.from((document.body.querySelector('[role=dialog]')??document.body).querySelectorAll<HTMLButtonElement>('button')).find(value => (value.getAttribute('aria-label')??value.textContent)?.includes(name))!
 const dialog = () => document.body.querySelector<HTMLElement>('[role=dialog]')!
 async function click(element: HTMLElement) { await act(async () => element.click()) }
 async function tab(name:string){await click(Array.from(dialog().querySelectorAll<HTMLElement>('[role=tab]')).find(value=>value.textContent===name)!)}
@@ -43,16 +43,16 @@ describe('Character import ADMIN surface', () => {
     api.getCatalogCandidate.mockReturnValueOnce(new Promise<CatalogCandidate>(done=>{resolve=done}));
     const refresh=button('Actualiser');await act(async()=>{refresh.click();refresh.click()});
     expect(api.getCatalogCandidate).toHaveBeenCalledTimes(2);expect(refresh.disabled).toBe(true);
-    await act(async()=>resolve(candidate));expect(dialog().textContent).toContain('Résultats enregistrés actualisés.');
+    await act(async()=>resolve(candidate));expect(dialog().textContent).toContain('Lecture terminée.');expect(dialog().querySelector('.moderation-feedback')).toBeNull();
   })
   it('disables collection on a protected fiche and never promises an old daily deadline when OFF',async()=>{
     api.getCatalogCandidates.mockResolvedValue({...overview,enabled:false});api.getCatalogCandidate.mockResolvedValue({...candidate,trackingState:'PROTECTED',trackingElements:[]});
-    await mount(candidate.id);expect(button('Rechercher des mises à jour').disabled).toBe(true);expect(button('Comparer sans modifier').disabled).toBe(true);
+    await mount(candidate.id);expect(button('Rechercher des mises à jour').disabled).toBe(true);expect(button('Vérifier sans appliquer').disabled).toBe(true);
     expect(dialog().textContent).toContain('Suivi suspendu');expect(dialog().textContent).not.toContain('12/10/2026');
   })
   it('explains found/missing/retry and blocked storage without offering a blind publication', async () => {
-    await mount(); expect(container.textContent).toContain('Stockage à configurer'); await click(button('Consulter'))
-    expect(dialog().textContent).toContain('Date officielle'); expect(dialog().textContent).toContain('aucun personnage jouable')
+    await mount(); expect(container.textContent).toContain('Stockage : à configurer'); await click(button('Consulter'))
+    expect(dialog().textContent).toContain('Date officielle'); expect(dialog().textContent).toContain('En préparation')
     expect(button('Autoriser la publication anticipée').disabled).toBe(true)
     await tab('Informations')
     expect(dialog().querySelector('a')?.getAttribute('href')).toContain('hoyolab.com/article/46884007')
@@ -67,8 +67,8 @@ describe('Character import ADMIN surface', () => {
   })
   it('queues audit separately from retry, retaining the exact key on ambiguous failure', async () => {
     await mount(candidate.id); api.checkCatalogCandidate.mockRejectedValueOnce({ code: 'NETWORK_ERROR' })
-    await click(button('Comparer sans modifier')); expect(dialog().textContent).toContain('momentanément inaccessible')
-    await click(button('Comparer sans modifier'))
+    await click(button('Vérifier sans appliquer')); expect(dialog().textContent).toContain('momentanément inaccessible')
+    await click(button('Vérifier sans appliquer'))
     expect(api.checkCatalogCandidate.mock.calls[0]).toEqual(api.checkCatalogCandidate.mock.calls[1]); expect(api.checkCatalogCandidate.mock.calls[1]?.[1]).toBe('audit')
     await click(button('Rechercher des mises à jour')); expect(api.checkCatalogCandidate.mock.calls.at(-1)?.[1]).toBe('retry')
   })

@@ -3167,6 +3167,7 @@ model CatalogRun {
   completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
   nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
   failureCount Int @default(0) @map("failure_count")
+  cancelRequestedAt DateTime? @map("cancel_requested_at") @db.Timestamptz(6)
   summary Json @default("{}") @db.JsonB
   attempts CatalogAttempt[]
   @@map("catalog_runs")

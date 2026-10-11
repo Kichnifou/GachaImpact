@@ -278,7 +278,7 @@ function ModerationScreen({
     <div className="screen-content moderation-screen long-screen-layout">
       <ScrollableScreenPanel
         className="moderation-screen-panel"
-        bodyClassName="moderation-tools-body"
+        bodyClassName={`moderation-tools-body${activeTab==='characters'?' moderation-character-tools':''}`}
         fixed={<>
             <nav
               className="moderation-tabs"

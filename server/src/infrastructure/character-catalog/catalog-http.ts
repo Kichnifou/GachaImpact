@@ -24,7 +24,7 @@ export function checkSourceUrl(input: string, hosts = sourceHosts): URL {
   return url;
 }
 export type HttpResult = Readonly<{ body: Buffer; mime: string; status: number; url: string }>;
-export type CatalogHttp = (url: string, options?: { maxBytes?: number; method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: Buffer; noRedirect?: boolean }) => Promise<HttpResult>;
+export type CatalogHttp = (url: string, options?: { maxBytes?: number; method?: 'GET' | 'POST'; headers?: Record<string, string>; body?: Buffer; noRedirect?: boolean; signal?: AbortSignal }) => Promise<HttpResult>;
 
 /** DNS is resolved once, checked, then pinned to the socket (no rebind race). */
 export const catalogHttp: CatalogHttp = async (input, options = {}) => {
@@ -32,6 +32,7 @@ export const catalogHttp: CatalogHttp = async (input, options = {}) => {
   const hosts = new Set(sourceHosts);
   if (process.env['SUPABASE_URL']) hosts.add(new URL(process.env['SUPABASE_URL']).hostname);
   for (let redirects = 0; redirects <= 3; redirects++) {
+    if (options.signal?.aborted) throw new CatalogFetchError('CANCELLED');
     const url = checkSourceUrl(current, hosts);
     let dnsTimer: ReturnType<typeof setTimeout> | undefined;
     const addresses = await Promise.race([lookup(url.hostname, { all: true }), new Promise<never>((_resolve, reject) => {
@@ -40,7 +41,7 @@ export const catalogHttp: CatalogHttp = async (input, options = {}) => {
     if (!addresses.length || addresses.some(row => !isPublicIp(row.address))) throw new CatalogFetchError('SSRF_BLOCKED');
     const pinned = addresses.find(row => row.family === 4) ?? addresses[0]!;
     const result = await new Promise<{ result?: HttpResult; location?: string }>((resolve, reject) => {
-      const request = https.request(url, { method: options.method ?? 'GET', headers: { 'user-agent': 'GachaImpact-Character-Catalog/2', ...options.headers },
+      const request = https.request(url, { signal:options.signal, method: options.method ?? 'GET', headers: { 'user-agent': 'GachaImpact-Character-Catalog/2', ...options.headers },
         lookup: (_host, _options, callback) => callback(null, [{ address: pinned.address, family: pinned.family }]) }, response => {
         const status = response.statusCode ?? 0;
         if ([301, 302, 303, 307, 308].includes(status)) {
@@ -57,7 +58,7 @@ export const catalogHttp: CatalogHttp = async (input, options = {}) => {
       });
       const timer = setTimeout(() => request.destroy(new CatalogFetchError('TIMEOUT')), 20_000);
       request.on('close', () => clearTimeout(timer));
-      request.on('error', error => reject(error instanceof CatalogFetchError ? error : new CatalogFetchError('UNAVAILABLE')));
+      request.on('error', error => reject(options.signal?.aborted ? new CatalogFetchError('CANCELLED') : error instanceof CatalogFetchError ? error : new CatalogFetchError('UNAVAILABLE')));
       request.end(options.body);
     });
     if (result.result) return result.result;

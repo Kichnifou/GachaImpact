@@ -10,6 +10,7 @@ import { normalizedIdentity, eligibility } from './catalog-policy.js';
 import type { CharacterAdminPatch } from '../moderation/character-admin-service.js';
 import { trackingElements, type TrackingElement, shouldStopAtRelease } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
+import { activeCatalogStates, lockCatalogJob, admitCatalogRun } from './catalog-control.js';
 
 export class CatalogAdminService {
   private readonly operation: AdminOperation;
@@ -36,12 +37,16 @@ export class CatalogAdminService {
         return { before: { exists: false }, after: { candidateId: row.id, published: false } };
       } });
   }
-  async overview(identity: AuthenticatedIdentity, search = '') {
+  async overview(identity: AuthenticatedIdentity, search = '', page = 1, filter = 'tracked') {
     await this.operation.actor(identity, 'ADMIN');
-    const entries = await this.db.catalogCandidate.findMany({ where: search ? { name: { contains: search, mode: 'insensitive' } } : {},
-      include: { assets: true, identities: true, character: { select: { iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } } }, orderBy: [{ discoveredAt: 'desc' }, { id: 'asc' }], take: 150 });
+    const where = { ...(search ? { name: { contains: search, mode: 'insensitive' as const } } : {}),
+      ...(filter === 'tracked' ? { trackingState: 'ACTIVE', trackingElements: { isEmpty: false } } : filter === 'protected' ? { trackingState: 'PROTECTED' } : filter === 'all' ? {} : { status: filter }) };
+    const total = await this.db.catalogCandidate.count({ where });
+    const totalPages = Math.max(1, Math.ceil(total / 20)), currentPage = Math.min(page, totalPages);
+    const entries = await this.db.catalogCandidate.findMany({ where,
+      include: { assets: true, identities: true, character: { select: { iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } } }, orderBy: [{ discoveredAt: 'desc' }, { id: 'asc' }], take: 20, skip: (currentPage - 1) * 20 });
     const runs = await this.db.catalogRun.findMany({ orderBy: { startedAt: 'desc' }, take: 5 });
-    return { entries, runs, job: await this.db.catalogJob.findUnique({ where: { id: 'R1051' }, select: { lastSuccessAt: true, lastSuccessDate: true, leaseUntil: true } }),
+    return { entries, runs, total, page: currentPage, totalPages, activeRun: await this.db.catalogRun.findFirst({where:{status:{in:activeCatalogStates}},orderBy:{startedAt:'asc'}}), job: await this.db.catalogJob.findUnique({ where: { id: 'R1051' }, select: { lastSuccessAt: true, lastSuccessDate: true, leaseUntil: true } }),
       enabled: this.engine.settings.enabled, dryRun: this.engine.settings.dryRun, publicationEnabled: this.engine.settings.publish,
       storageConfigured: this.engine.storage.configured };
   }
@@ -97,15 +102,27 @@ export class CatalogAdminService {
   }
   async queue(identity: AuthenticatedIdentity, id: string | null, mode: 'audit' | 'retry', key: string) {
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: mode, idempotencyKey: key, request: { id, mode }, change: async tx => {
+      await lockCatalogJob(tx);
+      await admitCatalogRun(tx);
       if(id) {
         const candidate=await tx.catalogCandidate.findUniqueOrThrow({ where: { id } });
         if(candidate.trackingState!=='ACTIVE'||!candidate.trackingElements.length) throw new AppError('Cette fiche est protégée. Reprendre explicitement les seuls éléments concernés.',409,'CATALOG_PROTECTED');
       }
-      const queued = await tx.catalogRun.count({ where: { status: { in: ['QUEUED', 'RUNNING', 'FAILED'] }, cycleKey: { startsWith: 'manual:' } } });
-      if (queued >= 10) throw new AppError('Des vérifications sont déjà en attente. Réessayer après leur traitement.', 429, 'CATALOG_QUEUE_FULL');
       await tx.catalogRun.create({ data: { cycleKey: `manual:${key}`, status: 'QUEUED', summary: { mode, ...(id?{candidateId:id}:{}), apply:mode==='retry' } } });
       return { before: { candidateId: id }, after: { candidateId: id, mode, queued: true } };
     } });
+  }
+  async cancel(identity: AuthenticatedIdentity, runId: string, key: string) {
+    return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: 'cancel', idempotencyKey: key, request: {runId}, change: async tx => {
+      await lockCatalogJob(tx);
+      const run = await tx.catalogRun.findUnique({where:{id:runId}});
+      if (!run) throw new AppError('Recherche introuvable.',404,'CATALOG_NOT_FOUND');
+      if (!activeCatalogStates.includes(run.status)) return {before:{runId,status:run.status},after:{runId,status:run.status}};
+      const job = await tx.catalogJob.findUniqueOrThrow({where:{id:'R1051'}});
+      const running = run.status === 'RUNNING' && !!job.leaseUntil && job.leaseUntil > new Date();
+      const updated = await tx.catalogRun.update({where:{id:runId},data:{cancelRequestedAt:run.cancelRequestedAt??new Date(),...(!running?{status:'CANCELLED',completedAt:new Date()}:{})}});
+      return {before:{runId,status:run.status},after:{runId,status:updated.status,cancellationRequested:true}};
+    }});
   }
   async upload(identity: AuthenticatedIdentity, id: string, role: Exclude<AssetRole, 'promotion'>, body: Buffer, mime: string, key: string) {
     await this.operation.actor(identity, 'ADMIN');
@@ -125,8 +142,8 @@ export class CatalogAdminService {
         await tx.catalogAsset.updateMany({where:{candidateId:id,role},data:{autoLocked:true}});
         if(current.characterId) await tx.character.update({where:{id:current.characterId},data:{[path[role]]:url}});
         await tx.catalogCandidate.update({ where: { id }, data: { revision: { increment: 1 }, trackingElements:{set:current.trackingElements.filter(element=>element!==role)} } });
-        if (this.engine.settings.enabled && !this.engine.settings.dryRun) await tx.catalogRun.create({ data: {
-          cycleKey: `manual:upload:${key}`, status: 'QUEUED', summary: { mode: 'retry', candidateId: id } } });
+        // Upload does not silently enqueue another collection. ADMIN can request
+        // a new check explicitly through the shared admission gate.
         return { before: { candidateId: id, role, hashes: before.map(row => row.hash) }, after: { candidateId: id, role, hash: image.hash } };
       } });
   }

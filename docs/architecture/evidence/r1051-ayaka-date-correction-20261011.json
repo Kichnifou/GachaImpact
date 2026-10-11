@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "operation": "R1051_RELEASE_DATE_REVIEWED_CORRECTION",
+  "sourceUrl": "https://blog.playstation.com/2021/07/09/genshin-impact-version-2-0-all-about-inazuma/",
+  "fetchedAt": "2026-10-11T14:37:27.032Z",
+  "sourceSha256": "4e8eac1a53277d00308192a71fe343c197ab4cb8a336e5da632de977171a557a",
+  "approval": "Propriétaire11/10/2026 : Autoriser aussi cette correction sourcée dans la mission. Exception séparée du planNULL-only35.",
+  "entries": [
+    {
+      "id": "d426c718-8b10-486a-a1b7-d17ea0dd1ddf",
+      "name": "Ayaka",
+      "externalKey": "legacy:26",
+      "rarity": 5,
+      "element": "cryo",
+      "expectedCurrentDate": "2021-07-01",
+      "releaseDate": "2021-07-21",
+      "sourceUrl": "https://blog.playstation.com/2021/07/09/genshin-impact-version-2-0-all-about-inazuma/",
+      "provider": "playstation-hoyoverse",
+      "justification": "Ayaka = Kamisato Ayaka, ID10000002, 5★ Cryo. Article HoYoverse/PlayStation version2.0 au21/07/2021 ; liste/wiki concordante. Game8 présente une erreur au01/07/2021, recopiée par le plan85 précédent. Correction explicite, aucune autre date existante corrigée."
+    }
+  ]
+}

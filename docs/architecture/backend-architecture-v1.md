@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## R1051 — admission commune et arrêt coopératif
+
+Rejet409 CATALOG_BUSY d’une autre intention tant qu’un cycleQUEUED/RUNNING/FAILED existe ; même clé via AdminOperation rejouée sans nouvelle tâche. L’admission ADMIN et worker partagent le FOR UPDATE catalog_job existant. Alternatives examinées : count puiscreate laisse une course ; file/secondworker/Redis ajouteraient une infrastructure et permettraient les recherches involontaires. Le singleton et la lease existants suffisent ; aucun nouveau scheduler transversal.
+
+Annuler journalise cancelRequestedAt ; attente sans lease annulée immédiatement, traitement actif interrompu par AbortSignal et relecture avant chaque transaction fenced. Commit achevé avant demande conservé ; commit suivant refusé. Statut effectifCANCELLED après arrêt, lease libérée ; prochaine journéeParis ou nouvelle intention ADMIN, aucun redémarrage du cycle annulé. L’annulation ne touche pas les autres schedulers. [Owner et limites](character-catalog-assets-r1051.md).
+
 ## R1051 lot 2 — Catalogue Character
 
 `CatalogEngine` orchestre sources, enrichissement NULL-only, identité et publication transactionnelle, `CatalogScheduler` réutilise le runtime Railway et son start/close, `CatalogAdminService` réutilise ADMIN/AdminOperation. Les adaptateurs HTTP/Sharp/Storage sont séparés du domaine de provenance/éligibilité. Lease durable inter-instance et reprise de cycles/modes/cibles, budget borné ; aucune activité joueur/Twitch nécessaire. Outbox créée dans la transaction Character puis notifications ADMIN existantes après commit. Source des règles, limites de couverture, stockage bloqué et gates : [owner Character](character-catalog-assets-r1051.md#lot-2--implémentation-gates-et-reprise). [Migration 070](postgresql-schema-v1.md#r1051-migration-070), [exploitation](../deployment/free-first-v1.md#r1051-storage-operations). Aucun nouveau service, état économique ou mécanisme d'identité joueur. État effectif au Master.

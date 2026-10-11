@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1051 — recette et mise en service, amendement propriétaire du 11/10/2026
+
+VALIDÉ PAR LE PROPRIÉTAIRE : terminer les35 dates NULL restantes par plan sourcé/rejouable, une collecte admise globalement et annulation réelle, ADMIN compact et aperçu honnête, notifications groupées par candidat/ADMIN et accès exact. Quotas Storage/egress gratuits de l’organisation confirmés par le propriétaire ; secret configuré directement dans Railway. Refus anonymes et session ordinaire testés (preuve propriétaire14:34UTC). Après tests/review/collecte contrôlée, quotidien réel autorisé ; publication automatique séparée, activable seulement sous toutes ses gates, sans candidat forcé ni override. Ce mandat supersède l’ancienne clôture volontairementOFF. Ayaka : correction01/07→21/07/2021 explicitement autorisée après signalement, dans un plan séparé à valeur courante exacte.
+
+Demandes futures [Invocations partagées et vraie Roue](shared-invocations-and-wheel-future.md) consignées uniquement ; directions techniques proposées, cadrage/mandats dédiés après R1051. Aucun code associé. [Owner et preuves](../architecture/character-catalog-assets-r1051.md#recette-et-mise-en-service--mandat-du-11102026), état réellement acquis au Master.
+
 ## R1051 — protection et préparation provisoire, mandat du 11/10/2026
 
 VALIDÉ PAR LE PROPRIÉTAIRE : protéger les historiques ; suivi global et par élément, arrêt automatique à la sortie officielle d'un personnage déjà publié, reprise ciblée ADMIN confirmée/motivée/auditée avec relecture des verrous à l'application. Aucun déverrouillage depuis une découverte globale ; premier import d'un nouveau candidat déjà sorti permis sous gates. ADMIN, provenance officielle, statut éditorial et permission d'autowrite restent distincts. Les fondamentaux provisoires ne suffisent jamais à publier.

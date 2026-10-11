@@ -1,5 +1,9 @@
 # 17 — Audit Roue / quotidien
 
+## Demande future du 11/10/2026 — vraie Roue animée
+
+[Contrat de cadrage](../specifications/shared-invocations-and-wheel-future.md#roue-animée) : roue responsive soignée dans l’espace disponible, sans scroll propre, résultat métier serveur existant puis animation. DOCUMENTATION UNIQUEMENT, non implémenté ; mission dédiée après R1051. Probabilités, récompenses, fréquence et crédit unique conservés.
+
 **Amendement Chat R1038 — étape 29 :** Le résultat Roue expose déjà traité par le propre reçu, distinct de déjà consommé par une autre intention quotidienne ; le Chat rejoue son gain initial ou avertit sans annoncer de nouveau gain. Résultat/RNG/crédit unique même avec concurrence UI, aucun nouveau droit ni reset. Les glyphes et quantités viennent du résultat réel ; quotis reste une lecture transversale. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
 
 > Domaine 14 de l'audit GachaImpact.  

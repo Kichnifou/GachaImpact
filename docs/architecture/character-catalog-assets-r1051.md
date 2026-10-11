@@ -1,5 +1,19 @@
 # Catalogue Character et assets — R1051
 
+## Recette et mise en service — mandat du 11/10/2026
+
+Contrat propriétaire : une seule collecte admise globalement (quotidien, retry global/ciblé, audit, plusieurs ADMIN/onglets), sérialisée sur le singleton catalog_job existant ; même clé = même opération, autre demande = refus indiquant le cycle actif. Aucune seconde file. Annulation durable, coopérative et confirmée : attente annulable immédiatement, traitement interrompu avant les écritures suivantes, commits antérieurs conservés, lease libérée, aucun rejeu automatique du cycle annulé. Statuts Annulée/Échec/Terminée distincts ; quotidien annulé attend la prochaine journée Paris, relance ADMIN explicite possible. Proposition technique retenue dans ce mandat : colonne cancel_requested_at et extension de la contrainte des statuts, sans nouvelle infrastructure.
+
+Notifications : un agrégat actif par candidat/ADMIN, événements dédupliqués conservés archivés pour empêcher leur résurrection après lecture/archive/retry ; conflit prioritaire. Date de visite et source concordante ne sont pas des nouveautés métier. Action canonique OPEN_ADMIN_CANDIDATE vers la fiche exacte. Rapprochement existant borné au seul type CATALOG_REVIEW_ADMIN, preuves conservées.
+
+Recette ADMIN demandée : cadres Catalogue/Imports avec seul défilement de liste, pied visible, filtres compacts, Actualiser circulaire accessible sans bandeau de lecture, configuration/diagnostic repliés, dernier cycle en ligne fixe, filtres/pagination serveur ; résumé visuel utilisant seulement les objets stockés disponibles, provisoire/conflit/absence/protection explicités en français. Les quatre onglets, Possessions et le catalogue public sont conservés. Recette humaine toujours ouverte tant que non observée.
+
+Dates : compléter exactement les 35 identités remaining du plan précédent après rapprochement alias/ID/rareté/élément et preuves. Exception NULL-only transactionnelle et rejouable, les 85 dates acquises et les protections restent intactes dans ce lot. Exception distincte autorisée ensuite par le propriétaire : Ayaka 01/07→21/07/2021, plan séparé sourcé HoYoverse/PlayStation avec garde de date courante exacte ; aucune autre date existante corrigée. Première disponibilité jouable toutes plateformes ; Aloy 01/09/2021, disponibilité générale 13/10/2021 en provenance.
+
+Storage puis quotidien/publication : clé présente ne vaut pas qualification. Capacité gratuite organisation, bucket public PNG 5 Mio à écritures serveur seulement, upload/hash/GET/cache/refus anonymes et utilisateur ordinaire/rejeu/versioning requis avant activation. Quotidien et publication sont deux gates distinctes ; pas d'override des candidats incomplets ni prétention de cycle naturel avant observation.
+
+Les [Invocations partagées et la nouvelle Roue](../specifications/shared-invocations-and-wheel-future.md) sont documentées uniquement, après R1051, sans code ni dépendance bloquante.
+
 ## Finalisation ciblée — amendement du 11/10/2026
 
 Cette politique **supersède** le parcours quotidien de tous les historiques, le reliquat de 107 et le refus général des remplacements décrits dans le lot 2 historique ci-dessous. État de publication et application au [Master](../master/PROJECT_MASTER_PLAN.md).
