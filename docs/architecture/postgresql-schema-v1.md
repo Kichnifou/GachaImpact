@@ -1,5 +1,22 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+<a id="invocations-partagees-c"></a>
+
+## Invocations partagées standalone — extension additive C
+
+La DDL `20261011200000_074_shared_invocations` ajoute seulement deux tables privées. Leur propriétaire applicatif est Gacha via `SharedInvocations` ; elles portent la présentation et l'adhésion, jamais un second état économique. [Contrat spécialisé et reprise](shared-invocations-v1.md). La présence de cette DDL dans le dépôt ne prouve pas son application publique.
+
+| Table | Champs et contraintes physiques |
+| --- | --- |
+| `shared_invocation_sessions` | `id UUID` PK avec `gen_random_uuid()`, `owner_id UUID NOT NULL UNIQUE`, `tab_id UUID NOT NULL`, `status TEXT` limité à ACTIVE/PAUSED/STOPPED ; `last_gesture_at`, `lease_until`, `updated_at` TIMESTAMPTZ ; `presence_revision BIGINT NOT NULL DEFAULT 0`, `seq INTEGER NOT NULL DEFAULT 1 CHECK (seq > 0)` ; `snapshot JSONB NOT NULL`, `pending_key`/`completed_key UUID` nullables, `pending_count INTEGER` nullable limité à 1 ou 10, `reactions JSONB NOT NULL DEFAULT '[]'`. Index `(status, lease_until)`. |
+| `shared_invocation_members` | `player_id UUID` PK, `watching_id UUID` nullable, `last_reaction_at TIMESTAMPTZ` nullable. Une seule adhésion et un cooldown persistant par Player, commun à ses onglets. |
+
+Les FK `sessions.owner_id` et `members.player_id` ciblent `players.id` avec `ON DELETE CASCADE` ; `members.watching_id` cible `sessions.id` avec `ON DELETE SET NULL`. Les trois relations ont `ON UPDATE NO ACTION`, explicite aussi dans Prisma. Un propriétaire a au plus une session ; plusieurs membres peuvent regarder la même session. L'exclusion diffuser/regarder, l'autorité d'onglet, les révisions et les limites JSON sont validées par le backend sous verrou advisory partagé, et non par un CHECK SQL de forme JSON. Les clés d'intention/rejeu sont des UUID privés ; le snapshot porte l'identifiant de l'opération committée, sans nouvelle FK vers `PullOperation`.
+
+RLS est activée sur les deux tables ; tous les privilèges sont révoqués à `PUBLIC`, `anon` et `authenticated`, sans policy navigateur. La lecture passe uniquement par les routes backend authentifiées et leur projection minimale. Le snapshot exclut `PlayerDTO`, secrets, soldes, inventaire, XP et historique personnel ; l'intention à reprendre n'est exposée qu'à l'onglet propriétaire autoritaire. Les reçus Gacha existants restent la source du résultat, de sa bannière et de sa cible.
+
+L'ordre transactionnel UI est rotation `70422401` → partagé `1074074` → Player ; les sessions prennent partagé avant leurs FK Player. Sous verrou, les projections réutilisent la transaction existante. Le backend applique le bail de 60 secondes, l'activité de 45 minutes et le nettoyage par lots bornés ; poll, heartbeat et spectateurs ne renouvellent pas l'activité. Les réactions sont plafonnées à seize effets expirant après quatre secondes, avec cooldown de trois secondes conservé dans le membre ; aucun historique de réaction supplémentaire.
+
 ## Migration 073 — catalogue progressif
 
 `20261011190000_073_catalog_progressive` ajoute `catalog_candidates.progressive_policy BOOLEAN NOT NULL DEFAULT false`. UPDATE borné aux seuls candidats ACTIVE sans Character ; aucun historique protégé, Character, asset, Player ni table économique modifié. Aucune nouvelle table/policy/grant ; les sept tables catalogue gardent RLS et révocations navigateur existantes. La projection publique passe exclusivement par le backend authentifié. Identités uniques namespace/externalId et characterId existantes conservées, activation sérialisée sous verrou de candidat et advisory lock commun pour les aliases. Migration présente ≠ appliquée : registre Prisma/migrate status et tests privés requis avant livraison ; état de production au Master.

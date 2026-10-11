@@ -821,6 +821,14 @@ Les x10 restent groupés par opération.
 
 État physique 0.71 : le snapshot JSON interne de chaque résultat conserve `stateBefore`, l'état final post-passifs, les bonus, la progression C6 éventuelle, le snapshot de la Team active et les `passiveEffects` machine-readable. Un retry idempotent relit ces valeurs persistées sans nouveau RNG ni nouveau crédit, y compris si l'état Gacha courant a ensuite changé.
 
+## 10.7 Invocations partagées standalone — extension C
+
+`SharedInvocationSession` est une présentation Gacha consentie, unique par propriétaire Player, avec onglet autoritaire, statut ACTIVE/PAUSED/STOPPED, séquence, révision de présence, bail, date du dernier geste, snapshot phase/index et intention de pull en attente/rejouée. `SharedInvocationMember` est unique par Player et porte la session regardée nullable ainsi que le dernier instant de réaction ; plusieurs membres peuvent regarder la même session. Diffuser et regarder sont exclusifs par Player, y compris interonglets. Seul le diffuseur autoritaire commande la scène ; le spectateur conserve ses propres données personnelles et ne peut ni invoquer ni avancer, passer ou fermer cette présentation.
+
+Le snapshot partage seulement pseudo/avatar, bannière/cible, pity 4/5, garantie/Capture et résultats déjà committés avec leurs deltas visibles. Il ne devient ni un `PlayerDTO` ni une sauvegarde économique concurrente : aucun token, identité Auth, solde, inventaire, XP ou historique personnel. L'intention privée clé/quantité permet au seul propriétaire de reprendre avant commit ; après commit, le reçu `PullOperation`/`PullResult` existant reconstruit la scène sans nouveau RNG ni crédit. Bannière de l'opération et cible du reçu sont figées, même après rotation ; une phase non idle interdit la mutation de cible. Un x10 rejoint en cours conserve l'index courant puis ses étapes suivantes et son résumé complet.
+
+La pause hors Invocation conserve la session listée et la présentation. Le bail de connexion est de 60 secondes, l'inactivité de 45 minutes dépend seulement des gestes authentifiés du diffuseur ; les polls et spectateurs ne la prolongent pas. Transport fetch/poll borné, curseur et nettoyage borné sont détaillés dans le [contrat spécialisé](../architecture/shared-invocations-v1.md). Les réactions 🎉 ✨ ❤️ 😮 👏 sont éphémères et plafonnées, avec cooldown persistant de trois secondes par Player, sans chat, historique ou récompense. Les [deux tables privées, FK NO ACTION et RLS/révocations](../architecture/postgresql-schema-v1.md#invocations-partagees-c) matérialisent ce modèle local ; la publication et l'application publique restent séparées. Gacha reste propriétaire de l'écriture ; les gardes UI sérialisent rotation → partagé → Player selon le [contrat backend](../architecture/backend-architecture-v1.md#invocations-partagees-c).
+
 ---
 
 # 11. Collection / Possessions
