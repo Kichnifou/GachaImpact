@@ -1,6 +1,6 @@
 import { randomUUID, createHash } from 'node:crypto';
 import { Prisma, type PrismaClient, type CatalogCandidate } from '../../../generated/prisma/client.js';
-import { getBusinessDate } from '../../domain/time/business-date.js';
+import { getBusinessDate, getNextBusinessResetAt } from '../../domain/time/business-date.js';
 import { eligibility, mergeEvidence, normalizedIdentity, readFields, type CatalogFields } from './catalog-policy.js';
 import { CatalogFetchError, RequestBudget, catalogHttp, type CatalogHttp } from '../../infrastructure/character-catalog/catalog-http.js';
 import { CatalogSources, catalogFieldSources, officialReleaseEvidence, type SourceAttempt, type OfficialPost } from '../../infrastructure/character-catalog/catalog-sources.js';
@@ -39,7 +39,7 @@ export class CatalogEngine {
       run = await this.db.catalogRun.update({ where: { id: run.id }, data: { status: 'RUNNING', completedAt: null } });
       const record = async (attempt: SourceAttempt, id?: string) => {
         await this.fenced(token, tx => tx.catalogAttempt.create({ data: { runId: run.id, candidateId: id, ...attempt,
-          checkedAt: this.now(), nextCheckAt: new Date(this.now().getTime() + 86_400_000) } }));
+          checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } }));
       };
       const budget = new RequestBudget(async (url, options) => {
         const renewed = await this.db.catalogJob.updateMany({ where: { id: 'R1051', leaseToken: token, leaseUntil: { gt: this.now() } },
@@ -54,7 +54,14 @@ export class CatalogEngine {
         for (const post of posts.filter(row => row.name)) await this.discover(token, post);
         await this.seedHistorical(token);
       }
-      const candidates = await this.db.catalogCandidate.findMany({ where: candidateId ? { id: candidateId } : { nextCheckAt: { lte: this.now() } },
+      const previous = run.summary as Prisma.InputJsonObject;
+      const dailyCutoff = mode === 'daily' && typeof previous['dailyCutoff'] === 'string' ? new Date(previous['dailyCutoff']) : this.now();
+      const processedIds = mode === 'daily' && Array.isArray(previous['processedCandidateIds']) ?
+        previous['processedCandidateIds'].filter((id): id is string => typeof id === 'string') : [];
+      const dailyWhere = () => ({ nextCheckAt: { lte: dailyCutoff }, id: { notIn: processedIds } });
+      const checkpoint = () => ({ mode, dryRun: this.settings.dryRun, dailyCutoff: dailyCutoff.toISOString(), processedCandidateIds: processedIds });
+      if (mode === 'daily') await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+      const candidates = await this.db.catalogCandidate.findMany({ where: candidateId ? { id: candidateId } : dailyWhere(),
         orderBy: [{ nextCheckAt: 'asc' }, { id: 'asc' }], take: mode === 'daily' ? 15 : 1, include: { character: true, assets: true, identities: true } });
       const reports: unknown[] = [];
       for (const candidate of candidates) {
@@ -78,7 +85,13 @@ export class CatalogEngine {
             if (release) merged = mergeEvidence(merged, 'releaseDate', release);
           }
           reports.push({ candidateId: candidate.id, fields: merged, missing: eligibility(merged, candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started).missing });
-          if (mode === 'audit' || this.settings.dryRun) continue;
+          if (mode === 'audit' || this.settings.dryRun) {
+            if (mode === 'daily') {
+              processedIds.push(candidate.id);
+              await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+            }
+            continue;
+          }
           await this.fenced(token, async tx => {
             await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
             const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
@@ -132,15 +145,22 @@ export class CatalogEngine {
           if (['BUDGET_EXHAUSTED', 'LEASE_LOST'].includes(code)) throw error;
           await record({ provider: 'pipeline', field: 'candidate', outcome: 'ERROR', errorCode: code }, candidate.id);
           if (mode !== 'audit' && !this.settings.dryRun) await this.fenced(token, tx => tx.catalogCandidate.update({ where: { id: candidate.id }, data: {
-            status: code === 'IDENTITY_CONFLICT' ? 'CONFLICT' : 'TEMPORARY_ERROR', checkedAt: this.now(), nextCheckAt: new Date(this.now().getTime() + 3_600_000) } }));
+            status: code === 'IDENTITY_CONFLICT' ? 'CONFLICT' : 'TEMPORARY_ERROR', checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } }));
+        }
+        if (mode === 'daily') {
+          processedIds.push(candidate.id);
+          await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
         }
       }
       if (mode !== 'audit' && !this.settings.dryRun) await this.deliverNotifications();
+      const remaining = mode === 'daily' ? await this.db.catalogCandidate.count({ where: dailyWhere() }) : 0;
       await this.fenced(token, async tx => {
-        await tx.catalogRun.update({ where: { id: run.id }, data: { status: 'COMPLETED', failureCount: 0, completedAt: this.now(), summary: json({ mode, dryRun: this.settings.dryRun, discovered: posts.filter(row => row.name).length, reports }) } });
-        if (mode === 'daily') await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: businessDate, lastSuccessAt: this.now() } });
+        await tx.catalogRun.update({ where: { id: run.id }, data: { status: remaining ? 'QUEUED' : 'COMPLETED', failureCount: 0,
+          completedAt: remaining ? null : this.now(), nextAttemptAt: new Date(this.now().getTime() + (remaining ? 60_000 : 0)),
+          summary: json({ ...checkpoint(), discovered: posts.filter(row => row.name).length, remaining, reports }) } });
+        if (mode === 'daily' && !remaining) await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: businessDate, lastSuccessAt: this.now() } });
       });
-      return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length };
+      return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length, remaining };
     } catch (error) {
       if (runId) await this.fenced(token, async tx => {
         const run = await tx.catalogRun.findUniqueOrThrow({ where: { id: runId } });
@@ -213,7 +233,7 @@ export class CatalogEngine {
       if (candidate.character) for (const [role, path] of Object.entries(rolePath)) if (candidate.character[path as 'iconPath']) available.push(role);
       const result = eligibility(fields, available, started);
       await tx.catalogCandidate.update({ where: { id }, data: { status: candidate.characterId ? 'PUBLISHED' : result.status, missing: result.missing,
-        officialReleaseDate: result.officialDate ? new Date(`${result.officialDate}T00:00:00Z`) : null, checkedAt: this.now(), nextCheckAt: new Date(started.getTime() + 86_400_000) } });
+        officialReleaseDate: result.officialDate ? new Date(`${result.officialDate}T00:00:00Z`) : null, checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } });
       if (candidate.characterId) {
         // Fill NULL only, retaining every existing ADMIN value and all gameplay relations.
         for (const [role, path] of Object.entries(rolePath)) {

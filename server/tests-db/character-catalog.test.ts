@@ -8,6 +8,7 @@ import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { CatalogEngine } from '../src/application/character-catalog/catalog-engine.js';
 import { CatalogAdminService } from '../src/application/character-catalog/catalog-admin.js';
 import { CatalogScheduler } from '../src/application/character-catalog/catalog-scheduler.js';
+import { getNextBusinessResetAt } from '../src/domain/time/business-date.js';
 import type { CatalogHttp } from '../src/infrastructure/character-catalog/catalog-http.js';
 import type { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
@@ -43,14 +44,32 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     expect(result.some(value => 'skipped' in value && value.skipped === 'LEASE_BUSY')).toBe(true);
     expect(await db.catalogIdentity.count({ where: { namespace: 'hoyolab-post', externalId: '46884007' } })).toBe(1);
     expect(await db.catalogCandidate.count({ where: { name: 'Private Catalog' } })).toBe(1);
+    const daily = await db.catalogRun.findFirstOrThrow({ where: { cycleKey: { startsWith: 'daily:' } } });
+    expect(daily.status).toBe('QUEUED');
+    expect((await db.catalogJob.findUniqueOrThrow({ where: { id: 'R1051' } })).lastSuccessDate).toBeNull();
+    expect(await engine().run()).toEqual({ skipped: 'BACKOFF' });
+    let remaining = await db.catalogCandidate.count({ where: { checkedAt: null } });
+    expect(remaining).toBeGreaterThan(100);
+    for (let batch = 0; remaining && batch < 10; batch++) {
+      await db.catalogRun.update({ where: { id: daily.id }, data: { nextAttemptAt: new Date(0) } });
+      const result = await engine().run(); // A fresh instance resumes the same durable daily cycle.
+      expect(result).toMatchObject({ runId: daily.id });
+      const next = await db.catalogCandidate.count({ where: { checkedAt: null } });
+      expect(next).toBeLessThan(remaining);
+      remaining = next;
+    }
+    expect(remaining).toBe(0);
+    expect(await db.catalogRun.count({ where: { cycleKey: { startsWith: 'daily:' } } })).toBe(1);
+    expect((await db.catalogRun.findUniqueOrThrow({ where: { id: daily.id } })).status).toBe('COMPLETED');
     expect(await engine().run()).toEqual({ skipped: 'ALREADY_COMPLETED' });
     expect(await db.character.findMany({ orderBy: { id: 'asc' } })).toEqual(before);
     expect(await db.catalogImportOutbox.count()).toBe(0);
-  }, 60_000);
+  }, 300_000);
   it('missing fundamentals are durable and a manual retry remains idempotent', async () => {
     const candidate = await db.catalogCandidate.findFirstOrThrow({ where: { name: 'Private Catalog' } });
     expect(candidate.characterId).toBeNull(); expect(candidate.missing).toEqual(expect.arrayContaining(['rarity', 'officialReleaseDate', 'icon']));
     expect(candidate.nextCheckAt.getTime()).toBeGreaterThan(candidate.checkedAt!.getTime());
+    expect(candidate.nextCheckAt).toEqual(getNextBusinessResetAt(candidate.checkedAt!));
     const requestId = randomUUID();
     const run = await db.catalogRun.create({ data: { cycleKey: `manual:${requestId}`, status: 'QUEUED', summary: { candidateId: candidate.id, mode: 'retry' } } });
     await engine().run('retry', candidate.id, run.id);
@@ -143,4 +162,23 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     await new CatalogScheduler(db, engine()).catchUp();
     expect(await db.catalogRun.findUniqueOrThrow({ where: { id: run.id } })).toMatchObject({ status: 'COMPLETED', failureCount: 0 });
   }, 60_000);
+  it('resumes all dry-run batches without altering candidates, assets or active Characters', async () => {
+    const now = new Date(Date.now() + 86_400_000);
+    await db.catalogCandidate.updateMany({ data: { nextCheckAt: new Date(now.getTime() + 86_400_000) } });
+    await db.catalogCandidate.createMany({ data: Array.from({ length: 16 }, (_, i) => ({ name: `Private dry run ${i}` })) });
+    const before = await db.catalogCandidate.findMany({ orderBy: { id: 'asc' }, include: { assets: true } });
+    const characters = await db.character.findMany({ orderBy: { id: 'asc' } });
+    const simulation = () => new CatalogEngine(db, { enabled: true, publish: false, dryRun: true }, http, () => now);
+    const first = await simulation().run();
+    expect(first).toMatchObject({ processed: 15, remaining: 1 });
+    if (!('runId' in first)) throw new Error('Expected daily run');
+    expect(await simulation().run()).toEqual({ skipped: 'BACKOFF' });
+    await db.catalogRun.update({ where: { id: first.runId }, data: { nextAttemptAt: new Date(0) } });
+    expect(await simulation().run()).toMatchObject({ runId: first.runId, processed: 1, remaining: 0 });
+    expect(await simulation().run()).toEqual({ skipped: 'ALREADY_COMPLETED' });
+    expect(await db.catalogCandidate.findMany({ orderBy: { id: 'asc' }, include: { assets: true } })).toEqual(before);
+    expect(await db.character.findMany({ orderBy: { id: 'asc' } })).toEqual(characters);
+    const run = await db.catalogRun.findUniqueOrThrow({ where: { id: first.runId } });
+    expect((run.summary as { processedCandidateIds: string[] }).processedCandidateIds).toHaveLength(16);
+  }, 90_000);
 });
