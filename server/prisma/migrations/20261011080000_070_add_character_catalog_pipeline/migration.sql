@@ -162,7 +162,7 @@ ALTER TABLE catalog_candidates ALTER COLUMN missing SET NOT NULL;
 ALTER TABLE catalog_candidates ADD CONSTRAINT catalog_fields_check CHECK (jsonb_typeof(fields) = 'object' AND revision >= 0 AND length(name) BETWEEN 1 AND 100);
 ALTER TABLE catalog_assets ADD CONSTRAINT catalog_asset_role_check CHECK (role IN ('icon','splash','wish','fullbody','promotion'));
 ALTER TABLE catalog_assets ADD CONSTRAINT catalog_asset_state_check CHECK (status IN ('MISSING','UNVERIFIED','SOURCE_VALIDATED','AVAILABLE'));
-ALTER TABLE catalog_assets ADD CONSTRAINT catalog_asset_available_check CHECK (status <> 'AVAILABLE' OR (hash ~ '^[a-f0-9]{64}$' AND url IS NOT NULL AND width > 0 AND height > 0 AND bytes > 0 AND mime = 'image/png'));
+ALTER TABLE catalog_assets ADD CONSTRAINT catalog_asset_available_check CHECK (status <> 'AVAILABLE' OR (hash ~ '^[a-f0-9]{64}$' AND url IS NOT NULL AND width IS NOT NULL AND width > 0 AND height IS NOT NULL AND height > 0 AND bytes IS NOT NULL AND bytes > 0 AND mime IS NOT NULL AND mime = 'image/png'));
 ALTER TABLE catalog_job ADD CONSTRAINT catalog_job_lease_check CHECK (id = 'R1051' AND ((lease_token IS NULL) = (lease_until IS NULL)));
 ALTER TABLE catalog_runs ADD CONSTRAINT catalog_run_state_check CHECK (status IN ('QUEUED','RUNNING','FAILED','COMPLETED'));
 ALTER TABLE catalog_import_outbox ADD CONSTRAINT catalog_outbox_character_fk FOREIGN KEY (character_id) REFERENCES characters(id) ON DELETE RESTRICT ON UPDATE CASCADE;

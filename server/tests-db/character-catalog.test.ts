@@ -38,6 +38,17 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     expect(rows.rows).toHaveLength(7);
     for (const row of rows.rows) expect(row).toMatchObject({ relrowsecurity: true, anon: false, auth: false });
   });
+  it('rejects AVAILABLE assets with null dimensions, bytes or MIME at the SQL boundary', async () => {
+    const candidate = await db.catalogCandidate.create({ data: { name: 'Private SQL constraint', nextCheckAt: new Date('2099-01-01T00:00:00Z') } });
+    try {
+      for (const field of ['width', 'height', 'bytes', 'mime'] as const) {
+        await expect(db.catalogAsset.create({ data: { candidateId: candidate.id, role: 'icon', hash: 'a'.repeat(64),
+          url: 'https://fixture.supabase.co/storage/v1/object/public/character-catalog/fixture.png', provider: 'fixture',
+          status: 'AVAILABLE', width: 256, height: 256, bytes: 100, mime: 'image/png', [field]: null } })).rejects.toThrow();
+      }
+      expect(await db.catalogAsset.count({ where: { candidateId: candidate.id } })).toBe(0);
+    } finally { await db.catalogCandidate.delete({ where: { id: candidate.id } }); }
+  });
   it('two instances discover once; completed replay changes no active Character', async () => {
     const before = await db.character.findMany({ orderBy: { id: 'asc' } });
     const result = await Promise.all([engine().run(), engine().run()]);
