@@ -37,7 +37,7 @@ export function mergeEvidence(fields: CatalogFields, key: keyof CatalogFields, e
     const alternatives = trail.filter(proof => !(proof.provider === primary.provider && proof.url === primary.url && proof.value === primary.value))
       .filter((proof, index, rows) => !rows.some((row,other) => row.provider === proof.provider && row.url === proof.url && row.value === proof.value && (row.fetchedAt > proof.fetchedAt || row.fetchedAt === proof.fetchedAt && other > index)));
     return { ...fields, [key]: { ...primary, fetchedAt: primary.provider === evidence.provider && primary.url === evidence.url && primary.value === evidence.value && evidence.fetchedAt>primary.fetchedAt ? evidence.fetchedAt : primary.fetchedAt,
-      conflict: trail.some(proof => proof.value !== primary.value), alternatives } };
+      conflict: trail.some(proof => !proof.consensusSource?.withdrawn && proof.value !== primary.value), alternatives } };
   }
   return { ...fields, [key]: evidence };
 }

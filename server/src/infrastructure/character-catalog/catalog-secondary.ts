@@ -67,7 +67,6 @@ export function parseSecondaryMetadata(html: string, url: string, provider: stri
   if (!name || !['icy-veins','game8','sephijin'].includes(provider)) return {};
   const text = htmlText(html);
   const description = new RegExp(`${escape(name)}\\s+(?:is|est)\\s+(?:a[n]?|un[e]?)\\s+(?:new\\s+)?([45])(?:[- ]?(?:Star|étoiles)|★)\\s+(Pyro|Hydro|Cryo|Electro|Électro|Anemo|Geo|Dendro)(?:\\s+(?:character|personnage))?(?:\\s+(?:who uses|using|de type))?\\s*(Catalyst|Sword|Claymore|Polearm|Bow|Catalyseur|Épée|Lance|Arc)?`, 'iu').exec(text);
-  if (!description) return {};
   const fields: CatalogFields = {};
   const reason = /\b(leaks?|beta|bêta|datamin)/i.test(text) ? 'Source secondaire contenant des informations de leak/bêta ; confirmation officielle absente.' : 'Source secondaire ; confirmation officielle indépendante absente.';
   const observedAt = articleObservedAt(html,name,url);
@@ -77,6 +76,12 @@ export function parseSecondaryMetadata(html: string, url: string, provider: stri
   const upstream = secondaryProviders.find(source=>source.id!==provider && text.toLowerCase().includes(source.id.replace('-',' ')))?.id;
   const add = (field: keyof CatalogFields, value: string | number) => { fields[field] = { value, provider, url, fetchedAt: now.toISOString(), reliability:'PROVISIONAL', editorialStatus:'PROVISIONAL', reason,
     consensusSource:{publisher:provider,...(upstream?{upstream}:{}),identity:normalizedIdentity(name),qualified,observedAt} } satisfies Evidence; };
+  if(!description){
+    // Private control attestations only: a current, dated nominal article no longer supports these facts.
+    // Outages, an absent index link and an unqualified/ambiguous page never imply withdrawal.
+    if(qualified)for(const field of ['rarity','element'] as const){add(field,'SOURCE_WITHDRAWN');fields[field]={...fields[field]!,reason:'Attestation retirée : fait absent du profil nominal daté relu avec succès.',consensusSource:{...fields[field]!.consensusSource!,qualified:false,withdrawn:true}};}
+    return fields;
+  }
   add('rarity',Number(description[1])); add('element',description[2]!.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase());
   const ratings = [...text.matchAll(/(?:Rarity\s*[:：]?\s*|Rating\s*[:：]?\s*)([45])\s*(?:Stars?|★|étoiles)/giu)].map(match=>Number(match[1]));
   if (ratings.some(rarity=>rarity!==Number(description[1]))) fields.rarity = {...fields.rarity!,conflict:true,alternatives:ratings.filter(rarity=>rarity!==Number(description[1])).map(value=>({...fields.rarity!,value}))};

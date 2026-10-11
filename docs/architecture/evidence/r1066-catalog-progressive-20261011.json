@@ -7,7 +7,7 @@
   "checks": {
     "postgresProgressive": { "passed": 8, "isolation": "private UUID schema, normal Prisma migrations, cleanup completed" },
     "postgresHistoricalCatalogue": { "passed": 31, "isolation": "private schema, sequential execution, cleanup completed" },
-    "backendTargeted": { "passed": 73, "files": 6 },
+    "backendTargeted": { "passed": 75, "files": 6 },
     "frontendTargeted": { "passed": 47, "files": 6 },
     "quick": { "passed": 5 },
     "frontendBuild": "PASS; existing bundle size warning",

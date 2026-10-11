@@ -78,10 +78,10 @@ export function officialReleaseEvidence(post: OfficialPost, names: readonly stri
 
 /** Present availability, on the same nominal statement; an announcement/future wish is insufficient. */
 export function officialPlayableEvidence(post: OfficialPost, names: readonly string[], now: Date): Evidence | null {
-  const line = post.text.split('\n').find(value => names.some(name => name.length >= 3 && value.includes(name)) &&
-    /(?:is now available|now playable|has been released|est (?:d[ée]sormais|maintenant) disponible)/i.test(value) &&
-    /(?:now playable|playable character|personnage jouable|Event Wish)/i.test(value) &&
-    !/\b(?:will|beta|b[êe]ta|leak|test server|available soon|not|never|unavailable|pas|jamais|plus|non[ -]jouable)\b|\b(?:isn|hasn|aren)[’']t\b/i.test(value));
+  const escape=(name:string)=>name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const clauses=post.text.split(/(?<=[.!?;,])|\n/u).map(value=>value.trim());
+  const line=clauses.find(value=>!value.endsWith('?')&&! /\b(?:will|beta|b[êe]ta|leak|test server|available soon|not|never|unavailable|pas|jamais|plus|non[ -]jouable)\b|\b(?:isn|hasn|aren)[’']t\b/i.test(value)&&names.some(name=>name.length>=3&&new RegExp(
+    `^(?:(?:the\\s+)?(?:new\\s+)?(?:[45][- ]?(?:star|★)\\s+)?character\\s+|(?:le\\s+)?(?:nouveau\\s+)?personnage\\s+)?["“«]?${escape(name)}["”»]?\\s+(?:is\\s+now\\s+playable\\b|(?:is\\s+now\\s+available|has\\s+been\\s+released)\\s+(?:as\\s+a\\s+playable\\s+character\\b|in\\s+(?:the\\s+)?Event\\s+Wish\\b)|est\\s+(?:désormais|maintenant)\\s+disponible\\s+(?:comme|en\\s+tant\\s+que)\\s+personnage\\s+jouable\\b)`,'iu').test(value)));
   return line ? { value:'available',provider:'hoyoverse',url:post.url,fetchedAt:now.toISOString(),reliability:'OFFICIAL',reason:'Disponibilité jouable présente et nominale dans une publication de l’auteur officiel certifié.' } : null;
 }
 

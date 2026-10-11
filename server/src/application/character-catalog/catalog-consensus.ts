@@ -19,6 +19,8 @@ export function resolveConsensus(value: Evidence, identity: string, now: Date): 
   const trail = evidenceTrail(value);
   if (value.locked || value.override || value.reliability === 'ADMIN' || value.reliability === 'OFFICIAL' || value.reliability === 'STRUCTURED') return value;
   const groups = new Map<string, Evidence[]>();
+  const latestAtSource=(proof:Evidence)=>trail.filter(other=>other.provider===proof.provider&&other.url===proof.url&&other.consensusSource?.publisher===other.provider&&other.consensusSource?.identity===proof.consensusSource?.identity).sort((a,b)=>b.fetchedAt.localeCompare(a.fetchedAt)||Number(!!b.consensusSource?.withdrawn)-Number(!!a.consensusSource?.withdrawn))[0];
+  const activeTrail=trail.filter(proof=>!proof.consensusSource?.withdrawn&&!latestAtSource(proof)?.consensusSource?.withdrawn);
   const upstreamByPublisher = new Map<string,string>();
   for (const proof of trail) if (proof.consensusSource?.upstream) upstreamByPublisher.set(proof.consensusSource.publisher, proof.consensusSource.upstream);
   const root = (publisher: string) => { const seen=new Set<string>(); let key=publisher;
@@ -29,7 +31,7 @@ export function resolveConsensus(value: Evidence, identity: string, now: Date): 
     const q = proof.consensusSource;
     const age = now.getTime() - new Date(q?.observedAt ?? '').getTime();
     // A later withdrawal or loss of qualification at the same article retires its older vote.
-    const latest=trail.filter(other=>other.provider===proof.provider&&other.url===proof.url).sort((a,b)=>b.fetchedAt.localeCompare(a.fetchedAt))[0];
+    const latest=latestAtSource(proof);
     if(latest!==proof)continue;
     if (!publishers.has(proof.provider) || !q?.qualified || q.publisher!==proof.provider || q.identity !== identity || q.withdrawn || !Number.isFinite(age) || age < 0 || age > consensusPolicy.maxAgeDays * 86_400_000) continue;
     const group = root(q.publisher);
@@ -37,17 +39,17 @@ export function resolveConsensus(value: Evidence, identity: string, now: Date): 
   }
   // A preserved contradiction from that publisher cancels its vote, even if its
   // old review was not qualified to vote independently.
-  const votes = [...groups.values()].filter(rows => new Set(trail.filter(proof=>root(proof.consensusSource?.publisher??proof.provider)===root(rows[0]!.provider)).map(row=>String(row.value))).size===1).map(rows => rows[0]!);
+  const votes = [...groups.values()].filter(rows => new Set(activeTrail.filter(proof=>root(proof.consensusSource?.publisher??proof.provider)===root(rows[0]!.provider)).map(row=>String(row.value))).size===1).map(rows => rows[0]!);
   const counts = new Map<string, Evidence[]>();
   for (const proof of votes) counts.set(String(proof.value), [...(counts.get(String(proof.value)) ?? []), proof]);
   const ranked = [...counts.values()].sort((a, b) => b.length - a.length);
   const winner = ranked[0];
   const qualified = votes.length >= consensusPolicy.minimumEditors && !!winner && winner.length / votes.length >= consensusPolicy.majority && winner.length > (ranked[1]?.length ?? 0);
-  const primary = qualified ? winner[0]! : value;
+  const primary = qualified ? winner[0]! : value.consensusSource?.withdrawn ? trail.find(proof=>!proof.consensusSource?.withdrawn)??value : value;
   return { ...primary, reliability: 'PROVISIONAL', editorialStatus: 'PROVISIONAL',
-    qualification: qualified ? 'PROVISIONAL_CONSENSUS' : trail.some(proof => proof.value !== value.value) ? 'CONFLICT' : 'PROVISIONAL',
+    qualification: qualified ? 'PROVISIONAL_CONSENSUS' : activeTrail.some(proof => proof.value !== primary.value) ? 'CONFLICT' : 'PROVISIONAL',
     consensus: { editors: votes.length, supportingEditors: winner?.length ?? 0, evaluatedAt: now.toISOString() },
-    conflict: trail.some(proof => proof.value !== primary.value), alternatives: trail.filter(proof => proof !== primary).map(({ alternatives: _alternatives, ...proof }) => proof) };
+    conflict: activeTrail.some(proof => proof.value !== primary.value), alternatives: trail.filter(proof => proof !== primary).map(({ alternatives: _alternatives, ...proof }) => proof) };
 }
 
 export function qualifyFields(fields: CatalogFields, identity: string, now: Date): CatalogFields {

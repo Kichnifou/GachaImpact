@@ -4,7 +4,7 @@ import { qualifyFields, evidenceTrail } from './catalog-consensus.js';
 
 const elements = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro'];
 export function trustedEvidence(proof?: Evidence) {
-  return !!proof && (proof.reliability !== 'PROVISIONAL' || proof.qualification === 'PROVISIONAL_CONSENSUS');
+  return !!proof && !proof.consensusSource?.withdrawn && (proof.reliability !== 'PROVISIONAL' || proof.qualification === 'PROVISIONAL_CONSENSUS');
 }
 export function unresolvedEvidence(proof?: Evidence) {
   if (!proof?.conflict || proof.override || proof.locked || proof.qualification === 'PROVISIONAL_CONSENSUS') return false;

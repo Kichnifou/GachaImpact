@@ -96,4 +96,39 @@ describe('progressive catalogue authorization',()=>{
     const collected=await sources.collect(['Private'],['rarity']);
     expect(resolveConsensus(collected.rarity!,normalizedIdentity('Private'),now)).toMatchObject({qualification:'PROVISIONAL_CONSENSUS',consensus:{editors:3}});
   });
+  it('binds playable availability to the exact nominal subject and predicate, up to the activation gate',()=>{
+    const post={id:'123',url:'https://www.hoyolab.com/article/123',date:now.toISOString(),name:null,fields:{},promotion:[],text:''};
+    for(const text of ['Private gets a character trailer. Other is now available as a playable character.','NotPrivate is now available as a playable character.','Private gets a character trailer; Other is now playable.','Other is now playable, while Private gets a trailer.','Private gets a trailer and Other is now playable.']){
+      const playable=officialPlayableEvidence({...post,text},['Private'],now);
+      expect(playable).toBeNull();
+      expect(progressiveEligibility({...fields,releaseDate:undefined,...(playable?{playable}:{})},now)).toMatchObject({status:'INCOMPLETE',publicVisible:false,missing:['availabilityEvidence']});
+    }
+    for(const text of ['Private is now available as a playable character.','The new 4-Star character “Private” is now playable.','Private is now available in the Event Wish.','Private est désormais disponible comme personnage jouable.'])expect(officialPlayableEvidence({...post,text},['Private'],now)).toMatchObject({value:'available',reliability:'OFFICIAL'});
+    expect(officialPlayableEvidence({...post,text:'Private is now available as a playable character?'},['Private'],now)).toBeNull();
+  });
+  it('retires facts removed from fresh nominal profiles through collect, merge, qualification and eligibility',async()=>{
+    const page=(mode:string)=>`<h1>${mode==='wrongIdentity'?'Other':'Private'} Guide</h1>${mode==='full'?'<p>Private is a 4-Star Electro Sword character.</p>':'<p>The previous rarity claim has been removed pending confirmation.</p>'}${mode==='undated'?'':'<script type="application/ld+json">{"@type":"Article","headline":"Private Guide","dateModified":"2026-10-10"}</script>'}`;
+    const collect=(mode:string,at=now)=>new CatalogSecondarySources(async url=>{
+      const index=url.endsWith('/genshin-impact/')||url.endsWith('/Genshin-Impact')||url.endsWith('/genshin-impact-personnages/');
+      const affected=url.startsWith('https://game8.co');
+      if(affected&&!index&&mode==='timeout')throw new Error('synthetic timeout');
+      return {url,status:affected&&!index&&mode==='403'?403:200,mime:'text/html',body:Buffer.from(index?(affected&&mode==='indexAbsent'?'<p>No profile link</p>':'<a href="/private-guide">Private Guide</a>'):page(affected?mode:'full'))};
+    },async()=>{},at).collect(['Private'],['rarity','element']);
+    const first=await collect('full');
+    expect(progressiveEligibility({...fields,rarity:first.rarity,element:first.element},now).status).toBe('ELIGIBLE');
+    const refreshed=await collect('removed');
+    const merged=mergeEvidence(mergeEvidence(first,'rarity',refreshed.rarity!),'element',refreshed.element!);
+    const state=progressiveEligibility({...fields,rarity:merged.rarity,element:merged.element},now);
+    expect(state).toMatchObject({status:'INCOMPLETE',missing:['rarityConfirmation','elementConfirmation']});
+    expect(state.fields.rarity).toMatchObject({value:4,qualification:'PROVISIONAL',conflict:false,consensus:{editors:2},alternatives:expect.arrayContaining([expect.objectContaining({provider:'game8',value:4}),expect.objectContaining({provider:'game8',consensusSource:expect.objectContaining({withdrawn:true})})])});
+    const preparation=publicPreparation({id:'private',name:'Private',characterId:null,progressivePolicy:true,fields:state.fields,assets:[]},now)!;
+    expect(preparation).toMatchObject({rarity:null,elementKey:null,provisional:true});
+    expect(JSON.stringify(preparation)).not.toContain('SOURCE_WITHDRAWN');
+    for(const mode of ['403','timeout','indexAbsent','undated','wrongIdentity']){
+      const unavailable=await collect(mode);
+      expect(resolveConsensus(mergeEvidence(first,'rarity',unavailable.rarity!).rarity!,'private',now)).toMatchObject({qualification:'PROVISIONAL_CONSENSUS',consensus:{editors:3}});
+    }
+    const later=new Date(now.getTime()+60_000),reasserted=await collect('full',later);
+    expect(resolveConsensus(mergeEvidence(merged,'rarity',reasserted.rarity!).rarity!,'private',later).qualification).toBe('PROVISIONAL_CONSENSUS');
+  });
 });
