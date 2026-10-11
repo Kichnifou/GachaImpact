@@ -159,7 +159,7 @@ describe('gameplay HTTP routes', () => {
       moras: '0',
       particles: { pyro: '0', hydro: '0', dendro: '0' },
     });
-    expect(unusedWheelResponse.json()).toEqual({
+    expect(unusedWheelResponse.json()).toMatchObject({
       spun: false,
       businessDate: '2026-09-04',
       result: null,
@@ -171,7 +171,7 @@ describe('gameplay HTTP routes', () => {
       amount: null,
       alreadySpun: false,
     });
-    expect(usedWheelResponse.json()).toEqual({
+    expect(usedWheelResponse.json()).toMatchObject({
       spun: true,
       businessDate: '2026-09-04',
       result: {
@@ -180,5 +180,9 @@ describe('gameplay HTTP routes', () => {
         amount: null,
       },
     });
+    const probabilities = unusedWheelResponse.json().probabilities;
+    expect(probabilities).toHaveLength(10);
+    expect(probabilities.reduce((sum: number, item: { probabilityPercent: number }) => sum + item.probabilityPercent, 0)).toBe(100);
+    expect(probabilities).toEqual(usedWheelResponse.json().probabilities);
   });
 });

@@ -1,9 +1,19 @@
 import { describe, expect, it } from 'vitest';
 
 import { getEconomyEarnedIncrement } from '../src/application/economy/economy-stats.js';
-import { getWheelStatsIncrement, selectWheelReward } from '../src/domain/wheel/wheel.js';
+import { getWheelProbabilities, getWheelStatsIncrement, selectWheelReward } from '../src/domain/wheel/wheel.js';
 
 describe('Wheel probability table', () => {
+  it('projects every real roll losslessly into the displayed probability and quantity', () => {
+    const projection = getWheelProbabilities();
+    expect(projection).toHaveLength(10);
+    expect(projection.reduce((sum, item) => sum + item.probabilityPercent, 0)).toBe(100);
+    for (const item of projection) {
+      const rolls = Array.from({ length: 100 }, (_, roll) => selectWheelReward(roll));
+      expect(rolls.filter(reward => reward.resultType === item.resultType && reward.resourceKey === item.resourceKey && reward.amount === item.amount)).toHaveLength(item.probabilityPercent);
+    }
+    expect(projection.filter(item => item.resultType === 'particles').map(item => item.probabilityPercent)).toEqual(Array(7).fill(10));
+  });
   it.each([
     [0, 'nothing', null, null],
     [1, 'nothing', null, null],

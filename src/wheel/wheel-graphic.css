@@ -1,0 +1,86 @@
+/* This surface alone replaces the daily panel's scroll with a measured wheel stage. */
+.dailies-frame .scrollable-screen-panel-body:has(> .astral-wheel-card) { overflow: visible; height: 100%; }
+.wheel-card.astral-wheel-card { min-height: 0; min-width: 0; height: 100%; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; align-items: stretch; gap: 8px; padding: 16px 24px; position: relative; background: radial-gradient(ellipse at 50% 40%, #23345388, transparent 65%), linear-gradient(145deg, #101a30, #090e1d); }
+.astral-wheel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.astral-wheel-heading h2 { margin: 4px 0 0; color: #f0e4c5; font: 500 24px Georgia, serif; }
+.astral-wheel-heading .eyebrow { color: #a6b2cc; font-size: 9px; }
+.astral-daily-badge { flex-shrink: 0; border: 1px solid #b69a5b55; border-radius: 20px; padding: 7px 11px; color: #dbc894; background: #5c492b22; font-size: 10px; }
+.astral-wheel-stage { min-width: 0; min-height: 0; display: grid; place-items: center; position: relative; }
+.astral-wheel-visual { width: var(--astral-diameter, min(100%, 440px)); height: var(--astral-diameter, auto); max-width: 100%; aspect-ratio: 1; position: relative; filter: drop-shadow(0 5px 22px #030711aa); }
+.astral-wheel-visual svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.astral-rim-outer { fill: #0b1425; stroke: #a78f58; stroke-width: 3; }
+.astral-rim-inner { fill: #132139; stroke: #f6dca366; stroke-width: 2; stroke-dasharray: 1 7; }
+.astral-disc { transform-origin: 200px 200px; }
+.astral-disc.is-spinning { transition: transform 3.8s cubic-bezier(.12,.66,.13,1); }
+.astral-sector { stroke: #d2d9eb88; stroke-width: 1; }
+.astral-sector.is-selected { stroke: #fff0c0; stroke-width: 3; filter: brightness(1.4); }
+.astral-sector-amount { fill: #fff4da; font-size: 12px; font-weight: 750; paint-order: stroke; stroke: #071324bb; stroke-width: 2px; }
+.astral-sector-empty { fill: #e7e7ec; font-size: 14px; }
+.astral-hub { fill: #111d32; stroke: #d0b777; stroke-width: 2; filter: drop-shadow(0 2px 7px #0009); }
+.astral-hub-star { fill: #f5dda4; }
+.astral-pointer { fill: #ffe5a0; stroke: #8e6a2e; stroke-width: 2; filter: drop-shadow(0 3px 2px #0008); }
+.astral-orbit { position: absolute; inset: 0; pointer-events: none; }
+.astral-orbit i { position: absolute; width: 3px; height: 3px; border-radius: 50%; background: #e7cf96; box-shadow: 0 0 7px #f5d59e; opacity: .65; }
+.astral-orbit i:nth-child(1) { top: 16%; left: 9%; }.astral-orbit i:nth-child(2) { top: 38%; right: 1%; }.astral-orbit i:nth-child(3) { bottom: 14%; right: 10%; }.astral-orbit i:nth-child(4) { bottom: 8%; left: 20%; }.astral-orbit i:nth-child(5) { top: 7%; right: 24%; }
+.is-fresh-result .astral-orbit i { animation: astral-twinkle 1.2s ease-out 1; }
+@keyframes astral-twinkle { 35% { opacity: 1; box-shadow: 0 0 16px 4px #f5d59e77; } }
+.astral-wheel-footer { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.astral-wheel-result { min-height: 46px; display: grid; align-content: center; gap: 5px; }
+.astral-wheel-result strong { color: #f6e4b4; font-size: 14px; line-height: 1.35; }
+.astral-wheel-result small { color: #8fa2c0; font-size: 10px; line-height: 1.4; }
+.astral-wheel-result .form-feedback { margin: 0; }
+.astral-wheel-actions { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.astral-wheel-actions .app-button { min-height: 40px; min-width: 128px; padding: 8px 15px; font-size: 11px; cursor: pointer; }
+.astral-wheel-actions .app-button:disabled { cursor: not-allowed; }
+.astral-wheel-actions .app-button:focus-visible { outline: 2px solid #c4eaff; outline-offset: 3px; }
+.astral-next-spin { min-width: 140px; color: #94abcb; font-size: 11px; }
+.astral-unavailable { max-width: 320px; text-align: center; color: #b7c5dc; line-height: 1.6; }
+.astral-probability-backdrop { position: fixed; inset: 0; z-index: 400; display: grid; place-items: center; padding: 16px; background: #020713c9; }
+.astral-probability-dialog { width: min(430px, 100%); max-height: calc(100dvh - 32px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 14px; padding: 20px; }
+.astral-probability-dialog header { display: flex; align-items: center; justify-content: space-between; }
+.astral-probability-dialog h2 { margin: 4px 0 0; color: #f0e4c5; font: 500 23px Georgia, serif; }
+.astral-probability-dialog ul { margin: 0; padding: 0; list-style: none; overflow-y: auto; }
+.astral-probability-dialog li { display: flex; justify-content: space-between; align-items: center; min-height: 34px; gap: 12px; border-bottom: 1px solid #9cb4dc1a; font-size: 12px; }
+.astral-probability-dialog li span { display: flex; align-items: center; gap: 8px; color: #ccdaed; }
+.astral-probability-dialog img { width: 23px; height: 23px; object-fit: contain; }
+.astral-probability-dialog strong { color: #f0d699; white-space: nowrap; }
+.astral-probability-dialog p { margin: 0; color: #90a5c4; font-size: 11px; }
+@media (min-width: 1121px) {
+  .wheel-card.astral-wheel-card { grid-template-columns: minmax(0, 1.35fr) minmax(190px, .85fr); grid-template-rows: auto minmax(0, 1fr); gap: 10px 16px; }
+  .astral-wheel-heading { grid-column: 1 / -1; }
+  .astral-wheel-stage { grid-column: 1; grid-row: 2; }
+  .astral-wheel-footer { grid-column: 2; grid-row: 2; align-content: center; gap: 20px; }
+  .astral-wheel-actions { flex-direction: column; }
+  .astral-wheel-actions .app-button { min-width: 160px; }
+}
+@media (max-width: 1120px) {
+  .wheel-card.astral-wheel-card { height: clamp(310px, calc(100svh - 110px), 620px); padding: 12px; }
+  .dailies-frame .scrollable-screen-panel-body:has(> .astral-wheel-card) { height: auto; }
+  .astral-wheel-heading .eyebrow { font-size: 8px; }
+  .astral-wheel-heading h2 { font-size: 21px; }
+  .astral-daily-badge { padding: 6px 8px; font-size: 9px; }
+}
+@media (max-height: 700px) {
+  .wheel-card.astral-wheel-card { padding-top: 8px; padding-bottom: 8px; gap: 4px; }
+  .astral-wheel-heading h2 { font-size: 20px; }
+  .astral-wheel-heading .eyebrow { display: none; }
+  .astral-wheel-result { min-height: 36px; gap: 3px; }
+  .astral-wheel-result strong { font-size: 12px; }
+  .astral-wheel-footer { gap: 5px; }
+  .astral-wheel-actions .app-button { min-height: 35px; }
+}
+@media (min-width: 1121px) and (max-height: 700px) {
+  .dailies-shell:has(.astral-wheel-card) { gap: 8px; }
+  .dailies-shell:has(.astral-wheel-card) > .screen-header { height: 54px; padding: 5px 14px; }
+  .dailies-shell:has(.astral-wheel-card) > .screen-header > div { display: grid; gap: 1px; }
+  .dailies-shell:has(.astral-wheel-card) > .screen-header .eyebrow { font-size: 8px; line-height: 10px; }
+  .dailies-shell:has(.astral-wheel-card) > .screen-header h1 { margin: 0; font-size: 20px; }
+  .dailies-shell:has(.astral-wheel-card) > .screen-header p { margin: 0; font-size: 10px; line-height: 12px; }
+  .dailies-frame:has(.astral-wheel-card) { padding: 5px; }
+  .dailies-frame:has(.astral-wheel-card) .activity-inner-tabs { padding: 0; }
+  .dailies-frame:has(.astral-wheel-card) .activity-inner-tabs button { min-height: 30px; padding-block: 4px; }
+  .wheel-card.astral-wheel-card { padding-inline: 12px; gap: 4px 10px; }
+  .astral-wheel-actions { flex-direction: row; gap: 6px; }
+  .astral-wheel-actions .app-button { min-width: 0; padding: 6px 9px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .astral-disc.is-spinning { transition: none; } .is-fresh-result .astral-orbit i { animation: none; } }

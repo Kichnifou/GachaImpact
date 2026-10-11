@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it, vi } from 'vitest'
 
 import WheelCard from './WheelCard'
+import { testWheelProbabilities } from '../wheel/wheel-test-fixture'
 import type { WheelTodayDto } from '../api/types'
 
 describe('compact daily Wheel card', () => {
@@ -25,7 +26,7 @@ describe('compact daily Wheel card', () => {
 
   it('offers the compact shortcut without spinning on mount', () => {
     const onSpin = vi.fn()
-    const today: WheelTodayDto = { spun: false, businessDate: '2026-09-05', result: null }
+    const today: WheelTodayDto = { spun: false, businessDate: '2026-09-05', result: null, probabilities: testWheelProbabilities }
 
     const markup = renderToStaticMarkup(createElement(WheelCard, { today, onSpin }))
 

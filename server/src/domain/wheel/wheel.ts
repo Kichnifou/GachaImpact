@@ -72,3 +72,15 @@ export function selectWheelReward(roll: number): WheelReward {
 
   return { resultType: 'primogems', resourceKey: 'primogems', amount: 1_600n };
 }
+
+/** Read-only projection of the actual selector, never a second probability table. */
+export function getWheelProbabilities() {
+  const outcomes = new Map<string, WheelReward & { probabilityPercent: number }>();
+  for (let roll = 0; roll < 100; roll += 1) {
+    const reward = selectWheelReward(roll);
+    const key = `${reward.resultType}:${reward.resourceKey}:${reward.amount}`;
+    const prior = outcomes.get(key);
+    outcomes.set(key, { ...reward, probabilityPercent: (prior?.probabilityPercent ?? 0) + 1 });
+  }
+  return Array.from(outcomes.values());
+}

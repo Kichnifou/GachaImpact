@@ -287,7 +287,10 @@ export type WheelTodayDto = Readonly<{
   spun: boolean
   businessDate: string
   result: WheelRewardDto | null
+  probabilities?: readonly WheelProbabilityDto[]
 }>
+
+export type WheelProbabilityDto = WheelRewardDto & Readonly<{ probabilityPercent: number }>
 
 export type DailyRewardAmountsDto = Readonly<{
   primogems: string

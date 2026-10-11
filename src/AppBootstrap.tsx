@@ -701,7 +701,7 @@ function AppBootstrap() {
       }}
       onSpinWheel={async () => {
         const owner = notificationSessionRef.current
-        const result = await dailyReads.mutate('wheel', () => getGameApiClient().spinWheel(), value => acceptDaily('wheel', wheelTodayFromSpin(value), setWheelToday))
+        const result = await dailyReads.mutate('wheel', () => getGameApiClient().spinWheel(), value => acceptDaily('wheel', wheelTodayFromSpin(value, wheelToday?.probabilities), setWheelToday))
         if (owner === notificationSessionRef.current) await refreshFavorResources()
         return result
       }}

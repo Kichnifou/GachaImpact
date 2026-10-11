@@ -1,5 +1,5 @@
 import type { PlayerResourceBalances } from '../../application/player/player-resource-store.js';
-import type { WheelSpinResult, WheelTodayState } from '../../domain/wheel/wheel.js';
+import { getWheelProbabilities, type WheelSpinResult, type WheelTodayState } from '../../domain/wheel/wheel.js';
 import type { DailyRewardClaimResult, DailyRewardTodayState } from '../../domain/daily-reward/daily-reward.js';
 import type { PlayerProgression } from '../../domain/player/player-progression.js';
 
@@ -47,6 +47,10 @@ export function toWheelTodayDto(state: WheelTodayState) {
   return {
     spun: state.spun,
     businessDate: state.businessDate,
+    probabilities: getWheelProbabilities().map((reward) => ({
+      ...reward,
+      amount: reward.amount?.toString() ?? null,
+    })),
     result: state.result
       ? {
           resultType: state.result.resultType,
