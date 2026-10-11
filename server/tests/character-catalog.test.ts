@@ -132,6 +132,28 @@ describe('secure binary ingestion and immutable storage', () => {
     await expect(corrupt.store('00000000-0000-4000-8000-000000000001', 'icon', validated)).rejects.toThrow('STORAGE_VERIFICATION_FAILED');
     await expect(new CatalogImageStorage().store('00000000-0000-4000-8000-000000000001', 'icon', validated)).rejects.toThrow('STORAGE_NOT_CONFIGURED');
   });
+  it.each([
+    { code: 'ResourceAlreadyExists' }, { code: 'KeyAlreadyExists' }, { code: 'already_exists' },
+    { statusCode: '409', error: 'Duplicate', message: 'The resource already exists' },
+  ])('verifies immutable public bytes after an identified legacy 400 duplicate: %j', async duplicate => {
+    const validated = await validateImage(await image(), 'image/png', 'icon');
+    const fetcher = vi.fn(async (_url: string, options?: { method?: string }) => options?.method === 'POST' ?
+      { body: Buffer.from(JSON.stringify(duplicate)), mime: 'application/json', status: 400, url: '' } :
+      { body: validated.body, mime: 'image/png', status: 200, url: '' });
+    const store = new CatalogImageStorage('https://test.supabase.co', 'fixture', fetcher);
+    await expect(store.store('00000000-0000-4000-8000-000000000001', 'icon', validated)).resolves.toContain(validated.hash);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    fetcher.mockImplementation(async (_url, options) => options?.method === 'POST' ?
+      { body: Buffer.from(JSON.stringify(duplicate)), mime: 'application/json', status: 400, url: '' } :
+      { body: Buffer.from('changed'), mime: 'image/png', status: 200, url: '' });
+    await expect(store.store('00000000-0000-4000-8000-000000000001', 'icon', validated)).rejects.toThrow('STORAGE_VERIFICATION_FAILED');
+  });
+  it.each(['{}', '{"code":"InvalidMimeType"}', '{"error":"Duplicate","message":"Unknown failure"}', 'invalid'])('does not hide unrelated 400 responses: %s', async body => {
+    const validated = await validateImage(await image(), 'image/png', 'icon');
+    const fetcher = vi.fn(async () => ({ body: Buffer.from(body), mime: 'application/json', status: 400, url: '' }));
+    await expect(new CatalogImageStorage('https://test.supabase.co', 'fixture', fetcher).store('00000000-0000-4000-8000-000000000001', 'icon', validated)).rejects.toThrow('BUCKET_UNAVAILABLE');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
   it.each(['127.0.0.1', '10.0.0.1', '169.254.169.254', '172.16.0.1', '192.168.1.1', '100.64.0.1', '::1', '::ffff:127.0.0.1', 'fc00::1'])('blocks private address %s', ip => expect(isPublicIp(ip)).toBe(false));
   it('blocks arbitrary domains, credentials, nonstandard ports, HTTP and localhost', () => {
     for (const url of ['http://enka.network/ui/a.png', 'https://localhost/a', 'https://evil.example/a', 'https://u:p@enka.network/a', 'https://enka.network:444/a']) expect(() => checkSourceUrl(url)).toThrow('SOURCE_NOT_ALLOWED');

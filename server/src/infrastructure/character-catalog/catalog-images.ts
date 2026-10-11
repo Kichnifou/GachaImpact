@@ -49,7 +49,18 @@ export class CatalogImageStorage {
     const response = await this.http(endpoint, { method: 'POST', noRedirect: true, body: image.body,
       headers: { apikey: this.secretKey, ...(this.secretKey.startsWith('eyJ') ? { authorization: `Bearer ${this.secretKey}` } : {}),
         'content-type': 'image/png', 'cache-control': '31536000', 'x-upsert': 'false' }, maxBytes: 65536 });
-    if (![200, 201, 409].includes(response.status)) throw new CatalogFetchError('BUCKET_UNAVAILABLE', response.status);
+    let existingObject = response.status === 409;
+    if (response.status === 400 && response.mime === 'application/json') {
+      try {
+        const error: unknown = JSON.parse(response.body.toString('utf8'));
+        if (error && typeof error === 'object') {
+          const value = error as Record<string, unknown>;
+          existingObject = ['ResourceAlreadyExists', 'KeyAlreadyExists', 'already_exists'].includes(String(value['code'])) ||
+            value['error'] === 'Duplicate' && value['message'] === 'The resource already exists';
+        }
+      } catch { /* Other malformed or generic 400 responses remain failures. */ }
+    }
+    if (![200, 201].includes(response.status) && !existingObject) throw new CatalogFetchError('BUCKET_UNAVAILABLE', response.status);
     const publicUrl = `${this.url}/storage/v1/object/public/${catalogBucket}/${key}`;
     const probe = await this.http(publicUrl, { noRedirect: true, maxBytes: maxImageBytes });
     if (probe.status !== 200 || probe.mime !== 'image/png' || createHash('sha256').update(probe.body).digest('hex') !== image.hash)
