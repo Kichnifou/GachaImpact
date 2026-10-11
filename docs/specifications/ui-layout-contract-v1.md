@@ -8,6 +8,14 @@ Statut : contrat transverse validé. L'état physique courant des lots appartien
 
 Ce document est la source de vérité des règles de composition et de stabilité visuelle communes. Les documents métier restent propriétaires du contenu et des actions de chaque écran ; le shell de navigation reste propriétaire des destinations.
 
+## Application bornée lot D — Roue graphique
+
+Dans `Activités > Quotidiennes > Roue`, la carte réserve titre, statut et commandes avant de dimensionner son SVG circulaire dans la largeur et la hauteur restantes. Ses dix secteurs sont pondérés par la projection du moteur serveur unique : rien, sept éléments, Moras et Primogemmes. Diamètre adaptatif sans déformation ; pointeur fixe et arrêt sur le résultat autoritatif. La carte et son body métier n’ont aucun défilement propre ; titre et actions ne sont ni rognés ni recouverts. Cette règle concerne uniquement le body Roue, sans changer les autres onglets Quotidiennes, le scroll naturel mobile ou le shell global.
+
+Passer termine seulement la présentation et restaure le focus vers Probabilités s’il détenait le focus. Le détail Probabilités utilise une modale bornée, navigation clavier/Escape et retour du focus au déclencheur. La réduction des animations restitue immédiatement le résultat, sans rotation ni éclat. Les états disponible, attente, animation, résultat, déjà utilisé, historique inconnu, projection absente et erreur gardent les commandes visibles ; aucune distribution fictive n’est dessinée en l’absence de projection valide.
+
+[Recette privée intégrée](../architecture/evidence/consolidated-d-20261011.json) sous GameShell complet/CSS compilé : 390×844, 1366×768, 1920×1080, 2560×1440, 1280×600 et 844×390 ; 54 états Roue, six captures de modale, contrôles de géométrie, clavier/focus et réduction des mouvements. Le [contrat Roue graphique V1](wheel-graphic-v1.md) porte le comportement spécialisé. Ces preuves locales ne déclarent ni déploiement ni validation humaine ; le contrôle complet associé reste explicitement FAIL dans la preuve.
+
 ## Écrans desktop longs
 
 À partir du breakpoint desktop, un écran long occupe toute la hauteur utile de `screen-stage`, jusqu’au même bord inférieur que le chat. Son cadre reste fermé et visible. Il est structuré en zones fixes (header, navigation locale, recherche, filtres, tris ou actions nécessaires) puis en un body `minmax(0, 1fr)` dont le défilement est interne.
