@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : compatibilité double domaine — livraison technique du 10/10/2026.
-Date : 2026-10-10
-Statut : **Compatibilité pages.dev + gachaimpact.fr livrée sur main et déployée sous gates. R1051 lot 1 livré et validé publiquement par le propriétaire ; focus Profil corrigé et livré. Cloudflare zone ACTIVE selon le propriétaire ; custom domain Pages non activé.**
+Version : clôture hébergement et ouverture R1051 lot 2.
+Date : 2026-10-11
+Statut : **gachaimpact.fr actif, domaine/Brevo/Auth/Twitch validés par le propriétaire ; pages.dev conservé. R1051 lot 1 validé publiquement. Lot 2 autorisé, développement non encore livré.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — compatibilité double domaine, 10/10/2026
+## Point courant — hébergement clos, R1051 lot 2 autorisé, 11/10/2026
+
+**Base vérifiée à distance :** `main = review = 8f9e7698d6307220a1de4f6e4a4eb28635338d78`, divergence 0/0, worktree propre. Mandat : checkpoint documentaire hébergement avant développement, puis catalogue autonome R1051 lot 2 ; cycle review, review indépendante des mécanismes sensibles, FF strict main, déploiements exacts et postflight sans GO générique. Aucun travail Eclipsia/Story ni réouverture R1065.
+
+**Recettes humaines acquises :** propriétaire confirme custom domain Pages ACTIVE, SSL et HTTP→HTTPS, mêmes standalone fr/pages.dev, connexion et conservation identité/ressources/personnages/progression/sessions. F5/Ctrl+F5, privé, autre navigateur et smartphone validés. Redirection www HTTP/HTTPS vers fr validée, chemin/query conservés dans la règle configurée. DNS Cloudflare anastasia/tim, DNSSEC OFF/DS absent, MX/SPF OVH conservés. Ce sont des confirmations propriétaire, pas une inspection privée Cloudflare par Codex. [Configuration et exploitation](../deployment/free-first-v1.md#gachaimpact-domain-handoff-20261010).
+
+**Incident PNG clos :** captures propriétaire HTTP 206/Range isolé, cache REVALIDATED et Content Download long ; après Disable cache puis réactivation, chargement instantané et recettes ci-dessus réussies. Résolution observée, **cause racine unique non démontrée** ; aucun correctif supplémentaire demandé.
+
+**Brevo Free et Auth :** domaine authentifié, DKIM/DMARC configurés, expéditeur vérifié `GachaImpact <noreply@gachaimpact.fr>`, SMTP Supabase personnalisé Brevo port 587/minimum 60 s selon propriétaire ; aucun secret récupéré. Recovery réel fr → Brevo → Gmail **hors équipe Supabase**, expéditeur/signature fr/TLS, formulaire, changement du mot de passe de test et reconnexion réussis par le propriétaire. L'ancienne restriction SMTP intégré est dépassée pour **ce parcours testé**, sans preuve universelle de tous destinataires/types d'e-mails. Rotation de clé avant expiration et contrôle après inactivité : rappel documentaire chez l'owner déploiement.
+
+**Twitch :** retour OAuth réel fr validé par le propriétaire. Les tests techniques state acquis, cette validation humaine et les sous-parcours spécialisés non documentés individuellement restent trois preuves distinctes. Aucune nouvelle action Auth/Twitch réelle pendant ce lot.
+
+**R1051 :** 120 actifs/icon/splash/wish, 118 fullbody distincts ; seuls Vesna/Vodyanitsa incomplets sur ce dernier rôle. Les 72 images du lot 1 ne sont pas réimportées. Prochaine étape autorisée : lot 2 (découverte officielle, candidats durables, enrichissement, stockage, scheduler Paris, publication sous gates, ADMIN/notifications), selon l'[owner](../architecture/character-catalog-assets-r1051.md). À ce checkpoint documentaire, ces mécanismes restent **à implémenter**, pas actifs. Mitya reste sans Character actif ; date propriétaire 04/11 non promue en preuve officielle. L'état exact du checkpoint documentaire et des déploiements sera établi après publication, sans SHA auto-référent.
+
+## Historique — compatibilité double domaine, 10/10/2026
+
+**État historique supersédé par le point courant du 11/10 ci-dessus :** attentes d'activation, absence de SMTP personnalisé et recettes fr non exécutées décrivent uniquement le checkpoint du 10/10.
 
 **Mandat distinct autorisé :** CORS strict, destinations Supabase Auth, retour OAuth Twitch à l’origine de départ et seul focus Profil. Base fraîche `main = review = 1cc47e450f80f1d8f32d84288c4fc2a520cb74bc`, divergence 0/0, worktree initial propre. Cycle review → review indépendante du SHA publié → fast-forward strict main → Railway/Pages → postflight autorisé sans GO générique. **STOP avant Activate domain**, aucune écriture DNS, Site URL, SMTP ou action Auth/Twitch réelle. R1051 lot 2 reste la prochaine mission métier, non lancé ; aucun chantier R1065 rouvert.
 

@@ -61,6 +61,8 @@ Depuis [https://gachaimpact.pages.dev](https://gachaimpact.pages.dev), sans back
 
 ## R1058 — configuration et preuves requises
 
+**Historique du 10/10 :** les preuves et l'exception SMTP ci-dessous sont conservées. La configuration actuelle Brevo et la recette recovery hors équipe sont consignées dans la clôture du 11/10 plus bas ; l'absence de SMTP personnalisé et la gate générale décrites ici ne sont plus l'état courant de ce parcours.
+
 Le candidat utilise un retour fixe `/auth/recovery`, servi directement par le fallback SPA Cloudflare Pages. Conserver Site URL `https://gachaimpact.pages.dev` et autoriser explicitement les chemins `/auth/recovery` des deux domaines HTTPS et de `http://localhost:5173` pour le développement. Les origines seules documentées plus haut ne prouvent pas l'autorisation de ces chemins. Aucun wildcard, retour arbitraire, modification SMTP payante ou secret frontend ajouté.
 
 Le propriétaire confirme les quatre Redirect URLs et le modèle Reset Password par défaut ; il a personnellement réussi la demande, la réception Supabase, le lien local, la modification puis la reconnexion sur son adresse autorisée d’équipe. La recette visuelle des trois retouches du candidat `a6f28e8` est également validée. Ces preuves ne sont pas une inspection Management Auth par Codex : valeurs privées d’expiration/politique/quota non relevées. La validation native du SDK, le refus des callbacks invalides/expirés, la vérification serveur `getUser`, la séparation des sessions et le filtrage des erreurs restent obligatoires et couverts par les contrôles acquis ; aucune exception de sécurité n’est introduite.
@@ -73,7 +75,25 @@ Preuve e-mail uniquement dans une boîte contrôlée autorisée ; aucun envoi au
 
 <a id="domaine-gachaimpactfr--pause-propriétaire-jusquau-11102026"></a>
 <a id="gachaimpact-domain-handoff-20261010"></a>
-## Domaine gachaimpact.fr — préparation double origine, 10/10/2026
+## Domaine gachaimpact.fr — clôture propriétaire, 11/10/2026
+
+L'état ci-dessous est la **confirmation humaine du propriétaire**, distincte des contrôles techniques du 10/10 conservés ensuite. Custom domain Pages **ACTIVE**, SSL enabled, HTTPS et HTTP→HTTPS validés ; même standalone sur **https://gachaimpact.fr** et **https://gachaimpact.pages.dev**, conservé et fonctionnel. Connexion, même identité, ressources, personnages, progression et sessions validés ; F5/Ctrl+F5, privé, navigateur alternatif et smartphone réussis. Domaine OVH jusqu'au 10/10/2029, DNSSEC OFF/DS parent absent aux contrôles publics ; NS Cloudflare anastasia/tim actifs.
+
+Incident de chargement PNG : captures HTTP 206, Range sur octets isolés, CF-Cache-Status REVALIDATED et Content Download long. Disable cache puis réactivation ont rétabli le chargement instantané, confirmé par les recettes ci-dessus. **Résolution observée sans cause racine unique prouvée.** Aucun correctif frontend/Cloudflare supplémentaire demandé.
+
+**www :** Redirect Rule Cloudflare Free configurée par le propriétaire : source `http*://www.gachaimpact.fr/*`, destination `https://gachaimpact.fr/${2}`, 301, Preserve query string activé ; DNS A www `192.0.2.1`, Proxied, TTL Auto. HTTP/HTTPS www validés humainement. Racine servie par le custom domain Pages existant. MX 1/5/100 mx1/mx2/mx3.mail.ovh.net et SPF `v=spf1 include:mx.ovh.com -all` conservés. ftp reste un alias séparé : aucune garantie de service FTP après bascule, aucune modification DNS par Codex.
+
+### Brevo Free — configuration et recette propriétaire acquises
+
+- Domaine gachaimpact.fr authentifié : TXT de vérification Brevo, CNAME brevo1._domainkey et brevo2._domainkey, TXT _dmarc p=none/reporting Brevo ; DKIM reconnu. MX/SPF OVH conservés.
+- Expéditeur vérifié **GachaImpact <noreply@gachaimpact.fr>**. Supabase SMTP personnalisé Brevo : `smtp-relay.brevo.com:587`, intervalle minimum 60 s. Username/clés restent privés : ne jamais les récupérer, afficher, exporter, journaliser ou committer.
+- Clé SMTP standard avec expiration configurée à un an ; propriétaire rapporte une expiration possible après 90 jours d'inactivité. **Rappel d'exploitation documentaire :** contrôler la date effective dans Brevo, préparer la rotation avant expiration, contrôler après une longue inactivité et vérifier le parcours autorisé après rotation. Aucun secret ni automation externe ajouté.
+- Recette réelle **fr → Brevo → Gmail hors équipe Supabase** par le propriétaire : expéditeur noreply, signature fr, TLS, formulaire /auth/recovery, changement du mot de passe du compte de test et reconnexion réussis. L'ancienne restriction du SMTP intégré ne s'applique plus à ce parcours testé. Ceci ne prouve ni tous types d'e-mails ni toutes destinations. Aucune nouvelle recette Auth réelle exécutée par Codex.
+- Retour OAuth Twitch réel fr réussi selon propriétaire ; distinct des tests automatisés state et des sous-parcours spécialisés non consignés individuellement. Callback/EventSub et configuration double origine conservés, aucune nouvelle autorisation/liaison/désactivation.
+
+Les mentions de SMTP intégré, Brevo reporté, activation en attente et absence de recette fr ci-dessous sont **historiques, supersédées le 11/10**. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte la reprise R1051 lot 2, autorisée mais non livrée à ce checkpoint. Aucun audit R1065 relancé.
+
+## Historique — préparation double origine, 10/10/2026
 
 **État prouvé :** domaine OVH acquis jusqu’au 10/10/2029 selon propriétaire, protection transfert conservée ; DNSSEC OVH OFF confirmé par propriétaire. Cloudflare Free zone **ACTIVE selon capture/confirmation propriétaire**, distinct de l’activation du custom domain Pages. Google DoH RO 10/10 18:29 UTC : NS `anastasia.ns.cloudflare.com` / `tim.ns.cloudflare.com`, DS absent ; A racine et www `213.186.33.5`, aucun CNAME racine, ftp CNAME racine. MX priorités 1/5/100 mx1/mx2/mx3.mail.ovh.net et SPF `v=spf1 include:mx.ovh.com -all` conservés. Aucun DNS écrit dans ce lot. **Activate domain reste en attente propriétaire** ; pas de preuve de certificat ou parcours fr public.
 
