@@ -35,6 +35,7 @@ export function htmlText(html: string) {
     .replace(/&nbsp;|&amp;|&quot;|&#39;/g, value => ({'&nbsp;':' ','&amp;':'&','&quot;':'"','&#39;':"'"})[value]!).replace(/\s+/g,' ').trim();
 }
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+const nominalPattern = (name:string) => `(?<![\\p{L}\\p{N}\\p{M}_'’\\-])${escape(name.normalize('NFC'))}(?![\\p{L}\\p{N}\\p{M}_'’\\-])`;
 export function articleObservedAt(html:string,name:string,url:string):string {
   for(const script of html.matchAll(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){
     try{
@@ -42,8 +43,8 @@ export function articleObservedAt(html:string,name:string,url:string):string {
       const records=(value:unknown):Record<string,unknown>[]=>Array.isArray(value)?value.flatMap(records):value&&typeof value==='object'?[value as Record<string,unknown>,...records((value as Record<string,unknown>)['@graph'])]:[];
       for(const record of records(parsed)){
         if(![record['@type']].flat().some(type=>['Article','NewsArticle','BlogPosting'].includes(String(type))))continue;
-        const title=String(record['headline']??record['name']??'');
-        if(!new RegExp(`\\b${escape(name)}\\b`,'iu').test(title))continue;
+        const title=String(record['headline']??record['name']??'').normalize('NFC');
+        if(!new RegExp(nominalPattern(name),'iu').test(title))continue;
         const articleUrl=record['url'];if(articleUrl&&articleUrl!==url)continue;
         const date=record['dateModified']??record['datePublished'];if(typeof date==='string')return date;
       }
@@ -62,11 +63,11 @@ export function linkedCharacterPages(html: string, index: string, names: readonl
 }
 /** Secondary facts are preparation only; never official publication evidence. */
 export function parseSecondaryMetadata(html: string, url: string, provider: string, names: readonly string[], now: Date): CatalogFields {
-  const heading = htmlText(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] ?? '');
-  const name = names.find(value => new RegExp(`\\b${escape(value)}\\b`,'i').test(heading));
+  const heading = htmlText(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] ?? '').normalize('NFC');
+  const name = names.find(value => new RegExp(nominalPattern(value),'iu').test(heading));
   if (!name || !['icy-veins','game8','sephijin'].includes(provider)) return {};
-  const text = htmlText(html);
-  const description = new RegExp(`${escape(name)}\\s+(?:is|est)\\s+(?:a[n]?|un[e]?)\\s+(?:new\\s+)?([45])(?:[- ]?(?:Star|étoiles)|★)\\s+(Pyro|Hydro|Cryo|Electro|Électro|Anemo|Geo|Dendro)(?:\\s+(?:character|personnage))?(?:\\s+(?:who uses|using|de type))?\\s*(Catalyst|Sword|Claymore|Polearm|Bow|Catalyseur|Épée|Lance|Arc)?`, 'iu').exec(text);
+  const text = htmlText(html).normalize('NFC');
+  const description = new RegExp(`${nominalPattern(name)}\\s+(?:is|est)\\s+(?:a[n]?|un[e]?)\\s+(?:new\\s+)?([45])(?:[- ]?(?:Star|étoiles)|★)\\s+(Pyro|Hydro|Cryo|Electro|Électro|Anemo|Geo|Dendro)(?:\\s+(?:character|personnage))?(?:\\s+(?:who uses|using|de type))?\\s*(Catalyst|Sword|Claymore|Polearm|Bow|Catalyseur|Épée|Lance|Arc)?`, 'iu').exec(text);
   const fields: CatalogFields = {};
   const reason = /\b(leaks?|beta|bêta|datamin)/i.test(text) ? 'Source secondaire contenant des informations de leak/bêta ; confirmation officielle absente.' : 'Source secondaire ; confirmation officielle indépendante absente.';
   const observedAt = articleObservedAt(html,name,url);

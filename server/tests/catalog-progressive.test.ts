@@ -131,4 +131,22 @@ describe('progressive catalogue authorization',()=>{
     const later=new Date(now.getTime()+60_000),reasserted=await collect('full',later);
     expect(resolveConsensus(mergeEvidence(merged,'rarity',reasserted.rarity!).rarity!,'private',later).qualification).toBe('PROVISIONAL_CONSENSUS');
   });
+  it('requires exact Unicode nominal boundaries in secondary descriptions, including the three-editor activation circuit',async()=>{
+    const page=(name:string,subject:string)=>`<h1>${name} Guide</h1><p>${subject} is a 4-Star Electro Sword character.</p><script type="application/ld+json">${JSON.stringify({'@type':'Article',headline:`${name} Guide`,dateModified:'2026-10-10'})}</script>`;
+    for(const subject of ['NotPrivate','ÉPrivate','界Private','_Private','Not-Private',"Not'Private",'PrivateOther','Privateé']){
+      const parsed=parseSecondaryMetadata(page('Private',subject),'https://game8.co/profile','game8',['Private'],now);
+      expect(parsed.rarity?.consensusSource?.withdrawn).toBe(true);
+      expect(parsed.rarity?.value).not.toBe(4);
+    }
+    for(const name of ['Private','Kaedehara Kazuha','Émilie','Émilie Étoile','Jean-Pierre']){
+      const parsed=parseSecondaryMetadata(page(name,name.normalize('NFD')),'https://game8.co/profile','game8',[name],now);
+      expect(parsed.rarity).toMatchObject({value:4,consensusSource:{qualified:true,identity:normalizedIdentity(name)}});
+      expect(parsed.element?.value).toBe('electro');
+    }
+    const collected=await new CatalogSecondarySources(async url=>({url,status:200,mime:'text/html',body:Buffer.from(url.endsWith('/genshin-impact/')||url.endsWith('/Genshin-Impact')||url.endsWith('/genshin-impact-personnages/')?'<a href="/private-guide">Private Guide</a>':page('Private','NotPrivate'))}),async()=>{},now).collect(['Private'],['rarity','element']);
+    const state=progressiveEligibility({...fields,rarity:collected.rarity,element:collected.element},now);
+    expect(state).toMatchObject({status:'INCOMPLETE',missing:['rarity','element']});
+    expect(state.fields.rarity?.consensus?.editors).toBe(0);
+    expect(publicPreparation({id:'private',name:'Private',characterId:null,progressivePolicy:true,fields:state.fields,assets:[]},now)).toMatchObject({rarity:null,elementKey:null});
+  });
 });
