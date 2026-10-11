@@ -1,8 +1,8 @@
 # 06 — Audit legacy : Gacha / Invocation
 
-## Demande future du 11/10/2026 — Invocations partagées
+## Mandat consolidé C du 11/10/2026 — Invocations partagées
 
-[Contrat de cadrage](../specifications/shared-invocations-and-wheel-future.md#invocations-partagées) : Diffuser/Voir sousDétail, observation de la scène centrale et retour personnel, événements serveur autoritaires proposés. DOCUMENTATION UNIQUEMENT, non implémenté ; mission dédiée après R1051. RNG/crédit/pity/garanties et transport existants conservés.
+L’ancienne [proposition future](../specifications/shared-invocations-and-wheel-future.md#invocations-partagées), initialement documentaire seulement, est supersédée par le mandat consolidé C R1067–R1075 et son [contrat Invocations partagées V1](../architecture/shared-invocations-v1.md). L’implémentation locale présente Diffuser/Voir sous Détail ; Voir remplace uniquement la scène centrale Invocation, tandis que sidebar et compte restent ceux du spectateur. La sortie du visionnage restitue les Invocations personnelles après rafraîchissement réussi ; quitter Invocation met la diffusion en pause sans perdre sa présentation. Menu, routes et ScreenId restent inchangés. RNG/crédit/pity/garanties demeurent propriétaires du moteur existant ; la projection serveur consentie ne déclenche aucun tirage spectateur. Ce paragraphe corrige le statut de l’ancien cadrage, sans constituer une preuve de déploiement, de recette humaine ou de tests rejoués.
 
 ## R1061 — amendement Vote par identité Twitch prouvée sans Player, candidat
 

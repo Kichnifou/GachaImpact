@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Lot C — Invocations partagées dans la destination existante
+
+Le mandat consolidé C R1067–R1075 supersède l’ancien cadrage futur des Invocations partagées ; le [contrat spécialisé V1](../architecture/shared-invocations-v1.md) possède le consentement, les projections et l’autorité. Diffuser et Voir sont deux commandes de largeur stable sous Détail dans Invocation. Voir ouvre la liste des diffuseurs puis projette uniquement la scène centrale choisie ; sidebar, ressources et identité personnelle du spectateur restent les siennes. En visionnage, Voir devient Arrêter et les commandes personnelles de tirage sont indisponibles. L’arrêt du visionnage restitue la scène personnelle seulement après une lecture fraîche réussie ; en cas d’échec, Actualiser mes Invocations conserve cette barrière.
+
+Quitter Invocation met la diffusion en pause ; revenir reprend sa présentation. Ces modes restent à l’intérieur de la destination Invocation existante : aucun Menu, route, ScreenId ni écran supplémentaire. L’implémentation locale ne vaut pas ici preuve de publication ou de recette humaine ; ce complément ne rejoue aucun contrôle et laisse les constats historiques de navigation ci-dessous dans leur périmètre daté.
+
 ## Consolidation A — consommation des intentions, 11/10/2026
 
 Les hashes vers candidat/Character restent valides à l'ouverture et à l'actualisation explicite. Fermer la fiche, changer de sous-contexte ou quitter son propriétaire consomme la cible et retire son hash ; revenir Personnages ne rouvre aucune ancienne modale. Une autre notification/lien explicite définit une nouvelle cible. Requêtes dépassées invalidées, focus rendu selon le dialogue existant. Les deux notifications catalogue vérifient la cible avant archive serveur. [Contrat](../architecture/consolidated-r1066-r1077.md), statut au Master.
