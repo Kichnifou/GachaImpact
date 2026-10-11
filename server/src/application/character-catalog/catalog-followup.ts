@@ -15,9 +15,13 @@ export function shouldStopAtRelease(characterId: string | null, fields: CatalogF
   const value = String(date?.value), parsed = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
   return !authorized && !!characterId && date?.reliability === 'OFFICIAL' && !!parsed && Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0,10) === value && value <= getBusinessDate(now);
 }
+export function editorialFingerprint(value: unknown): string {
+  const stable = (item: unknown): unknown => Array.isArray(item) ? item.map(stable) : item && typeof item === 'object'
+    ? Object.fromEntries(Object.entries(item).filter(([key,entry]) => key !== 'fetchedAt' && entry !== undefined).sort(([a],[b]) => a.localeCompare(b,'en')).map(([key,entry]) => [key,stable(entry)])) : item;
+  return JSON.stringify(stable(value ?? null));
+}
 export function sameEditorialValue(left: Evidence | undefined, right: Evidence | undefined) {
-  const stable = (value: Evidence | undefined) => value ? JSON.stringify({ ...value, fetchedAt: undefined, alternatives: value.alternatives?.map(item => ({ ...item, fetchedAt: undefined })) }) : null;
-  return stable(left) === stable(right);
+  return editorialFingerprint(left) === editorialFingerprint(right);
 }
 export function editorialState(evidence: Evidence) {
   return evidence.editorialStatus ?? (evidence.reliability === 'PROVISIONAL' ? 'PROVISIONAL' : 'VALIDATED');

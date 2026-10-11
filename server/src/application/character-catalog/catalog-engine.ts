@@ -5,7 +5,7 @@ import { eligibility, mergeEvidence, normalizedIdentity, readFields, type Catalo
 import { CatalogFetchError, RequestBudget, catalogHttp, type CatalogHttp } from '../../infrastructure/character-catalog/catalog-http.js';
 import { CatalogSources, catalogFieldSources, officialReleaseEvidence, type SourceAttempt, type OfficialPost } from '../../infrastructure/character-catalog/catalog-sources.js';
 import { CatalogImageStorage, validateImage } from '../../infrastructure/character-catalog/catalog-images.js';
-import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue } from './catalog-followup.js';
+import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue, editorialFingerprint } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
 
 type RunMode = 'daily' | 'retry' | 'audit';
@@ -123,7 +123,10 @@ export class CatalogEngine {
             if (current.revision !== expectedRevision || !isTracked(current)) throw new CatalogFetchError('REVISION_CHANGED');
             let final = readFields(current.fields);
             const updates: string[] = [];
-            for (const [field, value] of Object.entries(merged)) if (value && canCollect(current, field)) final = mergeEvidence(final, field as keyof CatalogFields, value);
+            // The unchanged revision proves merged was computed from this snapshot.
+            // Merging that result a second time would discard fresh conflicts when
+            // the retained primary value equals the previous value.
+            for (const [field, value] of Object.entries(merged)) if (value && canCollect(current, field)) final = { ...final, [field]: value };
             if (final.numericId) await this.attach(tx, candidate.id, 'genshin', String(final.numericId.value));
             for (const [field, value] of Object.entries(final)) if (!sameEditorialValue(readFields(current.fields)[field as keyof CatalogFields], value)) {
               updates.push(`${field}${value!.conflict ? ' : conflit' : ' : nouvelle information'}`);
@@ -131,7 +134,7 @@ export class CatalogEngine {
                 outcome: value!.conflict ? 'CONFLICT' : readFields(current.fields)[field as keyof CatalogFields] ? 'UPDATED' : 'ADDED', sourceUrl: value!.url, checkedAt: this.now() } });
             }
             await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { fields: json(final), revision: { increment: 1 } } });
-            if (updates.length) await this.notifyReview(tx, candidate.id, candidate.name, updates, JSON.stringify(Object.entries(final).map(([key,value])=>[key,{...value,fetchedAt:undefined,alternatives:value?.alternatives?.map(item=>({...item,fetchedAt:undefined}))}])));
+            if (updates.length) await this.notifyReview(tx, candidate.id, candidate.name, updates, editorialFingerprint(final));
             expectedRevision++;
             released = await this.protectReleased(tx, candidate.id, expectedRevision, started);
             return updates.length;
@@ -185,14 +188,17 @@ export class CatalogEngine {
               const response = await budget.request(promotion.sourceUrl!);
               if (response.status !== 200) throw new CatalogFetchError(response.status === 404 ? 'HTTP_404' : 'UNAVAILABLE', response.status);
               const image = await validateImage(response.body, response.mime, 'promotion');
-              await this.fenced(token, async tx => {
+              const promotionChanges = await this.fenced(token, async tx => {
                 await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
                 const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
                 if (current.revision !== expectedRevision || !canCollect(current, 'promotion')) throw new CatalogFetchError('REVISION_CHANGED');
-                await tx.catalogAsset.updateMany({ where: { id: promotion.id, autoLocked: false }, data: { hash: image.hash, sourceHash: image.sourceHash,
+                const saved = await tx.catalogAsset.updateMany({ where: { id: promotion.id, autoLocked: false, status: 'UNVERIFIED' }, data: { hash: image.hash, sourceHash: image.sourceHash,
                 sourceMime: response.mime, mime: image.mime, width: image.width, height: image.height, bytes: response.body.length,
                 status: 'SOURCE_VALIDATED', officialConfirmed: true, checkedAt: this.now() } });
+                if (saved.count) await this.notifyReview(tx,candidate.id,candidate.name,['promotion : source décodée, distincte des images du jeu'],`promotion:${image.hash}:SOURCE_VALIDATED`);
+                return saved.count;
               });
+              changed += promotionChanges;
               await record({ provider: 'hoyoverse', field: 'promotion', outcome: 'SOURCE_VALIDATED', sourceUrl: promotion.sourceUrl!, httpStatus: 200 }, candidate.id);
             } catch (error) {
               if (error instanceof CatalogFetchError && ['BUDGET_EXHAUSTED', 'LEASE_LOST', 'REVISION_CHANGED'].includes(error.code)) throw error;

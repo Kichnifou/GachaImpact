@@ -6,6 +6,12 @@ import {releaseDatePlan} from '../src/application/character-catalog/catalog-date
 const now=new Date('2026-10-11T23:30:00Z');
 const proof=(value:string|number,reliability:Evidence['reliability']='PROVISIONAL'):Evidence=>({value,reliability,provider:'icy-veins',url:'https://www.icy-veins.com/genshin-impact/private-profile',fetchedAt:now.toISOString()});
 describe('field follow-up and provisional provenance',()=>{
+ it('retains a newly reported same-value source conflict and deduplicates its alternatives on replay',()=>{
+  const incoming={...proof(4),conflict:true,alternatives:[proof(5)]};
+  const result=mergeEvidence({rarity:proof(4)},'rarity',incoming);
+  expect(result.rarity).toMatchObject({value:4,conflict:true,alternatives:[{value:5}]});
+  expect(mergeEvidence(result,'rarity',incoming)).toEqual(result);
+ });
  it('requires both scope permission and an unlocked non-ADMIN field',()=>{
   const row={trackingState:'ACTIVE',trackingElements:['icon','rarity'],fields:{rarity:{...proof(5),locked:true}}};
   expect(canCollect(row,'icon')).toBe(true);expect(canCollect(row,'rarity')).toBe(false);expect(canCollect(row,'element')).toBe(false);
@@ -20,6 +26,7 @@ describe('field follow-up and provisional provenance',()=>{
  it('requires an actual stronger proof for provisional promotion and excludes timestamp-only changes',()=>{
   const first=proof(5),later={...first,fetchedAt:'2026-10-12T10:00:00Z'};
   expect(sameEditorialValue(first,later)).toBe(true);
+  expect(sameEditorialValue(first,JSON.parse(JSON.stringify({reliability:first.reliability,fetchedAt:later.fetchedAt,url:first.url,provider:first.provider,value:first.value})))).toBe(true);
   expect(mergeEvidence({rarity:first},'rarity',later).rarity?.reliability).toBe('PROVISIONAL');
   expect(mergeEvidence({rarity:first},'rarity',proof(5,'OFFICIAL')).rarity?.reliability).toBe('OFFICIAL');
   expect(eligibility({rarity:{...first,adminValidated:true}},['icon','splash'],now).missing).toContain('rarityConfirmation');

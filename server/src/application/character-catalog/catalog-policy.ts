@@ -19,6 +19,12 @@ export function normalizedIdentity(value: string): string { return value.normali
 export function mergeEvidence(fields: CatalogFields, key: keyof CatalogFields, evidence: Evidence): CatalogFields {
   const previous = fields[key];
   if (previous?.override || previous?.locked) return fields;
+  if (previous && previous.value === evidence.value && evidence.conflict) {
+    const alternatives = [...(previous.alternatives ?? [])];
+    for (const item of evidence.alternatives ?? []) if (!alternatives.some(existing => existing.provider === item.provider && existing.url === item.url && existing.value === item.value && existing.reliability === item.reliability)) alternatives.push(item);
+    const primary = previous.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL' ? evidence : previous;
+    return { ...fields, [key]: { ...primary, conflict: true, alternatives: alternatives.slice(-5) } };
+  }
   if (previous && previous.value !== evidence.value) {
     if (previous.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL') return { ...fields, [key]: { ...evidence, conflict:true, alternatives:[previous,...(previous.alternatives??[])].slice(0,5) } };
     // Localised name and original name are separate fields, never fuzzy reconciled.

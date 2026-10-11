@@ -23,6 +23,13 @@ beforeEach(() => { vi.resetAllMocks(); api.getCatalogCandidates.mockResolvedValu
   for (const action of [api.editCatalogCandidate, api.checkCatalogCandidate, api.uploadCatalogImage, api.overrideCatalogWindow]) action.mockResolvedValue({ operationId: 'fixture', alreadyProcessed: false }) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); container?.remove() })
 describe('Character import ADMIN surface', () => {
+  it('wraps keyboard focus through a closed advanced summary without targeting its invisible fields',async()=>{
+    await mount(candidate.id);const close=dialog().querySelector<HTMLButtonElement>('[aria-label="Fermer la fiche"]')!,summary=dialog().querySelector<HTMLElement>('summary')!;
+    close.focus();await act(async()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true})));
+    expect(document.activeElement).toBe(summary);
+    await act(async()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',bubbles:true,cancelable:true})));
+    expect(document.activeElement).toBe(close);
+  })
   it('supports roving keyboard tabs and shows current information before voluntary editing',async()=>{
     await mount(candidate.id);const tabs=dialog().querySelectorAll<HTMLButtonElement>('[role=tab]');
     await act(async()=>tabs[0]!.dispatchEvent(new KeyboardEvent('keydown',{key:'End',bubbles:true})));

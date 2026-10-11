@@ -16,6 +16,8 @@ import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated
 import { applyReleaseDatePlan } from '../src/application/character-catalog/catalog-date-backfill.js';
 import { canCollect } from '../src/application/character-catalog/catalog-followup.js';
 import { recordImageVersion } from '../src/application/character-catalog/catalog-image-version.js';
+import { CatalogSources } from '../src/infrastructure/character-catalog/catalog-sources.js';
+import { vi } from 'vitest';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 beforeAll(() => fixture.setup({ prismaMigrations: true, seedPublicCatalog: true }), 180_000);
@@ -36,11 +38,39 @@ const http: CatalogHttp = async url => {
 const engine = () => new CatalogEngine(db, { enabled: true, publish: false, dryRun: false }, http);
 
 describe('isolated catalogue migration, durable cycles and invariants', () => {
+  it('persists a fresh contradictory proof once, blocks eligibility and retains it on replay',async()=>{
+    const evidence={value:5,provider:'genshin-db',url:'https://fixture.test/rarity',fetchedAt:new Date().toISOString(),reliability:'STRUCTURED' as const};
+    const candidate=await db.catalogCandidate.create({data:{name:'Private conflict replay',trackingElements:['rarity'],fields:{rarity:evidence}}});
+    const structured=vi.spyOn(CatalogSources.prototype,'structured').mockResolvedValue({fields:{rarity:{...evidence,value:4}},images:{}});
+    const discovery=vi.spyOn(CatalogSources.prototype,'discover').mockResolvedValue([]);
+    try{
+      expect(await engine().run('retry',candidate.id)).toMatchObject({changed:1});
+      const after=await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}});
+      expect(after).toMatchObject({status:'CONFLICT',fields:{rarity:{value:5,conflict:true,alternatives:[{value:4}]}}});
+      expect(await db.catalogAttempt.count({where:{candidateId:candidate.id,outcome:'CONFLICT'}})).toBe(1);
+      expect(await engine().run('retry',candidate.id)).toMatchObject({changed:0});
+      expect((await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).fields).toEqual(after.fields);
+    }finally{structured.mockRestore();discovery.mockRestore();await db.catalogAttempt.deleteMany({where:{candidateId:candidate.id}});await db.catalogCandidate.delete({where:{id:candidate.id}});}
+  });
   it('replays all versioned migrations and protects the seven new tables from browser roles', async () => {
     expect(fixture.migrationStatus).toContain('up to date');
     const rows = await fixture.admin.query(`SELECT c.relname, c.relrowsecurity, has_table_privilege('anon', c.oid, 'SELECT,INSERT,UPDATE,DELETE') AS anon, has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS auth FROM pg_class c JOIN pg_namespace n ON c.relnamespace=n.oid WHERE n.nspname=$1 AND c.relname LIKE 'catalog_%' AND c.relkind='r'`, [fixture.schema]);
     expect(rows.rows).toHaveLength(7);
     for (const row of rows.rows) expect(row).toMatchObject({ relrowsecurity: true, anon: false, auth: false });
+  });
+  it('counts a newly decoded promotion once and never exposes it as a playable image',async()=>{
+    const candidate=await db.catalogCandidate.create({data:{name:'Private promotion count',trackingElements:['promotion']}});
+    const body=await sharp({create:{width:128,height:128,channels:4,background:{r:70,g:100,b:190,alpha:1}}}).png().toBuffer();
+    const url='https://fixture.test/promotion.png';
+    await db.catalogAsset.create({data:{candidateId:candidate.id,role:'promotion',provider:'hoyoverse',sourceUrl:url,status:'UNVERIFIED'}});
+    const discovery=vi.spyOn(CatalogSources.prototype,'discover').mockResolvedValue([]);
+    const structured=vi.spyOn(CatalogSources.prototype,'structured').mockResolvedValue(null);
+    const runner=new CatalogEngine(db,{enabled:false,publish:false,dryRun:false},async target=>({status:200,mime:'image/png',body,url:target}));
+    try{
+      expect(await runner.run('retry',candidate.id)).toMatchObject({changed:1});
+      expect(await db.catalogAsset.findFirstOrThrow({where:{candidateId:candidate.id}})).toMatchObject({status:'SOURCE_VALIDATED',role:'promotion',url:null,officialConfirmed:true});
+      expect(await runner.run('retry',candidate.id)).toMatchObject({changed:0});
+    }finally{discovery.mockRestore();structured.mockRestore();await db.catalogAttempt.deleteMany({where:{candidateId:candidate.id}});await db.catalogAsset.deleteMany({where:{candidateId:candidate.id}});await db.catalogCandidate.delete({where:{id:candidate.id}});}
   });
   it('rejects AVAILABLE assets with null dimensions, bytes or MIME at the SQL boundary', async () => {
     const candidate = await db.catalogCandidate.create({ data: { name: 'Private SQL constraint', nextCheckAt: new Date('2099-01-01T00:00:00Z') } });

@@ -16,7 +16,11 @@ export const secondaryProviders = [
 export const reviewedSecondaryImages = [{ name:'Mitya', role:'icon' as const, provider:'icy-veins',
   sourcePage:'https://www.icy-veins.com/genshin-impact/mitya-profile-talents-constellations', reviewedAt:'2026-10-11',
   url:'https://static.icy-veins.com/images/genshin-impact/characters/mitya.webp', editorialStatus:'PROVISIONAL' as const,
-  sourceHash:'fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d' }];
+  sourceHash:'fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d' },
+ { name:'Valeriy', role:'icon' as const, provider:'icy-veins',
+  sourcePage:'https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations', reviewedAt:'2026-10-11',
+  url:'https://static.icy-veins.com/images/genshin-impact/characters/valeriy.webp', editorialStatus:'PROVISIONAL' as const,
+  sourceHash:'aceb91df588ff45aa1b427bbcedf9fe142e30f9ccb3e624cbb4e4d17682fe321' }];
 // Explicit, short-lived reading cache after the direct collector returned 403.
 // Original consultation dates survive replays; this never masquerades as a live fetch.
 export const reviewedSecondaryProfiles = [

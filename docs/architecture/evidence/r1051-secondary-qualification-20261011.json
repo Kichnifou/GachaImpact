@@ -6,29 +6,103 @@
     "collector": "HTTP403 sur index/profils ; aucune tentative de contournement.",
     "webReading": "Pages publiques obtenues par recherche web, faits examinés ; cache daté limité à sept jours, date originale conservée.",
     "profiles": [
-      {"name":"Mitya","url":"https://www.icy-veins.com/genshin-impact/mitya-profile-talents-constellations","pageUpdated":"2026-10-02","facts":{"rarity":5,"weapon":"Catalyst"},"status":"PROVISIONAL","reservation":"Préparation bêta/leaks, pas de preuve officielle pour rareté/arme/date."},
-      {"name":"Valeriy","url":"https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations","pageUpdated":"2026-09-30","facts":{"rarity":4,"weapon":"Sword"},"status":"PROVISIONAL","contradiction":"Texte introductif 4 étoiles, cartouche de la même page 5 étoiles. Conserver le conflit, aucun arbitrage inventé."}
+      {
+        "name": "Mitya",
+        "url": "https://www.icy-veins.com/genshin-impact/mitya-profile-talents-constellations",
+        "pageUpdated": "2026-10-02",
+        "facts": {
+          "rarity": 5,
+          "weapon": "Catalyst"
+        },
+        "status": "PROVISIONAL",
+        "reservation": "Préparation bêta/leaks, pas de preuve officielle pour rareté/arme/date."
+      },
+      {
+        "name": "Valeriy",
+        "url": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations",
+        "pageUpdated": "2026-09-30",
+        "facts": {
+          "rarity": 4,
+          "weapon": "Sword"
+        },
+        "status": "PROVISIONAL",
+        "contradiction": "Texte introductif 4 étoiles, cartouche de la même page 5 étoiles. Conserver le conflit, aucun arbitrage inventé."
+      }
     ],
-    "portrait": {"name":"Mitya","role":"icon","url":"https://static.icy-veins.com/images/genshin-impact/characters/mitya.webp","httpStatus":200,"bytes":32380,"width":256,"height":256,"alpha":true,"sourceSha256":"fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d","visualReview":"Portrait cohérent avec le profil, transparence réelle ; aucun watermark/bandeau/montage trompeur visible.","editorialStatus":"PROVISIONAL","stored":false}
+    "portraits": [
+      {
+        "name": "Mitya",
+        "role": "icon",
+        "url": "https://static.icy-veins.com/images/genshin-impact/characters/mitya.webp",
+        "httpStatus": 200,
+        "bytes": 32380,
+        "width": 256,
+        "height": 256,
+        "alpha": true,
+        "sourceSha256": "fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d",
+        "visualReview": "Portrait cohérent avec le profil, transparence réelle ; aucun watermark/bandeau/montage trompeur visible.",
+        "editorialStatus": "PROVISIONAL",
+        "stored": false,
+        "transparentPixels": 21516
+      },
+      {
+        "name": "Valeriy",
+        "role": "icon",
+        "sourcePage": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations",
+        "url": "https://static.icy-veins.com/images/genshin-impact/characters/valeriy.webp",
+        "httpStatus": 200,
+        "bytes": 17240,
+        "width": 256,
+        "height": 256,
+        "alpha": true,
+        "sourceSha256": "aceb91df588ff45aa1b427bbcedf9fe142e30f9ccb3e624cbb4e4d17682fe321",
+        "normalizedSha256": "f59b429606c89917dea9876c94ee3933620ff117322839f7eb81bd217f4db632",
+        "transparentPixels": 19603,
+        "visualReview": "Portrait du profil examin? ; pas de bandeau ni watermark visible, fond alpha r?ellement transparent, aucun faux damier incrust? constat?.",
+        "editorialStatus": "PROVISIONAL",
+        "stored": false
+      }
+    ]
   },
   "game8": {
-    "index":"https://game8.co/games/Genshin-Impact",
-    "indexHttpStatus":200,
-    "releaseTable":"https://game8.co/games/Genshin-Impact/archives/307054",
-    "tableHttpStatus":200,
-    "tableFetchedAt":"2026-10-11T09:52:52.900Z",
-    "tableSha256":"59907665b83325cd045c64729813f5e726bc1abc0e24154a177cef0268a4140c",
-    "datePlan":"r1051-release-date-plan-20261011.json",
-    "coverageReservation":"Couverture des profils Mitya/Valeriy non établie globalement. Une recherche infructueuse ou un lien absent de l'index ne prouve pas une absence générale."
+    "index": "https://game8.co/games/Genshin-Impact",
+    "indexHttpStatus": 200,
+    "releaseTable": "https://game8.co/games/Genshin-Impact/archives/307054",
+    "tableHttpStatus": 200,
+    "tableFetchedAt": "2026-10-11T09:52:52.900Z",
+    "tableSha256": "59907665b83325cd045c64729813f5e726bc1abc0e24154a177cef0268a4140c",
+    "datePlan": "r1051-release-date-plan-20261011.json",
+    "coverageReservation": "Couverture des profils Mitya/Valeriy non établie globalement. Une recherche infructueuse ou un lien absent de l'index ne prouve pas une absence générale."
   },
   "sephijin": {
-    "index":"https://sephijin.fr/",
-    "indexHttpStatus":200,
-    "actualPages":["https://sephijin.fr/mitya-farm/","https://sephijin.fr/valeriy-farm/"],
-    "coverageReservation":"Pages farm réellement disponibles, pas de rareté/arme exploitable qualifiée par le parseur de profil ; pas de localisation française de ces champs revendiquée.",
-    "images":[
-      {"url":"https://sephijin.fr/wp-content/uploads/2026/09/pp-mitya.webp","httpStatus":200,"width":500,"height":500,"sourceSha256":"65a67cf46e8fb4f4e1b5af07f64d906124b908ddc30a2eaa83b29800c06c1c48","decoded":true,"accepted":false,"reason":"Bandeau nom/étoiles incrusté ; rejet comme portrait de référence."},
-      {"url":"https://sephijin.fr/wp-content/uploads/2026/09/pp-valeriy.webp","httpStatus":200,"width":500,"height":500,"sourceSha256":"a4a3753c3cb6b87c96e6fb5bd88af8e045b04fa8efa47eb2aff7b6e11013eece","decoded":true,"accepted":false,"reason":"Bandeau nom/étoiles incrusté ; rejet comme portrait de référence."}
+    "index": "https://sephijin.fr/",
+    "indexHttpStatus": 200,
+    "actualPages": [
+      "https://sephijin.fr/mitya-farm/",
+      "https://sephijin.fr/valeriy-farm/"
+    ],
+    "coverageReservation": "Pages farm réellement disponibles, pas de rareté/arme exploitable qualifiée par le parseur de profil ; pas de localisation française de ces champs revendiquée.",
+    "images": [
+      {
+        "url": "https://sephijin.fr/wp-content/uploads/2026/09/pp-mitya.webp",
+        "httpStatus": 200,
+        "width": 500,
+        "height": 500,
+        "sourceSha256": "65a67cf46e8fb4f4e1b5af07f64d906124b908ddc30a2eaa83b29800c06c1c48",
+        "decoded": true,
+        "accepted": false,
+        "reason": "Bandeau nom/étoiles incrusté ; rejet comme portrait de référence."
+      },
+      {
+        "url": "https://sephijin.fr/wp-content/uploads/2026/09/pp-valeriy.webp",
+        "httpStatus": 200,
+        "width": 500,
+        "height": 500,
+        "sourceSha256": "a4a3753c3cb6b87c96e6fb5bd88af8e045b04fa8efa47eb2aff7b6e11013eece",
+        "decoded": true,
+        "accepted": false,
+        "reason": "Bandeau nom/étoiles incrusté ; rejet comme portrait de référence."
+      }
     ]
   },
   "publication": "Aucun import jouable ni changement de flag autorisé par ces qualifications. Storage absent ; aucun objet stocké. Réserves de droits existantes conservées."
