@@ -60,6 +60,15 @@ describe('private shared invocation PostgreSQL contract', () => {
             expect(await db.pullOperation.count({ where: { playerId: host.id } })).toBe(1);
             expect(await db.resourceMovement.count({ where: { playerId: host.id } })).toBe(movements);
             expect(JSON.stringify(recovered.snapshot.gacha.banner)).not.toMatch(/legacyProvenance|generationVoteSnapshot|supersededAt/);
+            const owner = (await shared.state(host.identity, host.tab)).broadcasting!;
+            const summary = (await shared.control(host.identity, host.tab, 'skip', 'invocation', owner.seq)).broadcasting!;
+            const closed = (await shared.control(host.identity, host.tab, 'close', 'invocation', summary.seq)).broadcasting!;
+            expect(closed.snapshot.presentation).toEqual({ phase: 'idle', index: 0, pull: null });
+            expect(closed.snapshot.gacha.banner.id).toBe(replacement.id);
+            expect(closed.snapshot.gacha.playerState.selectedBannerCharacterId).toBe(changedTarget);
+            expect((await shared.state(viewer.identity, viewer.tab)).watching?.snapshot.gacha).toEqual(closed.snapshot.gacha);
+            expect(await db.pullOperation.count({ where: { playerId: host.id } })).toBe(1);
+            expect(await db.resourceMovement.count({ where: { playerId: host.id } })).toBe(movements);
         }
         finally {
             await db.$transaction(async (tx) => {
@@ -78,6 +87,33 @@ describe('private shared invocation PostgreSQL contract', () => {
             expect(row.u).toBe(false);
         }
     });
+    it('invalidates an idle cursor after rotation and refreshes the minimal scene without activity or economic writes', async () => {
+        const { host, viewer } = await pair(), before = (await shared.state(viewer.identity, viewer.tab)), current = (await store.getCurrent(host.id))!;
+        const fields = await db.bannerFeaturedCharacter.findMany({ where: { bannerRotationId: current.banner.id } });
+        const timing = await db.$queryRaw<{ last_gesture_at: Date; lease_until: Date }[]>`SELECT last_gesture_at,lease_until FROM shared_invocation_sessions WHERE owner_id=${host.id}::uuid`;
+        const replacement = await db.$transaction(async tx => {
+            await tx.bannerRotation.update({ where: { id: current.banner.id }, data: { status: 'ENDED' } });
+            await tx.playerGachaState.update({ where: { playerId: host.id }, data: { selectedBannerCharacterId: null, pity4: 6, pity5: 51 } });
+            return tx.bannerRotation.create({ data: { status: 'ACTIVE', startsAt: new Date(now.getTime() + 2), endsAt: new Date(now.getTime() + 7 * 86400000), featuredCharacters: { create: fields.map(f => ({ characterId: f.characterId, rarity: f.rarity, slot: f.slot, selectionSource: f.selectionSource })) } } });
+        });
+        try {
+            const fresh = await shared.state(viewer.identity, viewer.tab, before.cursor);
+            expect(fresh.unchanged).toBe(false);
+            expect(fresh.watching?.seq).toBe(before.watching!.seq + 1);
+            expect(fresh.watching?.snapshot.gacha.banner.id).toBe(replacement.id);
+            expect(fresh.watching?.snapshot.gacha.playerState).toMatchObject({ selectedBannerCharacterId: null, pity4: 6, pity5: 51 });
+            expect((await shared.state(host.identity, host.tab)).broadcasting?.snapshot.gacha).toEqual(fresh.watching!.snapshot.gacha);
+            expect(await shared.state(viewer.identity, viewer.tab, fresh.cursor)).toMatchObject({ unchanged: true, cursor: fresh.cursor });
+            expect(await db.$queryRaw`SELECT last_gesture_at,lease_until FROM shared_invocation_sessions WHERE owner_id=${host.id}::uuid`).toEqual(timing);
+            expect(await db.pullOperation.count({ where: { playerId: host.id } })).toBe(0);
+            expect(await db.resourceMovement.count({ where: { playerId: host.id } })).toBe(0);
+        } finally {
+            await db.$transaction(async tx => {
+                await tx.bannerRotation.update({ where: { id: replacement.id }, data: { status: 'ENDED' } });
+                await tx.bannerRotation.update({ where: { id: current.banner.id }, data: { status: 'ACTIVE' } });
+            });
+        }
+    }, 60000);
     it('is opt-in, exclusive and binds one authoritative tab', async () => {
         const host = await player(), viewer = await player();
         expect((await shared.state(host.identity, host.tab)).broadcasting).toBeNull();

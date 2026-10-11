@@ -75,16 +75,6 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
     else dispatchSequence({ type: 'close' })
   }
 
-  if (choosing || !selected) {
-    return <section className={`invocation-panel target-picker${compact ? ' home-banner home-banner-preview' : ''}`} aria-labelledby="invocation-title">
-      <div className="banner-copy-column">
-        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
-      {sharing}</div>
-      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} disabled={targetSelectionDisabled} onClick={() => void choose(character)} key={character.id} />)}</div>
-      {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
-    </section>
-  }
-
   if (!compact && sequence.phase !== 'idle') {
     return <section className="invocation-panel invocation-sequence-panel">
       <InvocationSequence
@@ -95,6 +85,16 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
         readOnly={readOnly}
       />
       {sharing && <div className="shared-invocation-presentation-controls">{sharing}</div>}
+    </section>
+  }
+
+  if (choosing || !selected) {
+    return <section className={`invocation-panel target-picker${compact ? ' home-banner home-banner-preview' : ''}`} aria-labelledby="invocation-title">
+      <div className="banner-copy-column">
+        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>{sharing}</div>
+      </div>
+      <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} disabled={targetSelectionDisabled} onClick={() => void choose(character)} key={character.id} />)}</div>
+      {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
     </section>
   }
 

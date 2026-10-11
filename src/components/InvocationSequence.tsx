@@ -124,9 +124,9 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose, readOnly = fals
       className={`invocation-sequence sequence-${state.phase} sequence-rarity-${rarity}${suspense ? ' sequence-suspense-active' : ''}`}
       onClick={activateSurface}
       onKeyDown={activateSurfaceWithKeyboard}
-      role={canUseSurface ? 'button' : undefined}
-      tabIndex={canUseSurface ? 0 : undefined}
-      aria-label={canUseSurface ? surfaceLabel : undefined}
+      role={canUseSurface && state.phase !== 'summary' ? 'button' : undefined}
+      tabIndex={canUseSurface && state.phase !== 'summary' ? 0 : undefined}
+      aria-label={canUseSurface && state.phase !== 'summary' ? surfaceLabel : undefined}
       aria-live="polite"
       onClickCapture={(event) => {
         if (!summaryLocked) return
@@ -167,7 +167,9 @@ function InvocationSequence({ state, onAdvance, onSkip, onClose, readOnly = fals
         {!readOnly && revealControls.close && <button type="button" className="icon-button sequence-control sequence-close reveal-overlay-control" onClick={(event) => { stop(event); clearPresentation(); onClose() }} aria-label="Fermer les résultats"><span className="icon-glyph">×</span></button>}
       </div>}
 
-      {!suspense && state.phase === 'summary' && <div className="sequence-summary">
+      {!suspense && state.phase === 'summary' && <div className="sequence-summary" role="region" aria-label="Résultats de l’Invocation" tabIndex={0} onKeyDown={event => {
+        if (event.target === event.currentTarget && ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(event.key)) event.stopPropagation()
+      }}>
         <header><span>Invocation validée</span><h2>Récapitulatif x10</h2></header>
         <PullResults pull={state.pull} />
       </div>}

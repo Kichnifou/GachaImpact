@@ -157,7 +157,11 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
     return { state, error, pending, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
         start: () => mutate((api, id) => api.start(id)), stop: () => mutate((api, id) => api.control(id, 'stop', screen.current ? 'invocation' : 'other')),
         watch: (id: string | null) => mutate((api, tab) => api.watch(tab, id)),
-        advance: (action: 'advance' | 'skip' | 'close') => mutate((api, id) => api.control(id, action, 'invocation', current.current.broadcasting?.seq)),
+        advance: (action: 'advance' | 'skip' | 'close') => mutate(async (api, id) => {
+            const next = await api.control(id, action, 'invocation', current.current.broadcasting?.seq);
+            if (action === 'close') await refreshPersonal();
+            return next;
+        }),
         resume: () => mutate(async (api, id) => {
             const intent = current.current.broadcasting?.pendingPull;
             if (!intent)

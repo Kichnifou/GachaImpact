@@ -161,3 +161,31 @@ it('keeps personal invocation controls unavailable until the exit refresh succee
  refresh.mockRejectedValueOnce(new Error('Refresh unavailable'));await act(async()=>{await current.refreshPersonal()});expect(current.personalReady).toBe(false)
  refresh.mockResolvedValueOnce();await act(async()=>{await current.refreshPersonal()});expect(current.personalReady).toBe(true)
 })
+
+it('waits for a fresh personal banner before applying the broadcaster close response', async () => {
+    const transport = api(), read = deferred<void>(), refresh = vi.fn(() => read.promise), { root } = mount(transport);
+    await flush();
+    act(() => root.render(<Harness transport={transport} refresh={refresh}/>));
+    await act(async () => { await current.start(); });
+    let closing!: Promise<boolean>;
+    act(() => { closing = current.advance('close'); });
+    await flush();
+    expect(refresh).toHaveBeenCalledOnce();
+    expect(current.personalReady).toBe(false);
+    expect(current.pending).toBe(true);
+    expect(current.state.broadcasting?.id).toBe('owned');
+    await act(async () => { read.resolve(); await closing; });
+    expect(current.personalReady).toBe(true);
+    expect(current.pending).toBe(false);
+    expect(current.state.broadcasting).toBeNull();
+});
+
+it('keeps personal controls fenced when a broadcaster close refresh fails', async () => {
+    const transport = api(), refresh = vi.fn(async () => { throw Error('Current banner unavailable'); }), { root } = mount(transport);
+    await flush();
+    act(() => root.render(<Harness transport={transport} refresh={refresh}/>));
+    await act(async () => { await current.start(); await current.advance('close'); });
+    expect(current.personalReady).toBe(false);
+    expect(current.error).toBeTruthy();
+    expect(current.pending).toBe(false);
+});

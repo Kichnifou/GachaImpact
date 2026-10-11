@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
+import { isDeepStrictEqual } from 'node:util';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -132,17 +133,28 @@ export class SharedInvocations {
         const p = await this.owner(identity), now = this.now();
         type Version = Pick<Row, 'id' | 'owner_id' | 'seq' | 'pending_key'> & {
             reaction_expired: boolean;
+            idle_stale: boolean;
         };
         const versions = () => this.db.$queryRaw<Version[]> `
-      SELECT id,owner_id,seq,pending_key,
-        EXISTS(SELECT 1 FROM jsonb_array_elements(reactions) r WHERE (r->>'expiresAt')::timestamptz<=${now}) reaction_expired
-      FROM shared_invocation_sessions WHERE status<>'STOPPED' AND lease_until>${now}
-      AND last_gesture_at>${new Date(now.getTime() - sharedInactivityMs)}
-      AND (owner_id=${p.id}::uuid OR id=(SELECT watching_id FROM shared_invocation_members WHERE player_id=${p.id}::uuid)) ORDER BY id`;
+      SELECT s.id,s.owner_id,s.seq,s.pending_key,
+        EXISTS(SELECT 1 FROM jsonb_array_elements(s.reactions) r WHERE (r->>'expiresAt')::timestamptz<=${now}) reaction_expired,
+        s.snapshot#>>'{presentation,phase}'='idle' AND s.pending_key IS NULL AND (
+          s.snapshot#>>'{gacha,banner,id}' IS DISTINCT FROM (SELECT id::text FROM banner_rotations WHERE status='ACTIVE' LIMIT 1)
+          OR s.snapshot#>'{gacha,playerState}' IS DISTINCT FROM jsonb_build_object(
+            'selectedBannerCharacterId',g.selected_banner_character_id,'pity5',g.pity_5,'pity4',g.pity_4,
+            'guaranteedFeatured5',g.guaranteed_featured_5,'captureProgress',g.capture_progress)) idle_stale
+      FROM shared_invocation_sessions s LEFT JOIN player_gacha_states g ON g.player_id=s.owner_id
+      WHERE s.status<>'STOPPED' AND s.lease_until>${now}
+      AND s.last_gesture_at>${new Date(now.getTime() - sharedInactivityMs)}
+      AND (s.owner_id=${p.id}::uuid OR s.id=(SELECT watching_id FROM shared_invocation_members WHERE player_id=${p.id}::uuid)) ORDER BY s.id`;
         let rows = await versions();
         if (rows.some(r => r.pending_key)) {
             for (const row of rows.filter(r => r.pending_key))
                 await this.reconcile(row.owner_id);
+            rows = await versions();
+        }
+        if (rows.some(r => r.idle_stale)) {
+            for (const row of rows.filter(r => r.idle_stale)) await this.refreshIdle(row.owner_id);
             rows = await versions();
         }
         if (now.getTime() >= this.cleanupAfter || rows.some(r => r.reaction_expired)) {
@@ -167,6 +179,7 @@ export class SharedInvocations {
     async start(identity: AuthenticatedIdentity, tabId: string) {
         const p = await this.owner(identity), now = this.now();
         await this.db.$transaction(async (tx) => {
+            await tx.$executeRaw `SELECT pg_advisory_xact_lock(70422401)`;
             await this.lock(tx);
             await this.prune(tx, now);
             const m = await this.member(tx, p.id);
@@ -206,6 +219,7 @@ export class SharedInvocations {
         const p = await this.owner(identity);
         await this.reconcile(p.id);
         await this.db.$transaction(async (tx) => {
+            if (action === 'close') await tx.$executeRaw `SELECT pg_advisory_xact_lock(70422401)`;
             await this.lock(tx);
             await this.prune(tx, this.now());
             const own = this.assertAuthority(await this.row(tx, p.id, true), tabId), now = this.now();
@@ -229,7 +243,11 @@ export class SharedInvocations {
                 throw new BusinessError('SHARED_PAUSED', 'La diffusion est en pause.');
             if (seq !== own.seq)
                 throw new BusinessError('SHARED_STALE', 'La présentation a changé. Actualisez la scène.');
-            const snapshot = { ...own.snapshot, presentation: nextSharedPresentation(own.snapshot.presentation, action) };
+            let snapshot = { ...own.snapshot, presentation: nextSharedPresentation(own.snapshot.presentation, action) };
+            if (action === 'close' && snapshot.presentation.phase === 'idle') {
+                const current = await this.gacha.getCurrent(p.id, tx);
+                if (current) snapshot = { ...snapshot, gacha: { banner: sharedBanner(current.banner), playerState: sharedState(current.playerState) } };
+            }
             await tx.$executeRaw `UPDATE shared_invocation_sessions SET snapshot=${JSON.stringify(snapshot)}::jsonb,seq=seq+1,last_gesture_at=${now},updated_at=${now} WHERE id=${own.id}::uuid`;
         });
         return this.state(identity, tabId);
@@ -267,6 +285,20 @@ export class SharedInvocations {
         await this.db.$transaction(async (tx) => {
             await this.lock(tx);
             await tx.$executeRaw `UPDATE shared_invocation_sessions SET seq=seq+1,pending_key=NULL,pending_count=NULL WHERE owner_id=${p.id}::uuid AND pending_key=${key}::uuid`;
+        });
+    }
+    private async refreshIdle(playerId: string) {
+        await this.db.$transaction(async (tx) => {
+            // Same order as UI target/pull; all projection reads stay on this connection.
+            await tx.$executeRaw `SELECT pg_advisory_xact_lock(70422401)`;
+            await this.lock(tx);
+            const own = await this.row(tx, playerId, true);
+            if (!own || !sharedLive(own, this.now()) || own.pending_key || own.snapshot.presentation.phase !== 'idle') return;
+            const current = await this.gacha.getCurrent(playerId, tx);
+            if (!current) return;
+            const gacha = { banner: sharedBanner(current.banner), playerState: sharedState(current.playerState) };
+            if (isDeepStrictEqual(gacha, own.snapshot.gacha)) return;
+            await tx.$executeRaw `UPDATE shared_invocation_sessions SET snapshot=jsonb_set(snapshot,'{gacha}',${JSON.stringify(gacha)}::jsonb),seq=seq+1,updated_at=${this.now()} WHERE id=${own.id}::uuid`;
         });
     }
     private async reconcile(playerId: string) {

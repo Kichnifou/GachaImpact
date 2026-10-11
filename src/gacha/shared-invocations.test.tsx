@@ -1,12 +1,13 @@
 // @vitest-environment happy-dom
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { mergeSharedSession } from './use-shared-invocations';
 import { sharedGachaView, sharedSequenceView } from './shared-invocation-presentation';
 import type { SharedSession } from '../api/shared-invocations-types';
 import InvocationSequence from '../components/InvocationSequence';
 import InvocationScreen from '../screens/InvocationScreen';
+import BannerHero from '../components/BannerHero';
 import type { SharedInvocationController } from './use-shared-invocations';
 const hero = { id: 'target', name: 'Diffusion', rarity: 5 as const, elementKey: 'hydro' as const, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null };
 const result = { index: 1, resultType: 'resource' as const, character: null, rarity: null, resourceKey: 'moras', resourceAmount: '5000', wasNewCharacter: null, constellationAfter: null, wasFiftyFifty: false, wonFiftyFifty: null, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [], c6Progression: null };
@@ -15,10 +16,12 @@ const session: SharedSession = { id: 'session', seq: 5, status: 'ACTIVE', author
     IS_REACT_ACT_ENVIRONMENT: boolean;
 }).IS_REACT_ACT_ENVIRONMENT = true;
 const roots: ReturnType<typeof createRoot>[] = [];
+beforeEach(() => vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({ matched: [], unmatched: [] }) }))));
 afterEach(() => {
     act(() => roots.splice(0).forEach(root => root.unmount()));
     document.body.replaceChildren();
     vi.useRealTimers();
+    vi.unstubAllGlobals();
 });
 function mount(node: React.ReactNode) {
     const host = document.createElement('div');
@@ -74,4 +77,44 @@ it('preserves stop/reactions during pause and never calls the personal pull or t
     expect(react).toHaveBeenCalledWith('🎉');
     expect(onPull).not.toHaveBeenCalled();
     expect(onSetTarget).not.toHaveBeenCalled();
+});
+
+it('restores the broadcaster receipt after F5 and rotation with a null personal target, then returns to the current banner on close', () => {
+    const own = { ...session, authoritative: true }, receipt = sharedGachaView(session), currentHero = { ...receipt.banner.featuredFiveStars[0], id: 'current-target', name: 'Rotation actuelle' };
+    const personal = { banner: { ...receipt.banner, id: 'current-banner', featuredFiveStars: [currentHero] }, playerState: { ...receipt.playerState, selectedBannerCharacterId: null } };
+    const shared = { enabled: true, pending: false, personalReady: true, error: '', state: { broadcasting: own, watching: null }, advance: vi.fn() } as unknown as SharedInvocationController;
+    const render = () => <InvocationScreen gacha={personal} teams={{ teams: [], availableCharacters: [], passiveReference: [] }} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host = mount(render());
+    expect(host.textContent).toContain('Résultat 5 / 10');
+    expect(host.textContent).not.toContain('Choisissez votre cible');
+    expect(host.querySelectorAll('.pull-result-card')).toHaveLength(1);
+    shared.state = { broadcasting: { ...own, seq: 6, snapshot: { ...own.snapshot, presentation: { phase: 'idle', index: 0, pull: null } } }, watching: null };
+    act(() => roots.at(-1)!.render(render()));
+    expect(host.textContent).toContain('Choisissez votre cible');
+    expect(host.textContent).toContain('Rotation actuelle');
+    expect(host.textContent).not.toContain('Résultat 5 / 10');
+});
+
+it('prioritizes a committed sequence over a target picker even when the displayed target is absent', () => {
+    const receipt = sharedGachaView(session), personal = { ...receipt, playerState: { ...receipt.playerState, selectedBannerCharacterId: null } };
+    const host = mount(<BannerHero gacha={personal} onSetTarget={vi.fn()} sharedSequence={sharedSequenceView(session)} onSharedSequenceAction={vi.fn()}/>);
+    expect(host.textContent).toContain('Résultat 5 / 10');
+    expect(host.textContent).not.toContain('Choisissez votre cible');
+});
+
+it('provides a keyboard focus target for the complete summary without turning scrolling into a close action', () => {
+    vi.useFakeTimers();
+    const state = sharedSequenceView({ ...session, snapshot: { ...session.snapshot, presentation: { ...session.snapshot.presentation, phase: 'summary' } } });
+    if (state.phase === 'idle') throw Error('Expected committed summary');
+    const close = vi.fn(), host = mount(<InvocationSequence state={state} onAdvance={vi.fn()} onSkip={vi.fn()} onClose={close}/>);
+    act(() => vi.advanceTimersByTime(1100));
+    const region = host.querySelector<HTMLElement>('[role="region"]')!;
+    region.focus();
+    expect(document.activeElement).toBe(region);
+    expect(region.tabIndex).toBe(0);
+    expect(region.querySelectorAll('.pull-result-card')).toHaveLength(10);
+    act(() => {
+        for (const key of ['PageDown', 'End', ' ']) region.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+    });
+    expect(close).not.toHaveBeenCalled();
 });
