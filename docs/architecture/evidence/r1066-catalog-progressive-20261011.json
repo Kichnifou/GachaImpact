@@ -66,6 +66,19 @@
     "independentCorrectionReview": "Pending on actual published corrected SHA",
     "fullQualification": "Full above executed before these helper corrections; their new regressions and subsystem tests passed separately"
   },
+  "secondCorrectionReview": {
+    "sha": "b3e94d9d213dea0f1c1d173269695caee20f17a8",
+    "verdict": "CHANGES_REQUIRED",
+    "reportSha256": "8d45d644aa23b131745678b089bbd96c0cbd9174c68b435a3dba4b6f5e83e5c4",
+    "initialFindings": "Closed: three independent reproductions now pass",
+    "newFinding": "P1 secondary description accepted NotPrivate as Private through three-editor consensus",
+    "fixSource": "f6841b6",
+    "fix": "Exact Unicode name boundaries and NFC in heading, Article and description; composed and accented names retained",
+    "backendRootPassed": 76,
+    "producerQuick": "PASS 5/5",
+    "producerBackendBuild": "PASS",
+    "publicMigration": "Still not applied; independent review of published correction required"
+  },
   "limits": [
     "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
     "Human acceptance and real source convergence remain open; automated private visuals do not replace human acceptance",
