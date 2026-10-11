@@ -62,6 +62,24 @@
     "independentCorrectionTests": "75/75 plus both original race reproductions 1/1 each PASS; no remaining P1/P2 identified",
     "fullSuiteExceptionRetained": true
   },
-  "promotion": "NOT_YET_ACQUIRED",
-  "deployments": "NOT_YET_ACQUIRED"
+  "promotion": {
+    "sha": "18be027073448ba5b524068c0ea9989434ea9d05",
+    "strictFastForward": true,
+    "mainReviewLocalRemoteEqual": true,
+    "divergence": "0/0",
+    "documentaryReviewReportSha256": "3ab545e5aaf39909d3180cb54602295316c49e0024643950f3060e8525a0d8d0"
+  },
+  "deployments": {
+    "sha": "18be027073448ba5b524068c0ea9989434ea9d05",
+    "railway": { "id": "e4b04104-8058-4c16-9934-42e395104576", "status": "SUCCESS", "readyAt": "2026-10-11T18:11:26.611704654Z", "migrations": "72 found; no pending migrations" },
+    "cloudflare": { "id": "e5509ab3-8504-4780-985c-07fa25cae36d", "status": "SUCCESS", "completedAt": "2026-10-11T18:10:57Z", "exactPreviewAndProductionAssets": true },
+    "postflight": { "health": 200, "bothDomainsIdentical": true, "private401AndExactCors": 8 },
+    "readOnlyRuntimeAt": "2026-10-11T18:13:40.900Z",
+    "charactersAndProtected": "120/120 unchanged since authorized dates",
+    "tracked": "Mitya and Valeriy, no Character; no import outbox",
+    "storage": { "objects": 2, "bytes": 236490 },
+    "notifications": "2 catalogue groups observed ARCHIVED, 7 archived receipts preserved; no human recipe inferred",
+    "daily": "enabled; publish enabled; dryRun false; next natural Paris midnight 2026-10-11T22:00:00Z not yet observed",
+    "humanRecipe": "À tester en public"
+  }
 }
