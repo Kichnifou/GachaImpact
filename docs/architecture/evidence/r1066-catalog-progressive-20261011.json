@@ -40,9 +40,19 @@
     "frontendTargetedPassed": 27,
     "backendTargetedPassed": 72,
     "quick": "PASS 5/5",
-    "full": "Running before final promotion gate; no PASS claimed",
+    "full": { "sha": "083b95fd074338f35eb0e8e51c517315818430c9", "result": "FAIL 6/8", "frontendPassed": 1478, "frontendFailed": 7, "backendPassed": 2382, "backendFailed": 6, "baselineAssertionFailures": 13, "additionalTimeouts": 0, "failingTestFilesUnchangedSinceInitialMissionBase": true, "buildsTypesLintDiffChecks": "PASS", "notClaimedFullPass": true },
     "publicSchemaBefore": "72 migrations, committed SQL and historical ledger checksums verified read-only; seven private RLS tables without browser grants",
     "productionMigration": "Not applied at this candidate checkpoint"
+  },
+  "independentInitialReview": {
+    "sha": "083b95fd074338f35eb0e8e51c517315818430c9",
+    "verdict": "CHANGES_REQUIRED",
+    "reportSha256": "d39412ec41295d3bf3e7539035aa30e1135d2bc098d954ec57a3e037071606d9",
+    "findings": ["P1 playable evidence attributed across sentences or a name substring", "P2 qualified HTTP200 article withdrawal not propagated to its old consensus vote"],
+    "passed": { "frontend": 45, "backend": 73, "privatePostgres": 8 },
+    "independentRedReproductions": 3,
+    "privateCleanupCompleted": true,
+    "promotionBlockedUntilCorrectionReview": true
   },
   "limits": [
     "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
