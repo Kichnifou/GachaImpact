@@ -2,6 +2,16 @@ import { useEffect, useState } from 'react'
 
 export type CharacterAssetKind = 'iconPath' | 'splashPath' | 'wishPath' | 'fullbodyPath'
 
+export function isCharacterAssetPath(path: string): boolean {
+  if (/[\\\u0000-\u001f]/.test(path)) return false;
+  if (/^\/assets\/[A-Za-z0-9/_-]+\.(?:png|webp|svg|jpe?g)$/.test(path)) return true;
+  try {
+    const url = new URL(path), project = new URL(import.meta.env.VITE_SUPABASE_URL);
+    return url.protocol === 'https:' && url.origin === project.origin && !url.username && !url.password && !url.search && !url.hash &&
+      /^\/storage\/v1\/object\/public\/character-catalog\/characters\/[a-f0-9-]{36}\/(?:icon|splash|wish|fullbody)\/[a-f0-9]{64}\.png$/.test(url.pathname);
+  } catch { return false; }
+}
+
 type CharacterAssetEntry = {
   nom: string
   iconPath?: string

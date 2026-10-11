@@ -50,7 +50,7 @@ export class NotificationService {
       data: { state: NotificationState.ARCHIVED, archivedAt: now },
     });
     const notifications = await this.database.notification.findMany({ where: { playerId, state: { in: [NotificationState.UNREAD, NotificationState.READ] },
-      OR: [{ typeKey: { not: 'EVENT_MONTHLY_DRAW_ADMIN' } }, { player: { rolesGranted: { some: { role: 'ADMIN', revokedAt: null } } } }],
+      OR: [{ typeKey: { notIn: ['EVENT_MONTHLY_DRAW_ADMIN', 'CHARACTER_IMPORTED_ADMIN'] } }, { player: { rolesGranted: { some: { role: 'ADMIN', revokedAt: null } } } }],
     }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
     return { unreadCount: notifications.filter(item => item.state === NotificationState.UNREAD).length, notifications };
   }

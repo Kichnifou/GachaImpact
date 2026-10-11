@@ -178,9 +178,9 @@ describe('Admin panel actions', () => {
     api.getAdminCharacters.mockResolvedValue(page([{ ...character('hero-a'), name: 'Ancien' }]))
     const { container } = await mount(<CharacterAdminPanel playerId="player-a" playerName="Alice" />)
     await click(button(container, 'Modifier'))
-    const weapon = Array.from(container.querySelectorAll<HTMLInputElement>('.admin-editor input')).find(input => input.parentElement?.textContent?.includes('Arme'))!
+    const weapon = Array.from(dialog().querySelectorAll<HTMLInputElement>('.admin-editor input')).find(input => input.parentElement?.textContent?.includes('Arme'))!
     inputValue(weapon, 'Épée')
-    await click(button(container, 'Enregistrer'))
+    await click(button(dialog(), 'Enregistrer'))
     expect(api.updateAdminCharacter).toHaveBeenCalledWith('hero-a', expect.objectContaining({ weaponType: 'Épée', idempotencyKey: expect.any(String) }))
   })
 

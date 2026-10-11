@@ -14,6 +14,10 @@ const environmentSchema = z.object({
   SUPABASE_URL: optionalUrl,
   SUPABASE_PUBLISHABLE_KEY: z.string().trim().min(1).optional(),
   SUPABASE_JWT_ISSUER: optionalUrl,
+  CHARACTER_CATALOG_ENABLED: z.enum(['true', 'false']).default('false'),
+  CHARACTER_CATALOG_PUBLISH_ENABLED: z.enum(['true', 'false']).default('false'),
+  CHARACTER_CATALOG_DRY_RUN: z.enum(['true', 'false']).default('true'),
+  SUPABASE_STORAGE_SECRET_KEY: z.string().regex(/^sb_secret_[A-Za-z0-9_-]{10,}$/).optional(),
   TWITCH_CLIENT_ID: z.string().trim().min(1).optional(),
   TWITCH_CLIENT_SECRET: z.string().trim().min(1).optional(),
   TWITCH_REDIRECT_URI: optionalUrl,
@@ -34,6 +38,7 @@ export type AppConfig = Readonly<{
   frontendOrigin?: string;
   frontendOrigins?: readonly string[];
   databaseUrl?: string;
+  characterCatalog?: Readonly<{ enabled: boolean; publish: boolean; dryRun: boolean; storageKey?: string }>;
   supabase: Readonly<{
     url?: string;
     publishableKey?: string;
@@ -69,6 +74,8 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
   }
 
   return {
+    characterCatalog: { enabled: parsed.data.CHARACTER_CATALOG_ENABLED === 'true', publish: parsed.data.CHARACTER_CATALOG_PUBLISH_ENABLED === 'true',
+      dryRun: parsed.data.CHARACTER_CATALOG_DRY_RUN === 'true', storageKey: parsed.data.SUPABASE_STORAGE_SECRET_KEY },
     host: parsed.data.HOST,
     port: parsed.data.PORT,
     frontendOrigin,

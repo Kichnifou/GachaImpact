@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1051 lot 2 — Catalogue Character
+
+`CatalogEngine` orchestre sources, enrichissement NULL-only, identité et publication transactionnelle, `CatalogScheduler` réutilise le runtime Railway et son start/close, `CatalogAdminService` réutilise ADMIN/AdminOperation. Les adaptateurs HTTP/Sharp/Storage sont séparés du domaine de provenance/éligibilité. Lease durable inter-instance et reprise de cycles/modes/cibles, budget borné ; aucune activité joueur/Twitch nécessaire. Outbox créée dans la transaction Character puis notifications ADMIN existantes après commit. Source des règles, limites de couverture, stockage bloqué et gates : [owner Character](character-catalog-assets-r1051.md#lot-2--implémentation-gates-et-reprise). [Migration 070](postgresql-schema-v1.md#r1051-migration-070), [exploitation](../deployment/free-first-v1.md#r1051-storage-operations). Aucun nouveau service, état économique ou mécanisme d'identité joueur. État effectif au Master.
+
 ## R1053 — clôture mensuelle Event et consultation confirmée
 
 `EventMonthlyDrawService` réserve l'entropie privée, scelle les points sous verrou d'édition puis crédite via le propriétaire Stella partagé Codes, avec résultat/opération/notifications atomiques. `EventMonthlyDrawScheduler` est raccordé au start/close du runtime, résout la nouvelle édition et rattrape les seules éditions post-activation éligibles ; aucun reroll ou paiement historique. Le propriétaire des points refuse une opération tardive sous verrou, la DDL 069 interdit leur mutation après scellement. [Contrat détaillé et limites](event-monthly-draw-r1053.md), [persistance](postgresql-schema-v1.md#r1053-migration-069), état global au Master.

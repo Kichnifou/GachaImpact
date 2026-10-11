@@ -14,12 +14,20 @@ export class CharacterAdminService {
   private readonly operation: AdminOperation;
   constructor(private readonly database: PrismaClient, getPlayer: GetCurrentPlayer) { this.operation = new AdminOperation(database, getPlayer); }
 
-  async list(identity: AuthenticatedIdentity, query: { page: number; search?: string; rarity?: 4 | 5; elementKey?: string; active?: boolean; sort?: 'name' | 'rarity' | 'createdAt'; direction?: 'asc' | 'desc' }) {
+  async get(identity: AuthenticatedIdentity, id: string) {
+    await this.operation.actor(identity, 'ADMIN');
+    const row = await this.database.character.findUnique({ where: { id }, select });
+    if (!row) throw new AppError('Personnage introuvable.', 404, 'CHARACTER_NOT_FOUND');
+    return row;
+  }
+
+  async list(identity: AuthenticatedIdentity, query: { page: number; search?: string; rarity?: 4 | 5; elementKey?: string; active?: boolean; missingAssets?: boolean; sort?: 'name' | 'rarity' | 'createdAt'; direction?: 'asc' | 'desc' }) {
     await this.operation.actor(identity, 'ADMIN');
     const where: Prisma.CharacterWhereInput = {
       ...(query.search ? { OR: [{ name: { contains: query.search, mode: 'insensitive' } }, { externalKey: { contains: query.search, mode: 'insensitive' } }] } : {}),
       ...(query.rarity ? { rarity: query.rarity } : {}), ...(query.elementKey ? { elementKey: query.elementKey } : {}),
       ...(query.active === undefined ? {} : { isActive: query.active }),
+      ...(query.missingAssets ? { AND: [{ OR: [{ iconPath: null }, { splashPath: null }, { wishPath: null }, { fullbodyPath: null }] }] } : {}),
     };
     const total = await this.database.character.count({ where });
     const page = Math.min(query.page, Math.max(1, Math.ceil(total / 20)));

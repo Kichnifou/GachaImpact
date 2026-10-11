@@ -48,6 +48,16 @@ export function apiErrorMessage(error: unknown): string {
 
   const code = error.code
   const messages: Record<string, string> = {
+    CATALOG_STORAGE_UNAVAILABLE: 'Le stockage des images doit être configuré et vérifié. Réessayez après cette validation.',
+    CATALOG_VALIDATION_FAILED: 'L’identité, les informations ou le rôle de l’image ne satisfont pas les contrôles. Consultez les manques de la fiche.',
+    CATALOG_PUBLICATION_DISABLED: 'La publication reste désactivée tant que le stockage et les gates de sûreté ne sont pas validés.',
+    CATALOG_DISABLED: 'La vérification quotidienne est désactivée. Aucune demande de reprise n’a été lancée.',
+    CATALOG_QUEUE_FULL: 'Des vérifications sont déjà en attente. Réessayez après leur traitement.',
+    CATALOG_REVISION_CONFLICT: 'La fiche a changé. Rechargez-la avant de confirmer l’exception.',
+    CATALOG_DUPLICATE: 'Cette identité existe déjà. Ouvrez sa fiche pour la compléter.',
+    CATALOG_USE_CHARACTER_EDITOR: 'Modifiez ces métadonnées depuis la fiche du catalogue actif.',
+    CATALOG_IMAGE_TOO_LARGE: 'L’image doit faire au maximum 5 Mo.',
+    CATALOG_NOT_FOUND: 'Cette fiche candidate n’existe plus. Rechargez la liste.',
     TWITCH_NATIVE_ACK_REQUIRED: 'Confirmez la désactivation des chemins Streamer.bot concernés.',
     TWITCH_NATIVE_GLOBAL_UNAVAILABLE: 'Le mode Twitch global est indisponible.',
     TWITCH_NATIVE_AUTHORITY_CHANGED: 'Le statut Twitch a changé. Actualisez avant de réessayer.',

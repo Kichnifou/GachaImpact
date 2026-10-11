@@ -1,11 +1,11 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : clôture hébergement et ouverture R1051 lot 2.
+Version : clôture hébergement acquise, candidat R1051 lot 2 sous gates.
 Date : 2026-10-11
-Statut : **gachaimpact.fr actif, domaine/Brevo/Auth/Twitch validés par le propriétaire ; pages.dev conservé. R1051 lot 1 validé publiquement. Lot 2 autorisé, développement non encore livré.**
+Statut : **gachaimpact.fr/Brevo/Auth/Twitch validés humainement, clôture documentaire déployée. R1051 lot 2 implémenté/testé localement, review et livraison à constater ; Storage backend absent, automatisation et publication désactivées.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — hébergement clos, R1051 lot 2 autorisé, 11/10/2026
+## Point courant — R1051 lot 2, 11/10/2026
 
 **Base vérifiée à distance :** `main = review = 8f9e7698d6307220a1de4f6e4a4eb28635338d78`, divergence 0/0, worktree propre. Mandat : checkpoint documentaire hébergement avant développement, puis catalogue autonome R1051 lot 2 ; cycle review, review indépendante des mécanismes sensibles, FF strict main, déploiements exacts et postflight sans GO générique. Aucun travail Eclipsia/Story ni réouverture R1065.
 
@@ -17,7 +17,13 @@ But : porter l'état réel, les preuves et la prochaine reprise.
 
 **Twitch :** retour OAuth réel fr validé par le propriétaire. Les tests techniques state acquis, cette validation humaine et les sous-parcours spécialisés non documentés individuellement restent trois preuves distinctes. Aucune nouvelle action Auth/Twitch réelle pendant ce lot.
 
-**R1051 :** 120 actifs/icon/splash/wish, 118 fullbody distincts ; seuls Vesna/Vodyanitsa incomplets sur ce dernier rôle. Les 72 images du lot 1 ne sont pas réimportées. Prochaine étape autorisée : lot 2 (découverte officielle, candidats durables, enrichissement, stockage, scheduler Paris, publication sous gates, ADMIN/notifications), selon l'[owner](../architecture/character-catalog-assets-r1051.md). À ce checkpoint documentaire, ces mécanismes restent **à implémenter**, pas actifs. Mitya reste sans Character actif ; date propriétaire 04/11 non promue en preuve officielle. L'état exact du checkpoint documentaire et des déploiements sera établi après publication, sans SHA auto-référent.
+**Phase A close :** commit `a0aba0f504ac4e9603cec85643a41d7b227b774b`, deux blobs GitHub exacts, review indépendante APPROVED sans finding bloquant ; FF strict main. Railway `ddc16b60-90e9-491f-917d-f4ca2c17c2bf` SUCCESS et Pages `4673f65f-e70d-473b-8da6-f56968eeb6e5` SUCCESS au même SHA exact. Preview/production JS/CSS identiques. Racine/recovery 200, health ok, CORS exact sur fr/pages.dev et six mauvaises origines refusées, endpoints privés 401 ; redirections HTTP/www HTTPS 301 chemin/query conservés. Pas d'e-mail ni OAuth réel rejoué. Rapport indépendant privé `local-data/character-assets/r1051-lot2-20261011/review-phase-a.md`, SHA-256 `30d7909be68fa4cf483a9846a35077b75dcdfa949798db2a33de6948d04663b7`.
+
+**Phase B candidate :** moteur/sources/validateur images/Storage/scheduler et ADMIN/notifications implémentés selon l'[owner R1051](../architecture/character-catalog-assets-r1051.md#lot-2--implémentation-gates-et-reprise). Migration additive Prisma 070, sept tables privées RLS, aucune économie nouvelle. Ajouter/Modifier en modale, suivi sources/manques/erreurs/prochain passage, upload sécurisé, audit/retry, exception fenêtre auditée, notification après commit vers fiche exacte. Lease durable et reprise Paris, budgets/timeouts/backoff ; Character reste seul catalogue actif et valeurs présentes préservées. 120 actifs/icon/splash/wish et 118 fullbody acquis ; les 72 images ne sont pas réimportées. Contrôles acquis : 84 tests backend ciblés (32 pipeline, 6 routes ADMIN, 1 projection avatar, 45 Gacha/notifications/config/modération), 86 frontend et 10 PostgreSQL privés incluant les 70 migrations/ledger/status, concurrence, rollback, reprise/backoff et déduplication PASS ; verify:quick 5/5 et builds PASS. GameShell/CSS compilés : 30 états à 390×844, 1366×768, 1920×1080, captures inspectées, zéro overflow horizontal/erreur JS/appel public. Warning chunk préexistant ; audit dépendances runtime identique à la base (six alertes existantes, aucune nouvelle ni Sharp). Review indépendante du SHA publié, promotion, migration publique et déploiements lot 2 **non encore acquis à ce checkpoint**.
+
+**Blocker Storage réel :** Free confirmé, zéro bucket/objet, aucun secret Storage backend configuré (seuls noms inspectés). Les quotas gratuits sont organisationnels, usage des autres projets/egress non établi ; R1065 non rouvert. Adaptateur livré mais **scheduler automatique et publication restent désactivés** tant que bucket/écriture exclusive/marge gratuite/upload public réel ne sont pas validés. Aucun secret SMTP/Supabase récupéré, aucune migration des 356 Mo. Alternative statique Pages conservée et vérifiable, mais exige un déploiement par lot. [Procédure et flags](../deployment/free-first-v1.md#r1051-storage-operations).
+
+**Mitya :** découverte officielle réelle, genshin-db actuel sans identité correspondante, genshin.dev couverture 92 non qualifiée ; candidat durable/replay démontrés en PostgreSQL privé isolé, trois promos décodées/hashées SOURCE_VALIDATED, 120 Character conservés. [Preuve versionnée](../architecture/evidence/r1051-mitya-pipeline-20261011.json). INCOMPLETE : rareté, ID structuré, date officielle, portrait/splash validés manquent ; arme inconnue. Date propriétaire 04/11 non promue en preuve officielle. Aucun Character actif/possession/bannière/récompense créé. Passage public contrôlé sans publication et preuve durable à constater séparément après gates ; aucune recette ADMIN humaine nouvelle revendiquée.
 
 ## Historique — compatibilité double domaine, 10/10/2026
 

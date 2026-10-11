@@ -122,7 +122,7 @@ function ModerationScreen({
   const [pending, setPending] = useState(systemAvailable);
   const [message, setMessage] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"system" | "characters" | "codes" | "banners" | "events" | "community" | "giveaway" | "audit">(
-    () => (systemAvailable ? "system" : "community"),
+    () => (capabilities.superTools && /^#moderation\/(?:characters|candidates)\//.test(window.location.hash) ? "characters" : systemAvailable ? "system" : "community"),
   );
   const onLoadRef = useRef(onLoad);
   const onAppliedRef = useRef(onApplied);
@@ -136,6 +136,11 @@ function ModerationScreen({
   const giveawayTabRef = useRef<HTMLButtonElement>(null);
   const requestRevision = useRef(0);
   const isSuper = capabilities.superTools;
+  useEffect(() => {
+    const sync = () => { if (isSuper && /^#moderation\/(?:characters|candidates)\//.test(window.location.hash)) setActiveTab('characters'); };
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, [isSuper]);
   const isSelf = selectedTargetId === actorPlayerId;
   const canUseGameplayTools = capabilities.selfGameplayTools || isSuper;
   const currentResource = moderationResourceCurrent(state, resourceKey);

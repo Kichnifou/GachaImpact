@@ -5,13 +5,15 @@ import { AppError } from '../errors.js';
 import { elementKeys } from '../../domain/economy/resources.js';
 import type { RoleAdminService } from '../../application/moderation/role-admin-service.js';
 import type { CharacterAdminService } from '../../application/moderation/character-admin-service.js';
+import type { CatalogAdminService } from '../../application/character-catalog/catalog-admin.js';
+import { CatalogFetchError } from '../../infrastructure/character-catalog/catalog-http.js';
 import type { PossessionAdminService } from '../../application/moderation/possession-admin-service.js';
 import type { BannerAdminService } from '../../application/moderation/banner-admin-service.js';
 import type { EventAdminService } from '../../application/moderation/event-admin-service.js';
 import type { GlobalChatModerationService } from '../../application/moderation/global-chat-moderation-service.js';
 import type { AdminAuditQueryService } from '../../application/moderation/admin-audit-query-service.js';
 
-export type AdministrationServices = Readonly<{ roles: RoleAdminService; characters: CharacterAdminService; possessions: PossessionAdminService;
+export type AdministrationServices = Readonly<{ roles: RoleAdminService; characters: CharacterAdminService; catalog?: CatalogAdminService; possessions: PossessionAdminService;
   banners: BannerAdminService; events: EventAdminService; chat: GlobalChatModerationService; audit: AdminAuditQueryService }>;
 type Options = Readonly<{ authenticate: preHandlerHookHandler; services: AdministrationServices }>;
 const uuid = z.uuid();
@@ -30,24 +32,57 @@ function parse<T>(schema: z.ZodType<T>, value: unknown): T {
   if (!parsed.success) throw new AppError('Demande d’administration invalide.', 400, 'VALIDATION_ERROR');
   return parsed.data;
 }
+async function catalogResponse<T>(promise: Promise<T>): Promise<T> {
+  try { return await promise; } catch (error) {
+    if (!(error instanceof CatalogFetchError)) throw error;
+    const storage = /^(?:STORAGE_|BUCKET_)/.test(error.code);
+    throw new AppError(storage ? 'Le stockage doit être configuré et vérifié avant cet import.' : 'La fiche ou l’image ne satisfait pas les contrôles du catalogue.',
+      storage ? 503 : 409, storage ? 'CATALOG_STORAGE_UNAVAILABLE' : 'CATALOG_VALIDATION_FAILED');
+  }
+}
 
 export async function registerAdministrationRoutes(app: FastifyInstance, { authenticate, services }: Options) {
   const identity = (request: Parameters<typeof requireAuthenticatedIdentity>[0]) => requireAuthenticatedIdentity(request);
   const pathId = (params: unknown, name: string) => parse(z.record(z.string(), uuid), params)[name]!;
+
+  if (services.catalog) {
+    const catalog = services.catalog;
+    app.get('/api/v1/moderation/catalog-candidates', { preHandler: authenticate }, request => catalog.overview(identity(request), parse(z.object({ search: z.string().max(100).optional() }).strict(), request.query).search));
+    app.get('/api/v1/moderation/catalog-candidates/:candidateId', { preHandler: authenticate }, request => catalog.detail(identity(request), pathId(request.params, 'candidateId')));
+    app.patch('/api/v1/moderation/catalog-candidates/:candidateId', { preHandler: authenticate }, request => {
+      const value = parse(z.object({ values: z.object({ name: text.optional(), originalName: text.optional(), rarity: z.union([z.literal(4), z.literal(5)]).optional(),
+        element: z.enum(elementKeys).optional(), weapon: text.optional(), region: text.optional() }).strict().refine(value => Object.keys(value).length > 0), idempotencyKey: uuid }).strict(), request.body);
+      return catalog.edit(identity(request), pathId(request.params, 'candidateId'), value.values, value.idempotencyKey);
+    });
+    app.post('/api/v1/moderation/catalog-candidates/:candidateId/check', { preHandler: authenticate }, request => {
+      const value = parse(key.extend({ mode: z.enum(['retry', 'audit']) }), request.body);
+      return catalog.queue(identity(request), pathId(request.params, 'candidateId'), value.mode, value.idempotencyKey);
+    });
+    app.post('/api/v1/moderation/catalog-candidates/:candidateId/image', { preHandler: authenticate, bodyLimit: 7 * 1024 * 1024 }, request => {
+      const value = parse(key.extend({ role: z.enum(['icon', 'splash', 'wish', 'fullbody']), mime: z.enum(['image/png', 'image/jpeg', 'image/webp']),
+        base64: z.string().min(4).max(7_000_000).regex(/^[A-Za-z0-9+/]+={0,2}$/) }), request.body);
+      return catalogResponse(catalog.upload(identity(request), pathId(request.params, 'candidateId'), value.role, Buffer.from(value.base64, 'base64'), value.mime, value.idempotencyKey));
+    });
+    app.post('/api/v1/moderation/catalog-candidates/:candidateId/override-window', { preHandler: authenticate }, request => {
+      const value = parse(key.extend({ confirmed: z.literal(true), reason: z.string().trim().min(10).max(300), expectedRevision: z.number().int().min(0) }), request.body);
+      return catalogResponse(catalog.override(identity(request), pathId(request.params, 'candidateId'), value.idempotencyKey, value.reason, value.expectedRevision));
+    });
+  }
 
   app.post('/api/v1/moderation/players/:playerId/roles', { preHandler: authenticate }, request => {
     const value = parse(role, request.body); return services.roles.setRole(identity(request), pathId(request.params, 'playerId'), value.role, value.enabled, value.idempotencyKey);
   });
   app.get('/api/v1/moderation/characters', { preHandler: authenticate }, request => {
     const value = parse(page.extend({ search: z.string().max(100).optional(), rarity: z.coerce.number().pipe(z.union([z.literal(4), z.literal(5)])).optional(),
-      elementKey: z.enum(elementKeys).optional(), active: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
+      elementKey: z.enum(elementKeys).optional(), active: z.enum(['true', 'false']).transform(v => v === 'true').optional(), missingAssets: z.enum(['true', 'false']).transform(v => v === 'true').optional(),
       sort: z.enum(['name', 'rarity', 'createdAt']).optional(), direction: z.enum(['asc', 'desc']).optional() }), request.query);
     return services.characters.list(identity(request), value);
   });
   app.post('/api/v1/moderation/characters', { preHandler: authenticate }, request => {
     const value = parse(characterFields.extend({ externalKey: z.string().regex(/^[a-z0-9][a-z0-9_-]{1,79}$/), idempotencyKey: uuid }), request.body);
-    return services.characters.create(identity(request), value);
+    return services.catalog ? services.catalog.create(identity(request), value) : services.characters.create(identity(request), value);
   });
+  app.get('/api/v1/moderation/characters/:characterId', { preHandler: authenticate }, request => services.characters.get(identity(request), pathId(request.params, 'characterId')));
   app.patch('/api/v1/moderation/characters/:characterId', { preHandler: authenticate }, request => {
     const value = parse(characterFields.partial().extend({ idempotencyKey: uuid }), request.body);
     return services.characters.update(identity(request), pathId(request.params, 'characterId'), value);

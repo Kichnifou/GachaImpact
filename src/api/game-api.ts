@@ -1,4 +1,5 @@
 import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
+import type { CatalogCandidate, CatalogOverview } from './catalog-types'
 import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
 import type { TutorialAutostartDto, TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
@@ -244,6 +245,13 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     setAdminRole: (playerId: string, role: 'ADMIN' | 'MODERATOR' | 'TESTER', enabled: boolean, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/roles`, { method: 'POST', body: JSON.stringify({ role, enabled, idempotencyKey }) }),
     getAdminCharacters: (query: Record<string, string | number | boolean | undefined> = {}) => request<AdminPage<AdminCharacter>>(`/api/v1/moderation/characters?${queryString(query)}`),
+    getAdminCharacter: (id: string) => request<AdminCharacter>(`/api/v1/moderation/characters/${encodeURIComponent(id)}`),
+    getCatalogCandidates: (search = '') => request<CatalogOverview>(`/api/v1/moderation/catalog-candidates?${queryString({ search })}`),
+    getCatalogCandidate: (id: string) => request<CatalogCandidate>(`/api/v1/moderation/catalog-candidates/${encodeURIComponent(id)}`),
+    editCatalogCandidate: (id: string, values: Record<string, string | number>, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/catalog-candidates/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ values, idempotencyKey }) }),
+    checkCatalogCandidate: (id: string, mode: 'audit' | 'retry', idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/catalog-candidates/${encodeURIComponent(id)}/check`, { method: 'POST', body: JSON.stringify({ mode, idempotencyKey }) }),
+    uploadCatalogImage: (id: string, input: { role: string; mime: string; base64: string; idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/catalog-candidates/${encodeURIComponent(id)}/image`, { method: 'POST', body: JSON.stringify(input) }),
+    overrideCatalogWindow: (id: string, reason: string, expectedRevision: number, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/catalog-candidates/${encodeURIComponent(id)}/override-window`, { method: 'POST', body: JSON.stringify({ reason, expectedRevision, idempotencyKey, confirmed: true }) }),
     createAdminCharacter: (input: AdminCharacterFields & { externalKey: string; idempotencyKey: string }) => request<AdminMutationDto>('/api/v1/moderation/characters', { method: 'POST', body: JSON.stringify(input) }),
     updateAdminCharacter: (id: string, input: Partial<AdminCharacterFields> & { idempotencyKey: string }) => request<AdminMutationDto>(`/api/v1/moderation/characters/${id}`, { method: 'PATCH', body: JSON.stringify(input) }),
     getAdminPossessions: (playerId: string, page = 1, search = '', rarity?: string, elementKey?: string) => request<AdminPage<AdminPossession>>(`/api/v1/moderation/players/${playerId}/characters?${queryString({ page, search, rarity, elementKey })}`),

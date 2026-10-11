@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { getElementAssetPath } from '../utils/gameAssets'
+import { getElementAssetPath, isCharacterAssetPath } from '../utils/gameAssets'
 
-const official = (path: string | null | undefined) => path && /^\/assets\/[A-Za-z0-9/_-]+\.(?:png|webp|svg)$/.test(path) ? path : null
+const official = (path: string | null | undefined) => path && isCharacterAssetPath(path) ? path : null
 
 export default function PlayerAvatar({ displayName, elementKey, avatarAssetPath, className = 'mini-avatar' }: { displayName: string; elementKey: string | null; avatarAssetPath?: string | null; className?: string }) {
   const [failed, setFailed] = useState<readonly string[]>([])

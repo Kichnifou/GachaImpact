@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { DEFAULT_CHARACTER_ASSET_ORDER, useCharacterAssetPaths, type CharacterAssetKind } from '../utils/gameAssets'
+import { DEFAULT_CHARACTER_ASSET_ORDER, useCharacterAssetPaths, isCharacterAssetPath, type CharacterAssetKind } from '../utils/gameAssets'
 
 type CharacterAssetImageProps = {
   characterName: string
@@ -19,7 +19,7 @@ function CharacterAssetImage({
   assetPaths: providedAssetPaths,
 }: CharacterAssetImageProps) {
   const discoveredAssetPaths = useCharacterAssetPaths(characterName, order)
-  const explicitAssetPaths = providedAssetPaths?.filter((path): path is string => Boolean(path)) ?? []
+  const explicitAssetPaths = providedAssetPaths?.filter((path): path is string => Boolean(path) && isCharacterAssetPath(path!)) ?? []
   const assetPaths = [...explicitAssetPaths, ...discoveredAssetPaths.filter((path) => !explicitAssetPaths.includes(path))]
   const assetKey = `${characterName}|${assetPaths.join('|')}`
   const [assetState, setAssetState] = useState({ key: assetKey, index: 0, isLoaded: false })

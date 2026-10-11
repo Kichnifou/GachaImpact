@@ -1,0 +1,469 @@
+{
+  "checkedAt": "2026-10-11T07:01:59.729Z",
+  "scope": "Sources publiques réelles et PostgreSQL privé isolé uniquement. Preuve publique ultérieure séparée au Master.",
+  "official": {
+    "id": "46884007",
+    "url": "https://www.hoyolab.com/article/46884007",
+    "date": "2026-09-29T04:01:07.000Z",
+    "name": "Mitya",
+    "fields": {
+      "originalName": {
+        "value": "Mitya",
+        "provider": "hoyoverse",
+        "url": "https://www.hoyolab.com/article/46884007",
+        "fetchedAt": "2026-10-11T07:01:37.511Z",
+        "reliability": "OFFICIAL"
+      },
+      "title": {
+        "value": "Rules Set at Naught",
+        "provider": "hoyoverse",
+        "url": "https://www.hoyolab.com/article/46884007",
+        "fetchedAt": "2026-10-11T07:01:37.511Z",
+        "reliability": "OFFICIAL"
+      },
+      "constellation": {
+        "value": "Nodus Gordianus",
+        "provider": "hoyoverse",
+        "url": "https://www.hoyolab.com/article/46884007",
+        "fetchedAt": "2026-10-11T07:01:37.511Z",
+        "reliability": "OFFICIAL"
+      },
+      "element": {
+        "value": "electro",
+        "provider": "hoyoverse",
+        "url": "https://www.hoyolab.com/article/46884007",
+        "fetchedAt": "2026-10-11T07:01:37.511Z",
+        "reliability": "OFFICIAL"
+      }
+    }
+  },
+  "structured": null,
+  "snapshot": "49a6544a6c6ae36089cb42fa591fc46f01de8bcf",
+  "sourceAttempts": [
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=1&page_size=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=1&page_size=20&last_id=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=2&page_size=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=2&page_size=20&last_id=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=3&page_size=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "discovery",
+      "outcome": "FOUND",
+      "sourceUrl": "https://bbs-api-os.hoyolab.com/community/post/wapi/getNewsList?gids=2&type=3&page_size=20&last_id=20",
+      "httpStatus": 200
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "hoyoverse",
+      "field": "announcement",
+      "outcome": "REJECTED",
+      "errorCode": "AUTHOR_NOT_OFFICIAL"
+    },
+    {
+      "provider": "genshin-db",
+      "field": "snapshot",
+      "outcome": "FOUND",
+      "sourceUrl": "https://api.github.com/repos/theBowja/genshin-db/commits/main",
+      "httpStatus": 200
+    },
+    {
+      "provider": "genshin-db",
+      "field": "coverage",
+      "outcome": "FOUND",
+      "sourceUrl": "https://api.github.com/repos/theBowja/genshin-db/contents/src/data/English/characters?ref=49a6544a6c6ae36089cb42fa591fc46f01de8bcf",
+      "httpStatus": 200
+    },
+    {
+      "provider": "genshin-db",
+      "field": "coverage",
+      "outcome": "FOUND",
+      "sourceUrl": "https://api.github.com/repos/theBowja/genshin-db/contents/src/data/French/characters?ref=49a6544a6c6ae36089cb42fa591fc46f01de8bcf",
+      "httpStatus": 200
+    },
+    {
+      "provider": "genshin-db",
+      "field": "metadata",
+      "outcome": "MISSING",
+      "errorCode": "ABSENT"
+    },
+    {
+      "provider": "genshin.dev",
+      "field": "coverage",
+      "outcome": "FOUND",
+      "sourceUrl": "https://genshin.jmp.blue/characters",
+      "httpStatus": 200
+    },
+    {
+      "provider": "genshin.dev",
+      "field": "coverage",
+      "outcome": "REJECTED",
+      "errorCode": "COVERAGE_UNQUALIFIED"
+    }
+  ],
+  "images": [
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+      "status": 200,
+      "validation": {
+        "hash": "441733b335b2891ac116881803fad68ef5090602a51a4e0671a4695dfd534cdd",
+        "storedHash": "eb155e41abb1c27ab4a22f89bd8c476e77709508ef07fcc7b9decd120cba5596",
+        "width": 1200,
+        "height": 675,
+        "bytes": 127568,
+        "realMime": "image/jpeg",
+        "role": "promotion-only",
+        "publishAsGameAsset": false
+      }
+    },
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+      "status": 200,
+      "validation": {
+        "hash": "77b27f1071ada6696cb57580c46a27b08a1a41ad5023602a432ecfc782a9724d",
+        "storedHash": "726a93672a4b5e9b8cfe03140373576976fd256c6ae79dd3bea1d75ac654c989",
+        "width": 1500,
+        "height": 1500,
+        "bytes": 302962,
+        "realMime": "image/jpeg",
+        "role": "promotion-only",
+        "publishAsGameAsset": false
+      }
+    },
+    {
+      "url": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+      "status": 200,
+      "validation": {
+        "hash": "220ca050531768b9a04da862e0c01fc2ab6d3435a8827531d3b95282560d8ede",
+        "storedHash": "82eed2b4f4daa5b70407d9e53b8443de54ef2cdddee61ef81945768802269e5e",
+        "width": 750,
+        "height": 1800,
+        "bytes": 213247,
+        "realMime": "image/jpeg",
+        "role": "promotion-only",
+        "publishAsGameAsset": false
+      }
+    }
+  ],
+  "privatePipeline": {
+    "checkedAt": "2026-10-11T07:08:20.341Z",
+    "first": {
+      "runId": "59ac755a-16ed-4b41-8137-24369b9216ad",
+      "discovered": 2,
+      "processed": 15
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "activeBefore": 120,
+    "activeAfter": 120,
+    "candidate": {
+      "id": "cbdbb68d-c80f-4d95-bc52-5f259b51ed5e",
+      "name": "Mitya",
+      "status": "INCOMPLETE",
+      "characterId": null,
+      "missing": [
+        "rarity",
+        "icon",
+        "splash",
+        "numericId",
+        "officialReleaseDate"
+      ],
+      "nextCheckAt": "2026-10-12T07:06:39.083Z",
+      "identities": [
+        {
+          "namespace": "official-name",
+          "externalId": "mitya",
+          "candidateId": "cbdbb68d-c80f-4d95-bc52-5f259b51ed5e"
+        },
+        {
+          "namespace": "hoyolab-post",
+          "externalId": "46884007",
+          "candidateId": "cbdbb68d-c80f-4d95-bc52-5f259b51ed5e"
+        }
+      ],
+      "assets": [
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "width": 1500,
+          "height": 1500,
+          "sourceHash": "77b27f1071ada6696cb57580c46a27b08a1a41ad5023602a432ecfc782a9724d",
+          "sourceMime": "image/jpeg",
+          "hash": "726a93672a4b5e9b8cfe03140373576976fd256c6ae79dd3bea1d75ac654c989",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+          "url": null
+        },
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "width": 750,
+          "height": 1800,
+          "sourceHash": "220ca050531768b9a04da862e0c01fc2ab6d3435a8827531d3b95282560d8ede",
+          "sourceMime": "image/jpeg",
+          "hash": "82eed2b4f4daa5b70407d9e53b8443de54ef2cdddee61ef81945768802269e5e",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+          "url": null
+        },
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "width": 1200,
+          "height": 675,
+          "sourceHash": "441733b335b2891ac116881803fad68ef5090602a51a4e0671a4695dfd534cdd",
+          "sourceMime": "image/jpeg",
+          "hash": "eb155e41abb1c27ab4a22f89bd8c476e77709508ef07fcc7b9decd120cba5596",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+          "url": null
+        }
+      ]
+    }
+  },
+  "expectedDateFromOwner": "2026-11-04",
+  "officialReleaseProven": false,
+  "publicMutations": false,
+  "storage": {
+    "configured": false,
+    "bucketCreated": false,
+    "uploaded": false
+  },
+  "activeImport": false
+}

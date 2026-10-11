@@ -1,5 +1,10 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+<a id="r1051-migration-070"></a>
+## Migration 070 — pipeline Catalogue Character
+
+[`20261011080000_070_add_character_catalog_pipeline`](../../server/prisma/migrations/20261011080000_070_add_character_catalog_pipeline/migration.sql) ajoute sept tables : catalog_candidates (Character nullable unique, JSONB provenance par champ, état/manques/dates/révision), catalog_identities (PK namespace/external_id), catalog_assets (candidate/role/hash unique, source et hash source/MIME/dimensions/URL finale/état), catalog_attempts (cycle/candidat/fournisseur/champ/erreur/dates), catalog_job (singleton R1051/lease/dernier jour réussi), catalog_runs (cycle_key unique/reprise/backoff/rapport), catalog_import_outbox (candidat PK, Character FK unique/notification après commit). Index de reprise, FK RESTRICT, CHECK de statut/JSON/rôle/asset disponible et lease cohérente. RLS activée, droits PUBLIC/anon/authenticated révoqués sur les sept, aucune policy navigateur ; seules écritures du backend. Insère uniquement le singleton job, aucun Character/Player ou backfill économique. Migration rejouée avec registre/checksum/status Prisma en PostgreSQL privé isolé ; application publique seulement via pre-deploy Prisma après review indépendante. [Owner](character-catalog-assets-r1051.md#lot-2--implémentation-gates-et-reprise), état réel au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 <a id="r1053-migration-069"></a>
 
 ## Migration 069 — activation et résultat mensuel Event

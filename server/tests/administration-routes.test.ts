@@ -4,6 +4,7 @@ import { AppError } from '../src/api/errors.js';
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import type { ModerationTools } from '../src/application/moderation/moderation-tools.js';
 import type { AdministrationServices } from '../src/api/routes/administration.js';
+import { CatalogFetchError } from '../src/infrastructure/character-catalog/catalog-http.js';
 
 const identity = { subject: 'admin-route-subject' };
 const player = { id: crypto.randomUUID(), displayName: 'Route test', elementKey: 'hydro' as const, status: 'ACTIVE' as const };
@@ -13,6 +14,8 @@ function services() {
   return {
     roles: { setRole: vi.fn(async () => ({ operationId: 'role-operation' })) },
     characters: { list: vi.fn(async () => ({ entries: [] })), create: vi.fn(async () => ({})), update: vi.fn(async () => ({})) },
+    catalog: { overview: vi.fn(async () => ({})), detail: vi.fn(async () => ({})), create: vi.fn(async () => ({})),
+      edit: vi.fn(async () => ({})), queue: vi.fn(async () => ({})), upload: vi.fn(async () => ({})), override: vi.fn(async () => ({})) },
     possessions: { list: vi.fn(async () => ({ entries: [] })), change: vi.fn(async () => ({})) },
     banners: { overview: vi.fn(async () => ({})), correct: vi.fn(async () => ({})), retryGeneration: vi.fn(async () => ({})) },
     events: { list: vi.fn(async () => ({ entries: [] })), update: vi.fn(async () => ({})) },
@@ -43,7 +46,26 @@ describe('private administration routes', () => {
       ['GET', '/api/v1/moderation/characters'], ['GET', '/api/v1/moderation/banners'],
       ['GET', '/api/v1/moderation/events'], ['GET', '/api/v1/moderation/global-chat-reports'],
       ['GET', '/api/v1/moderation/audit'], ['POST', `/api/v1/moderation/players/${player.id}/roles`],
+      ['GET', '/api/v1/moderation/catalog-candidates'], ['POST', `/api/v1/moderation/catalog-candidates/${player.id}/image`],
+      ['PATCH', `/api/v1/moderation/catalog-candidates/${player.id}`], ['POST', `/api/v1/moderation/catalog-candidates/${player.id}/override-window`],
     ] as const) expect((await app.inject({ method, url })).statusCode).toBe(401);
+  });
+  it('stages new Characters through the shared pipeline instead of bypassing publication gates', async () => {
+    const { app, admin } = await setup();
+    const payload = { externalKey: 'private-fixture', name: 'Private Fixture', rarity: 5, elementKey: 'electro', idempotencyKey: crypto.randomUUID() };
+    expect((await app.inject({ method: 'POST', url: '/api/v1/moderation/characters', headers, payload })).statusCode).toBe(200);
+    expect(admin.catalog.create).toHaveBeenCalledWith(identity, payload); expect(admin.characters.create).not.toHaveBeenCalled();
+  });
+  it('rejects free JSON metadata, invalid roles and unconfirmed overrides, and redacts storage errors', async () => {
+    const { app, admin } = await setup(), id = crypto.randomUUID(), idempotencyKey = crypto.randomUUID();
+    const url = `/api/v1/moderation/catalog-candidates/${id}`;
+    expect((await app.inject({ method: 'PATCH', url, headers, payload: { idempotencyKey, values: { numericId: 10000001 } } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `${url}/image`, headers, payload: { idempotencyKey, role: 'promotion', mime: 'image/png', base64: 'AAAA' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `${url}/override-window`, headers, payload: { idempotencyKey, expectedRevision: 0, reason: 'Private test reason', confirmed: false } })).statusCode).toBe(400);
+    admin.catalog.upload.mockRejectedValueOnce(new CatalogFetchError('BUCKET_UNAVAILABLE', 503));
+    const result = await app.inject({ method: 'POST', url: `${url}/image`, headers, payload: { idempotencyKey, role: 'icon', mime: 'image/png', base64: 'AAAA' } });
+    expect(result.statusCode).toBe(503); expect(result.json().error.code).toBe('CATALOG_STORAGE_UNAVAILABLE');
+    expect(admin.catalog.edit).not.toHaveBeenCalled(); expect(admin.catalog.override).not.toHaveBeenCalled();
   });
 
   it('validates role, composition and pagination input before reaching services', async () => {

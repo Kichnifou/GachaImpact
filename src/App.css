@@ -9366,3 +9366,43 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .twitch-progression-actions .app-button { width: 100%; white-space: normal; }
 .account-link-success { color: #a1eac5; }
 @media (max-width: 640px) { .twitch-progression-comparison { grid-template-columns: minmax(0,1fr); } }
+
+/* R1051: scoped catalogue dialogs and durable import queue. */
+.catalog-dialog-overlay { position:fixed; inset:0; z-index:1400; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(2,7,17,.82); }
+.catalog-dialog.admin-domain { display:flex; flex-direction:column; width:min(780px,100%); max-height:calc(100dvh - 40px); overflow:hidden; padding:20px; background:linear-gradient(145deg,#122640,#081322); box-shadow:0 24px 80px #0009; }
+.catalog-dialog-body { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+.catalog-dialog > header { display:flex; flex-shrink:0; align-items:start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.catalog-dialog > header h2 { margin:0; min-width:0; overflow-wrap:anywhere; font-size:17px; }
+.catalog-dialog > header button { flex:0 0 36px; font-size:22px; }
+.catalog-dialog .admin-editor { padding:0; }
+.catalog-editor-actions { grid-column:1/-1; display:flex; justify-content:flex-end; gap:10px; margin-top:8px; }
+.admin-domain .admin-filters .character-assets-filter { display:flex; align-items:center; gap:6px; }
+.admin-domain .admin-filters .character-assets-filter input { width:16px; height:16px; min-height:16px; padding:0; flex:0 0 16px; }
+.catalog-dialog section, .catalog-dialog details, .catalog-dialog form { margin-top:18px; }
+.catalog-dialog p, .catalog-runtime { font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.catalog-dialog label { font-size:11px; }
+.catalog-dialog small { margin-top:5px; font-size:10px; line-height:1.5; }
+.catalog-dialog h3 { margin:0 0 10px; font-size:14px; }
+.catalog-dialog a, .catalog-pipeline a { color:#76d9ff; overflow-wrap:anywhere; }
+.catalog-dialog button:focus-visible, .catalog-dialog a:focus-visible, .catalog-pipeline button:focus-visible { outline:2px solid #76d9ff; outline-offset:3px; }
+.catalog-evidence { margin:16px 0; }
+.catalog-evidence > div { display:grid; grid-template-columns:135px minmax(0,1fr); gap:12px; padding:10px 0; border-bottom:1px solid #9ecfff22; }
+.catalog-evidence dt { color:var(--muted); font-size:11px; }
+.catalog-evidence dd { margin:0; min-width:0; font-size:12px; overflow-wrap:anywhere; }
+.catalog-assets { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.catalog-assets > div { display:grid; gap:6px; padding:12px; border:1px solid #9ecfff33; border-radius:10px; font-size:11px; }
+.catalog-metadata { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.catalog-metadata h3 { grid-column:1/-1; }
+.catalog-upload { display:grid; gap:10px; }
+.catalog-upload input[type=file] { width:100%; box-sizing:border-box; }
+.catalog-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.catalog-pipeline .admin-scroll-list { max-height:min(48dvh,510px); }
+.catalog-dialog .admin-confirm-overlay { z-index:1500; }
+@media(max-width:600px) {
+  .catalog-dialog-overlay { padding:10px; }
+  .catalog-dialog.admin-domain { max-height:calc(100dvh - 20px); padding:15px; }
+  .catalog-evidence > div { grid-template-columns:1fr; gap:5px; }
+  .catalog-metadata, .catalog-assets { grid-template-columns:1fr; }
+  .catalog-pipeline .admin-list-row { flex-wrap:wrap; }
+  .catalog-pipeline .admin-list-row > div:first-child { flex-basis:100%; }
+}

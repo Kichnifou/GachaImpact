@@ -2,6 +2,7 @@ import { CosmeticType, CosmeticVisibility, Prisma, type PrismaClient } from '../
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
+import { officialCharacterAsset } from '../character-catalog/catalog-asset-url.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 type AppearancePlayer = {
@@ -11,7 +12,7 @@ type AppearancePlayer = {
   equippedTitleCosmetic: { id: string; type: CosmeticType; displayName: string } | null;
 };
 
-const officialAsset = (path: string | null) => path && /^\/assets\/[A-Za-z0-9/_-]+\.(?:png|webp|svg)$/.test(path) ? path : null;
+const officialAsset = officialCharacterAsset;
 export const appearanceSelect = {
   equippedAvatarCosmetic: { select: { id: true, type: true, isActive: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { iconPath: true } } } },
   equippedTitleCosmetic: { select: { id: true, type: true, displayName: true } },

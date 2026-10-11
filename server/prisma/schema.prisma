@@ -736,6 +736,8 @@ model Character {
   isActive                  Boolean                        @default(true) @map("is_active")
   releaseDate               DateTime?                      @map("release_date") @db.Date
   sourceMetadata            Json?                          @map("source_metadata") @db.JsonB
+  catalogCandidate          CatalogCandidate?
+  catalogImport             CatalogImportOutbox?
   createdAt                 DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt                 DateTime                       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
   element                   Element                        @relation(fields: [elementKey], references: [key], onDelete: Restrict)
@@ -3069,4 +3071,107 @@ model LegacyFriendshipFact {
   @@index([leftTwitchUserId], map: "legacy_friendship_facts_left_twitch_idx")
   @@index([rightTwitchUserId], map: "legacy_friendship_facts_right_twitch_idx")
   @@map("legacy_friendship_facts")
+}
+
+// R1051 work queue. Character remains the sole active catalogue authority.
+model CatalogCandidate {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  characterId String? @unique @map("character_id") @db.Uuid
+  name String @db.Text
+  status String @default("DETECTED") @db.Text
+  fields Json @default("{}") @db.JsonB
+  missing String[] @default([])
+  officialReleaseDate DateTime? @map("official_release_date") @db.Date
+  discoveredAt DateTime @default(now()) @map("discovered_at") @db.Timestamptz(6)
+  checkedAt DateTime? @map("checked_at") @db.Timestamptz(6)
+  nextCheckAt DateTime @default(now()) @map("next_check_at") @db.Timestamptz(6)
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
+  revision Int @default(0)
+  character Character? @relation(fields: [characterId], references: [id], onDelete: Restrict)
+  identities CatalogIdentity[]
+  assets CatalogAsset[]
+  attempts CatalogAttempt[]
+  outbox CatalogImportOutbox?
+  @@index([nextCheckAt, id])
+  @@map("catalog_candidates")
+}
+model CatalogIdentity {
+  namespace String @db.Text
+  externalId String @map("external_id") @db.Text
+  candidateId String @map("candidate_id") @db.Uuid
+  candidate CatalogCandidate @relation(fields:[candidateId], references:[id], onDelete:Restrict)
+  @@id([namespace, externalId])
+  @@index([candidateId])
+  @@map("catalog_identities")
+}
+model CatalogAsset {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidateId String @map("candidate_id") @db.Uuid
+  role String @db.Text
+  hash String @default("missing") @db.Text
+  provider String @db.Text
+  sourceUrl String? @map("source_url") @db.Text
+  sourceHash String? @map("source_hash") @db.Text
+  sourceMime String? @map("source_mime") @db.Text
+  url String? @db.Text
+  mime String? @db.Text
+  width Int?
+  height Int?
+  bytes Int?
+  status String @default("MISSING") @db.Text
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  candidate CatalogCandidate @relation(fields:[candidateId], references:[id], onDelete:Restrict)
+  @@unique([candidateId, role, hash])
+  @@index([candidateId, status])
+  @@map("catalog_assets")
+}
+model CatalogAttempt {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  candidateId String? @map("candidate_id") @db.Uuid
+  runId String @map("run_id") @db.Uuid
+  provider String @db.Text
+  field String @db.Text
+  outcome String @db.Text
+  errorCode String? @map("error_code") @db.Text
+  sourceUrl String? @map("source_url") @db.Text
+  httpStatus Int? @map("http_status")
+  checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
+  nextCheckAt DateTime? @map("next_check_at") @db.Timestamptz(6)
+  candidate CatalogCandidate? @relation(fields:[candidateId], references:[id], onDelete:Restrict)
+  run CatalogRun @relation(fields:[runId], references:[id], onDelete:Restrict)
+  @@index([candidateId, checkedAt(sort:Desc)])
+  @@index([runId])
+  @@map("catalog_attempts")
+}
+model CatalogJob {
+  id String @id @db.Text
+  leaseToken String? @map("lease_token") @db.Uuid
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  lastSuccessDate String? @map("last_success_date") @db.Text
+  lastSuccessAt DateTime? @map("last_success_at") @db.Timestamptz(6)
+  @@map("catalog_job")
+}
+model CatalogRun {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cycleKey String @unique @map("cycle_key") @db.Text
+  status String @default("RUNNING") @db.Text
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  failureCount Int @default(0) @map("failure_count")
+  summary Json @default("{}") @db.JsonB
+  attempts CatalogAttempt[]
+  @@map("catalog_runs")
+}
+model CatalogImportOutbox {
+  candidateId String @id @map("candidate_id") @db.Uuid
+  characterId String @unique @map("character_id") @db.Uuid
+  name String @db.Text
+  payload Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamptz(6)
+  candidate CatalogCandidate @relation(fields:[candidateId], references:[id], onDelete:Restrict)
+  character Character @relation(fields:[characterId], references:[id], onDelete:Restrict, map:"catalog_outbox_character_fk")
+  @@index([deliveredAt, createdAt])
+  @@map("catalog_import_outbox")
 }

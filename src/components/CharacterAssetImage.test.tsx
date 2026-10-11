@@ -4,7 +4,8 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../utils/gameAssets', () => ({
+vi.mock('../utils/gameAssets', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../utils/gameAssets')>(),
   DEFAULT_CHARACTER_ASSET_ORDER: ['iconPath', 'fullbodyPath', 'wishPath', 'splashPath'],
   useCharacterAssetPaths: (name: string) => name === 'Émilie' ? ['/assets/emilie-discovered.png'] : [],
 }))

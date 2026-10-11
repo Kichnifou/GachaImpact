@@ -36,6 +36,9 @@ import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js'
 import { PrismaGachaStore } from './database/prisma-gacha-store.js';
 import { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull, SetGachaTarget } from '../application/gacha/gacha-services.js';
 import { WeeklyBannerScheduler } from '../application/gacha/weekly-banner-scheduler.js';
+import { CatalogEngine } from '../application/character-catalog/catalog-engine.js';
+import { CatalogScheduler } from '../application/character-catalog/catalog-scheduler.js';
+import { CatalogAdminService } from '../application/character-catalog/catalog-admin.js';
 import { EventMonthlyDrawScheduler, EventMonthlyDrawService } from '../application/event/event-monthly-draw-service.js';
 import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from '../application/box/box-services.js';
 import { PrismaBoxStore } from './database/prisma-box-store.js';
@@ -108,6 +111,10 @@ export function createRuntimeDependencies(config: AppConfig) {
   const database = createDatabase(config.databaseUrl);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
+  const catalogEngine = new CatalogEngine(database, { enabled: config.characterCatalog?.enabled ?? false,
+    publish: config.characterCatalog?.publish ?? false, dryRun: config.characterCatalog?.dryRun ?? true,
+    storageUrl: config.supabase.url, storageKey: config.characterCatalog?.storageKey });
+  const catalogScheduler = new CatalogScheduler(database, catalogEngine);
   const twitchEventObserver = new TwitchEventObserver(database);
   const twitchAppTokens = config.twitch?.clientId && config.twitch.clientSecret
     ? new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret) : undefined;
@@ -236,6 +243,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     administrationServices: {
       roles: new RoleAdminService(database, getCurrentPlayer),
       characters: new CharacterAdminService(database, getCurrentPlayer),
+      catalog: new CatalogAdminService(database, getCurrentPlayer, catalogEngine),
       possessions: new PossessionAdminService(database, getCurrentPlayer),
       banners: new BannerAdminService(database, getCurrentPlayer, scheduler),
       events: new EventAdminService(database, getCurrentPlayer),
@@ -261,8 +269,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,
