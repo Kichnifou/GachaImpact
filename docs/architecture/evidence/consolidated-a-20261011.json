@@ -81,5 +81,16 @@
     "notifications": "2 catalogue groups observed ARCHIVED, 7 archived receipts preserved; no human recipe inferred",
     "daily": "enabled; publish enabled; dryRun false; next natural Paris midnight 2026-10-11T22:00:00Z not yet observed",
     "humanRecipe": "À tester en public"
+  },
+  "closingCheckpoint": {
+    "sha": "8d6dd585b60dbd5497c67000f3c204a4334dee64",
+    "codeUnchangedFromApprovedCorrection": true,
+    "documentaryReview": "APPROVED",
+    "documentaryReviewReportSha256": "41de5491e70653c9d5fad71ef43404284b117f0850dc0ad0a736bd457e80b7bc",
+    "strictFastForwardAndAllFourRefsEqual": true,
+    "railway": { "id": "a92035b8-908b-4d20-bf9d-df1848a841e8", "status": "SUCCESS", "readyAt": "2026-10-11T18:22:16.734392980Z", "migrations": "72; no pending" },
+    "cloudflare": { "id": "10348687-5ec8-4373-86af-0b5cb4ec1bcb", "status": "SUCCESS", "completedAt": "2026-10-11T18:19:18Z", "sameQualifiedAssets": true },
+    "priorRailwayAttempt": { "id": "7b4e8eb6-2c09-44ed-942a-948565b321f6", "status": "FAILED", "code": "P1002", "cause": "Prisma advisory lock 72707369 competed with private migration replay", "resolution": "Exact same build redeployed successfully after private cleanup; no config or code change" },
+    "operationalLesson": "Run private Prisma migration replays and Railway pre-deploy sequentially"
   }
 }

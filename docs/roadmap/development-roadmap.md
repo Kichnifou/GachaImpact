@@ -1,8 +1,8 @@
 # Roadmap de préparation et de développement GachaImpact
 
-## Backlog demandé le11/10/2026, après R1051
+## Mission consolidée autorisée le 11/10/2026 — R1066–R1077
 
-[Invocations partagées et vraie Roue animée](../specifications/shared-invocations-and-wheel-future.md) : demandes propriétaire consignées, directions techniques proposées, deux cadrages/missions dédiés après clôtureR1051. Aucun code, transport, bibliothèque ni dépense anticipés ; aucune dépendance bloquante de l’import catalogue. Le Master garde seul la prochaine action effective.
+[Publication progressive, Invocations partagées et vraie Roue animée](../architecture/consolidated-r1066-r1077.md) : mandat propriétaire complet après R1051, livré en quatre lots distincts A→B→C→D avec tests, review indépendante, promotion et déploiements. Les nouvelles règles catalogue s’appliquent aux nouvelles fiches et reprises ADMIN ciblées, sans rouvrir les 120 historiques ; Twitch et l’économie existante conservent leurs propriétaires. Aucun autre domaine ni dépense supplémentaire. Le Master garde seul l’état effectif et la prochaine action.
 
 ## Fin du projet : exploitation silencieuse puis pré-release
 

@@ -29,10 +29,20 @@
     "ADMIN and dry-run diagnostics apply current progressive minimums without collection or writes"
   ],
   "realSourceQualification": {
-    "icyVeinsValeriy": { "url": "https://www.icy-veins.com/genshin-impact/valeriy-team-guide", "status": "4-star text and retained 5-star cartouche disagreement from the same publisher: ambiguous, zero votes" },
+    "icyVeinsValeriy": { "url": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations", "status": "4-star text and retained 5-star cartouche disagreement from the same publisher: ambiguous, zero votes" },
     "sephijin": { "urls": ["https://sephijin.fr/mitya-farm/", "https://sephijin.fr/valeriy-farm/"], "status": "Farm articles observed, no exploitable rarity in text; linked exact profiles not qualified after timeouts" },
     "game8": "Old index and targeted searches do not establish convergence; no general absence claim",
     "result": "No real Mitya/Valeriy consensus asserted; synthetic fixtures demonstrate the normal qualification circuit"
+  },
+  "rootIntegration": {
+    "base": "8d6dd585b60dbd5497c67000f3c204a4334dee64",
+    "sourceCommit": "3541e2d",
+    "frontendTargetedPassed": 27,
+    "backendTargetedPassed": 72,
+    "quick": "PASS 5/5",
+    "full": "Running before final promotion gate; no PASS claimed",
+    "publicSchemaBefore": "72 migrations, committed SQL and historical ledger checksums verified read-only; seven private RLS tables without browser grants",
+    "productionMigration": "Not applied at this candidate checkpoint"
   },
   "limits": [
     "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
