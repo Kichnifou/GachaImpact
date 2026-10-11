@@ -8,6 +8,7 @@ import CatalogRefresh from './CatalogRefresh'
 import { catalogValue } from './catalog-presentation'
 import { CatalogDialog } from './CatalogDialog'
 import CatalogPipelinePanel from './CatalogPipelinePanel'
+import { CatalogWeaponSelect, CatalogRegionSelect } from './CatalogMetadataControls'
 
 type CharacterIntent = Readonly<{ kind: 'catalog'; characterId: string; characterName: string; isActive: boolean }>
   | Readonly<{ kind: 'possession'; playerId: string; playerName: string; characterId: string; characterName: string; action: 'remove' }>
@@ -17,6 +18,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
   const [pipelineId,setPipelineId]=useState<string|undefined>(()=>/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])
   const [editorOpen, setEditorOpen] = useState(false)
   const deepRequest = useRef(0)
+  const ownedHash = useRef<string|null>(null)
   const [missingAssets, setMissingAssets] = useState(false)
   const [reload, setReload] = useState(0)
   const [page, setPage] = useState(1)
@@ -46,6 +48,9 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true), [refreshNotice, setRefreshNotice] = useState('')
   const refreshGate = useRef(false)
+  const consumeIntent = useCallback(() => { deepRequest.current++; setPipelineId(undefined); if (/^#moderation\/(candidates|characters)\//i.test(window.location.hash)) window.history.replaceState(null,'','#moderation') }, [])
+  const closeEditor = () => { consumeIntent(); setEditorOpen(false) }
+  const changeSection = (next: typeof section) => { consumeIntent(); setEditorOpen(false); setSection(next); setPage(1) }
   const task = useAdminTask(() => { setConstellations({}); setReload(value => value + 1) })
   const refresh = useCallback(() => { if (refreshGate.current) return; refreshGate.current=true; setReload(value => value + 1) }, [])
 
@@ -84,7 +89,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
     void task.execute(signature, async key => {
       if (selected) await getGameApiClient().updateAdminCharacter(selected.id, { ...fields, idempotencyKey: key })
       else await getGameApiClient().createAdminCharacter({ ...fields, externalKey: externalKey.trim(), idempotencyKey: key })
-      resetForm(); setEditorOpen(false)
+      resetForm(); closeEditor()
     })
   }
   const setPresence = async (intent: Extract<CharacterIntent, { kind: 'catalog' }>) => {
@@ -102,34 +107,35 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
   useEffect(() => {
     const openHash = () => {
       const revision = ++deepRequest.current
+      if (/^#moderation\/(candidates|characters)\//i.test(window.location.hash)) ownedHash.current = window.location.hash
       const match = /^#moderation\/characters\/([a-f0-9-]{36})$/i.exec(window.location.hash)
       if (match) { setSection('catalog'); void getGameApiClient().getAdminCharacter(match[1]!).then(row => { if (revision === deepRequest.current) edit(row) }).catch(error => { if (revision === deepRequest.current) setLoadError(apiErrorMessage(error)) }) }
       if (window.location.hash.startsWith('#moderation/candidates/')) {setSection('pipeline');setPipelineId(/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])}
     }
     openHash(); window.addEventListener('hashchange', openHash)
-    return () => { deepRequest.current++; window.removeEventListener('hashchange', openHash) }
+    return () => { deepRequest.current++; window.removeEventListener('hashchange', openHash); if (ownedHash.current===window.location.hash) window.history.replaceState(null,'','#moderation') }
   }, [])
 
   return <div className={`admin-domain${section!=='possessions'?' admin-characters-framed':''}`} aria-label="Administration des personnages">
-    <div className="admin-subtabs"><button type="button" aria-pressed={section === 'catalog'} onClick={() => { setSection('catalog'); setPage(1) }}>Catalogue</button>
-      <button type="button" aria-pressed={section === 'pipeline'} onClick={() => setSection('pipeline')}>Imports et candidats</button>
-      <button type="button" aria-pressed={section === 'possessions'} onClick={() => { setSection('possessions'); setPage(1) }}>Possessions de {playerName}</button></div>
+    <div className="admin-subtabs"><button type="button" aria-pressed={section === 'catalog'} onClick={() => changeSection('catalog')}>Catalogue</button>
+      <button type="button" aria-pressed={section === 'pipeline'} onClick={() => changeSection('pipeline')}>Imports et candidats</button>
+      <button type="button" aria-pressed={section === 'possessions'} onClick={() => changeSection('possessions')}>Possessions de {playerName}</button></div>
     {section!=='pipeline'&&<><AdminFeedback error={task.error || loadError}/><div className="catalog-feedback" role="status">{!editorOpen&&task.notice}<span className="sr-only">{refreshNotice}</span></div></>}
-    {section === 'pipeline' ? <CatalogPipelinePanel initialId={pipelineId} /> : section === 'catalog' ? <>
+    {section === 'pipeline' ? <CatalogPipelinePanel initialId={pipelineId} onIntentConsumed={consumeIntent} /> : section === 'catalog' ? <>
       <button type="button" onClick={() => { resetForm(); setEditorOpen(true) }}>Ajouter un personnage</button>
-      {editorOpen && <CatalogDialog title={selected ? `Modifier ${selected.name}` : 'Ajouter un personnage'} pending={task.pending} onClose={() => setEditorOpen(false)}>
+      {editorOpen && <CatalogDialog title={selected ? `Modifier ${selected.name}` : 'Ajouter un personnage'} pending={task.pending} onClose={closeEditor}>
       <section className="admin-editor">
         <AdminFeedback error={task.error} />
         <form onSubmit={save}><label>Clé externe<input value={externalKey} disabled={Boolean(selected) || task.pending} onChange={event => setExternalKey(event.target.value)} required /></label>
           <label>Nom<input value={name} onChange={event => setName(event.target.value)} required maxLength={100} /></label>
           <label>Rareté<select value={editRarity} onChange={event => setEditRarity(Number(event.target.value) as 4 | 5)}><option value={4}>4★</option><option value={5}>5★</option></select></label>
           <label>Élément<select value={editElement} onChange={event => setEditElement(event.target.value as ElementKey)}>{elementKeys.map(key => <option key={key} value={key}>{catalogValue('element',key)}</option>)}</select></label>
-          <label>Arme<input value={weaponType} maxLength={100} onChange={event => setWeaponType(event.target.value)} /></label>
-          <label>Région<input value={region} maxLength={100} onChange={event => setRegion(event.target.value)} /></label>
+          <label>Arme<CatalogWeaponSelect value={weaponType} disabled={task.pending} onChange={setWeaponType} /></label>
+          <label>Région<CatalogRegionSelect value={region} disabled={task.pending} onChange={setRegion} /></label>
           <label>Classe<input value={classKey} maxLength={100} onChange={event => setClassKey(event.target.value)} /></label>
           <label>Ordre d’affichage<input type="number" min={0} max={100000} value={displayOrder} onChange={event => setDisplayOrder(event.target.value)} /></label>
           {selected && <label><input type="checkbox" checked={editActive} onChange={event => setEditActive(event.target.checked)} /> Actif</label>}
-          <div className="catalog-editor-actions"><button type="button" disabled={task.pending} onClick={() => setEditorOpen(false)}>Annuler</button><button type="submit" disabled={task.pending}>Enregistrer</button></div></form>
+          <div className="catalog-editor-actions"><button type="button" disabled={task.pending} onClick={closeEditor}>Annuler</button><button type="submit" disabled={task.pending}>Enregistrer</button></div></form>
         <small>{selected ? 'Les données et les images existantes sont conservées. Compléter les images manquantes dans Imports et candidats.' : 'La nouvelle fiche est enregistrée comme candidat. La publication attend les preuves officielles et les images validées, selon les mêmes contrôles que l’import automatique.'}</small></section>
       </CatalogDialog>}
       <section className="panel admin-list"><div className="catalog-toolbar"><h2>Catalogue</h2><div className="admin-filters">
@@ -142,7 +148,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
         <button type="button" onClick={() => setDirection(value => value === 'asc' ? 'desc' : 'asc')}>{direction === 'asc' ? '↑' : '↓'}</button>
         <CatalogRefresh loading={loading} onClick={refresh}/>
       </div></div>{loading&&<p role="status">Chargement du catalogue…</p>}<div className="admin-scroll-list">{list?.entries.map(row => <article className="admin-list-row" key={row.id}><div><strong>{row.name} · {row.rarity}★</strong>
-        <small>{row.externalKey} · {catalogValue('element',row.elementKey)} · {row.isActive ? 'Actif' : 'Inactif'}</small></div>
+        <small>{row.externalKey} · {catalogValue('element',row.elementKey)} · {row.isActive ? 'Actif' : 'Inactif'}</small><small>{(['icon','splash','wish','fullbody'] as const).filter(role=>!row[`${role}Path`]).length>0&&`Images manquantes : ${(['icon','splash','wish','fullbody'] as const).filter(role=>!row[`${role}Path`]).map(role=>({icon:'Portrait',splash:'Illustration principale',wish:'Illustration de vœu',fullbody:'Personnage en pied'})[role]).join(', ')}`}</small></div>
         <button type="button" onClick={() => edit(row)}>Modifier</button><button type="button" className={row.isActive ? 'danger' : ''} onClick={() => { const intent = { kind: 'catalog' as const, characterId: row.id, characterName: row.name, isActive: !row.isActive }; if (row.isActive) setConfirm(intent); else void setPresence(intent) }}>{row.isActive ? 'Désactiver' : 'Réactiver'}</button></article>)}
         {!list?.entries.length && <p>Aucun personnage.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} pending={task.pending} />}</section>
     </> : <>

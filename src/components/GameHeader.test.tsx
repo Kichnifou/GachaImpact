@@ -9,6 +9,28 @@ import GameHeader from './GameHeader'
 const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 const roots: Root[] = []
+
+it.each(['CATALOG_REVIEW_ADMIN','CHARACTER_IMPORTED_ADMIN'])('archives %s only after a valid opening and guards double clicks',async(typeKey)=>{
+  const candidate=typeKey==='CATALOG_REVIEW_ADMIN';
+  const notification={id:'private-catalog',domainKey:'character-catalog',typeKey,payload:{},state:'UNREAD' as const,createdAt:'2026-10-11T10:00:00Z',readAt:null,actionKey:candidate?'OPEN_ADMIN_CANDIDATE':'OPEN_ADMIN_CHARACTER',actionTargetId:'00000000-0000-4000-8000-000000000001'};
+  let resolve!:(opened:boolean)=>void;
+  const onOpenNotification=vi.fn(()=>new Promise<boolean>(done=>{resolve=done})),onArchiveNotification=vi.fn(async()=>({unreadCount:0,notifications:[]}));
+  const c=mount({notifications:{unreadCount:1,notifications:[notification]},onOpenNotification,onArchiveNotification});
+  await act(async()=>c.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click());
+  await act(async()=>{const row=c.querySelector<HTMLButtonElement>('.notification-item')!;row.click();row.click()});
+  expect(onOpenNotification).toHaveBeenCalledOnce();expect(onArchiveNotification).not.toHaveBeenCalled();
+  await act(async()=>resolve(true));expect(onArchiveNotification).toHaveBeenCalledWith(notification.id);
+})
+
+it('keeps a failed ADMIN target unarchived and allows retry',async()=>{
+  const notification={id:'private-catalog',domainKey:'character-catalog',typeKey:'CATALOG_REVIEW_ADMIN',payload:{},state:'READ' as const,createdAt:'2026-10-11T10:00:00Z',readAt:null,actionKey:'OPEN_ADMIN_CANDIDATE',actionTargetId:'00000000-0000-4000-8000-000000000001'};
+  const onOpenNotification=vi.fn().mockRejectedValueOnce(new Error('not found')).mockResolvedValue(true),onArchiveNotification=vi.fn(async()=>({unreadCount:0,notifications:[]}));
+  const c=mount({notifications:{unreadCount:0,notifications:[notification]},onOpenNotification,onArchiveNotification});
+  await act(async()=>c.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click());
+  await act(async()=>c.querySelector<HTMLButtonElement>('.notification-item')!.click());
+  expect(onArchiveNotification).not.toHaveBeenCalled();expect(c.textContent).toContain('Réessayez');
+  await act(async()=>c.querySelector<HTMLButtonElement>('.notification-item')!.click());expect(onArchiveNotification).toHaveBeenCalledOnce();
+})
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren(); Reflect.deleteProperty(document, 'visibilityState'); vi.useRealTimers() })
 
 function mount(props: Partial<React.ComponentProps<typeof GameHeader>> = {}) {

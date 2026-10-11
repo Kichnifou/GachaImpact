@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Consolidation A — consommation des intentions, 11/10/2026
+
+Les hashes vers candidat/Character restent valides à l'ouverture et à l'actualisation explicite. Fermer la fiche, changer de sous-contexte ou quitter son propriétaire consomme la cible et retire son hash ; revenir Personnages ne rouvre aucune ancienne modale. Une autre notification/lien explicite définit une nouvelle cible. Requêtes dépassées invalidées, focus rendu selon le dialogue existant. Les deux notifications catalogue vérifient la cible avant archive serveur. [Contrat](../architecture/consolidated-r1066-r1077.md), statut au Master.
+
 ## R1051 — notification vers la fiche candidate exacte
 
 OPEN_ADMIN_CANDIDATE / actionTargetId UUID produit côté serveur et résolu comme admin-candidate ouvre Modération > Personnages > Imports puis la même modale candidate. Le hash #moderation/candidates/<uuid> reste autoritaire, y compris lorsqu’une autre fiche est déjà ouverte. Permission superTools requise ; cible invalide/action inconnue non navigable. CHARACTER_IMPORTED_ADMIN conserve sa destinationCharacter. Aucun changement de géométrie/sidebar/chat du GameShell. [ContratADMIN](administration-moderation-v1.md).

@@ -24,7 +24,7 @@ type GameHeaderProps = {
   onReadAllNotifications?: () => Promise<NotificationsDto>
   onArchiveAllNotifications?: () => Promise<NotificationsDto>
   onArchiveReadNotifications?: () => Promise<NotificationsDto>
-  onOpenNotification?: (notification: NotificationDto) => void
+  onOpenNotification?: (notification: NotificationDto) => void | boolean | Promise<boolean>
 }
 
 const emptyNotifications: NotificationsDto = { unreadCount: 0, notifications: [] }
@@ -42,6 +42,7 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
   const [normalNotificationsOpen, setIsNotificationsOpen] = useState(false)
   const isNotificationsOpen = normalNotificationsOpen || guidedNotifications
   const [archivingNotificationId, setArchivingNotificationId] = useState<string | null>(null)
+  const openingRef = useRef(false)
   const notificationAnchorRef = useRef<HTMLDivElement>(null)
   const refreshNowRef = useRef<() => void>(() => undefined)
   useEffect(() => {
@@ -69,6 +70,16 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
   }, [onRefreshNotifications, pollSessionKey, isNotificationsOpen])
   const open = (notification: NotificationDto) => {
     const navigation = resolveNotificationNavigation(notification)
+    if (navigation.destination === 'admin-character' || navigation.destination === 'admin-candidate') {
+      if (openingRef.current) return
+      openingRef.current=true; setClearError('')
+      void Promise.resolve().then(()=>onOpenNotification(notification)).then(async opened=>{
+        if (opened===false) return
+        await onArchiveNotification(notification.id)
+        setIsNotificationsOpen(false)
+      }).catch(()=>setClearError('Impossible d’ouvrir ou d’archiver cette fiche. Réessayez.')).finally(()=>{openingRef.current=false})
+      return
+    }
     if (navigation.destination === null) {
       if (notification.state === 'UNREAD') void onReadNotification(notification.id).catch(() => undefined)
       return

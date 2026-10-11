@@ -1,5 +1,9 @@
 # Notifications V1 — contrat transverse
 
+## Consolidation A — ouverture des fiches catalogue, 11/10/2026
+
+CATALOG_REVIEW_ADMIN et CHARACTER_IMPORTED_ADMIN : vérifier permission actuelle et existence de la cible exacte avant navigation ; ouverture valide entraîne archive serveur, disparition liste/badge, historique/reçus conservés. Double clic neutralisé ; cible périmée/erreur réseau non archivée et réessayable. Les polls obsolètes ne restaurent aucune ligne. Une nouvelle nouveauté sémantique peut réactiver le groupe selon le producteur existant. Autres types inchangés. [Contrat](../architecture/consolidated-r1066-r1077.md), preuves réelles au Master.
+
 ## R1051 — un groupe actif et reçus conservés, 11/10/2026
 
 Clé agrégat catalog-review-group:candidat:ADMIN, clé événement catalog-review:candidat:signature:ADMIN conservée ARCHIVED. Une nouvelle valeur, contradiction, promotion éditoriale ou image nouvellement disponible crée son reçu une fois puis actualise le groupe ; checkedAt/fetchedAt/source concordante/absence répétée ne sont pas des nouveautés. Résumé des champs non lus, conflit prioritaire, nouveau contenu réactive UNREAD même après archive ; simple GET/rejeu non. Destinataires ADMIN actifs et rôle courant relu à l’accès.

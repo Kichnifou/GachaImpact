@@ -4,6 +4,7 @@ import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
 import { AdminOperation } from './admin-operation.js';
 import { readFields, type CatalogFields } from '../character-catalog/catalog-policy.js';
+import { canonicalRegion, catalogRegions, normalizeWeapon } from '../character-catalog/catalog-metadata.js';
 
 export type CharacterAdminPatch = Readonly<{ name?: string; rarity?: 4 | 5; elementKey?: string;
   weaponType?: string | null; region?: string | null; classKey?: string | null; displayOrder?: number | null; isActive?: boolean }>;
@@ -14,6 +15,11 @@ const select = { id: true, externalKey: true, name: true, rarity: true, elementK
 export class CharacterAdminService {
   private readonly operation: AdminOperation;
   constructor(private readonly database: PrismaClient, getPlayer: GetCurrentPlayer) { this.operation = new AdminOperation(database, getPlayer); }
+
+  async options(identity: AuthenticatedIdentity) {
+    await this.operation.actor(identity, 'ADMIN');
+    return { regions: await catalogRegions(this.database) };
+  }
 
   async get(identity: AuthenticatedIdentity, id: string) {
     await this.operation.actor(identity, 'ADMIN');
@@ -65,6 +71,8 @@ export class CharacterAdminService {
           ]);
           if (referenced.some(Boolean)) throw new AppError('Rareté et élément figés pour un personnage référencé.', 409, 'CHARACTER_IDENTITY_LOCKED');
         }
+        if (typeof patch.weaponType === 'string') patch.weaponType = patch.weaponType.trim() ? normalizeWeapon(patch.weaponType) : null;
+        if (typeof patch.region === 'string') patch.region = patch.region.trim() ? await canonicalRegion(tx, patch.region) : null;
         const after = await tx.character.update({ where: { id: characterId }, data: { ...patch, ...(patch.name ? { name: patch.name.trim() } : {}) }, select });
         const candidate=await tx.catalogCandidate.findUnique({where:{characterId}});
         if(candidate){

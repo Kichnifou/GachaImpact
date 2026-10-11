@@ -11,7 +11,7 @@ const base: NotificationDto = {
 describe('notification navigation registry', () => {
   it('opens the exact ADMIN candidate only for its canonical action and a valid UUID',()=>{
     const candidate={...base,domainKey:'character-catalog',typeKey:'CATALOG_REVIEW_ADMIN',actionKey:'OPEN_ADMIN_CANDIDATE',actionTargetId:'00000000-0000-4000-8000-000000000088'};
-    expect(resolveNotificationNavigation(candidate)).toEqual({destination:'admin-candidate',targetId:candidate.actionTargetId,archiveOnOpen:false});
+    expect(resolveNotificationNavigation(candidate)).toEqual({destination:'admin-candidate',targetId:candidate.actionTargetId,archiveOnOpen:true});
     expect(resolveNotificationNavigation({...candidate,actionTargetId:'invalid'}).destination).toBeNull();
     expect(resolveNotificationNavigation({...candidate,actionTargetId:'-'.repeat(36)}).destination).toBeNull();
     expect(resolveNotificationNavigation({...candidate,actionKey:'OPEN_ADMIN_CHARACTER'}).destination).toBeNull();

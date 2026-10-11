@@ -86,6 +86,7 @@ export async function registerAdministrationRoutes(app: FastifyInstance, { authe
   app.post('/api/v1/moderation/players/:playerId/roles', { preHandler: authenticate }, request => {
     const value = parse(role, request.body); return services.roles.setRole(identity(request), pathId(request.params, 'playerId'), value.role, value.enabled, value.idempotencyKey);
   });
+  app.get('/api/v1/moderation/character-options', { preHandler: authenticate }, request => services.characters.options(identity(request)));
   app.get('/api/v1/moderation/characters', { preHandler: authenticate }, request => {
     const value = parse(page.extend({ search: z.string().max(100).optional(), rarity: z.coerce.number().pipe(z.union([z.literal(4), z.literal(5)])).optional(),
       elementKey: z.enum(elementKeys).optional(), active: z.enum(['true', 'false']).transform(v => v === 'true').optional(), missingAssets: z.enum(['true', 'false']).transform(v => v === 'true').optional(),

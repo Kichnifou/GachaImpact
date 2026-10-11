@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1066–R1077 — mission consolidée propriétaire du 11/10/2026
+
+**VALIDÉ PAR LE PROPRIÉTAIRE** : mandat complet A/B/C/D, livraisons séparées avec tests, review indépendante des SHA publiés, promotion stricte et déploiements/postflight sans GO générique. [Contrat et frontières](../architecture/consolidated-r1066-r1077.md). R1066A intervention ADMIN intelligente ; R1067A tous les joueurs standalone authentifiés opt-in ; R1068B projection de scène avec indicateurs Gacha autorisés ; R1069A exclusivité diffusion/visionnage ; R1070B pause hors Invocation ; R1071A entrée x10 à l'étape courante ; R1072A contrôle du diffuseur seul ; R1073 Twitch exclu ; R1074A reconnexion courte avec autorité d'onglet ; R1075B emojis éphémères bornés ; R1076A/R1077A publication progressive et enrichissement continu.
+
+Pour les nouvelles fiches et réouvertures ADMIN explicites, ce mandat supersède les fondamentaux uniquement OFFICIAL, portrait+splash obligatoires à la première publication et arrêt automatique au jour de sortie. Les 120 historiques restent protégés. La documentation future seule des Invocations/Roue ci-dessous est historique : leur implémentation est désormais explicitement autorisée dans C/D. Quotas Free déjà clos par le propriétaire, aucune nouvelle dépense ou campagne d'infrastructure.
+
 ## R1051 — recette et mise en service, amendement propriétaire du 11/10/2026
 
 VALIDÉ PAR LE PROPRIÉTAIRE : terminer les35 dates NULL restantes par plan sourcé/rejouable, une collecte admise globalement et annulation réelle, ADMIN compact et aperçu honnête, notifications groupées par candidat/ADMIN et accès exact. Quotas Storage/egress gratuits de l’organisation confirmés par le propriétaire ; secret configuré directement dans Railway. Refus anonymes et session ordinaire testés (preuve propriétaire14:34UTC). Après tests/review/collecte contrôlée, quotidien réel autorisé ; publication automatique séparée, activable seulement sous toutes ses gates, sans candidat forcé ni override. Ce mandat supersède l’ancienne clôture volontairementOFF. Ayaka : correction01/07→21/07/2021 explicitement autorisée après signalement, dans un plan séparé à valeur courante exacte.

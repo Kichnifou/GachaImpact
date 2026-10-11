@@ -43,7 +43,7 @@ describe('private administration routes', () => {
   it('requires authentication on private reads and mutations', async () => {
     const { app } = await setup();
     for (const [method, url] of [
-      ['GET', '/api/v1/moderation/characters'], ['GET', '/api/v1/moderation/banners'],
+      ['GET', '/api/v1/moderation/character-options'], ['GET', '/api/v1/moderation/characters'], ['GET', '/api/v1/moderation/banners'],
       ['GET', '/api/v1/moderation/events'], ['GET', '/api/v1/moderation/global-chat-reports'],
       ['GET', '/api/v1/moderation/audit'], ['POST', `/api/v1/moderation/players/${player.id}/roles`],
       ['GET', '/api/v1/moderation/catalog-candidates'], ['POST', `/api/v1/moderation/catalog-candidates/${player.id}/image`],

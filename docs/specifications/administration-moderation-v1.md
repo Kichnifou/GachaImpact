@@ -1,5 +1,9 @@
 # Administration et modération V1 — étape 22
 
+## Consolidation A — mandat du 11/10/2026
+
+Résumé : portrait stocké AVAILABLE puis iconPath Character puis placeholder neutre, aucun splash substitué ; Images conserve quatre rôles. Filtre Images manquantes porte sur les quatre chemins et chaque ligne nomme précisément les rôles absents. Arme fermée Épée/Claymore/Lance/Arc/Catalyseur ; alias anglais connus normalisés sans changer la qualité des preuves. Régions dérivées des valeurs Character/candidat, valeurs atypiques conservées, ajout ADMIN normalisé/dédupliqué serveur et disponible ensuite. Aucun nouveau registre concurrent. Fermer ou quitter Personnages consomme l'ancienne cible ; liens directs/nouvelles notifications restent exacts. [Contrat](../architecture/consolidated-r1066-r1077.md), état/tests/déploiement au Master.
+
 ## R1051 — recette complémentaire du 11/10/2026
 
 Catalogue/Imports : cadre stable, seul scroll de liste, pagination fixe, filtres/actions compacts à droite ; ciblePlayer masquée pour ces contextes globaux, conservée dans Possessions. Sous1121px, cadre métier borné à la hauteur viewport, dans le flux mobile du shell inchangé. Imports utilise pagination/filtres serveur sans plafond150, sélection par défaut encore suivie. Configuration/diagnostic/audit repliés, dernier cycle fixe, simulation explicite.

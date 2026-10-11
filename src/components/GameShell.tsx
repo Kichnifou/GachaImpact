@@ -449,7 +449,10 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
       onApplied: onModerationApplied,
     })
   }, [boxCache, inventoryCache, onModerationApplied, player.id])
+  const notificationNavigationRevision = useRef(0)
+  useEffect(()=>()=>{notificationNavigationRevision.current++},[])
   const signOutAndClearCaches = useCallback(async () => {
+    notificationNavigationRevision.current++
     voteCache.clear()
     boxCache.clear()
     bankCache.clear()
@@ -462,6 +465,7 @@ function GameShell({ tutorialApi = defaultTutorialApi, dailyRefresh, onArcadeMut
   }, [bankCache, boxCache, inventoryCache, moderationIntents, onSignOut, shopCache, shopIntents, voteCache, closePresence])
 
   const changeScreen = useCallback((screen: ScreenId) => {
+    notificationNavigationRevision.current++
     if (activeScreenRef.current === 'invocation' && screen !== 'invocation') onGachaPresentationAbandoned()
     if (screen !== 'configuration') setConfigurationTab('menu')
     if (screen !== 'trades') setTradeIntent(undefined)
@@ -608,9 +612,10 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         onArchiveReadNotifications={onArchiveReadNotifications}
         onOpenNotification={(notification) => {
           const intent = resolveNotificationNavigation(notification)
+          const revision=notificationNavigationRevision.current
           switch (intent.destination) {
-            case 'admin-candidate': if (permissions.capabilities.superTools && intent.targetId) { navigate('moderation'); window.location.hash = `moderation/candidates/${intent.targetId}` } break
-            case 'admin-character': if (permissions.capabilities.superTools && intent.targetId) { navigate('moderation'); window.location.hash = `moderation/characters/${intent.targetId}` } break
+            case 'admin-candidate': if (!permissions.capabilities.superTools || !intent.targetId) return false; return getGameApiClient().getCatalogCandidate(intent.targetId).then(()=>{if(revision!==notificationNavigationRevision.current)return false;navigate('moderation'); window.location.hash = `moderation/candidates/${intent.targetId}`;return true})
+            case 'admin-character': if (!permissions.capabilities.superTools || !intent.targetId) return false; return getGameApiClient().getAdminCharacter(intent.targetId).then(()=>{if(revision!==notificationNavigationRevision.current)return false;navigate('moderation'); window.location.hash = `moderation/characters/${intent.targetId}`;return true})
             case 'arcade-invite': navigate('activities-arcade'); window.dispatchEvent(new Event('arcade:refresh')); break
             case 'profile-personalization': setProfileId(player.id); setAppearanceRequestToken(value => value + 1); navigate('profile'); break
             case 'expedition': if (intent.targetId) { setBoxOpenIntent({ characterId: intent.targetId, token: crypto.randomUUID() }); navigate('characters-box') } break

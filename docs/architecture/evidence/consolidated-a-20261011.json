@@ -1,0 +1,54 @@
+{
+  "initialSha": "1f3f83a40382b901653ddbee14d9c9abb9fad4f8",
+  "scope": "A: ADMIN catalogue metadata, portraits, navigation and catalogue notification archive",
+  "baselineReadOnlyAt": "2026-10-11T17:30:52.384Z",
+  "baseline": {
+    "characters": 120,
+    "protected": 120,
+    "tracked": ["Mitya", "Valeriy"],
+    "missingFullbody": ["Vesna", "Vodyanitsa"],
+    "odetteFourPathsPresent": true
+  },
+  "tests": {
+    "targetedFrontend": { "passed": 83, "failed": 0 },
+    "supplementalShellNavigation": { "passed": 37, "failed": 0, "overlapsTargetedFrontend": true },
+    "targetedBackend": { "passed": 9, "failed": 0 },
+    "quick": "PASS 5/5",
+    "buildsTypesLint": "PASS",
+    "full": {
+      "result": "FAIL 6/8",
+      "frontendPassed": 1469,
+      "frontendFailed": 7,
+      "backendPassed": 2366,
+      "backendFailed": 9,
+      "knownAssertionFailures": 13,
+      "additionalTimeouts": 3,
+      "timeoutFilesSequentialReplay": "PASS 52/52 across arcade-domain, imported-canary-extension-cli, verified-twitch-report",
+      "baseline": "13 assertion failures independently reproduced during R1051 in its initial commit; unchanged sources in A",
+      "notClaimedFullPass": true
+    },
+    "privatePostgresMetadataAndArchive": { "passed": 2, "failed": 0 },
+    "migrationReplayAttempts": {
+      "executedAssertions": 0,
+      "attempts": 2,
+      "errors": ["Connection terminated during private fixture setup", "Prisma P1017 server closed connection"],
+      "notClaimedPassed": true,
+      "scopeDecision": "A has no DDL; targeted private schema validation executed separately without migration replay"
+    },
+    "visual": {
+      "states": 84,
+      "viewports": [[390,844],[1366,768],[1920,1080],[2560,1440]],
+      "actualGameShell": true,
+      "compiledProductionCss": true,
+      "javascriptErrors": [],
+      "noHorizontalOverflow": true,
+      "boundedDialogsAndFixedPagination": true,
+      "humanRecipe": "À tester en public"
+    }
+  },
+  "migrationAdded": false,
+  "productionMutation": false,
+  "review": "PENDING_REMOTE_SHA",
+  "promotion": "NOT_YET_ACQUIRED",
+  "deployments": "NOT_YET_ACQUIRED"
+}

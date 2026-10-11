@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CatalogCandidate, CatalogOverview } from '../../api/catalog-types'
-const api = vi.hoisted(() => ({ getCatalogCandidates: vi.fn(), getCatalogCandidate: vi.fn(), editCatalogCandidate: vi.fn(), checkCatalogCandidate: vi.fn(), checkCatalogCandidates:vi.fn(), setCatalogTracking:vi.fn(), uploadCatalogImage: vi.fn(), overrideCatalogWindow: vi.fn() }))
+const api = vi.hoisted(() => ({ getAdminCharacterOptions: vi.fn(), getCatalogCandidates: vi.fn(), getCatalogCandidate: vi.fn(), editCatalogCandidate: vi.fn(), checkCatalogCandidate: vi.fn(), checkCatalogCandidates:vi.fn(), setCatalogTracking:vi.fn(), uploadCatalogImage: vi.fn(), overrideCatalogWindow: vi.fn() }))
 vi.mock('../../api/game-api', () => ({ getGameApiClient: () => api }))
 import CatalogPipelinePanel from './CatalogPipelinePanel'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -19,10 +19,30 @@ const dialog = () => document.body.querySelector<HTMLElement>('[role=dialog]')!
 async function click(element: HTMLElement) { await act(async () => element.click()) }
 async function tab(name:string){await click(Array.from(dialog().querySelectorAll<HTMLElement>('[role=tab]')).find(value=>value.textContent===name)!)}
 async function edit(){await tab('Informations');await click(button('Corriger volontairement'))}
-beforeEach(() => { vi.resetAllMocks(); api.getCatalogCandidates.mockResolvedValue(overview); api.getCatalogCandidate.mockResolvedValue(candidate)
+beforeEach(() => { vi.resetAllMocks(); api.getAdminCharacterOptions.mockResolvedValue({regions:['Horizon','Nod-Krai']}); api.getCatalogCandidates.mockResolvedValue(overview); api.getCatalogCandidate.mockResolvedValue(candidate)
   for (const action of [api.editCatalogCandidate, api.checkCatalogCandidate, api.uploadCatalogImage, api.overrideCatalogWindow]) action.mockResolvedValue({ operationId: 'fixture', alreadyProcessed: false }) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); container?.remove() })
 describe('Character import ADMIN surface', () => {
+  it('uses a stored icon before any splash and keeps all image roles in Images',async()=>{
+    const asset={id:'icon',role:'icon' as const,status:'AVAILABLE',sourceUrl:null,url:'/assets/icon.png',hash:'hash',mime:'image/png',width:256,height:256,bytes:100,provider:'fixture'};
+    api.getCatalogCandidate.mockResolvedValue({...candidate,assets:[{...asset,id:'splash',role:'splash',url:'/assets/splash.png'},asset]});
+    await mount(candidate.id);expect(dialog().querySelector('img')?.getAttribute('src')).toBe('/assets/icon.png');
+    await tab('Images');expect(dialog().textContent).toContain('Portrait');expect(dialog().textContent).toContain('Personnage en pied');expect(dialog().querySelectorAll('img')).toHaveLength(2);
+  })
+  it('uses the existing Character icon and never substitutes a splash when no icon is available',async()=>{
+    api.getCatalogCandidate.mockResolvedValue({...candidate,character:{iconPath:'/assets/existing.png',splashPath:'/assets/splash.png',wishPath:null,fullbodyPath:null}});
+    await mount(candidate.id);expect(dialog().querySelector('img')?.getAttribute('src')).toBe('/assets/existing.png');
+    api.getCatalogCandidate.mockResolvedValue({...candidate,character:{iconPath:null,splashPath:'/assets/splash.png',wishPath:null,fullbodyPath:null}});
+    await click(button('Actualiser'));expect(dialog().querySelector('img')).toBeNull();expect(dialog().textContent).toContain('Portrait pas encore stocké');
+  })
+  it('consumes the initial intent on close and accepts a subsequent distinct candidate intent',async()=>{
+    const consumed=vi.fn();container=document.createElement('div');document.body.append(container);root=createRoot(container);
+    await act(async()=>root.render(<CatalogPipelinePanel initialId={candidate.id} onIntentConsumed={consumed}/>));
+    await click(button('Fermer la fiche'));expect(consumed).toHaveBeenCalledOnce();
+    const next={...candidate,id:'00000000-0000-4000-8000-000000000002',name:'Valeriy'};api.getCatalogCandidate.mockResolvedValue(next);
+    await act(async()=>root.render(<CatalogPipelinePanel initialId={next.id} onIntentConsumed={consumed}/>));
+    expect(dialog().textContent).toContain('Valeriy');expect(api.getCatalogCandidate).toHaveBeenLastCalledWith(next.id);
+  })
   it('wraps keyboard focus through a closed advanced summary without targeting its invisible fields',async()=>{
     await mount(candidate.id);const close=dialog().querySelector<HTMLButtonElement>('[aria-label="Fermer la fiche"]')!,summary=dialog().querySelector<HTMLElement>('summary')!;
     close.focus();await act(async()=>document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',shiftKey:true,bubbles:true,cancelable:true})));
@@ -100,7 +120,7 @@ describe('Character import ADMIN surface', () => {
     await mount(candidate.id); await edit()
     let resolveDetail!: (value: CatalogCandidate) => void
     api.getCatalogCandidate.mockReturnValueOnce(new Promise<CatalogCandidate>(done => { resolveDetail = done }))
-    const rarity = dialog().querySelector<HTMLSelectElement>('form select')!
+    const rarity = dialog().querySelector<HTMLSelectElement>('[aria-label="Rareté corrigée"]')!
     await act(async () => { rarity.value = '5'; rarity.dispatchEvent(new Event('change', { bubbles: true })) })
     await act(async () => dialog().querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
     expect(api.getCatalogCandidate).toHaveBeenCalledTimes(2)

@@ -18,6 +18,8 @@ export function resolveNotificationNavigation(notification: NotificationDto): No
       notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' ||
       notification.typeKey === 'TRADE_ACCEPTED' ||
       notification.typeKey === 'CHARACTER_AVATARS_UNLOCKED'
+      || notification.typeKey === 'CATALOG_REVIEW_ADMIN'
+      || notification.typeKey === 'CHARACTER_IMPORTED_ADMIN'
     ),
   }
 }

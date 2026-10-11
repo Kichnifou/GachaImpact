@@ -1,11 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : complément R1051 — livraison technique et activation sous gates.
+Version : mission consolidée R1066–R1077 — livraisons A/B/C/D.
 Date : 2026-10-11
-Statut : **Livré ; 120 dates, Storage qualifié, quotidien et publication normale configurés actifs. Recette humaine ADMIN et premier minuit naturel encore à observer.**
+Statut : **A candidat vérifié, review indépendante à acquérir ; B à implémenter, C/D en chantiers isolés. Aucun nouveau lot promu. R1051 configuré actif ; recette humaine et premier minuit naturel encore à observer.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — complément R1051 et mise en service, 11/10/2026
+## Point courant — mission consolidée R1066–R1077, 11/10/2026
+
+Mandat complet propriétaire, [décisions validées](../specifications/decisions-log.md#r1066r1077--mission-consolidée-propriétaire-du-11102026) et [contrat de frontières](../architecture/consolidated-r1066-r1077.md). Base fraîche main/review/origin main/origin review = `1f3f83a40382b901653ddbee14d9c9abb9fad4f8`, divergence0/0 et worktree propre ; commit GitHub relu. Aucun commit intervenu depuis le checkpoint. Travailler uniquement GachaImpact, conserver Story et les preuves privées. Ordre de livraison A→B→C→D ; chaque lot distinct, tests/review indépendante du SHA publié avant FF, déploiements exacts/postflight. Chantiers parallèles C/D dans worktrees isolés, sans migration/fixture publique.
+
+État initial RO17:30:52UTC : 120 Character et120 historiques protégés ; seuls Mitya/Valeriy suivis. Vesna/Vodyanitsa manquent uniquement fullbody ; Odette possède les quatre chemins. Armes existantes Claymore/Épée/Arc/Lance/Catalyseur ; régions réelles conservées, y compris Horizon/Celestia/Espace. Aucun nouveau quota à confirmer : Supabase Free clos propriétaire. Aucun minuit naturel du12/10 observé à cet instant (échéance22:00UTC11/10).
+
+A candidat local vérifié : priorité portrait, diagnostics quatre rôles, armes fermées/régions extensibles depuis données persistées, intention deep-link consommée, validation de cible et archive serveur des deux types catalogue. Frontend83 ciblés et37 complémentaires (avec recouvrement), backend9, PostgreSQL privé2/2 PASS ; aucune migration A. Deux replays complets des migrations arrêtés avant assertions par déconnexion setup/P1017 (32SKIP), distincts du contrôle privé ciblé réussi. GameShell/CSS compilés84 états aux quatre viewports, erreursJS0, mesures et captures examinées. verify:quick5/5 PASS et builds/typages/lint acquis. Dernier verify:full **FAIL6/8** : frontend7 échecs connus, backend6 connus plus3 timeouts sous charge ; les trois fichiers de timeouts repassent séquentiellement52/52. Les treize assertions de référence avaient été reproduites indépendamment dans la base initiale R1051 ; aucune prétention de full PASS. [Preuves A](../architecture/evidence/consolidated-a-20261011.json). Review indépendante du SHA réellement publié, promotion et déploiements restent à acquérir. B/C/D non livrés. Prochaine action : review A, corriger/revoir si besoin, FF/déploiements/postflight A puis B.
+
+## Historique — complément R1051 et mise en service, 11/10/2026
 
 Mandat livré : [owner R1051](../architecture/character-catalog-assets-r1051.md#recette-et-mise-en-service--mandat-du-11102026), [preuves datées](../architecture/evidence/r1051-service-20261011.json). Base initiale main/review/GitHub afeadbb40d5347ff4d5409eee5a43615a1a54ca1 propre. Candidat c0a5380 : review indépendante CHANGES_REQUIRED, P1 de reprise quotidienne traversant minuit. Correctif séparé 38de0598861e466aa24a6de0d930152cc6047351 : APPROVED, aucun P1/P2 restant ; rapport SHA256 50275a5d47ff4b73e42eb90796f3b1f06c934d26904fb648e739af83c170efb3. Publication review vérifiée, FF strict main, puis déploiements au SHA exact : Railway 0d441282-9680-4963-8260-8f77ad4e5c74 SUCCESS/Application ready, Pages ebf00728-b552-44a4-9e0e-cfcf11580020 SUCCESS, assets preview/public/fr identiques. Le checkpoint documentaire suivant est contrôlé dans le bilan final, sans auto-référence.
 

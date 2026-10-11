@@ -6,7 +6,7 @@ import type { AdminBannerOverview, AdminCharacter, AdminChatReport, AdminEvent, 
 import type { ModerationStateDto } from '../../api/types'
 
 const api = vi.hoisted(() => ({
-  setAdminRole: vi.fn(), getAdminCharacters: vi.fn(), createAdminCharacter: vi.fn(), updateAdminCharacter: vi.fn(),
+  setAdminRole: vi.fn(), getAdminCharacterOptions: vi.fn(), getAdminCharacters: vi.fn(), createAdminCharacter: vi.fn(), updateAdminCharacter: vi.fn(),
   getAdminPossessions: vi.fn(), changeAdminPossession: vi.fn(), getAdminBanners: vi.fn(), correctAdminBanner: vi.fn(), retryAdminBanner: vi.fn(),
   getAdminEvents: vi.fn(), updateAdminEvent: vi.fn(), getAdminChatReports: vi.fn(), getAdminChatReport: vi.fn(),
   moderateAdminChatMessage: vi.fn(), deleteAdminChatReport: vi.fn(), getAdminAudit: vi.fn(), getAdminAuditDetail: vi.fn(),
@@ -43,9 +43,6 @@ function dialog() { const found = document.body.querySelector<HTMLElement>('[rol
 function selectValue(select: HTMLSelectElement, value: string) {
   act(() => { Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, value); select.dispatchEvent(new Event('change', { bubbles: true })) })
 }
-function inputValue(input: HTMLInputElement, value: string) {
-  act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })) })
-}
 const page = <T,>(entries: T[]) => ({ page: 1, pageSize: 20, total: entries.length, totalPages: 1, entries })
 const character = (id: string, rarity: 4 | 5 = 5): AdminCharacter => ({ id, externalKey: id, name: id, rarity, elementKey: 'hydro',
   weaponType: null, region: null, classKey: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null,
@@ -67,6 +64,7 @@ beforeEach(() => {
   for (const name of ['setAdminRole', 'createAdminCharacter', 'updateAdminCharacter', 'changeAdminPossession', 'correctAdminBanner',
     'retryAdminBanner', 'updateAdminEvent', 'moderateAdminChatMessage', 'deleteAdminChatReport'] as const) api[name].mockResolvedValue({ operationId: 'operation', alreadyProcessed: false })
   api.getAdminCharacters.mockResolvedValue(page([]))
+  api.getAdminCharacterOptions.mockResolvedValue({regions:['Liyue','Horizon']})
   api.getAdminPossessions.mockResolvedValue(page([]))
 })
 afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } })
@@ -178,8 +176,8 @@ describe('Admin panel actions', () => {
     api.getAdminCharacters.mockResolvedValue(page([{ ...character('hero-a'), name: 'Ancien' }]))
     const { container } = await mount(<CharacterAdminPanel playerId="player-a" playerName="Alice" />)
     await click(button(container, 'Modifier'))
-    const weapon = Array.from(dialog().querySelectorAll<HTMLInputElement>('.admin-editor input')).find(input => input.parentElement?.textContent?.includes('Arme'))!
-    inputValue(weapon, 'Épée')
+    const weapon = dialog().querySelector<HTMLSelectElement>('[aria-label="Arme"]')!
+    selectValue(weapon, 'Épée')
     await click(button(dialog(), 'Enregistrer'))
     expect(api.updateAdminCharacter).toHaveBeenCalledWith('hero-a', expect.objectContaining({ weaponType: 'Épée', idempotencyKey: expect.any(String) }))
   })

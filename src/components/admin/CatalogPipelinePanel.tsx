@@ -7,7 +7,7 @@ import CatalogCandidateDialog from './CatalogCandidateDialog'
 import CatalogRefresh from './CatalogRefresh'
 import {catalogStatuses as statusLabels,catalogLabels as labels,catalogDate as date,trackingLabel,runLabel} from './catalog-presentation'
 
-export default function CatalogPipelinePanel({initialId}:{initialId?:string}){
+export default function CatalogPipelinePanel({initialId,onIntentConsumed}:{initialId?:string;onIntentConsumed?:()=>void}){
   const [overview,setOverview]=useState<CatalogOverview|null>(null),[detail,setDetail]=useState<CatalogCandidate|null>(null)
   const [loading,setLoading]=useState(true),[detailLoading,setDetailLoading]=useState(false),[error,setError]=useState(''),[announcement,setAnnouncement]=useState('')
   const [search,setSearch]=useState(''),[filter,setFilter]=useState('tracked'),[page,setPage]=useState(1),[reload,setReload]=useState(0)
@@ -45,6 +45,6 @@ export default function CatalogPipelinePanel({initialId}:{initialId?:string}){
     <div className="admin-scroll-list">{loading?<p role="status">Chargement des candidats…</p>:!overview?.entries.length?<p>Aucun candidat dans cette sélection.</p>:overview.entries.map(row=><article className="admin-list-row" key={row.id}><div><strong>{row.name} · {statusLabels[row.status]??row.status}</strong><small>{trackingLabel(row.trackingState)} · Vérifié : {date(row.checkedAt)}</small><small>{row.missing.length?`À compléter : ${row.missing.map(field=>labels[field]??field).join(', ')}`:'Informations et images requises disponibles.'}</small></div><button type="button" disabled={detailLoading} onClick={()=>{task.clearFeedback();void open(row.id)}}>Consulter</button></article>)}</div>
     <AdminPager page={overview?.page??page} totalPages={overview?.totalPages??1} onPage={setPage} pending={loading}/>
     {detailLoading&&!detail&&<span className="sr-only" role="status">Ouverture de la fiche…</span>}
-    {detail&&<CatalogCandidateDialog key={detail.id} detail={detail} overview={overview} task={task} error={error} notice={announcement} refreshing={detailLoading} returnFocus={openerRef.current} onRefresh={refreshDetail} onClose={()=>{requestVersion.current++;currentId.current=null;setDetail(null);setDetailLoading(false);task.clearFeedback()}}/>}
+    {detail&&<CatalogCandidateDialog key={detail.id} detail={detail} overview={overview} task={task} error={error} notice={announcement} refreshing={detailLoading} returnFocus={openerRef.current} onRefresh={refreshDetail} onClose={()=>{requestVersion.current++;currentId.current=null;setDetail(null);setDetailLoading(false);task.clearFeedback();onIntentConsumed?.()}}/>}
   </section>
 }

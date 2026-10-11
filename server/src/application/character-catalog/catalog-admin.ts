@@ -11,6 +11,7 @@ import type { CharacterAdminPatch } from '../moderation/character-admin-service.
 import { trackingElements, type TrackingElement, shouldStopAtRelease } from './catalog-followup.js';
 import { recordImageVersion } from './catalog-image-version.js';
 import { activeCatalogStates, lockCatalogJob, admitCatalogRun } from './catalog-control.js';
+import { canonicalRegion, normalizeWeapon } from './catalog-metadata.js';
 
 export class CatalogAdminService {
   private readonly operation: AdminOperation;
@@ -21,6 +22,8 @@ export class CatalogAdminService {
     const { idempotencyKey, ...values } = input;
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: 'create-candidate', idempotencyKey,
       request: values as Prisma.InputJsonValue, change: async tx => {
+        if (typeof input.weaponType === 'string') input = { ...input, weaponType: input.weaponType.trim() ? normalizeWeapon(input.weaponType) : null };
+        if (typeof input.region === 'string') input = { ...input, region: input.region.trim() ? await canonicalRegion(tx, input.region) : null };
         if (input.isActive === false) throw new AppError('Créer une fiche candidate sans activation ; le statut actif sera déterminé par les contrôles de publication.', 400, 'CATALOG_VALIDATION_FAILED');
         if (await tx.character.findFirst({ where: { OR: [{ externalKey: input.externalKey }, { name: { equals: input.name, mode: 'insensitive' } }] } }) ||
           await tx.catalogIdentity.findUnique({ where: { namespace_externalId: { namespace: 'official-name', externalId: normalizedIdentity(input.name) } } }))
@@ -65,6 +68,8 @@ export class CatalogAdminService {
         const fields = { ...readFields(candidate.fields) };
         // Live Character metadata still goes through CharacterAdminService and its reference guards.
         if (candidate.characterId) throw new AppError('Modifier la fiche du catalogue actif pour ces métadonnées.', 409, 'CATALOG_USE_CHARACTER_EDITOR');
+        values = { ...values, ...(typeof values.weapon === 'string' ? { weapon: normalizeWeapon(values.weapon) } : {}),
+          ...(typeof values.region === 'string' ? { region: await canonicalRegion(tx, values.region) } : {}) };
         for (const name of [values.name, values.originalName]) if (typeof name === 'string') {
           const externalId = normalizedIdentity(name);
           const alias = await tx.catalogIdentity.findUnique({ where: { namespace_externalId: { namespace: 'official-name', externalId } } });

@@ -244,6 +244,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     putNavigationPreferences: (value: NavigationMenuPreferenceDto) => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences', { method: 'PUT', body: JSON.stringify(value) }),
     getModerationState: () => request<ModerationStateDto>('/api/v1/moderation/me'),
     setAdminRole: (playerId: string, role: 'ADMIN' | 'MODERATOR' | 'TESTER', enabled: boolean, idempotencyKey: string) => request<AdminMutationDto>(`/api/v1/moderation/players/${playerId}/roles`, { method: 'POST', body: JSON.stringify({ role, enabled, idempotencyKey }) }),
+    getAdminCharacterOptions: () => request<{ regions: readonly string[] }>('/api/v1/moderation/character-options'),
     getAdminCharacters: (query: Record<string, string | number | boolean | undefined> = {}) => request<AdminPage<AdminCharacter>>(`/api/v1/moderation/characters?${queryString(query)}`),
     getAdminCharacter: (id: string) => request<AdminCharacter>(`/api/v1/moderation/characters/${encodeURIComponent(id)}`),
     getCatalogCandidates: (search = '', page = 1, filter = 'tracked') => request<CatalogOverview>(`/api/v1/moderation/catalog-candidates?${queryString({ search, page, filter })}`),

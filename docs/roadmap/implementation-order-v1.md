@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## Priorité propriétaire du 11/10/2026 — R1066–R1077
+
+Mission consolidée explicitement autorisée après R1051 : A UX ADMIN/notifications → B publication progressive/consensus/suivi → C Invocations partagées standalone → D vraie Roue animée. Développements indépendants possibles, livraisons distinctes avec gates. Les anciennes mentions quotidien/publication OFF ci-dessous sont historiques : R1051 les a configurés ON après qualification, premier minuit naturel encore à observer. Les nouvelles règles B supersèdent précisément les gates éditoriales anciennes, sans rouvrir les historiques ni modifier les pools/scellés/économie. [Contrat](../architecture/consolidated-r1066-r1077.md), seul état courant au Master. Cette mission ne commence aucun autre domaine futur.
+
 ## Reprise ciblée R1051 — 11/10/2026
 
 Finalisation du catalogue livrée : protections, collecte ciblée, dates NULL-only et ergonomie ADMIN/commandes. Les prochaines gates concernent uniquement Storage privé et recette humaine ADMIN ; quotidien/publication OFF. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise exacte. Aucun domaine suivant lancé automatiquement, ordre macro inchangé.

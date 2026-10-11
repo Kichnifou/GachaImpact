@@ -6,6 +6,7 @@ import {apiErrorMessage} from '../../utils/formatters'
 import {AdminFeedback,ConfirmAction,useAdminTask} from './AdminUi'
 import CatalogRefresh from './CatalogRefresh'
 import {CatalogDialog} from './CatalogDialog'
+import {CatalogWeaponSelect,CatalogRegionSelect} from './CatalogMetadataControls'
 import {catalogLabels as labels,catalogStatuses,catalogDate as date,trackingLabel,evidenceLabel,catalogErrors,catalogValue,runLabel} from './catalog-presentation'
 
 const tabs=['Résumé','Informations','Images','Historique'] as const
@@ -14,6 +15,7 @@ const source=(url?:string|null)=>url?.startsWith('https://')?<a href={url} targe
 type Props={detail:CatalogCandidate;overview:CatalogOverview|null;task:ReturnType<typeof useAdminTask>;error:string;notice:string;refreshing:boolean;returnFocus:HTMLElement|null;onRefresh:()=>void;onClose:()=>void}
 export default function CatalogCandidateDialog({detail,overview,task,error,notice,refreshing,returnFocus,onRefresh,onClose}:Props){
   const [lastAction,setLastAction]=useState('edit')
+  const [failedPreviews,setFailedPreviews]=useState<string[]>([])
   const [tab,setTab]=useState(0),[editing,setEditing]=useState(false),[values,setValues]=useState<Record<string,string>>({})
   const [role,setRole]=useState('icon'),[file,setFile]=useState<File|null>(null),[reason,setReason]=useState('')
   const [trackingAction,setTrackingAction]=useState<'protect'|'pause'|'resume'|'validate'>('protect'),[scope,setScope]=useState<string[]>([])
@@ -22,7 +24,7 @@ export default function CatalogCandidateDialog({detail,overview,task,error,notic
   const state=detail.trackingState??(detail.characterId?'PROTECTED':'ACTIVE')
   const pending=task.pending,active=state==='ACTIVE'
   const activeRun=overview?.activeRun
-  const preview=detail.assets.find(asset=>asset.role==='splash'&&asset.status==='AVAILABLE'&&asset.url)?.url??detail.assets.find(asset=>asset.role==='icon'&&asset.status==='AVAILABLE'&&asset.url)?.url??detail.character?.splashPath??detail.character?.iconPath
+  const preview=[...detail.assets.filter(asset=>asset.role==='icon'&&asset.status==='AVAILABLE'&&asset.url).sort((a,b)=>(b.checkedAt??'').localeCompare(a.checkedAt??'')||a.id.localeCompare(b.id)).map(asset=>asset.url),detail.character?.iconPath].find(url=>url&&!failedPreviews.includes(url))
   const collect=(mode:'audit'|'retry')=>{setLastAction('collect');void task.execute(`${detail.id}:${mode}`,key=>getGameApiClient().checkCatalogCandidate(detail.id,mode,key))}
   const upload=async()=>{
     setLastAction('edit')
@@ -39,7 +41,7 @@ export default function CatalogCandidateDialog({detail,overview,task,error,notic
     <AdminFeedback error={task.error||error}/><div className="catalog-feedback" role="status">{task.notice?(lastAction==='collect'?'Demande enregistrée.':task.notice):''}<span className="sr-only">{notice}</span></div>
     <div role="tabpanel" id={`${ids}-panel-${tab}`} aria-labelledby={`${ids}-tab-${tab}`} tabIndex={0} className="catalog-tab-panel">
       {tab===0&&<>
-        <div className="catalog-candidate-preview">{preview?<img src={preview} alt={detail.name}/>:<div className="catalog-preview-empty">Portrait pas encore stocké</div>}<div><h3>{detail.name}</h3><strong>{detail.characterId?'Publié':'En préparation'}</strong><p className="catalog-preview-facts">{['rarity','element','weapon'].map(field=>{const evidence=detail.fields[field];return <span key={field} className={evidence?.conflict?'catalog-conflict':evidence?.reliability==='PROVISIONAL'?'catalog-provisional':''}>{evidence?`${catalogValue(field,evidence.value)}${field==='rarity'?'★':''}${evidence.conflict?' · Conflit':evidence.reliability==='PROVISIONAL'?' · Provisoire':''}`:`${labels[field]} : à trouver`}</span>})}</p><small>{trackingLabel(state)}</small></div></div>
+        <div className="catalog-candidate-preview">{preview?<img src={preview} alt={detail.name} onError={()=>setFailedPreviews(old=>[...old,preview])}/>:<div className="catalog-preview-empty">Portrait pas encore stocké</div>}<div><h3>{detail.name}</h3><strong>{detail.characterId?'Publié':'En préparation'}</strong><p className="catalog-preview-facts">{['rarity','element','weapon'].map(field=>{const evidence=detail.fields[field];return <span key={field} className={evidence?.conflict?'catalog-conflict':evidence?.reliability==='PROVISIONAL'?'catalog-provisional':''}>{evidence?`${catalogValue(field,evidence.value)}${field==='rarity'?'★':''}${evidence.conflict?' · Conflit':evidence.reliability==='PROVISIONAL'?' · Provisoire':''}`:`${labels[field]} : à trouver`}</span>})}</p><small>{trackingLabel(state)}</small></div></div>
         <dl className="catalog-evidence"><div><dt>Dernier contrôle</dt><dd>{date(detail.checkedAt)}</dd></div><div><dt>Prochain contrôle</dt><dd>{!active?'Suivi suspendu':!overview?.enabled?'En attente d’activation du suivi quotidien':date(detail.nextCheckAt)}</dd></div></dl>
         {detail.trackingReason&&<p>{detail.trackingReason}</p>}
         <p>{detail.missing.length?`À compléter : ${detail.missing.map(value=>labels[value]??'Information à confirmer').join(', ')}.`:'Aucun manque fondamental.'}</p>
@@ -64,8 +66,10 @@ export default function CatalogCandidateDialog({detail,overview,task,error,notic
         {detail.characterId?<p>Les corrections des données actives passent par Modifier dans Catalogue et conservent les protections historiques de rareté et d’élément.</p>:<>
           <button type="button" disabled={pending} onClick={()=>setEditing(value=>!value)}>{editing?'Annuler l’édition':'Corriger volontairement les informations'}</button>
           {editing&&<form className="catalog-metadata" onSubmit={event=>{event.preventDefault();const patch:Record<string,string|number>=Object.fromEntries(Object.entries(values).filter(([,value])=>value.trim()));if(patch.rarity)patch.rarity=Number(patch.rarity);void task.execute(`${detail.id}:metadata:${JSON.stringify(patch)}`,key=>getGameApiClient().editCatalogCandidate(detail.id,patch,key)).then(success=>{if(success){setValues({});setEditing(false)}})}}>
-            <h3>Correction ADMIN prioritaire</h3>{['name','originalName','weapon','region'].map(field=><label key={field}>{labels[field]}<input maxLength={100} disabled={pending} placeholder={String(detail.fields[field]?.value??'Non renseigné')} value={values[field]??''} onChange={event=>setValues(old=>({...old,[field]:event.target.value}))}/></label>)}
-            <label>Rareté<select value={values.rarity??''} disabled={pending} onChange={event=>setValues(old=>({...old,rarity:event.target.value}))}><option value="">Conserver / inconnue</option><option value="4">4★</option><option value="5">5★</option></select></label>
+            <h3>Correction ADMIN prioritaire</h3>{['name','originalName'].map(field=><label key={field}>{labels[field]}<input maxLength={100} disabled={pending} placeholder={String(detail.fields[field]?.value??'Non renseigné')} value={values[field]??''} onChange={event=>setValues(old=>({...old,[field]:event.target.value}))}/></label>)}
+            <label>Arme<CatalogWeaponSelect value={values.weapon??''} empty={`Conserver / ${String(catalogValue('weapon',detail.fields.weapon?.value??'inconnue'))}`} disabled={pending} onChange={value=>setValues(old=>({...old,weapon:value}))}/></label>
+            <label>Région<CatalogRegionSelect value={values.region??''} current={String(detail.fields.region?.value??'')} empty="Conserver / inconnue" disabled={pending} onChange={value=>setValues(old=>({...old,region:value}))}/></label>
+            <label>Rareté<select aria-label="Rareté corrigée" value={values.rarity??''} disabled={pending} onChange={event=>setValues(old=>({...old,rarity:event.target.value}))}><option value="">Conserver / inconnue</option><option value="4">4★</option><option value="5">5★</option></select></label>
             <label>Élément<select value={values.element??''} disabled={pending} onChange={event=>setValues(old=>({...old,element:event.target.value}))}><option value="">Conserver / inconnu</option>{elementKeys.map(value=><option key={value} value={value}>{catalogValue('element',value)}</option>)}</select></label>
             <button type="submit" disabled={pending||!Object.values(values).some(value=>value.trim())}>Enregistrer les corrections</button><small>Les champs laissés vides conservent leur valeur actuelle.</small>
           </form>}
