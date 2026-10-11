@@ -38,6 +38,36 @@ async function pair() {
     return { host, viewer, session: started.broadcasting! };
 }
 describe('private shared invocation PostgreSQL contract', () => {
+    it('recovers the exact receipt banner and target after rotation, then prevents target mutation during presentation', async () => {
+        const { host, viewer } = await pair(), key = randomUUID(), before = (await store.getCurrent(host.id))!, receiptTarget = before.playerState.selectedBannerCharacterId!;
+        await shared.preparePull(host.identity, host.tab, key, 10);
+        const committed = await perform.execute(host.identity, 10, key, host.tab);
+        const movements = await db.resourceMovement.count({ where: { playerId: host.id } }), features = await db.bannerFeaturedCharacter.findMany({ where: { bannerRotationId: before.banner.id } });
+        const replacement = await db.$transaction(async (tx) => {
+            await tx.bannerRotation.update({ where: { id: before.banner.id }, data: { status: 'ENDED' } });
+            return tx.bannerRotation.create({ data: { status: 'ACTIVE', startsAt: new Date(now.getTime() + 1), endsAt: new Date(now.getTime() + 7 * 86400000), featuredCharacters: { create: features.map(f => ({ characterId: f.characterId, rarity: f.rarity, slot: f.slot, selectionSource: f.selectionSource })) } } });
+        });
+        try {
+            const changedTarget = before.banner.featuredFiveStars.find(c => c.id !== receiptTarget)!.id, target = new SetGachaTarget(getPlayer, store, clock);
+            await target.execute(host.identity, changedTarget, undefined, undefined, host.tab);
+            expect((await store.getCurrent(host.id))!.banner.id).toBe(replacement.id);
+            const recovered = (await new SharedInvocations(db, getPlayer, store, clock).state(viewer.identity, viewer.tab)).watching!;
+            expect(recovered.snapshot.gacha.banner.id).toBe(before.banner.id);
+            expect(recovered.snapshot.gacha.playerState.selectedBannerCharacterId).toBe(receiptTarget);
+            expect(recovered.snapshot.presentation.pull?.operation.id).toBe(committed.operation.id);
+            await expect(target.execute(host.identity, changedTarget, undefined, undefined, host.tab)).rejects.toMatchObject({ code: 'SHARED_PRESENTATION_PENDING' });
+            expect((await shared.state(viewer.identity, viewer.tab)).watching?.snapshot.gacha.banner.id).toBe(before.banner.id);
+            expect(await db.pullOperation.count({ where: { playerId: host.id } })).toBe(1);
+            expect(await db.resourceMovement.count({ where: { playerId: host.id } })).toBe(movements);
+            expect(JSON.stringify(recovered.snapshot.gacha.banner)).not.toMatch(/legacyProvenance|generationVoteSnapshot|supersededAt/);
+        }
+        finally {
+            await db.$transaction(async (tx) => {
+                await tx.bannerRotation.update({ where: { id: replacement.id }, data: { status: 'ENDED' } });
+                await tx.bannerRotation.update({ where: { id: before.banner.id }, data: { status: 'ACTIVE' } });
+            });
+        }
+    }, 60000);
     it('rehearses normal Prisma migration and server-only RLS permissions', async () => {
         expect(isolated.migrationStatus).toContain('up to date');
         const result = await isolated.admin.query(`SELECT c.relname,c.relrowsecurity,has_table_privilege('anon',c.oid,'SELECT') a,has_table_privilege('authenticated',c.oid,'SELECT') u FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relname=ANY($2)`, [isolated.schema, ['shared_invocation_sessions', 'shared_invocation_members']]);

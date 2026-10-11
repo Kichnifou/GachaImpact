@@ -39,8 +39,14 @@ export class PrismaGachaStore implements GachaStore {
   private readonly permanentMissions: PermanentMissionService;
 
   /** Read-only recovery of a consented standalone presentation, never executes a pull. */
-  public findStandalonePresentation(playerId: string, key: string, count: 1 | 10, client: PrismaClient | Prisma.TransactionClient = this.database) {
-    return this.findPersistedPull(playerId, `gacha.pull:${playerId}:${key}`, count, SourceChannel.UI, client);
+  public async findStandalonePresentation(playerId: string, key: string, count: 1 | 10, client: PrismaClient | Prisma.TransactionClient = this.database) {
+    const pull = await this.findPersistedPull(playerId, `gacha.pull:${playerId}:${key}`, count, SourceChannel.UI, client);
+    if (!pull) return null;
+    // The receipt's FK identifies its committed banner even after rotation or replacement.
+    const receipt = await client.pullOperation.findUniqueOrThrow({ where: { id: pull.operation.id }, select: {
+      bannerRotation: { include: { featuredCharacters: { include: { character: { select: characterSelection } }, orderBy: [{ rarity: 'desc' }, { slot: 'asc' }] } } },
+    } });
+    return { ...pull, banner: sharedBanner(toBanner(receipt.bannerRotation)) };
   }
 
   public constructor(

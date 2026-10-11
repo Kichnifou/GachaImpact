@@ -28,6 +28,8 @@ export async function assertSharedStandaloneAuthority(tx: Prisma.TransactionClie
         throw new BusinessError('SHARED_AUTHORITY_REQUIRED', 'La diffusion est contrôlée dans un autre onglet ou en pause.');
     }
     const own = broadcasting[0];
+    if (own && !pull && own.phase !== 'idle')
+        throw new BusinessError('SHARED_PRESENTATION_PENDING', 'Fermez les résultats précédents avant de changer la cible.');
     if (own && pull && own.completed_key !== pull.key) {
         if (own.pending_key && (own.pending_key !== pull.key || own.pending_count !== pull.count))
             throw new BusinessError('SHARED_PULL_PENDING', 'Confirmez l’Invocation précédente.');

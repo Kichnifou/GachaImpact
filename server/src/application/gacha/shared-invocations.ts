@@ -281,7 +281,7 @@ export class SharedInvocations {
             const latest = await this.row(tx, own.id);
             if (!latest || latest.status === 'STOPPED' || latest.pending_key !== own.pending_key)
                 return;
-            const snapshot = { ...latest.snapshot, gacha: { ...latest.snapshot.gacha, playerState: sharedState(pull.playerState) }, presentation: { phase: 'intro', index: 0, pull: sharedPull(pull) } };
+            const snapshot = { ...latest.snapshot, gacha: { banner: pull.banner, playerState: sharedState(pull.playerState) }, presentation: { phase: 'intro', index: 0, pull: sharedPull(pull) } };
             await tx.$executeRaw `UPDATE shared_invocation_sessions SET snapshot=${JSON.stringify(snapshot)}::jsonb,completed_key=pending_key,pending_key=NULL,pending_count=NULL,seq=seq+1,updated_at=${this.now()} WHERE id=${own.id}::uuid`;
         });
     }
