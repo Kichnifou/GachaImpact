@@ -54,6 +54,18 @@
     "privateCleanupCompleted": true,
     "promotionBlockedUntilCorrectionReview": true
   },
+  "correctionCandidate": {
+    "sourceCommit": "d69b95d",
+    "changes": ["Exact subject and playable predicate bound in one clause", "Qualified current nominal HTTP200 article withdrawal retires its source vote while retaining history"],
+    "regressions": "Other sentence, name substring, foreign clause/question; collector through merge/qualification/eligibility/public DTO; quorum loss, safe outage retention and later reassertion",
+    "backendProducerPassed": 75,
+    "backendRootPassed": 74,
+    "quick": "PASS 5/5",
+    "backendBuild": "PASS",
+    "newPostgresReplay": "Not rerun for pure parsing/consensus helpers; SQL and engine signatures unchanged",
+    "independentCorrectionReview": "Pending on actual published corrected SHA",
+    "fullQualification": "Full above executed before these helper corrections; their new regressions and subsystem tests passed separately"
+  },
   "limits": [
     "Server pagination status filters retain persisted last-cycle status; list and detail show read-time policy and explain this distinction",
     "Human acceptance and real source convergence remain open; automated private visuals do not replace human acceptance",
