@@ -9395,6 +9395,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .catalog-metadata h3 { grid-column:1/-1; }
 .catalog-upload { display:grid; gap:10px; }
 .catalog-upload input[type=file] { width:100%; box-sizing:border-box; }
+.catalog-upload input[type=file]::file-selector-button { margin-right:10px; min-height:30px; padding:5px 10px; font:inherit; color:#deedff; border:1px solid rgba(105,157,220,.34); border-radius:8px; background:rgba(28,72,119,.5); cursor:pointer; }
+.catalog-upload input[type=file]:not(:disabled)::file-selector-button:hover { color:#effbff; border-color:#76d9ff; background:rgba(38,92,146,.65); }
+.catalog-upload input[type=file]:disabled::file-selector-button { opacity:.5; cursor:default; }
+.catalog-upload input[type=file]:focus-visible { outline:2px solid #76d9ff; outline-offset:3px; }
 .catalog-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
 .catalog-pipeline .admin-scroll-list { max-height:min(48dvh,510px); }
 .catalog-dialog .admin-confirm-overlay { z-index:1500; }
