@@ -7,6 +7,8 @@ La migration 071 passe par le pre-deploy Prisma normal ; contrôler ledger/check
 Blocage Storage réel maintenu : clé backend absente, bucket character-catalog absent, capacité organisation non qualifiée. Étape privée nécessaire : configurer le secret directement dans les variables Railway (jamais conversation/Git/log/VITE), créer/configurer le bucket public PNG limité 5 Mio avec écritures serveur seulement, confirmer marge organisation puis faire l'upload contrôlé non-Character/read/hash/cache/rejet anon/rejeu/conservation. Une clé secrète de projet n'est pas limitée au bucket. Le script check-character-catalog-storage.mts ne qualifie que la configuration, ne prétend pas faire l'upload réel. Sans ce préalable : Storage suspendu, quotidien OFF, publication OFF ; continuer uniquement les sous-ensembles sûrs. [Owner et plan de dates](../architecture/character-catalog-assets-r1051.md#finalisation-ciblée--amendement-du-11102026). Les recettes hébergement/Auth/Twitch déjà acquises ne sont pas relancées.
 
 
+Clôture ciblée : migration071/71 ledger, RLS, 120 protections, 85 dates NULL-only et audit/collecte de deux candidats vérifiés après déploiement. La réserve historique Valeriy reste visible ; aucun import jouable ni objet Storage créé. Le quotidien et la publication automatique restent OFF. [Preuves et SHA applicatif](../architecture/evidence/r1051-finalisation-20261011.json). Le checkpoint documentaire suivant est vérifié séparément au rapport final.
+
 <a id="r1051-storage-operations"></a>
 ## R1051 lot 2 — variables et gate Storage
 

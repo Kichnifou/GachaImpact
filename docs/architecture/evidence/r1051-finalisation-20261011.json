@@ -1,0 +1,535 @@
+{
+  "at": "2026-10-11T11:20:17.827Z",
+  "codeSha": "2953c144cef19914d3631fa8ba54aed50efe9097",
+  "scope": "Finalisation ciblée R1051 ; aucune donnée joueur, Auth, Twitch ou DNS modifiée par cette recette.",
+  "reviews": [
+    {
+      "scope": "moteur",
+      "sha": "8717f462b9fabecc240cd550df0e39651bdc4a86",
+      "report": "review-sensitive-8717f46.md",
+      "reportSha256": "8f1b4fc3e70c119c2ca664de1edae89e46bf425d28f03aa5feb3664cc2ee22f3"
+    },
+    {
+      "scope": "UI/commandes",
+      "sha": "8717f462b9fabecc240cd550df0e39651bdc4a86",
+      "report": "review-ui-commands-8717f46.md",
+      "reportSha256": "2b078b30635b5d37088a3099e2e25745fba7d94a9df6f839c6caf508bc8914ef"
+    },
+    {
+      "scope": "delta source retrouvée",
+      "sha": "2953c144cef19914d3631fa8ba54aed50efe9097",
+      "report": "review-sensitive-2953c14.md",
+      "reportSha256": "741bd711451a75883c9af82a561515f5bf1ae4154505162f104c0ebb794c7ece"
+    }
+  ],
+  "deployments": {
+    "railway": {
+      "sha": "2953c144cef19914d3631fa8ba54aed50efe9097",
+      "id": "f5bc662b-fab1-47a1-ba30-c0e5478a6172",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-11T11:18:20.851246648Z",
+      "preDeploy": "npx prisma migrate deploy",
+      "migrationCount": 71
+    },
+    "pages": {
+      "sha": "2953c144cef19914d3631fa8ba54aed50efe9097",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/98377cfb-27de-462b-9ac7-971274bd11ae",
+      "startedAt": "2026-10-11T11:17:50Z",
+      "completedAt": "2026-10-11T11:17:50Z",
+      "preview": "https://98377cfb.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-BYfNU88Q.js",
+          "http": 200,
+          "sha256": "7d6f6cff823ec1b97dec066cccfa9ddaa6e1ca67dbfdb26d504a5536d70e59ac"
+        },
+        {
+          "path": "/assets/index-JsvkP6Jl.css",
+          "http": 200,
+          "sha256": "9709c788154483ee50a86f59db13b99e41cf1566c944256738a03b86d291df5c"
+        }
+      ]
+    }
+  },
+  "migration": {
+    "count": 71,
+    "name": "20261011090000_071_protect_catalog_followup",
+    "checksum": "3bec4fe8bf9682d9644ff8cce8650b0980be334aa8437b923708bec378513c67",
+    "privateRlsTables": 7,
+    "previousLedgerEntriesPreserved": 70
+  },
+  "conservation": {
+    "at": "2026-10-11T11:20:17.456Z",
+    "phase": "collect",
+    "characters": 120,
+    "onlyAuthorizedDateAndUpdatedAtChanges": true,
+    "dated": 85,
+    "unknown": 35,
+    "protected": 120,
+    "tracked": [
+      "Mitya",
+      "Valeriy"
+    ],
+    "migration071Checksum": "3bec4fe8bf9682d9644ff8cce8650b0980be334aa8437b923708bec378513c67",
+    "storageUnchanged": true,
+    "oldCycle": {
+      "status": "QUEUED",
+      "processed": 15,
+      "previousRemaining": 107,
+      "recalculatedRemaining": 0,
+      "scopeRecalculationRequired": true
+    }
+  },
+  "releaseDateBackfill": {
+    "plan": "r1051-release-date-plan-20261011.json",
+    "planSha256": "0acfc0f70e1365924b34729fb3e77229ceb38539b0e3d22aec23e1ca191581bf",
+    "applied": 85,
+    "alreadyDatedOnReplay": 85,
+    "updatedOnReplay": 0,
+    "unknown": 35,
+    "onlyCharacterFields": [
+      "releaseDate",
+      "updatedAt"
+    ],
+    "trackingReopened": 0,
+    "prismaSerializationProof": {
+      "at": "2026-10-11T11:11:11.301Z",
+      "characters": 120,
+      "dates": 85,
+      "unknown": 35,
+      "prismaDateSerializationMatchesCivilSqlDay": true,
+      "localTimezone": "Europe/Paris"
+    }
+  },
+  "selection": {
+    "protected": 120,
+    "tracked": 2,
+    "names": [
+      "Mitya",
+      "Valeriy"
+    ]
+  },
+  "audit": {
+    "result": {
+      "runId": "de09ffac-fb56-45ca-a05a-8fa76094cfb9",
+      "discovered": 2,
+      "processed": 2,
+      "changed": 0,
+      "remaining": 0
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "candidatesUnchanged": true
+  },
+  "collection": {
+    "result": {
+      "runId": "a239715c-e76a-45d2-9d49-7b69ca15ca80",
+      "discovered": 2,
+      "processed": 2,
+      "changed": 1,
+      "remaining": 0
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "charactersUnchanged": true,
+    "protectedUnchanged": true,
+    "storageUnchanged": true,
+    "importOutbox": 0
+  },
+  "candidates": [
+    {
+      "id": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+      "name": "Mitya",
+      "status": "INCOMPLETE",
+      "characterId": null,
+      "trackingState": "ACTIVE",
+      "trackingElements": [
+        "name",
+        "originalName",
+        "rarity",
+        "element",
+        "weapon",
+        "region",
+        "numericId",
+        "technicalName",
+        "releaseDate",
+        "title",
+        "constellation",
+        "icon",
+        "splash",
+        "wish",
+        "fullbody",
+        "promotion"
+      ],
+      "fields": {
+        "title": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Rules Set at Naught",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        },
+        "rarity": {
+          "url": "https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds",
+          "value": 5,
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        },
+        "weapon": {
+          "url": "https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds",
+          "value": "Catalyst",
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        },
+        "element": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "electro",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL",
+          "alternatives": [
+            {
+              "url": "https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds",
+              "value": "electro",
+              "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+              "provider": "icy-veins",
+              "fetchedAt": "2026-10-11T11:18:54.809Z",
+              "reliability": "PROVISIONAL",
+              "editorialStatus": "PROVISIONAL"
+            }
+          ]
+        },
+        "originalName": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Mitya",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        },
+        "constellation": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Nodus Gordianus",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        }
+      },
+      "missing": [
+        "icon",
+        "splash",
+        "numericId",
+        "rarityConfirmation",
+        "officialReleaseDate"
+      ],
+      "officialReleaseDate": null,
+      "checkedAt": "2026-10-11T11:19:55.565Z",
+      "nextCheckAt": "2026-10-11T22:00:00.000Z",
+      "automaticExecutionEnabled": false,
+      "assets": [
+        {
+          "id": "040511f3-8409-4624-a903-3534e646266e",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+          "sourceHash": "441733b335b2891ac116881803fad68ef5090602a51a4e0671a4695dfd534cdd",
+          "normalizedHash": "eb155e41abb1c27ab4a22f89bd8c476e77709508ef07fcc7b9decd120cba5596",
+          "width": 1200,
+          "height": 675,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "de79fa14-9bf7-46bb-abdb-ab7d027a9b1b",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+          "sourceHash": "77b27f1071ada6696cb57580c46a27b08a1a41ad5023602a432ecfc782a9724d",
+          "normalizedHash": "726a93672a4b5e9b8cfe03140373576976fd256c6ae79dd3bea1d75ac654c989",
+          "width": 1500,
+          "height": 1500,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "b3493101-5134-46f0-906c-e98b094239b2",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+          "sourceHash": "220ca050531768b9a04da862e0c01fc2ab6d3435a8827531d3b95282560d8ede",
+          "normalizedHash": "82eed2b4f4daa5b70407d9e53b8443de54ef2cdddee61ef81945768802269e5e",
+          "width": 750,
+          "height": 1800,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "4beae3b7-ea66-40a0-ab03-6f8fcea9968d",
+          "role": "icon",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://static.icy-veins.com/images/genshin-impact/characters/mitya.webp",
+          "sourceHash": "fe5a5d08ab1b1c59e9775770b27f9c31442e8c5601d3bc5c5a54af6f4baa365d",
+          "normalizedHash": "1d70d83732861bfd0c565a8c1f38824f668e3a62031ece6d15924fac7891489b",
+          "width": 256,
+          "height": 256,
+          "sourceMime": "image/webp",
+          "storedUrl": null
+        }
+      ]
+    },
+    {
+      "id": "3938a61e-dacd-4608-958e-7f4d2d77ffc2",
+      "name": "Valeriy",
+      "status": "CONFLICT",
+      "characterId": null,
+      "trackingState": "ACTIVE",
+      "trackingElements": [
+        "name",
+        "originalName",
+        "rarity",
+        "element",
+        "weapon",
+        "region",
+        "numericId",
+        "technicalName",
+        "releaseDate",
+        "title",
+        "constellation",
+        "icon",
+        "splash",
+        "wish",
+        "fullbody",
+        "promotion"
+      ],
+      "fields": {
+        "title": {
+          "url": "https://www.hoyolab.com/article/46887682",
+          "value": "Fort Fulguration",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        },
+        "rarity": {
+          "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+          "value": 4,
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "conflict": true,
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T11:05:18.202Z",
+          "reliability": "PROVISIONAL",
+          "alternatives": [
+            {
+              "url": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations",
+              "value": 5,
+              "reason": "Cartouche cinq étoiles relevé lors de la lecture datée, contrairement au texte introductif quatre étoiles. Réserve historique à résoudre explicitement ; ce ne sont pas deux sources indépendantes.",
+              "provider": "icy-veins",
+              "fetchedAt": "2026-10-11T10:14:23.000Z",
+              "reliability": "PROVISIONAL",
+              "editorialStatus": "PROVISIONAL"
+            }
+          ],
+          "editorialStatus": "PROVISIONAL"
+        },
+        "weapon": {
+          "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+          "value": "Sword",
+          "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+          "provider": "icy-veins",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "PROVISIONAL",
+          "editorialStatus": "PROVISIONAL"
+        },
+        "element": {
+          "url": "https://www.hoyolab.com/article/46887682",
+          "value": "electro",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL",
+          "alternatives": [
+            {
+              "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+              "value": "electro",
+              "reason": "Source secondaire ; confirmation officielle indépendante absente.",
+              "provider": "icy-veins",
+              "fetchedAt": "2026-10-11T11:18:54.809Z",
+              "reliability": "PROVISIONAL",
+              "editorialStatus": "PROVISIONAL"
+            }
+          ]
+        },
+        "originalName": {
+          "url": "https://www.hoyolab.com/article/46887682",
+          "value": "Valeriy",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        },
+        "constellation": {
+          "url": "https://www.hoyolab.com/article/46887682",
+          "value": "Ursus Magnus",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T11:18:54.809Z",
+          "reliability": "OFFICIAL"
+        }
+      },
+      "missing": [
+        "icon",
+        "splash",
+        "numericId",
+        "rarityConfirmation",
+        "officialReleaseDate"
+      ],
+      "officialReleaseDate": null,
+      "checkedAt": "2026-10-11T11:19:47.737Z",
+      "nextCheckAt": "2026-10-11T22:00:00.000Z",
+      "automaticExecutionEnabled": false,
+      "assets": [
+        {
+          "id": "106fe0d7-c689-45be-bd25-564229973581",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/bebfc52fb7865576faa2c8e4f0c20e96_4636316328271998029.jpg",
+          "sourceHash": "6a78223004e463fa055492c6f0c9c2197fbe4f9ac1408726efa042f32844b5b9",
+          "normalizedHash": "c28ca7dc378a4c35204d86b874722184eacc245195abd4a22a1ad81c99fe4de0",
+          "width": 1200,
+          "height": 675,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "acd7928c-d8a6-487f-9974-b6e8263f5041",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/4f56f44826fc3d65f573e4da365989dc_3883532864730936908.jpg",
+          "sourceHash": "f31d80e26b0b6a831c6441d200d36f4d3223b803b2fab190b6f392df680f2df2",
+          "normalizedHash": "165771e16612485c2aa042a016ad817f4452856cd2a19d65ded0d5108ab1f30f",
+          "width": 1500,
+          "height": 1500,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "61c0fc6e-19cb-496b-9bde-c42614e3c37e",
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/58b26d1846f82d15bf7b04d04d6f01a2_8004771913765749080.jpg",
+          "sourceHash": "881150272a94289ddc60f31f277d0bd9f53cccd4921d117a7ad75ac9fd82071b",
+          "normalizedHash": "a54f579d51be150859fd515aa274984ac35bdafea88617f49df5c14ac5318822",
+          "width": 750,
+          "height": 1800,
+          "sourceMime": "image/jpeg",
+          "storedUrl": null
+        },
+        {
+          "id": "1610ec89-7fdb-42cf-8480-96af1ec5e766",
+          "role": "icon",
+          "status": "SOURCE_VALIDATED",
+          "editorialStatus": "PROVISIONAL",
+          "officialConfirmed": false,
+          "adminValidated": false,
+          "autoLocked": false,
+          "sourceUrl": "https://static.icy-veins.com/images/genshin-impact/characters/valeriy.webp",
+          "sourceHash": "aceb91df588ff45aa1b427bbcedf9fe142e30f9ccb3e624cbb4e4d17682fe321",
+          "normalizedHash": "f59b429606c89917dea9876c94ee3933620ff117322839f7eb81bd217f4db632",
+          "width": 256,
+          "height": 256,
+          "sourceMime": "image/webp",
+          "storedUrl": null
+        }
+      ]
+    }
+  ],
+  "storage": {
+    "configured": false,
+    "buckets": 0,
+    "objects": 0,
+    "policies": 0,
+    "realUploadQualified": false,
+    "blockers": [
+      "SUPABASE_STORAGE_SECRET_KEY absent du backend",
+      "Bucket character-catalog absent",
+      "Marge Storage/egress organisation non établie"
+    ]
+  },
+  "flags": {
+    "dailyEnabled": false,
+    "publicationEnabled": false,
+    "defaultDryRun": true
+  },
+  "technicalValidation": {
+    "backendInitial": 259,
+    "backendContracts": 19,
+    "backendDelta": 48,
+    "frontendFinal": 58,
+    "gachaDetail": 12,
+    "postgresPrivateFinal": 21,
+    "gameShellStatesAndMeasurements": 54,
+    "viewports": [
+      "390x844",
+      "1366x768",
+      "1920x1080"
+    ],
+    "verifyQuick": "5/5",
+    "builds": [
+      "frontend",
+      "backend"
+    ],
+    "backendLiveRecoveryDelta": 49
+  },
+  "humanAdminValidation": "À tester en public ; aucun échange réel ou campagne Auth/Twitch effectué.",
+  "previousControlledCollection": {
+    "sha": "8717f462b9fabecc240cd550df0e39651bdc4a86",
+    "result": {
+      "runId": "1b75f9e4-439c-4601-800b-b88f7c936027",
+      "discovered": 2,
+      "processed": 2,
+      "changed": 8,
+      "remaining": 0
+    },
+    "replay": {
+      "skipped": "ALREADY_COMPLETED"
+    },
+    "charactersUnchanged": true,
+    "storageUnchanged": true
+  }
+}

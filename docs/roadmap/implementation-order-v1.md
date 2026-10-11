@@ -1,6 +1,10 @@
 # Ordre d’implémentation V1
 
-## Reprise R1058 et compléments Codes/Event — 10/10/2026
+## Reprise ciblée R1051 — 11/10/2026
+
+Finalisation du catalogue livrée : protections, collecte ciblée, dates NULL-only et ergonomie ADMIN/commandes. Les prochaines gates concernent uniquement Storage privé et recette humaine ADMIN ; quotidien/publication OFF. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte les preuves et la reprise exacte. Aucun domaine suivant lancé automatiquement, ordre macro inchangé.
+
+## Historique — reprise R1058 et compléments Codes/Event, 10/10/2026
 
 R1053 et les messages Event sont livrés. Le mandat suivant couvre R1058, la séparation Codes/Missions, la notification générale du tirage et son affichage dans l'Historique. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte seul leurs gates et leur état réel. Après leur clôture : R1051 Catalogue Character ; aucun lancement automatique des domaines suivants. L'ordre macro ci-dessous reste inchangé.
 

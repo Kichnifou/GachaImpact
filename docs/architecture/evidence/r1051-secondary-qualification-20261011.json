@@ -3,7 +3,7 @@
   "scope": "Métadonnées et images seulement ; aucun guide, talent ou build importé.",
   "editorialPolicy": "PROVISIONAL ; pas de confirmation officielle ni de confirmations indépendantes déduites de reprises de source.",
   "icyVeins": {
-    "collector": "HTTP403 sur index/profils ; aucune tentative de contournement.",
+    "collector": "HTTP403 initial ; accès direct retrouvé HTTP200 lors des collectes réelles suivantes. La lecture web initiale reste datée et distincte.",
     "webReading": "Pages publiques obtenues par recherche web, faits examinés ; cache daté limité à sept jours, date originale conservée.",
     "profiles": [
       {
@@ -58,9 +58,31 @@
         "sourceSha256": "aceb91df588ff45aa1b427bbcedf9fe142e30f9ccb3e624cbb4e4d17682fe321",
         "normalizedSha256": "f59b429606c89917dea9876c94ee3933620ff117322839f7eb81bd217f4db632",
         "transparentPixels": 19603,
-        "visualReview": "Portrait du profil examin? ; pas de bandeau ni watermark visible, fond alpha r?ellement transparent, aucun faux damier incrust? constat?.",
+        "visualReview": "Portrait du profil examiné ; pas de bandeau ni watermark visible, fond alpha réellement transparent, aucun faux damier incrusté constaté.",
         "editorialStatus": "PROVISIONAL",
         "stored": false
+      }
+    ],
+    "latestDirectReads": [
+      {
+        "url": "https://www.icy-veins.com/genshin-impact/valeriy-guide-best-builds",
+        "checkedAt": "2026-10-11T11:07:57.896Z",
+        "httpStatus": 200,
+        "htmlSha256": "2a5aab545f5ce2438b944a5135b27eca43c027c65366611d2b8c275d6da9399c",
+        "introductoryRarity": 4,
+        "headerRarityClass": 4,
+        "editorialStatus": "PROVISIONAL",
+        "reservation": "L’ancienne lecture web avait relevé un cartouche5 ; réserve historique conservée comme alternative datée, pas de résolution officielle ni de source indépendante supplémentaire."
+      },
+      {
+        "url": "https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations",
+        "checkedAt": "2026-10-11T11:07:58.014Z",
+        "httpStatus": 200,
+        "htmlSha256": "822ee23f08708a18c303333807d0432966d6662adb41c3c8dff74ba1fa3573c6",
+        "introductoryRarity": 4,
+        "headerRarityClass": 4,
+        "editorialStatus": "PROVISIONAL",
+        "reservation": "L’ancienne lecture web avait relevé un cartouche5 ; réserve historique conservée comme alternative datée, pas de résolution officielle ni de source indépendante supplémentaire."
       }
     ]
   },
