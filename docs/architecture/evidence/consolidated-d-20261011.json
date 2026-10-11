@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-11",
+  "lot": "D — Roue graphique intégrée",
+  "state": "Preuves locales combinées ; contrôle complet en échec, revue indépendante et recette humaine non affirmées",
+  "sources": {
+    "wheelCommit": "07574ec06b7f789bfdf59306ba7a4868ae8061ea",
+    "fullCheckCommit": "15652ed83f577cee1319309dc85e0fb0c3a7e5ca",
+    "includedInvocationRecoveryFix": "81aa6920b922e8279b19443eec3cb9a8bb7e75c6",
+    "catalogueScope": "Le contrôle complet inclut le premier durcissement disponibilité/retraits, mais précède le correctif de nominalité Unicode 419e58e ; les 76 tests ciblés ultérieurs du catalogue constituent une preuve séparée."
+  },
+  "fullCheck": {
+    "command": "npm.cmd run verify:full",
+    "result": "FAIL",
+    "stepsPassed": 6,
+    "stepsTotal": 8,
+    "frontendTests": { "passed": 1525, "failed": 4, "total": 1529, "filesPassed": 137, "filesFailed": 3 },
+    "backendNonDbTests": { "passed": 2393, "failed": 6, "total": 2399, "filesPassed": 156, "filesFailed": 4 },
+    "successfulSteps": ["frontend build + typecheck", "backend typecheck", "backend build", "frontend lint", "worktree diff-check", "index diff-check"],
+    "baselineClassification": "Les dix échecs sont ceux de baseline signalés par root ; cette livraison documentaire les relève dans les logs et ne prétend pas avoir rejoué une baseline séparée.",
+    "frontendFailures": [
+      { "file": "src/components/PlayerSidebar.test.ts", "test": "Player sidebar progression > shows only the objective portrait while preserving its text, watermark and navigation", "cause": "Ancienne fixture portrait /mavuika.png refusée ; image absente." },
+      { "file": "src/components/PullResults.test.tsx", "test": "PullResults > renders all ten persisted results in server order with a visible five-star", "cause": "Ancienne fixture portrait /icon/furina.png refusée ; image absente." },
+      { "file": "src/components/PullResults.test.tsx", "test": "PullResults > uses a clean full-stage reveal with only Nouveau or capped Cx progression", "cause": "Ancienne fixture /splash/furina.png hors contrat ; image absente." },
+      { "file": "src/screens/BoxScreen.test.tsx", "test": "real personal Box > prioritizes the icon in detail, falls back to an existing asset and renders no element badge", "cause": "Ancienne fixture portrait /furina-icon.png refusée ; image absente." }
+    ],
+    "backendFailures": [
+      { "file": "tests/chat-owner-recipe.test.ts", "test": "Final owner recipe, step 29 > renders safe eligibility reason NOT_FOUND" },
+      { "file": "tests/chat-remaining-commands.test.ts", "test": "Remaining command aliases and simple presentation > keeps ga gated on standalone and does not call a business service" },
+      { "file": "tests/chat-remaining-commands.test.ts", "test": "Remaining command aliases and simple presentation > converts via conv using the same owner, bigint amount, key and authoritative total" },
+      { "file": "tests/command-fixes-20261010.test.ts", "test": "Legends exact resolution and privacy > does not use partial character matches and refuses private third-party details" },
+      { "file": "tests/post-recipe-polish-20261010.test.ts", "test": "Shared banner alias > uses one definition and one result on TWITCH" },
+      { "file": "tests/post-recipe-polish-20261010.test.ts", "test": "Shared banner alias > uses one definition and one result on INTERNAL_CHAT" }
+    ],
+    "backendFailureCause": "Assertions de libellé historique sans le préfixe d’avertissement ⚠️ effectivement rendu.",
+    "followup": "La correction des trois fichiers de fixtures portrait est suivie séparément par C ; aucun succès futur ni nouveau full PASS n’est déduit ici.",
+    "privateLog": "local-data/consolidated-20261011/d-integrated-full.log",
+    "privateLogSha256": "0ec76054b8ae93540349a5e7498ad1135a056a0ba34aca317a7d5a5b40a26b63",
+    "rawFrontendLogSha256": "79bc6fb37fc561aa6461f0972c85a4d91b522b1daf58df457ded07910f10f308",
+    "rawBackendLogSha256": "036d54c9ed61c814f1da5e98acf4713f9aecb2256bc49520ab5313ff447ddf03"
+  },
+  "visualChecks": {
+    "sourceCommit": "07574ec06b7f789bfdf59306ba7a4868ae8061ea",
+    "environment": "GameShell complet, données synthétiques privées, Microsoft Edge headless, réseau extérieur bloqué, CSS compilé de production",
+    "css": "index-3Druvlmc.css",
+    "cssSha256": "181295efaad65bf2a9a07880f0d034c25f4c2c13bc9729c73c834c31f56c546c",
+    "viewports": ["390x844", "1366x768", "1920x1080", "2560x1440", "1280x600", "844x390"],
+    "wheelStates": 54,
+    "statesPerViewport": ["available", "animating", "revealed", "used", "unknown", "missing", "pending", "error", "reduced-motion"],
+    "probabilityModalCaptures": 6,
+    "assertions": ["Aucun débordement horizontal", "Aucun scroll propre au body de la Roue ni à sa carte", "Titre non rogné, actions visibles et roue non superposée aux commandes", "Détail des dix secteurs, fermeture Escape et retour du focus", "Un seul appel de mutation synthétique après skip ou double clic", "Aucun nouvel appel pour un résultat déjà utilisé", "Réduction des mouvements sans phase animée"],
+    "animationChecks": {
+      "positionsVerified": 12,
+      "outcomes": ["nothing", "particles_pyro", "particles_hydro", "particles_cryo", "particles_electro", "particles_anemo", "particles_geo", "particles_dendro", "moras", "primogems"],
+      "cssTransitionSeconds": 3.8,
+      "naturalCompletionChecks": 1,
+      "otherPositionChecks": "Dix secteurs après skip, puis résultat différé/double clic après skip ; douze positions au total, pas douze transitions intégrales attendues.",
+      "angularToleranceDegrees": 0.0001,
+      "pageErrors": 0
+    },
+    "inspectedPngs": ["ui-available-390x844.png", "ui-probabilities-390x844.png", "ui-revealed-1366x768.png", "ui-available-844x390.png", "ui-revealed-1280x600.png", "ui-available-1920x1080.png"],
+    "privateProofDirectory": "local-data/consolidated-20261011/worktrees/integrated-d/local-data/consolidated-20261011/wheel",
+    "visualProofSha256": "ecaca06ecdbd5ac5f770d1412e2c4ea75f5477fe700b1a17081a8d68659f12ea",
+    "animationProofSha256": "0f24ab09a9bdeab8d7ea493e259d0f2952076211b8d6f31fb7bd67fdadce62a2"
+  },
+  "limits": [
+    "Cette livraison ajoute uniquement de la documentation ; aucun test, code, migration, PostgreSQL ou service public modifié.",
+    "Les fixtures privées valident la présentation d’un reçu synthétique ; elles ne constituent aucun spin économique public ni validation humaine.",
+    "Le résultat FAIL du contrôle complet demeure explicite malgré les builds, types, lint et contrôles de diff réussis.",
+    "Revue indépendante, promotion, déploiement et recette publique humaine ne sont pas déclarés acquis par cette preuve."
+  ]
+}
