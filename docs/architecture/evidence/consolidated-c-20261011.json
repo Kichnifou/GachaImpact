@@ -1,7 +1,7 @@
 {
   "date":"2026-10-11",
   "scope":"Standalone shared invocations, consolidated lot C",
-  "state":"Published source independently APPROVED; checkpoint review, strict FF and deployment/postflight remain separate",
+  "state":"Delivered technically at bedafc4 after independent approvals, strict FF, exact deployments and read-only postflight; human acceptance separate",
   "productionBase":"8a240609a141b68d39b4be372b3d69d8da28a3bf",
   "migration":"20261011200000_074_shared_invocations",
   "rootSourceCommits":["e81fec7","91cb7b6","c981e45","f4f4012","36d1bf0"],
@@ -43,11 +43,12 @@
     "formalPublishedShaReview":"APPROVED on c2ecc35f1e2fc4fb51a0da955182c042495bb40a"
   },
   "publishedIndependentReview":{"sha":"c2ecc35f1e2fc4fb51a0da955182c042495bb40a","verdict":"APPROVED","reportSha256":"c06b98f36f8f90dcdcd23ed674c83aee4adc639a6517df87d7fbd5147b802db0","openP1P2":0,"consultativeFindingsClosed":2,"frontendPassed":75,"backendPassed":67,"independentReproductionsPassed":4,"privatePostgresPassed":17,"privatePostgresSkipped":0,"normalPrismaReplay":true,"privatePostgresSeconds":137.22,"exactSchemaCleanupVerified":true,"inspectedPngs":4,"publicEconomicFixtures":false},
+  "productionDelivery":{"sha":"bedafc4e51254b508110c4251b2117d7deb46509","checkpointReview":"APPROVED","checkpointReportSha256":"0dbe28ffcbf7c2d132d0e9ffe8640f7f663976400d30659146410a88ca521ef6","strictFastForward":true,"fourRefsEqualAndCleanBeforeD":true,"railway":{"id":"4c5d07ac-da29-44b9-be93-2466da18b67e","status":"SUCCESS","readyAt":"2026-10-11T19:52:46.068356474Z","migrationAppliedAt":"2026-10-11T19:52:29.373639906Z"},"pages":{"id":"2db84da9-e782-439f-9b81-e223a441be94","status":"SUCCESS","completedAt":"2026-10-11T19:52:10Z","exactPreviewLiveAssets":true},"postflight":{"at":"2026-10-11T19:53:30.609Z","health":200,"bothDomainsIdentical":true,"privateGuardRequests":20,"corsExact":true,"migrationCount":74,"statusUpToDate":true,"checksums":true,"historicalLedgerUnchanged":true,"privateRlsTables":9,"browserGrants":false,"sharedConstraints":9,"sharedIndexes":4,"sharedSessions":0,"sharedMembers":0,"characters":120,"dated":120,"protectedUnchanged":true,"outbox":0,"storageObjects":2,"storageBytes":236490,"groupsArchived":2,"receiptsArchived":7,"flagsEnabledPublishDryRun":[true,true,false]},"humanAcceptance":"Not claimed"},
   "limits":[
-    "Migration074 is present and tested in private schemas only at this checkpoint",
+    "Migration074 is applied publicly by normal Prisma at the production checkpoint; private test history above remains distinct",
     "No public Player fixture, pull or shared session created for qualification",
     "Private automated visuals are not two-account human public acceptance",
-    "Source review approved; documentary checkpoint and actual deployments/postflight remain required",
+    "Technical delivery is acquired; authenticated two-account human acceptance remains open",
     "Combined full before those corrections remains FAIL6/8, ten known baseline assertions, and is not a final source full PASS"
   ]
 }
