@@ -10,16 +10,16 @@ export class CatalogScheduler {
   private running?: Promise<void>;
   constructor(private readonly database: PrismaClient, private readonly engine: CatalogEngine,
     private readonly now: () => Date = () => new Date(), private readonly onError: (code: string) => void = console.error) {}
-  start() { if (!this.engine.settings.enabled) return; this.stopped = false; void this.tick(); }
+  start() { this.stopped = false; void this.tick(); }
   async stop() { this.stopped = true; if (this.timer) clearTimeout(this.timer); await this.running; }
   async catchUp() {
     const queued = await this.database.catalogRun.findFirst({ where: { cycleKey: { startsWith: 'manual:' }, status: { in: ['QUEUED', 'FAILED', 'RUNNING'] }, nextAttemptAt: { lte: this.now() } }, orderBy: { startedAt: 'asc' } });
     if (queued) {
       const summary = queued.summary as { mode?: string; candidateId?: string };
-      if (summary.candidateId) await this.engine.run(summary.mode === 'audit' ? 'audit' : 'retry', summary.candidateId, queued.id);
+      await this.engine.run(summary.mode === 'audit' ? 'audit' : 'retry', summary.candidateId, queued.id);
     }
     const job = await this.database.catalogJob.findUnique({ where: { id: 'R1051' } });
-    if (job?.lastSuccessDate !== getBusinessDate(this.now())) await this.engine.run();
+    if (this.engine.settings.enabled && job?.lastSuccessDate !== getBusinessDate(this.now())) await this.engine.run();
     await this.engine.deliverNotifications();
   }
   private async tick() {

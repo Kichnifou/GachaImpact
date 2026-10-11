@@ -1,0 +1,885 @@
+{
+  "version": 1,
+  "operation": "R1051_RELEASE_DATE_NULL_ONLY",
+  "sourceUrl": "https://game8.co/games/Genshin-Impact/archives/307054",
+  "fetchedAt": "2026-10-11T09:52:52.900Z",
+  "sourceSha256": "59907665b83325cd045c64729813f5e726bc1abc0e24154a177cef0268a4140c",
+  "meaning": "Première disponibilité jouable Genshin, date civile ; source secondaire Game8 examinée. Aucun déverrouillage du suivi.",
+  "platformExceptions": "Aloy : disponibilité initiale PlayStation distincte des autres plateformes ; absent du plan tant que les dates ne sont pas recoupées.",
+  "entries": [
+    {
+      "id": "00dcad2a-0d0f-4a20-bb61-0cadab1a4800",
+      "name": "Vodyanitsa",
+      "externalKey": "legacy:120",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2026-09-23"
+    },
+    {
+      "id": "f06aa684-7df8-4193-a795-5f721f282226",
+      "name": "Vesna",
+      "externalKey": "legacy:119",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2026-09-23"
+    },
+    {
+      "id": "348aa6fe-8265-42c9-904b-094acab3c67e",
+      "name": "Alyosha",
+      "externalKey": "legacy:118",
+      "rarity": 4,
+      "element": "electro",
+      "releaseDate": "2026-08-12"
+    },
+    {
+      "id": "7f3f63ed-3be3-4cdc-8163-93d4014e8de8",
+      "name": "Odette",
+      "externalKey": "legacy:117",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2026-08-12"
+    },
+    {
+      "id": "6b8f2b0f-c7b7-4402-9318-124c1b7662f7",
+      "name": "Sandrone",
+      "externalKey": "legacy:116",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2026-07-01"
+    },
+    {
+      "id": "c14df076-5c1a-41b9-9ae8-0e0bd6e0517b",
+      "name": "Lohen",
+      "externalKey": "legacy:115",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2026-06-09"
+    },
+    {
+      "id": "eee35a59-f205-4536-b4d3-b1250a3bb032",
+      "name": "Prune",
+      "externalKey": "legacy:113",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2026-05-20"
+    },
+    {
+      "id": "e10e0115-c40f-46d3-af3a-fb40075d3384",
+      "name": "Nicole",
+      "externalKey": "legacy:114",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2026-05-20"
+    },
+    {
+      "id": "743b5426-5ccf-4923-93d3-0c141b068d1b",
+      "name": "Linnea",
+      "externalKey": "legacy:32",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2026-04-08"
+    },
+    {
+      "id": "5a791b51-1d03-47e6-8991-564bb5cd32c7",
+      "name": "Varka",
+      "externalKey": "legacy:52",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2026-02-25"
+    },
+    {
+      "id": "11de6106-3a24-4010-ab76-f55845a5025f",
+      "name": "Zibai",
+      "externalKey": "legacy:63",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2026-02-03"
+    },
+    {
+      "id": "0672ac8f-b1b4-4a69-8048-d9f83e7d6090",
+      "name": "Illuga",
+      "externalKey": "legacy:84",
+      "rarity": 4,
+      "element": "geo",
+      "releaseDate": "2026-02-03"
+    },
+    {
+      "id": "258e0d5d-7d62-4c13-a4f0-1606f858191f",
+      "name": "Columbina",
+      "externalKey": "legacy:11",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2026-01-14"
+    },
+    {
+      "id": "94ef9b09-1ec9-4920-b8a4-9058fafa0f08",
+      "name": "Durin",
+      "externalKey": "legacy:15",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2025-12-03"
+    },
+    {
+      "id": "7f23c9dd-f303-4b64-b0e8-602fd9d1cc53",
+      "name": "Jahoda",
+      "externalKey": "legacy:85",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2025-12-03"
+    },
+    {
+      "id": "6e646342-53fd-4b1e-ade9-b7cd4503edca",
+      "name": "Nefer",
+      "externalKey": "legacy:39",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2025-10-22"
+    },
+    {
+      "id": "1ed8f0dc-1f5c-4c48-8eb2-38fed0dc1887",
+      "name": "Flins",
+      "externalKey": "legacy:19",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2025-09-30"
+    },
+    {
+      "id": "917c92e9-a0ce-4edb-bf89-f7f712ce4fbf",
+      "name": "Lauma",
+      "externalKey": "legacy:31",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2025-09-10"
+    },
+    {
+      "id": "5a329c9c-0dcf-414b-a182-dde071226dd6",
+      "name": "Aino",
+      "externalKey": "legacy:64",
+      "rarity": 4,
+      "element": "hydro",
+      "releaseDate": "2025-09-10"
+    },
+    {
+      "id": "27bd5c27-5917-47b8-9abc-4de59aa6c80e",
+      "name": "Ineffa",
+      "externalKey": "legacy:23",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2025-07-30"
+    },
+    {
+      "id": "60901aea-d348-41ef-9388-37d9fc659253",
+      "name": "Skirk",
+      "externalKey": "legacy:48",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2025-06-18"
+    },
+    {
+      "id": "0b2e85b6-b87d-40e6-9a95-ec0db6cc7bfc",
+      "name": "Dahlia",
+      "externalKey": "legacy:74",
+      "rarity": 4,
+      "element": "hydro",
+      "releaseDate": "2025-06-18"
+    },
+    {
+      "id": "69607192-235e-4aa8-bd5f-4fa3ea12de44",
+      "name": "Escoffier",
+      "externalKey": "legacy:17",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2025-05-07"
+    },
+    {
+      "id": "3da19fc4-f8aa-40b2-a30d-9cffcd2d5c41",
+      "name": "Ifa",
+      "externalKey": "legacy:83",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2025-05-07"
+    },
+    {
+      "id": "b5cff1d0-ea51-44f9-88cf-41e66591d5dd",
+      "name": "Varesa",
+      "externalKey": "legacy:51",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2025-03-26"
+    },
+    {
+      "id": "6476719f-39cf-4ec3-b72e-e878a6b14f79",
+      "name": "Iansan",
+      "externalKey": "legacy:82",
+      "rarity": 4,
+      "element": "electro",
+      "releaseDate": "2025-03-26"
+    },
+    {
+      "id": "18aad9e4-ead8-48ec-a8a1-62da61328043",
+      "name": "Mizuki",
+      "externalKey": "legacy:61",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2025-02-12"
+    },
+    {
+      "id": "82d3d9b5-c4c5-4273-aaa3-9483e8a7638a",
+      "name": "Lan Yan",
+      "externalKey": "legacy:92",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2025-01-21"
+    },
+    {
+      "id": "b4914022-d0c1-401f-97a1-84c150fcb9f0",
+      "name": "Citlali",
+      "externalKey": "legacy:9",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2025-01-01"
+    },
+    {
+      "id": "6b35cd0b-1d8c-485f-8cc2-c26a776cd050",
+      "name": "Mavuika",
+      "externalKey": "legacy:34",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2025-01-01"
+    },
+    {
+      "id": "3a108826-66d9-4593-b491-580ab9d54cc1",
+      "name": "Chasca",
+      "externalKey": "legacy:7",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2024-11-20"
+    },
+    {
+      "id": "0ce8a3d3-a6b2-4f42-9384-82119d6aa25f",
+      "name": "Ororon",
+      "externalKey": "legacy:99",
+      "rarity": 4,
+      "element": "electro",
+      "releaseDate": "2024-11-20"
+    },
+    {
+      "id": "b44e87dc-80af-45c6-96ec-74ea922b09ec",
+      "name": "Xilonen",
+      "externalKey": "legacy:57",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2024-10-09"
+    },
+    {
+      "id": "aa08d34e-3b31-494c-b4ad-3118aada2766",
+      "name": "Kinich",
+      "externalKey": "legacy:29",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2024-09-17"
+    },
+    {
+      "id": "1932f955-8edf-48cf-b107-e332cabc9aeb",
+      "name": "Mualani",
+      "externalKey": "legacy:36",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2024-08-28"
+    },
+    {
+      "id": "931514ab-d340-40b6-b373-4db4eadb5bae",
+      "name": "Kachina",
+      "externalKey": "legacy:86",
+      "rarity": 4,
+      "element": "geo",
+      "releaseDate": "2024-08-28"
+    },
+    {
+      "id": "ffc4802b-61d4-4c6c-8f5d-6c5507e50a4a",
+      "name": "Sigewinne",
+      "externalKey": "legacy:47",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2024-06-25"
+    },
+    {
+      "id": "0eda4e0b-6eef-43fc-87ce-5586dce6544a",
+      "name": "Clorinde",
+      "externalKey": "legacy:10",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2024-06-05"
+    },
+    {
+      "id": "0af87934-8147-48d3-aaa9-e29281a751bb",
+      "name": "Sethos",
+      "externalKey": "legacy:103",
+      "rarity": 4,
+      "element": "electro",
+      "releaseDate": "2024-06-05"
+    },
+    {
+      "id": "0de19894-a9b4-45a1-88cc-bcb8c41c54b1",
+      "name": "Arlecchino",
+      "externalKey": "legacy:5",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2024-04-24"
+    },
+    {
+      "id": "a26ea0c8-930f-4fb7-a6c5-afe5505ed901",
+      "name": "Chiori",
+      "externalKey": "legacy:8",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2024-03-13"
+    },
+    {
+      "id": "33cc1654-9721-4814-a710-af0c90176557",
+      "name": "Xianyun",
+      "externalKey": "legacy:55",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2024-01-31"
+    },
+    {
+      "id": "3f24ee34-f602-47bf-8852-763897b6f259",
+      "name": "Gaming",
+      "externalKey": "legacy:80",
+      "rarity": 4,
+      "element": "pyro",
+      "releaseDate": "2024-01-31"
+    },
+    {
+      "id": "d62c11c1-0be8-4e69-b162-4cf85b639eee",
+      "name": "Chevreuse",
+      "externalKey": "legacy:71",
+      "rarity": 4,
+      "element": "pyro",
+      "releaseDate": "2024-01-09"
+    },
+    {
+      "id": "f5e61f22-96c6-45a4-9d86-32fb5f1ffca6",
+      "name": "Navia",
+      "externalKey": "legacy:38",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2023-12-20"
+    },
+    {
+      "id": "0ccbbefe-caaf-42b9-83cd-d570f62f33c7",
+      "name": "Furina",
+      "externalKey": "legacy:20",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2023-11-08"
+    },
+    {
+      "id": "54f6510c-df79-44c0-95f6-40eab392d644",
+      "name": "Charlotte",
+      "externalKey": "legacy:70",
+      "rarity": 4,
+      "element": "cryo",
+      "releaseDate": "2023-11-08"
+    },
+    {
+      "id": "34de87fe-c03f-4ed5-ad37-e327ebbdbf7d",
+      "name": "Wriothesley",
+      "externalKey": "legacy:54",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2023-10-17"
+    },
+    {
+      "id": "cea0c105-1f68-45a1-8656-c1ca5f4e0046",
+      "name": "Neuvillette",
+      "externalKey": "legacy:40",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2023-09-27"
+    },
+    {
+      "id": "0b4d3b42-d23b-4f27-8b0b-e54ba09b8c91",
+      "name": "Lynette",
+      "externalKey": "legacy:95",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2023-08-16"
+    },
+    {
+      "id": "1c10b61f-c9df-4409-be73-57ade96111a7",
+      "name": "Lyney",
+      "externalKey": "legacy:33",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2023-08-16"
+    },
+    {
+      "id": "eb4d2185-beb6-476f-a260-1524833e55ba",
+      "name": "Kirara",
+      "externalKey": "legacy:89",
+      "rarity": 4,
+      "element": "dendro",
+      "releaseDate": "2023-05-24"
+    },
+    {
+      "id": "c9ec1c8e-a25e-47f9-b32f-3bcaec368386",
+      "name": "Baizhu",
+      "externalKey": "legacy:6",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2023-05-02"
+    },
+    {
+      "id": "daca5741-a728-41fc-be1c-a85c4ad0f5d6",
+      "name": "Kaveh",
+      "externalKey": "legacy:88",
+      "rarity": 4,
+      "element": "dendro",
+      "releaseDate": "2023-05-02"
+    },
+    {
+      "id": "3a0a3a65-cb3e-424e-bf22-7cc568cc4a4e",
+      "name": "Mika",
+      "externalKey": "legacy:96",
+      "rarity": 4,
+      "element": "cryo",
+      "releaseDate": "2023-03-21"
+    },
+    {
+      "id": "a7e8c635-7cd1-4e72-bdec-a77a3db3de7b",
+      "name": "Dehya",
+      "externalKey": "legacy:13",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2023-03-01"
+    },
+    {
+      "id": "56b62f01-f46d-4d4c-bbc0-c1383f57ffc1",
+      "name": "Alhaitham",
+      "externalKey": "legacy:2",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2023-01-18"
+    },
+    {
+      "id": "b1ad1055-784d-4ea2-85b2-abccf03d7c3c",
+      "name": "Yaoyao",
+      "externalKey": "legacy:111",
+      "rarity": 4,
+      "element": "dendro",
+      "releaseDate": "2023-01-18"
+    },
+    {
+      "id": "836faec1-0f78-4435-8f92-2edd986a46a0",
+      "name": "Faruzan",
+      "externalKey": "legacy:77",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2022-12-07"
+    },
+    {
+      "id": "04d7e9d4-681a-4f00-b6f9-1f8897ba6b57",
+      "name": "Layla",
+      "externalKey": "legacy:93",
+      "rarity": 4,
+      "element": "cryo",
+      "releaseDate": "2022-11-18"
+    },
+    {
+      "id": "7fa077ae-e1ab-4403-a473-849d83f3c777",
+      "name": "Nahida",
+      "externalKey": "legacy:37",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2022-11-02"
+    },
+    {
+      "id": "fa703f92-b319-4a18-bf8c-6cacb292e41c",
+      "name": "Nilou",
+      "externalKey": "legacy:41",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2022-10-14"
+    },
+    {
+      "id": "49e8fecb-6b6d-4a78-b300-be1d14221f92",
+      "name": "Candace",
+      "externalKey": "legacy:69",
+      "rarity": 4,
+      "element": "hydro",
+      "releaseDate": "2022-09-28"
+    },
+    {
+      "id": "603687f6-826d-452b-ae30-6182a5d48c8a",
+      "name": "Cyno",
+      "externalKey": "legacy:12",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2022-09-28"
+    },
+    {
+      "id": "58209b64-40b9-40d4-b420-839dff34837f",
+      "name": "Dori",
+      "externalKey": "legacy:76",
+      "rarity": 4,
+      "element": "electro",
+      "releaseDate": "2022-09-09"
+    },
+    {
+      "id": "e297db1b-f123-4c58-988f-8a71f203565e",
+      "name": "Tighnari",
+      "externalKey": "legacy:50",
+      "rarity": 5,
+      "element": "dendro",
+      "releaseDate": "2022-08-24"
+    },
+    {
+      "id": "1293824b-4dbe-4200-82b6-7dcfdb1d8496",
+      "name": "Collei",
+      "externalKey": "legacy:73",
+      "rarity": 4,
+      "element": "dendro",
+      "releaseDate": "2022-08-24"
+    },
+    {
+      "id": "cd999741-2a75-45fd-971a-a2f23a83a942",
+      "name": "Heizou",
+      "externalKey": "legacy:104",
+      "rarity": 4,
+      "element": "anemo",
+      "releaseDate": "2022-07-13"
+    },
+    {
+      "id": "994dff4f-a1c8-4ff3-8d50-4df8f90c21e1",
+      "name": "Yelan",
+      "externalKey": "legacy:59",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2022-05-31"
+    },
+    {
+      "id": "9d1c44cf-f582-4539-999c-4a1788e0d930",
+      "name": "Ayato",
+      "externalKey": "legacy:27",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2022-03-30"
+    },
+    {
+      "id": "8430cff6-8cf4-4f1f-a8a7-2151d11d29df",
+      "name": "Yae Miko",
+      "externalKey": "legacy:58",
+      "rarity": 5,
+      "element": "electro",
+      "releaseDate": "2022-02-16"
+    },
+    {
+      "id": "30db0570-9cb2-4f3d-8e48-21ff428bd22a",
+      "name": "Yun Jin",
+      "externalKey": "legacy:112",
+      "rarity": 4,
+      "element": "geo",
+      "releaseDate": "2022-01-05"
+    },
+    {
+      "id": "1013016e-6843-43ee-ac6a-64faa4f72b8f",
+      "name": "Shenhe",
+      "externalKey": "legacy:45",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2022-01-05"
+    },
+    {
+      "id": "16b987e7-70bc-4f70-bc8d-df9bc50a6d9e",
+      "name": "Gorou",
+      "externalKey": "legacy:81",
+      "rarity": 4,
+      "element": "geo",
+      "releaseDate": "2021-12-14"
+    },
+    {
+      "id": "d426c718-8b10-486a-a1b7-d17ea0dd1ddf",
+      "name": "Ayaka",
+      "externalKey": "legacy:26",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2021-07-01"
+    },
+    {
+      "id": "a924ace9-820d-4f87-b4fd-43cd9bb421f6",
+      "name": "Yanfei",
+      "externalKey": "legacy:110",
+      "rarity": 4,
+      "element": "pyro",
+      "releaseDate": "2021-04-28"
+    },
+    {
+      "id": "157db779-b420-4f68-a7ae-d7628730bfee",
+      "name": "Hu Tao",
+      "externalKey": "legacy:22",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2021-03-02"
+    },
+    {
+      "id": "4cae5117-5b7b-46e7-a86c-eae933a0a351",
+      "name": "Xiao",
+      "externalKey": "legacy:56",
+      "rarity": 5,
+      "element": "anemo",
+      "releaseDate": "2021-02-03"
+    },
+    {
+      "id": "02d4075e-0fcb-48eb-9454-5074fa49f2d3",
+      "name": "Ganyu",
+      "externalKey": "legacy:21",
+      "rarity": 5,
+      "element": "cryo",
+      "releaseDate": "2021-01-12"
+    },
+    {
+      "id": "95dae1fe-dad8-4a7d-83af-727a7c84a369",
+      "name": "Albedo",
+      "externalKey": "legacy:1",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2020-12-23"
+    },
+    {
+      "id": "f4608ece-f675-4dc0-9407-70f5f299cb73",
+      "name": "Zhongli",
+      "externalKey": "legacy:62",
+      "rarity": 5,
+      "element": "geo",
+      "releaseDate": "2020-12-01"
+    },
+    {
+      "id": "91f8d472-5bcb-49ce-b441-e6645b523e48",
+      "name": "Xinyan",
+      "externalKey": "legacy:109",
+      "rarity": 4,
+      "element": "pyro",
+      "releaseDate": "2020-12-01"
+    },
+    {
+      "id": "2c5f200e-733b-4bc9-84cf-bfa9090b6366",
+      "name": "Tartaglia",
+      "externalKey": "legacy:49",
+      "rarity": 5,
+      "element": "hydro",
+      "releaseDate": "2020-11-11"
+    },
+    {
+      "id": "ff7425c3-a38b-4678-a40d-e8dd50c056e2",
+      "name": "Diona",
+      "externalKey": "legacy:75",
+      "rarity": 4,
+      "element": "cryo",
+      "releaseDate": "2020-11-11"
+    },
+    {
+      "id": "bcd9e891-cf6c-4f1a-bc93-4c3ef7ec40d6",
+      "name": "Klee",
+      "externalKey": "legacy:30",
+      "rarity": 5,
+      "element": "pyro",
+      "releaseDate": "2020-10-20"
+    }
+  ],
+  "skipped": [
+    {
+      "name": "Traveler (Cryo)",
+      "date": "2026-08-12",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Traveler (Pyro)",
+      "date": "2025-01-01",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Emilie",
+      "date": "2024-08-06",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Freminet",
+      "date": "2023-09-05",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Traveler (Hydro)",
+      "date": "2023-08-16",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Wanderer",
+      "date": "2022-12-07",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Traveler (Dendro)",
+      "date": "2022-08-24",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Shinobu",
+      "date": "2022-06-21",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Rosaria",
+      "date": "2021-04-07",
+      "reason": "NO_UNAMBIGUOUS_EXACT_MATCH"
+    },
+    {
+      "name": "Venti",
+      "date": "2020-09-27",
+      "reason": "BEFORE_GLOBAL_LAUNCH_CONFLICT"
+    }
+  ],
+  "remaining": [
+    {
+      "id": "0930e751-c8c8-4aa7-8783-37acc6f6a1a7",
+      "name": "Diluc"
+    },
+    {
+      "id": "17c987ed-edc8-4a60-a3d6-cee0f7fd7c3e",
+      "name": "Eula"
+    },
+    {
+      "id": "18e40dfc-7422-4485-8fc1-52505a4f2ffd",
+      "name": "Sara"
+    },
+    {
+      "id": "1a379264-2467-471a-959a-40fcdcca4c44",
+      "name": "Ningguang"
+    },
+    {
+      "id": "2a134ff2-47b5-4693-8cf4-141a9ba39be4",
+      "name": "Amber"
+    },
+    {
+      "id": "2f7e1980-f75f-4d13-a5b5-478beec7552d",
+      "name": "Xiangling"
+    },
+    {
+      "id": "3168c3eb-eb80-4e8b-a6ea-4444694529b6",
+      "name": "Aloy"
+    },
+    {
+      "id": "3a138ba6-f813-4742-bd10-d03c79c86b4d",
+      "name": "Sucrose"
+    },
+    {
+      "id": "3c2763a1-ec46-43b5-afb2-b540280f754b",
+      "name": "Kazuha"
+    },
+    {
+      "id": "3fe918c3-e418-47c3-9cea-49b5c24de276",
+      "name": "Kuki"
+    },
+    {
+      "id": "4233bd84-319b-4ae2-bd64-c57435df95d5",
+      "name": "Sayu"
+    },
+    {
+      "id": "4ec0253d-cc7f-4d3d-a7a6-605989df4b1a",
+      "name": "Fréminet"
+    },
+    {
+      "id": "5c0c58e8-8018-41d7-8055-7ae5b832b6c0",
+      "name": "Fischl"
+    },
+    {
+      "id": "5ddb5806-9ee0-4519-b0a7-eb939f854822",
+      "name": "Beidou"
+    },
+    {
+      "id": "6acc8f4b-3e46-4c08-9acf-d7b2ff21799e",
+      "name": "Rosalia"
+    },
+    {
+      "id": "6afa291a-18dc-434f-bb55-9b995b63f759",
+      "name": "Raiden"
+    },
+    {
+      "id": "80118f8a-4dc2-4613-919f-f94b8270baa8",
+      "name": "Noëlle"
+    },
+    {
+      "id": "83df9afc-b9fe-41d0-9b11-cc6242b0277e",
+      "name": "Barbara"
+    },
+    {
+      "id": "87ba68d0-5605-40a2-ae59-988b9c33cbe2",
+      "name": "Mona"
+    },
+    {
+      "id": "8ce3baef-451d-42f6-8e3d-8bc3bdd1e93a",
+      "name": "Qiqi"
+    },
+    {
+      "id": "98130e16-ef83-4299-971a-73e05f36158b",
+      "name": "Chongyun"
+    },
+    {
+      "id": "9f365379-0bbb-4ddc-a16e-dc50d16abf0d",
+      "name": "Yoimiya"
+    },
+    {
+      "id": "a3fc4f52-58f7-456b-a9a7-8afe241cd14d",
+      "name": "Nomade"
+    },
+    {
+      "id": "ab916fab-4d1c-4aba-8e7a-3a04ff328a01",
+      "name": "Razor"
+    },
+    {
+      "id": "b86401e7-c44a-46a3-a932-ae9c6b8d4060",
+      "name": "Émilie"
+    },
+    {
+      "id": "bbb906ee-4169-477a-9aaf-ed3a8f19a231",
+      "name": "Xingqiu"
+    },
+    {
+      "id": "bdb2b09e-9d51-4492-b1c5-3438e440cc8b",
+      "name": "Kokomi"
+    },
+    {
+      "id": "c1547286-0eb0-4ee7-a927-674d06c6e879",
+      "name": "Lisa"
+    },
+    {
+      "id": "c5df1c83-c6f9-4eb4-9eb4-e246d06ec335",
+      "name": "Kaeya"
+    },
+    {
+      "id": "c8e492a4-ceeb-4775-a66f-4f7c0e028d84",
+      "name": "Venti"
+    },
+    {
+      "id": "d2d12477-d067-48fd-8d9e-8a50604cb7a6",
+      "name": "Jean"
+    },
+    {
+      "id": "e133c1c5-d81f-4637-b464-bc08bf3b2f84",
+      "name": "Thomas"
+    },
+    {
+      "id": "e76f8197-6c4e-4fd4-99d3-432a985d2b26",
+      "name": "Keqing"
+    },
+    {
+      "id": "eef39fd5-3bb0-4b9a-a87d-b13808928ac9",
+      "name": "Itto"
+    },
+    {
+      "id": "fe5ac65e-cb93-4105-93ec-b26c806cb5c3",
+      "name": "Bennett"
+    }
+  ]
+}

@@ -1,5 +1,12 @@
 # Administration et modération V1 — étape 22
 
+## R1051 — finalisation ciblée du 11/10/2026
+
+La fiche conserve sa modale, organisée en Résumé/Informations/Images/Historique : onglets à navigation clavier, un corps à scroll sombre, focus complet et retour à l'ouvreur, fermeture bloquée pendant mutation. Valeurs/source/date/statut/verrou visibles ; correction volontaire, champs vides conservés. Actions avancées : Terminer le suivi, pause, Reprendre le suivi ciblé et validation/verrouillage des seuls éléments choisis ; motif, confirmation et révision, audit serveur ADMIN. Une validation ADMIN ne prouve pas une source officielle. Publication anticipée remplace l'ancien libellé, sans contourner l'éligibilité ni les verrous. Images françaises, versions précédentes conservées et remplacement manuel maintenant autorisé sous contrôle ; cette précision supersède le refus général du lot 2.
+
+Actualiser = lecture, un bouton par contexte actif, pending non répétable et feedback. Rechercher des mises à jour / Comparer sans modifier = tâches durables, globales ou limitées à la fiche suivie ; fiche protégée exclue, ancienne échéance affichée comme suspendue quand quotidien OFF. Pas de SQL/JSON libre. [Source spécialisée et politique](../architecture/character-catalog-assets-r1051.md#finalisation-ciblée--amendement-du-11102026), état réellement livré au Master ; recette propriétaire encore distincte des contrôles techniques.
+
+
 ## Identités et choix de progression — R1055
 
 Le parcours joueur [R1055](decisions-log.md) ne propose aucune déliaison Twitch self-service ni restauration/bascule entre Players. Deux progressions significatives compatibles sont comparées puis départagées définitivement : identité déplacée vers gagnant, perdant ARCHIVED sans identité d’accès, audit privé et graphe sauvegardé en interne ; aucune fusion additive. Cas tiers/opérateur/migration/activité en cours restent fail-closed et nécessitent une résolution opérateur. La target native d’un choix Web ne peut être retargetée qu’à OFF, sans activation ; operator/credential owner à écarter reste bloqué même OFF.

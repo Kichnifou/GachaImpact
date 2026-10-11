@@ -3,6 +3,7 @@ import type { ElementKey } from './types'
 export type AdminMutationDto = Readonly<{ operationId: string; alreadyProcessed: boolean }>
 export type AdminPage<T> = Readonly<{ page: number; pageSize: number; total: number; totalPages: number; entries: readonly T[] }>
 export type AdminCharacter = Readonly<{ id: string; externalKey: string; name: string; rarity: 4 | 5; elementKey: ElementKey;
+  releaseDate?: string | null;
   weaponType: string | null; region: string | null; classKey: string | null; iconPath: string | null; splashPath: string | null;
   wishPath: string | null; fullbodyPath: string | null; displayOrder: number | null; isActive: boolean; createdAt: string; updatedAt: string }>
 export type AdminCharacterFields = Readonly<{ name: string; rarity: 4 | 5; elementKey: ElementKey; weaponType?: string | null;

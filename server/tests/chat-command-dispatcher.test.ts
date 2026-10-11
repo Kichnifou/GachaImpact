@@ -50,7 +50,7 @@ describe('Chat command adapters', () => {
   });
   it.each(['!banniere test', '!ban test', '!bannière test'])('keeps canonical syntax for %s', async command => {
     const { services, send } = harness();
-    expect(await send(command)).toBe('Syntaxe : !banniere.');
+    expect(await send(command)).toBe('⚠️ Syntaxe : !banniere.');
     expect(services.getCurrentGacha.execute).not.toHaveBeenCalled();
   });
   it('shares banner alias and localizes only unavailable banner consultation', async () => {
@@ -58,7 +58,7 @@ describe('Chat command adapters', () => {
     expect(await send('!banner')).toEqual(await send('!banniere'));
     services.getCurrentGacha.execute.mockRejectedValue(new BusinessError('GACHA_BANNER_UNAVAILABLE', 'No active Gacha banner is available.'));
     expect(await send('!ban')).toBe('⚠️ Aucune bannière n’est active pour le moment.');
-    expect(await send('!select')).toBe('Action impossible pour le moment.');
+    expect(await send('!select')).toBe('⚠️ Action impossible pour le moment.');
     expect(services.setGachaTarget.execute).not.toHaveBeenCalled();
   });
   it('reads Legends with exact normalized character names, self aliases, player names and no private leak', async () => {
@@ -71,7 +71,7 @@ describe('Chat command adapters', () => {
     expect(services.socialService.legends).toHaveBeenLastCalledWith(actor, 'other', true);
     expect(await send('!legende moi Éto')).toContain('Légende introuvable');
     services.socialService.legends.mockResolvedValueOnce({ access: 'PRIVATE' } as never);
-    expect(await send('!legende Autre Étoile')).toBe('Les Légendes de ce joueur sont privées.');
+    expect(await send('!legende Autre Étoile')).toBe('⚠️ Les Légendes de ce joueur sont privées.');
   });
   it('includes current Mission completions in the immediate command response', async () => {
     const { chat, send } = harness();
@@ -99,7 +99,7 @@ describe('Chat command adapters', () => {
     services.socialService.directory.mockResolvedValue({ players: [{ id: 'other', displayName: 'Éloïse' }], page: 1, totalPages: 1 });
     expect(await send('!infos   @ÉLOÏSE')).toBe(plain);
     expect(services.socialService.directory).toHaveBeenLastCalledWith(actor, { q: 'ÉLOÏSE', page: 1 });
-    expect(await send('!infos @Inconnu')).toBe('Joueur introuvable.');
+    expect(await send('!infos @Inconnu')).toBe('⚠️ Joueur introuvable.');
     expect(await send('!infos me')).toContain('Autre · niveau 5');
     expect(await send('!infos moi')).toContain('Autre · niveau 5');
   });
@@ -115,7 +115,7 @@ describe('Chat command adapters', () => {
     expect(services.socialService.friendship.sendHearts).toHaveBeenLastCalledWith('self', 'all', commandId, 'INTERNAL_CHAT');
     expect(await send('!ami coeur @all')).toBe(await send('!ami coeur all'));
     expect(await send('!echanger accepter')).toContain('1/1 acceptés');
-    expect(await send('!echanger @Inconnu 3')).toBe('Joueur introuvable.');
+    expect(await send('!echanger @Inconnu 3')).toBe('⚠️ Joueur introuvable.');
   });
   it('normalizes only the Event recipient, preserving message text and non-Player tokens', async () => {
     const { services, send } = harness();
@@ -124,7 +124,7 @@ describe('Chat command adapters', () => {
     expect(services.eventService.sendGameC).toHaveBeenLastCalledWith(actor, 'other', '@all est du texte', commandId, 'INTERNAL_CHAT');
     expect(await send('!code @CODE')).toBe('⚠️ Ce code cadeau n’est pas disponible.');
     expect(services.giftCodeService.claim).not.toHaveBeenCalled();
-    expect(await send('!stella @A')).toBe('Ce personnage ne fait pas partie de votre Box.');
+    expect(await send('!stella @A')).toBe('⚠️ Ce personnage ne fait pas partie de votre Box.');
   });
   it('keeps !infos compact and omits general statistics when access is private', async () => {
     const { services, send } = harness();
@@ -164,10 +164,10 @@ describe('Chat command adapters', () => {
 
   it('returns public syntax, unavailable and unknown feedback without calling a domain mutation', async () => {
     const { send, services } = harness();
-    expect(await send('!pull 11')).toBe('Syntaxe : !pull [1..10].');
+    expect(await send('!pull 11')).toBe('⚠️ Syntaxe : !pull [1..10].');
     expect(await send('!echanger')).toContain('Partenaires échangeables');
-    expect(await send('!mission inconnu')).toBe('Syntaxe : !mission [B|A|S|Z|resume].');
-    expect(await send('!gift')).toBe('Commande inconnue. Utilise !help.');
+    expect(await send('!mission inconnu')).toBe('⚠️ Syntaxe : !mission [B|A|S|Z|resume].');
+    expect(await send('!gift')).toBe('⚠️ Commande inconnue. Utilise !help.');
     expect(services.performGachaPullChat.execute).not.toHaveBeenCalled();
   });
 
@@ -199,8 +199,8 @@ describe('Chat command adapters', () => {
     expect(summary).toContain('B [1/9] · A [0/9] · S [0/9] · Z verrouillé');
     expect(await send('!mission resume')).not.toBe(summary);
     expect(await send('!mission b')).toMatch(/^🎯 Missions B : ▶ Mission B 2 1\/9/u);
-    expect(await send('!mission Z')).toBe('Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.');
-    expect(await send('!mission pseudo')).toBe('Syntaxe : !mission [B|A|S|Z|resume].');
+    expect(await send('!mission Z')).toBe('⚠️ Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.');
+    expect(await send('!mission pseudo')).toBe('⚠️ Syntaxe : !mission [B|A|S|Z|resume].');
   });
 
   it('formats active and completed Défi states plus unlocked Z counts', async () => {
@@ -340,7 +340,7 @@ describe('Chat command adapters', () => {
   it('publishes a business rejection without mutating again', async () => {
     const { services, send } = harness();
     services.spinDailyWheelChat.execute.mockRejectedValue(new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.'));
-    expect(await send('!roue')).toBe('Un élément permanent est requis.');
+    expect(await send('!roue')).toBe('⚠️ Un élément permanent est requis.');
     expect(services.spinDailyWheelChat.execute).toHaveBeenCalledOnce();
   });
 
@@ -394,15 +394,15 @@ describe('Favor consultation without domain mutations', () => {
   it.each([false, true])('formats self available/claimed = %s from the shared projection', async claimedToday => {
     const { services, send, chat } = harness();
     services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 180, maxDays: 180, dailyPrimogems: '800', claimedToday, claimStatus: claimedToday ? 'CLAIMED' : 'AVAILABLE' } } as never);
-    expect(await send('!faveur')).toBe(`Faveur de l’Astre : 180 jours restants / 180 · +800 Primogemmes/jour · récompense du jour ${claimedToday ? 'reçue' : 'disponible'}.`);
+    expect(await send('!faveur')).toBe(`ℹ️ Faveur de l’Astre : 180 jours restants / 180 · +800 Primogemmes/jour · récompense du jour ${claimedToday ? 'reçue' : 'disponible'}.`);
     expect(services.socialService.favor).toHaveBeenCalledWith(actor, 'self');
     expect(services.socialService.profile).not.toHaveBeenCalled();
     expect(chat.rememberCommandRefreshScopes).not.toHaveBeenCalled();
   });
   it('returns self inactive and unknown player without loading a profile', async () => {
     const { send, services } = harness();
-    expect(await send('!faveur')).toBe('Faveur de l’Astre : inactive.');
-    expect(await send('!faveur introuvable')).toBe('Joueur introuvable.');
+    expect(await send('!faveur')).toBe('ℹ️ Faveur de l’Astre : inactive.');
+    expect(await send('!faveur introuvable')).toBe('⚠️ Joueur introuvable.');
     expect(services.socialService.favor).toHaveBeenCalledOnce();
   });
   it.each(['Autre', '@Autre', 'Autre Joueur'])('uses the player reference and privacy projection for %s', async name => {
@@ -410,11 +410,11 @@ describe('Favor consultation without domain mutations', () => {
     const displayName = name.replace('@', '');
     services.socialService.directory.mockResolvedValue({ players: [{ id: 'other', displayName }], page: 1, totalPages: 1 });
     services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 30, maxDays: 180, claimedToday: true } } as never);
-    expect(await send('!faveur ' + name)).toBe(displayName + ' : Faveur active · 30 jours restants.');
+    expect(await send('!faveur ' + name)).toBe('ℹ️ ' + displayName + ' : Faveur active · 30 jours restants.');
     services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } });
-    expect(await send('!faveur ' + name)).toBe(displayName + ' : aucune Faveur active.');
+    expect(await send('!faveur ' + name)).toBe('ℹ️ ' + displayName + ' : aucune Faveur active.');
     services.socialService.favor.mockResolvedValue({ access: 'PRIVATE' } as never);
-    expect(await send('!faveur ' + name)).toBe('La Faveur de ' + displayName + ' est privée.');
+    expect(await send('!faveur ' + name)).toBe('⚠️ La Faveur de ' + displayName + ' est privée.');
     expect(services.socialService.profile).not.toHaveBeenCalled();
     expect(chat.rememberCommandRefreshScopes).not.toHaveBeenCalled();
   });

@@ -1,5 +1,12 @@
 # Journal des décisions validées
 
+## R1051 — protection et préparation provisoire, mandat du 11/10/2026
+
+VALIDÉ PAR LE PROPRIÉTAIRE : protéger les historiques ; suivi global et par élément, arrêt automatique à la sortie officielle d'un personnage déjà publié, reprise ciblée ADMIN confirmée/motivée/auditée avec relecture des verrous à l'application. Aucun déverrouillage depuis une découverte globale ; premier import d'un nouveau candidat déjà sorti permis sous gates. ADMIN, provenance officielle, statut éditorial et permission d'autowrite restent distincts. Les fondamentaux provisoires ne suffisent jamais à publier.
+
+Sources secondaires qualifiées Icy Veins/Game8/Sephijin, valeurs et images provisoires avec réserves ; versions immuables et service partagé manuel/automatique. Exception ponctuelle releaseDate NULL-only sourcée, plan avant application et rejeu, aucun seed ni autre donnée métier. Tri public Date de sortie, inconnues en fin, sans afficher la date sur les cartes. ADMIN quatre onglets et vocabulaire français, Actualiser distinct de collecte/audit ; textes Catalogue blancs. Présentation des commandes ✅/⚠️/ℹ️/❌ sans changement des owners/montants/permissions/transport. Publication automatique **OFF à la clôture** ; aucune activation quotidienne avant Storage réel qualifié. Ces décisions supersèdent le balayage de tous les historiques décrit précédemment, sans effacer ses preuves. [Owner et limites](../architecture/character-catalog-assets-r1051.md#finalisation-ciblée--amendement-du-11102026), [état réel](../master/PROJECT_MASTER_PLAN.md).
+
+
 ## R1058 et compléments de restitution R1053 — mandat du 10/10/2026
 
 VALIDÉ PAR LE PROPRIÉTAIRE : exécuter R1058 avec Supabase Auth standard (Compte, mot de passe oublié, récupération e-mail), sans système parallèle, création de Player par callback ni récupération Twitch-only. Le parcours dédié doit précéder le bootstrap du jeu et préserver les identités. Les gates de configuration Auth, délivrabilité et review indépendante restent nécessaires avant promotion ; le [Master](../master/PROJECT_MASTER_PLAN.md) porte leur état réel.

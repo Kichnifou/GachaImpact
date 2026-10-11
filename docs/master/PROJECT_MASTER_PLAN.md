@@ -1,11 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : hébergement clos, R1051 lot 2 livré et déployé sous gate Storage.
+Version : finalisation ciblée R1051 — candidat à revue, gate Storage maintenue.
 Date : 2026-10-11
-Statut : **gachaimpact.fr/Brevo/Auth/Twitch validés humainement. R1051 lot 2 approuvé indépendamment, livré et déployé ; Mitya suivi durablement en production, sans Character actif. Storage backend absent : automatisation et publication restent désactivées. Recette humaine ADMIN encore attendue.**
+Statut : **Finalisation ciblée en préparation de publication review. Lot 2 public cca4918 conservé ; aucune promotion ou application de dates revendiquée ici. Storage non qualifié, quotidien/publication OFF.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — R1051 lot 2, 11/10/2026
+## Point courant — finalisation ciblée R1051, 11/10/2026
+
+Base distante fraîche main=review=cca49182379bbff54746faf7af857d2272e3d418, divergence0/0, worktree initial propre. Mandat propriétaire complet : développement/tests/review publiée/review indépendante/FFmain/déploiements/postflight, aucune nouvelle demande de GO générique. Pas d'Eclipsia/R1065/Auth/Twitch/DNS ou dépense. **Le parcours quotidien des 120 historiques et le reliquat107 ci-dessous sont supersédés** par la protection des fiches et le suivi ciblé.
+
+Candidat : migration071 additive, protection des historiques, champs/roles ciblés et révision/lease ; sources secondaires et provisoires séparés des preuves officielles ; service d'images versionnées partagé, tâches manuelles durables même quotidienOFF, UI4onglets/focus/scroll/refresh, tri dates sans date sur cartes et textes blancs, emojis de commandes. [Owner amendé](../architecture/character-catalog-assets-r1051.md#finalisation-ciblée--amendement-du-11102026), [décisions](../specifications/decisions-log.md#r1051--protection-et-préparation-provisoire-mandat-du-11102026).
+
+Plan avant application : [85 dates NULL-only proposées, 35 non établies](../architecture/evidence/r1051-release-date-plan-20261011.json), Game8 HTTP200, identités exactes nom/rareté/élément ; Venti contradictoire et Aloy multi-plateforme exclus. **Pas encore appliqué.** [Sources secondaires réellement examinées](../architecture/evidence/r1051-secondary-qualification-20261011.json) : Icy HTTP403 direct avec lectures publiques datées provisoires, Game8 liste reçue, Sephijin pages farm réelles ; deux portraits à bandeau rejetés, portrait Icy Mitya décodé/revu mais non stocké. Mitya/Valeriy restent non publiés.
+
+Contrôles acquis du candidat : 259 assertions backend ciblées, 57 frontend, 19 PostgreSQL privés (71 migrations, transition/reprise/locks/rejeu/versioning), 51 états/mesures GameShell avec CSS de production sur390×844,1366×768,1920×1080 ; PNGs effectivement inspectés. Vérifications rapides5/5 et builds frontend/backend acquis ; review indépendante à achever avant promotion. Ces preuves techniques ne valent pas recette humaine ADMIN. Aucun nouvel e-mail, mot de passe, échange réel, gain ou possession de recette publique.
+
+Storage : absence de clé backend/bucket confirmée en lecture, usage organisation non établi ; aucun upload réel ni stockage revendiqué. Ce blocker suspend seulement Storage et activation quotidienne. Publication automatique **OFF à la clôture**, suivi quotidien OFF ; demandes manuelles explicitement autorisées et comparateur disponibles. [Étape privée précise](../deployment/free-first-v1.md#r1051--finalisation-et-reprise-opératoire-du-11102026). Prochaine gate : publication review puis reviewer indépendant sur vrai SHA GitHub ; déploiement/application contrôlée et clôture seront rapportés séparément.
+
+## Historique acquis — R1051 lot 2, 11/10/2026
 
 **Base vérifiée à distance :** `main = review = 8f9e7698d6307220a1de4f6e4a4eb28635338d78`, divergence 0/0, worktree propre. Mandat : checkpoint documentaire hébergement avant développement, puis catalogue autonome R1051 lot 2 ; cycle review, review indépendante des mécanismes sensibles, FF strict main, déploiements exacts et postflight sans GO générique. Aucun travail Eclipsia/Story ni réouverture R1065.
 

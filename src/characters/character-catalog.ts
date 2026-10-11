@@ -8,3 +8,10 @@ export function compareCharacters(left: GachaCharacterDto, right: GachaCharacter
   if (key === 'element') return elementKeys.indexOf(left.elementKey) - elementKeys.indexOf(right.elementKey) || alpha
   return alpha
 }
+/** Canonical calendar days, no browser timezone conversion. Missing dates stay last in both directions. */
+export function compareReleaseDates(left: GachaCharacterDto, right: GachaCharacterDto, direction: 'asc' | 'desc') {
+  const a = left.releaseDate?.slice(0,10), b = right.releaseDate?.slice(0,10)
+  const stable = () => left.name.localeCompare(right.name,'fr',{sensitivity:'base'}) || left.id.localeCompare(right.id)
+  if (!a || !b) return a === b ? stable() : a ? -1 : 1
+  return (direction === 'asc' ? 1 : -1) * a.localeCompare(b) || stable()
+}

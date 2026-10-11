@@ -103,7 +103,7 @@ describe('Complete remaining command families', () => {
     await h.send('!LÉGENDES'); const output = parts(h); bounded(output);
     for (const c of characters) expect(output.filter(part => part.includes(c.name))).toHaveLength(1);
     h.services.socialService.legends.mockResolvedValue({ access: 'PRIVATE' } as never);
-    expect(await h.send('!leg Autre Personnage')).toBe('Les Légendes de ce joueur sont privées.');
+    expect(await h.send('!leg Autre Personnage')).toBe('⚠️ Les Légendes de ce joueur sont privées.');
   });
   it('reports a consumed Wheel without claiming a new gain, including a concurrent UI spin', async () => {
     const h = harness();
@@ -156,7 +156,7 @@ describe('Complete remaining command families', () => {
   });
   it.each(['!ga open', '!GA ouvrir', '!ga close', '!ga fermer', '!ga stats', '!ga stat'])('classifies Twitch alias %s without bypassing standalone gates', async text => {
     expect(classifyGiveawayText(text)).toBe(text.toLowerCase().includes('stat') ? 'STATS' : /close|fermer/u.test(text) ? 'CLOSE' : 'OPEN');
-    const h = harness(); expect(await h.send(text)).toBe('Cette commande est réservée à Twitch.'); expect(h.services.socialService.actor).not.toHaveBeenCalled();
+    const h = harness(); expect(await h.send(text)).toBe('⚠️ Cette commande est réservée à Twitch.'); expect(h.services.socialService.actor).not.toHaveBeenCalled();
     expect(classifyGiveawayText('!ga reroll')).toBe('HELP');
   });
 });

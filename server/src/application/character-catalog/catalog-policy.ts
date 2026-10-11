@@ -3,7 +3,8 @@ import { addBusinessDays, getBusinessDate } from '../../domain/time/business-dat
 export const assetRoles = ['icon', 'splash', 'wish', 'fullbody', 'promotion'] as const;
 export type AssetRole = typeof assetRoles[number];
 export type Evidence = Readonly<{ value: string | number; provider: string; url: string; fetchedAt: string;
-  reliability: 'OFFICIAL' | 'STRUCTURED' | 'ADMIN'; override?: boolean; conflict?: boolean }>;
+  reliability: 'OFFICIAL' | 'STRUCTURED' | 'ADMIN' | 'PROVISIONAL'; override?: boolean; conflict?: boolean;
+  editorialStatus?: 'PROVISIONAL' | 'VALIDATED'; locked?: boolean; adminValidated?: boolean; reason?: string; alternatives?: readonly Evidence[] }>;
 export type CatalogFields = Partial<Record<'name' | 'originalName' | 'rarity' | 'element' | 'weapon' | 'region' |
   'numericId' | 'technicalName' | 'releaseDate' | 'title' | 'constellation' | 'classKey' | 'displayOrder', Evidence>>;
 export type CatalogStatus = 'DETECTED' | 'INCOMPLETE' | 'OUT_OF_WINDOW' | 'CONFLICT' | 'ELIGIBLE' | 'PUBLISHED' | 'TEMPORARY_ERROR' | 'INTERVENTION';
@@ -17,12 +18,17 @@ export function normalizedIdentity(value: string): string { return value.normali
 /** Higher-priority/ADMIN values survive provider outages and discrepancies. */
 export function mergeEvidence(fields: CatalogFields, key: keyof CatalogFields, evidence: Evidence): CatalogFields {
   const previous = fields[key];
-  if (previous?.override) return fields;
+  if (previous?.override || previous?.locked) return fields;
   if (previous && previous.value !== evidence.value) {
+    if (previous.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL') return { ...fields, [key]: { ...evidence, conflict:true, alternatives:[previous,...(previous.alternatives??[])].slice(0,5) } };
     // Localised name and original name are separate fields, never fuzzy reconciled.
-    return { ...fields, [key]: { ...previous, conflict: true } };
+    return { ...fields, [key]: { ...previous, conflict: true, alternatives: [...(previous.alternatives ?? []).filter(item => item.provider !== evidence.provider || item.value !== evidence.value), evidence].slice(-5) } };
   }
-  return { ...fields, [key]: previous ? { ...previous, fetchedAt: evidence.fetchedAt } : evidence };
+  const promoted = previous?.reliability === 'PROVISIONAL' && evidence.reliability !== 'PROVISIONAL';
+  if (previous && !promoted && (previous.provider !== evidence.provider || previous.url !== evidence.url || previous.reliability !== evidence.reliability)) {
+    return { ...fields, [key]: {...previous,alternatives:[...(previous.alternatives??[]).filter(item=>item.provider!==evidence.provider||item.url!==evidence.url||item.value!==evidence.value),evidence].slice(-5)} };
+  }
+  return { ...fields, [key]: previous && !promoted ? { ...previous, fetchedAt: evidence.fetchedAt } : evidence };
 }
 
 export function eligibility(fields: CatalogFields, available: readonly string[], now: Date, overrideWindow = false) {
@@ -34,6 +40,9 @@ export function eligibility(fields: CatalogFields, available: readonly string[],
   // the wish strip and distinct fullbody remain enrichable, with existing fallbacks.
   for (const role of ['icon', 'splash']) if (!available.includes(role)) missing.push(role);
   if (!/^1\d{7}$/.test(String(fields.numericId?.value))) missing.push('numericId');
+  for (const field of ['name', 'originalName', 'rarity', 'element', 'numericId'] as const) {
+    if (fields[field]?.reliability === 'PROVISIONAL') missing.push(`${field}Confirmation`);
+  }
   const dateValue = String(fields.releaseDate?.value);
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateValue) ? new Date(`${dateValue}T00:00:00Z`) : null;
   const officialDate = fields.releaseDate?.reliability === 'OFFICIAL' && date && Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === dateValue ? dateValue : null;

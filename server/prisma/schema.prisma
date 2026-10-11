@@ -3087,6 +3087,10 @@ model CatalogCandidate {
   nextCheckAt DateTime @default(now()) @map("next_check_at") @db.Timestamptz(6)
   publishedAt DateTime? @map("published_at") @db.Timestamptz(6)
   revision Int @default(0)
+  trackingState String @default("ACTIVE") @map("tracking_state") @db.Text
+  trackingElements String[] @default(["name", "originalName", "rarity", "element", "weapon", "region", "numericId", "technicalName", "releaseDate", "title", "constellation", "icon", "splash", "wish", "fullbody", "promotion"]) @map("tracking_elements")
+  trackingReason String? @map("tracking_reason") @db.Text
+  releaseFollowupAuthorized Boolean @default(false) @map("release_followup_authorized")
   character Character? @relation(fields: [characterId], references: [id], onDelete: Restrict)
   identities CatalogIdentity[]
   assets CatalogAsset[]
@@ -3119,6 +3123,10 @@ model CatalogAsset {
   height Int?
   bytes Int?
   status String @default("MISSING") @db.Text
+  editorialStatus String @default("PROVISIONAL") @map("editorial_status") @db.Text
+  autoLocked Boolean @default(false) @map("auto_locked")
+  officialConfirmed Boolean @default(false) @map("official_confirmed")
+  adminValidated Boolean @default(false) @map("admin_validated")
   checkedAt DateTime @default(now()) @map("checked_at") @db.Timestamptz(6)
   candidate CatalogCandidate @relation(fields:[candidateId], references:[id], onDelete:Restrict)
   @@unique([candidateId, role, hash])

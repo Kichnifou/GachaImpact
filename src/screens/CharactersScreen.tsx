@@ -4,7 +4,7 @@ import { type ElementKey, type GachaCharacterDto } from '../api/types'
 import CharacterCard from '../components/CharacterCard'
 import CollectionFilters, { type CharacterRarityFilter, type CharacterSortDirection, type CharacterSortKey } from '../components/CollectionFilters'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
-import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
+import { compareCharacters, compareReleaseDates, normalizeCharacterSearch } from '../characters/character-catalog'
 import AppButton from '../components/AppButton'
 import { useBannerVotes, type BannerVoteActions } from '../characters/use-banner-votes'
 
@@ -22,6 +22,7 @@ function CharactersScreen({ characters, voteCache, refreshToken = 0, ...voteActi
     return characters
       .filter((character) => (!needle || normalizeCharacterSearch(character.name).includes(needle)) && (rarity === 'all' || character.rarity === rarity) && (!element || character.elementKey === element))
       .slice().sort((left, right) => {
+        if (sortKey === 'releaseDate') return compareReleaseDates(left,right,direction)
         if (sortKey !== 'votes') return sign * compareCharacters(left, right, sortKey)
         const a = counts.get(left.id), b = counts.get(right.id)
         if (a === undefined || b === undefined) return a === b ? compareCharacters(left, right, 'name') : a === undefined ? 1 : -1
@@ -33,7 +34,7 @@ function CharactersScreen({ characters, voteCache, refreshToken = 0, ...voteActi
 
   return <div data-business-pending={votes.pending} className="screen-content collection-screen catalog-screen long-screen-layout">
     <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}</span></div>} fixed={<>
-      <CollectionFilters tutorialAnchor="catalog-filters" allowVotes placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+      <CollectionFilters tutorialAnchor="catalog-filters" allowVotes allowReleaseDate placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes' || key === 'releaseDate') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
     </>}>
     <div className="catalog-vote-feedback" role="alert">{votes.error}</div>
     {filtered.length ? <section data-tutorial-anchor="catalog-votes" className="character-grid" aria-label="Catalogue des personnages">{filtered.map((character) => {

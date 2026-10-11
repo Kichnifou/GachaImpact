@@ -43,7 +43,7 @@ export async function registerGachaRoutes(app: FastifyInstance, options: Options
   });
 }
 
-function characterDto(character: GachaCharacter) { return character; }
+function characterDto(character: GachaCharacter) { return {...character, releaseDate: character.releaseDate?.toISOString().slice(0,10) ?? null}; }
 function stateDto(state: PlayerGachaState) {
   return { ...state, totalPulls: state.totalPulls.toString(), totalFiveStars: state.totalFiveStars.toString(), totalFourStars: state.totalFourStars.toString(), fiftyFiftyWon: state.fiftyFiftyWon.toString(), fiftyFiftyLost: state.fiftyFiftyLost.toString(), capturesTriggered: state.capturesTriggered.toString() };
 }

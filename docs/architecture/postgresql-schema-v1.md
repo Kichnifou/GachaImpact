@@ -1,5 +1,10 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Migration 071 — suivi ciblé et protection R1051
+
+[20261011090000_071_protect_catalog_followup](../../server/prisma/migrations/20261011090000_071_protect_catalog_followup/migration.sql) étend uniquement catalog_candidates/catalog_assets : état/périmètre/motif de suivi, exception ciblée après sortie, statut éditorial et verrous/confirmations distincts. CHECK sur états/périmètre, index partiel ACTIVE dû. Protège les candidats déjà liés aux Character et leurs assets, sans changer Character. Préserve cycle/tentatives, conserve previousRemaining et recalcule remaining ; l'ancien reliquat 107 n'est pas une file à vider. Les RLS/droits privés de 070 restent applicables. Application normale via Prisma migrate deploy/status après review ; aucune DDL opérateur hors ledger. Le rattrapage de dates est une opération applicative NULL-only séparée, plan hashé et transaction atomique, modifiant seulement releaseDate/updatedAt et la provenance du candidat protégé. [Owner](character-catalog-assets-r1051.md), état physique au Master.
+
+
 <a id="r1051-migration-070"></a>
 ## Migration 070 — pipeline Catalogue Character
 

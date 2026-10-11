@@ -3,12 +3,13 @@ import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
 import { AdminOperation } from './admin-operation.js';
+import { readFields, type CatalogFields } from '../character-catalog/catalog-policy.js';
 
 export type CharacterAdminPatch = Readonly<{ name?: string; rarity?: 4 | 5; elementKey?: string;
   weaponType?: string | null; region?: string | null; classKey?: string | null; displayOrder?: number | null; isActive?: boolean }>;
 const select = { id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true,
   region: true, classKey: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true,
-  displayOrder: true, isActive: true, createdAt: true, updatedAt: true } as const;
+  displayOrder: true, isActive: true, releaseDate: true, createdAt: true, updatedAt: true } as const;
 
 export class CharacterAdminService {
   private readonly operation: AdminOperation;
@@ -52,6 +53,7 @@ export class CharacterAdminService {
     if (!Object.keys(patch).length || (patch.name !== undefined && (!patch.name.trim() || patch.name.length > 100))) throw invalid();
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'characters', action: 'update', idempotencyKey,
       request: { characterId, patch } as Prisma.InputJsonValue, change: async tx => {
+        await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE character_id = ${characterId}::uuid FOR UPDATE`;
         const before = await tx.character.findUnique({ where: { id: characterId }, select });
         if (!before) throw new AppError('Personnage introuvable.', 404, 'CHARACTER_NOT_FOUND');
         if (patch.elementKey && !(await tx.element.findUnique({ where: { key: patch.elementKey }, select: { key: true } }))) throw invalid();
@@ -64,6 +66,18 @@ export class CharacterAdminService {
           if (referenced.some(Boolean)) throw new AppError('Rareté et élément figés pour un personnage référencé.', 409, 'CHARACTER_IDENTITY_LOCKED');
         }
         const after = await tx.character.update({ where: { id: characterId }, data: { ...patch, ...(patch.name ? { name: patch.name.trim() } : {}) }, select });
+        const candidate=await tx.catalogCandidate.findUnique({where:{characterId}});
+        if(candidate){
+          const fields={...readFields(candidate.fields)};
+          const map={name:'name',rarity:'rarity',elementKey:'element',weaponType:'weapon',region:'region',classKey:'classKey',displayOrder:'displayOrder'} as const;
+          const touched:string[]=[];
+          for(const [source,target] of Object.entries(map)) if(source in patch){
+            touched.push(target); const value=patch[source as keyof CharacterAdminPatch];
+            if(typeof value==='string'||typeof value==='number') fields[target as keyof CatalogFields]={value,provider:'admin',url:`admin-operation:${idempotencyKey}`,fetchedAt:new Date().toISOString(),reliability:'ADMIN',override:true,locked:true,adminValidated:true,editorialStatus:'VALIDATED'};
+            else delete fields[target as keyof CatalogFields];
+          }
+          await tx.catalogCandidate.update({where:{id:candidate.id},data:{fields:fields as Prisma.InputJsonValue,name:after.name,trackingElements:{set:candidate.trackingElements.filter(element=>!touched.includes(element))},revision:{increment:1}}});
+        }
         return { before: characterAudit(before), after: characterAudit(after) };
       } });
   }

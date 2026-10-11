@@ -8,6 +8,8 @@ import type { CatalogEngine } from './catalog-engine.js';
 import { validateImage, maxImageBytes } from '../../infrastructure/character-catalog/catalog-images.js';
 import { normalizedIdentity, eligibility } from './catalog-policy.js';
 import type { CharacterAdminPatch } from '../moderation/character-admin-service.js';
+import { trackingElements, type TrackingElement, shouldStopAtRelease } from './catalog-followup.js';
+import { recordImageVersion } from './catalog-image-version.js';
 
 export class CatalogAdminService {
   private readonly operation: AdminOperation;
@@ -26,7 +28,7 @@ export class CatalogAdminService {
         for (const [field, value] of [['name', input.name], ['originalName', input.name], ['rarity', input.rarity], ['element', input.elementKey],
           ['weapon', input.weaponType], ['region', input.region], ['classKey', input.classKey], ['displayOrder', input.displayOrder]] as const) {
           if (value !== undefined && value !== null) fields[field] = { value, provider: 'admin', url: `admin-operation:${idempotencyKey}`,
-            fetchedAt: new Date().toISOString(), reliability: 'ADMIN', override: true };
+            fetchedAt: new Date().toISOString(), reliability: 'ADMIN', override: true, locked: true, adminValidated: true, editorialStatus: 'VALIDATED' };
         }
         const state = eligibility(fields, [], new Date());
         const row = await tx.catalogCandidate.create({ data: { name: input.name, fields: fields as Prisma.InputJsonValue, status: state.status, missing: state.missing,
@@ -65,18 +67,43 @@ export class CatalogAdminService {
           await tx.catalogIdentity.upsert({ where: { namespace_externalId: { namespace: 'official-name', externalId } }, create: { namespace: 'official-name', externalId, candidateId: id }, update: {} });
         }
         for (const [field, value] of Object.entries(values)) fields[field as keyof CatalogFields] = { value, provider: 'admin', url: `admin-operation:${key}`,
-          fetchedAt: new Date().toISOString(), reliability: 'ADMIN', override: true };
+          fetchedAt: new Date().toISOString(), reliability: 'ADMIN', override: true, locked: true, adminValidated: true, editorialStatus: 'VALIDATED' };
         await tx.catalogCandidate.update({ where: { id }, data: { ...(typeof values.name === 'string' ? { name: values.name } : {}), fields: fields as Prisma.InputJsonValue, revision: { increment: 1 }, nextCheckAt: new Date() } });
         return { before: { candidateId: id, fields: candidate.fields }, after: { candidateId: id, fields: fields as Prisma.InputJsonValue } };
       } });
   }
-  async queue(identity: AuthenticatedIdentity, id: string, mode: 'audit' | 'retry', key: string) {
-    if (!this.engine.settings.enabled) throw new AppError('Le scheduler Catalogue est désactivé.', 503, 'CATALOG_DISABLED');
+  async tracking(identity: AuthenticatedIdentity, id: string, action: 'protect' | 'pause' | 'resume' | 'validate', elements: readonly TrackingElement[], reason: string, expectedRevision: number, key: string) {
+    return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: `tracking-${action}`, idempotencyKey: key,
+      request: { id, action, elements: [...elements], reason, expectedRevision }, change: async tx => {
+        await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
+        const candidate = await tx.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { assets: true } });
+        if (candidate.revision !== expectedRevision) throw new AppError('La fiche a changé. Actualiser avant de confirmer.',409,'CATALOG_REVISION_CONFLICT');
+        const selected = [...new Set(elements)];
+        if ((action === 'resume' || action === 'validate') && (!selected.length || selected.some(value=>!trackingElements.includes(value)))) throw new AppError('Choisir les éléments concernés.',400,'CATALOG_INVALID_SCOPE');
+        const fields = {...readFields(candidate.fields)};
+        for (const element of selected) {
+          const field = element as keyof CatalogFields;
+          if (fields[field]) fields[field] = {...fields[field]!, locked: action !== 'resume', ...(action === 'validate'?{adminValidated:true,editorialStatus:'VALIDATED' as const}:{})};
+          else if (action === 'validate' && !candidate.assets.some(asset=>asset.role===element&&asset.status==='AVAILABLE')) throw new AppError('Un élément absent ne peut pas être validé.',409,'CATALOG_ELEMENT_MISSING');
+          await tx.catalogAsset.updateMany({where:{candidateId:id,role:element},data:{autoLocked:action!=='resume',...(action==='validate'?{adminValidated:true,editorialStatus:'VALIDATED'}:{})}});
+        }
+        const remaining = action === 'resume' ? selected : action === 'validate' ? candidate.trackingElements.filter(value=>!selected.includes(value as TrackingElement)) : [];
+        const state = action === 'pause' ? 'PAUSED' : action === 'protect' || !remaining.length ? 'PROTECTED' : 'ACTIVE';
+        const after = await tx.catalogCandidate.update({where:{id},data:{trackingState:state,trackingElements:remaining,trackingReason:reason,fields:fields as Prisma.InputJsonValue,
+          releaseFollowupAuthorized:action==='resume'?shouldStopAtRelease(candidate.characterId,fields,new Date()):action==='validate'?candidate.releaseFollowupAuthorized:false,revision:{increment:1},...(action==='resume'?{nextCheckAt:new Date()}:{})}});
+        if (state!=='ACTIVE') await tx.catalogAsset.updateMany({where:{candidateId:id},data:{autoLocked:true}});
+        return {before:{candidateId:id,trackingState:candidate.trackingState,elements:candidate.trackingElements},after:{candidateId:id,trackingState:after.trackingState,elements:after.trackingElements,reason}};
+      }});
+  }
+  async queue(identity: AuthenticatedIdentity, id: string | null, mode: 'audit' | 'retry', key: string) {
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: mode, idempotencyKey: key, request: { id, mode }, change: async tx => {
-      await tx.catalogCandidate.findUniqueOrThrow({ where: { id } });
+      if(id) {
+        const candidate=await tx.catalogCandidate.findUniqueOrThrow({ where: { id } });
+        if(candidate.trackingState!=='ACTIVE'||!candidate.trackingElements.length) throw new AppError('Cette fiche est protégée. Reprendre explicitement les seuls éléments concernés.',409,'CATALOG_PROTECTED');
+      }
       const queued = await tx.catalogRun.count({ where: { status: { in: ['QUEUED', 'RUNNING', 'FAILED'] }, cycleKey: { startsWith: 'manual:' } } });
       if (queued >= 10) throw new AppError('Des vérifications sont déjà en attente. Réessayer après leur traitement.', 429, 'CATALOG_QUEUE_FULL');
-      await tx.catalogRun.create({ data: { cycleKey: `manual:${key}`, status: 'QUEUED', summary: { mode, candidateId: id } } });
+      await tx.catalogRun.create({ data: { cycleKey: `manual:${key}`, status: 'QUEUED', summary: { mode, ...(id?{candidateId:id}:{}), apply:mode==='retry' } } });
       return { before: { candidateId: id }, after: { candidateId: id, mode, queued: true } };
     } });
   }
@@ -84,17 +111,20 @@ export class CatalogAdminService {
     await this.operation.actor(identity, 'ADMIN');
     const candidate = await this.db.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { character: true } });
     const path = { icon: 'iconPath', splash: 'splashPath', wish: 'wishPath', fullbody: 'fullbodyPath' } as const;
-    if (candidate.character?.[path[role]]) throw new AppError('Cette image existe déjà dans le catalogue. L’upload complète uniquement les images absentes.', 409, 'CATALOG_VALIDATION_FAILED');
     if (body.length > maxImageBytes) throw new AppError('Image trop volumineuse.', 400, 'CATALOG_IMAGE_TOO_LARGE');
     const image = await validateImage(body, mime, role);
     const url = await this.engine.storage.store(id, role, image);
     return this.operation.run(identity, { scope: 'ADMIN', domain: 'character-catalog', action: 'upload', idempotencyKey: key,
       request: { id, role, hash: image.hash }, change: async tx => {
+        await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
+        const current=await tx.catalogCandidate.findUniqueOrThrow({where:{id},include:{character:true}});
+        if(current.revision!==candidate.revision) throw new AppError('La fiche a changé. Actualiser avant de remplacer son image.',409,'CATALOG_REVISION_CONFLICT');
         const before = await tx.catalogAsset.findMany({ where: { candidateId: id, role, status: 'AVAILABLE' }, select: { hash: true } });
-        await tx.catalogAsset.upsert({ where: { candidateId_role_hash: { candidateId: id, role, hash: image.hash } },
-          create: { candidateId: id, role, hash: image.hash, provider: 'admin', sourceUrl: `admin-operation:${key}`, url, mime: image.mime,
-            width: image.width, height: image.height, bytes: image.bytes, sourceHash: image.sourceHash, sourceMime: mime, status: 'AVAILABLE' }, update: {} });
-        await tx.catalogCandidate.update({ where: { id }, data: { revision: { increment: 1 }, nextCheckAt: new Date() } });
+        await recordImageVersion(tx, { candidateId:id, role, image, provider:'admin', sourceUrl:`admin-operation:${key}`,
+          sourceMime:mime, url, editorialStatus:'VALIDATED', manual:true, now:new Date() });
+        await tx.catalogAsset.updateMany({where:{candidateId:id,role},data:{autoLocked:true}});
+        if(current.characterId) await tx.character.update({where:{id:current.characterId},data:{[path[role]]:url}});
+        await tx.catalogCandidate.update({ where: { id }, data: { revision: { increment: 1 }, trackingElements:{set:current.trackingElements.filter(element=>element!==role)} } });
         if (this.engine.settings.enabled && !this.engine.settings.dryRun) await tx.catalogRun.create({ data: {
           cycleKey: `manual:upload:${key}`, status: 'QUEUED', summary: { mode: 'retry', candidateId: id } } });
         return { before: { candidateId: id, role, hashes: before.map(row => row.hash) }, after: { candidateId: id, role, hash: image.hash } };

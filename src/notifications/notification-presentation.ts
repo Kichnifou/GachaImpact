@@ -7,6 +7,7 @@ export type NotificationPresentation = Readonly<{ title: string; message: string
 type Resolver = (notification: NotificationDto) => NotificationPresentation
 
 const resolvers: Readonly<Record<string, Resolver>> = {
+  'character-catalog:CATALOG_REVIEW_ADMIN': notification => ({title:text(notification.payload.title,'Fiche à examiner'),message:text(notification.payload.message,'Consulter Modération > Personnages > Imports et candidats.'),destination:null}),
   'character-catalog:CHARACTER_IMPORTED_ADMIN': notification => ({ title: text(notification.payload.title, 'Nouveau personnage ajouté'), message: text(notification.payload.message, 'Consulter la fiche dans Modération > Personnages.'),
     destination: notification.actionKey === 'OPEN_ADMIN_CHARACTER' && /^[a-f0-9-]{36}$/i.test(notification.actionTargetId ?? '') ? 'admin-character' : null }),
   'arcade:ARCADE_INVITE': notification => ({ title: 'Invitation Arcade', message: text(notification.payload.message, 'Vous avez reçu une invitation Arcade.'), destination: notification.actionKey === 'OPEN_ARCADE_INVITE' ? 'arcade-invite' : null }),

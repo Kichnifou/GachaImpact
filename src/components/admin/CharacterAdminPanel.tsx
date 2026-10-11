@@ -41,17 +41,20 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
   const [constellations, setConstellations] = useState<Record<string, number>>({})
   const [confirm, setConfirm] = useState<CharacterIntent | null>(null)
   const [loadError, setLoadError] = useState('')
+  const [loading, setLoading] = useState(true), [refreshNotice, setRefreshNotice] = useState('')
+  const refreshGate = useRef(false)
   const task = useAdminTask(() => { setConstellations({}); setReload(value => value + 1) })
-  const refresh = useCallback(() => setReload(value => value + 1), [])
+  const refresh = useCallback(() => { if (refreshGate.current) return; refreshGate.current=true; setReload(value => value + 1) }, [])
 
   useEffect(() => { let live = true; setLoadError('')
     const api = getGameApiClient()
     if (section === 'pipeline') return
+    setLoading(true); setRefreshNotice('')
     const promise = section === 'catalog'
       ? api.getAdminCharacters({ page, search, rarity: rarity || undefined, elementKey: elementKey || undefined,
         active: active || undefined, missingAssets: missingAssets || undefined, sort, direction }).then(value => { if (live) setList(value) })
       : api.getAdminPossessions(playerId, page, search, rarity || undefined, elementKey || undefined).then(value => { if (live) setPossessions(value) })
-    void promise.catch(error => { if (live) setLoadError(apiErrorMessage(error)) })
+    void promise.then(()=>{if(live&&reload)setRefreshNotice('Résultats enregistrés actualisés.')}).catch(error => { if (live) setLoadError(apiErrorMessage(error)) }).finally(()=>{if(live){setLoading(false);refreshGate.current=false}})
     return () => { live = false }
   }, [section, page, search, rarity, elementKey, active, missingAssets, sort, direction, playerId, reload])
 
@@ -105,7 +108,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
     <div className="admin-subtabs"><button type="button" aria-pressed={section === 'catalog'} onClick={() => { setSection('catalog'); setPage(1) }}>Catalogue</button>
       <button type="button" aria-pressed={section === 'pipeline'} onClick={() => setSection('pipeline')}>Imports et candidats</button>
       <button type="button" aria-pressed={section === 'possessions'} onClick={() => { setSection('possessions'); setPage(1) }}>Possessions de {playerName}</button></div>
-    <AdminFeedback error={task.error || loadError} notice={task.notice} />
+    <AdminFeedback error={task.error || loadError} notice={task.notice || refreshNotice} />
     {section === 'pipeline' ? <CatalogPipelinePanel initialId={/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1]} /> : section === 'catalog' ? <>
       <button type="button" onClick={() => { resetForm(); setEditorOpen(true) }}>Ajouter un personnage</button>
       {editorOpen && <CatalogDialog title={selected ? `Modifier ${selected.name}` : 'Ajouter un personnage'} pending={task.pending} onClose={() => setEditorOpen(false)}>
@@ -123,7 +126,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
           <div className="catalog-editor-actions"><button type="button" disabled={task.pending} onClick={() => setEditorOpen(false)}>Annuler</button><button type="submit" disabled={task.pending}>Enregistrer</button></div></form>
         <small>{selected ? 'Les données et les images existantes sont conservées. Compléter les images manquantes dans Imports et candidats.' : 'La nouvelle fiche est enregistrée comme candidat. La publication attend les preuves officielles et les images validées, selon les mêmes contrôles que l’import automatique.'}</small></section>
       </CatalogDialog>}
-      <section className="panel admin-list"><h2>Catalogue</h2><div className="admin-filters">
+      <section className="panel admin-list"><div className="catalog-toolbar"><h2>Catalogue</h2><div className="admin-filters">
         <input aria-label="Rechercher un personnage" placeholder="Nom ou clé" value={search} onChange={event => { setSearch(event.target.value); setPage(1) }} />
         <select aria-label="Rareté" value={rarity} onChange={event => { setRarity(event.target.value); setPage(1) }}><option value="">Toutes raretés</option><option value="4">4★</option><option value="5">5★</option></select>
         <select aria-label="Élément" value={elementKey} onChange={event => { setElementKey(event.target.value); setPage(1) }}><option value="">Tous éléments</option>{elementKeys.map(key => <option key={key}>{key}</option>)}</select>
@@ -131,7 +134,8 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
         <label className="character-assets-filter"><input type="checkbox" checked={missingAssets} onChange={event => { setMissingAssets(event.target.checked); setPage(1) }} /> Assets manquants</label>
         <select aria-label="Trier" value={sort} onChange={event => setSort(event.target.value)}><option value="name">Nom</option><option value="rarity">Rareté</option><option value="createdAt">Création</option></select>
         <button type="button" onClick={() => setDirection(value => value === 'asc' ? 'desc' : 'asc')}>{direction === 'asc' ? '↑' : '↓'}</button>
-      </div><div className="admin-scroll-list">{list?.entries.map(row => <article className="admin-list-row" key={row.id}><div><strong>{row.name} · {row.rarity}★</strong>
+        <button type="button" className="catalog-refresh" disabled={loading} aria-busy={loading} onClick={refresh}>{loading?'Actualisation…':'Actualiser'}</button>
+      </div></div>{loading&&<p role="status">Chargement du catalogue…</p>}<div className="admin-scroll-list">{list?.entries.map(row => <article className="admin-list-row" key={row.id}><div><strong>{row.name} · {row.rarity}★</strong>
         <small>{row.externalKey} · {row.elementKey} · {row.isActive ? 'Actif' : 'Inactif'}</small></div>
         <button type="button" onClick={() => edit(row)}>Modifier</button><button type="button" className={row.isActive ? 'danger' : ''} onClick={() => { const intent = { kind: 'catalog' as const, characterId: row.id, characterName: row.name, isActive: !row.isActive }; if (row.isActive) setConfirm(intent); else void setPresence(intent) }}>{row.isActive ? 'Désactiver' : 'Réactiver'}</button></article>)}
         {!list?.entries.length && <p>Aucun personnage.</p>}</div>{list && <AdminPager page={list.page} totalPages={list.totalPages} onPage={setPage} pending={task.pending} />}</section>
@@ -154,6 +158,6 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
         if (confirm.kind === 'catalog') void setPresence(confirm)
         else void removePossession(confirm)
       }}>{confirm.kind === 'catalog' ? 'Les possessions et historiques sont conservés. Le personnage sort des futurs pools et votes.' : 'Les équipes et états dépendants doivent être nettoyés avant le retrait. Les historiques de tirages et cosmétiques débloqués sont conservés.'}</ConfirmAction>}
-    <button type="button" className="admin-refresh" onClick={refresh}>Actualiser</button>
+    {section==='possessions'&&<button type="button" className="admin-refresh" disabled={loading} aria-busy={loading} onClick={refresh}>{loading?'Actualisation…':'Actualiser'}</button>}
   </div>
 }

@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { elementKeys, type ElementKey, type GachaCharacterDto } from '../api/types'
 import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
 import CharactersScreen from './CharactersScreen'
@@ -11,7 +11,8 @@ const characters = elementKeys.map((elementKey, index): GachaCharacterDto => ({ 
 const roots: Root[] = []
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren() })
+beforeEach(() => { vi.stubGlobal('fetch',vi.fn(async()=>new Response(JSON.stringify({characters:[]})))) })
+afterEach(() => { act(() => roots.splice(0).forEach((root) => root.unmount())); document.body.replaceChildren();vi.unstubAllGlobals() })
 function mount() { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); act(() => root.render(<CharactersScreen characters={characters} />)); return container }
 function input(element: HTMLInputElement, value: string) { act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(element, value); element.dispatchEvent(new Event('input', { bubbles: true })) }) }
 function namesInGrid(container: HTMLElement) { return Array.from(container.querySelectorAll('.character-card h3')).map((node) => node.textContent) }

@@ -10,10 +10,11 @@ import { viewTeam } from './team-command.js';
 import { BusinessError } from '../errors.js';
 import { optionalRecoveryDomain } from '../player/player-recovery-readiness.js';
 import { AppError } from '../../api/errors.js';
+import { commandText } from './command-presentation.js';
 import { bossDailyState, expeditionDailyState, eventHasActionableContentToday } from '../../domain/dailies/daily-completion.js';
 export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'monthlyBossService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
 export type PlayerCommandHandler = 'pity' | 'banniere' | 'pull' | 'team' | 'sac' | 'expedition' | 'quotis';
-const syntax = (usage: string) => `Syntaxe : ${usage}.`;
+const syntax = (usage: string) => `⚠️ Syntaxe : ${usage}.`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
 export function parsePullCount(args: readonly string[]): number | null {
   if (args.length > 1 || args[0] && !/^(?:[1-9]|10)$/u.test(args[0])) return null;
@@ -22,8 +23,8 @@ export function parsePullCount(args: readonly string[]): number | null {
 export function playerCommandError(error: unknown, handler: string): string | undefined {
   if (handler === 'banniere' && error instanceof BusinessError && error.code === 'GACHA_BANNER_UNAVAILABLE') return '⚠️ Aucune bannière n’est active pour le moment.';
   const oneLine = (text: string) => text.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
-  if (error instanceof BusinessError && !error.code.includes('IDEMPOTENCY')) return /^(No |A |The |Player |Could )/u.test(error.message) ? 'Action impossible pour le moment.' : oneLine(error.message);
-  if (error instanceof AppError && !error.code.includes('IDEMPOTENCY')) return oneLine(error.message);
+  if (error instanceof BusinessError && !error.code.includes('IDEMPOTENCY')) return commandText(/^(No |A |The |Player |Could )/u.test(error.message) ? 'Action impossible pour le moment.' : oneLine(error.message),'warning');
+  if (error instanceof AppError && !error.code.includes('IDEMPOTENCY')) return commandText(oneLine(error.message),error.statusCode>=500?'error':'warning');
   return undefined;
 }
 export function expeditionCommandSummary(view: Awaited<ReturnType<PlayerCommandServices['expeditionService']['getState']>>) {

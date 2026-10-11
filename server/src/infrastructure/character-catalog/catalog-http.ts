@@ -4,7 +4,7 @@ import { isIP } from 'node:net';
 
 export const sourceHosts = new Set(['bbs-api-os.hoyolab.com', 'raw.githubusercontent.com', 'api.github.com',
   'upload-os-bbs.hoyolab.com', 'hyl-static-res-prod.hoyolab.com', 'sdk.hoyoverse.com',
-  'act-webstatic.hoyoverse.com', 'enka.network', 'genshin.jmp.blue']);
+  'act-webstatic.hoyoverse.com', 'enka.network', 'genshin.jmp.blue', 'www.icy-veins.com', 'static.icy-veins.com', 'game8.co', 'sephijin.fr']);
 export class CatalogFetchError extends Error {
   constructor(public readonly code: string, public readonly httpStatus?: number) { super(code); }
 }

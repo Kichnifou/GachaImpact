@@ -47,8 +47,8 @@ export class PrismaGachaStore implements GachaStore {
   }
 
   public async listActiveCharacters(): Promise<readonly GachaCharacter[]> {
-    const rows = await this.database.character.findMany({ where: { isActive: true }, select: characterSelection, orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }] });
-    return rows.map(toCharacter);
+    const rows = await this.database.character.findMany({ where: { isActive: true }, select: { ...characterSelection, releaseDate: true }, orderBy: [{ displayOrder: 'asc' }, { name: 'asc' }] });
+    return rows.map(row => ({ ...toCharacter(row), releaseDate: row.releaseDate }));
   }
 
   public async getCurrent(playerId: string) {

@@ -5,6 +5,8 @@ import { eligibility, mergeEvidence, normalizedIdentity, readFields, type Catalo
 import { CatalogFetchError, RequestBudget, catalogHttp, type CatalogHttp } from '../../infrastructure/character-catalog/catalog-http.js';
 import { CatalogSources, catalogFieldSources, officialReleaseEvidence, type SourceAttempt, type OfficialPost } from '../../infrastructure/character-catalog/catalog-sources.js';
 import { CatalogImageStorage, validateImage } from '../../infrastructure/character-catalog/catalog-images.js';
+import { canCollect, isTracked, shouldStopAtRelease, sameEditorialValue } from './catalog-followup.js';
+import { recordImageVersion } from './catalog-image-version.js';
 
 type RunMode = 'daily' | 'retry' | 'audit';
 const json = (value: unknown) => value as Prisma.InputJsonValue;
@@ -37,6 +39,20 @@ export class CatalogEngine {
       if (run.status === 'COMPLETED') return { skipped: 'ALREADY_COMPLETED' };
       if (run.nextAttemptAt > this.now()) return { skipped: 'BACKOFF' };
       run = await this.db.catalogRun.update({ where: { id: run.id }, data: { status: 'RUNNING', completedAt: null } });
+      const request = run.summary as Prisma.InputJsonObject;
+      const dryRun = mode === 'audit' || (this.settings.dryRun && !(requestedRunId && request['apply'] === true && mode === 'retry'));
+      const batched = mode === 'daily' || !candidateId;
+      run = await this.fenced(token,tx=>tx.catalogRun.update({where:{id:run.id},data:{summary:json({...request,mode,dryRun,apply:mode==='retry'&&!dryRun,...(candidateId?{candidateId}:{})})}}));
+      if (candidateId) {
+        const target = await this.db.catalogCandidate.findUniqueOrThrow({ where: { id: candidateId } });
+        if (!isTracked(target) || shouldStopAtRelease(target.characterId, readFields(target.fields), started, target.releaseFollowupAuthorized)) {
+          await this.fenced(token, async tx => {
+            if (!dryRun) await this.protectReleased(tx, target.id, target.revision, started);
+            await tx.catalogRun.update({ where: { id: run.id }, data: { status: 'COMPLETED', completedAt: this.now(), summary: { mode, candidateId, processed: 0, changed: 0, reason: 'FICHE_PROTEGEE' } } });
+          });
+          return { runId: run.id, processed: 0, changed: 0, remaining: 0 };
+        }
+      }
       const record = async (attempt: SourceAttempt, id?: string) => {
         await this.fenced(token, tx => tx.catalogAttempt.create({ data: { runId: run.id, candidateId: id, ...attempt,
           checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } }));
@@ -50,117 +66,162 @@ export class CatalogEngine {
       let attemptCandidateId: string | undefined;
       const sources = new CatalogSources(budget.request, attempt => record(attempt, attemptCandidateId), started);
       const posts = await sources.discover();
-      if (mode === 'daily' && !this.settings.dryRun) {
-        for (const post of posts.filter(row => row.name)) await this.discover(token, post);
+      let discoveryChanges = 0;
+      if (!candidateId && !dryRun) {
+        for (const post of posts.filter(row => row.name)) discoveryChanges += await this.discover(token, post, run.id);
         await this.seedHistorical(token);
       }
       const previous = run.summary as Prisma.InputJsonObject;
-      const dailyCutoff = mode === 'daily' && typeof previous['dailyCutoff'] === 'string' ? new Date(previous['dailyCutoff']) : this.now();
-      const processedIds = mode === 'daily' && Array.isArray(previous['processedCandidateIds']) ?
+      const dailyCutoff = batched && typeof previous['dailyCutoff'] === 'string' ? new Date(previous['dailyCutoff']) : this.now();
+      const processedIds = batched && Array.isArray(previous['processedCandidateIds']) ?
         previous['processedCandidateIds'].filter((id): id is string => typeof id === 'string') : [];
-      const dailyWhere = () => ({ nextCheckAt: { lte: dailyCutoff }, id: { notIn: processedIds } });
-      const checkpoint = () => ({ mode, dryRun: this.settings.dryRun, dailyCutoff: dailyCutoff.toISOString(), processedCandidateIds: processedIds });
-      if (mode === 'daily') await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
+      const dailyWhere = () => ({ trackingState: 'ACTIVE', trackingElements: { isEmpty: false }, ...(mode === 'daily' ? { nextCheckAt: { lte: dailyCutoff } } : {}), id: { notIn: processedIds } });
+      const checkpoint = () => ({ ...previous, mode, dryRun, selectionPolicy: 'protected-v1', scopeRecalculationRequired: false, dailyCutoff: dailyCutoff.toISOString(), processedCandidateIds: processedIds });
+      if (batched) await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
       const candidates = await this.db.catalogCandidate.findMany({ where: candidateId ? { id: candidateId } : dailyWhere(),
-        orderBy: [{ nextCheckAt: 'asc' }, { id: 'asc' }], take: mode === 'daily' ? 15 : 1, include: { character: true, assets: true, identities: true } });
+        orderBy: [{ nextCheckAt: 'asc' }, { id: 'asc' }], take: batched ? 15 : 1, include: { character: true, assets: true, identities: true } });
       const reports: unknown[] = [];
+      let changed = discoveryChanges;
       for (const candidate of candidates) {
         try {
           const fields = readFields(candidate.fields);
+          if (!isTracked(candidate) || shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized)) {
+            if (!dryRun) await this.fenced(token, tx => this.protectReleased(tx, candidate.id, candidate.revision, started));
+            if (batched) processedIds.push(candidate.id);
+            continue;
+          }
           const names = [candidate.name, fields.originalName?.value, fields.name?.value].filter((name): name is string => typeof name === 'string');
           attemptCandidateId = candidate.id;
-          const structured = await sources.structured(names);
+          const structured = await sources.structured(names, candidate.trackingElements.filter(field => canCollect(candidate, field)));
           for (const field of ['name', 'originalName', 'rarity', 'element', 'weapon', 'region', 'numericId'] as const) {
-            if (fields[field]) continue;
+            if (!canCollect(candidate, field) || fields[field]) continue;
             const value = structured?.fields[field];
             await record({ provider: value?.provider ?? 'genshin-db', field, outcome: value ? 'FOUND' : 'MISSING',
               ...(value ? { sourceUrl: value.url } : { errorCode: 'ABSENT' }) }, candidate.id);
           }
           let merged = fields;
-          for (const [field, value] of Object.entries(structured?.fields ?? {})) if (value && catalogFieldSources[field as keyof CatalogFields].includes(value.provider)) merged = mergeEvidence(merged, field as keyof CatalogFields, value);
+          for (const [field, value] of Object.entries(structured?.fields ?? {})) if (value && canCollect(candidate, field) && catalogFieldSources[field as keyof CatalogFields].includes(value.provider)) merged = mergeEvidence(merged, field as keyof CatalogFields, value);
           for (const post of posts) {
             if (post.name && names.some(name => normalizedIdentity(name) === normalizedIdentity(post.name!)))
-              for (const [field, value] of Object.entries(post.fields)) if (value) merged = mergeEvidence(merged, field as keyof CatalogFields, value);
+              for (const [field, value] of Object.entries(post.fields)) if (value && canCollect(candidate, field)) merged = mergeEvidence(merged, field as keyof CatalogFields, value);
             const release = officialReleaseEvidence(post, names, started);
-            if (release) merged = mergeEvidence(merged, 'releaseDate', release);
+            if (release && canCollect(candidate, 'releaseDate')) merged = mergeEvidence(merged, 'releaseDate', release);
           }
           reports.push({ candidateId: candidate.id, fields: merged, missing: eligibility(merged, candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started).missing });
-          if (mode === 'audit' || this.settings.dryRun) {
-            if (mode === 'daily') {
+          if (dryRun) {
+            if (batched) {
               processedIds.push(candidate.id);
               await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
             }
             continue;
           }
-          await this.fenced(token, async tx => {
+          let expectedRevision = candidate.revision;
+          let released = false;
+          const fieldChanges = await this.fenced(token, async tx => {
             await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
             const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
+            if (current.revision !== expectedRevision || !isTracked(current)) throw new CatalogFetchError('REVISION_CHANGED');
             let final = readFields(current.fields);
-            for (const [field, value] of Object.entries(merged)) if (value) final = mergeEvidence(final, field as keyof CatalogFields, value);
+            const updates: string[] = [];
+            for (const [field, value] of Object.entries(merged)) if (value && canCollect(current, field)) final = mergeEvidence(final, field as keyof CatalogFields, value);
             if (final.numericId) await this.attach(tx, candidate.id, 'genshin', String(final.numericId.value));
+            for (const [field, value] of Object.entries(final)) if (!sameEditorialValue(readFields(current.fields)[field as keyof CatalogFields], value)) {
+              updates.push(`${field}${value!.conflict ? ' : conflit' : ' : nouvelle information'}`);
+              await tx.catalogAttempt.create({ data: { runId: run.id, candidateId: candidate.id, provider: value!.provider, field,
+                outcome: value!.conflict ? 'CONFLICT' : readFields(current.fields)[field as keyof CatalogFields] ? 'UPDATED' : 'ADDED', sourceUrl: value!.url, checkedAt: this.now() } });
+            }
             await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { fields: json(final), revision: { increment: 1 } } });
+            if (updates.length) await this.notifyReview(tx, candidate.id, candidate.name, updates, JSON.stringify(Object.entries(final).map(([key,value])=>[key,{...value,fetchedAt:undefined,alternatives:value?.alternatives?.map(item=>({...item,fetchedAt:undefined}))}])));
+            expectedRevision++;
+            released = await this.protectReleased(tx, candidate.id, expectedRevision, started);
+            return updates.length;
           });
+          changed += fieldChanges;
+          if (released) {
+            if (batched) processedIds.push(candidate.id);
+            continue;
+          }
           for (const role of ['icon', 'splash', 'wish', 'fullbody'] as const) {
-            if (candidate.character?.[rolePath[role]] || candidate.assets.some(asset => asset.role === role && asset.status === 'AVAILABLE')) continue;
+            if (!canCollect(candidate, role) || candidate.assets.some(asset => asset.role === role && asset.autoLocked)) continue;
             const alternatives = structured?.images[role] ?? [];
             if (!alternatives.length) await record({ provider: 'technical-manifest', field: role, outcome: 'MISSING', errorCode: 'ABSENT' }, candidate.id);
             for (const asset of alternatives) {
               try {
+                const previous = candidate.assets.filter(item=>item.role===role&&item.status==='AVAILABLE').sort((a,b)=>b.checkedAt.getTime()-a.checkedAt.getTime())[0];
+                if (previous?.editorialStatus === 'VALIDATED' && asset.editorialStatus === 'PROVISIONAL') {
+                  await record({provider:asset.provider,field:role,outcome:'REJECTED',errorCode:'EDITORIAL_DOWNGRADE',sourceUrl:asset.url},candidate.id);
+                  continue;
+                }
                 const response = await budget.request(asset.url);
                 if (response.status !== 200) throw new CatalogFetchError(response.status === 404 ? 'HTTP_404' : 'UNAVAILABLE', response.status);
                 const image = await validateImage(response.body, response.mime, role);
                 // Validate independently of credentials; store only when the backend is configured.
-                const url = await this.storage.store(candidate.id, role, image);
-                await this.fenced(token, tx => tx.catalogAsset.upsert({ where: { candidateId_role_hash: { candidateId: candidate.id, role, hash: image.hash } },
-                  create: { candidateId: candidate.id, role, hash: image.hash, provider: asset.provider, sourceUrl: asset.url, url,
-                    mime: image.mime, width: image.width, height: image.height, bytes: image.bytes, sourceHash: image.sourceHash, sourceMime: response.mime, status: 'AVAILABLE', checkedAt: this.now() }, update: {} }));
-                await record({ provider: asset.provider, field: role, outcome: 'AVAILABLE', sourceUrl: asset.url, httpStatus: 200 }, candidate.id);
+                if (asset.sourceHash && image.sourceHash !== asset.sourceHash) throw new CatalogFetchError('SOURCE_IMAGE_CHANGED');
+                const url = this.storage.configured ? await this.storage.store(candidate.id, role, image) : null;
+                const imageChanged = await this.fenced(token, async tx => {
+                  await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
+                  const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id }, include: { assets: true } });
+                  if (current.revision !== expectedRevision || !canCollect(current, role) || current.assets.some(item => item.role === role && item.autoLocked)) throw new CatalogFetchError('REVISION_CHANGED');
+                  const saved = await recordImageVersion(tx, { candidateId: candidate.id, role, image, provider: asset.provider,
+                    sourceUrl: asset.url, sourceMime: response.mime, url, editorialStatus: asset.editorialStatus ?? 'VALIDATED', now: this.now() });
+                  if (saved.changed) await this.notifyReview(tx,candidate.id,candidate.name,[`${role} : ${url?'image disponible':'source image qualifiée, stockage en attente'}`],`${role}:${image.hash}:${saved.asset.status}:${saved.asset.editorialStatus}`);
+                  return saved.changed;
+                });
+                if (imageChanged) changed++;
+                await record({ provider: asset.provider, field: role, outcome: url ? 'AVAILABLE' : 'SOURCE_VALIDATED', sourceUrl: asset.url, httpStatus: 200,
+                  ...(!url ? { errorCode: 'STORAGE_NOT_CONFIGURED' } : {}) }, candidate.id);
                 break;
               } catch (error) {
                 const code = error instanceof CatalogFetchError ? error.code : 'UNAVAILABLE';
-                if (['BUDGET_EXHAUSTED', 'LEASE_LOST'].includes(code)) throw error;
+                if (['BUDGET_EXHAUSTED', 'LEASE_LOST', 'REVISION_CHANGED'].includes(code)) throw error;
                 await record({ provider: asset.provider, field: role, outcome: code === 'HTTP_404' ? 'MISSING' : 'ERROR', errorCode: code, sourceUrl: asset.url,
                   ...(error instanceof CatalogFetchError && error.httpStatus ? { httpStatus: error.httpStatus } : {}) }, candidate.id);
                 if (code === 'STORAGE_NOT_CONFIGURED') break;
               }
             }
           }
-          for (const promotion of candidate.assets.filter(row => row.role === 'promotion' && row.status === 'UNVERIFIED' && row.sourceUrl).slice(0, 3)) {
+          for (const promotion of candidate.assets.filter(row => canCollect(candidate, 'promotion') && !row.autoLocked && row.role === 'promotion' && row.status === 'UNVERIFIED' && row.sourceUrl).slice(0, 3)) {
             try {
               const response = await budget.request(promotion.sourceUrl!);
               if (response.status !== 200) throw new CatalogFetchError(response.status === 404 ? 'HTTP_404' : 'UNAVAILABLE', response.status);
               const image = await validateImage(response.body, response.mime, 'promotion');
-              await this.fenced(token, tx => tx.catalogAsset.update({ where: { id: promotion.id }, data: { hash: image.hash, sourceHash: image.sourceHash,
+              await this.fenced(token, async tx => {
+                await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
+                const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
+                if (current.revision !== expectedRevision || !canCollect(current, 'promotion')) throw new CatalogFetchError('REVISION_CHANGED');
+                await tx.catalogAsset.updateMany({ where: { id: promotion.id, autoLocked: false }, data: { hash: image.hash, sourceHash: image.sourceHash,
                 sourceMime: response.mime, mime: image.mime, width: image.width, height: image.height, bytes: response.body.length,
-                status: 'SOURCE_VALIDATED', checkedAt: this.now() } }));
+                status: 'SOURCE_VALIDATED', officialConfirmed: true, checkedAt: this.now() } });
+              });
               await record({ provider: 'hoyoverse', field: 'promotion', outcome: 'SOURCE_VALIDATED', sourceUrl: promotion.sourceUrl!, httpStatus: 200 }, candidate.id);
             } catch (error) {
-              if (error instanceof CatalogFetchError && ['BUDGET_EXHAUSTED', 'LEASE_LOST'].includes(error.code)) throw error;
+              if (error instanceof CatalogFetchError && ['BUDGET_EXHAUSTED', 'LEASE_LOST', 'REVISION_CHANGED'].includes(error.code)) throw error;
               await record({ provider: 'hoyoverse', field: 'promotion', outcome: 'ERROR', errorCode: error instanceof CatalogFetchError ? error.code : 'UNAVAILABLE', sourceUrl: promotion.sourceUrl! }, candidate.id);
             }
           }
-          await this.finalize(token, candidate.id, started);
+          await this.finalize(token, candidate.id, started, expectedRevision);
         } catch (error) {
           const code = error instanceof CatalogFetchError ? error.code : 'INTERVENTION';
           if (['BUDGET_EXHAUSTED', 'LEASE_LOST'].includes(code)) throw error;
           await record({ provider: 'pipeline', field: 'candidate', outcome: 'ERROR', errorCode: code }, candidate.id);
-          if (mode !== 'audit' && !this.settings.dryRun) await this.fenced(token, tx => tx.catalogCandidate.update({ where: { id: candidate.id }, data: {
+          if (!dryRun && code !== 'REVISION_CHANGED') await this.fenced(token, tx => tx.catalogCandidate.updateMany({ where: { id: candidate.id, trackingState: 'ACTIVE', revision: candidate.revision }, data: {
             status: code === 'IDENTITY_CONFLICT' ? 'CONFLICT' : 'TEMPORARY_ERROR', checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } }));
         }
-        if (mode === 'daily') {
+        if (batched) {
           processedIds.push(candidate.id);
           await this.fenced(token, tx => tx.catalogRun.update({ where: { id: run.id }, data: { summary: json(checkpoint()) } }));
         }
       }
-      if (mode !== 'audit' && !this.settings.dryRun) await this.deliverNotifications();
-      const remaining = mode === 'daily' ? await this.db.catalogCandidate.count({ where: dailyWhere() }) : 0;
+      if (!dryRun) await this.deliverNotifications();
+      const remaining = batched ? await this.db.catalogCandidate.count({ where: dailyWhere() }) : 0;
       await this.fenced(token, async tx => {
         await tx.catalogRun.update({ where: { id: run.id }, data: { status: remaining ? 'QUEUED' : 'COMPLETED', failureCount: 0,
           completedAt: remaining ? null : this.now(), nextAttemptAt: new Date(this.now().getTime() + (remaining ? 60_000 : 0)),
-          summary: json({ ...checkpoint(), discovered: posts.filter(row => row.name).length, remaining, reports }) } });
+          summary: json({ ...checkpoint(), discovered: posts.filter(row => row.name).length, processed: batched ? processedIds.length : candidates.length,
+            changed: (typeof previous['changed'] === 'number' ? previous['changed'] : 0) + changed, remaining, reports }) } });
         if (mode === 'daily' && !remaining) await tx.catalogJob.update({ where: { id: 'R1051' }, data: { lastSuccessDate: businessDate, lastSuccessAt: this.now() } });
       });
-      return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length, remaining };
+      return { runId: run.id, discovered: posts.filter(row => row.name).length, processed: candidates.length, changed, remaining };
     } catch (error) {
       if (runId) await this.fenced(token, async tx => {
         const run = await tx.catalogRun.findUniqueOrThrow({ where: { id: runId } });
@@ -187,27 +248,55 @@ export class CatalogEngine {
     if (existing && existing.candidateId !== candidateId) throw new CatalogFetchError('IDENTITY_CONFLICT');
     await tx.catalogIdentity.upsert({ where: { namespace_externalId: { namespace, externalId } }, create: { namespace, externalId, candidateId }, update: {} });
   }
-  private async discover(token: string, post: OfficialPost) {
+  private async notifyReview(tx: Prisma.TransactionClient, id: string, name: string, changes: string[], signature: string) {
+    const hash = createHash('sha256').update(signature).digest('hex');
+    const admins = await tx.playerRoleAssignment.findMany({ where: { role:'ADMIN',revokedAt:null,player:{status:'ACTIVE'} },select:{playerId:true} });
+    for (const admin of admins) {
+      const deduplicationKey=`catalog-review:${id}:${hash}:${admin.playerId}`;
+      await tx.notification.upsert({where:{deduplicationKey},create:{playerId:admin.playerId,domainKey:'character-catalog',typeKey:'CATALOG_REVIEW_ADMIN',
+        payload:{title:`Fiche à examiner : ${name}`,message:`${changes.join(' ; ')}. Consulter Modération > Personnages > Imports et candidats.`,candidateId:id},deduplicationKey},update:{}});
+    }
+  }
+  private async protectReleased(tx: Prisma.TransactionClient, id: string, revision: number, now: Date) {
+    await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
+    const current = await tx.catalogCandidate.findUniqueOrThrow({ where: { id } });
+    if (current.revision !== revision || !isTracked(current) || !shouldStopAtRelease(current.characterId, readFields(current.fields), now, current.releaseFollowupAuthorized)) return false;
+    await tx.catalogCandidate.update({ where: { id }, data: { trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Sortie officielle confirmée.', revision: { increment: 1 } } });
+    await tx.catalogAsset.updateMany({ where: { candidateId: id }, data: { autoLocked: true } });
+    return true;
+  }
+  private async discover(token: string, post: OfficialPost, runId: string) {
     const name = post.name!, normalized = normalizedIdentity(name);
-    await this.fenced(token, async tx => {
+    return this.fenced(token, async tx => {
+      let created = false;
       const identity = await tx.catalogIdentity.findUnique({ where: { namespace_externalId: { namespace: 'official-name', externalId: normalized } } });
       let candidate = identity ? await tx.catalogCandidate.findUniqueOrThrow({ where: { id: identity.candidateId } }) : null;
       if (!candidate) {
         const existing = await tx.character.findMany({ where: { name: { equals: name, mode: 'insensitive' } }, take: 2 });
         if (existing.length > 1) throw new CatalogFetchError('IDENTITY_CONFLICT');
-        candidate = existing[0] ? await tx.catalogCandidate.upsert({ where: { characterId: existing[0].id }, create: { name, characterId: existing[0].id }, update: {} })
+        candidate = existing[0] ? await tx.catalogCandidate.upsert({ where: { characterId: existing[0].id }, create: { name, characterId: existing[0].id, trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} })
           : await tx.catalogCandidate.create({ data: { name } });
+        created = !existing[0];
       }
+      await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${candidate.id}::uuid FOR UPDATE`;
+      candidate = await tx.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
+      if (!isTracked(candidate)) return 0;
+      if (await this.protectReleased(tx, candidate.id, candidate.revision, this.now())) return 0;
       let fields = readFields(candidate.fields);
-      for (const [key, value] of Object.entries(post.fields)) if (value) fields = mergeEvidence(fields, key as keyof CatalogFields, value);
+      for (const [key, value] of Object.entries(post.fields)) if (value && canCollect(candidate, key)) fields = mergeEvidence(fields, key as keyof CatalogFields, value);
       await this.attach(tx, candidate.id, 'official-name', normalized);
       await this.attach(tx, candidate.id, 'hoyolab-post', post.id);
-      await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { fields: json(fields) } });
-      for (const url of post.promotion.slice(0, 3)) {
+      const updates=Object.entries(fields).filter(([key,value])=>!sameEditorialValue(readFields(candidate.fields)[key as keyof CatalogFields],value));
+      for (const [field,value] of updates) await tx.catalogAttempt.create({data:{runId,candidateId:candidate.id,provider:value!.provider,field,
+        outcome:readFields(candidate.fields)[field as keyof CatalogFields]?'UPDATED':'ADDED',sourceUrl:value!.url,checkedAt:this.now()}});
+      await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { fields: json(fields),...(updates.length?{revision:{increment:1}}:{}) } });
+      if(created||updates.length) await this.notifyReview(tx,candidate.id,candidate.name,[created?'Nouvelle annonce':updates.map(([key])=>`${key} : nouvelle information`).join(' ; ')],`announcement:${post.id}:${updates.map(([key,value])=>`${key}:${value?.value}`).join('|')}`);
+      for (const url of canCollect(candidate, 'promotion') ? post.promotion.slice(0, 3) : []) {
         if (await tx.catalogAsset.findFirst({ where: { candidateId: candidate.id, role: 'promotion', sourceUrl: url } })) continue;
         await tx.catalogAsset.create({ data: { candidateId: candidate.id, role: 'promotion', hash: `source:${createHash('sha256').update(url).digest('hex')}`,
           provider: 'hoyoverse', sourceUrl: url, status: 'UNVERIFIED' } });
       }
+      return created ? 1 : updates.length;
     });
   }
   private async seedHistorical(token: string) {
@@ -217,17 +306,20 @@ export class CatalogEngine {
       for (const [key, value] of [['name', row.name], ['rarity', row.rarity], ['element', row.elementKey], ['weapon', row.weaponType], ['region', row.region]] as const) {
         if (value !== null) fields[key] = { value, provider: 'catalog', url: `character:${row.id}`, fetchedAt: this.now().toISOString(), reliability: 'ADMIN', override: true };
       }
-      const candidate = await tx.catalogCandidate.upsert({ where: { characterId: row.id }, create: { characterId: row.id, name: row.name, status: 'PUBLISHED', fields: json(fields), publishedAt: row.createdAt }, update: {} });
+      const candidate = await tx.catalogCandidate.upsert({ where: { characterId: row.id }, create: { characterId: row.id, name: row.name, status: 'PUBLISHED', fields: json(fields), publishedAt: row.createdAt,
+        trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Fiche historique protégée.' }, update: {} });
       await this.attach(tx, candidate.id, 'catalog', row.externalKey);
     });
   }
-  private async finalize(token: string, id: string, started: Date) {
+  private async finalize(token: string, id: string, started: Date, expectedRevision: number) {
     const snapshot = await this.db.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { assets: true } });
     const pending = eligibility(readFields(snapshot.fields), snapshot.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role), started);
-    const verified = !snapshot.characterId && pending.status === 'ELIGIBLE' && this.settings.publish && this.storage.configured ? await this.verifyPublication(id) : [];
+    const canPublish = this.settings.enabled && !this.settings.dryRun && this.settings.publish && this.storage.configured;
+    const verified = !snapshot.characterId && pending.status === 'ELIGIBLE' && canPublish ? await this.verifyPublication(id) : [];
     await this.fenced(token, async tx => {
       await tx.$queryRaw`SELECT id FROM catalog_candidates WHERE id = ${id}::uuid FOR UPDATE`;
       const candidate = await tx.catalogCandidate.findUniqueOrThrow({ where: { id }, include: { assets: true, character: true } });
+      if (candidate.revision !== expectedRevision || !isTracked(candidate)) throw new CatalogFetchError('REVISION_CHANGED');
       const fields = readFields(candidate.fields);
       const available = candidate.assets.filter(row => row.status === 'AVAILABLE').map(row => row.role);
       if (candidate.character) for (const [role, path] of Object.entries(rolePath)) if (candidate.character[path as 'iconPath']) available.push(role);
@@ -235,15 +327,18 @@ export class CatalogEngine {
       await tx.catalogCandidate.update({ where: { id }, data: { status: candidate.characterId ? 'PUBLISHED' : result.status, missing: result.missing,
         officialReleaseDate: result.officialDate ? new Date(`${result.officialDate}T00:00:00Z`) : null, checkedAt: this.now(), nextCheckAt: getNextBusinessResetAt(this.now()) } });
       if (candidate.characterId) {
-        // Fill NULL only, retaining every existing ADMIN value and all gameplay relations.
+        // Only explicitly opened image roles may change. Previous immutable objects remain stored.
         for (const [role, path] of Object.entries(rolePath)) {
-          const asset = candidate.assets.find(row => row.role === role && row.status === 'AVAILABLE' && row.url);
-          if (asset?.url) await tx.character.updateMany({ where: { id: candidate.characterId, [path]: null }, data: { [path]: asset.url } });
+          const asset = candidate.assets.filter(row => row.role === role && row.status === 'AVAILABLE' && row.url).sort((a,b) => b.checkedAt.getTime()-a.checkedAt.getTime() || a.id.localeCompare(b.id))[0];
+          if (asset?.url && canCollect(candidate, role) && !candidate.assets.some(row => row.role === role && row.autoLocked))
+            await tx.character.updateMany({ where: { id: candidate.characterId, [path]: candidate.character?.[path as 'iconPath'] ?? null }, data: { [path]: asset.url } });
         }
-        if (result.officialDate) await tx.character.updateMany({ where: { id: candidate.characterId, releaseDate: null }, data: { releaseDate: new Date(`${result.officialDate}T00:00:00Z`) } });
-        if (fields.weapon) await tx.character.updateMany({ where: { id: candidate.characterId, weaponType: null }, data: { weaponType: String(fields.weapon.value) } });
-        if (fields.region) await tx.character.updateMany({ where: { id: candidate.characterId, region: null }, data: { region: String(fields.region.value) } });
-      } else if (result.status === 'ELIGIBLE' && this.settings.publish && this.storage.configured) await this.publish(tx, candidate, fields, false, verified);
+        if (result.officialDate && canCollect(candidate, 'releaseDate')) await tx.character.updateMany({ where: { id: candidate.characterId, releaseDate: null }, data: { releaseDate: new Date(`${result.officialDate}T00:00:00Z`) } });
+        if (fields.weapon && canCollect(candidate, 'weapon') && fields.weapon.reliability !== 'PROVISIONAL') await tx.character.updateMany({ where: { id: candidate.characterId, weaponType: null }, data: { weaponType: String(fields.weapon.value) } });
+        if (fields.region && canCollect(candidate, 'region') && fields.region.reliability !== 'PROVISIONAL') await tx.character.updateMany({ where: { id: candidate.characterId, region: null }, data: { region: String(fields.region.value) } });
+        if (shouldStopAtRelease(candidate.characterId, fields, started, candidate.releaseFollowupAuthorized)) await tx.catalogCandidate.update({ where: { id }, data: {
+          trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Sortie officielle confirmée.', revision: { increment: 1 } } });
+      } else if (result.status === 'ELIGIBLE' && canPublish) await this.publish(tx, candidate, fields, false, verified);
     });
   }
   async verifyPublication(candidateId: string): Promise<string[]> {
@@ -260,6 +355,7 @@ export class CatalogEngine {
     return verified;
   }
   async publish(tx: Prisma.TransactionClient, candidate: CatalogCandidate, fields: CatalogFields, overrideWindow = false, verified: readonly string[] = []) {
+    if (!isTracked(candidate)) throw new CatalogFetchError('FICHE_PROTEGEE');
     const assets = await tx.catalogAsset.findMany({ where: { candidateId: candidate.id, status: 'AVAILABLE' }, orderBy: [{ checkedAt: 'desc' }, { id: 'asc' }] });
     const result = eligibility(fields, assets.map(row => row.role), this.now(), overrideWindow);
     if (result.status !== 'ELIGIBLE') throw new CatalogFetchError('NOT_ELIGIBLE');
@@ -278,7 +374,8 @@ export class CatalogEngine {
       displayOrder: fields.displayOrder?.reliability === 'ADMIN' && fields.displayOrder.override ? Number(fields.displayOrder.value) : null,
       releaseDate: new Date(`${result.officialDate}T00:00:00Z`), ...paths,
       sourceMetadata: { catalogCandidateId: candidate.id, genshinId: numericId } } });
-    await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { characterId: character.id, status: 'PUBLISHED', publishedAt: this.now() } });
+    await tx.catalogCandidate.update({ where: { id: candidate.id }, data: { characterId: character.id, status: 'PUBLISHED', publishedAt: this.now(),
+      ...(shouldStopAtRelease(character.id, fields, this.now()) ? { trackingState: 'PROTECTED', trackingElements: [], trackingReason: 'Premier import effectué ; personnage officiellement sorti.' } : {}) } });
     const missing = [...['weapon', 'region'].filter(field => !fields[field as keyof CatalogFields]),
       ...['wish', 'fullbody'].filter(role => !assets.some(asset => asset.role === role))];
     await tx.catalogImportOutbox.create({ data: { candidateId: candidate.id, characterId: character.id, name: character.name,

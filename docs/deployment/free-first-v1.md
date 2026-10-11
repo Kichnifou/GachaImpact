@@ -1,5 +1,12 @@
 # Déploiement Free-first V1 — état public et checklist
 
+## R1051 — finalisation et reprise opératoire du 11/10/2026
+
+La migration 071 passe par le pre-deploy Prisma normal ; contrôler ledger/checksum/status, 120 historiques PROTECTED et les deux nouvelles fiches seules encore suivies avant toute collecte contrôlée. Le dispatcher des demandes manuelles reste disponible quand CHARACTER_CATALOG_ENABLED=false ; ce flag désigne le quotidien, pas l'acceptation d'une demande ADMIN explicite. Comparer sans modifier n'applique jamais ; une demande manuelle explicite de recherche applique les informations, publication toujours soumise aux gates indépendantes. Aucun drainage de l'ancien cycle quotidien OFF.
+
+Blocage Storage réel maintenu : clé backend absente, bucket character-catalog absent, capacité organisation non qualifiée. Étape privée nécessaire : configurer le secret directement dans les variables Railway (jamais conversation/Git/log/VITE), créer/configurer le bucket public PNG limité 5 Mio avec écritures serveur seulement, confirmer marge organisation puis faire l'upload contrôlé non-Character/read/hash/cache/rejet anon/rejeu/conservation. Une clé secrète de projet n'est pas limitée au bucket. Le script check-character-catalog-storage.mts ne qualifie que la configuration, ne prétend pas faire l'upload réel. Sans ce préalable : Storage suspendu, quotidien OFF, publication OFF ; continuer uniquement les sous-ensembles sûrs. [Owner et plan de dates](../architecture/character-catalog-assets-r1051.md#finalisation-ciblée--amendement-du-11102026). Les recettes hébergement/Auth/Twitch déjà acquises ne sont pas relancées.
+
+
 <a id="r1051-storage-operations"></a>
 ## R1051 lot 2 — variables et gate Storage
 

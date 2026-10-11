@@ -1,5 +1,10 @@
 # Notifications V1 — contrat transverse
 
+## R1051 — nouveauté de fiche privée ADMIN
+
+CATALOG_REVIEW_ADMIN réutilise les notifications existantes, dans la transaction de changement éditorial : nouveau champ ou conflit, source/date détaillées dans l'historique de Modération. Déduplication candidat/contenu/destinataire, timestamp de consultation exclu ; une absence répétée ne notifie pas. Réservée aux ADMIN actifs ; la lecture vérifie encore le rôle après révocation, comme CHARACTER_IMPORTED_ADMIN. Aucun message Twitch/e-mail, aucun faux import ni nouvel outbox concurrent. La notification d'import existante reste réservée à un Character réellement committé et ouvre sa fiche exacte. [Owner](../architecture/character-catalog-assets-r1051.md).
+
+
 ## Producteurs R1053 et lecture des messages Event
 
 Complément validé du 10/10/2026 : `EVENT_MONTHLY_DRAW_RESULT` est informationnelle, sans claim ni navigation privée. Texte « 🏆 Tirage du <Festival> : <gagnant> remporte ✨ 1 Masterless Stella Fortuna ! ». Tous les Players ACTIVE, même non-participants, sauf le gagnant déjà informé personnellement ; les ADMIN reçoivent aussi leur contrôle privé existant. Insertion SQL groupée atomique avec la récompense/résultat et déduplication unique `event-draw-result:<editionId>:<playerId>`. READ/ARCHIVED non réactivées au retry, Players ARCHIVED exclus, pas de notification générale en NO_ELIGIBLE. Pas de broadcast Twitch ou d'e-mail. [Atomicité et projection historique](../architecture/event-monthly-draw-r1053.md#compléments-de-restitution--mandat-du-10102026).

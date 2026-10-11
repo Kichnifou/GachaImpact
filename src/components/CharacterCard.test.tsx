@@ -19,14 +19,15 @@ describe('CharacterCard contexts', () => {
     const catalog: GachaCharacterDto = {
       id: 'catalog', externalKey: 'legacy:catalog', name: 'Catalog', rarity: 5,
       elementKey: 'hydro', weaponType: 'Épée', region: 'Fontaine', classKey: null,
-      iconPath: '/icon/catalog.png', splashPath: null, wishPath: null, fullbodyPath: null,
+      iconPath: '/assets/characters/catalog-icon.png', splashPath: null, wishPath: null, fullbodyPath: null, releaseDate:'2020-09-28',
     }
     const html = renderToStaticMarkup(<CharacterCard character={catalog} />)
 
     expect(html).toContain('Épée · Fontaine')
     expect(html).toContain('character-portrait-frame')
     expect(html).toContain('character-portrait-image')
-    expect(html).toContain('src="/icon/catalog.png"')
+    expect(html).toContain('src="/assets/characters/catalog-icon.png"')
+    expect(html).not.toContain('2020-09-28')
     expect(html).toContain('character-portrait-badge')
     expect(html).not.toContain('character-card-meta')
     expect(html).not.toContain('Niv.')

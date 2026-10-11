@@ -5,6 +5,7 @@ import { listTeamPassiveDefinitions } from '../../domain/team/team-passives.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
 import type { ChatCommandServices } from './chat-command-dispatcher.js';
 import { chatElementEmojis, chatElementNames, logicalChatParts } from './chat-list-result.js';
+import { commandText } from './command-presentation.js';
 
 export const chatNumber = (value: bigint | number) => value.toLocaleString('fr-FR').replace(/[\u00a0\u202f]/gu, ' ');
 export function resourceText(key: string, amount: bigint | string | number): string {
@@ -21,7 +22,7 @@ export function durationText(seconds: number): string {
   return [days ? `${days} j` : '', hours ? `${hours} h` : '', rest || !days && !hours ? `${rest} min` : ''].filter(Boolean).join(' ');
 }
 export const entryParts = (prefix: string, entries: readonly string[], continuation: string, separator = ' | ') =>
-  logicalChatParts(prefix, entries.map(text => ({ text, separator })), continuation);
+  logicalChatParts(commandText(prefix), entries.map(text => ({ text, separator })), commandText(continuation));
 
 export function passifsCommand(args: readonly string[], syntax: string): string | readonly string[] {
   const element = normalizePlayerSearch(args[0] ?? '');

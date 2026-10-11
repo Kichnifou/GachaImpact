@@ -50,6 +50,7 @@ import { amiCommand } from './ami-command.js';
 import { chatHelp, parseChatCommand } from './chat-command-registry.js';
 import { EXPEDITION_DURATION_MS } from '../../domain/expedition/expedition.js';
 import { eventPhrase, eventCommandError } from './event-command-result.js';
+import { commandText } from './command-presentation.js';
 
 export type ChatCommandServices = Readonly<{
   getCurrentGacha: Pick<GetCurrentGacha, 'execute'>;
@@ -95,7 +96,7 @@ export type ChatCommandServices = Readonly<{
   convertPersonalParticlesChat: Pick<ConvertPersonalParticles, 'execute'>;
 }>;
 
-const syntax = (usage: string) => `Syntaxe : ${usage}.`;
+const syntax = (usage: string) => `⚠️ Syntaxe : ${usage}.`;
 const names = (values: readonly string[], limit = 8, separator = ', ') =>
   `${values.slice(0, limit).join(separator) || 'aucun'}${values.length > limit ? `${separator}et ${values.length - limit} autres` : ''}`;
 const noArgs = (args: readonly string[], usage: string) => args.length ? syntax(usage) : null;
@@ -157,11 +158,11 @@ export class PlayerCommandResolver {
 
   async resolve(identity: PlayerExecutionActor, content: string, commandMessageId: string): Promise<string | readonly string[]> {
     const { args, definition } = parseChatCommand(content);
-    if (definition?.permission !== 'PLAYER' && definition) return 'Commande indisponible.';
-    if (!definition) return 'Commande inconnue. Utilise !help.';
-    if (definition.internalChat === 'TWITCH_ONLY') return 'Cette commande est réservée à Twitch.';
-    if (definition.internalChat === 'NOT_PHYSICAL') return 'Cette fonctionnalité n’est pas encore disponible.';
-    if (!definition.handler) return 'Cette commande n’est pas encore disponible dans le Chat.';
+    if (definition?.permission !== 'PLAYER' && definition) return '⚠️ Commande indisponible.';
+    if (!definition) return '⚠️ Commande inconnue. Utilise !help.';
+    if (definition.internalChat === 'TWITCH_ONLY') return '⚠️ Cette commande est réservée à Twitch.';
+    if (definition.internalChat === 'NOT_PHYSICAL') return '⚠️ Cette fonctionnalité n’est pas encore disponible.';
+    if (!definition.handler) return '⚠️ Cette commande n’est pas encore disponible dans le Chat.';
     let presentError: ((error: unknown) => string | undefined) | undefined;
     try {
       switch (definition.handler) {
@@ -178,35 +179,35 @@ export class PlayerCommandResolver {
               target = await this.player(identity, args.slice(0, length).join(' '));
               if (target) { characterName = args.slice(length).join(' '); break; }
             }
-            if (personalCharacter && target) return 'Nom ambigu. Précise !legende moi Personnage ou !legende @Joueur [Personnage].';
+            if (personalCharacter && target) return commandText('Nom ambigu. Précise !legende moi Personnage ou !legende @Joueur [Personnage].');
             if (personalCharacter) { target = actor; characterName = personalCharacter.name; }
           } else characterName = args.slice(1).join(' ');
-          if (!target) return 'Joueur introuvable.';
+          if (!target) return commandText('Joueur introuvable.');
           const view = await this.services.socialService.legends(identity, target.id, Boolean(characterName));
-          if (view.access === 'PRIVATE') return 'Les Légendes de ce joueur sont privées.';
+          if (view.access === 'PRIVATE') return commandText('Les Légendes de ce joueur sont privées.');
           if (!characterName) return entryParts(`🏆 Légendes de ${target.displayName} :`, view.data.characters.map(character => characterLabel(character)), `🏆 Légendes de ${target.displayName} (suite) :`);
           const legend = view.data.legends.find(row => normalizePlayerSearch(row.character.name) === normalizePlayerSearch(characterName));
-          if (!legend) return 'Légende introuvable parmi les personnages C6 accessibles.';
+          if (!legend) return commandText('Légende introuvable parmi les personnages C6 accessibles.');
           const stats = legend.stats;
           return entryParts(`🏆 ${characterLabel(legend.character)} :`, [`💪 Force ${stats.strength} · 🧠 Intelligence ${stats.intelligence} · ✨ Beauté ${stats.beauty} · 👑 Charisme ${stats.charisma} · 🎭 Popularité ${stats.popularity}`, `Concours ${legend.totals.contests}, victoires ${legend.totals.wins}`, ...Object.entries(legend.themes).map(([key, theme]) => `${({ strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' } as Record<string, string>)[key.toLowerCase()] ?? 'Concours'} : ${theme.title ?? 'Sans titre'} (${theme.wins}/${theme.participations} victoires)`)], `🏆 ${legend.character.name} (suite) :`);
         }
         case 'top': {
           if (args.length > 1) return syntax(definition.syntax);
-          if (!args.length) return `Classements : ${rankingRegistry.map(metric => metric.aliases[0]).join(', ')}. Utilise !top <metrique> ou !top me.`;
+          if (!args.length) return `ℹ️ Classements : ${rankingRegistry.map(metric => metric.aliases[0]).join(', ')}. Utilise !top <metrique> ou !top me.`;
           const actor = await this.services.socialService.actor(identity);
           if (args[0]?.toLocaleLowerCase('fr-FR') === 'me') return this.services.rankingService.personal(actor.id);
           const metric = findRanking(args[0]!);
-          return metric ? this.services.rankingService.chatTop(metric, actor.id) : 'Métrique inconnue. Utilise !top.';
+          return metric ? this.services.rankingService.chatTop(metric, actor.id) : commandText('Métrique inconnue. Utilise !top.');
         }
         case 'faveur': {
           const actor = await this.services.socialService.actor(identity);
           const target = args.length ? await this.player(identity, args.join(' ')) : actor;
-          if (!target) return 'Joueur introuvable.';
+          if (!target) return commandText('Joueur introuvable.');
           const view = await this.services.socialService.favor(identity, target.id);
-          if (view.access === 'PRIVATE') return `La Faveur de ${target.displayName} est privée.`;
+          if (view.access === 'PRIVATE') return `⚠️ La Faveur de ${target.displayName} est privée.`;
           const favor = view.data;
-          if (target.id !== actor.id) return favor.active ? `${target.displayName} : Faveur active · ${favor.daysRemaining} jours restants.` : `${target.displayName} : aucune Faveur active.`;
-          return favor.active ? `Faveur de l’Astre : ${favor.daysRemaining} jours restants / ${favor.maxDays} · +${favor.dailyPrimogems} Primogemmes/jour · récompense du jour ${favor.claimedToday ? 'reçue' : 'disponible'}.` : 'Faveur de l’Astre : inactive.';
+          if (target.id !== actor.id) return favor.active ? `ℹ️ ${target.displayName} : Faveur active · ${favor.daysRemaining} jours restants.` : `ℹ️ ${target.displayName} : aucune Faveur active.`;
+          return favor.active ? `ℹ️ Faveur de l’Astre : ${favor.daysRemaining} jours restants / ${favor.maxDays} · +${favor.dailyPrimogems} Primogemmes/jour · récompense du jour ${favor.claimedToday ? 'reçue' : 'disponible'}.` : 'ℹ️ Faveur de l’Astre : inactive.';
         }
         case 'help': return args.length <= 1 ? chatHelp(args[0]) : syntax('!help [categorie|commande]');
         case 'element': {
@@ -225,11 +226,11 @@ export class PlayerCommandResolver {
           const { banner, playerState } = await this.services.getCurrentGacha.execute(identity);
           if (!args.length) {
             const current = banner.featuredFiveStars.find(character => character.id === playerState.selectedBannerCharacterId)?.name ?? 'aucune';
-            return `Cible actuelle : ${current}. Choix : ${names(banner.featuredFiveStars.map(character => character.name), 4)}. ${definition.syntax}.`;
+            return `🎯 Cible actuelle : ${current}. Choix : ${names(banner.featuredFiveStars.map(character => character.name), 4)}. ${definition.syntax}.`;
           }
           const character = banner.featuredFiveStars.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(args.join(' ')));
           const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.id ?? '');
-          if (!characterId) return `Personnage 5★ introuvable sur la bannière. ${definition.syntax}.`;
+          if (!characterId) return `⚠️ Personnage 5★ introuvable sur la bannière. ${definition.syntax}.`;
           const disposition = await this.chat.rememberCommandText(commandMessageId, 'action', characterId === playerState.selectedBannerCharacterId ? 'already' : 'selected');
           await this.services.setGachaTarget.execute(identity, characterId, commandMessageId, this.sourceChannel);
           await this.chat.rememberCommandRefreshScopes(commandMessageId, ['gacha']);
@@ -251,7 +252,7 @@ export class PlayerCommandResolver {
           const disposition = await this.chat.rememberCommandText(commandMessageId, 'action', JSON.stringify({ rotationId: vote.bannerRotationId, already: Boolean(vote.ownVote), name: character?.name ?? args.join(' ') }));
           const intent = disposition.startsWith('{') ? JSON.parse(disposition) as { rotationId: string; already: boolean; name?: string } : { rotationId: disposition, already: false };
           if (intent.already) return `⚠️ Ton vote est déjà utilisé pour ${catalog.find(entry => entry.id === vote.ownVote?.characterId)?.name ?? 'cette semaine'}.`;
-          if (!characterId) return `Candidat de vote introuvable ou ambigu. ${definition.syntax}.`;
+          if (!characterId) return `⚠️ Candidat de vote introuvable ou ambigu. ${definition.syntax}.`;
           await this.services.bannerVotes.vote(identity, characterId, intent.rotationId, this.sourceChannel);
           await this.chat.rememberCommandRefreshScopes(commandMessageId, ['bannerVotes']);
           return `✅ Vote enregistré pour ${intent.name ?? catalog.find(entry => entry.id === characterId)?.name ?? args.join(' ')}.`;
@@ -262,14 +263,14 @@ export class PlayerCommandResolver {
           if (!args.length) return syntax(definition.syntax);
           const box = await this.services.getCurrentPlayerBox.execute(identity);
           const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(args.join(' ')));
-          return character ? `📅 ${characterLabel(character)} : première obtention le ${character.firstObtainedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.` : 'Ce personnage ne fait pas partie de votre Box.';
+          return character ? `📅 ${characterLabel(character)} : première obtention le ${character.firstObtainedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.` : commandText('Ce personnage ne fait pas partie de votre Box.');
         }
         case 'stella': {
           if (!args.length) return syntax(definition.syntax);
           const box = await this.services.getCurrentPlayerBox.execute(identity);
           const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(args.join(' ')));
           const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.id ?? '');
-          if (!characterId) return 'Ce personnage ne fait pas partie de votre Box.';
+          if (!characterId) return commandText('Ce personnage ne fait pas partie de votre Box.');
           const result = await this.services.useMasterlessStella.execute(identity, characterId, commandMessageId);
           const actor = await this.services.socialService.actor(identity);
           return stellaChatResult(actor.displayName, result);
@@ -326,10 +327,10 @@ export class PlayerCommandResolver {
             const view = await this.services.getCurrentPlayerShop.execute(identity);
             const item = view.items.find(entry => entry.externalKey === (action === 'primos' ? 'primogem-bundle' : 'reward-ticket'));
             const itemId = await this.chat.rememberCommandText(commandMessageId, 'targetId', item?.id ?? '');
-            if (!itemId || !item?.available && !await this.chat.hasConfirmedCommandMutation(commandMessageId)) return 'Cet article Boutique est actuellement indisponible.';
+            if (!itemId || !item?.available && !await this.chat.hasConfirmedCommandMutation(commandMessageId)) return commandText('Cet article Boutique est actuellement indisponible.');
             const quantity = action === 'ticket' ? 1n : max
               ? await this.chat.rememberCommandQuantity(commandMessageId, item ? view.resources.moras / item.priceAmount : 0n) : BigInt(args[1]!);
-            if (quantity < 1n) return 'Vous ne possédez pas assez de Moras dans votre portefeuille.';
+            if (quantity < 1n) return commandText('Vous ne possédez pas assez de Moras dans votre portefeuille.');
             const ticketPlayer = action === 'ticket' ? await this.chat.rememberCommandText(commandMessageId, 'eventContext',
               (playerFromServerActor(identity) ?? await this.services.socialService.actor(identity)).displayName) : null;
             const result = await this.services.purchaseShopItemChat.execute(identity, itemId, quantity, commandMessageId);
@@ -346,7 +347,7 @@ export class PlayerCommandResolver {
           const view = await this.services.getCurrentPlayerShop.execute(identity);
           const available = view.items;
           const pages = Math.max(1, Math.ceil(available.length / 5));
-          if (page > pages) return `Boutique : page ${page} indisponible (${pages} page${pages > 1 ? 's' : ''}).`;
+          if (page > pages) return commandText(`Boutique : page ${page} indisponible (${pages} page${pages > 1 ? 's' : ''}).`);
           return entryParts(`🛒 Boutique ${page}/${pages} :`, available.slice((page - 1) * 5, page * 5).map(item => `${item.displayName} (${resourceText('moras', item.priceAmount)})${item.available ? '' : ' · indisponible'}`), `🛒 Boutique ${page}/${pages} (suite) :`);
         }
         case 'banque': return await bankCommand(identity, args, commandMessageId, this.services, this.chat, syntax(definition.syntax));
@@ -383,9 +384,9 @@ export class PlayerCommandResolver {
             const raw = args.slice(1).join(' ');
             const request = raw ? requests.find(entry => samePlayerReference(action === 'annuler' ? entry.recipient.displayName : entry.sender.displayName, raw)) : requests.length === 1 ? requests[0] : null;
             const requestId = await this.chat.rememberCommandText(commandMessageId, 'targetId', request?.id ?? '');
-            if (!requestId) return raw ? 'Demande d’échange introuvable.' : syntax(definition.syntax);
+            if (!requestId) return raw ? '⚠️ Demande d’échange introuvable.' : syntax(definition.syntax);
             const result = await this.services.tradeService.mutate(actor.id, requestId, action === 'accepter' ? 'accept' : action === 'annuler' ? 'cancel' : 'refuse', commandMessageId, this.sourceChannel);
-            return `🤝 Échange ${result.state === 'ACCEPTED' ? 'accepté' : result.state === 'CANCELLED' ? 'annulé' : result.state === 'REFUSED' ? 'refusé' : 'indisponible'}${(action === 'annuler' ? result.recipient : result.sender)?.displayName ? ' avec ' + (action === 'annuler' ? result.recipient : result.sender)!.displayName : ''} : ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
+            return `${result.state==='UNAVAILABLE'?'⚠️':'✅'} 🤝 Échange ${result.state === 'ACCEPTED' ? 'accepté' : result.state === 'CANCELLED' ? 'annulé' : result.state === 'REFUSED' ? 'refusé' : 'indisponible'}${(action === 'annuler' ? result.recipient : result.sender)?.displayName ? ' avec ' + (action === 'annuler' ? result.recipient : result.sender)!.displayName : ''} : ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
           }
           const amountToken = args.at(-1)!;
           const hasAmount = args.length > 1 && /^[1-9]\d*$/u.test(amountToken);
@@ -394,11 +395,11 @@ export class PlayerCommandResolver {
           const name = hasAmount || explicitMax ? args.slice(0, -1).join(' ') : args.join(' ');
           const eligibility = await this.services.tradeService.eligibility(actor.id, playerReferenceName(name));
           const targetId = await this.chat.rememberCommandText(commandMessageId, 'targetId', eligibility.player?.id ?? '');
-          if (!await this.chat.hasConfirmedCommandMutation(commandMessageId) && !eligibility.eligible) return tradeEligibilityText(eligibility);
-          if (!targetId) return 'Joueur introuvable.';
+          if (!await this.chat.hasConfirmedCommandMutation(commandMessageId) && !eligibility.eligible) return commandText(tradeEligibilityText(eligibility),'warning');
+          if (!targetId) return commandText('Joueur introuvable.');
           const amount = hasAmount ? BigInt(amountToken) : this.sourceChannel === 'TWITCH' ? await this.chat.rememberCommandQuantity(commandMessageId, BigInt(eligibility.maximum)) : undefined;
           const result = await this.services.tradeService.create(actor.id, targetId, amount, commandMessageId, this.sourceChannel);
-          return `Demande d’échange envoyée à ${result.recipient?.displayName ?? eligibility.player?.displayName ?? name} : ${resourceText(result.senderResourceKey ?? '', result.amount)} réservées contre ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
+          return `✅ 🤝 Demande d’échange envoyée à ${result.recipient?.displayName ?? eligibility.player?.displayName ?? name} : ${resourceText(result.senderResourceKey ?? '', result.amount)} réservées contre ${resourceText(result.recipientResourceKey ?? '', result.amount)}.`;
         }
         case 'infos': {
           const target = args.join(' ').trim();
@@ -406,7 +407,7 @@ export class PlayerCommandResolver {
           const actor = await this.services.socialService.actor(identity);
           const self = ['me', 'moi'].includes(normalizePlayerSearch(target));
           const found = self ? actor : await this.player(identity, target);
-          if (!found) return 'Joueur introuvable.';
+          if (!found) return commandText('Joueur introuvable.');
           const [profile, friends] = await Promise.all([this.services.socialService.profile(identity, found.id), this.services.socialService.friends(identity)]);
           const pieces = [`${profile.player.displayName} · niveau ${profile.player.level} · ${isElementKey(profile.player.elementKey ?? '') ? characterLabel({name: chatElementNames[profile.player.elementKey as typeof elementKeys[number]], elementKey: profile.player.elementKey!}) : 'élément non choisi'}`];
           if (profile.box.access === 'ALLOWED') pieces.push(`${profile.box.data.length} personnages`);
@@ -426,7 +427,7 @@ export class PlayerCommandResolver {
             const result = await this.services.socialService.connected(identity);
             const slice = result.players.slice((page - 1) * 20, page * 20);
             const pages = Math.max(1, Math.ceil(result.total / 20));
-            if (page > pages) return `En ligne : page ${page} indisponible (${pages} pages).`;
+            if (page > pages) return commandText(`En ligne : page ${page} indisponible (${pages} pages).`);
             return entryParts(`En ligne ${page}/${pages} :`, slice.map(p => `${p.status === 'ONLINE' ? '🟢' : '🟡'} ${p.displayName}`), `En ligne ${page}/${pages} (suite) :`);
           }
           if (!elementKeys.includes(key as typeof elementKeys[number])) return syntax(definition.syntax);
@@ -464,7 +465,7 @@ export class PlayerCommandResolver {
             const max = normalizePlayerSearch(args[1] ?? '') === 'max';
             if (args.length !== 2 || !max && !/^[1-9]\d*$/u.test(args[1]!)) return syntax(definition.syntax);
             const amount = max ? await this.chat.rememberCommandQuantity(commandMessageId, BigInt(event.currency.amount)) : BigInt(args[1]!);
-            if (amount < 1n || amount > BigInt(Number.MAX_SAFE_INTEGER)) return 'Quantité de monnaie Festival indisponible.';
+            if (amount < 1n || amount > BigInt(Number.MAX_SAFE_INTEGER)) return commandText('Quantité de monnaie Festival indisponible.');
             const result = await this.services.eventService.convertShop(identity, ['moras', 'mora'].includes(action) ? 'MORAS' : 'PRIMOGEMS', Number(amount), commandMessageId, this.sourceChannel);
             return `✅ ${player} convertit ${currency(amount)} en +${resourceText(result.conversion.resourceKey, result.conversion.amount)} | 🎒 Solde : ${currency(result.currency.amount)}.`;
           }
@@ -556,7 +557,7 @@ export class PlayerCommandResolver {
             const box = await this.services.getCurrentPlayerBox.execute(identity);
             const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(target));
             const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.id ?? '');
-            if (!characterId) return `Personnage introuvable dans votre Box. ${definition.syntax}.`;
+            if (!characterId) return commandText(`Personnage introuvable dans votre Box. ${definition.syntax}.`);
             const label = await this.chat.rememberCommandText(commandMessageId, 'eventContext', `${actor.displayName} envoie ${character ? characterLabel(character) : target}`);
             const result = await this.services.expeditionService.start(identity, characterId, commandMessageId, this.sourceChannel);
             const seconds = result.view.departedAt && result.view.readyAt ? (result.view.readyAt.getTime() - result.view.departedAt.getTime()) / 1000 : EXPEDITION_DURATION_MS / 1000;
@@ -649,17 +650,17 @@ export class PlayerCommandResolver {
               : '🎯 Toutes les missions accessibles sont terminées. Rien à poursuivre.';
           }
           if (requested === 'Z') return view.z.status === 'LOCKED'
-            ? 'Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.'
+            ? commandText('Rang Z verrouillé : accessible après accomplissement de toutes les missions B, A et S.')
             : missionRankText('Z', view.z.missions);
           const rank = requested as 'B' | 'A' | 'S';
           return missionRankText(rank, view.ranks[rank]);
         }
-        default: return 'Cette commande n’est pas encore disponible dans le Chat.';
+        default: return commandText('Cette commande n’est pas encore disponible dans le Chat.');
       }
     } catch (error) {
       if (await this.chat.hasConfirmedCommandMutation(commandMessageId)) throw error;
       const text = presentError?.(error) ?? playerCommandError(error, definition.handler);
-      if (text !== undefined) return text;
+      if (text !== undefined) return commandText(text, 'warning');
       throw error;
     }
   }

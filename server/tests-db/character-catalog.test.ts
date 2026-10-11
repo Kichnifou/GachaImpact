@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
+import {readFileSync} from 'node:fs';
 import sharp from 'sharp';
 import { validateImage } from '../src/infrastructure/character-catalog/catalog-images.js';
 import type { CatalogFields } from '../src/application/character-catalog/catalog-policy.js';
@@ -12,6 +13,9 @@ import { getNextBusinessResetAt } from '../src/domain/time/business-date.js';
 import type { CatalogHttp } from '../src/infrastructure/character-catalog/catalog-http.js';
 import type { GetCurrentPlayer } from '../src/application/player/get-current-player.js';
 import type { AuthenticatedIdentity } from '../src/domain/identity/authenticated-identity.js';
+import { applyReleaseDatePlan } from '../src/application/character-catalog/catalog-date-backfill.js';
+import { canCollect } from '../src/application/character-catalog/catalog-followup.js';
+import { recordImageVersion } from '../src/application/character-catalog/catalog-image-version.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 beforeAll(() => fixture.setup({ prismaMigrations: true, seedPublicCatalog: true }), 180_000);
@@ -49,6 +53,22 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
       expect(await db.catalogAsset.count({ where: { candidateId: candidate.id } })).toBe(0);
     } finally { await db.catalogCandidate.delete({ where: { id: candidate.id } }); }
   });
+  it('migration071 preserves an existing cycle but recalculates its obsolete historical remainder',async()=>{
+    const schema=`followup_${randomUUID().replaceAll('-','')}`;
+    await fixture.admin.query('BEGIN');
+    try{
+      await fixture.admin.query(`CREATE SCHEMA "${schema}"; SET LOCAL search_path TO "${schema}",public;
+        CREATE TABLE catalog_candidates(id uuid PRIMARY KEY,character_id uuid,revision int DEFAULT 0,next_check_at timestamptz DEFAULT CURRENT_TIMESTAMP,fields jsonb DEFAULT '{}');
+        CREATE TABLE catalog_assets(candidate_id uuid);
+        CREATE TABLE catalog_runs(status text,cycle_key text,summary jsonb);`);
+      const historical=randomUUID(),fresh=randomUUID();
+      await fixture.admin.query('INSERT INTO catalog_candidates(id,character_id) VALUES ($1,$2),($3,NULL)',[historical,randomUUID(),fresh]);
+      await fixture.admin.query("INSERT INTO catalog_runs VALUES ('QUEUED','daily:2026-10-11',$1)",[JSON.stringify({remaining:107,processedCandidateIds:[historical],dailyCutoff:'2099-01-01T00:00:00Z'})]);
+      await fixture.admin.query(readFileSync('prisma/migrations/20261011090000_071_protect_catalog_followup/migration.sql','utf8'));
+      expect((await fixture.admin.query('SELECT tracking_state,tracking_elements FROM catalog_candidates WHERE id=$1',[historical])).rows[0]).toEqual({tracking_state:'PROTECTED',tracking_elements:[]});
+      expect((await fixture.admin.query('SELECT summary FROM catalog_runs')).rows[0].summary).toMatchObject({previousRemaining:107,remaining:1,processedCandidateIds:[historical],scopeRecalculationRequired:true});
+    }finally{await fixture.admin.query('ROLLBACK');}
+  });
   it('two instances discover once; completed replay changes no active Character', async () => {
     const before = await db.character.findMany({ orderBy: { id: 'asc' } });
     const result = await Promise.all([engine().run(), engine().run()]);
@@ -56,20 +76,9 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     expect(await db.catalogIdentity.count({ where: { namespace: 'hoyolab-post', externalId: '46884007' } })).toBe(1);
     expect(await db.catalogCandidate.count({ where: { name: 'Private Catalog' } })).toBe(1);
     const daily = await db.catalogRun.findFirstOrThrow({ where: { cycleKey: { startsWith: 'daily:' } } });
-    expect(daily.status).toBe('QUEUED');
-    expect((await db.catalogJob.findUniqueOrThrow({ where: { id: 'R1051' } })).lastSuccessDate).toBeNull();
-    expect(await engine().run()).toEqual({ skipped: 'BACKOFF' });
-    let remaining = await db.catalogCandidate.count({ where: { checkedAt: null } });
-    expect(remaining).toBeGreaterThan(100);
-    for (let batch = 0; remaining && batch < 10; batch++) {
-      await db.catalogRun.update({ where: { id: daily.id }, data: { nextAttemptAt: new Date(0) } });
-      const result = await engine().run(); // A fresh instance resumes the same durable daily cycle.
-      expect(result).toMatchObject({ runId: daily.id });
-      const next = await db.catalogCandidate.count({ where: { checkedAt: null } });
-      expect(next).toBeLessThan(remaining);
-      remaining = next;
-    }
-    expect(remaining).toBe(0);
+    expect(daily.status).toBe('COMPLETED');
+    expect(daily.summary).toMatchObject({processed:1,remaining:0,selectionPolicy:'protected-v1'});
+    expect(await db.catalogCandidate.count({where:{characterId:{not:null},trackingState:'PROTECTED',trackingElements:{isEmpty:true},checkedAt:null}})).toBe(before.length);
     expect(await db.catalogRun.count({ where: { cycleKey: { startsWith: 'daily:' } } })).toBe(1);
     expect((await db.catalogRun.findUniqueOrThrow({ where: { id: daily.id } })).status).toBe('COMPLETED');
     expect(await engine().run()).toEqual({ skipped: 'ALREADY_COMPLETED' });
@@ -155,7 +164,8 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     await db.$transaction(tx => publisher.publish(tx, candidate, fields, false, verified));
     const published = await db.catalogCandidate.findUniqueOrThrow({ where: { id: candidate.id } });
     expect(published.characterId).not.toBeNull(); expect(await db.character.count()).toBe(count + 1);
-    await expect(db.$transaction(tx => publisher.publish(tx, published, fields, false, verified))).rejects.toThrow('IDENTITY_CONFLICT');
+    expect(published).toMatchObject({trackingState:'PROTECTED',trackingElements:[]});
+    await expect(db.$transaction(tx => publisher.publish(tx, published, fields, false, verified))).rejects.toThrow('FICHE_PROTEGEE');
     await Promise.all([publisher.deliverNotifications(), publisher.deliverNotifications()]);
     expect(await db.catalogImportOutbox.count({ where: { candidateId: candidate.id } })).toBe(1);
     expect(await db.notification.count({ where: { typeKey: 'CHARACTER_IMPORTED_ADMIN', actionTargetId: published.characterId! } })).toBe(1);
@@ -173,6 +183,86 @@ describe('isolated catalogue migration, durable cycles and invariants', () => {
     await new CatalogScheduler(db, engine()).catchUp();
     expect(await db.catalogRun.findUniqueOrThrow({ where: { id: run.id } })).toMatchObject({ status: 'COMPLETED', failureCount: 0 });
   }, 60_000);
+  it('never requests a protected fiche; ADMIN reopens exactly one image role with a revision guard', async () => {
+    const candidate=await db.catalogCandidate.findFirstOrThrow({where:{characterId:{not:null}}});
+    let requests=0;
+    const guarded=new CatalogEngine(db,{enabled:false,publish:false,dryRun:false},async url=>{requests++;return http(url);});
+    expect(await guarded.run('retry',candidate.id)).toMatchObject({processed:0,changed:0});
+    expect(requests).toBe(0);
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const admin=new CatalogAdminService(db,{execute:async()=>player} as unknown as GetCurrentPlayer,guarded);
+    await admin.tracking({} as AuthenticatedIdentity,candidate.id,'resume',['icon'],'Réouverture portrait seulement',candidate.revision,randomUUID());
+    const reopened=await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}});
+    expect(reopened).toMatchObject({trackingState:'ACTIVE',trackingElements:['icon'],fields:candidate.fields});
+    expect(canCollect(reopened,'icon')).toBe(true);expect(canCollect(reopened,'rarity')).toBe(false);
+    await expect(admin.tracking({} as AuthenticatedIdentity,candidate.id,'resume',['splash'],'Ancienne révision interdite',candidate.revision,randomUUID())).rejects.toMatchObject({code:'CATALOG_REVISION_CONFLICT'});
+    await admin.tracking({} as AuthenticatedIdentity,candidate.id,'protect',[],'Fin de la recette privée',reopened.revision,randomUUID());
+  });
+  it('rechecks a lock placed while a provider request is in flight, without overwriting ADMIN evidence',async()=>{
+    const proof={value:5,provider:'fixture',url:'https://www.hoyolab.com/article/1',reliability:'STRUCTURED' as const,fetchedAt:new Date().toISOString()};
+    const candidate=await db.catalogCandidate.create({data:{name:'Private race',fields:{rarity:proof}}});
+    let changed=false;
+    const racing=new CatalogEngine(db,{enabled:true,publish:false,dryRun:false},async url=>{
+      if(!changed&&url.includes('commits/main')){changed=true;await db.catalogCandidate.update({where:{id:candidate.id},data:{fields:{rarity:{...proof,value:4,locked:true,adminValidated:true,reliability:'ADMIN',override:true}},revision:{increment:1}}});}
+      return http(url);
+    });
+    await racing.run('retry',candidate.id);
+    expect((await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).fields).toMatchObject({rarity:{value:4,locked:true,override:true}});
+    expect(await db.catalogAttempt.count({where:{candidateId:candidate.id,errorCode:'REVISION_CHANGED'}})).toBe(1);
+    await db.catalogAttempt.deleteMany({where:{candidateId:candidate.id}});
+    await db.catalogCandidate.delete({where:{id:candidate.id}});
+  });
+  it('stops an already-published official release before dedicated HTTP, retaining provisional statuses',async()=>{
+    const candidate=await db.catalogCandidate.findFirstOrThrow({where:{characterId:{not:null},trackingState:'PROTECTED'}});
+    const fields={...(candidate.fields as CatalogFields),releaseDate:{value:'2026-01-01',provider:'hoyoverse',url:'https://www.hoyolab.com/article/1',reliability:'OFFICIAL' as const,fetchedAt:new Date().toISOString()},weapon:{value:'Sword',provider:'icy-veins',url:'https://www.icy-veins.com/',reliability:'PROVISIONAL' as const,fetchedAt:new Date().toISOString()}};
+    const active=await db.catalogCandidate.update({where:{id:candidate.id},data:{fields,trackingState:'ACTIVE',trackingElements:['icon']}});
+    let requests=0;
+    await new CatalogEngine(db,{enabled:true,publish:false,dryRun:false},async url=>{requests++;return http(url);}).run('retry',candidate.id);
+    expect(requests).toBe(0);
+    expect(await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).toMatchObject({trackingState:'PROTECTED',trackingElements:[],fields:{weapon:{reliability:'PROVISIONAL'}}});
+    expect(active.characterId).not.toBeNull();
+  });
+  it('applies a date plan only to NULL releaseDate, retains protection and replays without changes',async()=>{
+    const candidate=await db.catalogCandidate.findFirstOrThrow({where:{characterId:{not:null},trackingState:'PROTECTED'}});
+    const before=await db.character.findUniqueOrThrow({where:{id:candidate.characterId!}});
+    await db.character.update({where:{id:before.id},data:{releaseDate:null}});
+    const snapshot=await db.character.findUniqueOrThrow({where:{id:before.id}});
+    const plan={version:1,operation:'R1051_RELEASE_DATE_NULL_ONLY',sourceUrl:'https://game8.co/games/Genshin-Impact/archives/307054',fetchedAt:new Date().toISOString(),sourceSha256:'a'.repeat(64),entries:[{id:before.id,name:before.name,externalKey:before.externalKey,rarity:before.rarity,element:before.elementKey,releaseDate:'2022-01-05'}]};
+    expect(await applyReleaseDatePlan(db,plan)).toMatchObject({updated:1,trackingReopened:0});
+    const after=await db.character.findUniqueOrThrow({where:{id:before.id}});
+    expect({...after,releaseDate:snapshot.releaseDate,updatedAt:snapshot.updatedAt}).toEqual(snapshot);
+    expect(await db.catalogCandidate.findUniqueOrThrow({where:{id:candidate.id}})).toMatchObject({trackingState:'PROTECTED',trackingElements:[],fields:{releaseDate:{locked:true,reliability:'STRUCTURED'}}});
+    expect(await applyReleaseDatePlan(db,plan)).toMatchObject({updated:0,alreadyDated:1});
+    expect(await db.character.findUniqueOrThrow({where:{id:before.id}})).toEqual(after);
+  });
+  it('keeps immutable image versions while selecting a replacement and supports a safe replay',async()=>{
+    const candidate=await db.catalogCandidate.create({data:{name:'Private image replacement'}});
+    const versions:Parameters<typeof recordImageVersion>[1][]=[];
+    for(const r of [30,60]){
+      const body=await sharp({create:{width:256,height:256,channels:4,background:{r,g:140,b:200,alpha:.8}}}).png().toBuffer();
+      const image=await validateImage(body,'image/png','icon');
+      const input={candidateId:candidate.id,role:'icon' as const,image,provider:'icy-veins',sourceUrl:'https://static.icy-veins.com/fixture.webp',sourceMime:'image/png',url:`https://fixture.supabase.co/${image.hash}.png`,editorialStatus:'PROVISIONAL' as const,now:new Date()};
+      versions.push(input);expect((await db.$transaction(tx=>recordImageVersion(tx,input))).changed).toBe(true);
+    }
+    expect(await db.catalogAsset.count({where:{candidateId:candidate.id}})).toBe(2);
+    expect((await db.$transaction(tx=>recordImageVersion(tx,versions[1]!))).changed).toBe(false);
+    expect(await db.catalogAsset.count({where:{candidateId:candidate.id}})).toBe(2);
+    await db.catalogAsset.deleteMany({where:{candidateId:candidate.id}});
+    await db.catalogCandidate.delete({where:{id:candidate.id}});
+  });
+  it('dispatches an explicit global manual task while daily automation is OFF, ignoring due-date gates',async()=>{
+    const candidate=await db.catalogCandidate.findFirstOrThrow({where:{name:'Private Catalog'}});
+    await db.catalogCandidate.update({where:{id:candidate.id},data:{nextCheckAt:new Date('2099-01-01T00:00:00Z')}});
+    const off=new CatalogEngine(db,{enabled:false,publish:false,dryRun:true},http);
+    const player=await db.player.findFirstOrThrow({where:{displayName:'Private catalog admin'}});
+    const admin=new CatalogAdminService(db,{execute:async()=>player} as unknown as GetCurrentPlayer,off);
+    const key=randomUUID();
+    await admin.queue({} as AuthenticatedIdentity,null,'retry',key);
+    const before=await db.character.findMany({orderBy:{id:'asc'}});
+    await new CatalogScheduler(db,off).catchUp();
+    expect(await db.catalogRun.findUniqueOrThrow({where:{cycleKey:`manual:${key}`}})).toMatchObject({status:'COMPLETED',summary:{mode:'retry',dryRun:false,processed:1}});
+    expect(await db.character.findMany({orderBy:{id:'asc'}})).toEqual(before);
+  });
   it('resumes all dry-run batches without altering candidates, assets or active Characters', async () => {
     const now = new Date(Date.now() + 86_400_000);
     await db.catalogCandidate.updateMany({ data: { nextCheckAt: new Date(now.getTime() + 86_400_000) } });

@@ -8,3 +8,4 @@ server/prisma/migrations/20260926110000_047_harden_avatar_trigger_search_path/mi
 server/prisma/migrations/20260926130000_048_unlock_owned_character_avatars/migration.sql text eol=lf
 server/prisma/migrations/20261010110000_069_add_event_monthly_draw/migration.sql text eol=lf
 server/prisma/migrations/20261011080000_070_add_character_catalog_pipeline/migration.sql text eol=lf
+server/prisma/migrations/20261011090000_071_protect_catalog_followup/migration.sql text eol=lf

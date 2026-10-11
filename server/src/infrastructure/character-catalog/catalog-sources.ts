@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { normalizedIdentity, type CatalogFields, type Evidence, type AssetRole } from '../../application/character-catalog/catalog-policy.js';
 import { CatalogFetchError, type CatalogHttp } from './catalog-http.js';
+import { CatalogSecondarySources, reviewedSecondaryImages } from './catalog-secondary.js';
 
 export const catalogSourceRegistry = {
-  version: 2,
+  version: 3,
   officialAuthor: '1015537',
   // Source bookmarks, not character-specific publication rules. Revalidated every cycle.
   announcementBookmarks: ['46884007'],
@@ -15,8 +16,8 @@ export const catalogSourceRegistry = {
 // outside this policy; changing an order requires a normal code review.
 export const catalogFieldSources: Record<keyof CatalogFields, readonly string[]> = {
   name: ['genshin-db', 'genshin.dev'], originalName: ['hoyoverse', 'genshin-db', 'genshin.dev'],
-  rarity: ['genshin-db', 'genshin.dev'], element: ['hoyoverse', 'genshin-db', 'genshin.dev'],
-  weapon: ['genshin-db', 'genshin.dev'], region: ['genshin-db', 'genshin.dev'],
+  rarity: ['genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'], element: ['hoyoverse', 'genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'],
+  weapon: ['genshin-db', 'genshin.dev', 'icy-veins', 'game8', 'sephijin'], region: ['genshin-db', 'genshin.dev'],
   numericId: ['genshin-db'], technicalName: ['genshin-db'], releaseDate: ['hoyoverse'],
   title: ['hoyoverse'], constellation: ['hoyoverse', 'genshin-db'], classKey: [], displayOrder: [],
 };
@@ -78,13 +79,14 @@ export function officialReleaseEvidence(post: OfficialPost, names: readonly stri
 const structuredSchema = z.object({ id: z.number().int().min(10000000).max(19999999), name: z.string().min(1).max(100),
   rarity: z.union([z.literal(4), z.literal(5)]), elementType: z.string(), weaponText: z.string().optional(), region: z.string().optional(), constellation: z.string().optional() });
 const filesSchema = z.array(z.object({ name: z.string(), download_url: z.url().nullable() }));
-export type StructuredMatch = Readonly<{ fields: CatalogFields; images: Partial<Record<AssetRole, readonly { provider: string; url: string }[]>> }>;
+export type StructuredMatch = Readonly<{ fields: CatalogFields; images: Partial<Record<AssetRole, readonly { provider: string; url: string; editorialStatus?: 'PROVISIONAL' | 'VALIDATED'; sourceHash?: string }[]>> }>;
 
 export class CatalogSources {
   private snapshot?: string;
   private files = new Map<string, z.infer<typeof filesSchema>>();
   private manifest?: Record<string, Record<string, string>>;
-  constructor(private readonly http: CatalogHttp, private readonly attempt: AttemptSink, private readonly now: Date) {}
+  private readonly secondarySources: CatalogSecondarySources;
+  constructor(private readonly http: CatalogHttp, private readonly attempt: AttemptSink, private readonly now: Date) { this.secondarySources = new CatalogSecondarySources(http,attempt,now); }
   async json(url: string, provider: string, field: string): Promise<unknown | null> {
     try {
       const response = await this.http(url, { maxBytes: 5 * 1024 * 1024 });
@@ -150,13 +152,14 @@ export class CatalogSources {
     this.snapshot = parsed.success ? parsed.data.sha : catalogSourceRegistry.fallbackSnapshot;
     return this.snapshot;
   }
-  async structured(names: readonly string[]): Promise<StructuredMatch | null> {
+  async structured(names: readonly string[], requested: readonly string[] = Object.keys(catalogFieldSources).concat(['icon','splash','wish','fullbody'])): Promise<StructuredMatch | null> {
     const fields: CatalogFields = {}, images: StructuredMatch['images'] = {};
+    if (!requested.some(field => field !== 'releaseDate' && field !== 'promotion')) return null;
     for (const provider of catalogSourceRegistry.metadata) {
       const needsProvider = Object.entries(catalogFieldSources).some(([key, order]) => order.includes(provider) &&
         (!fields[key as keyof CatalogFields] || order.indexOf(provider) < order.indexOf(fields[key as keyof CatalogFields]!.provider)));
       if (!needsProvider) continue;
-      const result = provider === 'genshin-db' ? await this.primary(names) : await this.secondary(names);
+      const result = provider === 'genshin-db' ? await this.primary(names, requested) : await this.secondary(names);
       for (const [key, value] of Object.entries(result?.fields ?? {})) {
         const field = key as keyof CatalogFields, order = catalogFieldSources[field], previous = fields[field];
         if (!value || !order.includes(value.provider)) continue;
@@ -167,9 +170,15 @@ export class CatalogSources {
       }
       for (const [role, alternatives] of Object.entries(result?.images ?? {})) if (alternatives) images[role as AssetRole] = alternatives;
     }
-    return Object.keys(fields).length ? { fields, images } : null;
+    const secondaryRequested = requested.filter(field => !fields[field as keyof CatalogFields]);
+    const secondary = await this.secondarySources.collect(names,secondaryRequested);
+    for (const [field,value] of Object.entries(secondary)) if(value && !fields[field as keyof CatalogFields]) fields[field as keyof CatalogFields]=value;
+    // Reviewed binary, not an inferred filename. Its bytes must still match the review.
+    for (const image of reviewedSecondaryImages) if (requested.includes(image.role) && names.some(name => normalizedIdentity(name) === normalizedIdentity(image.name)))
+      images[image.role] = [...(images[image.role] ?? []), image];
+    return Object.keys(fields).length || Object.keys(images).length ? { fields, images } : null;
   }
-  private async primary(names: readonly string[]): Promise<StructuredMatch | null> {
+  private async primary(names: readonly string[], requested: readonly string[]): Promise<StructuredMatch | null> {
     const ref = await this.ref();
     for (const language of ['English', 'French']) {
       let files = this.files.get(language);
@@ -203,7 +212,7 @@ export class CatalogSources {
         add(language === 'French' ? 'originalName' : 'name', translation.data.name, translationUrl);
         if (language === 'English') { add('weapon', translation.data.weaponText, translationUrl); add('region', translation.data.region, translationUrl); }
       }
-      if (!this.manifest) {
+      if (!this.manifest && requested.some(role=>['icon','splash','wish','fullbody'].includes(role))) {
         const manifestData = await this.json(`https://raw.githubusercontent.com/theBowja/genshin-db/${ref}/src/data/image/characters.json`, 'technical-manifest', 'images');
         const manifest = z.record(z.string(), z.record(z.string(), z.string())).safeParse(manifestData);
         if (manifest.success) this.manifest = manifest.data;
@@ -211,6 +220,7 @@ export class CatalogSources {
       const entry = this.manifest?.[file.name.replace(/\.json$/, '')];
       const images: StructuredMatch['images'] = {};
       for (const [role, key] of [['icon', 'filename_icon'], ['splash', 'filename_gachaSplash'], ['wish', 'filename_gachaSlice'], ['fullbody', 'filename_fullbody']] as const) {
+        if (!requested.includes(role)) continue;
         const technical = entry?.[key];
         if (!technical || !/^UI_[A-Za-z0-9_]{1,100}$/.test(technical)) continue;
         images[role] = [ ...(role === 'icon' && entry?.hoyowiki_icon ? [{ provider: 'hoyoverse', url: entry.hoyowiki_icon }] : []),

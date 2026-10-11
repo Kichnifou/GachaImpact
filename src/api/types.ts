@@ -311,6 +311,7 @@ export type ElementChoiceDto = Readonly<{
 }>
 
 export type GachaCharacterDto = Readonly<{
+  releaseDate?: string | null
   id: string
   externalKey: string
   name: string
