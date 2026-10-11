@@ -1,6 +1,6 @@
 {
   "checkedAt": "2026-10-11T07:01:59.729Z",
-  "scope": "Sources publiques réelles et PostgreSQL privé isolé uniquement. Preuve publique ultérieure séparée au Master.",
+  "scope": "Initial private proofs retained. Controlled public qualification is separately recorded in publicQualification; no active Character, player data or Storage object changed.",
   "official": {
     "id": "46884007",
     "url": "https://www.hoyolab.com/article/46884007",
@@ -459,11 +459,362 @@
   },
   "expectedDateFromOwner": "2026-11-04",
   "officialReleaseProven": false,
-  "publicMutations": false,
+  "publicMutations": {
+    "initialPrivateProof": false,
+    "candidateTracking": true,
+    "activeCharacter": false,
+    "playerData": false,
+    "storage": false
+  },
   "storage": {
     "configured": false,
     "bucketCreated": false,
     "uploaded": false
   },
-  "activeImport": false
+  "activeImport": false,
+  "publicQualification": {
+    "checkedAt": "2026-10-11T08:14:29.581Z",
+    "codeSha": "b38b1b6face7917c522c6d2c903237ca148688bc",
+    "operatorCommand": "server: npx tsx scripts/qualify-character-candidates.mts --apply-candidates",
+    "first": {
+      "runId": "22f396fd-2096-462b-a96a-10ed2692d820",
+      "discovered": 2,
+      "processed": 15,
+      "remaining": 107
+    },
+    "replay": "BACKOFF",
+    "cycleStatus": "QUEUED",
+    "dailyWorkerEnabled": false,
+    "publicationEnabled": false,
+    "storageWritesEnabled": false,
+    "pendingBacklog": "107 candidates remain queued. Worker stays disabled pending Storage qualification; no completed daily production cycle is claimed.",
+    "candidateCount": 122,
+    "mitya": {
+      "id": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+      "characterId": null,
+      "name": "Mitya",
+      "status": "INCOMPLETE",
+      "fields": {
+        "title": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Rules Set at Naught",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T08:12:35.004Z",
+          "reliability": "OFFICIAL"
+        },
+        "element": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "electro",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T08:12:35.004Z",
+          "reliability": "OFFICIAL"
+        },
+        "originalName": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Mitya",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T08:12:35.004Z",
+          "reliability": "OFFICIAL"
+        },
+        "constellation": {
+          "url": "https://www.hoyolab.com/article/46884007",
+          "value": "Nodus Gordianus",
+          "provider": "hoyoverse",
+          "fetchedAt": "2026-10-11T08:12:35.004Z",
+          "reliability": "OFFICIAL"
+        }
+      },
+      "identities": [
+        {
+          "namespace": "official-name",
+          "externalId": "mitya",
+          "candidateId": "c46794a6-8db1-4cef-a3ec-947319b7e3c0"
+        },
+        {
+          "namespace": "hoyolab-post",
+          "externalId": "46884007",
+          "candidateId": "c46794a6-8db1-4cef-a3ec-947319b7e3c0"
+        }
+      ],
+      "missing": [
+        "rarity",
+        "icon",
+        "splash",
+        "numericId",
+        "officialReleaseDate"
+      ],
+      "officialReleaseDate": null,
+      "discoveredAt": "2026-10-11T08:13:13.164Z",
+      "checkedAt": "2026-10-11T08:13:52.969Z",
+      "nextCheckAt": "2026-10-11T22:00:00.000Z",
+      "nextCheckRequiresWorkerActivation": true,
+      "assets": [
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+          "sourceHash": "441733b335b2891ac116881803fad68ef5090602a51a4e0671a4695dfd534cdd",
+          "normalizedHash": "eb155e41abb1c27ab4a22f89bd8c476e77709508ef07fcc7b9decd120cba5596",
+          "sourceMime": "image/jpeg",
+          "normalizedMime": "image/png",
+          "width": 1200,
+          "height": 675,
+          "sourceBytes": 127568,
+          "storedUrl": null,
+          "checkedAt": "2026-10-11T08:13:51.811Z"
+        },
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+          "sourceHash": "77b27f1071ada6696cb57580c46a27b08a1a41ad5023602a432ecfc782a9724d",
+          "normalizedHash": "726a93672a4b5e9b8cfe03140373576976fd256c6ae79dd3bea1d75ac654c989",
+          "sourceMime": "image/jpeg",
+          "normalizedMime": "image/png",
+          "width": 1500,
+          "height": 1500,
+          "sourceBytes": 302962,
+          "storedUrl": null,
+          "checkedAt": "2026-10-11T08:13:52.240Z"
+        },
+        {
+          "role": "promotion",
+          "status": "SOURCE_VALIDATED",
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+          "sourceHash": "220ca050531768b9a04da862e0c01fc2ab6d3435a8827531d3b95282560d8ede",
+          "normalizedHash": "82eed2b4f4daa5b70407d9e53b8443de54ef2cdddee61ef81945768802269e5e",
+          "sourceMime": "image/jpeg",
+          "normalizedMime": "image/png",
+          "width": 750,
+          "height": 1800,
+          "sourceBytes": 213247,
+          "storedUrl": null,
+          "checkedAt": "2026-10-11T08:13:52.602Z"
+        }
+      ],
+      "sourceAttempts": [
+        {
+          "provider": "hoyoverse",
+          "field": "promotion",
+          "outcome": "SOURCE_VALIDATED",
+          "errorCode": null,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/dc6aa91f72225f746af800230a3c2705_353369609675142195.jpg",
+          "httpStatus": 200,
+          "checkedAt": "2026-10-11T08:13:52.710Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "hoyoverse",
+          "field": "promotion",
+          "outcome": "SOURCE_VALIDATED",
+          "errorCode": null,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8d76066dee924164670129f5114f8988_8224757694395123489.jpg",
+          "httpStatus": 200,
+          "checkedAt": "2026-10-11T08:13:52.343Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "hoyoverse",
+          "field": "promotion",
+          "outcome": "SOURCE_VALIDATED",
+          "errorCode": null,
+          "sourceUrl": "https://upload-os-bbs.hoyolab.com/upload/2026/09/29/8f0bde142f28b3a1133c63e695e81879_6081038353579938138.jpg",
+          "httpStatus": 200,
+          "checkedAt": "2026-10-11T08:13:51.913Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "technical-manifest",
+          "field": "fullbody",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:51.589Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "technical-manifest",
+          "field": "wish",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:51.486Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "technical-manifest",
+          "field": "splash",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:51.379Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "technical-manifest",
+          "field": "icon",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:51.267Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "numericId",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:51.003Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "region",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.903Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "weapon",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.803Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "rarity",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.701Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "name",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.598Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin.dev",
+          "field": "coverage",
+          "outcome": "REJECTED",
+          "errorCode": "COVERAGE_UNQUALIFIED",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.496Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin.dev",
+          "field": "coverage",
+          "outcome": "FOUND",
+          "errorCode": null,
+          "sourceUrl": "https://genshin.jmp.blue/characters",
+          "httpStatus": 200,
+          "checkedAt": "2026-10-11T08:13:50.392Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        },
+        {
+          "provider": "genshin-db",
+          "field": "metadata",
+          "outcome": "MISSING",
+          "errorCode": "ABSENT",
+          "sourceUrl": null,
+          "httpStatus": null,
+          "checkedAt": "2026-10-11T08:13:50.204Z",
+          "nextCheckAt": "2026-10-11T22:00:00.000Z"
+        }
+      ]
+    },
+    "conservation": {
+      "at": "2026-10-11T08:14:30.362Z",
+      "activeCharacters": 120,
+      "allExistingNonNullValuesConserved": true,
+      "nullFills": [],
+      "mitya": {
+        "id": "c46794a6-8db1-4cef-a3ec-947319b7e3c0",
+        "status": "INCOMPLETE",
+        "characterId": null,
+        "missing": [
+          "rarity",
+          "icon",
+          "splash",
+          "numericId",
+          "officialReleaseDate"
+        ],
+        "checkedAt": "2026-10-11T08:13:52.969Z",
+        "nextCheckAt": "2026-10-11T22:00:00.000Z"
+      },
+      "noActiveImportOutbox": true,
+      "noStorageWrites": true,
+      "migrationCount": 70,
+      "oldLedgerConserved": true,
+      "sevenPrivateRlsTables": true
+    },
+    "migration": {
+      "name": "20261011080000_070_add_character_catalog_pipeline",
+      "checksum": "1e85c1904a12f47fb9bf83216f72b8c90289f5655528e6ff2c3c0928ad3c4cc7",
+      "prismaStatus": "Database schema is up to date!"
+    },
+    "deployments": {
+      "railway": {
+        "id": "c09b2ab8-931f-4140-a7a0-ab70c0516ab5",
+        "status": "SUCCESS",
+        "sha": "b38b1b6face7917c522c6d2c903237ca148688bc",
+        "createdAt": "2026-10-11T08:09:47.814Z",
+        "updatedAt": "2026-10-11T08:11:44.786Z",
+        "regions": [
+          "europe-west4-drams3a"
+        ]
+      },
+      "pages": {
+        "sha": "b38b1b6face7917c522c6d2c903237ca148688bc",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/c4fab2da-82b8-4e34-86f2-28d3969b3c2e",
+        "startedAt": "2026-10-11T08:10:40Z",
+        "completedAt": "2026-10-11T08:10:40Z",
+        "preview": "https://c4fab2da.gachaimpact.pages.dev",
+        "productionHttp": 200,
+        "previewHttp": 200,
+        "productionAssetsMatchExactDeployment": true,
+        "artifactChecks": [
+          {
+            "path": "/assets/index-BY9f6V97.css",
+            "http": 200,
+            "sha256": "c88d58c571e71caa89422b57876f62fc5e7ec434cc5efbd9427429d815d5ed70"
+          },
+          {
+            "path": "/assets/index-DThPMxoL.js",
+            "http": 200,
+            "sha256": "8a0ad20f9986ca86798f99201c3e3191625841fa33c465665efacb1af1fd3220"
+          }
+        ]
+      }
+    },
+    "limitations": [
+      "No real Storage bucket/upload/cache/exclusive-write qualification.",
+      "No active Mitya import or public import notification.",
+      "No new authenticated ADMIN human recipe claimed."
+    ]
+  }
 }
