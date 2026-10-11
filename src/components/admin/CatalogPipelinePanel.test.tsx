@@ -65,6 +65,23 @@ describe('Character import ADMIN surface', () => {
     api.getCatalogCandidate.mockResolvedValue({ ...candidate, characterId: 'character', character: { iconPath: '/assets/icon.png', splashPath: '/assets/splash.png', wishPath: null, fullbodyPath: null } })
     await mount(candidate.id); expect(dialog().textContent?.match(/Disponible dans le catalogue/g)).toHaveLength(2)
   })
+  it('keeps candidate controls usable when closing during a post-edit refresh', async () => {
+    await mount(candidate.id)
+    let resolveDetail!: (value: CatalogCandidate) => void
+    api.getCatalogCandidate.mockReturnValueOnce(new Promise<CatalogCandidate>(done => { resolveDetail = done }))
+    const rarity = dialog().querySelector<HTMLSelectElement>('form select')!
+    await act(async () => { rarity.value = '5'; rarity.dispatchEvent(new Event('change', { bubbles: true })) })
+    await act(async () => dialog().querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(api.getCatalogCandidate).toHaveBeenCalledTimes(2)
+    await click(dialog().querySelector<HTMLButtonElement>('button[aria-label="Fermer la fiche"]')!)
+    expect(document.body.querySelector('[role=dialog]')).toBeNull()
+    expect(button('Consulter').disabled).toBe(false)
+    await act(async () => resolveDetail(candidate))
+    expect(button('Consulter').disabled).toBe(false)
+    expect(document.body.querySelector('[role=dialog]')).toBeNull()
+    await click(button('Consulter'))
+    expect(dialog().textContent).toContain('Mitya')
+  })
   it('uploads a selected image through the authenticated typed API and shows storage failure without losing the fiche', async () => {
     api.getCatalogCandidates.mockResolvedValue({ ...overview, storageConfigured: true })
     api.uploadCatalogImage.mockRejectedValueOnce({ code: 'CATALOG_STORAGE_UNAVAILABLE' })

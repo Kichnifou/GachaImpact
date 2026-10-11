@@ -74,7 +74,7 @@ export default function CatalogPipelinePanel({ initialId }: { initialId?: string
       <button type="button" disabled={detailLoading} onClick={() => void open(row.id)}>Consulter</button></article>)}</div>
     {detailLoading && <p role="status">Ouverture de la fiche…</p>}
     {overview && <details><summary>Derniers cycles</summary>{overview.runs.map(run => <p key={run.id}>{date(run.startedAt)} · {run.status === 'COMPLETED' ? 'Terminé' : run.status === 'FAILED' ? 'Échec, reprise prévue' : run.status === 'QUEUED' ? 'En attente' : 'En cours'}</p>)}</details>}
-    {detail && <CatalogDialog title={`${detail.name} · ${statusLabels[detail.status] ?? detail.status}`} onClose={() => { requestVersion.current++; currentId.current = null; setDetail(null) }} pending={task.pending}>
+    {detail && <CatalogDialog title={`${detail.name} · ${statusLabels[detail.status] ?? detail.status}`} onClose={() => { requestVersion.current++; currentId.current = null; setDetail(null); setDetailLoading(false) }} pending={task.pending}>
       <AdminFeedback error={task.error || error} notice={task.notice} />
       <p>{detail.characterId ? 'Ce personnage appartient au catalogue actif. Les corrections de sa fiche passent par Modifier dans Catalogue.' : 'Candidat suivi, sans possession ni bannière créée.'}</p>
       <p>Prochaine vérification : {date(detail.nextCheckAt)}. {detail.missing.length ? `Manques : ${detail.missing.map(field => labels[field] ?? field).join(', ')}.` : 'Aucun manque fondamental.'}
