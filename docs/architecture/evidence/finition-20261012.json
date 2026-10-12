@@ -1,7 +1,7 @@
 {
   "initialSha": "79832fc72c94233a61d0d3cd13cf41c4ed63de57",
-  "stage": "LOCAL_QUALIFIED_AWAITING_PUBLISHED_SHA_REVIEW",
-  "at": "2026-10-12T07:07:49.023Z",
+  "stage": "INDEPENDENTLY_APPROVED_AWAITING_PROMOTION_AND_POSTFLIGHT",
+  "at": "2026-10-12T07:23:45.998Z",
   "scope": [
     "seven finishing changes",
     "qualified consensus source independence and ADMIN labels",
@@ -81,7 +81,7 @@
       "same-account overlapping refresh readiness",
       "common upstream anchor citations counted as independent editors"
     ],
-    "status": "corrected locally, formal review pending"
+    "status": "corrected and independently approved on published c9191e3337389606bce8570c351d86b33fe056c0"
   },
   "migration": {
     "name": "20261012100000_075_shared_viewer_presence",
@@ -122,26 +122,26 @@
     "conversation-handoff.md (Master remains live tracker)",
     "consolidated-r1066-r1077.md (historical delivered scope)"
   ],
-  "publishedCandidate": "a0166e11a702e98cad2c57bfd0dbb3042eef85f3",
+  "publishedCandidate": "c9191e3337389606bce8570c351d86b33fe056c0",
   "reviewCorrections": [
     {
       "finding": "Joining an already PAUSED receipt freezes entry animation at opacity0",
       "change": "Settled static result cards while pause background stays suspended",
       "validation": "frontend build PASS; 60 compiled GameShell states and six spectator modals PASS; targeted screenshot inspection",
-      "independentApproval": "APPROVED on a0166e11a702e98cad2c57bfd0dbb3042eef85f3",
+      "independentApproval": "APPROVED on c9191e3337389606bce8570c351d86b33fe056c0",
       "publishedSha": "24a4e209eb58fee2b038890a28dcbdceffc5ff73"
     },
     {
       "finding": "Eight expired tab tombstones prevent reconnecting presence",
       "change": "Rotate membership version before pruning expired traces; preserve live leases and reject stale token packets; client adopts token on next poll",
       "validation": "23/23 private PostgreSQL PASS; hook13/13 PASS; full revalidated after correcting a test-only TypeScript tuple assertion",
-      "independentApproval": "APPROVED on a0166e11a702e98cad2c57bfd0dbb3042eef85f3"
+      "independentApproval": "APPROVED on c9191e3337389606bce8570c351d86b33fe056c0"
     },
     {
       "finding": "P1 HTTP citations ignored, allowing false independence",
       "change": "Canonicalize HTTP/HTTPS citation hosts and numeric HTML entities, support quoted/unquoted href; unresolved named entities, malformed links, credentials or unsupported protocols cannot qualify; no citation fetch or network guard change",
       "validation": "84/84 PASS across3 source suites;16 added cases including mixed protocol collector/no citation fetch; full FAIL6/8 only ten unchanged baseline assertions, builds/types/lint/diffs PASS",
-      "independentApproval": "PENDING"
+      "independentApproval": "APPROVED on c9191e3337389606bce8570c351d86b33fe056c0"
     }
   ],
   "initialIndependentReviews": {
@@ -160,5 +160,18 @@
     "remainingFinding": "P1 HTTP upstream citation ignored; false three-editor consensus",
     "postgres": "23/23 normal shared plus2/2 adverse PASS; exact schema cleanup, slot released",
     "addendumSha256": "004b8e03dde4c946b9c69087752ba755031cbcdbc6ef57214f19cca773a6f21d"
+  },
+  "independentApprovals": {
+    "sha": "c9191e3337389606bce8570c351d86b33fe056c0",
+    "security": {
+      "name": "review-independent-final.md",
+      "sha256": "867718b9eaa55fe6ca7957df9ef1a111a4296cd541f70abe97447c0181038767"
+    },
+    "visual": {
+      "name": "review-visual-final-current.md",
+      "sha256": "fcc19ac1771b22c66c9405e1f28f2f042794b0298c56ba7a3c1e573032e298f8"
+    },
+    "fullException": "Known ten baseline assertions only; no full PASS claimed",
+    "publicHumanAcceptance": false
   }
 }
