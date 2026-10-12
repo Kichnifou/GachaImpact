@@ -12,11 +12,15 @@ GameShell réel et CSS compilée : six formats390×844,844×390,1366×520,1366×
 
 Review consultative : ACK de cartes masquées, double entrée native ADMIN et offsets après hash externe reproduits puis corrigés ; fermeture des conversations à la restauration et réponse tardive qualifiées indépendamment. La review formelle technique et la review visuelle du vrai SHA GitHub restent les prochaines gates. Preuves privées ignorées sous local-data/r1052-navigation-20261012/. Migration076 non encore appliquée publiquement (registre75 terminées à ce stade), aucune mutation économique de production pour la QA.
 
-Prochaines gates de cette même mission : publier les trois commits logiques sur review, vérifier le SHA GitHub, obtenir les revues indépendantes technique/visuelle, corriger si nécessaire, FF strict main puis qualifier Railway/Pages/migration076 et postflight. R1052 sera déclaré livré techniquement après ce cycle ; recette publique propriétaire toujours distincte.
+Incident de prédeploy réel après approval technique/visuelle e5e45690766836bff04c5aca7e2a1e6d96620be4 : main/review synchronisés, Cloudflare Pages c233343b-6bbe-4933-82b1-34bcf7cc0e1f SUCCESS et CSS exacte ; Railway069add4c-1566-450b-b102-902dcd3b4cbc FAILED sur P3018/23514 PLAYER_ARCHIVED. Le backend reste sur26885e5. Les deux colonnes076 ont été ajoutées avec types/nullabilité/defaults attendus mais le backfill a été refusé ; tentative Prisma inachevée, aucune réussite de migration présumée. Revue initiale076 insuffisante sur cette interaction trigger063, explicitement remplacée par une gate de correction.
+
+Correctif préparé :076 jamais terminée publiquement, reprise idempotente et qualification des dates limitée aux Players ACTIVE ; archives, timestamps, possessions et garde d'archivage intacts. Test avec les vraies migrations/triggers, archive et colonnes partielles/replay ; répétition complète du chemin privé Prisma failed-ledger→resolve --rolled-back→deploy→status. Reprise publique autorisée seulement après re-review du SHA corrigé et vérification structurelle RO : resolve --rolled-back conserve la trace échouée, puis predeploy Railway normal. Aucun SQL métier public manuel, aucune désactivation du garde ni suppression de colonnes.
+
+Prochaines gates exactes : re-review du correctif publié, récupération du seul registre076 échoué via Prisma, FF main du correctif puis Railway/Pages au SHA exact, migrate status/ledger/checksum/RLS et postflight. Recette publique propriétaire future, pas de livraison backend complète revendiquée à ce checkpoint.
 
 Version : mandat consolidé finitions Invocation, R1052 cosmétiques et historique R1078.
 Date : 2026-10-12
-Statut : **Candidat local A/B/C implémenté ; qualification et revues en cours. Aucune promotion ni migration publique de ce mandat encore acquise. Recette propriétaire future.**
+Statut : **Runtime e5e4569 approuvé et promu, frontend déployé ; prédeploy backend échoué sur076/ARCHIVED. Correctif et récupération Prisma en qualification/re-review. Recette propriétaire future.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
 ## Checkpoint précédent — correctifs après recette publique du 12/10/2026

@@ -5,9 +5,9 @@
 Migration Prisma additive20261012190000_076_cosmetic_consultation sur player_cosmetics :
 
 - consulted_at timestamptz(6) NULL DEFAULT CURRENT_TIMESTAMP : baseline historique déjà consultée ; les nouveaux producteurs PLAYER_FACING écrivent explicitement null.
-- acquisition_date_known boolean NOT NULL DEFAULT false : true uniquement pour dates historiques de source gacha-first-ownership ou PLAYER_LEVEL, et nouvelles acquisitions joueur prouvées. Autres sources/backfills restent inconnues.
+- acquisition_date_known boolean NOT NULL DEFAULT false : true uniquement pour dates historiques de Players ACTIVE de source gacha-first-ownership ou PLAYER_LEVEL, et nouvelles acquisitions joueur prouvées. Autres sources/backfills restent inconnues.
 
-Aucune réécriture de unlocked_at, possession, définition, Player, équipement ou notification ; aucune nouvelle table, aucun grant, index ou changement RLS. Test de migration sur possessions préexistantes et replay Prisma normal en schémas éphémères privés, cleanup normal. Application publique uniquement par le predeploy Railway canonique après review ; son état réel est au Master.
+Aucune réécriture de unlocked_at, possession, définition, Player, équipement ou notification ; aucune nouvelle table, aucun grant, index ou changement RLS. Test de migration sur possessions préexistantes et replay Prisma normal en schémas éphémères privés, cleanup normal. Application publique uniquement par le predeploy Railway canonique après review ; son état réel est au Master. Reprise de076 après tentative échouée : ADD COLUMN IF NOT EXISTS conserve les deux colonnes partielles dont les types/defaults sont vérifiés ; backfill limité aux Players ACTIVE et aux dates non encore qualifiées. Garde ARCHIVED inchangée. La tentative échouée (jamais terminée) est marquée rolled-back par Prisma puis rejouée normalement, sans suppression de colonnes ni édition manuelle du registre, selon la [procédure Prisma7](https://www.prisma.io/docs/orm/v7/prisma-migrate/workflows/patching-and-hotfixing#option-1-mark-the-migration-as-rolled-back-and-re-deploy).
 
 ## Finition présence spectateur — migration additive 075
 
