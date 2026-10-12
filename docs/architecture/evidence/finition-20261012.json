@@ -1,7 +1,7 @@
 {
   "initialSha": "79832fc72c94233a61d0d3cd13cf41c4ed63de57",
-  "stage": "INDEPENDENTLY_APPROVED_AWAITING_PROMOTION_AND_POSTFLIGHT",
-  "at": "2026-10-12T07:23:45.998Z",
+  "stage": "TECHNICALLY_DELIVERED_CLOSING_DOCUMENTATION_PRESERVES_CODE",
+  "at": "2026-10-12T07:30:28.843Z",
   "scope": [
     "seven finishing changes",
     "qualified consensus source independence and ADMIN labels",
@@ -63,7 +63,7 @@
     "syntheticLocalOnly": true,
     "limitations": [
       "Initial geometry failures corrected; native keyboard scroll measured after completion",
-      "One intermittent paused-scene horizontal overflow assertion did not recur in the instrumented final full run; retained logs, independent visual gate pending",
+      "One intermittent paused-scene horizontal overflow assertion did not recur in the instrumented final full run; retained logs, independent visual gate APPROVED, no recurrence",
       "Personal harness same-URL navigation preserved old x1 scene; distinct query forces real navigation; final12 PASS",
       "No authenticated human production acceptance inferred"
     ],
@@ -85,7 +85,11 @@
   },
   "migration": {
     "name": "20261012100000_075_shared_viewer_presence",
-    "publicApplied": false
+    "publicApplied": true,
+    "appliedAt": "2026-10-12T07:26:55.130204727Z",
+    "normalPrismaPredeploy": true,
+    "migrationCount": 75,
+    "checksumsExact": true
   },
   "naturalDaily": {
     "observedAt": "2026-10-12T06:14:45.979Z",
@@ -115,7 +119,76 @@
       "dryRun": false
     }
   },
-  "delivery": "NOT_YET_DELIVERED",
+  "delivery": {
+    "technicalCheckpoint": "6766657a18eadff25830f843ade7738c04382f3c",
+    "sourceSha": "c9191e3337389606bce8570c351d86b33fe056c0",
+    "railway": {
+      "sha": "6766657a18eadff25830f843ade7738c04382f3c",
+      "id": "ab0760f0-064c-41f3-b1ac-cc84ef01afdd",
+      "status": "SUCCESS",
+      "branch": "main",
+      "createdAt": "2026-10-12T07:25:23.655Z",
+      "updatedAt": "2026-10-12T07:27:14.431Z",
+      "applicationReadyAt": "2026-10-12T07:27:10.995379403Z",
+      "migrationAppliedAt": "2026-10-12T07:26:55.130204727Z"
+    },
+    "pages": {
+      "sha": "6766657a18eadff25830f843ade7738c04382f3c",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/bfca0a47-4c94-4c3e-8311-bd9174173357",
+      "startedAt": "2026-10-12T07:26:14Z",
+      "completedAt": "2026-10-12T07:26:14Z",
+      "preview": "https://bfca0a47.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-C0hh5PN7.js",
+          "http": 200,
+          "sha256": "9b6888b9dfe6cc77deae8940afe02c08c83016e5fe1eb1d086192bd9fcc05445"
+        },
+        {
+          "path": "/assets/index-C96Y822E.css",
+          "http": 200,
+          "sha256": "00e4aad1a8b4c23f1b6b45b22c829b4a8c0519966db7b1bab282c5d8cc83f4c6"
+        }
+      ]
+    },
+    "postflightAt": "2026-10-12T07:28:39.029Z",
+    "health": 200,
+    "privateRlsTables": 9,
+    "browserGrants": false,
+    "sharedConstraints": 10,
+    "sharedIndexes": 4,
+    "unauthenticatedRefusals": 28,
+    "exactCors": true,
+    "publicAssetsMatch": true,
+    "characters": 120,
+    "dates": 120,
+    "protected": 120,
+    "historicalCharactersUnchanged": true,
+    "activeCandidates": [
+      "Mitya",
+      "Valeriy"
+    ],
+    "candidateCharacters": 0,
+    "outbox": 0,
+    "storageObjects": 2,
+    "storageBytes": 236490,
+    "flags": {
+      "enabled": true,
+      "publish": true,
+      "dryRun": false
+    },
+    "daily12Completed": true,
+    "forcedCycle": false,
+    "publicFixtures": false,
+    "publicHumanAcceptance": false,
+    "closingCommitContainsDocumentationOnly": true,
+    "closingShaAndExactDeployments": "To verify after this closing commit is published; final delivery report carries the exact SHA and deployments without another self-referential commit"
+  },
   "unchangedReviewedDocs": [
     "implementation-order-v1.md",
     "implementation-workflow.md",
@@ -172,6 +245,11 @@
       "sha256": "fcc19ac1771b22c66c9405e1f28f2f042794b0298c56ba7a3c1e573032e298f8"
     },
     "fullException": "Known ten baseline assertions only; no full PASS claimed",
-    "publicHumanAcceptance": false
+    "publicHumanAcceptance": false,
+    "documentation": {
+      "sha": "6766657a18eadff25830f843ade7738c04382f3c",
+      "reportSha256": "21eedcc4dcdf47c523810e3e1f89c7ae9c05341cbbc58b4199046a15a2b03296"
+    },
+    "additionalTests": "86/86 catalogue and25/25 repro instances (16 distinct cases) PASS on source c9191e3"
   }
 }

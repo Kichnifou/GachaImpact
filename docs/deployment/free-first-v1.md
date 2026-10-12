@@ -4,6 +4,10 @@
 
 Le premier cycle quotidien naturel R1051 du 12/10 est observé COMPLETED en lecture seule (06:14UTC), last_success_date2026-10-12 ; aucune relance forcée. Les mentions « futur/à observer » du checkpoint11/10 ci-dessous restent historiques. État des déploiements, migration075 de finition et preuves : [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--finition-autorisée-du-12102026). Aucun fournisseur, variable, quota, droit Storage ou coût nouveau dans cette finition.
 
+## Finition livrée techniquement — 12/10/2026
+
+Checkpoint 6766657a18eadff25830f843ade7738c04382f3c approuvé puis FF strict main/review0/0 : Railway ab0760f0-064c-41f3-b1ac-cc84ef01afdd SUCCESS/Application ready07:27:10UTC, Pages bfca0a47-4c94-4c3e-8311-bd9174173357 SUCCESS et assets preview/live/fr identiques. Migration075 appliquée par pre-deploy Prisma normal ; status à jour75, checksums/historique conservés, neuf tables privées RLS sans droits navigateur. Postflight07:28UTC : health200,28 refus401/CORS exacts, dix contraintes/quatre index shared,120 Character historiques inchangés, Storage2objets236490octets et flags quotidien/publicationON/dryRunfalse. Aucun fournisseur, variable, coût ou fixture publique ajouté. La clôture documentaire conserve ce code ; SHA final et déploiements exacts vérifiés dans le bilan final. Recette humaine des retouches distincte ; [preuve versionnée](../architecture/evidence/finition-20261012.json).
+
 ## R1051 — mise en service du 11/10/2026
 
 Migration 072 appliquée par pre-deploy Prisma normal ; 72 migrations/checksums conformes et sept tables privées RLS sans droits navigateur. Secret SUPABASE_STORAGE_SECRET_KEY uniquement Railway backend, quotas Storage/egress Free organisation confirmés. Bucket character-catalog public PNG 5 Mio à écritures serveur seules : uploads réels, GET/hash/cache max-age=31536000, immutable, rejeu/versioning/nettoyage, refus anonyme et session ordinaire (HTTP 400/Storage 403). Deux portraits provisoires disponibles ; aucun Character publié ni migration massive d'assets.
