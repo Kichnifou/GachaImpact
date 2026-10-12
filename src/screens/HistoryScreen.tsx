@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import EventDrawResult from './EventDrawResult'
 import { useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState } from 'react'
@@ -33,7 +34,7 @@ const effectLabel = (effect: ShopEffectDto) => effect.type === 'resource_bundle'
     : effect.type === 'ticket_other_element_particles' || effect.type === 'ticket_main_element_particles' ? `+${formatResourceAmount(effect.amount)} particules ${effect.elementKey}` : effect.label
 
 export default function HistoryScreen({ initialCategory = 'invocations', onInvocations, onBannersOrEvent, onBank, onShop }: Props) {
-  const [normalcategory, setCategory] = useState<HistoryCategory>(initialCategory)
+  const [normalcategory, setCategory] = useDestinationTab('history',initialCategory)
   const category = useTutorialView('history', normalcategory, ['invocations', 'banners', 'bank', 'shop', 'event'])
   const [page, setPage] = useState(1)
   const [bankFilter, setBankFilter] = useState<BankFilter>('ALL')

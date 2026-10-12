@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : huit correctifs ciblés après recette publique Invocation et Défi.
+## Point courant — mandat consolidé A/B/C du12/10/2026
+
+Checkpoint initial vérifié26885e5c526f5e59798b1fd17fbe040532d3c1a7, main/review locaux et distants identiques0/0, arbre propre. Mandat intégral propriétaire jusqu'à review indépendante du SHA GitHub, FF main, Railway/Pages et postflight, sans nouveau GO générique. Domaines antérieurs et fichiers privés conservés.
+
+A développé : overlay central PAUSED supprimé ; réactions départ20%/2s inchangées autrement ; cooldown500ms serveur par Player/interonglets et garde UI silencieuse ; confirmation d'audience15s conservée entre reçus et refreshs de même session. B développé : R1052 tri Nom/Date asc/desc, recherche accents/casse, vrais badges consultés par type/carte affichée, DTO date fiable/null ; migration076 minimale et ACK authentifié. C développé : pile typée10, écran/onglets/sous-onglets incluant Communauté/MP/listes, cursor/branch/droits, hash/native et F5/account, aucun modal/conversation/action restauré ; deux flèches encadrées du header.
+
+Qualification locale finale : A28 ciblés ; frontend transverse167 puis111 contrôles ciblés (dont restauration MP sans read/send) ; PostgreSQL partagé23, Apparence4, migration076/avatars6, schémas synthétiques privés nettoyés. Full **FAIL6/8**, frontend1578PASS/4FAIL et backend2417PASS/6FAIL, mêmes dix noms bruts que le checkpoint26885e5, sept fichiers historiques inchangés ; builds, typages, lint et diff-check PASS. Dernier quick5/5 et rebuild produit PASS après les gardes ADMIN finales. Aucune réussite full revendiquée.
+
+GameShell réel et CSS compilée : six formats390×844,844×390,1366×520,1366×768,1920×1080,2560×1440. Captures Avatars/pause et badges visibles inspectées ; comparaison avec la CSS publique exacte213dae99… confirme logo et boutons du header inchangés à1px près, cartes de même taille avec/sans badge. Focus clavier, hover, disabled, boutons32px et interactions mobiles qualifiés. Parcours screens/native/F5/compte/candidat consommé, hash externe, Chat/MP/Archives et Tutoriel pause/conclusion passent dans Edge privé. Prévalidation ADMIN différée après révocation ou changement de compte : reste Accueil, aucune archive ni action économique.
+
+Review consultative : ACK de cartes masquées, double entrée native ADMIN et offsets après hash externe reproduits puis corrigés ; fermeture des conversations à la restauration et réponse tardive qualifiées indépendamment. La review formelle technique et la review visuelle du vrai SHA GitHub restent les prochaines gates. Preuves privées ignorées sous local-data/r1052-navigation-20261012/. Migration076 non encore appliquée publiquement (registre75 terminées à ce stade), aucune mutation économique de production pour la QA.
+
+Prochaines gates de cette même mission : publier les trois commits logiques sur review, vérifier le SHA GitHub, obtenir les revues indépendantes technique/visuelle, corriger si nécessaire, FF strict main puis qualifier Railway/Pages/migration076 et postflight. R1052 sera déclaré livré techniquement après ce cycle ; recette publique propriétaire toujours distincte.
+
+Version : mandat consolidé finitions Invocation, R1052 cosmétiques et historique R1078.
 Date : 2026-10-12
-Statut : **Disposition générale restaurée acceptée publiquement par le propriétaire à deux comptes ; huit correctifs suivants livrés techniquement sur main après revues indépendantes, déploiements et postflight acquis. Nouvelle recette humaine restant à effectuer.**
+Statut : **Candidat local A/B/C implémenté ; qualification et revues en cours. Aucune promotion ni migration publique de ce mandat encore acquise. Recette propriétaire future.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — correctifs après recette publique du 12/10/2026
+## Checkpoint précédent — correctifs après recette publique du 12/10/2026
 
 Base propre vérifiée `6d8534ab82d36ac7878b5c48fcae9839ba221202`, main/review/origin identiques, divergence0/0. La disposition générale restaurée est acceptée par le propriétaire après vraie recette à deux comptes ; les trois vidéos analysées hors dépôt ne sont pas des preuves locales et ne sont pas demandées. Huit corrections uniquement, aucun changement backend/SQL/économique/Twitch/Faveur/Roue/catalogue/infrastructure.
 

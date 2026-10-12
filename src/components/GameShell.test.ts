@@ -31,13 +31,13 @@ describe('GameShell shared particle conversion overlay', () => {
 
   it('routes a received friend request notification to the Requests tab', () => {
     expect(gameShellSource).toContain("case 'social-requests':")
-    expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('requests'); navigate('social')")
-    expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social')")
+    expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('requests'); navigate('social',{social:'requests'})")
+    expect(gameShellSource).toContain("setSocialTab('requests'); navigate('social',{social:'requests'})")
   })
 
   it('routes an accepted friendship notification to Amis', () => {
     expect(gameShellSource).toContain("case 'social-friends':")
-    expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('friends'); navigate('social')")
+    expect(gameShellSource).toContain("void friendship.refresh(true); setSocialTab('friends'); navigate('social',{social:'friends'})")
   })
 
   it('routes a Mission intent to the existing Activities Missions screen', () => {

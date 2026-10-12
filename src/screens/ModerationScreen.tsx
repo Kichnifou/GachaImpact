@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import {
   useCallback,
   useEffect,
@@ -106,7 +107,7 @@ function ModerationScreen({
   const [query, setQuery] = useState("");
   const [players, setPlayers] = useState<readonly ModerationPlayerDto[]>([]);
   const [browserOpen, setBrowserOpen] = useState(false);
-  const [communityType, setCommunityType] = useState<'chat' | 'dm'>('dm');
+  const [communityType, setCommunityType] = useDestinationTab('community','dm');
   const [resourceKey, setResourceKey] = useState("primogems");
   const [amount, setAmount] = useState("160");
   const [xp, setXp] = useState("");
@@ -121,7 +122,7 @@ function ModerationScreen({
     capabilities.superTools;
   const [pending, setPending] = useState(systemAvailable);
   const [message, setMessage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"system" | "characters" | "codes" | "banners" | "events" | "community" | "giveaway" | "audit">(
+  const [activeTab, setActiveTab] = useDestinationTab("moderation",
     () => (capabilities.superTools && /^#moderation\/(?:characters|candidates)\//.test(window.location.hash) ? "characters" : systemAvailable ? "system" : "community"),
   );
   const onLoadRef = useRef(onLoad);

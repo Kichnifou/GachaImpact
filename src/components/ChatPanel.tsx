@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useLatestRef } from '../hooks/use-latest-ref'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
@@ -120,7 +121,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const api = getGameApiClient().chat
   const presentation = useTutorialPresentation()
   const presentationActive = useLatestRef(presentation.active)
-  const [normalActiveTab, setActiveTab] = useState<'chat' | 'direct'>('chat')
+  const [normalActiveTab, setActiveTab] = useDestinationTab('communityPanel','chat')
   const activeTab = presentation.active && presentation.step?.chapter === 'Communauté' ? presentation.step.view?.startsWith('dm-') ? 'direct' : 'chat' : normalActiveTab
   const [directUnread, setDirectUnread] = useState(0)
   useDirectMessageDocumentTitle(directUnread, playerId)

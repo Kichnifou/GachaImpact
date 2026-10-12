@@ -36,10 +36,11 @@ export type DailyCombatScreenProps = Readonly<{
 
 export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, onSetBossSlot = async () => unavailableMonthlyBoss, onRemoveBossSlot = async () => unavailableMonthlyBoss, onCopyActiveToBoss = async () => unavailableMonthlyBoss, onClearBoss = async () => unavailableMonthlyBoss, onAttackBoss = async () => { throw new Error('Boss indisponible.') }, onLoadBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }) }: DailyCombatScreenProps) {
   const [tabSelection, setTabSelection] = useState<{ tab: 'training' | 'boss'; requestToken: number }>({ tab: bossRequestToken > 0 ? 'boss' : 'training', requestToken: bossRequestToken })
-  const normalTab = tabSelection.requestToken === bossRequestToken ? tabSelection.tab : 'boss'
+  const [storedTab,setStoredTab,hasDestination]=useDestinationTab('combat',bossRequestToken>0?'boss':'training')
+  const normalTab = hasDestination || tabSelection.requestToken === bossRequestToken ? storedTab : 'boss'
   const tab = useTutorialView('activities-combat', normalTab, ['training', 'boss'])
   const guidedCalculation = useTutorialPanel('combat-calculation')
-  const setTab = (next: 'training' | 'boss') => setTabSelection({ tab: next, requestToken: bossRequestToken })
+  const setTab = (next: 'training' | 'boss') => {setStoredTab(next);setTabSelection({ tab: next, requestToken: bossRequestToken })}
   const [pickerPosition, setPickerPosition] = useState<number | null>(null)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [calculationOpen, setCalculationOpen] = useState(false)
@@ -142,3 +143,4 @@ function combatFeedback(value: DailyCombatDto, result: DailyCombatFightDto['resu
   if (!value.canFight) return 'Sélectionnez 4 personnages disponibles.'
   return 'Formation prête.'
 }
+import { useDestinationTab } from '../navigation/destination-context'

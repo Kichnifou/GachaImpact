@@ -1,3 +1,4 @@
+import { useDestinationTab,useDestinationRestoration } from '../navigation/destination-context'
 import PresenceDot from './PresenceDot'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useLatestRef } from '../hooks/use-latest-ref'
@@ -173,8 +174,14 @@ export default function DirectMessagePanel({
   const [normalView, setView] = useState<View>("list"),
     [normalSelectedId, setSelectedId] = useState<string | null>(null),
     [target, setTarget] = useState<DirectMessagePlayerDto | null>(null);
-  const selectedId = guidedView === "conversation" || guidedView === "history" ? guidedId : normalSelectedId;
-  const view = guidedView && ((guidedView !== "conversation" && guidedView !== "history") || guidedId) ? guidedView : guidedView ? "list" : normalView;
+  const [mailbox,setMailbox,hasDestination]=useDestinationTab('directMailbox','list');
+  const restoration=useDestinationRestoration();
+  const [appliedRestoration,setAppliedRestoration]=useState(restoration);
+  const restoring=hasDestination&&restoration!==appliedRestoration;
+  useLayoutEffect(()=>{if(!restoring)return;setAppliedRestoration(restoration);setView(mailbox);setSelectedId(null);setTarget(null);setProvisional(null);setMenuOpen(false);setConfirmBlock(false);setListMenuId(null);setListBlockTarget(null)},[restoring,restoration,mailbox]);
+  const destinationView=hasDestination&&(restoring||normalView==='list'||normalView==='archives')?mailbox:normalView;
+  const selectedId = restoring?null:guidedView === "conversation" || guidedView === "history" ? guidedId : normalSelectedId;
+  const view = guidedView && ((guidedView !== "conversation" && guidedView !== "history") || guidedId) ? guidedView : guidedView ? "list" : destinationView;
   const [draft, setDraft] = useState(""),
     [search, setSearch] = useState(""),
     [candidates, setCandidates] = useState<DirectMessagePlayerDto[]>([]);
@@ -1519,7 +1526,7 @@ export default function DirectMessagePanel({
               type="button"
               role="tab"
               aria-selected={view === "list"}
-              onClick={() => { setListMenuId(null); setView("list"); }}
+              onClick={() => { setListMenuId(null); setView("list");setMailbox("list"); }}
             >
               Conversations
             </button>
@@ -1527,7 +1534,7 @@ export default function DirectMessagePanel({
               type="button"
               role="tab"
               aria-selected={view === "archives"}
-              onClick={() => { setListMenuId(null); setView("archives"); }}
+              onClick={() => { setListMenuId(null); setView("archives");setMailbox("archives"); }}
             >
               Archives
             </button>

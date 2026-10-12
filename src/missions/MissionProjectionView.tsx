@@ -1,13 +1,13 @@
+import { useDestinationTab,useDestinationScreen } from '../navigation/destination-context'
 import { useTutorialView } from '../tutorial/tutorial-presentation'
-import { useState } from 'react'
-import type { PermanentMissionDto, PermanentMissionProjectionDto, PermanentMissionRankDto } from '../api/types'
+import type { PermanentMissionDto, PermanentMissionProjectionDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 import { lockedZMessage, orderMissionCards, preferredMissionRank, progressPercent } from './mission-presentation'
 
 const ranks = ['B', 'A', 'S', 'Z'] as const
 
 export default function MissionProjectionView({ value }: Readonly<{ value: PermanentMissionProjectionDto }>) {
-  const [normalRank, setRank] = useState<PermanentMissionRankDto>(() => preferredMissionRank(value))
+  const [normalRank, setRank] = useDestinationTab(useDestinationScreen()==='profile'?'profileMissions':'missions',() => preferredMissionRank(value))
   const rank = useTutorialView('activities-missions', normalRank, ranks)
   const missions = rank === 'Z' ? value.z.status === 'LOCKED' ? [] : value.z.missions : value.ranks[rank]
   return <div className="mission-projection-view">

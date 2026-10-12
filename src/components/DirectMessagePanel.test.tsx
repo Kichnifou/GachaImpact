@@ -1,7 +1,9 @@
 import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
 import { getTutorialStep } from '../tutorial/tutorial-catalog'
 // @vitest-environment happy-dom
-import { act } from 'react'
+import { act,useSyncExternalStore } from 'react'
+import { DestinationContext } from '../navigation/destination-context'
+import { DestinationHistory } from '../navigation/destination-history'
 import { createRoot } from 'react-dom/client'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -37,8 +39,27 @@ const reportPreview: DirectMessageReportPreviewDto = { message: reportLine, cont
 const baseConversation: DirectConversationDto = { id: conversationId, other: { id: otherId, displayName: 'Aster', elementKey: 'hydro' }, archived: false, lastMessageAt: message.createdAt, lastMessage: message, request: null, unreadCount: 2, readReceiptsEnabled: true, canSend: true, blockedByMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 const unreadChanged = vi.fn(), openProfile = vi.fn(), intentConsumed = vi.fn()
+function HistoryPanel({history}:{history:DestinationHistory}){
+ useSyncExternalStore(history.subscribe,history.getSnapshot)
+ return <DestinationContext value={{history,disabled:false,onTab:()=>{}}}><DirectMessagePanel playerId={ownId} isActive intent={null} onIntentConsumed={intentConsumed} onUnreadChange={unreadChanged} onOpenProfile={openProfile}/></DestinationContext>
+}
 
 async function settle() { await act(async () => { await Promise.resolve(); await new Promise(resolve => setTimeout(resolve, 25)) }) }
+it('restores only the MP mailbox and never reopens, reads or sends the former conversation',async()=>{
+ const history=new DestinationHistory(ownId,{screen:'home',tabs:{communityPanel:'direct',directMailbox:'list'}})
+ const container=document.createElement('div');document.body.append(container);const root=createRoot(container);roots.push(root)
+ await act(async()=>root.render(<HistoryPanel history={history}/>));await settle()
+ await act(async()=>container.querySelector<HTMLButtonElement>('.dm-conversation-row')!.click());await settle()
+ expect(container.querySelector('.dm-thread-header')).not.toBeNull();expect(history.getSnapshot().entries).toHaveLength(1)
+ const reads=directMessages.read.mock.calls.length,messages=directMessages.messages.mock.calls.length
+ await act(async()=>{history.visit({screen:'inventory',tabs:{communityPanel:'direct',directMailbox:'list'}});history.move(-1,()=>true)});await settle()
+ expect(container.querySelector('.dm-thread-header')).toBeNull();expect(container.querySelector('.dm-list-tabs')).not.toBeNull()
+ expect(directMessages.messages).toHaveBeenCalledTimes(messages);expect(directMessages.read).toHaveBeenCalledTimes(reads)
+ expect(directMessages.send).not.toHaveBeenCalled();expect(directMessages.initiate).not.toHaveBeenCalled()
+ await act(async()=>Array.from(container.querySelectorAll<HTMLButtonElement>('.dm-list-tabs button')).find(button=>button.textContent==='Archives')!.click());await settle()
+ expect(history.getSnapshot().current.tabs.directMailbox).toBe('archives')
+ await act(async()=>history.move(-1,()=>true));await settle();expect(history.getSnapshot().current.tabs.directMailbox).toBe('list')
+});
 async function mount(conversation: DirectConversationDto = baseConversation, active = true, preserveListMock = false) {
   if (!preserveListMock) directMessages.list.mockImplementation(async (archived: boolean) => ({ conversations: archived ? [] : [conversation] }))
   const container = document.createElement('div'); document.body.append(container)

@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## Complément borné R1052/R1078 — 12/10/2026
+
+Deux boutons ‹ et › distincts de32×32px, sombre/bleu, cadres identiques et gap5px occupent l'espace libre à droite du bouton logo/nom. Ils restent extérieurs à ce bouton et précèdent les actions existantes, sans deuxième barre ni mots visibles. Aria Précédent/Suivant, focus-visible contrasté, hover discret, disabled lisible ; compactage du grid header sous760px, aucun chevauchement/débordement. Logo, Menu, Modération, Déconnexion et Notifications gardent leurs styles existants.
+
+Dans Profil > Personnalisation, badge jaune Nouveau en position absolue en haut à gauche de la carte, sans modifier son flux/dimensions ; nom, illustration, condition et Équiper restent présents. Recherche normalisée et sélecteurs compacts Nom/Date et direction coexistent avec les regroupements existants. La nouveauté des cartes affichées reste visible durant la visite puis disparaît au retour, sans consommer les cartes masquées ni l'autre type.
+
+Invocation : retrait intégral du bandeau noir central de pause. L'unique statut PAUSED demeure le groupe blanc déjà validé en haut à droite, sans déplacement. Réactions : départ20% au lieu de14%, taille2rem, durée2s, voies ID/oscillation/fade/reduced-motion inchangés. Le compteur confirmé reste pendant les lectures de la même diffusion, y compris remount du reçu ; après15s sans donnée valide il redevient indisponible, sans zéro inventé. Les preuves visuelles locales et la recette publique restent distinctes au Master.
+
 ## Correctifs après recette publique — 12/10/2026
 
 La disposition générale restaurée au checkpoint6d8534a est acceptée par le propriétaire après recette à deux comptes ; cette validation ne couvre pas les corrections suivantes. La scène personnelle au repos conserve le même splash DOM chargé pendant Diffuser/arrêter ; les frontières d'identité et de reçu partagé restent distinctes. Détails remplace seulement le libellé Invocation Détail et s'ouvre dès la sortie de visionnage confirmée, même pendant le refresh personnel ; les mutations attendent toujours ce refresh et l'historique reste interdit en visionnage/onglet non autoritaire.

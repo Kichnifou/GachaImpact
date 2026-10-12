@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import type { AppearanceDto } from '../api/types'
@@ -9,7 +10,7 @@ import { normalizeCharacterSearch } from '../characters/character-catalog'
 
 export default function AppearancePanel({ actions, displayName, elementKey, onChanged }: { actions: SocialActions; displayName: string; elementKey: string | null; onChanged: () => Promise<void> }) {
   const [value, setValue] = useState<AppearanceDto | null>(null)
-  const [normalTab, setTab] = useState<'AVATAR'|'TITLE'>('AVATAR')
+  const [normalTab, setTab] = useDestinationTab('appearance','AVATAR')
   const presentation = useTutorialPresentation()
   const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
   const [query, setQuery] = useState('')

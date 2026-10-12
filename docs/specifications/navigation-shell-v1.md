@@ -1,5 +1,29 @@
 # Navigation et shell V1
 
+## Historique écran/onglets — R1078
+
+Le shell possède une seule pile typée de dix destinations maximum, liée à l'identité Player. Une destination contient ScreenId, les vrais onglets actifs, la cible du Profil lorsque nécessaire, et le chemin fonctionnel du panneau Communauté. Les changements explicites créent une entrée ; une initialisation de sous-onglet complète l'entrée courante. Recliquer la destination courante est neutre. Précédent/Suivant déplacent le curseur, ignorent les destinations devenues interdites, sont désactivés aux extrémités ; une nouvelle visite après retour supprime la branche future, une onzième évince la plus ancienne.
+
+Inventaire des chemins réels :
+
+- Personnages : Box / Équipe / Catalogue ; Activités : Quotidiennes / Missions / Combat / Événement / Arcade / Concours.
+- Quotidiennes : Aperçu / Roue / Défi ; Combat : Entraînement / Boss ; Missions : B / A / S / Z.
+- Événement : Général / Jeux / Shop / Classement ; Jeux : Récolte / Grenier / Panier.
+- Profil : Aperçu / Team active / Box / Collection / Statistiques / Missions / Personnalisation ; Missions B/A/S/Z ; Personnalisation Avatars/Titres, propriétaire seul.
+- Configuration : Menu / Confidentialité / Compte ; Social : Amis / Demandes / Joueurs.
+- Modération : Système / Personnages / Codes / Bannières / Événements / Communauté / Giveaway / Audit, selon capacités ; Personnages : Catalogue / Possessions / Imports et candidats ; Communauté : Chat / MP.
+- Sac : Tout / Ressources / Objets / Collection ; Historique : Invocations / Bannières / Événement / Banque / Boutique ; Échanges : Partenaires / Reçues / Envoyées / Historique.
+- Classements : Progression / Gacha / Ressources / Collection / Activité (métrique et page exclues).
+- Panneau Communauté persistant : Chat / MP ; MP : Conversations / Archives. Un fil, nouveau message, historique de fil, recherche et menu ne sont jamais des destinations.
+
+Aucun modal, popover, fiche, formulaire, recherche, filtre, tri, page, scroll, accordéon, sélection, quantité, pending, animation, reçu, diffusion/visionnage, notification ouverte ou action économique n'entre dans la pile. La restauration réutilise les composants des onglets d'un même écran, sans key de remount artificielle. MP revient à la liste canonique et efface l'ancienne sélection de fil avant toute lecture du fil. Les lectures normales des écrans gardent leur contrôle serveur de confidentialité.
+
+L'adaptateur navigateur conserve seulement la destination courante dans history.state avec l'identité, jamais la pile serveur. F5 crée une nouvelle pile à une entrée et peut restaurer le chemin courant de la même identité ; déconnexion/changement de compte effacent la pile précédente. Les routes hash existantes restent reconnues. Pour des positions natives connues du même segment, les flèches utilisent history.go sans push ; après une entrée externe non suivie, les offsets incertains sont invalidés et le repli remplace l'URL canonique sans créer une entrée. Popstate/hashchange sont idempotents. Un déplacement natif en cours neutralise les flèches jusqu'à son événement (garde de secours1s).
+
+Un lien ADMIN volontaire ouvre effectivement son éditeur/candidat autorisé. L'UUID est capturé puis immédiatement remplacé par #moderation, sans être conservé dans la destination ; les notifications utilisent une intention d'ouverture locale consommable sans push hash supplémentaire. Retour restaure seulement Personnages et Catalogue/Imports. Une destination refusée ne s'enregistre pas ; accès révoqué courant replie vers Accueil, ancien accès refusé est ignoré.
+
+Le Tutoriel prépare ses écrans par remplacement d'URL, sans enregistrer ses étapes internes ; flèches et callbacks de navigation normale sont neutralisés. À la pause, conserver le comportement existant de sortie sur l'écran présenté ; conclusion sur Accueil. À la sortie utilisateur, rétablir l'entrée navigateur initiale puis enregistrer au plus une destination finale, en gardant les destinations normales antérieures. Aucun spotlight, focus ou action du Tutoriel n'est rejoué par l'historique.
+
 ## Finition Invocation — 12/10/2026
 
 Le compteur/liste Spectateurs reste dans la destination Invocation ; un clic sur un Player utilise le parcours GameShell.openProfile existant, sans second système de profil ni route. Diffuser/Voir et aide sont absents pendant toute présentation personnelle ; diffuseur conserve son arrêt, spectateur Arrêter et réactions. Le refresh personnel est silencieux et borné ; seule une erreur persistante propose le petit lien « Réessayer l’actualisation », supersédant le grand bouton du contrat C historique ci-dessous. [Contrat actuel](../architecture/shared-invocations-v1.md#finition-autorisée-du-12102026).
@@ -43,7 +67,7 @@ Correction de review R1055 : conserver les deux libellés du comparatif ; le cho
 
 Correction du Web neuf : les traces techniques admissibles ne déclenchent plus seules le comparatif ; après récupération, bootstrap complet et session de jeu correspondent au Player Twitch conservé. L’écran pré-élément se réinitialise sur son ID, fermant l’ancien Compte et effaçant la sélection du temporaire, même si le Twitch n’a pas encore d’élément. Si un comparatif reste nécessaire, le blocage dû à l’autorité active explique « L’autorité Twitch est active. Abandonner cette progression nécessite une résolution opérateur. », sans prétendre à des relations ; si l’autre choix est relationnellement bloqué aussi, le message distingue les deux causes. La récupération qui conserve le Twitch n’exige aucun arrêt canary. [Contrat](../process/twitch-native-foundations.md#récupération-du-web-neuf--correction-des-traces-techniques).
 
-[R1052](decisions-log.md) : onglet Configuration > Apparence retiré dans ce candidat ; Profil > Personnalisation reste propriétaire Avatars/Titres. Nouvelles acquisitions temporairement en tête lors de la première visite, badge Nouveau jaune superposé haut gauche sans modifier les dimensions ; quitter/revenir restaure l'ordre normal. Date d'obtention asc/desc, nom/recherche, autres tris utiles à définir ; recherche Avatar par nom de personnage obligatoire. DTO unlockedAt à étendre à partir du champ existant, pas de table nouvelle si évitable. Passe graphique/ergonomie/bêta et mobile dédiée avant révélation, viewports au [plan](../roadmap/implementation-order-v1.md). Les autres évolutions Personnalisation restent futures.
+[R1052](decisions-log.md) : onglet Configuration > Apparence retiré dans ce candidat ; Profil > Personnalisation reste propriétaire Avatars/Titres. Nouvelles acquisitions temporairement en tête lors de la première visite, badge Nouveau jaune superposé haut gauche sans modifier les dimensions ; quitter/revenir restaure l'ordre normal. Tri Nom/Date d'obtention asc/desc et recherche Avatar par nom de personnage normalisée. DTO unlockedAt projeté depuis le champ existant lorsque fiable, sinon null ; état de consultation durable par possession, sans nouvelle table. Contrat consolidé R1078 ci-dessus, état de livraison au Master. Passe graphique/ergonomie/bêta et mobile dédiée avant révélation, viewports au [plan](../roadmap/implementation-order-v1.md). Les autres évolutions Personnalisation restent futures.
 
 ## Accueil et suivi Quotidiennes — 25A validée publiquement, 25B promue via 81d7234, correctif propriétaire approuvé et promu sur main
 

@@ -1,4 +1,5 @@
 import { useTutorialView } from '../tutorial/tutorial-presentation'
+import { useDestinationTab } from '../navigation/destination-context'
 import type { FavorDto } from '../api/types'
 import { projectDailies, type DailyItem } from '../dailies/daily-summary'
 import type { DailyClaimController } from '../dailies/use-daily-claim'
@@ -167,8 +168,9 @@ function DailyOverviewCard({ title, status, completed = false, detail, obtained,
 function DailiesScreen(props: Omit<ActivitiesScreenProps, 'screen'>) {
   const { wheelToday, onSpinWheel, dailyRewardToday, dailyChallenge, elementKey, onClaimDailyReward, onPurchaseDailyChallenge, onSwitchDailyChallenge, onOpenParticleConversion, onOpenExpedition, onOpenBoss, onNavigate, onOpenDailyEvent, onOpenFriends, dailyClaim, dailiesOverviewRequestToken = 0, dailiesRequestedTab = 'overview' } = props
   const [selection, setSelection] = useState<{ tab: 'overview' | 'wheel' | 'challenge'; requestToken: number }>({ tab: dailiesRequestedTab, requestToken: dailiesOverviewRequestToken })
-  const normalTab = selection.requestToken === dailiesOverviewRequestToken ? selection.tab : dailiesRequestedTab
-  const selectTab = (next: typeof tab) => setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })
+  const [storedTab,setStoredTab,hasDestination]=useDestinationTab('dailies',dailiesRequestedTab)
+  const normalTab = hasDestination || selection.requestToken === dailiesOverviewRequestToken ? storedTab : dailiesRequestedTab
+  const selectTab = (next: typeof tab) => {setStoredTab(next);setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })}
   const tab = useTutorialView('activities-dailies', normalTab, ['overview', 'wheel', 'challenge'])
   const tabs = <nav className="activity-inner-tabs" aria-label="Sections Quotidiennes"><button className={tab === 'overview' ? 'active' : ''} onClick={() => selectTab('overview')}>Aperçu</button><button className={tab === 'wheel' ? 'active' : ''} onClick={() => selectTab('wheel')}>Roue</button><button className={tab === 'challenge' ? 'active' : ''} onClick={() => selectTab('challenge')}>Défi</button></nav>
   const items = props.dailyItems ?? projectDailies({ elementKey, favor: props.favor, reward: dailyRewardToday, wheel: wheelToday, challenge: dailyChallenge, combat: props.dailyCombat, boss: props.monthlyBoss, expedition: props.expedition, monotonicNow: props.expeditionMonotonicNow, event: props.event, friendship: props.friendship, friendshipDate: props.friendshipDate ?? dailyRewardToday.businessDate, errors: { favor: props.favorError, friendship: Boolean(props.friendshipError) } })

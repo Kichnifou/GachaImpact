@@ -1,5 +1,6 @@
 import type { NavigationMenuDestinationId, NavigationMenuPreferenceDto } from '../api/types'
 import type { ScreenId } from '../types'
+export const ADMIN_OPENING_INTENT_EVENT='gacha:admin-opening-intent'
 
 export type MainNavigationId = 'home' | 'invocation' | 'characters' | 'activities' | 'inventory' | 'shop' | 'configuration'
 export type NavigationDestination = Readonly<{ id: NavigationMenuDestinationId; label: string; icon: string; screen: ScreenId | null; available: boolean; action?: 'tutorial' | 'help' }>

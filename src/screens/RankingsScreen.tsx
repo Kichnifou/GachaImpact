@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useDestinationTab } from '../navigation/destination-context'
 import type { RankingPageDto } from '../api/types'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
@@ -11,20 +12,21 @@ const categoryLabels = { PROGRESSION: 'Progression', GACHA: 'Gacha', RESSOURCES:
 type Props = { onLoad: (metric: string, page: number) => Promise<RankingPageDto>; onProfile: (playerId: string) => void }
 export default function RankingsScreen({ onLoad, onProfile }: Props) {
   const [metric, setMetric] = useState('xp')
+  const [category,setCategory]=useDestinationTab('rankings','PROGRESSION')
   const [page, setPage] = useState(1)
   const [data, setData] = useState<RankingPageDto | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [request, setRequest] = useState(0)
   useEffect(() => { let active = true; setLoading(true); setError(null); void onLoad(metric, page).then(value => { if (active) setData(value) }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }).finally(() => { if (active) setLoading(false) }); return () => { active = false } }, [metric, page, request, onLoad])
-  const category = data?.metrics.find(item => item.id === metric)?.category ?? 'PROGRESSION'
+  useEffect(()=>{const selected=data?.metrics.find(item=>item.id===metric);if(selected&&selected.category!==category){const next=data?.metrics.find(item=>item.category===category);if(next){setMetric(next.id);setPage(1)}}},[category,data,metric])
   const visibleData = !error && data?.metric.id === metric && data.page === page ? data : null
   const choose = (next: string) => { setLoading(true); setError(null); setMetric(next); setPage(1) }
   const turnPage = (next: number) => { setLoading(true); setError(null); setPage(next) }
   return <div data-tutorial-state={loading ? "loading" : undefined} className="screen-content rankings-screen long-screen-layout">
     <ScreenHeader eyebrow="Communauté" title="Classements" />
     <ScrollableScreenPanel className="rankings-frame" bodyTutorialAnchor="rankings-list" bodyClassName="rankings-body" fixed={<div data-tutorial-anchor="rankings-controls" className="rankings-controls">
-      <nav className="activity-inner-tabs" role="tablist" aria-label="Catégories des classements">{data?.categories.map(item => <button type="button" key={item} role="tab" aria-selected={category === item} className={category === item ? 'active' : ''} onClick={() => choose(data.metrics.find(metric => metric.category === item)?.id ?? 'xp')}>{categoryLabels[item]}</button>)}</nav>
+      <nav className="activity-inner-tabs" role="tablist" aria-label="Catégories des classements">{data?.categories.map(item => <button type="button" key={item} role="tab" aria-selected={category === item} className={category === item ? 'active' : ''} onClick={() => {setCategory(item);choose(data.metrics.find(metric => metric.category === item)?.id ?? 'xp')}}>{categoryLabels[item]}</button>)}</nav>
       <label>Métrique <select value={metric} onChange={event => choose(event.target.value)}>{data?.metrics.filter(item => item.category === category).map(item => <option key={item.id} value={item.id}>{item.label}</option>) ?? <option value="xp">XP</option>}</select></label>
     </div>}>
       {error && <div className="rankings-error" role="alert"><p>{error}</p><AppButton onClick={() => setRequest(value => value + 1)}>Réessayer</AppButton></div>}

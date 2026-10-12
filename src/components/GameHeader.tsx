@@ -7,6 +7,7 @@ import AppButton from './AppButton'
 import PlayerAvatar from './PlayerAvatar'
 
 type GameHeaderProps = {
+  navigationHistory?: { back: boolean; forward: boolean; onBack: () => void; onForward: () => void }
   displayName: string
   elementKey?: string | null
   avatarAssetPath?: string | null
@@ -28,7 +29,7 @@ type GameHeaderProps = {
 }
 
 const emptyNotifications: NotificationsDto = { unreadCount: 0, notifications: [] }
-function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
+function GameHeader({ navigationHistory, displayName, elementKey = null, avatarAssetPath = null, onNavigateHome, onOpenSidebar, onSignOut, showModeration, onOpenModeration, onOpenMenu, notifications = emptyNotifications, pollSessionKey, onRefreshNotifications = async () => undefined, onReadNotification = async () => emptyNotifications, onArchiveNotification = async () => emptyNotifications, onReadAllNotifications = async () => emptyNotifications, onArchiveAllNotifications = async () => emptyNotifications, onArchiveReadNotifications = async () => emptyNotifications, onOpenNotification = () => undefined }: GameHeaderProps) {
   const [clearing, setClearing] = useState(false)
   const clearingRef = useRef(false)
   const [clearError, setClearError] = useState('')
@@ -98,6 +99,7 @@ function GameHeader({ displayName, elementKey = null, avatarAssetPath = null, on
   }
   return <header className="game-header">
     <button type="button" className="brand" onClick={onNavigateHome} aria-label="GachaImpact — accueil"><span className="brand-mark" aria-hidden="true">✦</span><span><strong>Gacha<span>Impact</span></strong><small>Chroniques astrales</small></span></button>
+    {navigationHistory&&<div className="destination-history-controls"><button type="button" aria-label="Précédent" disabled={!navigationHistory.back} onClick={navigationHistory.onBack}>‹</button><button type="button" aria-label="Suivant" disabled={!navigationHistory.forward} onClick={navigationHistory.onForward}>›</button></div>}
     <div className="header-actions">
       <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={avatarAssetPath} className="mobile-player-art" /><strong>{displayName}</strong></button>
       <button type="button" data-tutorial-anchor="menu-entry" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>

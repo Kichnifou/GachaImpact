@@ -1,3 +1,5 @@
+import { useDestinationTab } from '../../navigation/destination-context'
+import { ADMIN_OPENING_INTENT_EVENT } from '../../navigation/navigation'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { getGameApiClient } from '../../api/game-api'
 import type { AdminCharacter, AdminCharacterFields, AdminPage, AdminPossession } from '../../api/admin-types'
@@ -14,7 +16,7 @@ type CharacterIntent = Readonly<{ kind: 'catalog'; characterId: string; characte
   | Readonly<{ kind: 'possession'; playerId: string; playerName: string; characterId: string; characterName: string; action: 'remove' }>
 
 export default function CharacterAdminPanel({ playerId, playerName }: { playerId: string; playerName: string }) {
-  const [section, setSection] = useState<'catalog' | 'possessions' | 'pipeline'>(() => window.location.hash.startsWith('#moderation/candidates/') ? 'pipeline' : 'catalog')
+  const [section, setSection] = useDestinationTab('adminCharacters',() => window.location.hash.startsWith('#moderation/candidates/') ? 'pipeline' : 'catalog')
   const [pipelineId,setPipelineId]=useState<string|undefined>(()=>/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])
   const [editorOpen, setEditorOpen] = useState(false)
   const deepRequest = useRef(0)
@@ -48,7 +50,7 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
   const [loadError, setLoadError] = useState('')
   const [loading, setLoading] = useState(true), [refreshNotice, setRefreshNotice] = useState('')
   const refreshGate = useRef(false)
-  const consumeIntent = useCallback(() => { deepRequest.current++; setPipelineId(undefined); if (/^#moderation\/(candidates|characters)\//i.test(window.location.hash)) window.history.replaceState(null,'','#moderation') }, [])
+  const consumeIntent = useCallback(() => { deepRequest.current++; setPipelineId(undefined); if (/^#moderation\/(candidates|characters)\//i.test(window.location.hash)) window.history.replaceState(window.history.state,'','#moderation') }, [])
   const closeEditor = () => { consumeIntent(); setEditorOpen(false) }
   const changeSection = (next: typeof section) => { consumeIntent(); setEditorOpen(false); setSection(next); setPage(1) }
   const task = useAdminTask(() => { setConstellations({}); setReload(value => value + 1) })
@@ -111,9 +113,12 @@ export default function CharacterAdminPanel({ playerId, playerName }: { playerId
       const match = /^#moderation\/characters\/([a-f0-9-]{36})$/i.exec(window.location.hash)
       if (match) { setSection('catalog'); void getGameApiClient().getAdminCharacter(match[1]!).then(row => { if (revision === deepRequest.current) edit(row) }).catch(error => { if (revision === deepRequest.current) setLoadError(apiErrorMessage(error)) }) }
       if (window.location.hash.startsWith('#moderation/candidates/')) {setSection('pipeline');setPipelineId(/^#moderation\/candidates\/([a-f0-9-]{36})$/i.exec(window.location.hash)?.[1])}
+      // UUIDs are one-shot opening intents. Never leave one in an older browser
+      // entry where Back could replay it after this component has unmounted.
+      if (/^#moderation\/(candidates|characters)\//i.test(window.location.hash)) window.history.replaceState(window.history.state,'','#moderation')
     }
-    openHash(); window.addEventListener('hashchange', openHash)
-    return () => { deepRequest.current++; window.removeEventListener('hashchange', openHash); if (ownedHash.current===window.location.hash) window.history.replaceState(null,'','#moderation') }
+    openHash(); window.addEventListener('hashchange', openHash);window.addEventListener(ADMIN_OPENING_INTENT_EVENT,openHash)
+    return () => { deepRequest.current++; window.removeEventListener('hashchange', openHash);window.removeEventListener(ADMIN_OPENING_INTENT_EVENT,openHash); if (ownedHash.current===window.location.hash) window.history.replaceState(window.history.state,'','#moderation') }
   }, [])
 
   return <div className={`admin-domain${section!=='possessions'?' admin-characters-framed':''}`} aria-label="Administration des personnages">

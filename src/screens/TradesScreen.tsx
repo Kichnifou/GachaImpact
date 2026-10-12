@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialView, useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import AppButton from '../components/AppButton'
@@ -20,7 +21,7 @@ export default function TradesScreen({ actions, onSnapshot, playerId, intent, re
   const [normalStocksOpen, setNormalStocksOpen] = useState(false)
   const guidedStock = useTutorialPresentation().step?.id === "trades-stocks"
   const presentationMode = useTutorialPresentation().active
-  const [normalTab, setTab] = useState<Tab>(intent?.tab ?? 'create'), [query, setQuery] = useState(intent?.partner?.displayName ?? ''), [page, setPage] = useState(1)
+  const [normalTab, setTab] = useDestinationTab('trades',intent?.tab ?? 'create'), [query, setQuery] = useState(intent?.partner?.displayName ?? ''), [page, setPage] = useState(1)
   const tab = useTutorialView('trades', normalTab, ['create', 'received', 'sent', 'history'])
   const [selected, setSelected] = useState<string | null>(intent?.partner?.id ?? null), [amount, setAmount] = useState(''), [searchOpen, setSearchOpen] = useState(false)
   const handledIntent = useRef(intent), searchBox = useRef<HTMLDivElement>(null)

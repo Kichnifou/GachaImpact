@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialView } from '../tutorial/tutorial-presentation'
 import PrivacySettingsPanel from './PrivacySettingsPanel'
 import AccountSettingsPanel from './AccountSettingsPanel'
@@ -10,7 +11,7 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage } from '../utils/formatters'
 
 function ConfigurationScreen({ preference, onSave, onReset, onRefreshPlayerState, socialActions, initialTab = 'menu' }: { socialActions?: SocialActions; initialTab?: 'menu' | 'privacy' | 'account'; preference: NavigationMenuPreferenceDto; onSave: (value: NavigationMenuPreferenceDto) => Promise<void>; onReset: () => Promise<void>; onRefreshPlayerState?: () => Promise<void> }) {
-  const [normaltab, setTab] = useState<'menu' | 'privacy' | 'account'>(initialTab)
+  const [normaltab, setTab] = useDestinationTab('configuration',initialTab)
   const tab = useTutorialView('configuration', normaltab, ['menu', 'privacy', 'account'])
   const [draft, setDraft] = useState(preference)
   const [pending, setPending] = useState(false)

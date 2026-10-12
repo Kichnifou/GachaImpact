@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
@@ -78,7 +79,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const presentationMode = useTutorialPresentation()
   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
-  const [normalSection, setSection] = useState<'registration' | 'games' | 'shop' | 'ranking'>(openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
+  const [normalSection, setSection] = useDestinationTab('event',openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
   const consumedShopToken = useRef<string | null>(null)
   const consumedMessagesToken = useRef<string | null>(null)
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     // oxlint-disable-next-line react/set-state-in-effect -- Explicit notification navigation intent.
     setSection('shop')
   }, [sessionUserId, openShopToken, presentationMode.active])
-  const [normalGameTab, setGameTab] = useState<0 | 1 | 2>(openMessagesToken > 0 ? 2 : dailyIntent?.section === 'games' ? dailyIntent.game : 0)
+  const [normalGameTab, setGameTab] = useDestinationTab('eventGame',openMessagesToken > 0 ? 2 : dailyIntent?.section === 'games' ? dailyIntent.game : 0)
   const guidedSection = useTutorialView('activities-event', normalSection, ['registration', 'games', 'shop', 'ranking'])
   const section = guidedView?.startsWith('games-') ? 'games' : guidedSection
   const gameTab = guidedView === 'games-a' ? 0 : guidedView === 'games-b' ? 1 : guidedView === 'games-c' ? 2 : normalGameTab

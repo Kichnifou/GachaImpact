@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState, type ReactNode } from 'react'
 import ProfileFavorCard from '../components/ProfileFavorCard'
@@ -44,7 +45,7 @@ function LastActivity({ value }: { value: Access<string | null> }) {
 }
 const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques', 'Missions', 'Personnalisation'] as const
 export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu', refreshToken = 0 }: { refreshToken?: number; playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
-  const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [normalTab, setTab] = useState<typeof tabs[number]>(initialTab)
+  const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [normalTab, setTab] = useDestinationTab('profile',initialTab)
   const presentation = useTutorialPresentation()
   const guidedTab = useTutorialView('profile', normalTab, tabs)
   const tab = presentation.active && presentation.step?.view?.startsWith('Personnalisation') ? 'Personnalisation' : guidedTab

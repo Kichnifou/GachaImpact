@@ -21,8 +21,8 @@ function RelationAction({ relation, pending, onAction }: { relation: Relationshi
 }
 
 export default function SocialScreen({ actions, onProfile, controller, initialTab = 'friends', selectedTab, onTabChange }: { actions: SocialActions; onProfile: (id: string) => void; controller: FriendshipController; initialTab?: SocialTab; selectedTab?: SocialTab; onTabChange?: (tab: SocialTab) => void }) {
-  const [localTab, setLocalTab] = useState<SocialTab>(initialTab)
-  const tab = useTutorialView('social', selectedTab ?? localTab, ['friends', 'requests', 'players'])
+  const [localTab, setLocalTab,hasDestination] = useDestinationTab('social',selectedTab??initialTab)
+  const tab = useTutorialView('social', hasDestination?localTab:selectedTab??localTab, ['friends', 'requests', 'players'])
   const [q, setQ] = useState(''), [element, setElement] = useState<ElementKey | undefined>(), [status, setStatus] = useState<PresenceStatus | undefined>(), [relation, setRelation] = useState<RelationshipFilter>('ALL'), [page, setPage] = useState(1)
   const [result, setResult] = useState<DirectoryPage | null>(null), [error, setError] = useState(''), [loading, setLoading] = useState(false)
   const actionsRef = useLatestRef(actions)
@@ -72,3 +72,4 @@ export default function SocialScreen({ actions, onProfile, controller, initialTa
     </ScrollableScreenPanel>
   </div>
 }
+import { useDestinationTab } from '../navigation/destination-context'

@@ -1,3 +1,4 @@
+import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialView, useTutorialPanel } from '../tutorial/tutorial-presentation'
 import InventoryObjectCard from '../components/InventoryObjectCard'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -44,7 +45,7 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   const [inventory, setInventory] = useState(initialInventory)
   const guidedDetail = useTutorialPanel("inventory-detail")
   const [guidedResult, setGuidedResult] = useState<{ id: string; detail: InventoryItemDetailDto | null; error: string | null } | null>(null)
-  const [normalactiveCategory, setActiveCategory] = useState<InventoryCategory>('all')
+  const [normalactiveCategory, setActiveCategory] = useDestinationTab('inventory','all')
   const activeCategory = useTutorialView('inventory', normalactiveCategory, ['all', 'resources', 'objects', 'collection'])
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)

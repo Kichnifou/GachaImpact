@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1078 — historique de destinations et complément R1052 (12/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE**, mandat consolidé A/B/C : deux flèches encadrées ‹/› à droite du bloc logo du header, labels accessibles Précédent/Suivant sans mots visibles. Un propriétaire typé conserve au plus dix destinations écran/onglet/sous-onglet et un curseur ; dédoublonnage du clic actif, abandon du futur après nouvelle navigation, aucune entrée créée par les flèches. Historique lié au Player/session, sans persistance serveur. Hash/deep links et Retour/Avancer natifs restent compatibles, droits et disponibilité revérifiés. Tutoriel : pile normale intacte pendant les préparations, flèches neutralisées ; seule la destination de sortie utilisateur peut être ajoutée.
+
+Tous les vrais onglets sont inventoriés dans le [contrat navigation](navigation-shell-v1.md), y compris Chat/MP et Conversations/Archives. Modales, UUID/intention consommée, conversation ouverte, formulaires, recherche, tri, filtres, pagination, scroll, sélections, pending, résultats, diffusion et actions métier sont exclus. Une restauration MP ouvre uniquement la liste, sans relire l'ancien fil.
+
+Complément R1052 autorisé : tri Nom/Date d'obtention dans les deux sens, recherche normalisée et badge jaune Nouveau superposé à la première visite des cartes effectivement affichées. Consultation durable par possession et par type ; historiques et backfills silencieux déjà consultés. Date réelle projetée depuis unlockedAt uniquement si sa provenance est fiable, sinon null. Deux colonnes additives, aucune nouvelle table, possession/règle d'obtention/équipement/notification inchangés. Lot A : cooldown serveur500ms par Player commun aux onglets, garde frontend silencieuse, retrait du seul overlay central PAUSED, réactions légèrement plus hautes, compteur confirmé stable et périmé après15s sans lecture valide. État de livraison et preuves au Master ; recette publique non présumée.
+
 ## Correctifs après recette publique — mandat du 12/10/2026, VALIDÉ
 
 La disposition générale du checkpoint6d8534a est acceptée après recette propriétaire à deux comptes. Huit corrections bornées autorisées : splash personnel stable au démarrage/arrêt idle ; léger espacement des commandes ; réactions2s plus petites, trajet réduit et voies fixées par ID ; groupe SVG blanc/statut pause blanc ; retrait du message et petit bouton de reprise ; Détails/historique personnel immédiatement après arrêt confirmé, mutations toujours gardées ; remplacement du timer idle15s par cadence active1s à l'entrée en partage ; bouton Changer de Défi actif bleu/désactivé gris.

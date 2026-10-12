@@ -9491,3 +9491,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
   .catalog-pipeline .admin-list-row { flex-wrap:wrap; }
   .catalog-pipeline .admin-list-row > div:first-child { flex-basis:100%; }
 }
+.destination-history-controls { grid-column: 2; grid-row: 1; justify-self: start; display: flex; gap: 5px; }
+.destination-history-controls button { display: grid; place-items: center; box-sizing: border-box; width: 32px; height: 32px; padding: 0; border: 1px solid #3b5276; border-radius: 7px; background: #142238; color: #d4e5ff; font: inherit; font-size: 24px; line-height: 1; cursor: pointer; }
+.destination-history-controls button:hover:not(:disabled) { background: #223a5b; border-color: #6e97cb; }
+.destination-history-controls button:focus-visible { outline: 2px solid #cdb277; outline-offset: 2px; }
+.destination-history-controls button:disabled { opacity: .4; cursor: not-allowed; }
+.game-header:has(.destination-history-controls) > .header-actions { grid-column: 3; grid-row: 1; }
+@media(min-width:761px) { .game-header:has(.destination-history-controls) { padding-right: 18px; box-sizing: border-box; } }
+@media(max-width:760px) { .game-header:has(.destination-history-controls) { grid-template-columns: auto minmax(69px,1fr) auto; column-gap: 6px; } }
