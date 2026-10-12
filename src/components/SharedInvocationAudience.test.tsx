@@ -46,3 +46,17 @@ it('keeps quiet resynchronization buttonless and exposes only a small fallback a
  expect(host.textContent).toContain('Diffusez vos invocations, ou visionnez celles des autres joueurs');expect(host.textContent).not.toContain('Actualiser mes Invocations');
  await act(async()=>root.render(<SharedInvocationControls shared={{...shared,personalError:'Read failed',error:'Read failed'}}/>));expect(host.querySelector('.shared-recovery-link')?.textContent).toBe('Réessayer l’actualisation');
 });
+
+it('uses a group vector and a separate two-bar paused marker without changing the accessible status',async()=>{
+ const shared=controller(),{root,host}=await mount(<SharedInvocationAudience shared={shared} session={session}/>);
+ expect(host.querySelector('.shared-spectator-count svg')).not.toBeNull();expect(host.textContent).not.toContain('◉');expect(host.querySelector('.shared-live-label')?.textContent).toContain('● En direct · Diffuseur');
+ await act(async()=>root.render(<SharedInvocationAudience shared={shared} session={{...session,status:'PAUSED'}}/>));
+ expect(host.querySelector('.shared-live-label.is-paused')?.textContent).toBe(' En pause · Diffuseur');expect(host.querySelector('.shared-live-label svg path')?.getAttribute('d')).toBe('M1 1h3v10H1zm5 0h3v10H6z');expect(host.querySelector('.shared-live-label span')).toBeNull();
+});
+
+it('keeps each reaction node, lane and wave phase stable when an older event is removed or another is added',async()=>{
+ const shared=controller(),event=(id:string)=>({id,emoji:'🎉',expiresAt:'2026-10-12T12:00:00Z'}),{root,host}=await mount(<SharedInvocationAudience shared={shared} session={{...session,reactions:[event('older'),event('second-player')]}}/>);
+ const second=host.querySelectorAll<HTMLElement>('.shared-reaction-layer > span')[1],style=second.getAttribute('style');
+ await act(async()=>root.render(<SharedInvocationAudience shared={shared} session={{...session,reactions:[event('second-player'),event('third')]}}/>));
+ expect(host.querySelector('.shared-reaction-layer > span')).toBe(second);expect(second.getAttribute('style')).toBe(style);expect(second.style.getPropertyValue('--shared-reaction-lane')).toMatch(/^(\.7|1\.7)rem$/);
+});

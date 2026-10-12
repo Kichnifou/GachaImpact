@@ -155,3 +155,50 @@ it('starts and stops directly in one click and keeps sharing absent from target 
     expect(host.textContent).toContain('Choisissez votre cible');
     expect(host.querySelector('.shared-invocation-controls')).toBeNull();
 });
+
+it('preserves the loaded personal splash node through own idle start/stop, and resets it for a viewer identity', async () => {
+    const own = {...session, authoritative:true, snapshot:{...session.snapshot,presentation:{phase:'idle' as const,index:0,pull:null}}};
+    const projected=sharedGachaView(own),personal={...projected,banner:{...projected.banner,featuredFiveStars:projected.banner.featuredFiveStars.map(character=>({...character,splashPath:'/assets/genshin/characters/splash/10000042.png'}))}};
+    const shared={enabled:true,pending:false,error:'',personalReady:true,state:{broadcasting:null,watching:null}} as unknown as SharedInvocationController;
+    const render=()=> <InvocationScreen gacha={personal} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host=mount(render()),image=host.querySelector('img.banner-character-asset');expect(image).not.toBeNull();
+    act(()=>image!.dispatchEvent(new Event('load')));expect(host.querySelector('.celestial-star')).toBeNull();
+    for(let i=0;i<3;i++){
+        shared.state={broadcasting:{...own,id:`own-${i}`},watching:null};await act(async()=>roots.at(-1)!.render(render()));expect(host.querySelector('img.banner-character-asset')).toBe(image);expect(host.querySelector('.celestial-star')).toBeNull();
+        shared.state={broadcasting:null,watching:null};await act(async()=>roots.at(-1)!.render(render()));expect(host.querySelector('img.banner-character-asset')).toBe(image);
+    }
+    shared.state={broadcasting:null,watching:{...own,authoritative:false}};await act(async()=>roots.at(-1)!.render(render()));expect(host.querySelector('img.banner-character-asset')).not.toBe(image);
+});
+
+it('offers only personal history immediately after confirmed watch exit while fresh-state mutations stay fenced',async()=>{
+    const idleSession={...session,snapshot:{...session.snapshot,presentation:{phase:'idle' as const,index:0,pull:null}}};
+    const history=vi.fn(async()=>({results:[],page:1,pageSize:10 as const,totalResults:0,totalPages:0,hasPrevious:false,hasNext:false})),onPull=vi.fn(),onSetTarget=vi.fn();
+    const shared={enabled:true,pending:false,error:'',personalReady:true,state:{broadcasting:null,watching:idleSession}} as unknown as SharedInvocationController;
+    const render=()=> <InvocationScreen gacha={sharedGachaView(idleSession)} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={onSetTarget} onPull={onPull} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={history} shared={shared}/>;
+    const host=mount(render());expect(host.querySelector('.detail')).toBeNull();
+    shared.state={broadcasting:null,watching:null};shared.personalReady=false;await act(async()=>roots.at(-1)!.render(render()));
+    const details=host.querySelector<HTMLButtonElement>('.detail');expect(details?.textContent).toBe('Détails');expect(details?.disabled).toBe(false);
+    expect([...host.querySelectorAll<HTMLButtonElement>('.wish-button')].every(b=>b.disabled)).toBe(true);
+    expect([...host.querySelectorAll<HTMLButtonElement>('button')].find(b=>b.textContent==='Changer')?.disabled).toBe(true);
+    await act(async()=>details!.click());expect(history).toHaveBeenCalledWith(1);expect(onPull).not.toHaveBeenCalled();expect(onSetTarget).not.toHaveBeenCalled();
+});
+
+it('never renders a pending-pull retry in the scene and never resumes an uncommitted intent automatically',()=>{
+    const own={...session,authoritative:true,pendingPull:{key:'immutable-intent',count:10 as const},snapshot:{...session.snapshot,presentation:{phase:'idle' as const,index:0,pull:null}}};
+    const resume=vi.fn(),shared={enabled:true,pending:false,error:'',personalReady:true,state:{broadcasting:own,watching:null},resume} as unknown as SharedInvocationController;
+    const host=mount(<InvocationScreen gacha={sharedGachaView(own)} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>);
+    expect(host.textContent).not.toContain('Invocation en attente');expect(host.textContent).not.toContain('Réessayer cette Invocation');expect(resume).not.toHaveBeenCalled();expect(shared.state.broadcasting?.pendingPull).toEqual({key:'immutable-intent',count:10});
+});
+
+it('reuses only the matching primary invocation button for an explicit preserved intent, including failure and busy guards',async()=>{
+    const own={...session,authoritative:true,pendingPull:{key:'immutable-intent',count:10 as const},snapshot:{...session.snapshot,presentation:{phase:'idle' as const,index:0,pull:null}}};
+    const resume=vi.fn(async()=>false),pull=vi.fn(),shared={enabled:true,pending:false,error:'',personalReady:true,state:{broadcasting:own,watching:null},resume} as unknown as SharedInvocationController;
+    const render=()=> <InvocationScreen ownerKey="owner" gacha={sharedGachaView(own)} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={vi.fn()} onPull={pull} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host=mount(render()),buttons=()=>[...host.querySelectorAll<HTMLButtonElement>('.wish-button')];
+    expect(buttons()).toHaveLength(2);expect(buttons()[0].disabled).toBe(true);expect(buttons()[1].disabled).toBe(false);
+    await act(async()=>buttons()[1].click());expect(resume).toHaveBeenCalledOnce();expect(pull).not.toHaveBeenCalled();expect(shared.state.broadcasting?.pendingPull).toEqual({key:'immutable-intent',count:10});
+    shared.pending=true;await act(async()=>roots.at(-1)!.render(render()));expect(buttons().every(b=>b.disabled)).toBe(true);
+    shared.pending=false;shared.personalReady=false;await act(async()=>roots.at(-1)!.render(render()));expect(buttons().every(b=>b.disabled)).toBe(true);
+    shared.personalReady=true;shared.state={broadcasting:{...own,authoritative:false},watching:null};await act(async()=>roots.at(-1)!.render(render()));expect(buttons().every(b=>b.disabled)).toBe(true);expect(host.querySelector('.detail')).toBeNull();
+    shared.state={broadcasting:null,watching:{...own,authoritative:false}};await act(async()=>roots.at(-1)!.render(render()));expect(buttons().every(b=>b.disabled)).toBe(true);expect(host.querySelector('.detail')).toBeNull();expect(resume).toHaveBeenCalledOnce();expect(pull).not.toHaveBeenCalled();
+});

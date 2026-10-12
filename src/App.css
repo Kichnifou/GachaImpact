@@ -8145,8 +8145,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .daily-challenge-actions { min-width: 0; min-height: 46px; display: flex; align-items: stretch; justify-content: flex-start; gap: 8px; }
 .daily-challenge-actions > button { min-width: 0; min-height: 38px; }
 .daily-challenge-context-action { flex: 1 1 42%; }
-.daily-challenge-switch-button { flex: 1 1 58%; min-height: 38px; padding: 0 14px; cursor: pointer; color: #d5e4f7; font-size: 9px; font-weight: 800; border: 1px solid rgba(117, 151, 201, .3); border-radius: 8px; background: rgba(16, 35, 62, .82); }
-.daily-challenge-switch-button:disabled { cursor: not-allowed; opacity: .5; }
+.daily-challenge-switch-button { flex: 1 1 58%; min-height: 38px; padding: 0 14px; cursor: pointer; color: white; font-size: 9px; font-weight: 800; border: 1px solid #5599ee; border-radius: 8px; background: #225fa8; }
+.daily-challenge-switch-button:hover:not(:disabled) { background: #2a72c8; border-color: #83baff; }
+.daily-challenge-switch-button:focus-visible { outline: 2px solid #cdb277; outline-offset: 2px; }
+.daily-challenge-switch-button:disabled { color: #bac3d0; background: #354052; border-color: #586275; cursor: not-allowed; opacity: .5; }
 .daily-challenge-confirm { width: 100%; min-width: 0; min-height: 46px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 5px 7px 5px 11px; border: 1px solid rgba(238, 193, 82, .25); border-radius: 9px; background: rgba(44, 31, 14, .38); }
 .daily-challenge-confirm > p { min-width: 0; color: #ebd7ac; font-size: 9px; }
 .daily-challenge-confirm > div { display: flex; gap: 7px; }

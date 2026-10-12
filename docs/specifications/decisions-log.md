@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## Correctifs après recette publique — mandat du 12/10/2026, VALIDÉ
+
+La disposition générale du checkpoint6d8534a est acceptée après recette propriétaire à deux comptes. Huit corrections bornées autorisées : splash personnel stable au démarrage/arrêt idle ; léger espacement des commandes ; réactions2s plus petites, trajet réduit et voies fixées par ID ; groupe SVG blanc/statut pause blanc ; retrait du message et petit bouton de reprise ; Détails/historique personnel immédiatement après arrêt confirmé, mutations toujours gardées ; remplacement du timer idle15s par cadence active1s à l'entrée en partage ; bouton Changer de Défi actif bleu/désactivé gris.
+
+L'intention non committée n'est ni effacée ni exécutée automatiquement : clic explicite sur le bouton Invocation de sa quantité reprend exactement sa clé/count par le chemin existant. Aucun nouveau contrôle visible, changement économique, backend, migration, présence, Twitch ou autre domaine. Ces retouches supersèdent seulement les anciens contrats visuels et le petit retry ; contrôles de confidentialité/autorité/reçu inchangés. Revue indépendante du vrai SHA publié, validation visuelle compilée distincte, puis cycle main/déploiements/postflight déjà autorisé. Nouvelle recette humaine limitée aux comportements modifiés ; état au Master.
+
 ## Restauration UX Invocation — mandat propriétaire du 12/10/2026, VALIDÉ
 
 Restaurer la scène approuvée79832fc sans revert global : statut superposé dans le grand cadre, même hauteur/placement sans ligne extérieure ; un seul bandeau, zéro après arrêt confirmé, cleanup complet et aucun ancien paquet recréant la scène. Supprimer la modale de démarrage ajoutée par erreur : Diffuser et En diffusion agissent directement en un clic, consentement/API/confidentialité conservés. Diffuser/Voir/aide absents du choix de cible et des présentations personnelles ; boutons réellement32px desktop, cible44px mobile. Passer/fermer sous le statut seulement en partage. Deux seules retouches emoji : départ un peu plus haut/trajet plus court et oscillation douce un peu plus forte ; taille, vitesse/durée, droite, cooldown et reduced-motion inchangés. Ces règles supersèdent la présentation en flux et la modale décrites lors de la finition précédente.

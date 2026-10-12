@@ -1,4 +1,5 @@
 .shared-invocation-controls { margin-top: .65rem; max-width: 24rem; }
+.banner-content > .shared-invocation-controls { position: relative; top: calc(17px - .65rem); }
 .shared-invocation-buttons { display: flex; gap: .5rem; }
 .banner-change-button.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 32px; height: 32px; padding: .2rem .5rem; white-space: nowrap; font-size: .7rem; }
 .shared-invocation-button.is-live { color: #ffb6b6; border-color: #b54c61; background: #381925; }
@@ -7,6 +8,9 @@
 .shared-invocation-status > button { pointer-events: auto; }
 .shared-live-label,.shared-authority-label { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .shared-live-label > span { color: #ff526d; }
+.shared-live-label.is-paused { color: white; }
+.shared-spectator-count > svg { width: 1.1em; height: 1em; vertical-align: -.1em; }
+.shared-live-label > svg { width: .8em; height: 1em; vertical-align: -.1em; }
 .invocation-panel:has(> .shared-invocation-status) .sequence-control { top: calc(8px + var(--shared-status-height, 28px) + 8px); }
 .shared-spectator-count { flex: 0 0 auto; font: inherit; color: white; background: transparent; border: 1px solid transparent; padding: .3rem; border-radius: .4rem; cursor: pointer; white-space: nowrap; }
 .shared-spectator-count:hover { background: #28334b; }
@@ -42,17 +46,16 @@
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence > .sequence-summary:focus-visible { outline: 2px solid #cdb277; outline-offset: -2px; }
 .shared-invocation-paused { position: absolute; top: 42%; left: 20%; right: 20%; padding: 1rem; border-radius: .75rem; display: grid; place-content: center; color: #e6eafa; background: #101725ed; z-index: 4; text-align: center; pointer-events: none; }
 .shared-reaction-layer { position: absolute; z-index: 7; inset: 20% 5% 18% auto; width: 5rem; container-type: size; pointer-events: none; overflow: hidden; }
-.shared-reaction-layer > span { position: absolute; bottom: 10%; right: .7rem; font-size: 2.1rem; animation: shared-reaction-rise 3.2s linear both; }
-.shared-reaction-layer i { display: block; font-style: normal; animation: shared-reaction-wave 1.2s ease-in-out infinite alternate; }
-.shared-reaction-layer > span:nth-child(2n) { right: 1.7rem; }
-.shared-reaction-layer > span:nth-child(3n) i { animation-delay: -.6s; }
-@keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-80cqh); } }
+.shared-reaction-layer > span { position: absolute; bottom: 14%; right: var(--shared-reaction-lane, .7rem); font-size: 2rem; animation: shared-reaction-rise 2s linear both; }
+.shared-reaction-layer i { display: block; font-style: normal; animation: shared-reaction-wave 1.2s ease-in-out infinite alternate; animation-delay: var(--shared-reaction-wave-delay, 0s); }
+@keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-50cqh); } }
 @keyframes shared-reaction-wave { from { transform: translateX(-.45rem); } to { transform: translateX(.45rem); } }
 @media (prefers-reduced-motion: reduce) { .shared-reaction-layer > span { animation: shared-reaction-fade 1.5s both; } .shared-reaction-layer i { animation: none; } }
 @keyframes shared-reaction-fade { from { opacity: 1; } to { opacity: 0; } }
 @keyframes shared-emoji-float { from { opacity: 0; transform: translateY(.5rem); } 15%,70% { opacity: 1; } to { opacity: 0; transform: translateY(-.4rem); } }
 @media (prefers-reduced-motion: reduce) { .shared-invocation-emoji-effect span { animation: none; } }
 @media (max-width: 600px) { .shared-invocation-controls { margin-top: .3rem; } .shared-invocation-controls small { font-size: .59rem; } .shared-invocation-status { top: 6px; font-size: .6rem; } .shared-invocation-presentation-controls { bottom: .4rem; left: .4rem; right: auto; } }
+@media (max-width: 600px) { .banner-content > .shared-invocation-controls { top: calc(14px - .3rem); } }
 @media (pointer: coarse), (max-width: 1000px) { .banner-change-button.shared-invocation-button { min-height: 44px; height: 44px; } }
 /* Mobile panels have natural height: retain the idle controls slot when help disappears. */
 @media (max-width: 1000px) { .banner-content > .shared-invocation-controls { min-height: calc(44px + .35rem + .66rem * 2.7); } }

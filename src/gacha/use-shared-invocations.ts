@@ -12,6 +12,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
     const personalFlight=useRef<{epoch:number;promise:Promise<void>}|null>(null);
     const mutationFlight=useRef<{promise:Promise<void>;resolve:()=>void}|null>(null);
+    const reschedulePoll=useRef<(()=>void)|null>(null);
     const [personalError,setPersonalError]=useState('');
     useLayoutEffect(() => {
         screen.current = invocationVisible;
@@ -54,7 +55,20 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         setState(empty);
         if (!api)
             return;
-        let disposed = false, reading = false, timer: ReturnType<typeof setTimeout> | undefined, presenceAt = 0;
+        let disposed = false, reading = false, ready = false, wakeAfterRead = false, timer: ReturnType<typeof setTimeout> | undefined, presenceAt = 0;
+        const cadence = () => screen.current && (current.current.broadcasting || current.current.watching) ? 1000 : 15000;
+        const schedule = (delay: number) => {
+            if (timer) clearTimeout(timer);
+            if (!disposed) timer = setTimeout(() => { timer = undefined; void tick(); }, delay);
+        };
+        const reschedule = () => {
+            if (!ready || disposed) return;
+            // A mode transition must replace the old idle deadline. If a read is
+            // already running, let it settle before issuing the next one.
+            if (reading) { wakeAfterRead = true; return; }
+            schedule(cadence());
+        };
+        reschedulePoll.current = reschedule;
         const tick = async () => {
             if (disposed || epoch !== generation.current || reading)
                 return;
@@ -79,12 +93,16 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
                     setError(apiErrorMessage(error));
             }
             reading = false;
-            if (!disposed)
-                timer = setTimeout(tick, screen.current && (current.current.broadcasting || current.current.watching) ? 1000 : 15000);
+            if (!disposed) {
+                schedule(wakeAfterRead ? 0 : cadence());
+                wakeAfterRead = false;
+            }
         };
         void establishSharedInvocationTab().then(() => {
-            if (!disposed)
+            if (!disposed) {
+                ready = true;
                 void tick();
+            }
         });
         const visibility = () => {
             if (document.visibilityState === 'visible') {
@@ -96,6 +114,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         document.addEventListener('visibilitychange', visibility);
         return () => {
             disposed = true;
+            if (reschedulePoll.current === reschedule) reschedulePoll.current = null;
             generation.current++;
             mutationFlight.current?.resolve();mutationFlight.current=null;
             if (timer)
@@ -103,6 +122,8 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             document.removeEventListener('visibilitychange', visibility);
         };
     }, [api, apply, ownerKey]);
+    const broadcasting = !!state.broadcasting, watching = !!state.watching;
+    useEffect(() => { reschedulePoll.current?.(); }, [api, ownerKey, invocationVisible, broadcasting, watching]);
     useEffect(()=>{
         const sessionId=state.watching?.id,token=state.watchingToken;
         if(!api?.viewerPresence||!sessionId||!token)return;

@@ -21,6 +21,7 @@ type Props = {
   onOpen?: () => void
   onPull?: (count: 1 | 10) => Promise<GachaPullDto>
   pendingPullCount?: 1 | 10 | null
+  pendingSharedPull?: { count: 1 | 10; busy: boolean; resume: () => Promise<boolean> }
   onPresentationDisclosed?: (operationId: string) => void
   onGetHistory?: (page: number) => Promise<GachaHistoryDto>
   teams?: PlayerTeamsDto
@@ -30,7 +31,7 @@ type Props = {
   onSharedSequenceAction?: (action: 'advance'|'skip'|'close') => void
   readOnly?: boolean
 }
-function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory, teams, sharing, sharedOverlay, sharedSequence, onSharedSequenceAction, readOnly=false }: Props) {
+function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, pendingSharedPull, onPresentationDisclosed, onGetHistory, teams, sharing, sharedOverlay, sharedSequence, onSharedSequenceAction, readOnly=false }: Props) {
   const guidedDetail = useTutorialPanel('gacha-detail')
   const [choosing, setChoosing] = useState(!gacha.playerState.selectedBannerCharacterId)
   const [pending, setPending] = useState<string | null>(null)
@@ -40,7 +41,8 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
   const [detailOpen, setDetailOpen] = useState(false)
   const pullLocked = useRef(false)
   const selected = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
-  const pullPending = sequence.phase === 'submitting' ? sequence.count : pendingPullCount
+  const pullPending = sequence.phase === 'submitting' ? sequence.count : pendingSharedPull?.busy ? pendingSharedPull.count : pendingPullCount
+  const canPull = (count: 1 | 10) => pendingSharedPull ? pendingSharedPull.count === count : !!onPull
   const targetSelectionDisabled = readOnly || compact || pending !== null || pullPending !== null
   const sharingContent = typeof sharing==='function'?sharing(sequence.phase!=='idle'||pendingPullCount!==null):sharing
 
@@ -54,6 +56,10 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
     try { await onSetTarget(character.id); setChoosing(false) } finally { setPending(null) }
   }
   const pull = async (count: 1 | 10) => {
+    if (pendingSharedPull) {
+      if (count === pendingSharedPull.count && !pendingSharedPull.busy) await pendingSharedPull.resume()
+      return
+    }
     if (!onPull) return
     if (!acquirePullLock(pullLocked)) return
     dispatchSequence({ type: 'submit', count, idempotencyKey: 'managed-by-bootstrap' })
@@ -118,14 +124,14 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
         <div data-tutorial-anchor="invocation-target" className="banner-meta-actions">
           <span className="banner-end-date">Fin le {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>
           {showDetails && <button type="button" className="banner-change-button" disabled={readOnly || pullPending !== null} onClick={() => setChoosing(true)}>Changer</button>}
-          {!compact && showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
+          {!compact && showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détails</button>}
         </div>
         {sharingContent}
       </div>
       {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
     </div>
     <div className="celestial-placeholder" aria-label={`Illustration de ${selected.name}`}><CharacterAssetImage characterName={selected.name} className="banner-character-asset" assetPaths={[selected.splashPath, selected.fullbodyPath, selected.wishPath, selected.iconPath]} fallback={<span className="celestial-star">✦</span>} alt={selected.name} /><div className="banner-featured-character"><strong>{selected.name}</strong><span>★★★★★</span></div></div>
-    {!compact && <div className="invocation-footer"><div data-tutorial-anchor="invocation-progress" className="gacha-state-summary"><Progress className="primary-pity" label="Pity 5★" value={gacha.playerState.pity5} maximum={90} /><div className="gacha-state-secondary"><Progress className="secondary-pity" label="Pity 4★" value={gacha.playerState.pity4} maximum={10} /><div className="banner-status"><span>Garantie 5★</span><strong>{gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</strong></div><div className="banner-status"><span>Capture</span><strong>{gacha.playerState.captureProgress} / 3</strong></div></div></div><div data-tutorial-anchor="invocation-actions" className="wish-actions" aria-label={onPull ? 'Actions d’Invocation' : 'Aperçu des Invocations'}><WishButton count={1} cost="160" disabled={!onPull || pullPending !== null} pending={pullPending === 1} onClick={() => void pull(1)} /><WishButton count={10} cost="1 600" disabled={!onPull || pullPending !== null} pending={pullPending === 10} onClick={() => void pull(10)} /></div></div>}
+    {!compact && <div className="invocation-footer"><div data-tutorial-anchor="invocation-progress" className="gacha-state-summary"><Progress className="primary-pity" label="Pity 5★" value={gacha.playerState.pity5} maximum={90} /><div className="gacha-state-secondary"><Progress className="secondary-pity" label="Pity 4★" value={gacha.playerState.pity4} maximum={10} /><div className="banner-status"><span>Garantie 5★</span><strong>{gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</strong></div><div className="banner-status"><span>Capture</span><strong>{gacha.playerState.captureProgress} / 3</strong></div></div></div><div data-tutorial-anchor="invocation-actions" className="wish-actions" aria-label={onPull || pendingSharedPull ? 'Actions d’Invocation' : 'Aperçu des Invocations'}><WishButton count={1} cost="160" disabled={!canPull(1) || pullPending !== null} pending={pullPending === 1} onClick={() => void pull(1)} /><WishButton count={10} cost="1 600" disabled={!canPull(10) || pullPending !== null} pending={pullPending === 10} onClick={() => void pull(10)} /></div></div>}
     {pullError && <p className="pull-error invocation-pull-error" role="alert">{pullError}</p>}
     {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
     {(detailOpen || guidedDetail) && onGetHistory && teams && <GachaDetailModal teams={teams} onClose={() => setDetailOpen(false)} onGetHistory={onGetHistory} />}

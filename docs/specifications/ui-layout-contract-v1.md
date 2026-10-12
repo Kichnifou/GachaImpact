@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## Correctifs après recette publique — 12/10/2026
+
+La disposition générale restaurée au checkpoint6d8534a est acceptée par le propriétaire après recette à deux comptes ; cette validation ne couvre pas les corrections suivantes. La scène personnelle au repos conserve le même splash DOM chargé pendant Diffuser/arrêter ; les frontières d'identité et de reçu partagé restent distinctes. Détails remplace seulement le libellé Invocation Détail et s'ouvre dès la sortie de visionnage confirmée, même pendant le refresh personnel ; les mutations attendent toujours ce refresh et l'historique reste interdit en visionnage/onglet non autoritaire.
+
+Diffuser/Voir/En diffusion légèrement plus bas au repos : écart mesuré comparable à Fin le→Détails, sans déplacement du panneau, splash, cartes, pity ou footer, ni changement des32px desktop/44px mobile. Statut compact intérieur conservé : groupe SVG blanc pour les spectateurs, point rouge en direct, deux barres et libellé/pseudo blancs en pause. Réactions2rem pendant2s, départ14%/montée50cqh, oscillation±.45rem ; voie et phase attachées à l'ID, disparition avant le statut, aucune hit target, reduced-motion conservé. Les règles antérieures de durée/taille sont supersédées par cet amendement.
+
+Dans Quotidiennes→Défi, le bouton Changer de Défi actif est bleu franc/texte blanc, avec hover et focus visibles. Désactivé/pending : gris atténué sans faux hover ; mêmes dimensions, coût dynamique, confirmation, canSwitch et garde anti-double-clic. Aucun changement métier. Qualification sous GameShell réel et CSS compilée sur390×844,844×390,1366×520,1366×768,1920×1080,2560×1440, avec frames de transition ; preuves et état au Master.
+
 ## Finition Invocations partagées — 12/10/2026
 
 Correction propriétaire du 12/10 : le compteur/statut/pseudo est un overlay absolu **dans le panneau Invocation**, en haut à droite, sans réduction de hauteur ni déplacement du cadre, splash, pity ou footer. Une seule ligne, compteur sans réduction ; pseudo et éventuel contrôle d'un autre onglet tronqués visuellement si nécessaire, texte complet accessible. Top6px jusqu'à600px,8px au-delà : le statut ne recouvre pas le titre. Aucun bandeau extérieur ni règle réservant sa hauteur dans le flux. Un seul statut par session, zéro après arrêt confirmé, cleanup des portals et timers ; clés React non concurrentes. Passer/fermer restent dessous via la hauteur mesurée du statut, uniquement pendant le partage. Leurs positions personnelles restent inchangées.

@@ -25,7 +25,7 @@ afterEach(() => {
   container.replaceChildren()
 })
 
-it('removes the bottom history button while keeping Détail and its Historique tab', async () => {
+it('removes the bottom history button while keeping Détails and its Historique tab', async () => {
   const onGetHistory = vi.fn(async () => history)
   document.body.append(container)
   await act(async () => {
@@ -36,7 +36,7 @@ it('removes the bottom history button while keeping Détail and its Historique t
   expect(container.querySelectorAll('.invocation-screen > button')).toHaveLength(0)
   expect(container.textContent).toContain('Invocation x1')
   expect(container.textContent).toContain('Invocation x10')
-  const detail = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Détail')
+  const detail = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === 'Détails')
   expect(detail).toBeDefined()
 
   await act(async () => { detail!.click(); await Promise.resolve(); await Promise.resolve() })

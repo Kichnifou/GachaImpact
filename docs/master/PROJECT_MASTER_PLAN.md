@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : restauration ciblée de la scène Invocation après régression de finition.
+Version : huit correctifs ciblés après recette publique Invocation et Défi.
 Date : 2026-10-12
-Statut : **A/B/C/D et finition antérieure livrés ; correctif UX prioritaire livré techniquement sur main, revues indépendantes et déploiements/postflight acquis. Recette humaine des retouches à effectuer.**
+Statut : **Disposition générale restaurée acceptée publiquement par le propriétaire à deux comptes ; huit correctifs suivants développés et qualifiés localement, publication/revues indépendantes/déploiements encore à acquérir.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — restauration UX Invocation du 12/10/2026
+## Point courant — correctifs après recette publique du 12/10/2026
+
+Base propre vérifiée `6d8534ab82d36ac7878b5c48fcae9839ba221202`, main/review/origin identiques, divergence0/0. La disposition générale restaurée est acceptée par le propriétaire après vraie recette à deux comptes ; les trois vidéos analysées hors dépôt ne sont pas des preuves locales et ne sont pas demandées. Huit corrections uniquement, aucun changement backend/SQL/économique/Twitch/Faveur/Roue/catalogue/infrastructure.
+
+Reproductions sur la base : trois tests rouges composants (splash remonté au démarrage/arrêt propre, Détails absent pendant refresh personnel après watch(null), message de reprise présent) ; deux tests rouges à clients contrôlés (première phase restant idle à1s après Voir, y compris réponse Voir en vol). Reproduction indépendante : arrivée seulement au timer15s, image identique en URL mais nœud remplacé/fallback, historique masqué ; gardes et reprise existantes contrôlées séparément. Preuves conservées dans `local-data/public-recipe-fixes-20261012/`, ignoré, sans secret ni donnée de joueur réel.
+
+Corrections développées : clé personnelle idle par Player stable au start/stop, resets distincts pour identité regardée/onglet tiers/reçu committé ; commandes idle légèrement descendues sans changement du flux ; réactions2rem/2s et montée50cqh depuis14%, voies/phases fixées par ID ; groupe SVG blanc et pause à deux barres/texte blancs ; retrait du message/petit bouton de reprise, clic explicite sur le bouton Invocation de quantité d'origine vers `resume` même clé/count, aucune dépense automatique ; Détails/historique personnel immédiatement après sortie confirmée, mutations gardées par refresh ; timer idle remplacé à l'entrée en partage par cadence active1s avec lectures sérialisées/révisions ; Défi actif bleu, disabled/pending gris, prix/règles/confirmation inchangés.
+
+Qualification locale :85 tests ciblés PASS, build/typages PASS, quick5/5 (`gachaimpact-verify-quick-hfMxKr`). Full **FAIL6/8**, frontend1564PASS/4FAIL, backend2417PASS/6FAIL (`gachaimpact-verify-full-8UTUQK`) : dix noms d'assertions strictement identiques à la baselinecuoq4P, sept fichiers concernés inchangés ; builds, typages, lint, diff-check PASS. Aucun full PASS revendiqué. Deux clients contrôlés couvrent première/seconde invocation, Voir retardé, indexes0–9/résumé exact, mid-x10/reconnexion, pause/reprise, lecture lente sérialisée et cadence inactive15s. Tests composants couvrent reprise explicite/échec/pending/autorité/privacy, history pendant refresh, voies immuables et Défi confirmation/canSwitch/pending/coût variable/completed. Aucun tirage ou changement de Défi en production.
+
+GameShell réel/CSS compilée : six formats390×844,844×390,1366×520,1366×768,1920×1080,2560×1440 ; frames start/stop et emoji200/800/1400/2000ms, PNG inspectés. Rectangles complets du panneau avant/après strictement identiques ; même nœud splash, aucune mutation fallback au start/stop. Écarts Fin le→Détails et Détails→Diffuser :17/16,984px sur PC et paysage,14/13,984px mobile ; boutons32/44px. Ancien saut de voie16px supprimé, durée2s et disparition avant le statut vérifiées, reduced-motion par fondu. Couleurs calculées Défi : actifRGB34/95/168, hover42/114/200, disabled53/64/82, texte actif blanc ; focus visible, pending/confirmation sans double mutation. Pendant un refresh personnel artificiellement retardé5s, Détails s'ouvre immédiatement et les pulls restent désactivés ; hauteur inchangée. Première phase reçue en828–1384ms dans le navigateur synthétique, sans événement visibility forcé ; délai réseau réel non présumé.
+
+Documentation : contrat shared-invocations et layout actualisés ; décision durable de ce mandat inscrite. Master courant supersède les prochaines actions des historiques ci-dessous. Ordre macro, workflow, Guide, navigation et audit11 examinés laissés inchangés : aucun contrat métier Défi ou parcours général ne change. Architecture backend/modèle/schéma SQL hors périmètre. Review indépendante du SHA publié et validation visuelle distincte restent obligatoires ; leur résultat puis les déploiements exacts seront enregistrés avant clôture.
+
+**Prochaine action exacte :** publier review, revue indépendante sync/recovery et visuelle du vrai SHA distant ; corriger/revoir les findings, FF strict main, Railway/Pages et postflight, puis clôture documentaire. Les nouveaux comportements restent **À tester en public** après livraison ; aucune nouvelle dépense à créer pour la recette.
+
+## Historique — restauration UX Invocation du 12/10/2026
 
 Base propre `b6ff57af46cafd67a5a08c2c0fe2ef8e515a12e4`, quatre refs identiques, divergence0/0. Référence visuelle propriétaire `79832fc72c94233a61d0d3cd13cf41c4ed63de57`. Périmètre exclusivement scène Invocation : aucun Catalogue, Roue, !faveur, Twitch, moteur économique, SQL/migration ou nouvelle présence. Les preuves économiques et métier acquises ne sont pas rejouées.
 

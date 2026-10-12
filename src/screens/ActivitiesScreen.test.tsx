@@ -134,6 +134,17 @@ describe('Activities shells', () => {
     expect(container.textContent).not.toContain('Changer de Défi')
     expect(container.textContent).not.toContain('Réclamer')
   })
+  it('uses the authoritative variable switch cost and prevents disabled or pending duplicate switches', async () => {
+    const forbidden=vi.fn(),disabled=mount({dailyChallenge:{...activeChallenge,canSwitch:false,nextSwitchCost:'40000'},onSwitchDailyChallenge:forbidden})
+    act(()=>activity(disabled.container,'Défi').querySelector('button')!.click())
+    const unavailable=disabled.container.querySelector<HTMLButtonElement>('.daily-challenge-switch-button')!
+    expect(unavailable.textContent).toMatch(/40\D000 Moras/);expect(unavailable.disabled).toBe(true);act(()=>unavailable.click());expect(forbidden).not.toHaveBeenCalled()
+    let resolve!:()=>void;const pending=new Promise<void>(r=>{resolve=r}),change=vi.fn(async()=>{await pending;return {...activeChallenge,operation:{id:'private-switch',alreadyProcessed:false},resources:{primogems:'0',moras:'0',particles:{pyro:'0',hydro:'0',cryo:'0',electro:'0',anemo:'0',geo:'0',dendro:'0'}}}})
+    const active=mount({dailyChallenge:activeChallenge,onSwitchDailyChallenge:change});act(()=>activity(active.container,'Défi').querySelector('button')!.click())
+    const button=active.container.querySelector<HTMLButtonElement>('.daily-challenge-switch-button')!
+    act(()=>button.click());expect(button.disabled).toBe(true);expect(button.textContent).toBe('Changement…');act(()=>button.click());expect(change).toHaveBeenCalledOnce()
+    await act(async()=>{resolve();await pending});expect(button.disabled).toBe(false)
+  })
   it('shows an explicit insufficient-wallet error when purchasing a challenge', async () => {
     const onPurchaseDailyChallenge = vi.fn(async () => { throw { code: 'DAILY_CHALLENGE_WALLET_INSUFFICIENT' } })
     const { container } = mount({ onPurchaseDailyChallenge })
