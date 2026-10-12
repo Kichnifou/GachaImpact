@@ -44,9 +44,8 @@
 .invocation-sequence:has(> .sequence-summary) { box-sizing: border-box; padding-block: 3rem 4.5rem; }
 .invocation-sequence > .sequence-summary { align-self: center; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; box-sizing: border-box; }
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence > .sequence-summary:focus-visible { outline: 2px solid #cdb277; outline-offset: -2px; }
-.shared-invocation-paused { position: absolute; top: 42%; left: 20%; right: 20%; padding: 1rem; border-radius: .75rem; display: grid; place-content: center; color: #e6eafa; background: #101725ed; z-index: 4; text-align: center; pointer-events: none; }
 .shared-reaction-layer { position: absolute; z-index: 7; inset: 20% 5% 18% auto; width: 5rem; container-type: size; pointer-events: none; overflow: hidden; }
-.shared-reaction-layer > span { position: absolute; bottom: 14%; right: var(--shared-reaction-lane, .7rem); font-size: 2rem; animation: shared-reaction-rise 2s linear both; }
+.shared-reaction-layer > span { position: absolute; bottom: 20%; right: var(--shared-reaction-lane, .7rem); font-size: 2rem; animation: shared-reaction-rise 2s linear both; }
 .shared-reaction-layer i { display: block; font-style: normal; animation: shared-reaction-wave 1.2s ease-in-out infinite alternate; animation-delay: var(--shared-reaction-wave-delay, 0s); }
 @keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-50cqh); } }
 @keyframes shared-reaction-wave { from { transform: translateX(-.45rem); } to { transform: translateX(.45rem); } }

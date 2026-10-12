@@ -361,6 +361,11 @@ describe('private shared invocation PostgreSQL contract', () => {
         expect(settled.filter(x => x.status === 'fulfilled')).toHaveLength(1);
         await shared.react(other.identity, other.tab, '👏');
         expect((await shared.state(host.identity, host.tab)).broadcasting?.reactions).toHaveLength(2);
+        now=new Date(now.getTime()+499);
+        await expect(shared.react(viewer.identity,randomUUID(),'❤️')).rejects.toMatchObject({code:'SHARED_REACTION_COOLDOWN'});
+        now=new Date(now.getTime()+1);
+        await shared.react(viewer.identity,randomUUID(),'❤️');
+        expect((await shared.state(host.identity,host.tab)).broadcasting?.reactions).toHaveLength(3);
         now = new Date(now.getTime() + 4001);
         expect((await shared.state(host.identity, host.tab)).broadcasting?.reactions).toHaveLength(0);
         const rows = await db.$queryRaw<{

@@ -22,7 +22,7 @@ export default function SharedInvocationControls({ shared, presenting=false }: {
    {(watching||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${watching ? ' is-live' : ''}`} disabled={shared.pending} onClick={() => watching ? void shared.watch(null) : setOpen(true)}>{watching ? 'Arrêter' : 'Voir'}</button>}
   </div>
   {showIdle && <small>Diffusez vos invocations, ou visionnez celles des autres joueurs</small>}
-  {watching && <div className="shared-invocation-reactions" aria-label="Réagir à la diffusion">{sharedInvocationEmojis.map(emoji => <button type="button" className="banner-change-button" disabled={shared.pending} key={emoji} onClick={() => void shared.react(emoji)} aria-label={`Réagir ${emoji}`}>{emoji}</button>)}</div>}
+  {watching && <div className="shared-invocation-reactions" aria-label="Réagir à la diffusion">{sharedInvocationEmojis.map(emoji => <button type="button" className="banner-change-button" disabled={shared.pending || shared.reactionCooling} key={emoji} onClick={() => void shared.react(emoji)} aria-label={`Réagir ${emoji}`}>{emoji}</button>)}</div>}
   {shared.personalReady===false&&!watching&&shared.personalError&&<button className="shared-recovery-link" type="button" onClick={()=>void shared.refreshPersonal()}>Réessayer l’actualisation</button>}
   {shared.error && <p role="status" className="shared-invocation-error">{shared.error}</p>}
   {open && <SessionPicker shared={shared} onClose={() => setOpen(false)}/>}

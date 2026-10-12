@@ -67,7 +67,8 @@ it('preserves stop/reactions during pause and never calls the personal pull or t
     }), onPull = vi.fn(), onSetTarget = vi.fn();
     const shared = { enabled: true, pending: false, error: '', state: { broadcasting: null, watching: { ...session, status: 'PAUSED' } }, watch, react } as unknown as SharedInvocationController;
     const host = mount(<InvocationScreen gacha={sharedGachaView(session)} teams={{ teams: [], availableCharacters: [], passiveReference: [] }} onSetTarget={onSetTarget} onPull={onPull} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>);
-    expect(host.textContent).toContain('Diffusion en pause');
+    expect(host.textContent).toContain('En pause');
+    expect(host.querySelector('.shared-invocation-paused')).toBeNull();
     const stop = Array.from(host.querySelectorAll('button')).find(b => b.textContent === 'Arrêter');
     expect(stop?.disabled).toBe(false);
     act(() => stop!.click());
@@ -137,6 +138,28 @@ it('keeps exactly one audience through repeated stop/start and clears its portal
         expect(document.querySelector('.shared-spectator-preview')).toBeNull();
         expect(document.querySelector('[role="dialog"]')).toBeNull();
     }
+});
+
+it('retains the same-session count through receipt remount and silent refresh, expires it and fences another session',async()=>{
+    vi.useFakeTimers();
+    const owned={...session,authoritative:true,snapshot:{...session.snapshot,presentation:{phase:'idle' as const,index:0,pull:null}}};
+    let resolve!: (value:unknown)=>void;
+    const spectators=vi.fn().mockResolvedValueOnce({sessionId:session.id,total:7,page:1,totalPages:1,preview:[],players:[]}).mockImplementation(()=>new Promise(r=>{resolve=r}));
+    const shared={enabled:true,pending:false,error:'',state:{broadcasting:owned,watching:null},api:{spectators}} as unknown as SharedInvocationController;
+    const render=()=> <InvocationScreen ownerKey="owner" gacha={sharedGachaView(owned)} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host=mount(render());await act(async()=>{await Promise.resolve()});
+    expect(host.querySelector('.shared-spectator-count')?.textContent).toContain('7 spectateurs');
+    shared.state={broadcasting:{...session,authoritative:true},watching:null};
+    await act(async()=>roots.at(-1)!.render(render()));
+    expect(host.querySelector('.shared-spectator-count')?.textContent).toContain('7 spectateurs');
+    act(()=>host.querySelector<HTMLButtonElement>('.shared-spectator-count')!.click());
+    expect(host.querySelector('.shared-spectator-count')?.textContent).toContain('7 spectateurs');
+    await act(async()=>vi.advanceTimersByTime(15000));
+    expect(host.querySelector('.shared-spectator-count')?.textContent).toContain('Spectateurs…');
+    shared.state={broadcasting:{...session,id:'different',authoritative:true},watching:null};
+    await act(async()=>roots.at(-1)!.render(render()));
+    await act(async()=>resolve({sessionId:session.id,total:99,page:1,totalPages:1,preview:[],players:[]}));
+    expect(host.querySelector('.shared-spectator-count')?.textContent).not.toContain('99');
 });
 
 it('starts and stops directly in one click and keeps sharing absent from target selection', async () => {

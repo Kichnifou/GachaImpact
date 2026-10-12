@@ -14,6 +14,10 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
     const mutationFlight=useRef<{promise:Promise<void>;resolve:()=>void}|null>(null);
     const reschedulePoll=useRef<(()=>void)|null>(null);
     const [personalError,setPersonalError]=useState('');
+    const reactionUntil=useRef(0);
+    const [reactionCooling,setReactionCooling]=useState(false);
+    const reactionTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+    useEffect(()=>{reactionUntil.current=0;setReactionCooling(false);return()=>{if(reactionTimer.current)clearTimeout(reactionTimer.current)}},[api,ownerKey]);
     useLayoutEffect(() => {
         screen.current = invocationVisible;
         refresh.current = onPersonalRefresh;
@@ -175,7 +179,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             document.removeEventListener('keydown', gesture, true);
         };
     }, [api, apply, ownerKey]);
-    const mutate = useCallback(async (action: (api: SharedInvocationApi, tabId: string) => Promise<SharedInvocationState>) => {
+    const mutate = useCallback(async (action: (api: SharedInvocationApi, tabId: string) => Promise<SharedInvocationState>, reaction=false) => {
         if (!api || locked.current)
             return false;
         locked.current = true;
@@ -194,6 +198,9 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             return false;
         }
         catch (e) {
+            // A second tab can win the Player-wide reaction slot. This expected
+            // business refusal needs neither feedback nor a reconciliation GET.
+            if(reaction && e && typeof e==='object' && 'code' in e && e.code==='SHARED_REACTION_COOLDOWN')return false;
             if (epoch === generation.current && version === revision.current)
                 setError(apiErrorMessage(e));
             try {
@@ -214,7 +221,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             }
         }
     }, [api, apply]);
-    return { state, error:personalError||error, personalError, pending, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
+    return { state, error:personalError||error, personalError, pending, reactionCooling, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
         start: () => mutate((api, id) => api.start(id)), stop: () => mutate((api, id) => api.control(id, 'stop', screen.current ? 'invocation' : 'other')),
         watch: (id: string | null) => mutate((api, tab) => api.watch(tab, id)),
         advance: (action: 'advance' | 'skip' | 'close') => mutate(async (api, id) => {
@@ -230,7 +237,13 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             await refresh.current?.();
             return next;
         }),
-        react: (emoji: Parameters<SharedInvocationApi['react']>[1]) => mutate((api, id) => api.react(id, emoji)),
+        react: (emoji: Parameters<SharedInvocationApi['react']>[1]) => {
+            if(!api||locked.current||Date.now()<reactionUntil.current)return Promise.resolve(false);
+            reactionUntil.current=Date.now()+500;setReactionCooling(true);
+            if(reactionTimer.current)clearTimeout(reactionTimer.current);
+            reactionTimer.current=setTimeout(()=>setReactionCooling(false),500);
+            return mutate((api, id) => api.react(id, emoji),true);
+        },
         sync: async () => {
             if (api) {
                 const epoch = generation.current;

@@ -14,7 +14,7 @@ import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-serv
 export const sharedEmojis = ['🎉', '✨', '❤️', '😮', '👏'] as const;
 export const sharedInactivityMs = 45 * 60000;
 export const sharedLeaseMs = 60000;
-export const sharedReactionMs = 3000;
+export const sharedReactionMs = 500;
 type Tx = Prisma.TransactionClient;
 type Presentation = {
     phase: 'idle' | 'intro' | 'reveal' | 'summary';
@@ -387,7 +387,7 @@ export class SharedInvocations {
             if (!m.watching_id)
                 throw new BusinessError('SHARED_SPECTATOR_REQUIRED', 'Les réactions sont réservées aux spectateurs.');
             if (m.last_reaction_at && now.getTime() - m.last_reaction_at.getTime() < sharedReactionMs)
-                throw new BusinessError('SHARED_REACTION_COOLDOWN', 'Patientez trois secondes.');
+                throw new BusinessError('SHARED_REACTION_COOLDOWN', 'Patientez un instant.');
             const r = await this.row(tx, m.watching_id);
             if (!r || !sharedLive(r, now))
                 throw new BusinessError('SHARED_UNAVAILABLE', 'Cette diffusion est terminée.');

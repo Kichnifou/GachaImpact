@@ -1,5 +1,13 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## Finitions du mandat consolidé — 12/10/2026
+
+Cooldown serveur autoritatif500ms par Player, commun à ses onglets et à tous les emojis ; deux Players peuvent réagir simultanément. Frontend bloque tous les boutons500ms dès l'envoi et n'émet aucune requête supplémentaire pendant cette garde. Seul SHARED_REACTION_COOLDOWN dans react est silencieux, sans toast ni GET de réconciliation supplémentaire ; les autres erreurs gardent leur traitement normal. Verrou de concurrence, autorisation de membre, payload fermé, cap16 et TTL4s inchangés, aucun effet économique.
+
+Coût : plafond de deux réactions acceptées par seconde/Player contre une toutes les trois secondes auparavant. Chaque succès garde les deux écritures existantes membre/session et le nettoyage borné ; un refus cooldown n'ajoute aucune écriture de réaction. La garde frontend évite le trafic rapide d'un onglet ; la protection interonglets reste serveur. Aucun nouveau polling, abonnement, service ou infrastructure.
+
+L'overlay PAUSED central est supprimé, seul le statut compact blanc approuvé demeure. Départ des emojis20%, autres paramètres visuels inchangés. La confirmation d'audience est détenue au niveau InvocationScreen pour survivre à la key de reçu du BannerHero. Cache borné15s, identité API/session/token stricte, réponse périmée d'une autre session ignorée ; refresh silencieux et remplacement seulement par une lecture valide. Erreur ne fabrique ni zéro ni donnée d'un autre compte. Aperçu cinq profils, modale et droits inchangés.
+
 ## Finition autorisée du 12/10/2026
 
 Cette section actualise le contrat livré C ci-dessous ; les anciennes validations restent historiques. État de publication et preuves : Master.
@@ -56,7 +64,7 @@ L'inactivité de 45 minutes dépend uniquement d'un geste standalone authentifi�
 
 Transport : fetch/poll borné à 1 seconde pour une scène Invocation active, 15 secondes ailleurs ou au repos, liste à 5 secondes seulement lorsque sa modale est ouverte. Une lecture inchangée renvoie un petit curseur sans snapshot ; elle n'écrit pas de heartbeat ni de membre. Les réactions expirées invalident ce cache. Les lectures complètes revérifient l'adhésion spectateur pour éviter une course arrêt/redémarrage. Le nettoyage opportuniste expire au plus 100 sessions, vide au plus 1 000 adhésions obsolètes, nettoie au plus 100 ensembles d'emojis et supprime au plus 100 sessions arrêtées de plus d'une heure par passage. Les filtres de validité empêchent de présenter une session expirée même si le lot de nettoyage est plein.
 
-Réactions fermées : 🎉 ✨ ❤️ 😮 👏. Cooldown serveur persistant de trois secondes par Player, commun à ses onglets. Deux Players distincts peuvent réagir simultanément. Au plus 16 effets par session, expiration quatre secondes, animation CSS indépendante de la séquence Gacha. Aucun texte libre, historique permanent, récompense, badge ou déplacement des animations Gacha.
+Réactions fermées : 🎉 ✨ ❤️ 😮 👏. Cooldown serveur persistant de 500 millisecondes par Player, commun à ses onglets. Deux Players distincts peuvent réagir simultanément. Au plus 16 effets par session, expiration quatre secondes, animation CSS indépendante de la séquence Gacha. Aucun texte libre, historique permanent, récompense, badge ou déplacement des animations Gacha.
 
 ## Persistance, sécurité et validation
 

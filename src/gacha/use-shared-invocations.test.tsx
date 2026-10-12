@@ -41,6 +41,24 @@ async function flush() {
         await Promise.resolve();
     });
 }
+
+it('shares a silent 500ms reaction gate across emojis and only suppresses its business refusal', async () => {
+    vi.useFakeTimers();
+    const transport=api();mount(transport);await flush();
+    vi.mocked(transport.react).mockRejectedValueOnce(Object.assign(new Error('wait'),{code:'SHARED_REACTION_COOLDOWN'}));
+    const reads=vi.mocked(transport.state).mock.calls.length;
+    await act(async()=>{await current.react('❤️');await current.react('✨')});
+    expect(transport.react).toHaveBeenCalledTimes(1);
+    expect(transport.state).toHaveBeenCalledTimes(reads);
+    expect(current.error).toBe('');expect(current.reactionCooling).toBe(true);
+    await act(async()=>vi.advanceTimersByTime(499));
+    await act(async()=>{await current.react('✨')});expect(transport.react).toHaveBeenCalledTimes(1);
+    await act(async()=>vi.advanceTimersByTime(1));
+    expect(current.reactionCooling).toBe(false);
+    vi.mocked(transport.react).mockRejectedValueOnce(Object.assign(new Error('unavailable'),{code:'SHARED_UNAVAILABLE'}));
+    await act(async()=>{await current.react('✨')});
+    expect(current.error).not.toBe('');expect(transport.state).toHaveBeenCalledTimes(reads+1);
+});
 beforeEach(() => {
     vi.useFakeTimers();
     vi.stubGlobal('BroadcastChannel', undefined);

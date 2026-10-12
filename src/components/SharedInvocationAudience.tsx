@@ -5,7 +5,8 @@ import type {SharedInvocationController} from '../gacha/use-shared-invocations';
 import {useModalDialog} from './useModalDialog';
 import CharacterAssetImage from './CharacterAssetImage';
 import {apiErrorMessage} from '../utils/formatters';
-import type {CSSProperties} from 'react';
+import type {CSSProperties,MutableRefObject} from 'react';
+export type SharedAudienceConfirmation={api:SharedInvocationController['api'];sessionId:string;token:string|undefined;value:SharedSpectators;at:number};
 
 // The event ID fixes both the lane and wave phase for the event's lifetime.
 function reactionStyle(id:string):CSSProperties{
@@ -13,8 +14,9 @@ function reactionStyle(id:string):CSSProperties{
  return {'--shared-reaction-lane':hash%2?'1.7rem':'.7rem','--shared-reaction-wave-delay':hash%3===0?'-.6s':'0s'} as CSSProperties;
 }
 
-export default function SharedInvocationAudience({shared,session,onProfile}:{shared:SharedInvocationController;session:SharedSession;onProfile?:(id:string)=>void}){
- const [data,setData]=useState<SharedSpectators|null>(null),[error,setError]=useState(''),[open,setOpen]=useState(false),[preview,setPreview]=useState<{left:number;top:number}|null>(null),[page,setPage]=useState(1),[retry,setRetry]=useState(0);
+export default function SharedInvocationAudience({shared,session,onProfile,cache}:{shared:SharedInvocationController;session:SharedSession;onProfile?:(id:string)=>void;cache?:MutableRefObject<SharedAudienceConfirmation|null>}){
+ const [confirmed,setConfirmed]=useState<SharedAudienceConfirmation|null>(()=>cache?.current??null),[error,setError]=useState(''),[open,setOpen]=useState(false),[preview,setPreview]=useState<{left:number;top:number}|null>(null),[page,setPage]=useState(1),[retry,setRetry]=useState(0);
+ const data=confirmed?.api===shared.api&&confirmed?.sessionId===session.id&&confirmed?.token===shared.state.watchingToken&&Date.now()-confirmed.at<15000?confirmed.value:null;
  const counter=useRef<HTMLButtonElement>(null),hide=useRef<ReturnType<typeof setTimeout>|null>(null);
  const status=useRef<HTMLDivElement>(null);
  useLayoutEffect(()=>{
@@ -25,10 +27,13 @@ export default function SharedInvocationAudience({shared,session,onProfile}:{sha
  },[]);
  useEffect(()=>{
   let disposed=false,timer:ReturnType<typeof setTimeout>;
-  setData(null);setError('');
-  const read=async()=>{try{const next=await shared.api?.spectators?.(open?page:1);if(!disposed&&next?.sessionId===session.id){setData(next);setError('')}}catch(cause){if(!disposed){setData(null);setError(apiErrorMessage(cause))}}finally{if(!disposed)timer=setTimeout(read,5000)}};
+  setError('');
+  const read=async()=>{try{const next=await shared.api?.spectators?.(open?page:1);if(!disposed&&next?.sessionId===session.id){const value={api:shared.api,sessionId:session.id,token:shared.state.watchingToken,value:next,at:Date.now()};if(cache)cache.current=value;setConfirmed(value);setError('')}}catch(cause){if(!disposed)setError(apiErrorMessage(cause))}finally{if(!disposed)timer=setTimeout(read,5000)}};
   void read();return()=>{disposed=true;clearTimeout(timer)};
- },[shared.api,session.id,shared.state.watchingToken,open,page,retry]);
+ },[shared.api,session.id,shared.state.watchingToken,open,page,retry,cache]);
+ // Keep a confirmed count through silent refreshes, but expire it even when a
+ // transport hangs indefinitely. Ownership is checked synchronously above.
+ useEffect(()=>{if(!confirmed)return;const timer=setTimeout(()=>setConfirmed(value=>value===confirmed?null:value),Math.max(0,confirmed.at+15000-Date.now()));return()=>clearTimeout(timer)},[confirmed]);
  useEffect(()=>()=>{if(hide.current)clearTimeout(hide.current)},[]);
  const showPreview=()=>{if(hide.current)clearTimeout(hide.current);const r=counter.current?.getBoundingClientRect();if(r)setPreview({left:Math.max(8,Math.min(r.left,window.innerWidth-240)),top:Math.max(8,Math.min(r.bottom+5,window.innerHeight-210))})};
  const leave=()=>{hide.current=setTimeout(()=>setPreview(null),150)};
