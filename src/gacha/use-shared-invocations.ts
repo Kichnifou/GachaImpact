@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { SharedInvocationApi, SharedInvocationState, SharedSession } from '../api/shared-invocations-types';
-import { establishSharedInvocationTab, sharedInvocationTabId } from './shared-invocation-tab';
+import { establishSharedInvocationTab, sharedInvocationTabId, nextSharedPresenceRevision } from './shared-invocation-tab';
 import { apiErrorMessage } from '../utils/formatters';
 const empty: SharedInvocationState = { broadcasting: null, watching: null };
 /** Ignore old snapshots (including cross-account results); equal seq is an unchanged snapshot. */
@@ -10,16 +10,30 @@ export function mergeSharedSession(previous: SharedSession | null, next: SharedS
 export function useSharedInvocations(api: SharedInvocationApi | undefined, invocationVisible: boolean, onPersonalRefresh?: () => Promise<void>, ownerKey?: string) {
     const [state, setState] = useState(empty), [error, setError] = useState(''), [pending, setPending] = useState(false),[personalReady,setPersonalReady]=useState(true);
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
+    const personalFlight=useRef<{epoch:number;promise:Promise<void>}|null>(null);
+    const [personalError,setPersonalError]=useState('');
     useLayoutEffect(() => {
         screen.current = invocationVisible;
         refresh.current = onPersonalRefresh;
     }, [invocationVisible, onPersonalRefresh]);
-    const refreshPersonal=useCallback(async()=>{const epoch=generation.current;setPersonalReady(false);try{await refresh.current?.();if(epoch===generation.current)setPersonalReady(true)}catch(error){if(epoch===generation.current)setError(apiErrorMessage(error))}},[]);
+    const refreshPersonal=useCallback(()=>{
+        const epoch=generation.current;
+        if(personalFlight.current?.epoch===epoch)return personalFlight.current.promise;
+        setPersonalReady(false);setPersonalError('');
+        const promise=(async()=>{
+            for(let attempt=0;attempt<3&&epoch===generation.current;attempt++){
+                try{await refresh.current?.();if(epoch===generation.current){setPersonalReady(true);setPersonalError('')}return;}
+                catch(cause){if(epoch!==generation.current)return;if(attempt===2){setPersonalError(apiErrorMessage(cause));return}}
+                await new Promise(resolve=>setTimeout(resolve,(attempt+1)*1000));
+            }
+        })().finally(()=>{if(personalFlight.current?.epoch===epoch)personalFlight.current=null});
+        personalFlight.current={epoch,promise};return promise;
+    },[]);
     const apply = useCallback((next: SharedInvocationState) => {
         if (next.unchanged)
             return;
         const stoppedWatching = current.current.watching && !next.watching;
-        const merged = { broadcasting: mergeSharedSession(current.current.broadcasting, next.broadcasting), watching: mergeSharedSession(current.current.watching, next.watching), cursor: next.cursor };
+        const merged = { broadcasting: mergeSharedSession(current.current.broadcasting, next.broadcasting), watching: mergeSharedSession(current.current.watching, next.watching), watchingToken:next.watchingToken, cursor: next.cursor };
         current.current = merged;
         setState(merged);
         if (stoppedWatching)
@@ -33,6 +47,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         setPending(false);
         setPersonalReady(true);
         setError('');
+        setPersonalError('');personalFlight.current=null;
         // External transport/account ownership changed: discard the former server session.
         setState(empty);
         if (!api)
@@ -85,6 +100,22 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             document.removeEventListener('visibilitychange', visibility);
         };
     }, [api, apply, ownerKey]);
+    useEffect(()=>{
+        const sessionId=state.watching?.id,token=state.watchingToken;
+        if(!api?.viewerPresence||!sessionId||!token)return;
+        let disposed=false,reading=false,changedDuringRead=false,timer:ReturnType<typeof setTimeout>|undefined;
+        const send=async()=>{
+            if(disposed)return;
+            if(reading){changedDuringRead=true;return}
+            reading=true;if(timer)clearTimeout(timer);
+            try{await api.viewerPresence!(sharedInvocationTabId(),sessionId,token,nextSharedPresenceRevision(),screen.current&&document.visibilityState!=='hidden')}catch{/* lease expires; polling owns the visible network error */}
+            reading=false;
+            if(!disposed){if(changedDuringRead){changedDuringRead=false;void send()}else timer=setTimeout(send,15000)}
+        };
+        const changed=()=>{if(timer)clearTimeout(timer);void send()};
+        void send();document.addEventListener('visibilitychange',changed);
+        return()=>{disposed=true;if(timer)clearTimeout(timer);document.removeEventListener('visibilitychange',changed)};
+    },[api,state.watching?.id,state.watchingToken,invocationVisible,ownerKey]);
     useEffect(() => {
         const own = current.current.broadcasting;
         if (!api || !own?.authoritative || locked.current)
@@ -154,7 +185,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             }
         }
     }, [api, apply]);
-    return { state, error, pending, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
+    return { state, error:personalError||error, personalError, pending, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
         start: () => mutate((api, id) => api.start(id)), stop: () => mutate((api, id) => api.control(id, 'stop', screen.current ? 'invocation' : 'other')),
         watch: (id: string | null) => mutate((api, tab) => api.watch(tab, id)),
         advance: (action: 'advance' | 'skip' | 'close') => mutate(async (api, id) => {

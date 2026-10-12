@@ -37,7 +37,8 @@ describe('private progressive catalogue migration and normal circuit',()=>{
   it('rehearses 073 in the Prisma ledger and preserves private RLS/browser denial',async()=>{
     expect(fixture.migrationStatus).toContain('up to date');
     const migrations=await fixture.admin.query(`SELECT migration_name FROM "${fixture.schema}"._prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name`);
-    expect(migrations.rows.at(-1)?.migration_name).toBe('20261011190000_073_catalog_progressive');
+    expect(migrations.rows.map(row=>row.migration_name)).toContain('20261011190000_073_catalog_progressive');
+    expect(migrations.rows.at(-1)?.migration_name).toBe('20261012100000_075_shared_viewer_presence');
     const result=await fixture.admin.query(`SELECT relrowsecurity,has_table_privilege('anon',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,has_table_privilege('authenticated',c.oid,'SELECT,INSERT,UPDATE,DELETE') AS auth FROM pg_class c JOIN pg_namespace n ON c.relnamespace=n.oid WHERE n.nspname=$1 AND relname LIKE 'catalog_%' AND relkind='r'`,[fixture.schema]);
     expect(result.rows).toHaveLength(7);for(const row of result.rows)expect(row).toEqual({relrowsecurity:true,anon:false,auth:false});
   });

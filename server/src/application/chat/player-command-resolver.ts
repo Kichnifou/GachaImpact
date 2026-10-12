@@ -206,8 +206,8 @@ export class PlayerCommandResolver {
           const view = await this.services.socialService.favor(identity, target.id);
           if (view.access === 'PRIVATE') return `⚠️ La Faveur de ${target.displayName} est privée.`;
           const favor = view.data;
-          if (target.id !== actor.id) return favor.active ? `ℹ️ ${target.displayName} : Faveur active · ${favor.daysRemaining} jours restants.` : `ℹ️ ${target.displayName} : aucune Faveur active.`;
-          return favor.active ? `ℹ️ Faveur de l’Astre : ${favor.daysRemaining} jours restants / ${favor.maxDays} · +${favor.dailyPrimogems} Primogemmes/jour · récompense du jour ${favor.claimedToday ? 'reçue' : 'disponible'}.` : 'ℹ️ Faveur de l’Astre : inactive.';
+          if (target.id !== actor.id) return favor.active ? `🌙 ${target.displayName} : Faveur active · ${favor.daysRemaining} jours restants.` : `🌙 ${target.displayName} : aucune Faveur active.`;
+          return favor.active ? `🌙 Faveur de l’Astre : ${favor.daysRemaining} / ${favor.maxDays} jours restants · +${favor.dailyPrimogems} Primos/jour · récompense du jour ${favor.claimedToday ? 'reçue ✅' : 'disponible'}.` : '🌙 Faveur de l’Astre : inactive.';
         }
         case 'help': return args.length <= 1 ? chatHelp(args[0]) : syntax('!help [categorie|commande]');
         case 'element': {

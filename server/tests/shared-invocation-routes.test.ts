@@ -18,6 +18,14 @@ async function setup() {
     return { app, service };
 }
 const tabId = '00000000-0000-4000-8000-000000000074', headers = { authorization: 'Bearer valid' };
+it('protects viewer endpoints, rejects session enumeration and validates lease identities',async()=>{
+ const {app}=await setup();
+ expect((await app.inject({url:'/api/v1/shared-invocations/spectators'})).statusCode).toBe(401);
+ expect((await app.inject({method:'POST',url:'/api/v1/shared-invocations/viewer-presence',payload:{}})).statusCode).toBe(401);
+ for(const suffix of ['?sessionId='+tabId,'?page=0','?page=1001'])expect((await app.inject({headers,url:'/api/v1/shared-invocations/spectators'+suffix})).statusCode).toBe(400);
+ const valid={tabId,sessionId:tabId,token:tabId,revision:1,visible:true};
+ for(const change of [{ownerId:tabId},{revision:0},{revision:1.5},{token:'arbitrary'},{visible:'true'}])expect((await app.inject({headers,method:'POST',url:'/api/v1/shared-invocations/viewer-presence',payload:{...valid,...change}})).statusCode).toBe(400);
+});
 it('rejects anonymous and invalid sessions on all shared endpoints', async () => {
     const { app, service } = await setup();
     for (const route of ['', '/state'])

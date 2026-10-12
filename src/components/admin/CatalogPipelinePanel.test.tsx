@@ -23,6 +23,22 @@ beforeEach(() => { vi.resetAllMocks(); api.getAdminCharacterOptions.mockResolved
   for (const action of [api.editCatalogCandidate, api.checkCatalogCandidate, api.uploadCatalogImage, api.overrideCatalogWindow]) action.mockResolvedValue({ operationId: 'fixture', alreadyProcessed: false }) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); container?.remove() })
 describe('Character import ADMIN surface', () => {
+  it('distinguishes usable provisional consensus, insufficient proof and official confirmation in both tabs',async()=>{
+    const evidence={provider:'fixture',url:'https://example.com/profile',fetchedAt:'2026-10-12T06:00:00Z',reliability:'PROVISIONAL'};
+    api.getCatalogCandidate.mockResolvedValue({...candidate,fields:{rarity:{...evidence,value:5,qualification:'PROVISIONAL_CONSENSUS',consensus:{supportingEditors:3,editors:4,evaluatedAt:evidence.fetchedAt}},element:{...evidence,value:'electro'},weapon:{...evidence,value:'Sword',reliability:'OFFICIAL'}}});
+    await mount(candidate.id);
+    for(const name of ['Résumé','Informations']){
+      await tab(name);
+      expect(dialog().textContent).toContain('Consensus provisoire — utilisable en jeu, confirmation officielle recherchée (3/4 éditeurs)');
+      expect(dialog().textContent).toContain('Provisoire — confirmation insuffisante');
+      expect(dialog().textContent).toContain('Confirmé officiellement');
+    }
+  })
+  it('places the stored-detail refresh immediately after the main search action',async()=>{
+    await mount(candidate.id);
+    const search=button('Rechercher des mises à jour');
+    expect(search.nextElementSibling?.querySelector('button')?.getAttribute('aria-label')).toBe('Actualiser');
+  })
   it('separates progressive minimums from optional image gaps and removes the legacy anticipation action',async()=>{
     const progressive={...candidate,progressivePolicy:true,status:'ELIGIBLE',missing:[],optionalMissing:['icon','splash','numericId'],lastCycleStatus:'INCOMPLETE',publicationStage:'PREPARATION' as const};
     api.getCatalogCandidates.mockResolvedValue({...overview,entries:[progressive]});api.getCatalogCandidate.mockResolvedValue(progressive);

@@ -24,7 +24,7 @@ type Props = {
   onPresentationDisclosed?: (operationId: string) => void
   onGetHistory?: (page: number) => Promise<GachaHistoryDto>
   teams?: PlayerTeamsDto
-  sharing?: ReactNode
+  sharing?: ReactNode | ((presenting:boolean)=>ReactNode)
   sharedSequence?: InvocationSequenceState
   onSharedSequenceAction?: (action: 'advance'|'skip'|'close') => void
   readOnly?: boolean
@@ -41,6 +41,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
   const selected = gacha.banner.featuredFiveStars.find(({ id }) => id === gacha.playerState.selectedBannerCharacterId)
   const pullPending = sequence.phase === 'submitting' ? sequence.count : pendingPullCount
   const targetSelectionDisabled = readOnly || compact || pending !== null || pullPending !== null
+  const sharingContent = typeof sharing==='function'?sharing(sequence.phase!=='idle'||pendingPullCount!==null):sharing
 
   useEffect(() => {
     if (sequence.phase === 'summary') onPresentationDisclosed?.(sequence.pull.operation.id)
@@ -84,14 +85,14 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
         onClose={closeSequence}
         readOnly={readOnly}
       />
-      {sharing && <div className="shared-invocation-presentation-controls">{sharing}</div>}
+      {sharingContent && <div className="shared-invocation-presentation-controls">{sharingContent}</div>}
     </section>
   }
 
   if (choosing || !selected) {
     return <section className={`invocation-panel target-picker${compact ? ' home-banner home-banner-preview' : ''}`} aria-labelledby="invocation-title">
       <div className="banner-copy-column">
-        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>{sharing}</div>
+        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>{sharingContent}</div>
       </div>
       <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} disabled={targetSelectionDisabled} onClick={() => void choose(character)} key={character.id} />)}</div>
       {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
@@ -115,7 +116,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
           {showDetails && <button type="button" className="banner-change-button" disabled={readOnly || pullPending !== null} onClick={() => setChoosing(true)}>Changer</button>}
           {!compact && showDetails && onGetHistory && <button type="button" className="banner-change-button detail" onClick={() => setDetailOpen(true)}>Détail</button>}
         </div>
-        {sharing}
+        {sharingContent}
       </div>
       {!compact && <FeaturedFourStars characters={gacha.banner.featuredFourStars} />}
     </div>

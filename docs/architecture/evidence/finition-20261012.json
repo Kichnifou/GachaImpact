@@ -1,0 +1,118 @@
+{
+  "initialSha": "79832fc72c94233a61d0d3cd13cf41c4ed63de57",
+  "stage": "LOCAL_QUALIFIED_AWAITING_PUBLISHED_SHA_REVIEW",
+  "at": "2026-10-12T06:34:57.525Z",
+  "scope": [
+    "seven finishing changes",
+    "qualified consensus source independence and ADMIN labels",
+    "read-only !faveur presentation"
+  ],
+  "tests": {
+    "quick": "PASS 5/5",
+    "frontendTargeted": "37/37 PASS (recovery, audience, ADMIN)",
+    "backendTargeted": "22/22 PASS source/routes; dispatcher 135/135 PASS",
+    "postgres": {
+      "shared": "21/21 PASS, normal 75 migrations, final replay169.67s, private cleanup",
+      "catalogue": "8/8 PASS, normal75,114.80s,private cleanup",
+      "publicFixtures": false
+    },
+    "full": {
+      "result": "FAIL 6/8",
+      "frontend": {
+        "pass": 1542,
+        "fail": 4
+      },
+      "backend": {
+        "pass": 2401,
+        "fail": 6
+      },
+      "baselineRemaining": 10,
+      "baselineNamesMatch": true,
+      "baselineFilesUnchanged": true,
+      "additionalTimeouts": 0,
+      "buildsTypesLintDiff": "PASS"
+    }
+  },
+  "visual": {
+    "states": 48,
+    "modalFormats": 6,
+    "personalScenes": 12,
+    "adminFormats": 6,
+    "formats": [
+      "390x844",
+      "844x390",
+      "1366x768",
+      "1366x520",
+      "1920x1080",
+      "2560x1440"
+    ],
+    "css": "index-z0w6iPB5.css",
+    "cssSha256": "ef5aa3858e10087dba26411bbcbe0af34b4af34d32b926bc74fd7c101deac521",
+    "errors": [],
+    "rootPngInspection": [
+      "diagnostic-summary-1366.png",
+      "watch-summary-1366x520.png",
+      "own-summary-1920x1080.png",
+      "watch-idle-390x844.png",
+      "personal-x10-1366x520.png",
+      "admin-390x844.png",
+      "spectators-844x390.png"
+    ],
+    "syntheticLocalOnly": true,
+    "limitations": [
+      "Initial geometry failures corrected; native keyboard scroll measured after completion",
+      "One intermittent paused-scene horizontal overflow assertion did not recur in the instrumented final full run; retained logs, independent visual gate pending",
+      "Personal harness same-URL navigation preserved old x1 scene; distinct query forces real navigation; final12 PASS",
+      "No authenticated human production acceptance inferred"
+    ]
+  },
+  "advisory": {
+    "reportSha256": "f27a8a6beca14cb77602809743a0d13e6f04434dca251e4f161c6baa791c4459",
+    "reproduced": [
+      "same-account overlapping refresh readiness",
+      "common upstream anchor citations counted as independent editors"
+    ],
+    "status": "corrected locally, formal review pending"
+  },
+  "migration": {
+    "name": "20261012100000_075_shared_viewer_presence",
+    "publicApplied": false
+  },
+  "naturalDaily": {
+    "observedAt": "2026-10-12T06:14:45.979Z",
+    "cycle": "daily:2026-10-12",
+    "runId": "09b97a65-bbda-4640-8c78-3d34f341c642",
+    "status": "COMPLETED",
+    "completedAt": "2026-10-11T22:01:57.795Z",
+    "lastSuccessDate": "2026-10-12",
+    "readOnly": true,
+    "forced": false
+  },
+  "runtimeBefore": {
+    "characters": 120,
+    "dated": 120,
+    "protected": 120,
+    "unchanged": true,
+    "activeCandidates": [
+      "Mitya",
+      "Valeriy"
+    ],
+    "candidateCharacters": 0,
+    "storageObjects": 2,
+    "storageBytes": 236490,
+    "flags": {
+      "enabled": true,
+      "publish": true,
+      "dryRun": false
+    }
+  },
+  "delivery": "NOT_YET_DELIVERED",
+  "unchangedReviewedDocs": [
+    "navigation-shell-v1.md (existing openProfile reused)",
+    "free-first-v1.md (no service/cost change)",
+    "implementation-order-v1.md",
+    "implementation-workflow.md",
+    "conversation-handoff.md (Master remains live tracker)",
+    "consolidated-r1066-r1077.md (historical delivered scope)"
+  ]
+}

@@ -1,9 +1,23 @@
 .shared-invocation-controls { margin-top: .65rem; max-width: 24rem; }
 .shared-invocation-buttons { display: flex; gap: .5rem; }
-.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 2.1rem; white-space: nowrap; font-size: .7rem; }
+.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 2rem; padding-block: .2rem; white-space: nowrap; font-size: .7rem; }
 .shared-invocation-button.is-live { color: #ffb6b6; border-color: #b54c61; background: #381925; }
 .shared-invocation-controls small { display: block; color: #a9b4cc; font-size: .66rem; line-height: 1.35; margin-top: .35rem; }
-.shared-invocation-status { position: absolute; z-index: 5; top: .5rem; right: .75rem; display: flex; flex-direction: column; max-width: calc(100% - 1.5rem); font-size: .7rem; color: #ffb6b6; pointer-events: none; }
+.shared-invocation-status { position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .3rem .8rem; flex: 0 0 auto; padding: .2rem .75rem; font-size: .7rem; color: #ffb6b6; }
+.shared-live-label { overflow-wrap: anywhere; min-width: 0; }
+.shared-live-label > span { color: #ff526d; }
+.invocation-screen:has(> .shared-invocation-status) { display: flex; flex-direction: column; gap: .25rem; }
+.invocation-screen:has(> .shared-invocation-status) > .invocation-panel { flex: 1 1 auto; }
+@media (min-width: 1001px) { .invocation-screen:has(> .shared-invocation-status) > .invocation-panel { flex: 1 1 0; min-height: 0; } }
+.shared-spectator-count { font: inherit; color: white; background: transparent; border: 1px solid transparent; padding: .3rem; border-radius: .4rem; cursor: pointer; white-space: nowrap; }
+.shared-spectator-count:hover { background: #28334b; }
+.shared-spectator-count:focus-visible,.shared-recovery-link:focus-visible { outline: 2px solid #cdb277; outline-offset: 2px; }
+.shared-spectator-preview { position: fixed; z-index: 10000; width: 220px; max-height: 200px; overflow-y: auto; box-sizing: border-box; padding: .7rem; border: 1px solid #596580; border-radius: .6rem; background: #121c30; color: #edf1ff; box-shadow: 0 8px 24px #0008; font-size: .8rem; }
+.shared-spectator-preview > div { padding-block: .2rem; overflow-wrap: anywhere; }
+.shared-spectator-pages { display: flex; align-items: center; justify-content: space-between; padding: .7rem; gap: .5rem; }
+.shared-recovery { font-size: .7rem; margin-block: .3rem; }
+.shared-recovery-link { font: inherit; color: #c4d9ff; background: transparent; border: 0; padding: .25rem; text-decoration: underline; cursor: pointer; }
+.shared-recovery-link:disabled { opacity: .5; cursor: wait; }
 .invocation-screen { position: relative; }
 .shared-invocation-reactions { display: flex; gap: .3rem; margin-top: .4rem; }
 .shared-invocation-reactions button { min-width: 2rem; min-height: 2rem; padding: .2rem; }
@@ -23,10 +37,20 @@
 .shared-invocation-presentation-controls { position: absolute; z-index: 6; left: 1rem; bottom: .8rem; display: flex; gap: .4rem; }
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .sequence-hint { bottom: 3.5rem; }
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .sequence-reveal-stage:not(.character-reveal) { padding-bottom: 3.5rem; }
-.invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence.sequence-summary { padding: 0; }
-.invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence > .sequence-summary { align-self: start; min-height: 0; height: calc(100% - 6rem); max-height: calc(100% - 6rem); overflow-y: auto; box-sizing: border-box; }
+.invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence.sequence-summary { padding-block: 3rem 4.5rem; }
+.invocation-sequence:has(> .sequence-summary) { box-sizing: border-box; padding-block: 3rem 4.5rem; }
+.invocation-sequence > .sequence-summary { align-self: center; min-height: 0; height: auto; max-height: 100%; overflow-y: auto; box-sizing: border-box; }
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence > .sequence-summary:focus-visible { outline: 2px solid #cdb277; outline-offset: -2px; }
 .shared-invocation-paused { position: absolute; top: 42%; left: 20%; right: 20%; padding: 1rem; border-radius: .75rem; display: grid; place-content: center; color: #e6eafa; background: #101725ed; z-index: 4; text-align: center; pointer-events: none; }
+.shared-reaction-layer { position: absolute; z-index: 7; inset: 20% 5% 18% auto; width: 5rem; container-type: size; pointer-events: none; overflow: hidden; }
+.shared-reaction-layer > span { position: absolute; bottom: 0; right: .7rem; font-size: 2.1rem; animation: shared-reaction-rise 3.2s linear both; }
+.shared-reaction-layer i { display: block; font-style: normal; animation: shared-reaction-wave 1.2s ease-in-out infinite alternate; }
+.shared-reaction-layer > span:nth-child(2n) { right: 1.7rem; }
+.shared-reaction-layer > span:nth-child(3n) i { animation-delay: -.6s; }
+@keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-90cqh); } }
+@keyframes shared-reaction-wave { from { transform: translateX(-.25rem); } to { transform: translateX(.25rem); } }
+@media (prefers-reduced-motion: reduce) { .shared-reaction-layer > span { animation: shared-reaction-fade 1.5s both; } .shared-reaction-layer i { animation: none; } }
+@keyframes shared-reaction-fade { from { opacity: 1; } to { opacity: 0; } }
 @keyframes shared-emoji-float { from { opacity: 0; transform: translateY(.5rem); } 15%,70% { opacity: 1; } to { opacity: 0; transform: translateY(-.4rem); } }
 @media (prefers-reduced-motion: reduce) { .shared-invocation-emoji-effect span { animation: none; } }
 @media (max-width: 600px) { .shared-invocation-controls { margin-top: .3rem; } .shared-invocation-controls small { font-size: .59rem; } .shared-invocation-status { font-size: .6rem; } .shared-invocation-presentation-controls { bottom: .4rem; left: .4rem; right: auto; } }
@@ -34,6 +58,12 @@
 .shared-is-paused .invocation-sequence * { animation-play-state: paused !important; }
 
 @media (min-width: 1001px) and (max-height: 640px) {
+  .invocation-sequence:has(> .sequence-summary),
+  .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence.sequence-summary { padding-bottom: 3.5rem; }
+  .invocation-sequence > .sequence-summary { padding-bottom: 4px; }
+  .shared-invocation-presentation-controls .shared-invocation-controls:has(.shared-invocation-reactions) { display: grid; grid-template-columns: 8.2rem auto; gap: .4rem; align-items: end; }
+  .shared-invocation-presentation-controls .shared-invocation-reactions { margin-top: 0; }
+  .shared-invocation-presentation-controls .shared-invocation-error { grid-column: 1 / -1; }
   .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence { min-height: 0; }
   .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .sequence-reveal-stage:not(.character-reveal) { min-height: 0; padding: 38px 16px 58px; gap: 6px; }
   .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .resource-result.reveal { min-height: 0; height: 100%; padding: 8px; }

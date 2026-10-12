@@ -1,11 +1,25 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : mission consolidée R1066–R1077 — livraisons A/B/C/D.
-Date : 2026-10-11
-Statut : **A/B/C/D livrés techniquement après revues indépendantes, FF strict et déploiements/postflight. R1051 configuré actif ; recette humaine et premier minuit naturel12/10 encore à observer.**
+Version : finition autorisée des Invocations partagées, Catalogue et !faveur.
+Date : 2026-10-12
+Statut : **A/B/C/D déjà livrés ; finition locale qualifiée, publication review et revue indépendante requises avant main/déploiements. Premier cycle naturel12/10 observé COMPLETED en lecture seule.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — clôture consolidée R1066–R1077, 11/10/2026
+## Point courant — finition autorisée du 12/10/2026
+
+Base quatre refs79832fc72c94233a61d0d3cd13cf41c4ed63de57,0/0 et arbre propre. Première recette publique générale validée par le propriétaire ; ce retour ne valide pas encore les nouvelles retouches. Sept finitions implémentées : resynchronisation personnelle silencieuse/single-flight/backoff et petit fallback explicite de même intention ; compteur/aperçu cinq/liste authentifiée avec profils exacts et leases privés ; x10 centré/scroll clavier ; boutons réduits et contextuels/phrase exacte ; bandeau en flux séparé de Passer/fermeture ; réactions plus grandes/longues sans hit target et reduced-motion ; Actualiser immédiatement à droite de Rechercher.
+
+Compléments inclus dans ce même mandat : provenance de citations par href pour supprimer les fausses voix communes, index Icy/Game8 nominaux, distinction ADMIN des trois niveaux de preuve. L'activation normale accepte déjà le consensus qualifié et continue son suivi officiel après publication : aucune règle économique dupliquée ni seuil abaissé. Aucun consensus réel Mitya/Valeriy déclaré. !faveur utilise 🌙, jours/max et Primos/jour, ✅ exclusivement si claimedToday vrai ; confidentialité et consultation read-only conservées.
+
+Qualification locale : quick final5/5 PASS ; ciblés frontend37/37, sources/routes22/22 et dispatcher135/135 PASS. PostgreSQL privé normal075 : shared21/21 (dernier replay169,67s), catalogue8/8 (114,80s), cleanup, aucune fixture publique. Full final FAIL6/8 : frontend1542 PASS/4 FAIL et backend2401 PASS/6 FAIL ; noms des dix assertions identiques à la baseline et sept fichiers inchangés depuis79832fc, aucun timeout additionnel. Builds/types/lint/diffs PASS ; aucun fullPASS revendiqué. Visuel final48scènes partagées/six modales,12scènes personnelles x1/x10/six fiches ADMIN sur les six formats, CSS index-z0w6iPB5.css SHA256 ef5aa3858e10087dba26411bbcbe0af34b4af34d32b926bc74fd7c101deac521. PNG inspectés ; limites initiales et un overflow intermittent non reproduit dans la passe instrumentée conservés dans la [preuve datée](../architecture/evidence/finition-20261012.json), revue visuelle distincte encore requise.
+
+Migration additive075 locale/private seulement à ce checkpoint : version d'adhésion UUID et JSONB≤8 baux spectateurs, RLS/revocations conservées. Aucun RNG, FavorService, claim, calendrier, économie, Wheel, Twitch/Auth ou historique modifié. Revue consultative indépendante a reproduit deux risques refresh concurrent/amont commun, corrigés et testés ; ce n'est pas encore l'approbation du vrai SHA publié. **Prochaine action :** publier le candidat review, revue indépendante sécurité/reprise/DB/provenance et visuelle, corriger séparément les findings, FF main, Railway/Pages exactSHA, postflight075/RLS/CORS/invariants RO puis clôture quatre refs0/0propre. Replays Prisma et pre-deploy Railway restent strictement sérialisés.
+
+Observation R1051 séparée, RO06:14:45.979UTC : daily:2026-10-12, run09b97a65-bbda-4640-8c78-3d34f341c642 COMPLETED à22:01:57.795UTC11/10, last_success_date2026-10-12, lease libérée. Aucun cycle forcé ; ancien11/10 SUPERSEDED conservé. 120Character/120dates/120PROTECTED inchangés, Mitya/Valeriy seulsACTIVE sans Character, Storage2objets236490octets, enabled/publishON et dryRunfalse. Les réserves historiques « minuit futur » ci-dessous décrivent leur ancien checkpoint.
+
+Revue documentaire effectuée : shared/UI/ADMIN/décisions/commande/catalogue/schéma/backend/modèle et Master ajustés ; navigation (openProfile réutilisé), free-first (aucun coût/service), roadmap/workflow/handoff et owner consolidé examinés laissés inchangés.
+
+## Historique — clôture consolidée R1066–R1077, 11/10/2026
 
 Base initiale `1f3f83a40382b901653ddbee14d9c9abb9fad4f8`, quatre refs égales0/0 et arbre propre. Livraisons séparées A→B→C→D acquises ; le dernier code applicatif livré est celui du checkpoint D `0de9629b346460f6f1ef3f49794fa71f33eb69a1`. La clôture documentaire conserve ce même code ; le SHA de clôture, ses quatre refs et ses déploiements exacts sont contrôlés dans le bilan final, sans commit auto-référentiel.
 

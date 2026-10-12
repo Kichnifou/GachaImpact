@@ -1,5 +1,19 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## Finition autorisée du 12/10/2026
+
+Cette section actualise le contrat livré C ci-dessous ; les anciennes validations restent historiques. État de publication et preuves : Master.
+
+**Récupération :** refresh personnel silencieux, une seule requête logique partagée par génération de compte, au plus trois tentatives avec backoff 1 puis 2 secondes. La barrière des commandes reste fermée jusqu'au succès de cette lecture ; une erreur persistante propose le petit lien « Réessayer l’actualisation ». La réconciliation existante du reçu committé reste automatique et ne tire rien. Une intention non committée reste explicite : « Invocation en attente. Réessayer cette Invocation », même clé/count d'origine, jamais de dépense automatique.
+
+**Spectateurs :** l'adhésion watching_id ne vaut pas présence. Migration additive 075 : watching_version UUID et viewer_presences JSONB borné à huit onglets par Player. Chaque bail technique dure 60 secondes, est renouvelé au plus toutes les 15 secondes et porte session, version d'adhésion et révision monotone de l'onglet. Arrêter/change de diffusion renouvelle la version et invalide les anciens paquets ; sortie d'écran ou onglet caché retire ce bail immédiatement. Fermeture brutale expire avec la tolérance 60 secondes ; F5 peut reprendre dans ce délai. Les révisions des baux expirés restent comme tombstones jusqu'au changement d'adhésion, empêchant un ancien paquet de ressusciter une présence. Un neuvième onglet est refusé sans évincer les présents ; une nouvelle adhésion explicite réinitialise cet ensemble. Aucun heartbeat n'allonge l'activité du diffuseur, ne crée de mouvement économique ni ne suit le poll de scène à une seconde.
+
+Compteur distinct par Player ACTIVE, diffuseur exclu, au moins un bail vivant ; visibilité PRESENCE et blocages existants appliqués pour l'observateur. Session active ou en pause, propriétaire ACTIVE, et appartenance actuelle requise ; aucune session arbitraire en paramètre. GET spectators authentifié, lecture indépendante toutes les cinq secondes pendant la scène, sans écriture, même si le curseur de scène est unchanged. Réponse : sessionId, nombre, pagination 20 et aperçu cinq ; chaque personne contient seulement playerId, displayName, avatarPath publics. Aucun Auth UID, solde ou inventaire. Les changements d'identité/session invalident les réponses UI en vol.
+
+Compteur blanc de même police, aperçu au survol/focus avec cinq noms et « Voir plus » uniquement au-delà ; clic/touch ouvre « Spectateurs ». Modale existante, état vide/erreur/réessai, focus/Escape/retour et pagination bornée ; clic d'une ligne appelle GameShell.openProfile avec son Player exact.
+
+**Présentation :** au repos personnel, seuls Diffuser/Voir de largeur égale réduite et « Diffusez vos invocations, ou visionnez celles des autres joueurs ». Le consentement détaillé se lit au démarrage. Submit/intro/reveal/x1/x10/résumé personnels masquent boutons et aide selon la vraie phase. Diffuseur : seul contrôle d'arrêt En diffusion ; spectateur : Arrêter et les cinq réactions. Le bandeau est dans le flux avant la scène, réservant sa vraie hauteur même avec pseudo long : Passer et fermeture restent dessous. Titre+dix résultats centrés dans l'espace disponible, résumé seul focalisable et défilant en faible hauteur ; commandes hors de cette zone. Réactions dans une couche indépendante pointer-events:none, plus grandes, montée 3,2 s et vague horizontale douce, disparition avant le bandeau ; reduced-motion par fondu. Cooldown économique et limites serveur inchangés.
+
 Implémentation locale du lot C consolidé, décisions propriétaire R1067–R1075. La publication, la revue indépendante sur SHA distant et la migration Railway sont des étapes de livraison distinctes, coordonnées après A/B. Ce document ne constitue pas une preuve de déploiement.
 
 ## Périmètre et consentement

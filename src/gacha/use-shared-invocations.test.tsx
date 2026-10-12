@@ -158,8 +158,8 @@ it('keeps personal invocation controls unavailable until the exit refresh succee
  const transport=api(),read=deferred<void>(),refresh=vi.fn(()=>read.promise),{root}=mount(transport);await flush();act(()=>root.render(<Harness transport={transport} refresh={refresh}/>));
  act(()=>current.apply({broadcasting:null,watching:{...own,authoritative:false}}));await act(async()=>{await current.watch(null)});expect(current.personalReady).toBe(false);expect(refresh).toHaveBeenCalledOnce()
  await act(async()=>{read.resolve();await read.promise});expect(current.personalReady).toBe(true)
- refresh.mockRejectedValueOnce(new Error('Refresh unavailable'));await act(async()=>{await current.refreshPersonal()});expect(current.personalReady).toBe(false)
- refresh.mockResolvedValueOnce();await act(async()=>{await current.refreshPersonal()});expect(current.personalReady).toBe(true)
+ refresh.mockRejectedValue(new Error('Refresh unavailable'));await act(async()=>{const retry=current.refreshPersonal();await vi.advanceTimersByTimeAsync(4000);await retry});expect(current.personalReady).toBe(false)
+ refresh.mockResolvedValue();await act(async()=>{await current.refreshPersonal()});expect(current.personalReady).toBe(true)
 })
 
 it('waits for a fresh personal banner before applying the broadcaster close response', async () => {
@@ -184,8 +184,25 @@ it('keeps personal controls fenced when a broadcaster close refresh fails', asyn
     const transport = api(), refresh = vi.fn(async () => { throw Error('Current banner unavailable'); }), { root } = mount(transport);
     await flush();
     act(() => root.render(<Harness transport={transport} refresh={refresh}/>));
-    await act(async () => { await current.start(); await current.advance('close'); });
+    await act(async () => { await current.start(); const close=current.advance('close');await vi.advanceTimersByTimeAsync(4000);await close; });
     expect(current.personalReady).toBe(false);
     expect(current.error).toBeTruthy();
     expect(current.pending).toBe(false);
+});
+it('single-flights concurrent personal reads and leaves the barrier shut until their shared read succeeds',async()=>{
+ const transport=api(),read=deferred<void>(),refresh=vi.fn(()=>read.promise),{root}=mount(transport);await flush();act(()=>root.render(<Harness transport={transport} refresh={refresh}/>));
+ let a!:Promise<void>,b!:Promise<void>;
+ act(()=>{a=current.refreshPersonal();b=current.refreshPersonal()});expect(a).toBe(b);expect(refresh).toHaveBeenCalledOnce();expect(current.personalReady).toBe(false);
+ await act(async()=>{read.resolve();await Promise.all([a,b])});expect(current.personalReady).toBe(true);
+});
+it('does not resume an uncommitted pending intention automatically during polling or F5 recovery',async()=>{
+ const transport=api();vi.mocked(transport.state).mockResolvedValue({broadcasting:{...own,pendingPull:{key:'same-operation',count:10}},watching:null});
+ mount(transport);await flush();await act(async()=>{await vi.advanceTimersByTimeAsync(30000)});expect(transport.resume).not.toHaveBeenCalled();
+});
+it('renews only the visible viewer tab at a bounded rate and releases it outside Invocation',async()=>{
+ const transport=api(),viewerPresence=vi.fn(async()=>({ok:true}));transport.viewerPresence=viewerPresence;
+ vi.mocked(transport.state).mockResolvedValue({broadcasting:null,watching:{...own,authoritative:false},watchingToken:'membership'});
+ const {root}=mount(transport);await flush();expect(viewerPresence).toHaveBeenCalledTimes(1);
+ await act(async()=>{await vi.advanceTimersByTimeAsync(14000)});expect(viewerPresence).toHaveBeenCalledTimes(1);
+ act(()=>root.render(<Harness transport={transport} visible={false}/>));await flush();expect(viewerPresence.mock.calls.at(-1)).toEqual([expect.any(String),'owned','membership',expect.any(Number),false]);
 });

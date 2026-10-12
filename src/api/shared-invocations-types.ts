@@ -52,6 +52,7 @@ export type SharedSession = {
     }[];
 };
 export type SharedInvocationState = {
+    watchingToken?: string;
     broadcasting: SharedSession | null;
     watching: SharedSession | null;
     cursor?: string;
@@ -66,6 +67,8 @@ export type SharedInvocationList = {
     }[];
 };
 export type SharedInvocationApi = {
+    spectators?: (page?:number) => Promise<SharedSpectators>;
+    viewerPresence?: (tabId:string,sessionId:string,token:string,revision:number,visible:boolean) => Promise<{ok:boolean}>;
     list: () => Promise<SharedInvocationList>;
     state: (tabId: string, cursor?: string) => Promise<SharedInvocationState>;
     start: (tabId: string) => Promise<SharedInvocationState>;
@@ -74,3 +77,5 @@ export type SharedInvocationApi = {
     resume: (tabId: string, count: 1 | 10, key: string) => Promise<SharedInvocationState>;
     react: (tabId: string, emoji: typeof sharedInvocationEmojis[number]) => Promise<SharedInvocationState>;
 };
+export type SharedSpectator = {playerId:string;displayName:string;avatarPath:string|null};
+export type SharedSpectators = {sessionId:string;total:number;page:number;totalPages:number;preview:readonly SharedSpectator[];players:readonly SharedSpectator[]};

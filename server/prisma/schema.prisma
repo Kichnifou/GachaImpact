@@ -3210,6 +3210,8 @@ model SharedInvocationSession {
 }
 
 model SharedInvocationMember {
+  watchingVersion String @default(dbgenerated("gen_random_uuid()")) @map("watching_version") @db.Uuid
+  viewerPresences Json @default("[]") @map("viewer_presences")
   playerId String @id @map("player_id") @db.Uuid
   watchingId String? @map("watching_id") @db.Uuid
   lastReactionAt DateTime? @map("last_reaction_at") @db.Timestamptz(6)

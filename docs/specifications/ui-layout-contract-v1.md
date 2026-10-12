@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Finition Invocations partagées — 12/10/2026
+
+Le bandeau compteur/statut/pseudo occupe sa hauteur réelle dans le flux au-dessus de la scène ; les contrôles Passer et fermer restent dessous sans offset lié au nom. Le résumé x10 se centre dans la place disponible entre commandes réservées ; sa région interne est seule propriétaire du scroll, focalisable Home/End/PageUp/PageDown, sans fermer la séquence. Sur desktop bas, stop et réactions se rangent sur une ligne pour préserver la lecture. Aperçu spectateurs en portal borné au viewport et modale suivant les primitives existantes ; exact Player au clic. Contrôles de partage réduits/contextuels et couche emoji sans hit target, reduced-motion respecté. Six formats contractuels et inspection PNG dans le GameShell compilé requis ; résultats et limites dans le Master.
+
 ## Application bornée R1051 — Catalogue et Imports
 
 Dans Modération > Personnages > Catalogue/Imports, liste seule défilante, filtres/actions et pagination fixes. CiblePlayer inutile masquée dans ces deux sous-contextes, Possessions inchangé. Sur mobile le cadre métier utilise la hauteur viewport disponible après défilement normal du document ; la pile/navigation du shell n’est pas redimensionnée. Actualiser circulaire32px/40px tactile, infobulle hover/focus-visible, état occupé et réduction des animations. Notifications : actions à droite dans les états vide/lu/non lu/suppression. Aperçu candidat uniquement depuis objets stockés ; preuve locale sous GameShell/CSS compilés et recette humaine distinguées au Master.

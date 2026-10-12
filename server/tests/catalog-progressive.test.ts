@@ -3,13 +3,24 @@ import { mergeEvidence, type CatalogFields, type Evidence, normalizedIdentity } 
 import { resolveConsensus } from '../src/application/character-catalog/catalog-consensus.js';
 import { adminCandidateProjection, progressiveEligibility, publicPreparation } from '../src/application/character-catalog/catalog-progressive.js';
 import { officialPlayableEvidence, parseOfficialPost } from '../src/infrastructure/character-catalog/catalog-sources.js';
-import { parseSecondaryMetadata, CatalogSecondarySources } from '../src/infrastructure/character-catalog/catalog-secondary.js';
+import { parseSecondaryMetadata, CatalogSecondarySources, secondaryProviders } from '../src/infrastructure/character-catalog/catalog-secondary.js';
 const now=new Date('2026-10-11T10:00:00Z');
 const proof=(value:string|number,reliability:Evidence['reliability']='OFFICIAL'):Evidence=>({value,reliability,provider:'hoyoverse',url:'https://www.hoyolab.com/article/123',fetchedAt:now.toISOString()});
 const editor=(publisher:string,value=4,extra:Partial<NonNullable<Evidence['consensusSource']>>={}):Evidence=>({...proof(value,'PROVISIONAL'),provider:publisher,url:`https://${publisher}.test/profile`,consensusSource:{publisher,identity:'private',qualified:true,observedAt:now.toISOString(),...extra}});
 const fields:CatalogFields={originalName:proof('Private'),rarity:proof(4),element:proof('electro'),releaseDate:proof('2026-10-18')};
 function combine(values:Evidence[]){return values.reduce((result,entry)=>mergeEvidence(result,'rarity',entry),{} as CatalogFields).rarity!;}
 describe('progressive catalogue authorization',()=>{
+  it.each(['https://www.icy-veins.com/original','https://origin.example/article'])('collapses unnamed attribution links to a common upstream %s', upstream=>{
+    let collected:CatalogFields={originalName:proof('Private'),releaseDate:fields.releaseDate};
+    for(const [provider,url] of [['icy-veins','https://www.icy-veins.com/profile'],['game8','https://game8.co/profile'],['sephijin','https://sephijin.fr/profile']]){
+      const html=`<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><p>Article original : <a href="${upstream}">Consulter les données originales</a></p><script type="application/ld+json">${JSON.stringify({'@type':'Article',headline:'Private Guide',url,dateModified:now.toISOString()})}</script>`;
+      for(const [key,value] of Object.entries(parseSecondaryMetadata(html,url!,provider!,['Private'],now)))collected=mergeEvidence(collected,key as keyof CatalogFields,value!);
+    }
+    const state=progressiveEligibility(collected,now);
+    expect(state.status).toBe('INCOMPLETE');
+    expect(state.fields.rarity?.consensus?.editors).toBe(1);
+    expect(state.missing).toContain('rarityConfirmation');
+  });
   it('exposes a partial J-7 preparation without creating any invented combat field',()=>{
     const row={id:'private',name:'Private',characterId:null,progressivePolicy:true,fields:{originalName:fields.originalName,releaseDate:fields.releaseDate},assets:[]};
     expect(publicPreparation(row,now)).toMatchObject({status:'PREPARATION',rarity:null,elementKey:null,releaseDate:'2026-10-18',iconPath:null});
@@ -92,7 +103,7 @@ describe('progressive catalogue authorization',()=>{
     expect(resolveConsensus(withdrawn,'private',new Date('2026-10-11T10:02:00Z')).consensus?.editors).toBe(2);
   });
   it('collector retains same-value provenance for all independent publishers',async()=>{
-    const sources=new CatalogSecondarySources(async url=>({url,status:200,mime:'text/html',body:Buffer.from(url.endsWith('/genshin-impact/')||url.endsWith('/Genshin-Impact')||url.endsWith('/genshin-impact-personnages/')?'<a href="/private-guide">Private Guide</a>':'<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><script type="application/ld+json">{"@type":"Article","headline":"Private Guide","dateModified":"2026-10-10"}</script>')}),async()=>{},now);
+    const sources=new CatalogSecondarySources(async url=>({url,status:200,mime:'text/html',body:Buffer.from(secondaryProviders.some(provider=>provider.index===url)?'<a href="/private-guide">Private Guide</a>':'<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><script type="application/ld+json">{"@type":"Article","headline":"Private Guide","dateModified":"2026-10-10"}</script>')}),async()=>{},now);
     const collected=await sources.collect(['Private'],['rarity']);
     expect(resolveConsensus(collected.rarity!,normalizedIdentity('Private'),now)).toMatchObject({qualification:'PROVISIONAL_CONSENSUS',consensus:{editors:3}});
   });
@@ -109,7 +120,7 @@ describe('progressive catalogue authorization',()=>{
   it('retires facts removed from fresh nominal profiles through collect, merge, qualification and eligibility',async()=>{
     const page=(mode:string)=>`<h1>${mode==='wrongIdentity'?'Other':'Private'} Guide</h1>${mode==='full'?'<p>Private is a 4-Star Electro Sword character.</p>':'<p>The previous rarity claim has been removed pending confirmation.</p>'}${mode==='undated'?'':'<script type="application/ld+json">{"@type":"Article","headline":"Private Guide","dateModified":"2026-10-10"}</script>'}`;
     const collect=(mode:string,at=now)=>new CatalogSecondarySources(async url=>{
-      const index=url.endsWith('/genshin-impact/')||url.endsWith('/Genshin-Impact')||url.endsWith('/genshin-impact-personnages/');
+      const index=secondaryProviders.some(provider=>provider.index===url);
       const affected=url.startsWith('https://game8.co');
       if(affected&&!index&&mode==='timeout')throw new Error('synthetic timeout');
       return {url,status:affected&&!index&&mode==='403'?403:200,mime:'text/html',body:Buffer.from(index?(affected&&mode==='indexAbsent'?'<p>No profile link</p>':'<a href="/private-guide">Private Guide</a>'):page(affected?mode:'full'))};
@@ -143,7 +154,7 @@ describe('progressive catalogue authorization',()=>{
       expect(parsed.rarity).toMatchObject({value:4,consensusSource:{qualified:true,identity:normalizedIdentity(name)}});
       expect(parsed.element?.value).toBe('electro');
     }
-    const collected=await new CatalogSecondarySources(async url=>({url,status:200,mime:'text/html',body:Buffer.from(url.endsWith('/genshin-impact/')||url.endsWith('/Genshin-Impact')||url.endsWith('/genshin-impact-personnages/')?'<a href="/private-guide">Private Guide</a>':page('Private','NotPrivate'))}),async()=>{},now).collect(['Private'],['rarity','element']);
+    const collected=await new CatalogSecondarySources(async url=>({url,status:200,mime:'text/html',body:Buffer.from(secondaryProviders.some(provider=>provider.index===url)?'<a href="/private-guide">Private Guide</a>':page('Private','NotPrivate'))}),async()=>{},now).collect(['Private'],['rarity','element']);
     const state=progressiveEligibility({...fields,rarity:collected.rarity,element:collected.element},now);
     expect(state).toMatchObject({status:'INCOMPLETE',missing:['rarity','element']});
     expect(state.fields.rarity?.consensus?.editors).toBe(0);

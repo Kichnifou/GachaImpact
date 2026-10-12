@@ -38,6 +38,71 @@ async function pair() {
     return { host, viewer, session: started.broadcasting! };
 }
 describe('private shared invocation PostgreSQL contract', () => {
+    it('counts seven distinct live viewers, previews five, deduplicates tabs and excludes the broadcaster',async()=>{
+        const host=await player(), started=(await shared.start(host.identity,host.tab)).broadcasting!;
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        const viewers=[];
+        for(let i=0;i<7;i++){const v=await player();await shared.watch(v.identity,v.tab,started.id);viewers.push(v)}
+        const first=viewers[0]!, state=await shared.state(first.identity,first.tab);
+        await shared.viewerPresence(first.identity,randomUUID(),started.id,state.watchingToken!,1,true);
+        const list=await shared.spectators(host.identity);
+        expect(list.total).toBe(7);expect(list.preview).toHaveLength(5);expect(list.players).toHaveLength(7);
+        expect(list.players.map(p=>p.playerId)).not.toContain(host.id);
+        expect(Object.keys(list.players[0]!).sort()).toEqual(['avatarPath','displayName','playerId']);
+        await shared.watch(first.identity,first.tab,null);
+        expect((await shared.spectators(host.identity)).total).toBe(6);
+        await expect(shared.spectators(first.identity)).rejects.toMatchObject({code:'SHARED_UNAVAILABLE'});
+    });
+    it('expires passive presence without scene writes, tolerates F5 and preserves revision tombstones',async()=>{
+        const {host,viewer,session}=await pair(), state=await shared.state(viewer.identity,viewer.tab), token=state.watchingToken!;
+        const other= randomUUID();await shared.viewerPresence(viewer.identity,other,session.id,token,1,true);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,token,2,false);
+        expect((await shared.spectators(host.identity)).total).toBe(1);
+        await shared.viewerPresence(viewer.identity,other,session.id,token,3,false);
+        await shared.viewerPresence(viewer.identity,other,session.id,token,2,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,token,4,true);
+        expect((await shared.spectators(host.identity)).total).toBe(1);
+        const seq=(await shared.state(host.identity,host.tab)).broadcasting!.seq;
+        now=new Date(now.getTime()+59000);await shared.control(host.identity,host.tab,'presence','invocation');
+        expect((await shared.spectators(host.identity)).total).toBe(1);
+        now=new Date(now.getTime()+1001);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        expect((await shared.state(host.identity,host.tab)).broadcasting!.seq).toBe(seq);
+        await shared.viewerPresence(viewer.identity,other,session.id,token,2,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+    });
+    it('rejects old membership packets after stop/rejoin, different sessions, anonymous membership and restart',async()=>{
+        const {host,viewer,session}=await pair(), old=(await shared.state(viewer.identity,viewer.tab)).watchingToken!;
+        await shared.watch(viewer.identity,viewer.tab,null);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,old,10,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        await shared.watch(viewer.identity,viewer.tab,session.id);
+        const token=(await shared.state(viewer.identity,viewer.tab)).watchingToken!;expect(token).not.toBe(old);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,token,20,false);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,old,99,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        const stranger=await player();await expect(shared.spectators(stranger.identity)).rejects.toMatchObject({code:'SHARED_UNAVAILABLE'});
+        await shared.viewerPresence(stranger.identity,stranger.tab,session.id,token,99,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        await shared.control(host.identity,host.tab,'stop','invocation');
+        await expect(shared.spectators(viewer.identity)).rejects.toMatchObject({code:'SHARED_UNAVAILABLE'});
+        const fresh=(await shared.start(host.identity,host.tab)).broadcasting!;expect(fresh.id).not.toBe(session.id);
+        await shared.viewerPresence(viewer.identity,viewer.tab,fresh.id,token,100,true);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+    });
+    it('applies existing presence privacy and active account rules in count and identities, with no economic writes',async()=>{
+        const {host,viewer}=await pair();
+        const before=await db.resourceMovement.count();
+        await db.privacySetting.create({data:{playerId:viewer.id,categoryKey:'PRESENCE',level:'PRIVATE'}});
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        expect((await shared.spectators(viewer.identity)).players.map(p=>p.playerId)).toEqual([viewer.id]);
+        await db.privacySetting.deleteMany({where:{playerId:viewer.id}});
+        await db.player.update({where:{id:viewer.id},data:{status:'SUSPENDED'}});
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+        await expect(shared.spectators(viewer.identity)).rejects.toMatchObject({code:'SHARED_FORBIDDEN'});
+        expect(await db.resourceMovement.count()).toBe(before);
+    });
     it('recovers the exact receipt banner and target after rotation, then prevents target mutation during presentation', async () => {
         const { host, viewer } = await pair(), key = randomUUID(), before = (await store.getCurrent(host.id))!, receiptTarget = before.playerState.selectedBannerCharacterId!;
         await shared.preparePull(host.identity, host.tab, key, 10);

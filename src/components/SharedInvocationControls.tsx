@@ -6,25 +6,33 @@ import { useModalDialog } from './useModalDialog';
 import CharacterAssetImage from './CharacterAssetImage';
 import { apiErrorMessage } from '../utils/formatters';
 import './shared-invocations.css';
-export default function SharedInvocationControls({ shared }: {
+export default function SharedInvocationControls({ shared, presenting=false }: {
     shared: SharedInvocationController;
+    presenting?: boolean;
 }) {
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(false),[consent,setConsent]=useState(false);
     if (!shared.enabled)
         return null;
     const own = shared.state.broadcasting, watching = shared.state.watching;
+    const showIdle=!own&&!watching&&!presenting;
+    if(!own&&!watching&&presenting&&!shared.personalError)return null;
     return <div className="shared-invocation-controls">
   <div className="shared-invocation-buttons">
-   <button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!watching || !!own && !own.authoritative} aria-pressed={!!own} onClick={() => void (own ? shared.stop() : shared.start())}>{own ? '● En diffusion' : 'Diffuser'}</button>
-   <button type="button" className={`banner-change-button shared-invocation-button${watching ? ' is-live' : ''}`} disabled={shared.pending || !!own} onClick={() => watching ? void shared.watch(null) : setOpen(true)}>{watching ? 'Arrêter' : 'Voir'}</button>
+   {(own||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!own && !own.authoritative} aria-pressed={!!own} onClick={() => own ? void shared.stop() : setConsent(true)}>{own ? '● En diffusion' : 'Diffuser'}</button>}
+   {(watching||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${watching ? ' is-live' : ''}`} disabled={shared.pending} onClick={() => watching ? void shared.watch(null) : setOpen(true)}>{watching ? 'Arrêter' : 'Voir'}</button>}
   </div>
-  {!own && !watching && <small>Diffuser partage votre scène, résultats, pity, garantie et Capture avec les joueurs connectés.</small>}
-  {own?.pendingPull && own.authoritative && <button type="button" className="banner-change-button" disabled={shared.pending} onClick={() => void shared.resume()}>Reprendre l’Invocation</button>}
+  {showIdle && <small>Diffusez vos invocations, ou visionnez celles des autres joueurs</small>}
+  {own?.pendingPull && own.authoritative && <p className="shared-recovery">Invocation en attente. <button type="button" className="shared-recovery-link" disabled={shared.pending} onClick={() => void shared.resume()}>Réessayer cette Invocation</button></p>}
   {watching && <div className="shared-invocation-reactions" aria-label="Réagir à la diffusion">{sharedInvocationEmojis.map(emoji => <button type="button" className="banner-change-button" disabled={shared.pending} key={emoji} onClick={() => void shared.react(emoji)} aria-label={`Réagir ${emoji}`}>{emoji}</button>)}</div>}
-  {shared.personalReady===false&&!watching&&<button className="banner-change-button" type="button" onClick={()=>void shared.refreshPersonal()}>Actualiser mes Invocations</button>}
+  {shared.personalReady===false&&!watching&&shared.personalError&&<button className="shared-recovery-link" type="button" onClick={()=>void shared.refreshPersonal()}>Réessayer l’actualisation</button>}
   {shared.error && <p role="status" className="shared-invocation-error">{shared.error}</p>}
   {open && <SessionPicker shared={shared} onClose={() => setOpen(false)}/>}
+  {consent&&<BroadcastConsent shared={shared} onClose={()=>setConsent(false)}/>}
  </div>;
+}
+function BroadcastConsent({shared,onClose}:{shared:SharedInvocationController;onClose:()=>void}){
+ const ref=useModalDialog<HTMLElement>(onClose);
+ return <div className="history-modal-overlay" onMouseDown={onClose}><section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="shared-consent-title" className="panel shared-invocation-picker" onMouseDown={e=>e.stopPropagation()}><header><h2 id="shared-consent-title">Diffuser mes invocations</h2><button className="icon-button" aria-label="Fermer" type="button" onClick={onClose}>×</button></header><div className="shared-invocation-picker-body"><p>Votre scène, résultats, pity, garantie et Capture seront visibles aux joueurs connectés.</p><button type="button" className="banner-change-button" disabled={shared.pending} onClick={()=>void shared.start().then(ok=>{if(ok)onClose()})}>Démarrer la diffusion</button></div></section></div>;
 }
 function SessionPicker({ shared, onClose }: {
     shared: SharedInvocationController;

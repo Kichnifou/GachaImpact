@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Finition présence spectateur — migration additive 075
+
+20261012100000_075_shared_viewer_presence étend shared_invocation_members : watching_version UUID NOT NULL DEFAULT gen_random_uuid(), viewer_presences JSONB NOT NULL DEFAULT '[]'. CHECK tableau de taille maximale huit ; baux/révisions validés et écrits uniquement par le serveur. Aucune table ni FK supplémentaire ; RLS réaffirmée et ALL révoqué pour PUBLIC/anon/authenticated. Migration normale après 074, SQL LF et checksum suivi dans _prisma_migrations ; aucune modification des migrations historiques. Application privée/publique et status sont des preuves distinctes portées au Master.
+
 <a id="invocations-partagees-c"></a>
 
 ## Invocations partagées standalone — extension additive C

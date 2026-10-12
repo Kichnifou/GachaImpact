@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Finition 12/10/2026 — présence et confirmation provisoire
+
+SharedInvocationMember conserve l'adhésion watchingId, distincte des baux techniques viewerPresences (maximum huit onglets) et de watchingVersion, renouvelée à chaque adhésion/arrêt. La présence consultable est une projection de Players uniques actifs et visibles, sans stockage d'un second profil ni donnée économique. [Schéma 075](../architecture/postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).
+
+CatalogEvidence réutilise qualification=PROVISIONAL_CONSENSUS, reliability=PROVISIONAL et consensus existants pour le flag « utilisable, confirmation officielle recherchée » ; aucun nouvel état ou champ économique. OFFICIAL concordant lève l'attente ; contradiction active conservée pour arbitrage ADMIN. Les 120 historiques restent PROTECTED.
+
 ## R1066–R1077 B — candidat, préparation, activation
 
 CatalogCandidate porte `progressivePolicy` (073, défaut false), activé explicitement pour les nouveaux candidats et reprises ADMIN. Les Character historiques restent exclus. La préparation publique est une projection dérivée minimale, pas un Character incomplet : rareté et élément nullable ne rejoignent aucune mécanique. L’activation exige identité durable unique et champs économiques valides ; IDs numériques/images/arme/région restent optionnels. Les preuves JSON conservent qualification de consensus, éditeur/amont, identité et date observée ; PROVISIONAL_CONSENSUS ne vaut jamais OFFICIAL. Le suivi après sortie continue uniquement sur les éléments ouverts, sans changement rétroactif des données économiques. [Propriétaire catalogue](../architecture/character-catalog-assets-r1051.md#publication-progressive-et-consensus--lot-b-r1066r1077-11102026).

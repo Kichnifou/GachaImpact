@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## Finition et compléments propriétaire du 12/10/2026 — VALIDÉS
+
+Sept ajustements ciblés des Invocations partagées et de la fiche candidat, sans refonte ni modification économique. Migration additive minimale autorisée pour distinguer présence spectateur effective et adhésion historique, privée/RLS et replay Prisma normal. Récupération silencieuse d'un reçu déjà committé ; intention non committée explicitement reprise sous même clé, petit fallback réel. Compteur/liste authentifiés, profils via GameShell, contrôle contextuel, résumé centré et scroll accessible, bandeau réservé et emoji non interactifs. Revue indépendante du vrai SHA publié (identité/permissions/présence/reprise/migration), revue visuelle distincte, puis FF/main/déploiements/postflight sans nouveau GO générique.
+
+Complément catalogue : conserver le seuil de trois éditeurs qualifiés indépendants et deux tiers, permettre la valeur PROVISIONAL_CONSENSUS dans l'activation normale sous les autres gates ; jamais convertir en OFFICIAL. Arme facultative. Suivi officiel maintenu après publication ; contradiction économique conservée et notifiée ADMIN sans correction automatique. Auditer les sources/copieurs, conserver budgets/SSRF et les 120 historiques protégés. L'audit constate que ces règles économiques existent déjà ; seules couverture d'index/provenance et présentation sont ajustées, sans seuil abaissé ni consensus inventé.
+
+Micro-correctif !faveur intégré au même mandat : 🌙, format jours/max avant « jours restants », « Primos/jour », ✅ seulement claimedToday vrai. États informatifs 🌙, accès privé/erreurs ⚠️ ; consultation strictement read-only, FavorService/calendrier/claim/droits/Twitch inchangés. [Contrat de commande](../commands/command-reference.md#faveur).
+
 ## R1066–R1077 — mission consolidée propriétaire du 11/10/2026
 
 **VALIDÉ PAR LE PROPRIÉTAIRE** : mandat complet A/B/C/D, livraisons séparées avec tests, review indépendante des SHA publiés, promotion stricte et déploiements/postflight sans GO générique. [Contrat et frontières](../architecture/consolidated-r1066-r1077.md). R1066A intervention ADMIN intelligente ; R1067A tous les joueurs standalone authentifiés opt-in ; R1068B projection de scène avec indicateurs Gacha autorisés ; R1069A exclusivité diffusion/visionnage ; R1070B pause hors Invocation ; R1071A entrée x10 à l'étape courante ; R1072A contrôle du diffuseur seul ; R1073 Twitch exclu ; R1074A reconnexion courte avec autorité d'onglet ; R1075B emojis éphémères bornés ; R1076A/R1077A publication progressive et enrichissement continu.

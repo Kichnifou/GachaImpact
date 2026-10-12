@@ -1,5 +1,11 @@
 # Administration et modération V1 — étape 22
 
+## Finition Imports et candidats — 12/10/2026
+
+Résumé : « Rechercher des mises à jour » puis petit Actualiser immédiatement à droite. La première action demande une collecte durable, la seconde relit les données stockées ; admission, pending et anti-double-clic inchangés.
+
+Résumé et Informations distinguent « Provisoire — confirmation insuffisante », « Consensus provisoire — utilisable en jeu, confirmation officielle recherchée (voix concordantes/éditeurs qualifiés) » et « Confirmé officiellement ». Les provenances et contradictions restent consultables. Un consensus qualifié de rareté/élément n'est pas un manque fondamental ; arme/région/images restent des compléments optionnels. Les véritables minimums d'identité/disponibilité restent indépendants. Aucun consensus réel pour Mitya ou Valeriy n'est affirmé par ces libellés.
+
 ## Consolidation A — mandat du 11/10/2026
 
 Résumé : portrait stocké AVAILABLE puis iconPath Character puis placeholder neutre, aucun splash substitué ; Images conserve quatre rôles. Filtre Images manquantes porte sur les quatre chemins et chaque ligne nomme précisément les rôles absents. Arme fermée Épée/Claymore/Lance/Arc/Catalyseur ; alias anglais connus normalisés sans changer la qualité des preuves. Régions dérivées des valeurs Character/candidat, valeurs atypiques conservées, ajout ADMIN normalisé/dédupliqué serveur et disponible ensuite. Aucun nouveau registre concurrent. Fermer ou quitter Personnages consomme l'ancienne cible ; liens directs/nouvelles notifications restent exacts. [Contrat](../architecture/consolidated-r1066-r1077.md), état/tests/déploiement au Master.

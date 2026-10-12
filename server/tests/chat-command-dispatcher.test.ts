@@ -391,17 +391,17 @@ describe('Chat command adapters', () => {
 });
 
 describe('Favor consultation without domain mutations', () => {
-  it.each([false, true])('formats self available/claimed = %s from the shared projection', async claimedToday => {
+  it.each([false, true].flatMap(claimedToday => [1, 42, 180].map(daysRemaining => ({ claimedToday, daysRemaining }))))('formats self $daysRemaining days / claimed $claimedToday from the read-only projection', async ({claimedToday, daysRemaining}) => {
     const { services, send, chat } = harness();
-    services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 180, maxDays: 180, dailyPrimogems: '800', claimedToday, claimStatus: claimedToday ? 'CLAIMED' : 'AVAILABLE' } } as never);
-    expect(await send('!faveur')).toBe(`ℹ️ Faveur de l’Astre : 180 jours restants / 180 · +800 Primogemmes/jour · récompense du jour ${claimedToday ? 'reçue' : 'disponible'}.`);
+    services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining, maxDays: 180, dailyPrimogems: '800', claimedToday, claimStatus: claimedToday ? 'CLAIMED' : 'AVAILABLE' } } as never);
+    expect(await send('!faveur')).toBe(`🌙 Faveur de l’Astre : ${daysRemaining} / 180 jours restants · +800 Primos/jour · récompense du jour ${claimedToday ? 'reçue ✅' : 'disponible'}.`);
     expect(services.socialService.favor).toHaveBeenCalledWith(actor, 'self');
     expect(services.socialService.profile).not.toHaveBeenCalled();
     expect(chat.rememberCommandRefreshScopes).not.toHaveBeenCalled();
   });
   it('returns self inactive and unknown player without loading a profile', async () => {
     const { send, services } = harness();
-    expect(await send('!faveur')).toBe('ℹ️ Faveur de l’Astre : inactive.');
+    expect(await send('!faveur')).toBe('🌙 Faveur de l’Astre : inactive.');
     expect(await send('!faveur introuvable')).toBe('⚠️ Joueur introuvable.');
     expect(services.socialService.favor).toHaveBeenCalledOnce();
   });
@@ -410,9 +410,9 @@ describe('Favor consultation without domain mutations', () => {
     const displayName = name.replace('@', '');
     services.socialService.directory.mockResolvedValue({ players: [{ id: 'other', displayName }], page: 1, totalPages: 1 });
     services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: true, daysRemaining: 30, maxDays: 180, claimedToday: true } } as never);
-    expect(await send('!faveur ' + name)).toBe('ℹ️ ' + displayName + ' : Faveur active · 30 jours restants.');
+    expect(await send('!faveur ' + name)).toBe('🌙 ' + displayName + ' : Faveur active · 30 jours restants.');
     services.socialService.favor.mockResolvedValue({ access: 'ALLOWED', data: { active: false, daysRemaining: 0, maxDays: 180 } });
-    expect(await send('!faveur ' + name)).toBe('ℹ️ ' + displayName + ' : aucune Faveur active.');
+    expect(await send('!faveur ' + name)).toBe('🌙 ' + displayName + ' : aucune Faveur active.');
     services.socialService.favor.mockResolvedValue({ access: 'PRIVATE' } as never);
     expect(await send('!faveur ' + name)).toBe('⚠️ La Faveur de ' + displayName + ' est privée.');
     expect(services.socialService.profile).not.toHaveBeenCalled();

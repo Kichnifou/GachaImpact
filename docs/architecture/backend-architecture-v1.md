@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Finition présence et provenance — 12/10/2026
+
+SharedInvocations ajoute GET spectators (pagination bornée, appartenance actuelle, Player ACTIVE, confidentialité PRESENCE/blocages, projection publique minimale) et POST viewer-presence (UUID onglet/session/version, révision monotone, booléen visible). Baux spectateurs distincts de l'activité diffuseur, 60 s/renouvellement15 s ; aucune écriture du poll de scène. Verrou partagé et même client transactionnel, pas d'énumération par sessionId libre. [Contrat détaillé](shared-invocations-v1.md#finition-autorisée-du-12102026), [075](postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).
+
+Collecteur secondaire : index nominaux Icy/Game8 corrigés, liens de citation d'amont lus sans requête supplémentaire ; même amont normalisé ne crée pas plusieurs voix. Qualification/activation/suivi quotidien conservent leurs owners existants. Pas de second moteur économique ou système de présence globale.
+
 <a id="invocations-partagees-c"></a>
 
 ## R1067–R1075 C — Invocations partagées standalone

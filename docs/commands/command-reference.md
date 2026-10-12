@@ -954,6 +954,9 @@ Correction de présentation seulement : probabilités, prix, RNG, gains, économ
 
 ## `!faveur`
 
+**Finition du 12/10/2026 :** consultation personnelle active : `🌙 Faveur de l’Astre : 42 / 180 jours restants · +800 Primos/jour · récompense du jour reçue ✅.` Valeurs issues de favor.daysRemaining/maxDays/dailyPrimogems ; si claimedToday est faux : `récompense du jour disponible.` sans ✅. États inactifs et tiers autorisés également 🌙, sans double préfixe ℹ️ ; tiers limité aux seules informations déjà permises. Erreurs/accès privés gardent ⚠️ et les contrôles FAVOR. Aucun claim, mutation économique, changement calendaire ou transport Twitch.
+
+
 - **Statut audit :** CLÔTURÉ — Domaine Faveur / Subscription après R672
 - **But :** Consulter l'état de la Faveur de l'Astre.
 - **Syntaxes :** `!faveur` ; `!faveur <pseudo>` ; `!faveur @pseudo` (résolution existante, pseudos multi-mots inclus)

@@ -559,7 +559,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
     if (activeScreen === 'activities-missions') return <MissionsScreen onLoad={onLoadMissions} refreshToken={chatOwnerRevision} />
     switch (activeScreen) {
       case 'invocation':
-        return <InvocationScreen shared={sharedInvocations} gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
+        return <InvocationScreen onProfile={openProfile} shared={sharedInvocations} gacha={gacha} teams={teams} onSetTarget={onSetGachaTarget} onPull={onPullGacha} pendingPullCount={pendingGachaPullCount} onPresentationDisclosed={onGachaPresentationDisclosed} onGetHistory={onGetGachaHistory} />
       case 'characters-box':
         return <BoxScreen initialBox={boxCache.read(player.id)} refreshToken={chatOwnerRevision} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} openCharacterIntent={boxOpenIntent} onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)} onLoadExpedition={onLoadExpedition} onStartExpedition={onStartExpedition} onClaimExpedition={onClaimExpedition} onNotificationsChanged={onLoadNotifications} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters-catalog':

@@ -4,11 +4,11 @@ import { CatalogFetchError } from './catalog-http.js';
 import type { AttemptSink } from './catalog-sources.js';
 
 export const secondaryProviders = [
-  { id: 'icy-veins', index: 'https://www.icy-veins.com/genshin-impact/', bookmarks: [
+  { id: 'icy-veins', index: 'https://www.icy-veins.com/genshin-impact/characters', bookmarks: [
     'https://www.icy-veins.com/genshin-impact/mitya-guide-best-builds',
     'https://www.icy-veins.com/genshin-impact/mitya-profile-talents-constellations',
     'https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations'] },
-  { id: 'game8', index: 'https://game8.co/games/Genshin-Impact', bookmarks: [] },
+  { id: 'game8', index: 'https://game8.co/games/Genshin-Impact/archives/296707', bookmarks: [] },
   { id: 'sephijin', index: 'https://sephijin.fr/genshin-impact-personnages/', bookmarks: ['https://sephijin.fr/mitya-farm/','https://sephijin.fr/valeriy-farm/'] },
 ] as const;
 /** Binary references exposed by a real profile and visually reviewed on this date.
@@ -61,7 +61,22 @@ export function linkedCharacterPages(html: string, index: string, names: readonl
   }
   return [...paths].slice(0,2);
 }
-/** Secondary facts are preparation only; never official publication evidence. */
+/** Citations are provenance, never extra fetches. Canonical host collapses an unnamed common upstream. */
+export function attributedUpstream(html:string, pageUrl:string, provider:string):string|undefined {
+  for(const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+    const context=htmlText(html.slice(Math.max(0,match.index!-160),match.index!+match[0].length));
+    if(!/\b(source|original|credits?|courtesy|according to|d'après|via)\b/i.test(context))continue;
+    try{
+      const url=new URL(match[1]!.replace(/&amp;/g,'&'),pageUrl), host=url.hostname.toLowerCase().replace(/^www\./,'');
+      if(url.protocol!=='https:'||url.username||url.password||host===new URL(pageUrl).hostname.replace(/^www\./,''))continue;
+      const known=secondaryProviders.find(source=>new URL(source.index).hostname.replace(/^www\./,'')===host)?.id;
+      if(known===provider)continue;
+      return known??`attributed:${host}`;
+    }catch{/* malformed attribution cannot add a voice */}
+  }
+  return undefined;
+}
+/** Secondary facts remain provisional, including economically usable qualified consensus. */
 export function parseSecondaryMetadata(html: string, url: string, provider: string, names: readonly string[], now: Date): CatalogFields {
   const heading = htmlText(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html)?.[1] ?? '').normalize('NFC');
   const name = names.find(value => new RegExp(nominalPattern(value),'iu').test(heading));
@@ -74,7 +89,8 @@ export function parseSecondaryMetadata(html: string, url: string, provider: stri
   const observed = new Date(observedAt).getTime();
   const qualified = Number.isFinite(observed) && observed <= now.getTime() && now.getTime()-observed <= 30*86_400_000 && !/\b(leaks?|beta|bêta|datamin|rumou?r|speculat|according to|d'après|source\s*:|credits?\s*:|via\s)/i.test(text);
   // Attribution to another publisher collapses its vote with that upstream.
-  const upstream = secondaryProviders.find(source=>source.id!==provider && text.toLowerCase().includes(source.id.replace('-',' ')))?.id;
+  const upstream = secondaryProviders.find(source=>source.id!==provider && text.toLowerCase().includes(source.id.replace('-',' ')))?.id
+    ?? attributedUpstream(html,url,provider);
   const add = (field: keyof CatalogFields, value: string | number) => { fields[field] = { value, provider, url, fetchedAt: now.toISOString(), reliability:'PROVISIONAL', editorialStatus:'PROVISIONAL', reason,
     consensusSource:{publisher:provider,...(upstream?{upstream}:{}),identity:normalizedIdentity(name),qualified,observedAt} } satisfies Evidence; };
   if(!description){

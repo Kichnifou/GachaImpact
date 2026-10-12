@@ -8,6 +8,8 @@ import type { GachaPullResult } from './gacha-store.js';
 import { sharedCharacter, sharedState, sharedBanner } from './shared-invocation-projection.js';
 export { sharedCharacter, sharedState } from './shared-invocation-projection.js';
 import { BusinessError } from '../errors.js';
+import { privacyAllowedWhere } from '../social/privacy-service.js';
+import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 export const sharedEmojis = ['🎉', '✨', '❤️', '😮', '👏'] as const;
 export const sharedInactivityMs = 45 * 60000;
 export const sharedLeaseMs = 60000;
@@ -132,18 +134,19 @@ export class SharedInvocations {
     async state(identity: AuthenticatedIdentity, tabId: string, cursor?: string) {
         const p = await this.owner(identity), now = this.now();
         type Version = Pick<Row, 'id' | 'owner_id' | 'seq' | 'pending_key'> & {
+            watching_version: string | null;
             reaction_expired: boolean;
             idle_stale: boolean;
         };
         const versions = () => this.db.$queryRaw<Version[]> `
-      SELECT s.id,s.owner_id,s.seq,s.pending_key,
+      SELECT s.id,s.owner_id,s.seq,s.pending_key,m.watching_version,
         EXISTS(SELECT 1 FROM jsonb_array_elements(s.reactions) r WHERE (r->>'expiresAt')::timestamptz<=${now}) reaction_expired,
         s.snapshot#>>'{presentation,phase}'='idle' AND s.pending_key IS NULL AND (
           s.snapshot#>>'{gacha,banner,id}' IS DISTINCT FROM (SELECT id::text FROM banner_rotations WHERE status='ACTIVE' LIMIT 1)
           OR s.snapshot#>'{gacha,playerState}' IS DISTINCT FROM jsonb_build_object(
             'selectedBannerCharacterId',g.selected_banner_character_id,'pity5',g.pity_5,'pity4',g.pity_4,
             'guaranteedFeatured5',g.guaranteed_featured_5,'captureProgress',g.capture_progress)) idle_stale
-      FROM shared_invocation_sessions s LEFT JOIN player_gacha_states g ON g.player_id=s.owner_id
+      FROM shared_invocation_sessions s LEFT JOIN player_gacha_states g ON g.player_id=s.owner_id LEFT JOIN shared_invocation_members m ON m.player_id=${p.id}::uuid
       WHERE s.status<>'STOPPED' AND s.lease_until>${now}
       AND s.last_gesture_at>${new Date(now.getTime() - sharedInactivityMs)}
       AND (s.owner_id=${p.id}::uuid OR s.id=(SELECT watching_id FROM shared_invocation_members WHERE player_id=${p.id}::uuid)) ORDER BY s.id`;
@@ -165,16 +168,17 @@ export class SharedInvocations {
             });
             rows = await versions();
         }
-        const nextCursor = rows.map(r => `${r.owner_id === p.id ? 'own' : 'watch'}:${r.id}:${r.seq}`).join('|') || 'idle';
+        const nextCursor = rows.map(r => `${r.owner_id === p.id ? 'own' : 'watch'}:${r.id}:${r.seq}:${r.owner_id === p.id ? '' : r.watching_version}`).join('|') || 'idle';
         if (cursor === nextCursor && !rows.some(r => r.reaction_expired))
             return { broadcasting: null, watching: null, cursor: nextCursor, unchanged: true };
         if (!rows.length)
             return { broadcasting: null, watching: null, cursor: nextCursor, unchanged: false };
         const full = await this.db.$queryRaw<Row[]> `SELECT * FROM shared_invocation_sessions WHERE id=ANY(${rows.map(r => r.id)}::uuid[]) AND status<>'STOPPED' AND lease_until>${now} AND last_gesture_at>${new Date(now.getTime() - sharedInactivityMs)} AND (owner_id=${p.id}::uuid OR id=(SELECT watching_id FROM shared_invocation_members WHERE player_id=${p.id}::uuid)) ORDER BY id`;
-        const confirmedCursor = full.map(r => `${r.owner_id === p.id ? 'own' : 'watch'}:${r.id}:${r.seq}`).join('|') || 'idle';
+        const watchingToken = rows.find(r => r.owner_id !== p.id)?.watching_version ?? undefined;
+        const confirmedCursor = full.map(r => `${r.owner_id === p.id ? 'own' : 'watch'}:${r.id}:${r.seq}:${r.owner_id === p.id ? '' : watchingToken}`).join('|') || 'idle';
         const own = full.find(r => r.owner_id === p.id), watching = full.find(r => r.owner_id !== p.id);
         // A concurrent stop can happen between version and snapshot reads: never revive it.
-        return { broadcasting: own && sharedLive(own, this.now()) ? this.dto(own, tabId) : null, watching: watching && sharedLive(watching, this.now()) ? this.dto(watching) : null, cursor: confirmedCursor, unchanged: false };
+        return { broadcasting: own && sharedLive(own, this.now()) ? this.dto(own, tabId) : null, watching: watching && sharedLive(watching, this.now()) ? this.dto(watching) : null, watchingToken, cursor: confirmedCursor, unchanged: false };
     }
     async start(identity: AuthenticatedIdentity, tabId: string) {
         const p = await this.owner(identity), now = this.now();
@@ -211,9 +215,48 @@ export class SharedInvocations {
                 if (!target || target.owner_id === p.id || !sharedLive(target, this.now()))
                     throw new BusinessError('SHARED_UNAVAILABLE', 'Cette diffusion n’est plus disponible.');
             }
-            await tx.$executeRaw `UPDATE shared_invocation_members SET watching_id=${sessionId}::uuid WHERE player_id=${p.id}::uuid`;
+            const presences = sessionId ? [{tabId, revision:0, until:new Date(this.now().getTime()+sharedLeaseMs).toISOString()}] : [];
+            await tx.$executeRaw `UPDATE shared_invocation_members SET watching_id=${sessionId}::uuid,watching_version=gen_random_uuid(),viewer_presences=${JSON.stringify(presences)}::jsonb WHERE player_id=${p.id}::uuid`;
         });
         return this.state(identity, tabId);
+    }
+    async viewerPresence(identity: AuthenticatedIdentity, tabId:string, sessionId:string, token:string, revision:number, visible:boolean) {
+        const p=await this.owner(identity), now=this.now();
+        await this.db.$transaction(async tx=>{
+            await this.lock(tx);
+            const session=await this.row(tx,sessionId);
+            if(!session||session.owner_id===p.id||!sharedLive(session,now)) return;
+            const m=await tx.sharedInvocationMember.findUnique({where:{playerId:p.id}});
+            if(!m||m.watchingId!==sessionId||m.watchingVersion!==token) return;
+            type Lease={tabId:string;revision:number;until:string};
+            const leases=m.viewerPresences as Lease[];
+            const old=leases.find(lease=>lease.tabId===tabId);
+            if(old&&old.revision>=revision) return;
+            // Keep revision tombstones until the membership token changes: delayed packets cannot revive a left tab.
+            const others=leases.filter(lease=>lease.tabId!==tabId);
+            // Never evict another live tab to let an arbitrary ninth tab take its place.
+            if(others.length>=8) return;
+            await tx.sharedInvocationMember.update({where:{playerId:p.id},data:{viewerPresences:[...others,{tabId,revision,until:new Date(visible?now.getTime()+sharedLeaseMs:now.getTime()).toISOString()}]}});
+        });
+        return {ok:true};
+    }
+    async spectators(identity:AuthenticatedIdentity, page=1) {
+        const p=await this.owner(identity), now=this.now();
+        return this.db.$transaction(async tx=>{
+            await this.lock(tx);
+            const member=await tx.sharedInvocationMember.findUnique({where:{playerId:p.id}});
+            const own=await this.row(tx,p.id,true), session=own&&sharedLive(own,now)?own:member?.watchingId?await this.row(tx,member.watchingId):null;
+            if(!session||!sharedLive(session,now)||!await tx.player.count({where:{id:session.owner_id,status:'ACTIVE'}})) throw new BusinessError('SHARED_UNAVAILABLE','Cette diffusion n’est plus disponible.');
+            const ids=(await tx.$queryRaw<{player_id:string}[]>`SELECT player_id FROM shared_invocation_members WHERE watching_id=${session.id}::uuid AND player_id<>${session.owner_id}::uuid AND EXISTS(SELECT 1 FROM jsonb_array_elements(viewer_presences) lease WHERE (lease->>'until')::timestamptz>${now})`).map(row=>row.player_id);
+            const where={AND:[{id:{in:ids},status:'ACTIVE' as const},privacyAllowedWhere(p.id,'PRESENCE')]};
+            const total=await tx.player.count({where}), totalPages=Math.max(1,Math.ceil(total/20)), currentPage=Math.min(page,totalPages);
+            const select={id:true,displayName:true,elementKey:true,equippedAvatarCosmetic:appearanceSelect.equippedAvatarCosmetic} as const;
+            const orderBy=[{displayName:'asc' as const},{id:'asc' as const}];
+            const preview=await tx.player.findMany({where,select,orderBy,take:5});
+            const players=await tx.player.findMany({where,select,orderBy,skip:(currentPage-1)*20,take:20});
+            const project=(row:typeof players[number])=>({playerId:row.id,displayName:row.displayName,avatarPath:avatarAssetPath(row)});
+            return {sessionId:session.id,total,page:currentPage,totalPages,preview:preview.map(project),players:players.map(project)};
+        });
     }
     async control(identity: AuthenticatedIdentity, tabId: string, action: 'stop' | 'presence' | 'gesture' | 'advance' | 'skip' | 'close', screen: 'invocation' | 'other', seq?: number, presenceRevision?: number, sessionId?: string) {
         const p = await this.owner(identity);

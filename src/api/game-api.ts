@@ -160,6 +160,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   }
 
   const sharedInvocations: SharedInvocationApi = {
+    spectators: (page=1) => request('/api/v1/shared-invocations/spectators?'+new URLSearchParams({page:String(page)})),
+    viewerPresence: (tabId,sessionId,token,revision,visible) => request('/api/v1/shared-invocations/viewer-presence',{method:'POST',body:JSON.stringify({tabId,sessionId,token,revision,visible})}),
     list: () => request<SharedInvocationList>('/api/v1/shared-invocations'),
     state: (tabId,cursor) => request<SharedInvocationState>('/api/v1/shared-invocations/state?' + new URLSearchParams({tabId,...(cursor?{cursor}:{})})),
     start: tabId => request<SharedInvocationState>('/api/v1/shared-invocations/start', {method:'POST',body:JSON.stringify({tabId,consent:true})}),
