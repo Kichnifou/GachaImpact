@@ -10,7 +10,7 @@ const editor=(publisher:string,value=4,extra:Partial<NonNullable<Evidence['conse
 const fields:CatalogFields={originalName:proof('Private'),rarity:proof(4),element:proof('electro'),releaseDate:proof('2026-10-18')};
 function combine(values:Evidence[]){return values.reduce((result,entry)=>mergeEvidence(result,'rarity',entry),{} as CatalogFields).rarity!;}
 describe('progressive catalogue authorization',()=>{
-  it.each(['https://www.icy-veins.com/original','https://origin.example/article'])('collapses unnamed attribution links to a common upstream %s', upstream=>{
+  it.each(['https://www.icy-veins.com/original','https://origin.example/article','http://www.icy-veins.com/original','http://origin.example/article','https&#58;//www.icy-veins.com/original','https&#x3a;//origin.example/article','http&#58;//origin.example/article','http&#x3a;//www.icy-veins.com/original','https&#58//www.icy-veins.com/original','http&#x3a//origin.example/article'])('collapses unnamed attribution links to a common upstream %s', upstream=>{
     let collected:CatalogFields={originalName:proof('Private'),releaseDate:fields.releaseDate};
     for(const [provider,url] of [['icy-veins','https://www.icy-veins.com/profile'],['game8','https://game8.co/profile'],['sephijin','https://sephijin.fr/profile']]){
       const html=`<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><p>Article original : <a href="${upstream}">Consulter les données originales</a></p><script type="application/ld+json">${JSON.stringify({'@type':'Article',headline:'Private Guide',url,dateModified:now.toISOString()})}</script>`;
@@ -19,7 +19,36 @@ describe('progressive catalogue authorization',()=>{
     const state=progressiveEligibility(collected,now);
     expect(state.status).toBe('INCOMPLETE');
     expect(state.fields.rarity?.consensus?.editors).toBe(1);
+    expect(state.fields.element?.consensus?.editors).toBe(1);
     expect(state.missing).toContain('rarityConfirmation');
+  });
+  it.each(['https&colon;//origin.example/article','https&colon;//www.icy-veins.com/original','https&colon;&sol;&sol;origin.example/article','ftp://origin.example/article','https://private:credentials@origin.example/article','https://[malformed'])('does not qualify unresolved attribution %s',upstream=>{
+    let collected:CatalogFields={originalName:proof('Private'),releaseDate:fields.releaseDate};
+    for(const [provider,url] of [['icy-veins','https://www.icy-veins.com/profile'],['game8','https://game8.co/profile'],['sephijin','https://sephijin.fr/profile']]){
+      const html=`<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><p>Article original : <a href="${upstream}">Consulter les données originales</a></p><script type="application/ld+json">${JSON.stringify({'@type':'Article',headline:'Private Guide',url,dateModified:now.toISOString()})}</script>`;
+      const parsed=parseSecondaryMetadata(html,url!,provider!,['Private'],now);
+      expect(parsed.rarity?.consensusSource?.qualified).toBe(false);
+      for(const [key,value] of Object.entries(parsed))collected=mergeEvidence(collected,key as keyof CatalogFields,value!);
+    }
+    const state=progressiveEligibility(collected,now);expect(state.status).toBe('INCOMPLETE');expect(state.fields.rarity?.consensus?.editors).toBe(0);
+  });
+  it.each(['www.icy-veins.com','origin.example'])('deduplicates mixed HTTP/HTTPS provenance at %s without fetching citation links',async host=>{
+    const requested:string[]=[];
+    const sources=new CatalogSecondarySources(async url=>{
+      requested.push(url);
+      const index=secondaryProviders.some(provider=>provider.index===url);
+      const upstream=`${url.startsWith('https://game8.co')?'http':'https'}://${host}/original`;
+      const href=url.startsWith('https://game8.co')?`href = ${upstream}`:`href="${upstream}"`;
+      const html=index?'<a href="/private-guide">Private Guide</a>':`<h1>Private Guide</h1><p>Private is a 4-Star Electro Sword character.</p><p>Article original : <a ${href}>Consulter les données originales</a></p><script type="application/ld+json">${JSON.stringify({'@type':'Article',headline:'Private Guide',url,dateModified:now.toISOString()})}</script>`;
+      return {url,status:200,mime:'text/html',body:Buffer.from(html)};
+    },async()=>{},now);
+    const collected=await sources.collect(['Private'],['rarity','element']);
+    const state=progressiveEligibility({originalName:proof('Private'),releaseDate:fields.releaseDate,...collected},now);
+    expect(state.status).toBe('INCOMPLETE');
+    expect(state.fields.rarity?.consensus?.editors).toBe(1);
+    expect(state.fields.element?.consensus?.editors).toBe(1);
+    expect(requested.length).toBeGreaterThan(0);
+    expect(requested.every(url=>url.startsWith('https:')&&!url.endsWith('/original'))).toBe(true);
   });
   it('exposes a partial J-7 preparation without creating any invented combat field',()=>{
     const row={id:'private',name:'Private',characterId:null,progressivePolicy:true,fields:{originalName:fields.originalName,releaseDate:fields.releaseDate},assets:[]};

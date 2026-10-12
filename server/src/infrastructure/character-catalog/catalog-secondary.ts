@@ -29,10 +29,13 @@ export const reviewedSecondaryProfiles = [
   {name:'Valeriy',url:'https://www.icy-veins.com/genshin-impact/valeriy-profile-talents-constellations',
     reviewedAt:'2026-10-11T10:14:23.000Z',rarity:4,weapon:'Sword',contradictoryRarity:5},
 ] as const;
+function decodeHtmlEntities(value:string) {
+  return value
+    .replace(/&#(x[0-9a-f]+|\d+);?/gi, (_, code: string) => { const point = code[0]?.toLowerCase() === 'x' ? parseInt(code.slice(1),16) : Number(code); return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ' '; })
+    .replace(/&nbsp;|&amp;|&quot;|&#39;/g, value => ({'&nbsp;':' ','&amp;':'&','&quot;':'"','&#39;':"'"})[value]!);
+}
 export function htmlText(html: string) {
-  return html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ')
-    .replace(/&#(x[0-9a-f]+|\d+);/gi, (_, code: string) => { const point = code[0]?.toLowerCase() === 'x' ? parseInt(code.slice(1),16) : Number(code); return point > 0 && point <= 0x10ffff ? String.fromCodePoint(point) : ' '; })
-    .replace(/&nbsp;|&amp;|&quot;|&#39;/g, value => ({'&nbsp;':' ','&amp;':'&','&quot;':'"','&#39;':"'"})[value]!).replace(/\s+/g,' ').trim();
+  return decodeHtmlEntities(html.replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi, ' ').replace(/<[^>]+>/g, ' ')).replace(/\s+/g,' ').trim();
 }
 const escape = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const nominalPattern = (name:string) => `(?<![\\p{L}\\p{N}\\p{M}_'’\\-])${escape(name.normalize('NFC'))}(?![\\p{L}\\p{N}\\p{M}_'’\\-])`;
@@ -61,18 +64,21 @@ export function linkedCharacterPages(html: string, index: string, names: readonl
   }
   return [...paths].slice(0,2);
 }
-/** Citations are provenance, never extra fetches. Canonical host collapses an unnamed common upstream. */
+/** HTTP/HTTPS citations are provenance, never extra fetches. Canonical host collapses an unnamed common upstream. */
 export function attributedUpstream(html:string, pageUrl:string, provider:string):string|undefined {
-  for(const match of html.matchAll(/<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi)){
+  for(const match of html.matchAll(/<a\b[^>]*\shref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))[^>]*>([\s\S]*?)<\/a>/gi)){
     const context=htmlText(html.slice(Math.max(0,match.index!-160),match.index!+match[0].length));
     if(!/\b(source|original|credits?|courtesy|according to|d'après|via)\b/i.test(context))continue;
     try{
-      const url=new URL(match[1]!.replace(/&amp;/g,'&'),pageUrl), host=url.hostname.toLowerCase().replace(/^www\./,'');
-      if(url.protocol!=='https:'||url.username||url.password||host===new URL(pageUrl).hostname.replace(/^www\./,''))continue;
+      const href=decodeHtmlEntities(match[1]??match[2]??match[3]!);
+      if(/&(?:#\w+|[a-z]+);/i.test(href))return 'attributed:unresolved';
+      const url=new URL(href,pageUrl), host=url.hostname.toLowerCase().replace(/^www\./,'');
+      if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return 'attributed:unresolved';
+      if(host===new URL(pageUrl).hostname.replace(/^www\./,''))continue;
       const known=secondaryProviders.find(source=>new URL(source.index).hostname.replace(/^www\./,'')===host)?.id;
       if(known===provider)continue;
       return known??`attributed:${host}`;
-    }catch{/* malformed attribution cannot add a voice */}
+    }catch{return 'attributed:unresolved';}
   }
   return undefined;
 }
@@ -87,10 +93,11 @@ export function parseSecondaryMetadata(html: string, url: string, provider: stri
   const reason = /\b(leaks?|beta|bêta|datamin)/i.test(text) ? 'Source secondaire contenant des informations de leak/bêta ; confirmation officielle absente.' : 'Source secondaire ; confirmation officielle indépendante absente.';
   const observedAt = articleObservedAt(html,name,url);
   const observed = new Date(observedAt).getTime();
-  const qualified = Number.isFinite(observed) && observed <= now.getTime() && now.getTime()-observed <= 30*86_400_000 && !/\b(leaks?|beta|bêta|datamin|rumou?r|speculat|according to|d'après|source\s*:|credits?\s*:|via\s)/i.test(text);
+  let qualified = Number.isFinite(observed) && observed <= now.getTime() && now.getTime()-observed <= 30*86_400_000 && !/\b(leaks?|beta|bêta|datamin|rumou?r|speculat|according to|d'après|source\s*:|credits?\s*:|via\s)/i.test(text);
   // Attribution to another publisher collapses its vote with that upstream.
   const upstream = secondaryProviders.find(source=>source.id!==provider && text.toLowerCase().includes(source.id.replace('-',' ')))?.id
     ?? attributedUpstream(html,url,provider);
+  if(upstream==='attributed:unresolved')qualified=false;
   const add = (field: keyof CatalogFields, value: string | number) => { fields[field] = { value, provider, url, fetchedAt: now.toISOString(), reliability:'PROVISIONAL', editorialStatus:'PROVISIONAL', reason,
     consensusSource:{publisher:provider,...(upstream?{upstream}:{}),identity:normalizedIdentity(name),qualified,observedAt} } satisfies Evidence; };
   if(!description){
