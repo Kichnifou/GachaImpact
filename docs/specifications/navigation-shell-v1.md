@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Complément Chat/Badges — R1079
+
+Les flèches existantes sont seulement descendues verticalement ; géométrie horizontale, droits et historique inchangés. Personnalisation ajoute BADGE à AVATAR/TITLE dans la même pile typée, propriétaire seul.
+
+L'agrandissement de Communauté est une préférence locale par Player distincte de la destination/pile. Il couvre Chat et MP/conversation sans remount ; jeu et navigation centrale restent montés masqués. Réduire/replier/revenir n'exécute rien. Une navigation explicite, clic Profil ou Retour/Avancer natif révèle le jeu. F5 restaure la préférence sans replay ; sous1000px et pendant tutoriel, seul le rendu normal est autorisé. Droits/confidentialité restent évalués par leurs propriétaires existants.
+
 ## Historique écran/onglets — R1078
 
 Le shell possède une seule pile typée de dix destinations maximum, liée à l'identité Player. Une destination contient ScreenId, les vrais onglets actifs, la cible du Profil lorsque nécessaire, et le chemin fonctionnel du panneau Communauté. Les changements explicites créent une entrée ; une initialisation de sous-onglet complète l'entrée courante. Recliquer la destination courante est neutre. Précédent/Suivant déplacent le curseur, ignorent les destinations devenues interdites, sont désactivés aux extrémités ; une nouvelle visite après retour supprime la branche future, une onzième évince la plus ancienne.
@@ -9,7 +15,7 @@ Inventaire des chemins réels :
 - Personnages : Box / Équipe / Catalogue ; Activités : Quotidiennes / Missions / Combat / Événement / Arcade / Concours.
 - Quotidiennes : Aperçu / Roue / Défi ; Combat : Entraînement / Boss ; Missions : B / A / S / Z.
 - Événement : Général / Jeux / Shop / Classement ; Jeux : Récolte / Grenier / Panier.
-- Profil : Aperçu / Team active / Box / Collection / Statistiques / Missions / Personnalisation ; Missions B/A/S/Z ; Personnalisation Avatars/Titres, propriétaire seul.
+- Profil : Aperçu / Team active / Box / Collection / Statistiques / Missions / Personnalisation ; Missions B/A/S/Z ; Personnalisation Avatars/Titres/Badges, propriétaire seul.
 - Configuration : Menu / Confidentialité / Compte ; Social : Amis / Demandes / Joueurs.
 - Modération : Système / Personnages / Codes / Bannières / Événements / Communauté / Giveaway / Audit, selon capacités ; Personnages : Catalogue / Possessions / Imports et candidats ; Communauté : Chat / MP.
 - Sac : Tout / Ressources / Objets / Collection ; Historique : Invocations / Bannières / Événement / Banque / Boutique ; Échanges : Partenaires / Reçues / Envoyées / Historique.

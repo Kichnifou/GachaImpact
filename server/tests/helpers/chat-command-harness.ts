@@ -9,6 +9,8 @@ export function harness() {
     send: vi.fn(async (_identity: unknown, content: string) => ({ message: { id: commandId, messageType: 'COMMAND', content }, xpGranted: 0, replayed: false })),
     findGameResult: vi.fn(async () => null),
     findGameResults: vi.fn(async () => []),
+    readCommandResult: vi.fn(async () => null),
+    freezeCommandResult: vi.fn(async (_id: string, result: import('../../src/application/chat/global-chat-service.js').FrozenChatResult) => result),
     commandMissionCompletions: vi.fn(async () => [] as string[]),
     hasConfirmedCommandMutation: vi.fn(async () => false),
     commandRefreshScopes: vi.fn(async () => []),

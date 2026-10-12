@@ -1893,6 +1893,7 @@ model GlobalChatMessage {
   sourceChannel    SourceChannel           @map("source_channel")
   messageType      GlobalChatMessageType   @map("message_type")
   content          String                  @db.Text
+  resultPresentation Json?                  @map("result_presentation") @db.JsonB
   externalMessageId String?                @map("external_message_id") @db.Text
   operationId      String?                 @unique(map: "global_chat_messages_operation_id_key") @map("operation_id") @db.Uuid
   replyToMessageId String?                 @map("reply_to_message_id") @db.Uuid

@@ -18,6 +18,7 @@ import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 import { freeBadgeSymbol } from '../appearance/badges.js';
+import { isStructuredChatResult, type StructuredChatResult } from '../../domain/chat/structured-result.js';
 import { ClaimDailyReward } from '../daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from '../../infrastructure/database/prisma-daily-reward-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
@@ -33,7 +34,8 @@ const conflict = () => new AppError('Cette clé appartient à un autre message.'
 const pacingLimited = () => new AppError('Envoi Chat temporairement limité.', 429, 'CHAT_PACING_LIMIT');
 const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
-type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string };
+export type FrozenChatResult = { content: string | readonly string[]; presentation: StructuredChatResult | null };
+type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string; standaloneResult?: FrozenChatResult };
 export type ChatMentionInput = { playerId: string; displayName: string };
 const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
@@ -61,6 +63,7 @@ export function splitGameResult(content: string): string[] {
 
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
+  resultPresentation?: unknown;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
   replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedBadgeCosmetic?: { type: string; externalKey: string; displayName: string; isActive: boolean } | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
@@ -72,6 +75,7 @@ function project(row: {
     id: row.id, author: row.author ? { id: row.author.id, displayName: row.author.displayName, elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author), badgeSymbol: freeBadgeSymbol(row.author.equippedBadgeCosmetic) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
     sourceChannel: row.sourceChannel, messageType: row.messageType,
     content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(),
+    resultPresentation: !deleted && row.messageType === 'GAME_RESULT' && isStructuredChatResult(row.resultPresentation) && row.resultPresentation.source.commandMessageId === row.replyToMessageId ? row.resultPresentation : null,
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
@@ -365,7 +369,37 @@ export class GlobalChatService {
     return contestEvent !== null;
   }
 
-  async publishGameResult(commandMessageId: string, content: string | readonly string[]) {
+  async readCommandResult(commandMessageId: string): Promise<FrozenChatResult | null> {
+    const row = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { messageType: true, sourceChannel: true, operation: { select: { resultSummary: true } } } });
+    if (row?.messageType !== 'COMMAND' || row.sourceChannel !== 'INTERNAL_CHAT') throw unavailable();
+    const result = (row.operation?.resultSummary as ChatOperationSummary | null)?.standaloneResult;
+    if (!result) return null;
+    const parts = typeof result.content === 'string' ? [result.content] : result.content;
+    if (!Array.isArray(parts) || !parts.length || parts.some(part => typeof part !== 'string' || !part || Array.from(part).length > 500 || /[\r\n\u2028\u2029]/u.test(part))
+      || result.presentation !== null && (!isStructuredChatResult(result.presentation) || result.presentation.source.commandMessageId !== commandMessageId)) throw unavailable();
+    return result;
+  }
+
+  /** First completed projection wins across workers, independently of publication retries. */
+  async freezeCommandResult(commandMessageId: string, proposed: FrozenChatResult): Promise<FrozenChatResult> {
+    const parts = typeof proposed.content === 'string' ? [proposed.content] : proposed.content;
+    if (!parts.length || parts.some(part => !part || Array.from(part).length > 500 || /[\r\n\u2028\u2029]/u.test(part))) throw invalid('Résultat Chat invalide.');
+    if (proposed.presentation && (!isStructuredChatResult(proposed.presentation) || proposed.presentation.source.commandMessageId !== commandMessageId || Buffer.byteLength(JSON.stringify(proposed.presentation)) > 16_384)) throw invalid('Présentation Chat invalide.');
+    return this.database.$transaction(async tx => {
+      const rows = await tx.$queryRaw<{ result_summary: ChatOperationSummary; operation_id: string }[]>`
+        SELECT o.result_summary, m.operation_id FROM business_operations o JOIN global_chat_messages m ON m.operation_id = o.id
+        WHERE m.id = ${commandMessageId}::uuid AND m.message_type = 'COMMAND'::global_chat_message_type
+          AND m.source_channel = 'INTERNAL_CHAT'::source_channel FOR UPDATE OF o`;
+      const row = rows[0];
+      if (!row || row.result_summary.messageId !== commandMessageId) throw unavailable();
+      if (row.result_summary.standaloneResult) return row.result_summary.standaloneResult;
+      await tx.businessOperation.update({ where: { id: row.operation_id }, data: { resultSummary: { ...row.result_summary, standaloneResult: proposed } as unknown as Prisma.InputJsonValue } });
+      return proposed;
+    });
+  }
+
+  async publishGameResult(commandMessageId: string, content: string | readonly string[], presentation?: StructuredChatResult | null) {
+    if (presentation && (!isStructuredChatResult(presentation) || presentation.source.commandMessageId !== commandMessageId)) throw invalid('Présentation Chat invalide.');
     const parent = await this.database.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { messageType: true, sourceChannel: true, generation: true } });
     if (parent?.messageType !== 'COMMAND' || parent.sourceChannel !== 'INTERNAL_CHAT') throw unavailable();
     const values = typeof content === 'string' ? [content.trim()] : content.map(part => part.trim());
@@ -381,6 +415,7 @@ export class GlobalChatService {
           const externalMessageId = index === 0 ? `command:${commandMessageId}` : `command:${commandMessageId}:${index + 1}`;
           await tx.globalChatMessage.create({
             data: { authorPlayerId: null, sourceChannel: 'SYSTEM', messageType: 'GAME_RESULT', content: parts[index]!,
+              ...(index === 0 && presentation ? { resultPresentation: presentation as unknown as Prisma.InputJsonValue } : {}),
               externalMessageId, replyToMessageId: commandMessageId, generation: parent.generation },
           });
         }
@@ -482,6 +517,7 @@ export class GlobalChatService {
     await this.database.$transaction(async tx => {
       const message = await tx.globalChatMessage.findUnique({ where: { id: commandMessageId }, select: { operationId: true, messageType: true } });
       if (!message?.operationId || message.messageType !== 'COMMAND') throw unavailable();
+      await tx.$queryRaw`SELECT id FROM business_operations WHERE id = ${message.operationId}::uuid FOR UPDATE`;
       const operation = await tx.businessOperation.findUniqueOrThrow({ where: { id: message.operationId } });
       const summary = operation.resultSummary as ChatOperationSummary;
       await tx.businessOperation.update({ where: { id: operation.id }, data: { resultSummary: { ...summary, refreshScopes: [...new Set([...(summary.refreshScopes ?? []), ...scopes])] } } });

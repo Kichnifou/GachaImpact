@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## Chat standalone et Communauté agrandie — R1079
+
+Les flèches de destination conservent X,32×32px, gap, cadres et comportements ; seul align-self:end descend le groupe dans sa cellule du header, juste au-dessus d'Accueil. Aucun changement de hauteur/header/logo/actions.
+
+Chat global : Heure / Badge courant / Pseudo : Message sur un flux inline compact, sans avatars répétés ; retours naturels et actions en overlays existants. Résultats en petites cartes à lignes flexibles, portraits officiels, rareté/constellation/Nouveau et faits bornés. Aucun scroll horizontal ; gains et missions restent dans le texte complet. Styles internes des MP séparés et inchangés.
+
+À largeur>=1000px, Agrandir masque visuellement la colonne centrale/navigation et étend toute la Communauté ; sidebar/header et instances du jeu/Chat/MP conservés. Réduire restaure le jeu sans action. Préférence par Player, neutralisation sous1000px et pendant tutoriel. Scroll propriétaire message-list ou dm-message-list ; pas de bas forcé ni d'acquittement lors de la bascule depuis une lecture historique. Labels et focus accessibles. Qualification vrai GameShell/CSS compilée en390×844,844×390,1366×768,1920×1080,2560×1440 ; preuves et limites au Master. [Contrat détaillé](global-chat-v1.md#présentation-standalone--r1079).
+
 ## Complément borné R1052/R1078 — 12/10/2026
 
 Deux boutons ‹ et › distincts de32×32px, sombre/bleu, cadres identiques et gap5px occupent l'espace libre à droite du bouton logo/nom. Ils restent extérieurs à ce bouton et précèdent les actions existantes, sans deuxième barre ni mots visibles. Aria Précédent/Suivant, focus-visible contrasté, hover discret, disabled lisible ; compactage du grid header sous760px, aucun chevauchement/débordement. Logo, Menu, Modération, Déconnexion et Notifications gardent leurs styles existants.

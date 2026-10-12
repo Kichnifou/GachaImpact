@@ -42,6 +42,20 @@ async function fixtureWithDedicatedCharacter() {
 }
 async function cleanup() { const ids = [...playerIds]; if (ids.length) { await database.notification.deleteMany({ where: { playerId: { in: ids } } }); await database.playerPermanentMissionProgress.deleteMany({ where: { playerId: { in: ids } } }); await database.playerPermanentMissionState.deleteMany({ where: { playerId: { in: ids } } }); await database.resourceMovement.deleteMany({ where: { playerId: { in: ids } } }); await database.businessOperation.deleteMany({ where: { playerId: { in: ids } } }); await database.player.deleteMany({ where: { id: { in: ids } } }); } const characters = [...characterIds]; if (characters.length) await database.character.deleteMany({ where: { id: { in: characters } } }); playerIds.clear(); characterIds.clear(); }
 
+it('replays standalone departure and claim snapshots after completion and later balance changes', async () => {
+  now = new Date('2099-09-01T10:00:00Z'); randomCalls = 0; nextRoll = 0;
+  const { id, character, service } = await fixtureWithDedicatedCharacter(), startKey = randomUUID(), claimKey = randomUUID();
+  const start = await service.start(identity, character.id, startKey, SourceChannel.INTERNAL_CHAT);
+  now = new Date(now.getTime() + 20 * 3600_000 + 1);
+  const claim = await service.claim(identity, claimKey, SourceChannel.INTERNAL_CHAT);
+  await database.character.update({ where: { id: character.id }, data: { name: 'Changed after expedition' } });
+  await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: id, resourceKey: claim.reward.resourceKey } }, data: { amount: { increment: 999n } } });
+  expect((await service.start(identity, character.id, startKey, SourceChannel.INTERNAL_CHAT)).commandSnapshot).toEqual(start.commandSnapshot);
+  expect((await service.claim(identity, claimKey, SourceChannel.INTERNAL_CHAT)).commandSnapshot).toEqual(claim.commandSnapshot);
+  expect(claim.commandSnapshot?.character.name).toBe(character.name);
+  expect(claim.commandSnapshot?.balanceAfter).toBeDefined(); expect(randomCalls).toBe(1);
+}, 20_000);
+
 describe('Expedition persistence', () => {
   it('enables RLS and revokes browser roles on both private tables', async () => {
     const tables = ['notifications', 'player_expeditions'];

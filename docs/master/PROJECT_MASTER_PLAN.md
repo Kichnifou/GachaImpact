@@ -1,6 +1,20 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-## Point courant — livraison consolidée A/B/C du12/10/2026
+## Point courant — refonte Chat standalone R1079 du12/10/2026
+
+Mandat propriétaire autorisé A flèches verticales seules, B Chat compact, C Communauté agrandie, D dix Badges gratuits, E huit résultats graphiques standalone. Base réelle72724a30be37d650d471681a366b7d1fad7f4635, quatre refs identiques/divergence0/0 et arbre propre au bootstrap. Développement sur review ; aucun changement de Twitch, MP interne, économie, calendrier ou droits. [Décision R1079](../specifications/decisions-log.md#r1079--chat-standalone-compact-communauté-agrandie-badges-et-huit-résultats-graphiques-12102026), [Chat](../specifications/global-chat-v1.md#présentation-standalone--r1079), [Apparence](../specifications/profile-appearance-v1.md).
+
+État : **candidat organisé en quatre commits A/B-C/D/E, qualification et reviews formelles avant promotion.** Revue consultative indépendante sans blocage concret : filtre Avatars→Badges, fermeture des clés JSON et fallback localStorage corrigés. Le cycle review→SHA distant→reviews technique/visuelle→FF main→Railway/Pages→postflight reste autorisé sans nouveau GO.
+
+Implémentation : lignes heure/badge/pseudo/texte sans portraits répétés, actions préservées ; agrandissement de la même Communauté, jeu monté masqué et préférence par Player, disponible>=1000px ; trois migrations additives077–079 (enum BADGE, catalogue/équipement, JSON résultat), aucune attribution historique. Huit projections explicites avec texte complet, reçu Chat figé avant publication et métadonnées de reçu INTERNAL_CHAT pour mutations sensibles ; anciens résultats et accès privés textuels. Aucun parsing de phrase ni second moteur.
+
+Qualifications acquises à ce checkpoint : frontend ciblé81 puis Badges1 PASS ; protocole19 et adaptateurs8/Twitch/reprise/privé10 PASS ; PostgreSQL privé vraies migrations077–079 et Chat/Badges4 PASS, Stella7, Expédition16 et Vote4 PASS. GameShell/CSS compilée :40 cas huit commandes×cinq formats, zéro JS/overflow ; lecture historique même message/décalage-16px avant/agrandi/après, brouillon et nœud jeu conservés, aucun GET complet/read supplémentaire. Flèches vérifiées indépendamment aux cinq formats : X/dimensions69×32/header/logo identiques, Y+16px. F5 conserve préférence,390px neutralise sans effacement. MP aux trois formats larges : même message/décalage-23,047px, brouillon et nœud conservés, un seul GET historique ; clavier/tactile et retour profil qualifiés. Dix Badges et Pull×1 capturés aux cinq formats ; fixtures mobiles/MP et portraits de bannière corrigés, preuves synthétiques privées, aucune recette économique publique.
+
+Baseline réel verify:full au72724a3 : FAIL6/8, frontend1578PASS/4FAIL, backend2417PASS/6FAIL. Candidat final non-DB : quick5/5PASS, full6/8, frontend1589PASS/4FAIL, backend2446PASS/6FAIL ; les dix noms bruts d'échecs sont strictement identiques au baseline (comparaison privée full-comparison.json), sept fichiers historiques d'assertions laissés inchangés. Les cinq nouvelles attentes DTO/reçu Vote sont corrigées et les trois suites affectées28PASS. Gacha privé initial28/31PASS dont nouveau reçu immuable ; reprise ciblée des trois timeouts et du nouveau test4/4PASS. Une relance globale ultérieure rencontre un timeout de préparation PostgreSQL ; aucune réussite globale31/31 présumée. Dossiers privés anciens conservés ; nouvelles preuves ignorées dans local-data/chat-standalone-20261012/.
+
+Documentation : propriétaires Chat/layout/navigation/modèle/backend/schéma/commandes et nouveau contrat spécialisé Apparence ajustés. Guide, workflow, handoff procédural, ordre macro, couverture commandes et audits legacy examinés, laissés inchangés faute de changement correspondant. **Prochaine action exacte :** terminer le contrôle PostgreSQL/nettoyage, publier review et obtenir les reviews indépendantes du vrai SHA avant promotion. Recette publique future, non présumée. L'exception full6/8 est limitée aux dix échecs préexistants reproduits sur la base réelle ; tout nouvel échec interdit la promotion.
+
+## Historique — livraison consolidée A/B/C du12/10/2026
 
 Version : finitions Invocation, R1052 cosmétiques et historique R1078, clôture après récupération076.
 Date : 2026-10-12

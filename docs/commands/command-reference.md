@@ -1,5 +1,11 @@
 # Registre des commandes GachaImpact
 
+## Résultats graphiques standalone — R1079
+
+Huit commandes ajoutent une projection optionnelle au texte complet : pull x1/x10 (ordre, portraits, rareté, constellations, nouveauté, gains/coûts/pity/garantie/Capture), team (composition/passifs à la commande), banniere (5★ portraits,4★ texte, période/règles/cible), expedition (état/départ/durée/retour/récompense), legende ciblée autorisée (C6/statistiques), obtention personnelle (statut/rareté/constellation), vote identifié (personnage/tally autorisé), stella (avant/après et résultat).
+
+Données métier explicites et reçu figé de provenance INTERNAL_CHAT, aucun parsing français. F5/replay/publication répétée ne relance aucune action et ne reconstitue pas un gain ancien depuis l'état courant. Accès privés, liste de Légendes, personnage non identifié, erreurs et anciens messages restent textuels. Sac/Box/Banque/Faveur/Pity et autres commandes gardent le texte compact. Cartes adaptées aux largeurs normale/agrandie sans tronquer ressources/missions ni scroll horizontal. Texte Twitch, splitting/transport, confidentialité, droits, RNG et économie inchangés. [Protocole](../specifications/global-chat-v1.md#présentation-standalone--r1079).
+
 ## Présentation publique — amendement R1051 du 11/10/2026
 
 Succès ✅, refus/avertissement ⚠️, information ℹ️ ou icône métier existante, erreur réelle ❌. Exemples : « ⚠️ Joueur introuvable. », « ✅ 🤝 Demande d’échange envoyée à … », « ⚠️ Demande d’échange introuvable. ». Préfixe existant préservé sans doublon. Le résolveur partagé couvre échanges/infos/faveur/légendes/sélection/vote/aides et erreurs publiques ; boutique/expédition conservent leurs présentateurs métier déjà adaptés. Préfixes de listes intégrés AVANT packing, continuation comprise, limites Unicode réelles du transport conservées. Aucun emoji ajouté aux erreurs internes/logs, aucune mutation économique ni modification de confidentialité/réservations/idempotence. Fixtures Chat interne et TWITCH, aucun échange réel de recette. [État et preuves](../master/PROJECT_MASTER_PLAN.md).

@@ -37,6 +37,23 @@ afterAll(async () => {
   await database.$disconnect();
 });
 
+it('replays standalone character metadata after a later catalog update without a second pull', async () => {
+  const fixture = await createPullPlayer(320n), store = new PrismaGachaStore(database);
+  let original: { id: string; name: string } | undefined;
+  try {
+    const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 1 as const, idempotencyKey: randomUUID(), now: fixture.now, random: { nextInt: () => 0 }, sourceChannel: 'INTERNAL_CHAT' as const };
+    const first = await store.pull(input); original = first.results[0]?.character ?? undefined;
+    expect(original).toBeDefined();
+    await database.character.update({ where: { id: original!.id }, data: { name: 'Changed after standalone pull' } });
+    const replay = await store.pull({ ...input, random: { nextInt: () => { throw Error('Must not reroll'); } } });
+    expect(replay.results).toEqual(first.results); expect(replay.playerState).toEqual(first.playerState);
+    expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+  } finally {
+    if (original) await database.character.update({ where: { id: original.id }, data: { name: original.name } });
+    await deletePullPlayer(fixture.playerId);
+  }
+}, 20_000);
+
 describe('Gacha foundation on the development database', () => {
   it.each([3, 10])('persists exact per-step resource totals for x%i and replays them after the live wallet changes', async count => {
     const fixture = await createPullPlayer(10000n);

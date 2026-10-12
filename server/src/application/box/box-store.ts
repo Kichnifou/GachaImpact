@@ -48,6 +48,7 @@ export type StellaUseResult = Readonly<{
   character: BoxCharacter;
   stellaRemaining: bigint;
   c6Progression: StellaProgression | null;
+  standaloneSnapshot?: true;
 }>;
 
 export type UseStellaInput = Readonly<{

@@ -136,7 +136,7 @@ export class PrismaBoxStore implements BoxStore {
         select: { id: true, resultSummary: true },
       });
       if (existing) {
-        const persisted = await this.readPersistedStella(transaction, input.playerId, existing.id, existing.resultSummary, true);
+        const persisted = await this.readPersistedStella(transaction, input.playerId, existing.id, existing.resultSummary, true, input.sourceChannel === 'INTERNAL_CHAT');
         if (persisted) return persisted;
         throw new BusinessError('STELLA_IDEMPOTENCY_CONFLICT', 'Cette intention Stella est déjà en cours.');
       }
@@ -194,6 +194,7 @@ export class PrismaBoxStore implements BoxStore {
         status: OperationStatus.COMPLETED, completedAt: input.now,
         resultSummary: {
           characterId: input.characterId, stellaRemaining: stellaRemaining.toString(),
+          ...(input.sourceChannel === 'INTERNAL_CHAT' ? { standaloneCharacter: { ...character, firstObtainedAt: character.firstObtainedAt.toISOString() } } : {}),
           ...(c6Progression ? { c6Progression } : {}),
         },
       } });
@@ -206,22 +207,25 @@ export class PrismaBoxStore implements BoxStore {
       where: { playerId, sourceChannel, idempotencyKey: operationKey },
       select: { id: true, resultSummary: true },
     });
-    return operation ? this.readPersistedStella(this.database, playerId, operation.id, operation.resultSummary, true) : null;
+    return operation ? this.readPersistedStella(this.database, playerId, operation.id, operation.resultSummary, true, sourceChannel === 'INTERNAL_CHAT') : null;
   }
 
   private async readPersistedStella(
     client: PrismaClient | Prisma.TransactionClient, playerId: string, operationId: string,
-    summary: Prisma.JsonValue | null, alreadyProcessed: boolean,
+    summary: Prisma.JsonValue | null, alreadyProcessed: boolean, standalone = false,
   ): Promise<StellaUseResult | null> {
     if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return null;
     const characterId = summary.characterId;
     const remaining = summary.stellaRemaining;
     if (typeof characterId !== 'string' || typeof remaining !== 'string' || !/^\d+$/.test(remaining)) return null;
-    const character = await this.readCharacter(client, playerId, characterId);
+    const snapshot = standalone ? summary.standaloneCharacter as unknown as (Omit<BoxCharacter, 'firstObtainedAt'> & { firstObtainedAt: string }) | undefined : undefined;
+    const character = snapshot?.id === characterId && typeof snapshot.firstObtainedAt === 'string'
+      ? { ...snapshot, firstObtainedAt: new Date(snapshot.firstObtainedAt) } : await this.readCharacter(client, playerId, characterId);
     if (!character) return null;
     return {
       operation: { id: operationId, alreadyProcessed }, character, stellaRemaining: BigInt(remaining),
       c6Progression: parseStellaProgression(summary.c6Progression),
+      ...(snapshot?.id === characterId && typeof snapshot.firstObtainedAt === 'string' ? { standaloneSnapshot: true as const } : {}),
     };
   }
 

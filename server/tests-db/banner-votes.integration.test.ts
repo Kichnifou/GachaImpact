@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { SourceChannel } from '../generated/prisma/client.js';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { isolatedBatchDatabase } from './isolated-batch-database.js';
 import { BannerVoteService } from '../src/application/gacha/banner-vote-service.js';
@@ -32,6 +33,17 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(() => fixture.cleanup(), 60_000);
 async function player() { return { subject: (await database.player.create({ data: { displayName: `Vote ${randomUUID().slice(0, 8)}` } })).id }; }
+
+it('freezes standalone vote tally and character metadata without a second contribution', async () => {
+  const actor = await player(), other = await player(), key = randomUUID(), target = candidateIds[0]!;
+  const first = await votes.vote(actor, target, rotationId, SourceChannel.INTERNAL_CHAT, key);
+  await votes.vote(other, target, rotationId);
+  await database.character.update({ where: { id: target }, data: { name: 'Changed after vote' } });
+  const retry = await votes.vote(actor, target, rotationId, SourceChannel.INTERNAL_CHAT, key);
+  expect(retry.candidates).toEqual(first.candidates); expect(retry.commandCharacter).toEqual(first.commandCharacter);
+  expect(await database.bannerVote.count({ where: { playerId: actor.subject, bannerRotationId: rotationId } })).toBe(1);
+  expect(await database.businessOperation.count({ where: { playerId: actor.subject, operationType: 'banner.vote.command' } })).toBe(1);
+});
 
 describe('Banner votes isolated PostgreSQL', () => {
   it('enforces active five-star eligibility, permanent choice, safe replay and midweek imports', async () => {

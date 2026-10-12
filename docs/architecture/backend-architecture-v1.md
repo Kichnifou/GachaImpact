@@ -1,5 +1,13 @@
 # GachaImpact — Architecture backend V1
 
+## Présentation standalone et Badges — R1079
+
+AppearanceService équipe BADGE sous verrou Player ACTIVE et validation type/activité/externalKey/symbole. Dix définitions disponibles universellement en lecture sans possessions/notifications nouvelles. PATCH /api/v1/me/appearance accepte BADGE, ACK consulted reste AVATAR/TITLE. CurrentPlayer expose badgeSymbol ; Chat joint le badge courant dans sa lecture de liste, sans requête par message ni réécriture historique. [Contrat](../specifications/profile-appearance-v1.md).
+
+PlayerCommandResolver conserve l'unique logique métier ; PresentationSink facultatif fournit des projections explicites à ChatCommandDispatcher INTERNAL_CHAT seulement. Aucun parsing français, Player DTO ou exécution du renderer. Protocole versionné à clés fermées,10 personnages/24 faits, portraits officiels et champs bornés. Huit adaptateurs pull/team/banniere/expedition/legende/obtention/vote/stella ; confidentialité avant projection, cas privés/non ciblés textuels.
+
+GlobalChatService fige texte/visuel sous verrou de la BusinessOperation d'envoi puis publie les parties atomiquement avec IDs source stables, JSON sur la première partie. Replay du reçu évite une seconde résolution après interruption de publication. RefreshScopes prend le même verrou pour préserver ce reçu. Pull/Team lisent leurs snapshots committés ; reçus INTERNAL_CHAT Stella (personnage après utilisation), Expédition (personnage/départ/retour/bilan récompense) et Vote (tally/personnage) conservés dans la transaction existante. Historique sans snapshot fiable : fallback textuel. Aucun second vote/gain/RNG. Twitch n'installe aucun sink et conserve texte/découpage/longueur/transport/EventSub.
+
 ## Extension R1052 — projection et ACK de consultation (12/10/2026)
 
 AppearanceService demeure l'autorité unique. GET personnel projette unlockedAt fiable/null et isNew, sans écriture. POST /api/v1/me/appearance/consulted accepte strictement {type:AVATAR|TITLE,cosmeticIds:UUID[1..200]}, identité issue de la session ACTIVE, aucune cible Player fournie. Transaction vérifiant toutes les possessions du type de l'acteur puis updateMany consultedAt IS NULL ; ID étranger/type erroné403, payload invalide400, anonyme401, no-store. Répétition neutre, aucune notification/équipement/XP/ressource affectés.

@@ -1,5 +1,15 @@
 # Journal des décisions validées
 
+## R1079 — Chat standalone compact, Communauté agrandie, Badges et huit résultats graphiques (12/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE**, mandat ouvert depuis72724a3 : A déplace uniquement verticalement les flèches existantes ; B remplace les avatars répétés du Chat global par Heure / Badge décoratif / Pseudo cliquable / Message, avec couleurs élémentaires et actions préservées ; C agrandit toute la Communauté, Chat et MP, en conservant header/sidebar et les instances du jeu. Le contenu interne des MP conserve son rendu.
+
+L'icône à deux flèches diagonales précède Replier ; labels accessibles Agrandir/Réduire, sans mot visible. Préférence locale persistante par Player, disponible à partir de1000px ; une largeur inférieure neutralise la présentation agrandie sans effacer le choix. F5/reconnexion réutilisent cette préférence. La réduction restaure le jeu sans navigation ni replay ; une navigation explicite vers le jeu ou un profil le révèle. Brouillons, réponses, non-lus, conversation et lecture historique restent conservés. Aucun nouveau service ni coût.
+
+Troisième famille BADGE : dix symboles Unicode gratuits universels **✦ ✧ ★ ☆ ♥ ♡ ◇ ◈ ☾ ❖**, plus Aucun badge, un seul équipé. Aucun rôle ni privilège ; Avatars/Titres restent indépendants. Les anciens messages projettent le badge actuellement équipé sans réécriture. Disponibilité dérivée, sans attribution PlayerCosmetic ni notification/backfill historique. [Propriétaire Apparence](profile-appearance-v1.md).
+
+Huit commandes standalone graphiques dès la livraison complète : pull, team, banniere, expedition, legende ciblée autorisée, obtention, vote identifié, stella. Projection typée bornée à clés fermées, provenance INTERNAL_CHAT, texte complet conservé et fallback sûr pour anciens résultats. Reçu texte/visuel figé avant publication ; les mutations s'appuient sur leur résultat committé et leur reçu natif, jamais sur un gain courant reconstitué. Présentation sans exécution. Confidentialité et suppression restent des frontières serveur. Aucun changement de règles économiques, RNG, calendrier, droits ou rendu/transport Twitch. [Contrat Chat](global-chat-v1.md). État, SHA, tests, reviews, déploiements et recette publique exclusivement au Master.
+
 ## R1078 — historique de destinations et complément R1052 (12/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE**, mandat consolidé A/B/C : deux flèches encadrées ‹/› à droite du bloc logo du header, labels accessibles Précédent/Suivant sans mots visibles. Un propriétaire typé conserve au plus dix destinations écran/onglet/sous-onglet et un curseur ; dédoublonnage du clic actif, abandon du futur après nouvelle navigation, aucune entrée créée par les flèches. Historique lié au Player/session, sans persistance serveur. Hash/deep links et Retour/Avancer natifs restent compatibles, droits et disponibilité revérifiés. Tutoriel : pile normale intacte pendant les préparations, flèches neutralisées ; seule la destination de sortie utilisateur peut être ajoutée.

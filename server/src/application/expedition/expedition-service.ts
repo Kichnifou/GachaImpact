@@ -17,6 +17,8 @@ import { PermanentMissionService } from '../missions/permanent-mission-service.j
 const MAX_ATTEMPTS = 4;
 const characterSelect = { id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true, region: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } as const;
 type Client = PrismaClient | Prisma.TransactionClient;
+export type ExpeditionCommandSnapshot = { character: { id: string; name: string; iconPath: string | null; rarity: number }; departedAt: string | null; readyAt: string | null; balanceAfter?: string };
+const commandSnapshot = (character: ExpeditionCommandSnapshot['character'], departedAt: Date | null, readyAt: Date | null, balanceAfter?: string): ExpeditionCommandSnapshot => ({ character: { id: character.id, name: character.name, iconPath: character.iconPath, rarity: character.rarity }, departedAt: departedAt?.toISOString() ?? null, readyAt: readyAt?.toISOString() ?? null, ...(balanceAfter ? { balanceAfter } : {}) });
 
 export type ExpeditionView = Readonly<{
   businessDate: string;
@@ -33,6 +35,7 @@ export type ExpeditionView = Readonly<{
 }>;
 
 export type ExpeditionClaimResult = Readonly<{
+  commandSnapshot?: ExpeditionCommandSnapshot;
   operation: Readonly<{ id: string; alreadyProcessed: boolean }>;
   reward: ExpeditionReward;
   view: ExpeditionView;
@@ -62,22 +65,23 @@ export class ExpeditionService {
       if (existing) {
         const summary = objectSummary(existing.resultSummary);
         if (existing.playerId !== player.id || existing.operationType !== 'expedition.start' || summary.characterId !== characterId || existing.status !== OperationStatus.COMPLETED) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à l’expédition attendue.');
-        return { id: existing.id, alreadyProcessed: true };
+        return { id: existing.id, alreadyProcessed: true, commandSnapshot: summary.commandSnapshot as unknown as ExpeditionCommandSnapshot | undefined };
       }
       await assertCommandTargets(transaction, player.id, 'expedition');
       await reconcileLocked(transaction, player.id, now);
       const state = await transaction.playerExpedition.findUnique({ where: { playerId: player.id } });
       if (state && state.state !== 'IDLE') throw new BusinessError('EXPEDITION_ALREADY_ACTIVE', 'Une expédition est déjà en cours.');
       if (state?.departureBusinessDate && databaseDateToBusinessDate(state.departureBusinessDate) === businessDate) throw new BusinessError('EXPEDITION_DEPARTURE_ALREADY_USED', 'Vous avez déjà lancé une expédition aujourd’hui.');
-      const possession = await transaction.playerCharacter.findUnique({ where: { playerId_characterId: { playerId: player.id, characterId } }, include: { character: { select: { isActive: true, name: true } } } });
+      const possession = await transaction.playerCharacter.findUnique({ where: { playerId_characterId: { playerId: player.id, characterId } }, include: { character: { select: { isActive: true, ...characterSelect } } } });
       if (!possession) throw new BusinessError('EXPEDITION_CHARACTER_NOT_OWNED', 'Ce personnage ne fait pas partie de votre Box.');
       if (!possession.character.isActive) throw new BusinessError('EXPEDITION_CHARACTER_INACTIVE', 'Ce personnage n’est plus disponible.');
       const readyAt = new Date(now.getTime() + EXPEDITION_DURATION_MS);
-      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.start', sourceChannel, idempotencyKey: operationKey, status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { characterId, characterName: possession.character.name, departedAt: now.toISOString(), readyAt: readyAt.toISOString(), businessDate } }, select: { id: true } });
+      const snapshot = sourceChannel === SourceChannel.INTERNAL_CHAT ? commandSnapshot(possession.character, now, readyAt) : undefined;
+      const operation = await transaction.businessOperation.create({ data: { playerId: player.id, operationType: 'expedition.start', sourceChannel, idempotencyKey: operationKey, status: OperationStatus.COMPLETED, completedAt: now, resultSummary: { characterId, characterName: possession.character.name, departedAt: now.toISOString(), readyAt: readyAt.toISOString(), businessDate, ...(snapshot ? { commandSnapshot: snapshot } : {}) } }, select: { id: true } });
       await transaction.playerExpedition.upsert({ where: { playerId: player.id }, create: { playerId: player.id, state: 'RUNNING', characterId, departedAt: now, readyAt, departureBusinessDate: businessDateToDatabaseDate(businessDate) }, update: { state: 'RUNNING', characterId, departedAt: now, readyAt, departureBusinessDate: businessDateToDatabaseDate(businessDate) } });
-      return { id: operation.id, alreadyProcessed: false };
+      return { id: operation.id, alreadyProcessed: false, commandSnapshot: snapshot };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 20_000 }));
-    return { operation: committed, view: await readView(this.database, player.id, businessDate, now) };
+    return { operation: { id: committed.id, alreadyProcessed: committed.alreadyProcessed }, view: await readView(this.database, player.id, businessDate, now), ...(committed.commandSnapshot ? { commandSnapshot: committed.commandSnapshot } : {}) };
   }
 
   public async claim(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<ExpeditionClaimResult> {
@@ -90,7 +94,7 @@ export class ExpeditionService {
       if (existing) {
         const summary = objectSummary(existing.resultSummary); const roll = Number(summary.roll);
         if (existing.playerId !== player.id || existing.operationType !== 'expedition.claim' || existing.status !== OperationStatus.COMPLETED || !Number.isInteger(roll)) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à la récupération attendue.');
-        return { id: existing.id, alreadyProcessed: true, reward: selectExpeditionReward(roll, playerElementKey), characterId: String(summary.characterId), completedAt: new Date(String(summary.completedAt)) };
+        return { id: existing.id, alreadyProcessed: true, reward: selectExpeditionReward(roll, playerElementKey), characterId: String(summary.characterId), completedAt: new Date(String(summary.completedAt)), commandSnapshot: summary.commandSnapshot as unknown as ExpeditionCommandSnapshot | undefined };
       }
       await assertCommandTargets(transaction, player.id, 'expedition');
       await reconcileLocked(transaction, player.id, now);
@@ -115,10 +119,11 @@ export class ExpeditionService {
           ...(reward.kind === 'particles' ? ['MAIN_ELEMENT_PARTICLES_EARNED' as const] : []),
         ],
       });
-      await transaction.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now } });
-      return { id: operation.id, alreadyProcessed: false, reward, characterId: state.characterId, completedAt: now };
+      const snapshot = sourceChannel === SourceChannel.INTERNAL_CHAT ? commandSnapshot(state.character, state.departedAt, state.readyAt, (await readBalances(transaction, player.id))[reward.resourceKey].toString()) : undefined;
+      await transaction.businessOperation.update({ where: { id: operation.id }, data: { status: OperationStatus.COMPLETED, completedAt: now, ...(snapshot ? { resultSummary: { characterId: state.characterId, roll, rewardKind: reward.kind, resourceKey: reward.resourceKey, amount: reward.amount.toString(), completedAt: now.toISOString(), commandSnapshot: snapshot } } : {}) } });
+      return { id: operation.id, alreadyProcessed: false, reward, characterId: state.characterId, completedAt: now, commandSnapshot: snapshot };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, timeout: 20_000 }));
-    return { operation: { id: committed.id, alreadyProcessed: committed.alreadyProcessed }, reward: committed.reward, view: await readView(this.database, player.id, businessDate, now), resources: await readBalances(this.database, player.id), missionEvent: { type: 'expedition.completed', playerId: player.id, characterId: committed.characterId, completedAt: committed.completedAt } };
+    return { operation: { id: committed.id, alreadyProcessed: committed.alreadyProcessed }, reward: committed.reward, view: await readView(this.database, player.id, businessDate, now), resources: await readBalances(this.database, player.id), ...(committed.commandSnapshot ? { commandSnapshot: committed.commandSnapshot } : {}), missionEvent: { type: 'expedition.completed', playerId: player.id, characterId: committed.characterId, completedAt: committed.completedAt } };
   }
 
   public async cleanup(playerId: string): Promise<boolean> { return this.reconcile(playerId, commandNow(this.clock)); }

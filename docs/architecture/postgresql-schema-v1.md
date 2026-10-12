@@ -1,5 +1,11 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Badges et résultats Chat — migrations additives077–079
+
+077 ajoute BADGE à cosmetic_type séparément pour committer l'enum avant utilisation. 078 ajoute players.equipped_badge_cosmetic_id UUID nullable, FK RESTRICT/CASCADE et index ; insère uniquement dix définitions canoniques, CHECK externalKey/symbole exact, sans asset/Character source, visibilité VISIBLE. Aucun UPDATE Player, backfill PlayerCosmetic, acquisition historique, notification ou changement des équipements existants. Archives intactes.
+
+079 ajoute global_chat_messages.result_presentation JSONB nullable ; CHECK limité aux GAME_RESULT SYSTEM sans auteur, objet<=16384octets. Version/provenance/bornes/clés fermées sont aussi validées par le serveur avant écriture et projection. Aucun grant, table, règle RLS ou accès direct navigateur ajouté. Migrations terminées et ledger antérieur inchangés ; SQL LF. Répétition Prisma migrate deploy/status en schéma privé avec vraies migrations/guards d'archive ; application publique par predeploy Railway canonique après review. État réel et SHA au Master.
+
 ## Extension physique R1052 — migration076 (12/10/2026)
 
 Migration Prisma additive20261012190000_076_cosmetic_consultation sur player_cosmetics :

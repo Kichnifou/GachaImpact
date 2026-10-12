@@ -15,7 +15,7 @@ export class BannerVoteService {
     return this.database.$transaction(tx => this.snapshot(tx, player.id), { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
-  public async vote(identity: PlayerExecutionActor, characterId: string, bannerRotationId: string, sourceChannel: SourceChannel = SourceChannel.UI) {
+  public async vote(identity: PlayerExecutionActor, characterId: string, bannerRotationId: string, sourceChannel: SourceChannel = SourceChannel.UI, standaloneCommandId?: string) {
     const player = await this.getPlayer.execute(identity);
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
@@ -24,12 +24,27 @@ export class BannerVoteService {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
           const currentPlayer = await tx.player.findUnique({ where: { id: player.id } });
           if (currentPlayer?.status !== 'ACTIVE') throw new BusinessError('PLAYER_NOT_FOUND', 'Compte indisponible.');
+          const receiptKey = sourceChannel === SourceChannel.INTERNAL_CHAT && standaloneCommandId ? `chat.vote:${standaloneCommandId}` : null;
+          if (receiptKey) {
+            const receipt = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: receiptKey } });
+            if (receipt) {
+              const saved = receipt.resultSummary as unknown as { characterId: string; bannerRotationId: string; snapshot: Awaited<ReturnType<BannerVoteService['snapshot']>> & { commandCharacter?: { id: string; name: string; iconPath: string | null; rarity: number } } };
+              if (receipt.playerId !== player.id || receipt.operationType !== 'banner.vote.command' || receipt.status !== 'COMPLETED' || saved.characterId !== characterId || saved.bannerRotationId !== bannerRotationId) throw new BusinessError('BANNER_VOTE_IDEMPOTENCY_CONFLICT', 'Ce résultat appartient à une autre demande.');
+              return { ...saved.snapshot, alreadyProcessed: true };
+            }
+          }
+          const result = async (alreadyProcessed: boolean) => {
+            const commandCharacter = receiptKey ? await tx.character.findUnique({ where: { id: characterId }, select: { id: true, name: true, iconPath: true, rarity: true } }) : null;
+            const snapshot = { ...await this.snapshot(tx, player.id, bannerRotationId), ...(commandCharacter ? { commandCharacter } : {}) };
+            if (receiptKey) await tx.businessOperation.create({ data: { playerId: player.id, sourceChannel, idempotencyKey: receiptKey, operationType: 'banner.vote.command', status: 'COMPLETED', completedAt: commandNow(this.clock), resultSummary: { characterId, bannerRotationId, snapshot } } });
+            return { ...snapshot, alreadyProcessed };
+          };
           const identity = await tx.twitchIdentity.findUnique({ where: { playerId: player.id } });
           if (identity) await reconcileExternalBannerVotes(tx, identity.twitchUserId);
           const contribution = (await bannerVoteContributions(tx, bannerRotationId)).own(player.id);
           if (contribution) {
             if (contribution.characterId !== characterId) throw new BusinessError('BANNER_VOTE_USED', 'Votre vote est déjà utilisé pour cette semaine.');
-            return { ...await this.snapshot(tx, player.id, bannerRotationId), alreadyProcessed: true };
+            return result(true);
           }
           const banner = await tx.bannerRotation.findFirst({ where: { status: 'ACTIVE' } });
           if (!banner || banner.id !== bannerRotationId) throw new BusinessError('BANNER_VOTE_CLOSED', 'Ce cycle de vote est terminé.');
@@ -40,7 +55,7 @@ export class BannerVoteService {
           const character = await tx.character.findFirst({ where: { id: characterId, isActive: true, rarity: 5, bannerAppearances: { none: { bannerRotationId: banner.id } } }, select: { id: true } });
           if (!character) throw new BusinessError('BANNER_VOTE_INELIGIBLE', 'Ce personnage ne peut pas recevoir de vote pour cette rotation.');
           await tx.bannerVote.create({ data: { bannerRotationId: banner.id, playerId: player.id, characterId, sourceChannel, votedAt: now } });
-          return { ...await this.snapshot(tx, player.id, bannerRotationId), alreadyProcessed: false };
+          return result(false);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
       } catch (error) {
         // A newly committed replacement can be invisible to the snapshot taken

@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Badges et reçus graphiques standalone — R1079
+
+CosmeticType ajoute BADGE ; dix définitions externalKey/symbole fixes sans Character source/asset. Player.equippedBadgeCosmeticId nullable et indépendant d'Avatar/Titre. Disponibilité universelle dérivée sans PlayerCosmetic/regrant/notification/date inventée. Identité personnelle et Chat projettent badgeSymbol courant validé, sans copie dans les messages anciens. [Contrat Apparence](profile-appearance-v1.md).
+
+GlobalChatMessage.resultPresentation JSON nullable complète uniquement GAME_RESULT système actif : version1, provenance de commande, champs publics fermés/bornés. Anciens résultats restent textuels ; suppression masque aussi le visuel. ChatOperationSummary.standaloneResult fige texte complet et présentation sous verrou, premier reçu conservé pour publication/replay. Pull/Team utilisent leurs snapshots natifs ; métadonnées de personnage/état/bilan ajoutées aux reçus Stella/Expédition/Vote INTERNAL_CHAT dans leurs transactions existantes. Aucun gain/RNG/confidentialité dupliqué. [Architecture](../architecture/backend-architecture-v1.md).
+
 ## Complément R1052 — consultation et date fiable (12/10/2026)
 
 PlayerCosmetic conserve son unlockedAt original et ajoute consultedAt nullable (date de première consultation, null signifie nouveauté non consultée) et acquisitionDateKnown booléen. Catalogue personnel AppearanceDto : unlockedAt ISO si possédé et fiable, sinon null ; isNew seulement pour une possession consultedAt=null. Aucun DTO public tiers ne révèle de nouvelle information.

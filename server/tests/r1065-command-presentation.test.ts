@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { harness, actor } from './helpers/chat-command-harness.js';
+import { harness, actor, commandId } from './helpers/chat-command-harness.js';
 
 describe('R1065 command presentation', () => {
   it.each(['!vote', '!votes'])('routes %s to the same vote consultation', async command => {
@@ -9,7 +9,7 @@ describe('R1065 command presentation', () => {
   });
   it.each(['!vote', '!votes'])('routes %s choice to the canonical owner', async command => {
     const h = harness(); await h.send(`${command} Candidat`);
-    expect(h.services.bannerVotes.vote).toHaveBeenCalledWith(actor, 'candidate', 'rotation', 'INTERNAL_CHAT');
+    expect(h.services.bannerVotes.vote).toHaveBeenCalledWith(actor, 'candidate', 'rotation', 'INTERNAL_CHAT', commandId);
   });
   it.each([1n, 97961656n, 123456789012345678901234567890n])('formats bank BigInt %s without changing its value', async amount => {
     const h = harness();

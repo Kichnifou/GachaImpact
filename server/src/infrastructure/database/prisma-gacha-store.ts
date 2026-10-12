@@ -401,7 +401,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack, resourceTotalsAfter), createdAt: input.now,
+          snapshot: { ...snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack, resourceTotalsAfter), ...(sourceChannel === 'INTERNAL_CHAT' && record.character ? { standaloneCharacter: record.character as unknown as Prisma.InputJsonValue } : {}) }, createdAt: input.now,
         } });
         records.push(record);
       }
@@ -460,7 +460,7 @@ export class PrismaGachaStore implements GachaStore {
       operation: { id: row.id, pullCount: expectedCount, primogemCost: row.primogemCost, createdAt: row.createdAt, alreadyProcessed },
       results: row.results.map((result) => ({
         index: result.resultIndex, resultType: result.resultType as 'character' | 'resource',
-        character: result.character ? toCharacter(result.character) : null,
+        character: readStandaloneCharacter(result.snapshot, result.characterId) ?? (result.character ? toCharacter(result.character) : null),
         rarity: result.rarity as 4 | 5 | null, resourceKey: result.resourceKey && isResourceKey(result.resourceKey) ? result.resourceKey : null,
         resourceAmount: result.resourceAmount, wasNewCharacter: result.wasNewCharacter,
         constellationAfter: result.constellationAfter, copiesAfter: result.copiesAfter,
@@ -752,6 +752,13 @@ function waitForConcurrentTransaction(attempt: number): Promise<void> {
 function toCharacter(row: Prisma.CharacterGetPayload<{ select: typeof characterSelection }>): GachaCharacter {
   if (row.rarity !== 4 && row.rarity !== 5) throw new Error(`Invalid stored rarity for ${row.id}.`);
   return { ...row, rarity: row.rarity };
+}
+
+function readStandaloneCharacter(snapshot: Prisma.JsonValue | null, characterId: string | null): GachaCharacter | null {
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) return null;
+  const character = snapshot.standaloneCharacter;
+  if (!character || typeof character !== 'object' || Array.isArray(character) || character.id !== characterId || typeof character.name !== 'string' || (character.rarity !== 4 && character.rarity !== 5)) return null;
+  return character as unknown as GachaCharacter;
 }
 
 function toBanner(row: { id: string; startsAt: Date; endsAt: Date; featuredCharacters: readonly { rarity: number; slot: number; character: Prisma.CharacterGetPayload<{ select: typeof characterSelection }> }[] }): CurrentBanner {

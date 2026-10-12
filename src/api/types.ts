@@ -803,6 +803,7 @@ export type BannerVoteDto = Readonly<{
 export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' | 'bannerVotes' | 'box' | 'teams' | 'inventory' | 'bank' | 'shop' | 'dailyChallenge' | 'wheel' | 'social' | 'trades' | 'expedition' | 'dailyCombat' | 'monthlyBoss' | 'contest' | 'event' | 'giftCodes' | 'notifications'
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
+  resultPresentation?: import('../../server/src/domain/chat/structured-result').StructuredChatResult | null
   id: string
   author: { id: string; displayName: string; elementKey: string | null; avatarAssetPath?: string | null; badgeSymbol?: string | null } | null
   authorLabel: string | null

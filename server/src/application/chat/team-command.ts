@@ -7,6 +7,7 @@ import { chatElementEmojis, chatLength, chatResponseLimit, logicalChatParts } fr
 import { deriveActiveTeamGachaEffects } from '../../domain/team/team-passives.js';
 import { entryParts } from './chat-command-format.js';
 import { commandSource } from '../player/player-command-execution.js';
+import { teamPresentation, type PresentationSink } from './result-presentation.js';
 
 type Intent = { kind: 'apply' | 'rename' | 'new' | 'add' | 'remove' | 'clear'; teamId: string; position: number; characterId: string; name: string | null; available?: boolean; guardSlot?: boolean; error?: string };
 export const twitchTeamSyntax = 'Syntaxe : !team create | !team N apply | !team add <nom> | !team remove <nom|all> | !team rename "Nom" | !team liste';
@@ -35,7 +36,7 @@ export function viewTeam(player: string, team: PlayerTeam, headline = `✅ Team 
       : [{ text: '🧩 Aucun passif actif', separator: ' | ' }]),
   ], '✅ Team suite :');
 }
-export async function teamCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string, services: ChatCommandServices, chat: PlayerCommandContext, syntax: string): Promise<string | readonly string[]> {
+export async function teamCommand(identity: PlayerExecutionActor, args: readonly string[], commandId: string, services: ChatCommandServices, chat: PlayerCommandContext, syntax: string, present?: PresentationSink): Promise<string | readonly string[]> {
   if (commandSource(chat.sourceChannel ?? 'INTERNAL_CHAT') === 'TWITCH') syntax = twitchTeamSyntax;
   const first = normalizePlayerSearch(args[0] ?? '');
   if (['save', 'help', 'helps', 'tuto', 'info', 'infos'].includes(first)) return syntax;
@@ -54,7 +55,7 @@ export async function teamCommand(identity: PlayerExecutionActor, args: readonly
   if (['list', 'liste'].includes(action) && (rest.length > 1 || rest[0] && !/^[1-9]\d*$/u.test(rest[0]))) return syntax;
   const [actor, state] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerTeams.execute(identity)]);
   const team = number !== null ? state.teams.find(row => row.position === number) : state.teams.find(row => row.active);
-  if (!args.length || numbered && !action) return team ? viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`;
+  if (!args.length || numbered && !action) { if (team && present) present(teamPresentation(team)); return team ? viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`; }
   if (['list', 'liste'].includes(action)) {
     const page = rest[0] ? Number(rest[0]) : 1, pages = Math.max(1, Math.ceil(state.teams.length / 10));
     if (!Number.isSafeInteger(page)) return syntax;
@@ -106,6 +107,7 @@ export async function teamCommand(identity: PlayerExecutionActor, args: readonly
   }
   await chat.rememberCommandRefreshScopes(commandId, ['teams', 'dailyCombat', 'monthlyBoss']);
   const updated = result.teams.find(row => saved.kind === 'new' ? saved.available ? row.active : row.position === saved.position : row.id === saved.teamId)!;
+  if (present) present(teamPresentation(updated));
   const outcome = saved.kind === 'new' && saved.available || saved.kind === 'apply' ? `Team ${updated.position} activée` : saved.kind === 'new' ? `${label(updated)} créée, vide et non active`
     : saved.kind === 'rename' ? `${label(updated)} renommée` : saved.kind === 'clear' ? `${label(updated)} vidée`
     : `${result.availableCharacters.find(row => row.id === saved.characterId)?.name ?? 'Personnage'} ${saved.kind === 'add' ? 'ajouté à' : 'retiré de'} la Team ${updated.position}`;

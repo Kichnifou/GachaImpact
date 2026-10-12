@@ -24,6 +24,19 @@ const random = { nextInt: () => 0 };
 afterEach(cleanup);
 afterAll(async () => { await cleanup(); await database.$disconnect(); });
 
+it('keeps a standalone Stella receipt immutable after a later use and catalog change', async () => {
+  const player = await createPlayer(), target = await createCharacter(5, true), store = new PrismaBoxStore(database);
+  await credit(player.id, 3n); await possess(player.id, target.id, 0, 1);
+  const input = { playerId: player.id, characterId: target.id, idempotencyKey: randomUUID(), now, random, sourceChannel: SourceChannel.INTERNAL_CHAT };
+  const first = await store.useStella(input);
+  await store.useStella({ ...input, idempotencyKey: randomUUID() });
+  await database.character.update({ where: { id: target.id }, data: { name: 'Changed after command' } });
+  const retry = await store.useStella({ ...input, random: { nextInt: () => { throw Error('Must not reroll'); } } });
+  expect(retry).toMatchObject({ standaloneSnapshot: true, character: { name: first.character.name, constellation: 1 }, stellaRemaining: 2n });
+  expect(await store.getStellaQuantity(player.id)).toBe(1n);
+  expect(await database.playerCharacter.findUniqueOrThrow({ where: { playerId_characterId: { playerId: player.id, characterId: target.id } } })).toMatchObject({ constellation: 2, copies: 3 });
+}, 20_000);
+
 describe('Box preferences and Masterless Stella Fortuna on the development database', () => {
   it('uses the safe default, persists every canonical sort and isolates preferences by Player', async () => {
     const first = await createPlayer();

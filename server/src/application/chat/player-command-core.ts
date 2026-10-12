@@ -12,6 +12,7 @@ import { optionalRecoveryDomain } from '../player/player-recovery-readiness.js';
 import { AppError } from '../../api/errors.js';
 import { commandText } from './command-presentation.js';
 import { bossDailyState, expeditionDailyState, eventHasActionableContentToday } from '../../domain/dailies/daily-completion.js';
+import { pullPresentation, resultCharacter, teamPresentation, type PresentationSink } from './result-presentation.js';
 export type PlayerCommandServices = Pick<ChatCommandServices, 'getCurrentGacha' | 'performGachaPullChat' | 'getCurrentPlayerTeams' | 'getCurrentPlayerInventory' | 'expeditionService' | 'getTodayWheelState' | 'getDailyChallenge' | 'dailyCombatService' | 'monthlyBossService' | 'getTodayDailyReward' | 'eventService'> & { socialService: Pick<ChatCommandServices['socialService'], 'actor' | 'friends' | 'favor'> };
 export type PlayerCommandHandler = 'pity' | 'banniere' | 'pull' | 'team' | 'sac' | 'expedition' | 'quotis';
 const syntax = (usage: string) => `⚠️ Syntaxe : ${usage}.`;
@@ -32,7 +33,7 @@ export function expeditionCommandSummary(view: Awaited<ReturnType<PlayerCommandS
             `🧭 Expédition : ${view.activeCharacter?.name ?? 'personnage'} · ${view.operationalStatus === 'READY' ? 'à récupérer avec !expedition retour' : `en cours, retour dans ${durationText(view.remainingSeconds)}`}.`;
 }
 
-export async function resolvePlayerCommand(identity: PlayerExecutionActor, handler: PlayerCommandHandler, args: readonly string[], usage: string, commandMessageId: string, services: PlayerCommandServices, rememberName: (name: string) => Promise<string> = async name => name): Promise<string | readonly string[]> {
+export async function resolvePlayerCommand(identity: PlayerExecutionActor, handler: PlayerCommandHandler, args: readonly string[], usage: string, commandMessageId: string, services: PlayerCommandServices, rememberName: (name: string) => Promise<string> = async name => name, present?: PresentationSink): Promise<string | readonly string[]> {
   const definition = { syntax: usage };
   switch (handler) {
     case 'pity': {
@@ -50,6 +51,7 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
       const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
       const targetText = target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.';
+      present?.({ command: 'banniere', title: `Bannières · ${period}`, characters: banner.featuredFiveStars.map(c => resultCharacter(c, { rarity: 5, label: c.id === target?.id ? 'Cible' : '5★ à l’affiche' })), facts: [targetText] });
       const text = `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${targetText}`;
       if (commandSource('INTERNAL_CHAT') !== 'TWITCH' || chatLength(text) <= chatResponseLimit()) return text;
       return logicalChatParts(`🎯 Bannières (${period}) |`, [
@@ -64,6 +66,7 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const actor = await services.socialService.actor(identity);
       const actorName = await rememberName(actor.displayName);
       const result = await services.performGachaPullChat.execute(identity, count, commandMessageId);
+      if (present) present(pullPresentation(result), result.operation.id);
       return pullChatResult(actorName, result);
     }
     case 'quotis': {
@@ -88,6 +91,7 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       if (args.length) return syntax(usage);
       const [actor, state] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerTeams.execute(identity)]);
       const team = state.teams.find(row => row.active);
+      if (team && present) present(teamPresentation(team));
       return team ? viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`;
     }
     case 'sac': return args.length ? syntax(usage) : sacCommand(identity, services);
