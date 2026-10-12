@@ -29,8 +29,8 @@ export default function SharedInvocationAudience({shared,session,onProfile}:{sha
  return <>
   <div ref={status} className="shared-invocation-status">
    <button ref={counter} type="button" className="shared-spectator-count" aria-label={data?`${data.total} ${data.total===1?'spectateur':'spectateurs'}`:'Spectateurs'} aria-haspopup="dialog" aria-expanded={open} onPointerEnter={e=>{if(e.pointerType!=='touch')showPreview()}} onPointerLeave={leave} onFocus={showPreview} onBlur={leave} onClick={modal}><span aria-hidden="true">◉</span> {data?`${data.total} ${data.total===1?'spectateur':'spectateurs'}`:'Spectateurs…'}</button>
-   <span className="shared-live-label"><span aria-hidden="true">●</span> {session.status==='PAUSED'?'En pause':'En direct'} · {session.snapshot.displayName}</span>
-   {shared.state.broadcasting&&!session.authoritative&&<span>Contrôle dans un autre onglet</span>}
+   <span className="shared-live-label" title={`${session.status==='PAUSED'?'En pause':'En direct'} · ${session.snapshot.displayName}`}><span aria-hidden="true">●</span> {session.status==='PAUSED'?'En pause':'En direct'} · {session.snapshot.displayName}</span>
+   {shared.state.broadcasting&&!session.authoritative&&<span className="shared-authority-label" title="Contrôle dans un autre onglet">Contrôle dans un autre onglet</span>}
   </div>
   {preview&&createPortal(<div className="shared-spectator-preview" style={preview} onPointerEnter={()=>{if(hide.current)clearTimeout(hide.current)}} onPointerLeave={leave} onFocus={()=>{if(hide.current)clearTimeout(hide.current)}} onBlur={leave} role="region" aria-label="Aperçu des spectateurs">{error?<p>{error}</p>:!data?<p>Chargement…</p>:data.total===0?<p>Aucun spectateur.</p>:data.preview.map(p=><div key={p.playerId}>{p.displayName}</div>)}{data&&data.total>5&&<button type="button" className="shared-recovery-link" onClick={modal}>Voir plus</button>}</div>,document.body)}
   {open&&createPortal(<SpectatorDialog data={data} error={error} onClose={()=>{setOpen(false);counter.current?.focus()}} onRetry={()=>setRetry(x=>x+1)} onPage={setPage} onProfile={id=>{setOpen(false);onProfile?.(id)}}/>,document.body)}
