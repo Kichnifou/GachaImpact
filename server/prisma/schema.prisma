@@ -20,6 +20,7 @@ enum PlayerStatus {
 enum CosmeticType {
   AVATAR
   TITLE
+  BADGE
 
   @@map("cosmetic_type")
 }
@@ -367,6 +368,8 @@ model Player {
   elementKey            String?                      @map("element_key") @db.Text
   equippedAvatarCosmeticId String?                   @map("equipped_avatar_cosmetic_id") @db.Uuid
   equippedTitleCosmeticId String?                    @map("equipped_title_cosmetic_id") @db.Uuid
+  equippedBadgeCosmeticId String?                    @map("equipped_badge_cosmetic_id") @db.Uuid
+  equippedBadgeCosmetic CosmeticDefinition?          @relation("EquippedBadge", fields: [equippedBadgeCosmeticId], references: [id], onDelete: Restrict)
   equippedAvatarCosmetic CosmeticDefinition?        @relation("EquippedAvatar", fields: [equippedAvatarCosmeticId], references: [id], onDelete: Restrict)
   equippedTitleCosmetic CosmeticDefinition?         @relation("EquippedTitle", fields: [equippedTitleCosmeticId], references: [id], onDelete: Restrict)
   cosmetics             PlayerCosmetic[]
@@ -505,6 +508,7 @@ model Player {
   @@index([elementKey], map: "players_element_key_idx")
   @@index([equippedAvatarCosmeticId], map: "players_equipped_avatar_cosmetic_id_idx")
   @@index([equippedTitleCosmeticId], map: "players_equipped_title_cosmetic_id_idx")
+  @@index([equippedBadgeCosmeticId], map: "players_equipped_badge_cosmetic_id_idx")
   @@map("players")
 }
 
@@ -525,6 +529,7 @@ model CosmeticDefinition {
   sourceCharacter Character?         @relation(fields: [sourceCharacterId], references: [id], onDelete: Restrict)
   equippedAsAvatarBy Player[]        @relation("EquippedAvatar")
   equippedAsTitleBy  Player[]        @relation("EquippedTitle")
+  equippedAsBadgeBy  Player[]        @relation("EquippedBadge")
 
   @@index([type, isActive], map: "cosmetic_definitions_type_active_idx")
   @@map("cosmetic_definitions")

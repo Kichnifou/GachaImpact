@@ -3,6 +3,7 @@ import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
 import { AppError } from '../../api/errors.js';
 import { officialCharacterAsset } from '../character-catalog/catalog-asset-url.js';
+import { freeBadgeSymbol } from './badges.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 type AppearancePlayer = {
@@ -16,6 +17,7 @@ const officialAsset = officialCharacterAsset;
 export const appearanceSelect = {
   equippedAvatarCosmetic: { select: { id: true, type: true, isActive: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { iconPath: true } } } },
   equippedTitleCosmetic: { select: { id: true, type: true, displayName: true } },
+  equippedBadgeCosmetic: { select: { id: true, type: true, externalKey: true, displayName: true, isActive: true } },
 } as const;
 
 export function effectiveAvatar(player: Pick<AppearancePlayer, 'displayName' | 'elementKey' | 'equippedAvatarCosmetic'>) {
@@ -42,6 +44,11 @@ export class AppearanceService {
     return player ? avatarAssetPath(player) : null;
   }
 
+  async playerIdentityAppearance(playerId: string) {
+    const player = await this.database.player.findUnique({ where: { id: playerId }, select: { displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } });
+    return { avatarAssetPath: player ? avatarAssetPath(player) : null, badgeSymbol: freeBadgeSymbol(player?.equippedBadgeCosmetic) };
+  }
+
   private async actor(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
     if (player.status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
@@ -52,7 +59,7 @@ export class AppearanceService {
     const actor = await this.actor(identity);
     const [player, definitions, possessions, characters] = await Promise.all([
       this.database.player.findUniqueOrThrow({ where: { id: actor.id }, select: { displayName: true, elementKey: true, ...appearanceSelect } }),
-      this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, unlockRule: true, visibility: true, isActive: true } }),
+      this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, externalKey: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, unlockRule: true, visibility: true, isActive: true } }),
       this.database.playerCosmetic.findMany({ where: { playerId: actor.id }, select: { cosmeticId: true, unlockedAt: true, consultedAt: true, acquisitionDateKnown: true } }),
       this.database.playerCharacter.findMany({ where: { playerId: actor.id }, select: { characterId: true } }),
     ]);
@@ -62,8 +69,11 @@ export class AppearanceService {
       avatar: effectiveAvatar(player), title: equippedTitle(player),
       equippedAvatarCosmeticId: player.equippedAvatarCosmetic?.id ?? null,
       equippedTitleCosmeticId: player.equippedTitleCosmetic?.id ?? null,
+      equippedBadgeCosmeticId: freeBadgeSymbol(player.equippedBadgeCosmetic) ? player.equippedBadgeCosmetic!.id : null,
+      badgeSymbol: freeBadgeSymbol(player.equippedBadgeCosmetic),
       catalog: definitions.flatMap(item => {
-        const isOwned = owned.has(item.id);
+        if (item.type === 'BADGE' && !freeBadgeSymbol(item)) return [];
+        const isOwned = item.type === 'BADGE' || owned.has(item.id);
         const possession=possessions.find(row=>row.cosmeticId===item.id);
         if (item.sourceCharacterId && (!isOwned || !ownedCharacters.has(item.sourceCharacterId))) return [];
         if (!isOwned && item.visibility === CosmeticVisibility.SECRET) return [];
@@ -93,17 +103,20 @@ export class AppearanceService {
   async equip(identity: AuthenticatedIdentity, type: CosmeticType, cosmeticId: string | null) {
     const actor = await this.actor(identity);
     await this.database.$transaction(async tx => {
+      const locked = await tx.$queryRaw<{ status: string }[]>`SELECT status::text FROM players WHERE id = ${actor.id}::uuid FOR UPDATE`;
+      if (locked[0]?.status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
       if (cosmeticId !== null) {
-        const cosmetic = await tx.cosmeticDefinition.findUnique({ where: { id: cosmeticId }, select: { type: true, isActive: true, sourceCharacterId: true } });
+        const cosmetic = await tx.cosmeticDefinition.findUnique({ where: { id: cosmeticId }, select: { type: true, isActive: true, sourceCharacterId: true, externalKey: true, displayName: true } });
         if (!cosmetic || !cosmetic.isActive) throw new AppError('Cosmétique indisponible.', 404, 'COSMETIC_UNAVAILABLE');
         if (cosmetic.type !== type) throw new AppError('Type de cosmétique incorrect.', 400, 'COSMETIC_TYPE_MISMATCH');
+        if (type === CosmeticType.BADGE && !freeBadgeSymbol(cosmetic)) throw new AppError('Badge indisponible.', 403, 'COSMETIC_NOT_OWNED');
         const possession = await tx.playerCosmetic.findUnique({ where: { playerId_cosmeticId: { playerId: actor.id, cosmeticId } }, select: { cosmeticId: true } });
-        if (!possession) throw new AppError('Cosmétique non possédé.', 403, 'COSMETIC_NOT_OWNED');
+        if (!possession && !freeBadgeSymbol(cosmetic)) throw new AppError('Cosmétique non possédé.', 403, 'COSMETIC_NOT_OWNED');
         if (cosmetic.sourceCharacterId && !(await tx.playerCharacter.findUnique({ where: { playerId_characterId: { playerId: actor.id, characterId: cosmetic.sourceCharacterId } }, select: { characterId: true } }))) {
           throw new AppError('Personnage non possédé.', 403, 'COSMETIC_NOT_OWNED');
         }
       }
-      await tx.player.update({ where: { id: actor.id }, data: type === CosmeticType.AVATAR ? { equippedAvatarCosmeticId: cosmeticId } : { equippedTitleCosmeticId: cosmeticId } });
+      await tx.player.update({ where: { id: actor.id }, data: type === CosmeticType.AVATAR ? { equippedAvatarCosmeticId: cosmeticId } : type === CosmeticType.TITLE ? { equippedTitleCosmeticId: cosmeticId } : { equippedBadgeCosmeticId: cosmeticId } });
     });
     return this.get(identity);
   }

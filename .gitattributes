@@ -16,3 +16,5 @@ server/prisma/migrations/20261011190000_073_catalog_progressive/migration.sql te
 server/prisma/migrations/20261011200000_074_shared_invocations/migration.sql text eol=lf
 server/prisma/migrations/20261012100000_075_shared_viewer_presence/migration.sql text eol=lf
 server/prisma/migrations/20261012190000_076_cosmetic_consultation/migration.sql text eol=lf
+server/prisma/migrations/20261012220000_077_badge_type/migration.sql text eol=lf
+server/prisma/migrations/20261012220100_078_badge_catalog/migration.sql text eol=lf

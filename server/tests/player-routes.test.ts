@@ -100,7 +100,7 @@ describe('authenticated player routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
+    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null, badgeSymbol: null });
     expect(store.provisionInputs).toHaveLength(0);
   });
 
@@ -115,7 +115,7 @@ describe('authenticated player routes', () => {
     for (const origin of origins) {
       const response = await app.inject({ method: 'GET', url: '/api/v1/me', headers: { origin, authorization: 'Bearer synthetic-token' } });
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
+      expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null, badgeSymbol: null });
       expect(response.headers['access-control-allow-origin']).toBe(origin);
     }
     expect(find).toHaveBeenNthCalledWith(1, 'supabase', identity.subject);
@@ -179,7 +179,7 @@ describe('authenticated player routes', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null });
+    expect(response.json()).toEqual({ ...existingPlayer, avatarAssetPath: null, badgeSymbol: null });
     expect(store.provisionInputs).toHaveLength(0);
   });
 });

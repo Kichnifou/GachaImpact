@@ -5,7 +5,7 @@ import type { AppearanceService } from '../../application/appearance/appearance-
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 
-const body = z.object({ type: z.enum(['AVATAR', 'TITLE']), cosmeticId: z.uuid().nullable() }).strict();
+const body = z.object({ type: z.enum(['AVATAR', 'TITLE', 'BADGE']), cosmeticId: z.uuid().nullable() }).strict();
 const consultation=z.object({type:z.enum(['AVATAR','TITLE']),cosmeticIds:z.array(z.uuid()).min(1).max(200)}).strict();
 export async function registerAppearanceRoutes(app: FastifyInstance, options: { authenticate: preHandlerHookHandler; service: AppearanceService }) {
   app.addHook('onSend', (_request, reply, _payload, done) => { reply.header('Cache-Control', 'no-store'); done(); });

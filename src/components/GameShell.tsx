@@ -758,7 +758,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
           <div className="screen-stage" data-tutorial-screen={activeScreen} data-tutorial-step={presentationStep?.id} key={activeScreen}>{renderScreen()}</div>
         </main>
 
-        <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} playerAvatarAssetPath={player.avatarAssetPath} connectedCount={presence.value?.total ?? null}
+        <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} playerAvatarAssetPath={player.avatarAssetPath} playerBadgeSymbol={player.badgeSymbol} connectedCount={presence.value?.total ?? null}
           isExpanded={communityLayout.expanded && communityLayout.available && !tutorialState.active}
           onToggleExpanded={communityLayout.available && !tutorialState.active ? () => communityLayout.setExpanded(!communityLayout.expanded) : undefined}
           isCollapsed={revealCommunity ? false : isChatCollapsed}

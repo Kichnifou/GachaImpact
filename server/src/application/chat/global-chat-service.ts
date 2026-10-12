@@ -17,6 +17,7 @@ import { normalizePlayerSearch } from '../social/social-service.js';
 import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes.js';
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
+import { freeBadgeSymbol } from '../appearance/badges.js';
 import { ClaimDailyReward } from '../daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from '../../infrastructure/database/prisma-daily-reward-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
@@ -34,7 +35,7 @@ const PLAYER_HISTORY_LIMIT = 200;
 export type ChatCursor = { createdAt: string; id: string };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string };
 export type ChatMentionInput = { playerId: string; displayName: string };
-const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
+const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -61,14 +62,14 @@ export function splitGameResult(content: string): string[] {
 function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
-  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
+  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedBadgeCosmetic?: { type: string; externalKey: string; displayName: string; isActive: boolean } | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
   mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
   operation: { idempotencyKey: string | null } | null;
 }, viewerId?: string) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
   return {
-    id: row.id, author: row.author ? { id: row.author.id, displayName: row.author.displayName, elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
+    id: row.id, author: row.author ? { id: row.author.id, displayName: row.author.displayName, elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author), badgeSymbol: freeBadgeSymbol(row.author.equippedBadgeCosmetic) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
     sourceChannel: row.sourceChannel, messageType: row.messageType,
     content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(),
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,

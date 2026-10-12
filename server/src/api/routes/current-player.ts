@@ -36,7 +36,7 @@ export async function registerCurrentPlayerRoutes(
     const identity = requireAuthenticatedIdentity(request);
     const result = await options.getOrProvisionCurrentPlayer.execute(identity);
 
-    return { ...toCurrentPlayerDto(result.player), avatarAssetPath: options.appearanceService ? await options.appearanceService.playerAvatarAssetPath(result.player.id) : null };
+    return { ...toCurrentPlayerDto(result.player), ...(options.appearanceService ? await options.appearanceService.playerIdentityAppearance(result.player.id) : { avatarAssetPath: null, badgeSymbol: null }) };
   });
 
   app.post(
@@ -55,7 +55,7 @@ export async function registerCurrentPlayerRoutes(
         parsedBody.data.displayName,
       );
 
-      return reply.status(result.created ? 201 : 200).send({ ...toCurrentPlayerDto(result.player), avatarAssetPath: options.appearanceService ? await options.appearanceService.playerAvatarAssetPath(result.player.id) : null });
+      return reply.status(result.created ? 201 : 200).send({ ...toCurrentPlayerDto(result.player), ...(options.appearanceService ? await options.appearanceService.playerIdentityAppearance(result.player.id) : { avatarAssetPath: null, badgeSymbol: null }) });
     },
   );
 }

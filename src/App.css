@@ -9502,6 +9502,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 /* Standalone community: compact global messages; private-message styles stay scoped separately. */
 .community-header-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.chat-decorative-badge { margin-right: 4px; color: var(--chat-author-color, #b794ff); font-size: 12px; }
+.appearance-badge-symbol { font-size: 26px; line-height: 1; }
 .chat-community-pane .chat-message { display: block; padding: 4px 10px; border-bottom: 1px solid rgba(108,143,198,.06); }
 .chat-community-pane .message-content { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .chat-community-pane .message-meta { display: inline; font-size: inherit; }
@@ -9523,3 +9525,5 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 @media (min-width: 1000px) and (max-width: 1500px) {
   .community-is-expanded .game-layout { grid-template-columns: 260px minmax(0,1fr); }
 }
+
+.appearance-controls[hidden] { display: none; }

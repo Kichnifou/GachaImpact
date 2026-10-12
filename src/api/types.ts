@@ -7,6 +7,7 @@ export type PlayerDto = Readonly<{
   displayName: string
   elementKey: ElementKey | null
   avatarAssetPath?: string | null
+  badgeSymbol?: string | null
   status: 'ACTIVE' | 'SUSPENDED' | 'ARCHIVED'
 }>
 
@@ -803,7 +804,7 @@ export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' 
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
   id: string
-  author: { id: string; displayName: string; elementKey: string | null; avatarAssetPath?: string | null } | null
+  author: { id: string; displayName: string; elementKey: string | null; avatarAssetPath?: string | null; badgeSymbol?: string | null } | null
   authorLabel: string | null
   sourceChannel: string
   messageType: 'PLAYER' | 'COMMAND' | 'GAME_RESULT' | 'SYSTEM'
@@ -830,7 +831,9 @@ export type AppearanceDto = Readonly<{
   title: string | null
   equippedAvatarCosmeticId: string | null
   equippedTitleCosmeticId: string | null
-  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; levelRequirement?: number | null; unlockedAt?: string | null; isNew?: boolean; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
+  equippedBadgeCosmeticId?: string | null
+  badgeSymbol?: string | null
+  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE' | 'BADGE'; sourceCharacterId?: string | null; levelRequirement?: number | null; unlockedAt?: string | null; isNew?: boolean; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
 export type TwitchCommandPilotDto = Readonly<{
   commandPilotCapabilityEnabled: boolean
