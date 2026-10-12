@@ -1,7 +1,7 @@
 {
   "initialSha": "79832fc72c94233a61d0d3cd13cf41c4ed63de57",
   "stage": "LOCAL_QUALIFIED_AWAITING_PUBLISHED_SHA_REVIEW",
-  "at": "2026-10-12T06:34:57.525Z",
+  "at": "2026-10-12T06:57:28.748Z",
   "scope": [
     "seven finishing changes",
     "qualified consensus source independence and ADMIN labels",
@@ -9,17 +9,17 @@
   ],
   "tests": {
     "quick": "PASS 5/5",
-    "frontendTargeted": "37/37 PASS (recovery, audience, ADMIN)",
+    "frontendTargeted": "37/37 PASS initial finishing; hook13/13 PASS including membership-token rotation",
     "backendTargeted": "22/22 PASS source/routes; dispatcher 135/135 PASS",
     "postgres": {
-      "shared": "21/21 PASS, normal 75 migrations, final replay169.67s, private cleanup",
+      "shared": "23/23 PASS, normal75 migrations,180.75s, exact private schema cleanup verified",
       "catalogue": "8/8 PASS, normal75,114.80s,private cleanup",
       "publicFixtures": false
     },
     "full": {
       "result": "FAIL 6/8",
       "frontend": {
-        "pass": 1542,
+        "pass": 1543,
         "fail": 4
       },
       "backend": {
@@ -117,8 +117,6 @@
   },
   "delivery": "NOT_YET_DELIVERED",
   "unchangedReviewedDocs": [
-    "navigation-shell-v1.md (existing openProfile reused)",
-    "free-first-v1.md (no service/cost change)",
     "implementation-order-v1.md",
     "implementation-workflow.md",
     "conversation-handoff.md (Master remains live tracker)",
@@ -130,7 +128,20 @@
       "finding": "Joining an already PAUSED receipt freezes entry animation at opacity0",
       "change": "Settled static result cards while pause background stays suspended",
       "validation": "frontend build PASS; 60 compiled GameShell states and six spectator modals PASS; targeted screenshot inspection",
+      "independentApproval": "PENDING",
+      "publishedSha": "24a4e209eb58fee2b038890a28dcbdceffc5ff73"
+    },
+    {
+      "finding": "Eight expired tab tombstones prevent reconnecting presence",
+      "change": "Rotate membership version before pruning expired traces; preserve live leases and reject stale token packets; client adopts token on next poll",
+      "validation": "23/23 private PostgreSQL PASS; hook13/13 PASS; full revalidated after correcting a test-only TypeScript tuple assertion",
       "independentApproval": "PENDING"
     }
-  ]
+  ],
+  "initialIndependentReviews": {
+    "sha": "7d246b97a41ff6ecc54b88edcc42a68394b8af8d",
+    "verdict": "CHANGES_REQUIRED",
+    "securitySha256": "93a88772ace9e6d1d7eb660a1dd7450da343118a9ce5eff4ac97edf74f860b2c",
+    "visualSha256": "666e0c689ac3d12e6578c3f1561c77171d07033a3d37b35297f33a4a05b67999"
+  }
 }

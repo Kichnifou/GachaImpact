@@ -206,3 +206,13 @@ it('renews only the visible viewer tab at a bounded rate and releases it outside
  await act(async()=>{await vi.advanceTimersByTimeAsync(14000)});expect(viewerPresence).toHaveBeenCalledTimes(1);
  act(()=>root.render(<Harness transport={transport} visible={false}/>));await flush();expect(viewerPresence.mock.calls.at(-1)).toEqual([expect.any(String),'owned','membership',expect.any(Number),false]);
 });
+it('adopts a rotated membership token from polling and renews presence without another watch action',async()=>{
+ const transport=api(),viewerPresence=vi.fn(async()=>({ok:true}));transport.viewerPresence=viewerPresence;
+ const watching={...own,authoritative:false};
+ vi.mocked(transport.state).mockResolvedValue({broadcasting:null,watching,watchingToken:'old-token'});
+ mount(transport);await flush();expect(viewerPresence).toHaveBeenLastCalledWith(expect.any(String),'owned','old-token',expect.any(Number),true);
+ vi.mocked(transport.state).mockResolvedValue({broadcasting:null,watching,watchingToken:'new-token'});
+ await act(async()=>{await vi.advanceTimersByTimeAsync(1000)});
+ expect(viewerPresence).toHaveBeenLastCalledWith(expect.any(String),'owned','new-token',expect.any(Number),true);
+ expect(viewerPresence).toHaveBeenCalledTimes(2);expect(transport.watch).not.toHaveBeenCalled();
+});

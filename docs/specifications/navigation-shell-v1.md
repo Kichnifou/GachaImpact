@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Finition Invocation — 12/10/2026
+
+Le compteur/liste Spectateurs reste dans la destination Invocation ; un clic sur un Player utilise le parcours GameShell.openProfile existant, sans second système de profil ni route. Diffuser/Voir et aide sont absents pendant toute présentation personnelle ; diffuseur conserve son arrêt, spectateur Arrêter et réactions. Le refresh personnel est silencieux et borné ; seule une erreur persistante propose le petit lien « Réessayer l’actualisation », supersédant le grand bouton du contrat C historique ci-dessous. [Contrat actuel](../architecture/shared-invocations-v1.md#finition-autorisée-du-12102026).
+
 ## Lot C — Invocations partagées dans la destination existante
 
 Le mandat consolidé C R1067–R1075 supersède l’ancien cadrage futur des Invocations partagées ; le [contrat spécialisé V1](../architecture/shared-invocations-v1.md) possède le consentement, les projections et l’autorité. Diffuser et Voir sont deux commandes de largeur stable sous Détail dans Invocation. Voir ouvre la liste des diffuseurs puis projette uniquement la scène centrale choisie ; sidebar, ressources et identité personnelle du spectateur restent les siennes. En visionnage, Voir devient Arrêter et les commandes personnelles de tirage sont indisponibles. L’arrêt du visionnage restitue la scène personnelle seulement après une lecture fraîche réussie ; en cas d’échec, Actualiser mes Invocations conserve cette barrière.

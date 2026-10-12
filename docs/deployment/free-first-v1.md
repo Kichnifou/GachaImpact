@@ -1,5 +1,9 @@
 # Déploiement Free-first V1 — état public et checklist
 
+## Observation naturelle du 12/10/2026
+
+Le premier cycle quotidien naturel R1051 du 12/10 est observé COMPLETED en lecture seule (06:14UTC), last_success_date2026-10-12 ; aucune relance forcée. Les mentions « futur/à observer » du checkpoint11/10 ci-dessous restent historiques. État des déploiements, migration075 de finition et preuves : [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--finition-autorisée-du-12102026). Aucun fournisseur, variable, quota, droit Storage ou coût nouveau dans cette finition.
+
 ## R1051 — mise en service du 11/10/2026
 
 Migration 072 appliquée par pre-deploy Prisma normal ; 72 migrations/checksums conformes et sept tables privées RLS sans droits navigateur. Secret SUPABASE_STORAGE_SECRET_KEY uniquement Railway backend, quotas Storage/egress Free organisation confirmés. Bucket character-catalog public PNG 5 Mio à écritures serveur seules : uploads réels, GET/hash/cache max-age=31536000, immutable, rejeu/versioning/nettoyage, refus anonyme et session ordinaire (HTTP 400/Storage 403). Deux portraits provisoires disponibles ; aucun Character publié ni migration massive d'assets.

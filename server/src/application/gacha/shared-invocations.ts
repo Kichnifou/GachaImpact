@@ -1,5 +1,6 @@
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import { isDeepStrictEqual } from 'node:util';
+import { randomUUID } from 'node:crypto';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -233,10 +234,15 @@ export class SharedInvocations {
             const old=leases.find(lease=>lease.tabId===tabId);
             if(old&&old.revision>=revision) return;
             // Keep revision tombstones until the membership token changes: delayed packets cannot revive a left tab.
-            const others=leases.filter(lease=>lease.tabId!==tabId);
+            let others=leases.filter(lease=>lease.tabId!==tabId), watchingVersion=token;
             // Never evict another live tab to let an arbitrary ninth tab take its place.
-            if(others.length>=8) return;
-            await tx.sharedInvocationMember.update({where:{playerId:p.id},data:{viewerPresences:[...others,{tabId,revision,until:new Date(visible?now.getTime()+sharedLeaseMs:now.getTime()).toISOString()}]}});
+            if(others.length>=8) {
+                const live=others.filter(lease=>new Date(lease.until).getTime()>now.getTime());
+                if(live.length>=8) return;
+                // Fence every old packet before removing expired revision tombstones.
+                watchingVersion=randomUUID();others=live;
+            }
+            await tx.sharedInvocationMember.update({where:{playerId:p.id},data:{watchingVersion,viewerPresences:[...others,{tabId,revision,until:new Date(visible?now.getTime()+sharedLeaseMs:now.getTime()).toISOString()}]}});
         });
         return {ok:true};
     }

@@ -2,7 +2,7 @@
 
 ## Finition 12/10/2026 — présence et confirmation provisoire
 
-SharedInvocationMember conserve l'adhésion watchingId, distincte des baux techniques viewerPresences (maximum huit onglets) et de watchingVersion, renouvelée à chaque adhésion/arrêt. La présence consultable est une projection de Players uniques actifs et visibles, sans stockage d'un second profil ni donnée économique. [Schéma 075](../architecture/postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).
+SharedInvocationMember conserve l'adhésion watchingId, distincte des baux techniques viewerPresences (maximum huit onglets) et de watchingVersion, renouvelée à chaque adhésion/arrêt ou avant de compacter les traces expirées lorsque la capacité est atteinte. Cette rotation invalide les anciens paquets et conserve tous les baux encore actifs ; huit onglets simultanément actifs restent la limite. La présence consultable est une projection de Players uniques actifs et visibles, sans stockage d'un second profil ni donnée économique. [Schéma 075](../architecture/postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).
 
 CatalogEvidence réutilise qualification=PROVISIONAL_CONSENSUS, reliability=PROVISIONAL et consensus existants pour le flag « utilisable, confirmation officielle recherchée » ; aucun nouvel état ou champ économique. OFFICIAL concordant lève l'attente ; contradiction active conservée pour arbitrage ADMIN. Les 120 historiques restent PROTECTED.
 

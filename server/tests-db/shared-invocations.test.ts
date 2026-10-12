@@ -38,6 +38,38 @@ async function pair() {
     return { host, viewer, session: started.broadcasting! };
 }
 describe('private shared invocation PostgreSQL contract', () => {
+    it('reclaims expired tab capacity with a fresh token and fences delayed packets without another watch action',async()=>{
+        const {host,viewer,session}=await pair(), state=await shared.state(viewer.identity,viewer.tab), token=state.watchingToken!;
+        const tabs=Array.from({length:7},()=>randomUUID());
+        for(const tab of tabs)await shared.viewerPresence(viewer.identity,tab,session.id,token,1,true);
+        now=new Date(now.getTime()+59000);await shared.control(host.identity,host.tab,'presence','invocation');
+        now=new Date(now.getTime()+1001);expect((await shared.spectators(host.identity)).total).toBe(0);
+        const freshTab=randomUUID();await shared.viewerPresence(viewer.identity,freshTab,session.id,token,2,true);
+        expect((await shared.spectators(host.identity)).total).toBe(1);
+        const fresh=await shared.state(viewer.identity,freshTab,state.cursor);expect(fresh.unchanged).toBe(false);expect(fresh.watchingToken).not.toBe(token);
+        expect((await db.sharedInvocationMember.findUniqueOrThrow({where:{playerId:viewer.id}})).viewerPresences).toHaveLength(1);
+        await shared.viewerPresence(viewer.identity,tabs[0]!,session.id,token,999,true);
+        await shared.viewerPresence(viewer.identity,freshTab,session.id,fresh.watchingToken!,3,false);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+    });
+    it('preserves live tabs when compacting tombstones and refuses a ninth simultaneously live tab',async()=>{
+        const {host,viewer,session}=await pair(), token=(await shared.state(viewer.identity,viewer.tab)).watchingToken!;
+        const tabs=Array.from({length:7},()=>randomUUID()), newTab=randomUUID();
+        for(const tab of tabs)await shared.viewerPresence(viewer.identity,tab,session.id,token,1,true);
+        await shared.viewerPresence(viewer.identity,newTab,session.id,token,2,true);
+        expect((await shared.state(viewer.identity,viewer.tab)).watchingToken).toBe(token);
+        expect((await db.sharedInvocationMember.findUniqueOrThrow({where:{playerId:viewer.id}})).viewerPresences).toHaveLength(8);
+        for(const tab of tabs)await shared.viewerPresence(viewer.identity,tab,session.id,token,3,false);
+        await shared.viewerPresence(viewer.identity,newTab,session.id,token,4,true);
+        const fresh=(await shared.state(viewer.identity,viewer.tab)).watchingToken!;expect(fresh).not.toBe(token);
+        const leases=(await db.sharedInvocationMember.findUniqueOrThrow({where:{playerId:viewer.id}})).viewerPresences as {tabId:string}[];
+        expect(leases.map(lease=>lease.tabId).sort()).toEqual([viewer.tab,newTab].sort());
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,token,999,false);
+        await shared.viewerPresence(viewer.identity,newTab,session.id,fresh,5,false);
+        expect((await shared.spectators(host.identity)).total).toBe(1);
+        await shared.viewerPresence(viewer.identity,viewer.tab,session.id,fresh,6,false);
+        expect((await shared.spectators(host.identity)).total).toBe(0);
+    });
     it('counts seven distinct live viewers, previews five, deduplicates tabs and excludes the broadcaster',async()=>{
         const host=await player(), started=(await shared.start(host.identity,host.tab)).broadcasting!;
         expect((await shared.spectators(host.identity)).total).toBe(0);
