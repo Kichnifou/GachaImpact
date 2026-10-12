@@ -9499,3 +9499,27 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .game-header:has(.destination-history-controls) > .header-actions { grid-column: 3; grid-row: 1; }
 @media(min-width:761px) { .game-header:has(.destination-history-controls) { padding-right: 18px; box-sizing: border-box; } }
 @media(max-width:760px) { .game-header:has(.destination-history-controls) { grid-template-columns: auto minmax(69px,1fr) auto; column-gap: 6px; } }
+
+/* Standalone community: compact global messages; private-message styles stay scoped separately. */
+.community-header-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.chat-community-pane .chat-message { display: block; padding: 4px 10px; border-bottom: 1px solid rgba(108,143,198,.06); }
+.chat-community-pane .message-content { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.chat-community-pane .message-meta { display: inline; font-size: inherit; }
+.chat-community-pane .message-meta time { margin-right: 7px; font-size: 10px; color: #8492ac; white-space: nowrap; }
+.chat-community-pane .chat-author-button, .chat-community-pane .message-meta strong { font-size: inherit; }
+.chat-community-pane .message-content > p { display: inline; margin: 0; font-size: inherit; line-height: inherit; }
+.chat-community-pane .chat-system-symbol { margin-right: 4px; color: #64dfb0; }
+.chat-community-pane .chat-message:has(.chat-game-label) { background: rgba(43,76,105,.15); border-left: 2px solid #467b98; }
+.chat-community-pane .chat-reply-preview { margin: 2px 0; font-size: 10px; }
+.chat-community-pane .chat-message:has(.chat-reply-preview) .message-meta { display: block; }
+@media (min-width: 1000px) {
+  .community-is-expanded .game-layout { grid-template-columns: 290px minmax(0,1fr); grid-template-areas: 'player chat'; }
+  .community-is-expanded .player-sidebar { grid-area: player; }
+  .community-is-expanded .main-panel { display: none; }
+  .community-is-expanded .chat-panel { grid-area: chat; height: 100%; min-height: 0; }
+  .community-is-expanded .message-list { max-height: none; }
+  .community-is-expanded .direct-community-pane { height: auto; }
+}
+@media (min-width: 1000px) and (max-width: 1500px) {
+  .community-is-expanded .game-layout { grid-template-columns: 260px minmax(0,1fr); }
+}

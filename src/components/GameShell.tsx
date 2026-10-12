@@ -48,6 +48,7 @@ import BankScreen from '../screens/BankScreen'
 import GiftCodesScreen from '../screens/GiftCodesScreen'
 import ModerationScreen from '../screens/ModerationScreen'
 import ChatPanel from './ChatPanel'
+import { useCommunityLayout } from '../hooks/use-community-layout'
 import type { DirectMessageOpenIntent } from './DirectMessagePanel'
 import GameHeader from './GameHeader'
 import Navigation from './Navigation'
@@ -271,6 +272,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
   }, [sharedInvocations.state.broadcasting,sharedInvocations.state.watching,onGachaPresentationAbandoned])
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
+  const communityLayout = useCommunityLayout(player.id)
   const [directMessageIntent, setDirectMessageIntent] = useState<DirectMessageOpenIntent | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [presentationStepId, setPresentationStepId] = useState<TutorialStepId | null>(null)
@@ -533,6 +535,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
     changeScreen(destination.screen);
   }
   const restoreRef=useRef(restoreDestination);restoreRef.current=restoreDestination;
+  const communityLayoutRef=useRef(communityLayout);communityLayoutRef.current=communityLayout;
   useEffect(()=>{
     const next=destinationHistory.getSnapshot().current;
     if(!allowedRef.current(next))destinationHistory.visit({screen:'home',tabs:{}});
@@ -551,6 +554,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
     const syncScreenWithHash = () => {
       browserMovePending.current=false;setBrowserMoving(false);if(browserMoveTimer.current)clearTimeout(browserMoveTimer.current)
       if(tutorial.getSnapshot().active){window.history.replaceState(window.history.state,'','#'+hashForScreen(activeScreenRef.current));return}
+      communityLayoutRef.current.setExpanded(false)
       const native=readBrowserDestination(player.id);
       synchronizeBrowserPosition(destinationHistory,native.index,native.segment);
       if(!allowedRef.current(native.destination)){destinationHistory.visit({screen:'home',tabs:{}});restoreRef.current(destinationHistory.getSnapshot().current);writeBrowserDestination(destinationHistory,'replace');return}
@@ -568,6 +572,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
     const previousTabs=destinationHistory.getSnapshot().current.tabs;
     const destination:Destination={screen,tabs:{communityPanel:previousTabs.communityPanel,directMailbox:previousTabs.directMailbox,...(tabs??(same?previousTabs:{}))},...(screen==='profile'?{profileId:targetProfileId??profileId}:{})};
     if(!allowedRef.current(destination))return false;
+    if (communityLayout.expanded) communityLayout.setExpanded(false)
     const changed=destinationHistory.visit(destination);
     changeScreen(screen);
     if(changed)writeBrowserDestination(destinationHistory,'push');
@@ -576,6 +581,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
   }
   const moveDestination=(direction:-1|1)=>{
     if(tutorial.getSnapshot().active||browserMovePending.current||destinationHistory.index(direction,destinationAllowed)===null)return;
+    if (communityLayout.expanded) communityLayout.setExpanded(false)
     if(requestBrowserMove(destinationHistory,direction,destinationAllowed)){
       browserMovePending.current=true;setBrowserMoving(true)
       browserMoveTimer.current=setTimeout(()=>{browserMovePending.current=false;setBrowserMoving(false)},1000)
@@ -685,7 +691,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
   return (
     <DestinationContext.Provider value={{history:destinationHistory,disabled:browserMoving||tutorialState.active||destinationState.current.screen!==activeScreen,onTab:tabNavigation}}>
     <TutorialPresentationContext.Provider value={{ active: tutorialState.active, step: presentationStep }}>
-    <div className={`game-shell${isChatCollapsed && !revealCommunity ? ' chat-is-collapsed' : ''}${tutorialSidebar ? ' tutorial-sidebar' : ''}`}>
+    <div className={`game-shell${isChatCollapsed && !revealCommunity ? ' chat-is-collapsed' : ''}${communityLayout.expanded && communityLayout.available && !isChatCollapsed && !tutorialState.active ? ' community-is-expanded' : ''}${tutorialSidebar ? ' tutorial-sidebar' : ''}`}>
       <GameHeader navigationHistory={{back:!browserMoving&&!tutorialState.active&&destinationHistory.index(-1,destinationAllowed)!==null,forward:!browserMoving&&!tutorialState.active&&destinationHistory.index(1,destinationAllowed)!==null,onBack:()=>moveDestination(-1),onForward:()=>moveDestination(1)}}
         elementKey={player.elementKey}
         avatarAssetPath={player.avatarAssetPath}
@@ -753,6 +759,8 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         </main>
 
         <ChatPanel key={player.id} playerId={player.id} playerDisplayName={player.displayName} playerElementKey={player.elementKey} playerAvatarAssetPath={player.avatarAssetPath} connectedCount={presence.value?.total ?? null}
+          isExpanded={communityLayout.expanded && communityLayout.available && !tutorialState.active}
+          onToggleExpanded={communityLayout.available && !tutorialState.active ? () => communityLayout.setExpanded(!communityLayout.expanded) : undefined}
           isCollapsed={revealCommunity ? false : isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
           onOpenPlayers={() => setIsPlayersOpen(true)}

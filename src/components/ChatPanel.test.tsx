@@ -106,7 +106,7 @@ describe('ChatPanel réel', () => {
     expect(Array.from(container.querySelectorAll('.dm-list-tabs [role="tab"]')).map(node => node.textContent)).toEqual(['Conversations', 'Archives'])
   })
 
-  it('shares elementColors between PLAYER avatars and pseudonyms with a readable fallback', async () => {
+  it('keeps elemental pseudonyms and removes repeated avatars in compact rows', async () => {
     const hydro = { ...message, id: '55555555-5555-4555-8555-555555555555', author: { id: '55555555-5555-4555-8555-555555555555', displayName: 'Hydro', elementKey: 'hydro' }, authorLabel: 'Hydro' }
     const fallback = { ...message, id: '66666666-6666-4666-8666-666666666666', author: { id: '66666666-6666-4666-8666-666666666666', displayName: 'Sans élément', elementKey: null }, authorLabel: 'Sans élément' }
     const invalid = { ...message, id: '99999999-9999-4999-8999-999999999999', author: { id: '99999999-9999-4999-8999-999999999999', displayName: 'Élément inconnu', elementKey: 'unknown' }, authorLabel: 'Élément inconnu' }
@@ -116,7 +116,7 @@ describe('ChatPanel réel', () => {
     for (const [label, color] of [['Autre', elementColors.cryo], ['Hydro', elementColors.hydro], ['Sans élément', '#b794ff'], ['Élément inconnu', '#b794ff']] as const) {
       const player = row(label)
       expect(player.style.getPropertyValue('--chat-author-color')).toBe(color)
-      expect(player.querySelector('.chat-avatar-button')).not.toBeNull()
+      expect(player.querySelector('.chat-avatar-button')).toBeNull()
       expect(player.querySelector('.chat-author-button')).not.toBeNull()
     }
   })
@@ -986,7 +986,7 @@ describe('ChatPanel réel', () => {
     const container = await mount()
     expect(container.querySelector('.chat-message-mentioned')).not.toBeNull()
     expect(container.textContent).not.toContain('Vous êtes mentionné')
-    expect(container.querySelector('.chat-avatar-button')?.closest<HTMLElement>('.chat-message')?.style.getPropertyValue('--chat-author-color')).toBe(elementColors.cryo)
+    expect(container.querySelector('.chat-author-button')?.closest<HTMLElement>('.chat-message')?.style.getPropertyValue('--chat-author-color')).toBe(elementColors.cryo)
     expect(container.querySelector('.chat-avatar-button small')).toBeNull()
     const action = button(container, 'Actions pour le message de Autre')
     await act(async () => { action.click() })
