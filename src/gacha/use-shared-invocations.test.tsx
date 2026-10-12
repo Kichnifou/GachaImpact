@@ -102,6 +102,34 @@ it('ignores old screen-presence responses after stop', async () => {
     await act(async () => presence.resolve({ broadcasting: { ...own, status: 'PAUSED', seq: 2 }, watching: null }));
     expect(current.state.broadcasting).toBeNull();
 });
+
+it('waits for a confirmed stop before issuing a concurrent personal-pull sync', async () => {
+    const transport=api();mount(transport);await flush();
+    await act(async()=>{await current.start()});
+    const stopped=deferred<SharedInvocationState>(), stale=deferred<SharedInvocationState>();let committed=false;
+    vi.mocked(transport.control).mockImplementationOnce(async()=>{const value=await stopped.promise;committed=true;return value});
+    vi.mocked(transport.state).mockImplementation(()=>committed?Promise.resolve(idle):stale.promise);
+    let stopping!:Promise<boolean>,syncing!:Promise<void>;
+    act(()=>{stopping=current.stop();syncing=current.sync()});
+    await act(async()=>{stale.resolve({broadcasting:own,watching:null});await Promise.resolve()});
+    await act(async()=>{stopped.resolve(idle);expect(await stopping).toBe(true);await syncing});
+    expect(current.state.broadcasting).toBeNull();
+});
+
+it('cancels a queued sync when account ownership changes during the mutation', async () => {
+    const transport=api(),{root}=mount(transport);await flush();
+    await act(async()=>{await current.start()});
+    const stopped=deferred<SharedInvocationState>();vi.mocked(transport.control).mockReturnValueOnce(stopped.promise);
+    let stopping!:Promise<boolean>,syncing!:Promise<void>;
+    act(()=>{stopping=current.stop();syncing=current.sync()});
+    const calls=vi.mocked(transport.state).mock.calls.length;
+    act(()=>root.render(<Harness transport={transport} owner="second"/>));await flush();
+    await act(async()=>{await syncing});
+    expect(transport.state).toHaveBeenCalledTimes(calls+1); // Only the new identity's initial read.
+    await act(async()=>{await current.start()});
+    await act(async()=>{stopped.resolve(idle);expect(await stopping).toBe(false)});
+    expect(current.state.broadcasting?.id).toBe('owned');
+});
 it('discards an old identity mutation and releases its pending lock for the new identity', async () => {
     const first = api(), second = api(), start = deferred<SharedInvocationState>();
     vi.mocked(first.start).mockReturnValue(start.promise);

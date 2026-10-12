@@ -118,3 +118,40 @@ it('provides a keyboard focus target for the complete summary without turning sc
     });
     expect(close).not.toHaveBeenCalled();
 });
+
+it('keeps exactly one audience through repeated stop/start and clears its portals on stop', async () => {
+    const own = { ...session, authoritative: true, snapshot: { ...session.snapshot, presentation: { phase: 'idle' as const, index: 0, pull: null } } };
+    const shared = { enabled: true, pending: false, error: '', state: { broadcasting: null, watching: null }, api: { spectators: vi.fn(async () => ({sessionId: own.id, total: 7, page: 1, totalPages: 1, preview: [], players: []})) } } as unknown as SharedInvocationController;
+    const render = () => <InvocationScreen gacha={sharedGachaView(own)} teams={{teams: [], availableCharacters: [], passiveReference: []}} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host = mount(render());
+    for (let i = 0; i < 4; i++) {
+        shared.state = { broadcasting: {...own, id: `session-${i}`}, watching: null };
+        await act(async () => roots.at(-1)!.render(render()));
+        expect(host.querySelectorAll('.shared-invocation-status')).toHaveLength(1);
+        const count = host.querySelector<HTMLButtonElement>('.shared-spectator-count')!;
+        act(() => count.focus());
+        expect(document.querySelector('.shared-spectator-preview')).not.toBeNull();
+        shared.state = {broadcasting: null, watching: null};
+        await act(async () => roots.at(-1)!.render(render()));
+        expect(host.querySelectorAll('.shared-invocation-status')).toHaveLength(0);
+        expect(document.querySelector('.shared-spectator-preview')).toBeNull();
+        expect(document.querySelector('[role="dialog"]')).toBeNull();
+    }
+});
+
+it('starts and stops directly in one click and keeps sharing absent from target selection', async () => {
+    const start = vi.fn(async () => true), stop = vi.fn(async () => true);
+    const own = {...session, authoritative: true, snapshot: {...session.snapshot, presentation: {phase:'idle' as const,index:0,pull:null}}};
+    const shared = {enabled:true,pending:false,error:'',state:{broadcasting:null,watching:null},start,stop} as unknown as SharedInvocationController;
+    const render = () => <InvocationScreen gacha={sharedGachaView(own)} teams={{teams:[],availableCharacters:[],passiveReference:[]}} onSetTarget={vi.fn()} onPull={vi.fn()} pendingPullCount={null} onPresentationDisclosed={vi.fn()} onGetHistory={vi.fn()} shared={shared}/>;
+    const host=mount(render());
+    await act(async()=>Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Diffuser')!.click());
+    expect(start).toHaveBeenCalledOnce();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    shared.state={broadcasting:own,watching:null};await act(async()=>roots.at(-1)!.render(render()));
+    await act(async()=>host.querySelector<HTMLButtonElement>('.shared-invocation-button')!.click());expect(stop).toHaveBeenCalledOnce();
+    shared.state={broadcasting:null,watching:null};await act(async()=>roots.at(-1)!.render(render()));
+    act(()=>Array.from(host.querySelectorAll('button')).find(b=>b.textContent==='Changer')!.click());
+    expect(host.textContent).toContain('Choisissez votre cible');
+    expect(host.querySelector('.shared-invocation-controls')).toBeNull();
+});

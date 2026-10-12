@@ -1,4 +1,4 @@
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {SharedSpectators,SharedSession} from '../api/shared-invocations-types';
 import type {SharedInvocationController} from '../gacha/use-shared-invocations';
@@ -9,6 +9,13 @@ import {apiErrorMessage} from '../utils/formatters';
 export default function SharedInvocationAudience({shared,session,onProfile}:{shared:SharedInvocationController;session:SharedSession;onProfile?:(id:string)=>void}){
  const [data,setData]=useState<SharedSpectators|null>(null),[error,setError]=useState(''),[open,setOpen]=useState(false),[preview,setPreview]=useState<{left:number;top:number}|null>(null),[page,setPage]=useState(1),[retry,setRetry]=useState(0);
  const counter=useRef<HTMLButtonElement>(null),hide=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const status=useRef<HTMLDivElement>(null);
+ useLayoutEffect(()=>{
+  const node=status.current,panel=node?.closest<HTMLElement>('.invocation-panel');if(!node||!panel)return;
+  const measure=()=>panel.style.setProperty('--shared-status-height',`${node.getBoundingClientRect().height}px`);
+  measure();const observer=typeof ResizeObserver==='undefined'?null:new ResizeObserver(measure);observer?.observe(node);
+  return()=>{observer?.disconnect();panel.style.removeProperty('--shared-status-height')};
+ },[]);
  useEffect(()=>{
   let disposed=false,timer:ReturnType<typeof setTimeout>;
   setData(null);setError('');
@@ -20,13 +27,13 @@ export default function SharedInvocationAudience({shared,session,onProfile}:{sha
  const leave=()=>{hide.current=setTimeout(()=>setPreview(null),150)};
  const modal=()=>{setPreview(null);setOpen(true)};
  return <>
-  <div className="shared-invocation-status">
+  <div ref={status} className="shared-invocation-status">
    <button ref={counter} type="button" className="shared-spectator-count" aria-label={data?`${data.total} ${data.total===1?'spectateur':'spectateurs'}`:'Spectateurs'} aria-haspopup="dialog" aria-expanded={open} onPointerEnter={e=>{if(e.pointerType!=='touch')showPreview()}} onPointerLeave={leave} onFocus={showPreview} onBlur={leave} onClick={modal}><span aria-hidden="true">◉</span> {data?`${data.total} ${data.total===1?'spectateur':'spectateurs'}`:'Spectateurs…'}</button>
    <span className="shared-live-label"><span aria-hidden="true">●</span> {session.status==='PAUSED'?'En pause':'En direct'} · {session.snapshot.displayName}</span>
    {shared.state.broadcasting&&!session.authoritative&&<span>Contrôle dans un autre onglet</span>}
   </div>
   {preview&&createPortal(<div className="shared-spectator-preview" style={preview} onPointerEnter={()=>{if(hide.current)clearTimeout(hide.current)}} onPointerLeave={leave} onFocus={()=>{if(hide.current)clearTimeout(hide.current)}} onBlur={leave} role="region" aria-label="Aperçu des spectateurs">{error?<p>{error}</p>:!data?<p>Chargement…</p>:data.total===0?<p>Aucun spectateur.</p>:data.preview.map(p=><div key={p.playerId}>{p.displayName}</div>)}{data&&data.total>5&&<button type="button" className="shared-recovery-link" onClick={modal}>Voir plus</button>}</div>,document.body)}
-  {open&&createPortal(<SpectatorDialog data={data} error={error} onClose={()=>setOpen(false)} onRetry={()=>setRetry(x=>x+1)} onPage={setPage} onProfile={id=>{setOpen(false);onProfile?.(id)}}/>,document.body)}
+  {open&&createPortal(<SpectatorDialog data={data} error={error} onClose={()=>{setOpen(false);counter.current?.focus()}} onRetry={()=>setRetry(x=>x+1)} onPage={setPage} onProfile={id=>{setOpen(false);onProfile?.(id)}}/>,document.body)}
   <div className="shared-reaction-layer" aria-hidden="true">{session.reactions.map(r=><span key={r.id}><i>{r.emoji}</i></span>)}</div>
  </>;
 }

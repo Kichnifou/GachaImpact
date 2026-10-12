@@ -1,11 +1,27 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-Version : finition autorisée des Invocations partagées, Catalogue et !faveur.
+Version : restauration ciblée de la scène Invocation après régression de finition.
 Date : 2026-10-12
-Statut : **A/B/C/D déjà livrés ; finition livrée techniquement après revues indépendantes, FF strict, déploiements exacts et postflight ; recette humaine des retouches à effectuer. Premier cycle naturel12/10 observé COMPLETED en lecture seule.**
+Statut : **A/B/C/D et finition antérieure livrés ; correctif UX prioritaire qualifié localement, candidat review soumis à revue indépendante avant promotion/déploiements. Recette humaine des retouches à effectuer.**
 But : porter l'état réel, les preuves et la prochaine reprise.
 
-## Point courant — finition autorisée du 12/10/2026
+## Point courant — restauration UX Invocation du 12/10/2026
+
+Base propre `b6ff57af46cafd67a5a08c2c0fe2ef8e515a12e4`, quatre refs identiques, divergence0/0. Référence visuelle propriétaire `79832fc72c94233a61d0d3cd13cf41c4ed63de57`. Périmètre exclusivement scène Invocation : aucun Catalogue, Roue, !faveur, Twitch, moteur économique, SQL/migration ou nouvelle présence. Les preuves économiques et métier acquises ne sont pas rejouées.
+
+Reproduction initiale compilée : à1366×768, statut extérieur fait passer le panneau de569px à532,03125px et son top de181 à217,96875 ; boutons réellement44px. Collision des clés de frères Audience/BannerHero reproduite indépendamment : trois cycles donnent0→1→1→2→2→3→3 statuts. Course distincte : sync lancé pendant stop incrémente sa révision et fait ignorer la confirmation vide. Deux tests rouges initiaux, plus repro consultative indépendante2FAIL/3PASS, conservés dans les preuves privées.
+
+Correction : Audience unique enfant du panneau, overlay intérieur sans réservation de hauteur ; ancien Status inutilisé retiré. Démarrage/arrêt directs en un clic, modale erronée supprimée, consentement serveur intact. Diffuser/Voir/aide absents du choix de cible et des présentations personnelles ;32px desktop et44px mobile/tactile mesurés. Bloc de commandes mobile stable au retrait de l'aide. Passer/fermer sous la hauteur mesurée du statut uniquement en partage. Emojis : départ plus haut/trajet réduit et oscillation ±.45rem seulement. `sync()` attend la mutation en cours, puis revérifie la génération ; confirmations d'arrêt, identités et seq restent protégés.
+
+Qualification locale finale :36 tests ciblés passés, dont cycles DOM sous StrictMode, réponses présence tardives, course sync/stop, changement de compte pendant attente, cleanup portal, reprise F5/rotation et lecture seule spectateur. Quick5/5. Full **FAIL6/8**, frontend1552PASS/4FAIL, backend2417PASS/6FAIL (`gachaimpact-verify-full-EtDIcs`) : noms des dix assertions historiques strictement identiques au baselineEMTXBX et fichiers concernés inchangés ; builds frontend/backend, typages, lint et diff-check PASS. Aucun full PASS revendiqué.
+
+GameShell réel/CSS compilée :48 scènes avant,48 historiques79832fc et48 après sur390×844,844×390,1366×520,1366×768,1920×1080,2560×1440 ; PNG inspectés, zéro débordement horizontal. Desktop : mêmes top/hauteur/largeur que79832fc sur les quatre tailles ; à1366×768 retour à top181/hauteur569. Mobile : top historique restauré, encombrement personnel conservé au démarrage malgré retrait de l'aide. Trente cycles réels (cinq par format), DOM0→1→0 répété, géométrie absente/active/arrêtée exactement stable. Douze parcours personnels x1/x10, commandes absentes à submit/intro/reveal/résumé ; six recettes hover5/modale7/Voir/Arrêter/réactions, pseudo long/compteur123/Passer, dernier résultat au clavier et reduced-motion. Retour du focus au compteur également vérifié après Voir plus. CSS`index-CTHQP76z.css`, SHA256`fc08ece855c2ab78d3ceaf1628ad0f9b952d59b40bbf30ea1a77e13f58dc5287`.
+
+Preuves privées ignorées sous `local-data/invocation-ux-regression-20261012/`, anciens dossiers conservés : géométrie SHA256`89ebbe98935ff869b9d664c3bfab7b74ec5561b4c662458b9939a1776e3782bc`, cycles`88b32b202f9763a8213094bf5ba6b8cf520648d242fd686f654de33dcabb2b73`, interactions`d6acf3983af728e11b083d5265f598727461fa57aa875685fd63a67deafa91bb`. Diagnostic consultatif indépendant initial`1c188d326c8b27a0585fb85a688368021cd565d45d8706ba0b1f5c4caac09cd4` ; il ne vaut pas approbation du candidat. Aucun nouveau déploiement ni verdict final affirmé à ce stade.
+
+Prochaine action : revue indépendante réelle du SHA review distant et des PNG compilés, corriger/revoir tout finding avant FF strict main, déploiements exacts et postflight. Ordre macro, workflow et navigation examinés laissés inchangés ; seuls les quatre propriétaires documentaires concernés sont actualisés. Une recette humaine authentifiée à deux comptes restera distincte des preuves synthétiques.
+
+## Historique — finition autorisée du 12/10/2026
 
 **Livré techniquement au checkpoint 6766657a18eadff25830f843ade7738c04382f3c.** Base initiale79832fc72c94233a61d0d3cd13cf41c4ed63de57 ; cinq commits normaux publiés sur review, revue documentaire approuvée puis FF strict main. Quatre refs locales/distantes identiques, divergence0/0 et arbre propre à ce checkpoint. La clôture documentaire conserve exactement le code approuvé ; son SHA, ses déploiements et le dernier postflight sont contrôlés dans le bilan final, sans commit auto-référentiel. La première recette publique générale A/B/C/D reste acquise ; elle ne valide pas les retouches présentes.
 

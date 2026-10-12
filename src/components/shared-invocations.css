@@ -1,14 +1,13 @@
 .shared-invocation-controls { margin-top: .65rem; max-width: 24rem; }
 .shared-invocation-buttons { display: flex; gap: .5rem; }
-.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 2rem; padding-block: .2rem; white-space: nowrap; font-size: .7rem; }
+.banner-change-button.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 32px; height: 32px; padding: .2rem .5rem; white-space: nowrap; font-size: .7rem; }
 .shared-invocation-button.is-live { color: #ffb6b6; border-color: #b54c61; background: #381925; }
 .shared-invocation-controls small { display: block; color: #a9b4cc; font-size: .66rem; line-height: 1.35; margin-top: .35rem; }
-.shared-invocation-status { position: relative; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .3rem .8rem; flex: 0 0 auto; padding: .2rem .75rem; font-size: .7rem; color: #ffb6b6; }
+.shared-invocation-status { position: absolute; top: 8px; right: 12px; left: 12px; z-index: 8; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .3rem .8rem; font-size: .7rem; color: #ffb6b6; pointer-events: none; }
+.shared-invocation-status > button { pointer-events: auto; }
 .shared-live-label { overflow-wrap: anywhere; min-width: 0; }
 .shared-live-label > span { color: #ff526d; }
-.invocation-screen:has(> .shared-invocation-status) { display: flex; flex-direction: column; gap: .25rem; }
-.invocation-screen:has(> .shared-invocation-status) > .invocation-panel { flex: 1 1 auto; }
-@media (min-width: 1001px) { .invocation-screen:has(> .shared-invocation-status) > .invocation-panel { flex: 1 1 0; min-height: 0; } }
+.invocation-panel:has(> .shared-invocation-status) .sequence-control { top: calc(8px + var(--shared-status-height, 28px) + 8px); }
 .shared-spectator-count { font: inherit; color: white; background: transparent; border: 1px solid transparent; padding: .3rem; border-radius: .4rem; cursor: pointer; white-space: nowrap; }
 .shared-spectator-count:hover { background: #28334b; }
 .shared-spectator-count:focus-visible,.shared-recovery-link:focus-visible { outline: 2px solid #cdb277; outline-offset: 2px; }
@@ -43,17 +42,21 @@
 .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .invocation-sequence > .sequence-summary:focus-visible { outline: 2px solid #cdb277; outline-offset: -2px; }
 .shared-invocation-paused { position: absolute; top: 42%; left: 20%; right: 20%; padding: 1rem; border-radius: .75rem; display: grid; place-content: center; color: #e6eafa; background: #101725ed; z-index: 4; text-align: center; pointer-events: none; }
 .shared-reaction-layer { position: absolute; z-index: 7; inset: 20% 5% 18% auto; width: 5rem; container-type: size; pointer-events: none; overflow: hidden; }
-.shared-reaction-layer > span { position: absolute; bottom: 0; right: .7rem; font-size: 2.1rem; animation: shared-reaction-rise 3.2s linear both; }
+.shared-reaction-layer > span { position: absolute; bottom: 10%; right: .7rem; font-size: 2.1rem; animation: shared-reaction-rise 3.2s linear both; }
 .shared-reaction-layer i { display: block; font-style: normal; animation: shared-reaction-wave 1.2s ease-in-out infinite alternate; }
 .shared-reaction-layer > span:nth-child(2n) { right: 1.7rem; }
 .shared-reaction-layer > span:nth-child(3n) i { animation-delay: -.6s; }
-@keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-90cqh); } }
-@keyframes shared-reaction-wave { from { transform: translateX(-.25rem); } to { transform: translateX(.25rem); } }
+@keyframes shared-reaction-rise { 0% { opacity: 0; transform: translateY(0); } 10% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; transform: translateY(-80cqh); } }
+@keyframes shared-reaction-wave { from { transform: translateX(-.45rem); } to { transform: translateX(.45rem); } }
 @media (prefers-reduced-motion: reduce) { .shared-reaction-layer > span { animation: shared-reaction-fade 1.5s both; } .shared-reaction-layer i { animation: none; } }
 @keyframes shared-reaction-fade { from { opacity: 1; } to { opacity: 0; } }
 @keyframes shared-emoji-float { from { opacity: 0; transform: translateY(.5rem); } 15%,70% { opacity: 1; } to { opacity: 0; transform: translateY(-.4rem); } }
 @media (prefers-reduced-motion: reduce) { .shared-invocation-emoji-effect span { animation: none; } }
 @media (max-width: 600px) { .shared-invocation-controls { margin-top: .3rem; } .shared-invocation-controls small { font-size: .59rem; } .shared-invocation-status { font-size: .6rem; } .shared-invocation-presentation-controls { bottom: .4rem; left: .4rem; right: auto; } }
+@media (pointer: coarse), (max-width: 1000px) { .banner-change-button.shared-invocation-button { min-height: 44px; height: 44px; } }
+/* Mobile panels have natural height: retain the idle controls slot when help disappears. */
+@media (max-width: 1000px) { .banner-content > .shared-invocation-controls { min-height: calc(44px + .35rem + .66rem * 2.7); } }
+@media (max-width: 600px) { .banner-content > .shared-invocation-controls { min-height: calc(44px + .35rem + .59rem * 1.35); } }
 
 .shared-is-paused .invocation-sequence * { animation-play-state: paused !important; }
 /* A viewer can join an already paused receipt: do not freeze its entry fade at opacity zero. */

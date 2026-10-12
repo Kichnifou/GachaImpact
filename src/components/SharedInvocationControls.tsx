@@ -10,7 +10,7 @@ export default function SharedInvocationControls({ shared, presenting=false }: {
     shared: SharedInvocationController;
     presenting?: boolean;
 }) {
-    const [open, setOpen] = useState(false),[consent,setConsent]=useState(false);
+    const [open, setOpen] = useState(false);
     if (!shared.enabled)
         return null;
     const own = shared.state.broadcasting, watching = shared.state.watching;
@@ -18,7 +18,7 @@ export default function SharedInvocationControls({ shared, presenting=false }: {
     if(!own&&!watching&&presenting&&!shared.personalError)return null;
     return <div className="shared-invocation-controls">
   <div className="shared-invocation-buttons">
-   {(own||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!own && !own.authoritative} aria-pressed={!!own} onClick={() => own ? void shared.stop() : setConsent(true)}>{own ? '● En diffusion' : 'Diffuser'}</button>}
+   {(own||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!own && !own.authoritative} aria-pressed={!!own} title={own ? undefined : 'Votre scène, résultats, pity, garantie et Capture seront visibles aux joueurs connectés.'} onClick={() => void (own ? shared.stop() : shared.start())}>{own ? '● En diffusion' : 'Diffuser'}</button>}
    {(watching||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${watching ? ' is-live' : ''}`} disabled={shared.pending} onClick={() => watching ? void shared.watch(null) : setOpen(true)}>{watching ? 'Arrêter' : 'Voir'}</button>}
   </div>
   {showIdle && <small>Diffusez vos invocations, ou visionnez celles des autres joueurs</small>}
@@ -27,12 +27,7 @@ export default function SharedInvocationControls({ shared, presenting=false }: {
   {shared.personalReady===false&&!watching&&shared.personalError&&<button className="shared-recovery-link" type="button" onClick={()=>void shared.refreshPersonal()}>Réessayer l’actualisation</button>}
   {shared.error && <p role="status" className="shared-invocation-error">{shared.error}</p>}
   {open && <SessionPicker shared={shared} onClose={() => setOpen(false)}/>}
-  {consent&&<BroadcastConsent shared={shared} onClose={()=>setConsent(false)}/>}
  </div>;
-}
-function BroadcastConsent({shared,onClose}:{shared:SharedInvocationController;onClose:()=>void}){
- const ref=useModalDialog<HTMLElement>(onClose);
- return <div className="history-modal-overlay" onMouseDown={onClose}><section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="shared-consent-title" className="panel shared-invocation-picker" onMouseDown={e=>e.stopPropagation()}><header><h2 id="shared-consent-title">Diffuser mes invocations</h2><button className="icon-button" aria-label="Fermer" type="button" onClick={onClose}>×</button></header><div className="shared-invocation-picker-body"><p>Votre scène, résultats, pity, garantie et Capture seront visibles aux joueurs connectés.</p><button type="button" className="banner-change-button" disabled={shared.pending} onClick={()=>void shared.start().then(ok=>{if(ok)onClose()})}>Démarrer la diffusion</button></div></section></div>;
 }
 function SessionPicker({ shared, onClose }: {
     shared: SharedInvocationController;
@@ -73,12 +68,4 @@ function SessionPicker({ shared, onClose }: {
                     onClose();
             })}><CharacterAssetImage className="shared-avatar" assetPaths={[session.avatarPath]} characterName={session.displayName} fallback={<span aria-hidden="true">✦</span>} alt=""/><span>{session.displayName}<small>{session.status === 'PAUSED' ? 'En pause' : '● En direct'}</small></span></button>)}{error && <p role="alert">{error}</p>}</div>
  </section></div>;
-}
-export function SharedInvocationStatus({ shared }: {
-    shared: SharedInvocationController;
-}) {
-    const session = shared.state.watching ?? shared.state.broadcasting;
-    if (!session)
-        return null;
-    return <div className="shared-invocation-status" role="status"><span>● {session.status === 'PAUSED' ? 'En pause' : 'En direct'} · {session.snapshot.displayName}</span>{shared.state.broadcasting && !session.authoritative && <span>Contrôle dans un autre onglet</span>}<div className="shared-invocation-emoji-effect" aria-hidden="true">{session.reactions.map(r => <span key={r.id}>{r.emoji}</span>)}</div></div>;
 }

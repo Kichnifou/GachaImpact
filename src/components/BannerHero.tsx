@@ -25,11 +25,12 @@ type Props = {
   onGetHistory?: (page: number) => Promise<GachaHistoryDto>
   teams?: PlayerTeamsDto
   sharing?: ReactNode | ((presenting:boolean)=>ReactNode)
+  sharedOverlay?: ReactNode
   sharedSequence?: InvocationSequenceState
   onSharedSequenceAction?: (action: 'advance'|'skip'|'close') => void
   readOnly?: boolean
 }
-function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory, teams, sharing, sharedSequence, onSharedSequenceAction, readOnly=false }: Props) {
+function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, onOpen, onPull, pendingPullCount = null, onPresentationDisclosed, onGetHistory, teams, sharing, sharedOverlay, sharedSequence, onSharedSequenceAction, readOnly=false }: Props) {
   const guidedDetail = useTutorialPanel('gacha-detail')
   const [choosing, setChoosing] = useState(!gacha.playerState.selectedBannerCharacterId)
   const [pending, setPending] = useState<string | null>(null)
@@ -78,6 +79,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
 
   if (!compact && sequence.phase !== 'idle') {
     return <section className="invocation-panel invocation-sequence-panel">
+      {sharedOverlay}
       <InvocationSequence
         state={sequence}
         onAdvance={() => onSharedSequenceAction ? onSharedSequenceAction('advance') : dispatchSequence({ type: 'advance' })}
@@ -91,8 +93,9 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
 
   if (choosing || !selected) {
     return <section className={`invocation-panel target-picker${compact ? ' home-banner home-banner-preview' : ''}`} aria-labelledby="invocation-title">
+      {sharedOverlay}
       <div className="banner-copy-column">
-        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span>{sharingContent}</div>
+        <div data-tutorial-anchor="invocation-banner" className="banner-content"><h1 data-tutorial-anchor="screen-entry" id="invocation-title">Choisissez votre cible</h1><p>Définissez le personnage 5★ que vous visez pour cette rotation hebdomadaire.</p><span className="banner-period">Jusqu’au {new Date(gacha.banner.endsAt).toLocaleDateString('fr-FR')}</span></div>
       </div>
       <div className="target-choice-grid">{gacha.banner.featuredFiveStars.map((character) => <CharacterShowcaseCard variant="gacha" name={character.name} rarity={5} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} disabled={targetSelectionDisabled} onClick={() => void choose(character)} key={character.id} />)}</div>
       {compact && onOpen && <button type="button" className="home-banner-hit-area" onClick={onOpen} aria-label="Ouvrir l’écran Invocation" />}
@@ -100,6 +103,7 @@ function BannerHero({ gacha, compact = false, showDetails = false, onSetTarget, 
   }
 
   return <section className={`invocation-panel${compact ? ' home-banner home-banner-preview' : ''}`} aria-labelledby="invocation-title">
+    {sharedOverlay}
     <div className="banner-glow banner-glow-one" /><div className="banner-glow banner-glow-two" />
     <div className="banner-copy-column">
       <div data-tutorial-anchor="invocation-banner" className="banner-content">

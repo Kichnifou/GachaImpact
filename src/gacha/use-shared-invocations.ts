@@ -11,6 +11,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
     const [state, setState] = useState(empty), [error, setError] = useState(''), [pending, setPending] = useState(false),[personalReady,setPersonalReady]=useState(true);
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
     const personalFlight=useRef<{epoch:number;promise:Promise<void>}|null>(null);
+    const mutationFlight=useRef<{promise:Promise<void>;resolve:()=>void}|null>(null);
     const [personalError,setPersonalError]=useState('');
     useLayoutEffect(() => {
         screen.current = invocationVisible;
@@ -44,6 +45,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         revision.current++;
         current.current = empty;
         locked.current = false;
+        mutationFlight.current?.resolve();mutationFlight.current=null;
         setPending(false);
         setPersonalReady(true);
         setError('');
@@ -95,6 +97,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         return () => {
             disposed = true;
             generation.current++;
+            mutationFlight.current?.resolve();mutationFlight.current=null;
             if (timer)
                 clearTimeout(timer);
             document.removeEventListener('visibilitychange', visibility);
@@ -155,6 +158,9 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         if (!api || locked.current)
             return false;
         locked.current = true;
+        let settle!:()=>void;
+        const flight={promise:new Promise<void>(resolve=>{settle=resolve}),resolve:()=>settle()};
+        mutationFlight.current=flight;
         setPending(true);
         setError('');
         const epoch = generation.current, version = ++revision.current;
@@ -179,6 +185,8 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             return false;
         }
         finally {
+            if(mutationFlight.current===flight)mutationFlight.current=null;
+            flight.resolve();
             if (epoch === generation.current) {
                 locked.current = false;
                 setPending(false);
@@ -204,7 +212,12 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         react: (emoji: Parameters<SharedInvocationApi['react']>[1]) => mutate((api, id) => api.react(id, emoji)),
         sync: async () => {
             if (api) {
-                const epoch = generation.current, version = ++revision.current;
+                const epoch = generation.current;
+                // A read started during stop can still describe the old session. Let the
+                // confirmed mutation apply first, then read; never supersede its revision.
+                while(mutationFlight.current){await mutationFlight.current.promise;if(epoch!==generation.current)return}
+                if(epoch!==generation.current)return;
+                const version = ++revision.current;
                 const next = await api.state(sharedInvocationTabId());
                 if (epoch === generation.current && version === revision.current)
                     apply(next);

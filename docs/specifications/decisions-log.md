@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## Restauration UX Invocation — mandat propriétaire du 12/10/2026, VALIDÉ
+
+Restaurer la scène approuvée79832fc sans revert global : statut superposé dans le grand cadre, même hauteur/placement sans ligne extérieure ; un seul bandeau, zéro après arrêt confirmé, cleanup complet et aucun ancien paquet recréant la scène. Supprimer la modale de démarrage ajoutée par erreur : Diffuser et En diffusion agissent directement en un clic, consentement/API/confidentialité conservés. Diffuser/Voir/aide absents du choix de cible et des présentations personnelles ; boutons réellement32px desktop, cible44px mobile. Passer/fermer sous le statut seulement en partage. Deux seules retouches emoji : départ un peu plus haut/trajet plus court et oscillation douce un peu plus forte ; taille, vitesse/durée, droite, cooldown et reduced-motion inchangés. Ces règles supersèdent la présentation en flux et la modale décrites lors de la finition précédente.
+
+Deux défauts reproduits séparément autorisent la correction technique bornée : collision des clés React Audience/BannerHero (fantômes/doublons) et `sync()` concurrent invalide la réponse `stop()` (bandeau conservé). Un propriétaire Audience dans BannerHero et une barrière de settlement de mutation pour sync, avec revérification de génération, sans modifier présence, baux, économie, reprise de reçu ou serveur. Revue indépendante du SHA distant et visuelle compilée obligatoire, puis cycle permanent jusqu'au postflight. État effectivement obtenu au Master ; aucune nouvelle validation publique présumée.
+
 ## Finition et compléments propriétaire du 12/10/2026 — VALIDÉS
 
 Sept ajustements ciblés des Invocations partagées et de la fiche candidat, sans refonte ni modification économique. Migration additive minimale autorisée pour distinguer présence spectateur effective et adhésion historique, privée/RLS et replay Prisma normal. Récupération silencieuse d'un reçu déjà committé ; intention non committée explicitement reprise sous même clé, petit fallback réel. Compteur/liste authentifiés, profils via GameShell, contrôle contextuel, résumé centré et scroll accessible, bandeau réservé et emoji non interactifs. Revue indépendante du vrai SHA publié (identité/permissions/présence/reprise/migration), revue visuelle distincte, puis FF/main/déploiements/postflight sans nouveau GO générique.
