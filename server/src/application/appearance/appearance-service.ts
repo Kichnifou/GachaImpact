@@ -53,7 +53,7 @@ export class AppearanceService {
     const [player, definitions, possessions, characters] = await Promise.all([
       this.database.player.findUniqueOrThrow({ where: { id: actor.id }, select: { displayName: true, elementKey: true, ...appearanceSelect } }),
       this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, unlockRule: true, visibility: true, isActive: true } }),
-      this.database.playerCosmetic.findMany({ where: { playerId: actor.id }, select: { cosmeticId: true } }),
+      this.database.playerCosmetic.findMany({ where: { playerId: actor.id }, select: { cosmeticId: true, unlockedAt: true, consultedAt: true, acquisitionDateKnown: true } }),
       this.database.playerCharacter.findMany({ where: { playerId: actor.id }, select: { characterId: true } }),
     ]);
     const owned = new Set(possessions.map(item => item.cosmeticId));
@@ -64,6 +64,7 @@ export class AppearanceService {
       equippedTitleCosmeticId: player.equippedTitleCosmetic?.id ?? null,
       catalog: definitions.flatMap(item => {
         const isOwned = owned.has(item.id);
+        const possession=possessions.find(row=>row.cosmeticId===item.id);
         if (item.sourceCharacterId && (!isOwned || !ownedCharacters.has(item.sourceCharacterId))) return [];
         if (!isOwned && item.visibility === CosmeticVisibility.SECRET) return [];
         const rule = item.unlockRule as { kind?: string; level?: number } | null;
@@ -71,9 +72,22 @@ export class AppearanceService {
         return [{ id: item.id, type: item.type, sourceCharacterId: item.sourceCharacterId, displayName: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? item.sourceCharacter?.name ?? item.displayName : 'Cosmétique mystérieux',
           assetPath: isOwned || item.visibility === CosmeticVisibility.VISIBLE ? officialAsset(item.sourceCharacterId ? item.sourceCharacter?.iconPath ?? null : item.assetPath) : null,
           condition: !isOwned && item.visibility === CosmeticVisibility.VISIBLE ? item.conditionText : null,
+          unlockedAt: possession?.acquisitionDateKnown ? possession.unlockedAt.toISOString() : null,
+          isNew: !!possession && possession.consultedAt===null,
           levelRequirement, visibility: item.visibility, owned: isOwned, isActive: item.isActive }];
       }),
     };
+  }
+
+  async consult(identity: AuthenticatedIdentity, type: CosmeticType, cosmeticIds: readonly string[]) {
+    const actor=await this.actor(identity);
+    const ids=[...new Set(cosmeticIds)];
+    await this.database.$transaction(async tx=>{
+      const possessions=await tx.playerCosmetic.findMany({where:{playerId:actor.id,cosmeticId:{in:ids},cosmetic:{type}},select:{cosmeticId:true}});
+      if(possessions.length!==ids.length)throw new AppError('Cosmétique non possédé.',403,'COSMETIC_NOT_OWNED');
+      await tx.playerCosmetic.updateMany({where:{playerId:actor.id,cosmeticId:{in:ids},consultedAt:null,cosmetic:{type}},data:{consultedAt:new Date()}});
+    });
+    return { consulted: ids };
   }
 
   async equip(identity: AuthenticatedIdentity, type: CosmeticType, cosmeticId: string | null) {
@@ -103,7 +117,7 @@ export class AppearanceService {
 export async function unlockCosmeticInTransaction(db: Database, input: { playerId: string; externalKey: string; source: string; provenance?: Prisma.InputJsonValue; notificationMode: 'PLAYER_FACING' | 'SILENT_BACKFILL' }) {
   const definition = await db.cosmeticDefinition.findUnique({ where: { externalKey: input.externalKey }, select: { id: true, displayName: true, type: true, isActive: true } });
   if (!definition || !definition.isActive) throw new AppError('Cosmétique indisponible.', 404, 'COSMETIC_UNAVAILABLE');
-  const inserted = await db.playerCosmetic.createMany({ data: [{ playerId: input.playerId, cosmeticId: definition.id, unlockSource: input.source, ...(input.provenance ? { provenance: input.provenance } : {}) }], skipDuplicates: true });
+  const inserted = await db.playerCosmetic.createMany({ data: [{ playerId: input.playerId, cosmeticId: definition.id, unlockSource: input.source, ...(input.notificationMode==='PLAYER_FACING'?{consultedAt:null,acquisitionDateKnown:true}:{}), ...(input.provenance ? { provenance: input.provenance } : {}) }], skipDuplicates: true });
   if (inserted.count && input.notificationMode === 'PLAYER_FACING') await db.notification.create({ data: { playerId: input.playerId, domainKey: 'appearance', typeKey: 'COSMETIC_UNLOCKED', payload: { cosmeticId: definition.id, type: definition.type, displayName: definition.displayName }, actionKey: 'OPEN_PROFILE_PERSONALIZATION', deduplicationKey: `cosmetic-unlock:${input.playerId}:${definition.id}` } });
   return { unlocked: inserted.count === 1, cosmeticId: definition.id };
 }

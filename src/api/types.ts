@@ -830,7 +830,7 @@ export type AppearanceDto = Readonly<{
   title: string | null
   equippedAvatarCosmeticId: string | null
   equippedTitleCosmeticId: string | null
-  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; levelRequirement?: number | null; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
+  catalog: readonly Readonly<{ id: string; type: 'AVATAR' | 'TITLE'; sourceCharacterId?: string | null; levelRequirement?: number | null; unlockedAt?: string | null; isNew?: boolean; displayName: string; assetPath: string | null; condition: string | null; visibility: 'VISIBLE' | 'MYSTERY' | 'SECRET'; owned: boolean; isActive: boolean }>[]
 }>
 export type TwitchCommandPilotDto = Readonly<{
   commandPilotCapabilityEnabled: boolean

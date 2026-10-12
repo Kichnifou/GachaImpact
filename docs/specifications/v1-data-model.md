@@ -1,5 +1,13 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Complément R1052 — consultation et date fiable (12/10/2026)
+
+PlayerCosmetic conserve son unlockedAt original et ajoute consultedAt nullable (date de première consultation, null signifie nouveauté non consultée) et acquisitionDateKnown booléen. Catalogue personnel AppearanceDto : unlockedAt ISO si possédé et fiable, sinon null ; isNew seulement pour une possession consultedAt=null. Aucun DTO public tiers ne révèle de nouvelle information.
+
+À la migration076, toutes les possessions existantes sont déjà consultées ; seuls les producteurs natifs gacha-first-ownership et PLAYER_LEVEL qualifient la date historique. Les backfills048/059 et autres sources non prouvées ne gagnent pas de date présentée. Une insertion joueur réelle initialise consultedAt=null/date connue ; une insertion silencieuse utilise les defaults déjà consultée/date inconnue. Un replay préserve les métadonnées existantes. Aucune réattribution, modification de unlockedAt, équipement ou nouvelle notification.
+
+La consultation est un ACK authentifié exact par type et IDs possédés, indépendant pour Avatars/Titres, idempotent et durable entre onglets/reconnexion. Seules les cartes réellement affichées après recherche sont acquittées ; la présentation locale conserve leur badge/priorité jusqu'au départ. Tri Nom/Date dans les deux sens, dates inconnues après les connues, regroupements fonctionnels conservés. GET reste readonly ; règles d'obtention inchangées.
+
 ## Finition 12/10/2026 — présence et confirmation provisoire
 
 SharedInvocationMember conserve l'adhésion watchingId, distincte des baux techniques viewerPresences (maximum huit onglets) et de watchingVersion, renouvelée à chaque adhésion/arrêt ou avant de compacter les traces expirées lorsque la capacité est atteinte. Cette rotation invalide les anciens paquets et conserve tous les baux encore actifs ; huit onglets simultanément actifs restent la limite. La présence consultable est une projection de Players uniques actifs et visibles, sans stockage d'un second profil ni donnée économique. [Schéma 075](../architecture/postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).

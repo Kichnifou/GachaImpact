@@ -1,5 +1,14 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Extension physique R1052 — migration076 (12/10/2026)
+
+Migration Prisma additive20261012190000_076_cosmetic_consultation sur player_cosmetics :
+
+- consulted_at timestamptz(6) NULL DEFAULT CURRENT_TIMESTAMP : baseline historique déjà consultée ; les nouveaux producteurs PLAYER_FACING écrivent explicitement null.
+- acquisition_date_known boolean NOT NULL DEFAULT false : true uniquement pour dates historiques de source gacha-first-ownership ou PLAYER_LEVEL, et nouvelles acquisitions joueur prouvées. Autres sources/backfills restent inconnues.
+
+Aucune réécriture de unlocked_at, possession, définition, Player, équipement ou notification ; aucune nouvelle table, aucun grant, index ou changement RLS. Test de migration sur possessions préexistantes et replay Prisma normal en schémas éphémères privés, cleanup normal. Application publique uniquement par le predeploy Railway canonique après review ; son état réel est au Master.
+
 ## Finition présence spectateur — migration additive 075
 
 20261012100000_075_shared_viewer_presence étend shared_invocation_members : watching_version UUID NOT NULL DEFAULT gen_random_uuid(), viewer_presences JSONB NOT NULL DEFAULT '[]'. CHECK tableau de taille maximale huit ; baux/révisions validés et écrits uniquement par le serveur. Aucune table ni FK supplémentaire ; RLS réaffirmée et ALL révoqué pour PUBLIC/anon/authenticated. Migration normale après 074, SQL LF et checksum suivi dans _prisma_migrations ; aucune modification des migrations historiques. Application privée/publique et status sont des preuves distinctes portées au Master.

@@ -8950,7 +8950,12 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .appearance-catalog { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); }
 .appearance-character-section { display: grid; gap: 10px; min-width: 0; }
 .appearance-character-section h3 { margin: 0; color: #d8e9ff; font-size: 13px; font-weight: 700; }
-.appearance-card { display: flex; gap: 10px; align-items: center; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #111a2a; }
+.appearance-card { position: relative; display: flex; gap: 10px; align-items: center; min-width: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; background: #111a2a; }
+.appearance-card > .appearance-new { position: absolute; top: 3px; left: 3px; z-index: 1; padding: 1px 4px; border-radius: 3px; background: #f2cf61; color: #30270e; font-size: .6rem; font-weight: 700; line-height: 1.2; pointer-events: none; }
+.appearance-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.appearance-controls label { display: grid; gap: 5px; }
+.appearance-controls select { min-height: 38px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: #142238; color: white; cursor: pointer; }
+.appearance-controls select:focus-visible { outline: 2px solid #cdb277; outline-offset: -2px; }
 .appearance-card > div { display: grid; gap: 4px; min-width: 0; }
 .appearance-card small { color: var(--muted); overflow-wrap: anywhere; }
 .appearance-card > span:not(.player-avatar):not(.appearance-mystery), .appearance-card > strong { overflow-wrap: anywhere; }

@@ -92,3 +92,29 @@ describe('Appearance isolated PostgreSQL', () => {
     expect(effectiveAvatar(row).kind).toBe('CUSTOM');
   });
 });
+
+it('persists exact Player/type consultation snapshots without consuming concurrent acquisitions or economy',async()=>{
+  const defs=await Promise.all(['first','late','title','silent'].map(key=>database.cosmeticDefinition.create({data:{externalKey:'r1052-'+key,type:key==='title'||key==='silent'?'TITLE':'AVATAR',displayName:'R1052 '+key}})));
+  const [first,late,title,silent]=defs;
+  for(const definition of [first!,title!])await appearance.unlockCosmetic({playerId:owner,externalKey:definition.externalKey,source:'TEST_LIVE',notificationMode:'PLAYER_FACING'});
+  await appearance.unlockCosmetic({playerId:owner,externalKey:silent!.externalKey,source:'PLAYER_LEVEL',notificationMode:'SILENT_BACKFILL'});
+  const snapshot=await appearance.get({subject:owner});
+  expect(snapshot.catalog.find(item=>item.id===first!.id)).toMatchObject({isNew:true,unlockedAt:expect.any(String)});
+  expect(snapshot.catalog.find(item=>item.id===silent!.id)).toMatchObject({isNew:false,unlockedAt:null});
+  await appearance.unlockCosmetic({playerId:owner,externalKey:late!.externalKey,source:'TEST_LIVE',notificationMode:'PLAYER_FACING'});
+  const before=await database.player.findUniqueOrThrow({where:{id:owner}}),xp=await database.playerProgression.findUniqueOrThrow({where:{playerId:owner}}),notifications=await database.notification.count({where:{playerId:owner}});
+  const acknowledge=(type:string,ids:string[],headers=auth())=>app.inject({method:'POST',url:'/api/v1/me/appearance/consulted',headers,payload:{type,cosmeticIds:ids}});
+  expect((await acknowledge('AVATAR',[first!.id])).statusCode).toBe(200);
+  expect((await acknowledge('AVATAR',[first!.id])).statusCode).toBe(200);
+  const after=await appearance.get({subject:owner});
+  expect(after.catalog.find(item=>item.id===first!.id)?.isNew).toBe(false);
+  expect(after.catalog.find(item=>item.id===late!.id)?.isNew).toBe(true);
+  expect(after.catalog.find(item=>item.id===title!.id)?.isNew).toBe(true);
+  expect((await acknowledge('TITLE',[first!.id])).statusCode).toBe(403);
+  expect((await acknowledge('AVATAR',[first!.id],{authorization:`Bearer ${other}`})).statusCode).toBe(403);
+  expect((await acknowledge('AVATAR',[first!.id],{} as ReturnType<typeof auth>)).statusCode).toBe(401);
+  expect((await acknowledge('AVATAR',[])).statusCode).toBe(400);
+  expect(await database.player.findUniqueOrThrow({where:{id:owner}})).toEqual(before);
+  expect(await database.playerProgression.findUniqueOrThrow({where:{playerId:owner}})).toEqual(xp);
+  expect(await database.notification.count({where:{playerId:owner}})).toBe(notifications);
+});

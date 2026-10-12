@@ -51,6 +51,7 @@ export async function unlockCharacterAvatars(
       playerId: input.playerId,
       cosmeticId: byCharacter.get(character.id)!.id,
       unlockedAt: input.now,
+      ...(input.silent ? {} : { consultedAt: null, acquisitionDateKnown: true }),
       unlockSource: input.unlockSource ?? 'gacha-first-ownership',
       provenance: { characterId: character.id, ...(input.provenance ? { backfill: input.provenance } : {}) },
     })),

@@ -217,6 +217,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       directory: query => request<DirectoryPage>('/api/v1/players?' + new URLSearchParams({ q: query.q, page: String(query.page), ...(query.element ? { element: query.element } : {}), ...(query.status ? { status: query.status } : {}), ...(query.relation ? { relation: query.relation } : {}) })),
       profile: id => request<Profile>('/api/v1/players/' + encodeURIComponent(id) + '/profile'),
       appearance: () => request<AppearanceDto>('/api/v1/me/appearance'),
+      consultAppearance: (type, cosmeticIds) => request<{ consulted: string[] }>('/api/v1/me/appearance/consulted', { method: 'POST', body: JSON.stringify({type,cosmeticIds}) }),
       equipAppearance: (type, cosmeticId) => request<AppearanceDto>('/api/v1/me/appearance', { method: 'PATCH', body: JSON.stringify({ type, cosmeticId }) }),
       ownMissions: () => request<PlayerMissionsDto>('/api/v1/me/missions'),
       playerMissions: id => request<Access<PermanentMissionProjectionDto>>('/api/v1/players/' + encodeURIComponent(id) + '/missions'),

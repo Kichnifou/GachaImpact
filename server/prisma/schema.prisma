@@ -534,6 +534,8 @@ model PlayerCosmetic {
   playerId      String             @map("player_id") @db.Uuid
   cosmeticId    String             @map("cosmetic_id") @db.Uuid
   unlockedAt    DateTime           @default(now()) @map("unlocked_at") @db.Timestamptz(6)
+  consultedAt   DateTime?          @default(now()) @map("consulted_at") @db.Timestamptz(6)
+  acquisitionDateKnown Boolean     @default(false) @map("acquisition_date_known")
   unlockSource  String             @map("unlock_source") @db.Text
   provenance    Json?              @db.JsonB
   player        Player             @relation(fields: [playerId], references: [id], onDelete: Cascade)

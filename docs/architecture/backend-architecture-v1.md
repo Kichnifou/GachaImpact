@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Extension R1052 — projection et ACK de consultation (12/10/2026)
+
+AppearanceService demeure l'autorité unique. GET personnel projette unlockedAt fiable/null et isNew, sans écriture. POST /api/v1/me/appearance/consulted accepte strictement {type:AVATAR|TITLE,cosmeticIds:UUID[1..200]}, identité issue de la session ACTIVE, aucune cible Player fournie. Transaction vérifiant toutes les possessions du type de l'acteur puis updateMany consultedAt IS NULL ; ID étranger/type erroné403, payload invalide400, anonyme401, no-store. Répétition neutre, aucune notification/équipement/XP/ressource affectés.
+
+Les producteurs d'avatars/titres existants ajoutent seulement les métadonnées de consultation et de fiabilité de date lors de leur insertion PLAYER_FACING ; SILENT_BACKFILL et replay gardent leur neutralité. Migration additive076 sur player_cosmetics uniquement, sans nouvelle table ni politique/permission directe. Les deux champs restent server-only avec les contrôles/RLS existants. Aucun changement au moteur d'acquisition, à l'économie, au calendrier ou à Twitch.
+
 ## Finition présence et provenance — 12/10/2026
 
 SharedInvocations ajoute GET spectators (pagination bornée, appartenance actuelle, Player ACTIVE, confidentialité PRESENCE/blocages, projection publique minimale) et POST viewer-presence (UUID onglet/session/version, révision monotone, booléen visible). Baux spectateurs distincts de l'activité diffuseur, 60 s/renouvellement15 s ; aucune écriture du poll de scène. Verrou partagé et même client transactionnel, pas d'énumération par sessionId libre. [Contrat détaillé](shared-invocations-v1.md#finition-autorisée-du-12102026), [075](postgresql-schema-v1.md#finition-présence-spectateur--migration-additive-075).

@@ -49,6 +49,7 @@ export type SocialActions = {
   directory: (query: DirectoryQuery) => Promise<DirectoryPage>
   profile: (id: string) => Promise<Profile>
   appearance: () => Promise<AppearanceDto>
+  consultAppearance: (type: 'AVATAR' | 'TITLE', cosmeticIds: readonly string[]) => Promise<{ consulted: string[] }>
   equipAppearance: (type: 'AVATAR' | 'TITLE', cosmeticId: string | null) => Promise<AppearanceDto>
   ownMissions: () => Promise<PlayerMissionsDto>
   playerMissions: (id: string) => Promise<Access<PermanentMissionProjectionDto>>
