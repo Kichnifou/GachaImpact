@@ -56,6 +56,9 @@
 @media (max-width: 600px) { .shared-invocation-controls { margin-top: .3rem; } .shared-invocation-controls small { font-size: .59rem; } .shared-invocation-status { font-size: .6rem; } .shared-invocation-presentation-controls { bottom: .4rem; left: .4rem; right: auto; } }
 
 .shared-is-paused .invocation-sequence * { animation-play-state: paused !important; }
+/* A viewer can join an already paused receipt: do not freeze its entry fade at opacity zero. */
+.shared-is-paused .invocation-sequence .pull-result-card { animation: none !important; }
+.shared-is-paused .invocation-sequence .pull-result-card::before { animation: none !important; opacity: 0; }
 
 @media (min-width: 1001px) and (max-height: 640px) {
   .invocation-sequence:has(> .sequence-summary),

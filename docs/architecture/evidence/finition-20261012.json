@@ -34,7 +34,7 @@
     }
   },
   "visual": {
-    "states": 48,
+    "states": 60,
     "modalFormats": 6,
     "personalScenes": 12,
     "adminFormats": 6,
@@ -46,8 +46,8 @@
       "1920x1080",
       "2560x1440"
     ],
-    "css": "index-z0w6iPB5.css",
-    "cssSha256": "ef5aa3858e10087dba26411bbcbe0af34b4af34d32b926bc74fd7c101deac521",
+    "css": "index-C96Y822E.css",
+    "cssSha256": "00e4aad1a8b4c23f1b6b45b22c829b4a8c0519966db7b1bab282c5d8cc83f4c6",
     "errors": [],
     "rootPngInspection": [
       "diagnostic-summary-1366.png",
@@ -56,7 +56,9 @@
       "watch-idle-390x844.png",
       "personal-x10-1366x520.png",
       "admin-390x844.png",
-      "spectators-844x390.png"
+      "spectators-844x390.png",
+      "watch-pause-summary-1366x520.png",
+      "watch-pause-reveal-390x844.png"
     ],
     "syntheticLocalOnly": true,
     "limitations": [
@@ -64,7 +66,14 @@
       "One intermittent paused-scene horizontal overflow assertion did not recur in the instrumented final full run; retained logs, independent visual gate pending",
       "Personal harness same-URL navigation preserved old x1 scene; distinct query forces real navigation; final12 PASS",
       "No authenticated human production acceptance inferred"
-    ]
+    ],
+    "sharedBeforePauseCorrection": {
+      "states": 48,
+      "css": "index-z0w6iPB5.css",
+      "cssSha256": "ef5aa3858e10087dba26411bbcbe0af34b4af34d32b926bc74fd7c101deac521"
+    },
+    "pausedJoin": "60 states include watch-pause reveal/summary in all6 formats, all cards opacity1; original opacity0 reproduced, static receipt correction",
+    "reducedMotion": "PASS pointer-events none, fade1.5s, wave none"
   },
   "advisory": {
     "reportSha256": "f27a8a6beca14cb77602809743a0d13e6f04434dca251e4f161c6baa791c4459",
@@ -114,5 +123,14 @@
     "implementation-workflow.md",
     "conversation-handoff.md (Master remains live tracker)",
     "consolidated-r1066-r1077.md (historical delivered scope)"
+  ],
+  "publishedCandidate": "7d246b97a41ff6ecc54b88edcc42a68394b8af8d",
+  "reviewCorrections": [
+    {
+      "finding": "Joining an already PAUSED receipt freezes entry animation at opacity0",
+      "change": "Settled static result cards while pause background stays suspended",
+      "validation": "frontend build PASS; 60 compiled GameShell states and six spectator modals PASS; targeted screenshot inspection",
+      "independentApproval": "PENDING"
+    }
   ]
 }
