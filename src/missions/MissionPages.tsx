@@ -1,17 +1,17 @@
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import type { PermanentMissionDto } from '../api/types'
 import AppButton from '../components/AppButton'
 
 export function missionPageGeometry(width: number, height: number) {
   const columns = width >= 720 ? 3 : width >= 480 ? 2 : 1
-  const rows = Math.max(1, Math.min(3, Math.floor((height - 38 + 8) / 193)))
+  const rows = height >= 350 ? 2 : 1
   return { columns, rows }
 }
 
 /** Presentation only; the parent supplies the complete canonical order. */
 export default function MissionPages({ missions, renderCard }: { missions: readonly PermanentMissionDto[]; renderCard: (mission: PermanentMissionDto) => ReactNode }) {
   const viewport = useRef<HTMLDivElement>(null)
-  const [geometry, setGeometry] = useState({ columns: 3, rows: 3 })
+  const [geometry, setGeometry] = useState({ columns: 3, rows: 2 })
   const [page, setPage] = useState(0)
   const [direction, setDirection] = useState(1)
   const capacity = geometry.columns * geometry.rows
@@ -21,7 +21,10 @@ export default function MissionPages({ missions, renderCard }: { missions: reado
     const node = viewport.current
     if (!node) return
     const measure = () => {
-      if (node.clientWidth && node.clientHeight) setGeometry(missionPageGeometry(node.clientWidth, node.clientHeight))
+      if (node.clientWidth && node.clientHeight) {
+        const next = missionPageGeometry(node.clientWidth, node.clientHeight)
+        setGeometry(previous => previous.columns === next.columns && previous.rows === next.rows ? previous : next)
+      }
     }
     measure()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
@@ -29,11 +32,6 @@ export default function MissionPages({ missions, renderCard }: { missions: reado
     window.addEventListener('resize', measure)
     return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }
   }, [])
-  useLayoutEffect(() => {
-    // Long descriptions may require fewer rows, never clipping their contents.
-    const cards = viewport.current?.querySelectorAll<HTMLElement>('.mission-card')
-    if (geometry.rows > 1 && cards && [...cards].some(card => card.scrollHeight > card.clientHeight + 1)) setGeometry(value => ({ ...value, rows: value.rows - 1 }))
-  }, [missions, current, geometry])
   const move = (delta: -1 | 1) => { setDirection(delta); setPage(Math.max(0, Math.min(pages - 1, current + delta))) }
   return <div ref={viewport} className="mission-pages" style={{ '--mission-columns': geometry.columns, '--mission-rows': geometry.rows } as CSSProperties}>
     <div className="mission-page-window">

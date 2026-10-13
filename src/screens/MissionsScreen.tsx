@@ -36,7 +36,7 @@ function MissionsScreen({ onLoad, refreshToken = 0 }: MissionsScreenProps) {
   else if (error) content = <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{error}</p><button type="button" className="small-primary-button" onClick={retry}>Réessayer</button></div>
   else content = value ? <MissionProjectionView value={value} paginated /> : null
 
-  return <div className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
+  return <div data-fit-screen className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
 }
 
 export default MissionsScreen

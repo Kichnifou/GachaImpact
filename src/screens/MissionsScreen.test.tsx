@@ -46,17 +46,18 @@ describe('MissionsScreen', () => {
     const keys = () => [...container.querySelectorAll<HTMLElement>('[data-mission-key]')].map(n => n.dataset.missionKey)
     const seen = [...keys()]
     const next = () => container.querySelector<HTMLButtonElement>('[aria-label="Missions suivantes"]')!
-    expect(keys()).toHaveLength(9)
+    expect(keys()).toHaveLength(6)
     expect(container.textContent).not.toContain('Suivez vos objectifs')
-    act(() => next().click()); seen.push(...keys()); act(() => next().click()); seen.push(...keys())
+    while (!next().disabled) { act(() => next().click()); seen.push(...keys()) }
     expect(keys()).toHaveLength(1); expect(next().disabled).toBe(true)
     expect(seen).toHaveLength(19); expect(new Set(seen).size).toBe(19)
     expect(seen).toEqual(projection.ranks.B.map(m => m.externalKey))
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Missions précédentes"]')!.click())
-    expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('2')
+    expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('3')
     act(() => [...container.querySelectorAll<HTMLButtonElement>('.missions-rank-tabs button')].find(n => n.textContent === 'A')!.click())
     expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('1')
-    expect(container.querySelector('.mission-pagination')).toBeNull()
+    expect(keys()).toHaveLength(6)
+    expect(next().disabled).toBe(false)
     act(() => root.render(<MissionProjectionView value={projection} />))
     expect(container.querySelectorAll('.mission-card')).toHaveLength(19)
     expect(container.querySelector('.mission-pages')).toBeNull()
@@ -66,8 +67,8 @@ describe('MissionsScreen', () => {
     expect(keys()).toHaveLength(4); expect(container.querySelector('.mission-pagination')).toBeNull()
   })
   it('uses a bounded readable capacity for narrow and low viewports', () => {
-    expect(missionPageGeometry(1000, 640)).toEqual({ columns: 3, rows: 3 })
-    expect(missionPageGeometry(600, 400)).toEqual({ columns: 2, rows: 1 })
+    expect(missionPageGeometry(1000, 640)).toEqual({ columns: 3, rows: 2 })
+    expect(missionPageGeometry(600, 400)).toEqual({ columns: 2, rows: 2 })
     expect(missionPageGeometry(320, 280)).toEqual({ columns: 1, rows: 1 })
   })
   it.each(['missions-ranks', 'missions-progress', 'missions-secret-z'] as const)('presents %s on B for locked and unlocked Z, restoring the normal rank afterward', async (stepId: TutorialStepId) => {
@@ -82,7 +83,7 @@ describe('MissionsScreen', () => {
       expect(z.getAttribute('aria-pressed')).toBe('true')
       act(() => root.render(render(true)))
       expect(z.getAttribute('aria-pressed')).toBe('false')
-      expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+      expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
       expect(container.querySelector('[data-tutorial-anchor="missions-progress"] [data-mission-rank="B"]')).not.toBeNull()
       expect(container.querySelector('[data-mission-rank="Z"]')).toBeNull()
       expect(container.textContent).not.toContain('Description publique Z')
@@ -93,14 +94,17 @@ describe('MissionsScreen', () => {
       expect(container.querySelector('[data-mission-rank="Z"]') !== null).toBe(value === unlocked)
     }
   })
-  it('loads once on entry and opens rank B with its nine authoritative cards', async () => {
+  it('loads once on entry and exposes all nine authoritative cards across six-card pages', async () => {
     const { container, onLoad } = await mount()
     expect(onLoad).toHaveBeenCalledOnce()
-    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
+    expect(container.textContent).toMatch(/En cours.*Verrouillée/s)
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Missions suivantes"]')!.click())
+    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(3)
     expect(container.textContent).toContain('Mission B1')
     expect(container.textContent).toContain('9 007 199 254 740 993 / 9 007 199 254 740 993')
     expect(container.textContent).toContain('+1 600 Primogemmes')
-    expect(container.textContent).toMatch(/En cours.*Verrouillée.*Terminée/s)
+    expect(container.textContent).toMatch(/Verrouillée.*Terminée/s)
     expect(container.querySelector('[data-mission-key] button')).toBeNull()
   })
 
@@ -142,7 +146,7 @@ describe('MissionsScreen', () => {
     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Missions indisponibles')
     await act(async () => { container.querySelector<HTMLButtonElement>('[role="alert"] button')!.click(); await Promise.resolve(); await Promise.resolve() })
     expect(onLoad).toHaveBeenCalledTimes(2)
-    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
   })
 
   it('performs a fresh read on each screen entry', async () => {
