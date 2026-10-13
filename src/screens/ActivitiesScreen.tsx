@@ -5,7 +5,7 @@ import type { FavorDto } from '../api/types'
 import { projectDailies, type DailyItem } from '../dailies/daily-summary'
 import type { DailyClaimController } from '../dailies/use-daily-claim'
 import { useState, type ReactNode } from 'react'
-import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerMissionsDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingPageDto, EventGameAAttemptDto, EventJoinDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerMissionsDto, WheelSpinDto, WheelTodayDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { formatResourceAmount } from '../utils/formatters'
 import WheelCard from '../components/WheelCard'
@@ -57,7 +57,7 @@ type ActivitiesScreenProps = {
   onJoinEvent?: (key: string) => Promise<EventJoinDto>
   onClaimEventCalendar?: (key: string) => Promise<EventCalendarClaimDto>
   onClaimEventDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>
-  onLoadEventRanking?: () => Promise<EventRankingDto>
+  onLoadEventRanking?: (page: number, editionId: string) => Promise<EventRankingPageDto>
   onConvertEventShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
   onPurchaseEventCollection?: (key: string) => Promise<EventDto>
   onAttemptEventGameA?: (key: string) => Promise<EventGameAAttemptDto>

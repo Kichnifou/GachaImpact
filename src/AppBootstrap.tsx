@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 
 import { ApiError, getGameApiClient } from './api/game-api'
 import type { ArcadeMutation } from './api/arcade-types'
-import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingPageDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
 import AuthScreen from './components/AuthScreen'
@@ -67,7 +67,7 @@ function AppBootstrap() {
   const [contest, setContest] = useState<ContestDto | null>(null)
   const [contestAvailability, setContestAvailability] = useState<ContestAvailability>({ phase: 'loading', pending: false })
   const [event, setEvent] = useState<EventDto | null>(null)
-  const rankingFlightRef = useRef<{ userId: string | undefined; promise: Promise<EventRankingDto> } | null>(null)
+  const rankingFlightRef = useRef<{ userId: string | undefined; page: number; editionId: string; promise: Promise<EventRankingPageDto> } | null>(null)
   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
@@ -153,11 +153,11 @@ function AppBootstrap() {
   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
   const loadEvent = useCallback(() => readDaily('event', () => eventRequests.read(() => getGameApiClient().getEvent()), () => undefined), [eventRequests, readDaily])
-  const loadEventRanking = useCallback(() => {
+  const loadEventRanking = useCallback((page: number, editionId: string) => {
     const current = rankingFlightRef.current
-    if (current && current.userId === sessionUserId) return current.promise
-    const promise = getGameApiClient().getEventRanking()
-    rankingFlightRef.current = { userId: sessionUserId, promise }
+    if (current && current.userId === sessionUserId && current.page === page && current.editionId === editionId) return current.promise
+    const promise = getGameApiClient().getEventRankingPage(page, editionId)
+    rankingFlightRef.current = { userId: sessionUserId, page, editionId, promise }
     const clear = () => { if (rankingFlightRef.current?.promise === promise) rankingFlightRef.current = null }
     void promise.then(clear, clear)
     return promise

@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { EventRankingDto } from '../api/types'
+import type { EventRankingPageDto } from '../api/types'
 import EventRankingSection from './EventRankingSection'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -17,15 +17,54 @@ afterEach(() => {
   visibility = 'visible'
 })
 
-function mount(onLoad: () => Promise<EventRankingDto>, editionId = 'edition-one') {
+function mount(onLoad: (page: number, editionId: string) => Promise<EventRankingPageDto>, editionId = 'edition-one') {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push({ root, container })
   act(() => root.render(<EventRankingSection editionId={editionId} onLoad={onLoad} />))
   return { root, container }
 }
-const ranking = (points = 4): EventRankingDto => ({ editionId: 'edition-one', entries: [{ rank: 1, playerId: 'player-one', displayName: 'Un pseudo très très long qui doit rester lisible', points }] })
+const ranking = (points = 4): EventRankingPageDto => ({ editionId: 'edition-one', page: 1, pageSize: 5, pageCount: 1, total: 1, self: null, entries: [{ rank: 1, playerId: 'player-one', displayName: 'Un pseudo très très long qui doit rester lisible', points }] })
 
 describe('Event Ranking visible refresh', () => {
+  it('ignores a previous page polling response within the same edition', async () => {
+    vi.useFakeTimers()
+    let resolveOld!: (value: EventRankingPageDto) => void
+    const first = { ...ranking(), pageCount: 2, total: 6 }
+    const onLoad = vi.fn<(page: number, editionId: string) => Promise<EventRankingPageDto>>()
+      .mockResolvedValueOnce(first)
+      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValue({ ...first, page: 2, entries: [{ ...first.entries[0], rank: 6 }] })
+    const { container } = mount(onLoad)
+    await act(async () => { await Promise.resolve(); await vi.advanceTimersByTimeAsync(3_000) })
+    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Classement suivant"]')!.click())
+    await act(async () => resolveOld(first))
+    expect(container.textContent).toContain('#6')
+    expect(container.textContent).toContain('2 / 2')
+    expect(container.textContent).not.toContain('#1')
+  })
+  it('requests each page from the server and rejects an obsolete edition response', async () => {
+    let resolveOld!: (value: EventRankingPageDto) => void
+    const onLoad = vi.fn(async (page: number, editionId: string) => ({ ...ranking(), editionId, page, pageCount: 3, total: 11, entries: [{ ...ranking().entries[0], rank: (page - 1) * 5 + 1 }] }))
+    const { root, container } = mount(onLoad)
+    await act(async () => { await Promise.resolve() })
+    await act(async () => { (container.querySelector('[aria-label="Classement suivant"]') as HTMLButtonElement).click(); await Promise.resolve() })
+    expect(onLoad).toHaveBeenLastCalledWith(2, 'edition-one')
+    expect(container.textContent).toContain('#6')
+    const old = new Promise<EventRankingPageDto>(resolve => { resolveOld = resolve })
+    act(() => root.render(<EventRankingSection editionId="edition-two" onLoad={() => old} />))
+    await act(async () => { resolveOld({ ...ranking(), page: 2 }); await Promise.resolve() })
+    expect(container.querySelector('.event-ranking-list')).toBeNull()
+    expect(container.textContent).not.toContain('#6')
+  })
+
+  it('accepts a server clamp after participants disappear', async () => {
+    const onLoad = vi.fn(async (page: number) => ({ ...ranking(), pageCount: page === 1 ? 2 : 1, total: page === 1 ? 6 : 1 }))
+    const { container } = mount(onLoad)
+    await act(async () => { await Promise.resolve() })
+    await act(async () => { (container.querySelector('[aria-label="Classement suivant"]') as HTMLButtonElement).click(); await Promise.resolve() })
+    expect(container.textContent).toContain('1 / 2')
+    expect(onLoad.mock.calls.map(call => call[0])).toEqual([1, 2, 1])
+  })
   it('shows the active edition publicly with rank, name, points and no reward', async () => {
     const { container } = mount(vi.fn(async () => ranking()))
     await act(async () => { await Promise.resolve() })
@@ -33,7 +72,7 @@ describe('Event Ranking visible refresh', () => {
     expect(container.textContent).toContain('#1')
     expect(container.textContent).toContain('Un pseudo très très long')
     expect(container.textContent).toContain('4 points')
-    expect(container.textContent).toContain('Aucune récompense')
+    expect(container.textContent).toContain('Classement honorifique')
   })
 
   it('polls every three seconds only while visible and refreshes on focus', async () => {
@@ -58,8 +97,8 @@ describe('Event Ranking visible refresh', () => {
 
   it('does not overlap requests or publish a stale edition after unmount', async () => {
     vi.useFakeTimers()
-    let resolveFirst!: (value: EventRankingDto) => void
-    const first = new Promise<EventRankingDto>((resolve) => { resolveFirst = resolve })
+    let resolveFirst!: (value: EventRankingPageDto) => void
+    const first = new Promise<EventRankingPageDto>((resolve) => { resolveFirst = resolve })
     const onLoad = vi.fn(() => first)
     const { root, container } = mount(onLoad)
     await act(async () => { await vi.advanceTimersByTimeAsync(12_000); window.dispatchEvent(new Event('focus')) })

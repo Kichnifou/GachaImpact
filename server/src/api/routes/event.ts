@@ -7,6 +7,7 @@ import { AppError } from '../errors.js';
 
 type Options = Readonly<{ authenticate: preHandlerHookHandler; service: EventService }>;
 const joinSchema = z.object({ idempotencyKey: z.uuid() }).strict();
+const rankingPageSchema = z.object({ editionId: z.uuid(), page: z.coerce.number().int().min(1).max(100_000).default(1) }).strict();
 const gameBAttemptSchema = z.object({ code: z.string().regex(/^[01]{5}$/), idempotencyKey: z.uuid() }).strict();
 const gameCSearchSchema = z.object({ q: z.string().trim().max(100).default(''), elementKey: z.enum(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']).optional(), sort: z.enum(['name', 'level']).default('name'), direction: z.enum(['asc', 'desc']).default('asc'), page: z.coerce.number().int().min(1).max(50).default(1) }).strict();
 const gameCSendSchema = z.object({ recipientPlayerId: z.uuid(), message: z.string().trim().min(1).max(500), idempotencyKey: z.uuid() }).strict();
@@ -17,6 +18,11 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
     options.service.getCurrent(requireAuthenticatedIdentity(request)));
   app.get('/api/v1/me/event/ranking', { preHandler: options.authenticate }, (request) =>
     options.service.getRanking(requireAuthenticatedIdentity(request)));
+  app.get('/api/v1/me/event/ranking/page', { preHandler: options.authenticate }, (request) => {
+    const parsed = rankingPageSchema.safeParse(request.query);
+    if (!parsed.success) throw new AppError('La page de classement est invalide.', 400, 'VALIDATION_ERROR');
+    return options.service.getRankingPage(requireAuthenticatedIdentity(request), parsed.data.editionId, parsed.data.page);
+  });
   app.post('/api/v1/me/event/join', { preHandler: options.authenticate }, (request) => {
     const parsed = joinSchema.safeParse(request.body);
     if (!parsed.success) throw new AppError('La demande d’inscription Event est invalide.', 400, 'VALIDATION_ERROR');

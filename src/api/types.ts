@@ -707,6 +707,7 @@ export type EventDailyBonusClaimDto = EventDto & Readonly<{ operation: Readonly<
 export type EventCalendarClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; calendarClaim: Readonly<{ day: number; reward: number }> }>
 export type EventShopMutationDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
 export type EventRankingDto = Readonly<{ editionId: string; entries: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[] }>
+export type EventRankingPageDto = EventRankingDto & Readonly<{ page: number; pageSize: number; pageCount: number; total: number; self: Readonly<{ rank: number; points: number }> | null }>
 export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
 export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
 export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>

@@ -3,7 +3,7 @@ import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
-import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
+import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingPageDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import EventScreenHeader from '../event/EventScreenHeader'
 import AppButton from '../components/AppButton'
@@ -23,7 +23,7 @@ type Props = Readonly<{
   sessionUserId: string
   value: EventDto
   onLoad: () => Promise<EventDto>
-  onLoadRanking?: () => Promise<EventRankingDto>
+  onLoadRanking?: (page: number, editionId: string) => Promise<EventRankingPageDto>
   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
   onClaimCalendar?: (key: string) => Promise<EventCalendarClaimDto>
   onClaimDailyBonus?: (idempotencyKey: string) => Promise<EventDailyBonusClaimDto>

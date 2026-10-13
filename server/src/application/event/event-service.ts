@@ -24,6 +24,7 @@ import { calendarReward, projectCalendar } from '../../domain/event/calendar.js'
 import type { GiftCodeService } from '../gift-code/gift-code-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 import { reconcileConfirmedEventMessages } from './event-message-delivery.js';
+import { readEventRankingPage } from './event-ranking-page.js';
 
 type Database = PrismaClient | Prisma.TransactionClient;
 
@@ -127,6 +128,16 @@ export class EventService {
       }
     }
     throw new Error('Current Event state could not be loaded.');
+  }
+
+  public async getRankingPage(identity: PlayerExecutionActor, editionId: string, page: number) {
+    const viewer = await this.readyPlayer(identity);
+    const period = resolveCurrentEventPeriod(commandNow(this.clock));
+    return this.database.$transaction(async (tx) => {
+      const edition = await tx.eventEdition.findFirst({ where: { id: editionId, year: period.year, definition: { calendarMonth: period.month, isActive: true } }, select: { id: true } });
+      if (!edition) throw new BusinessError('EVENT_EDITION_CLOSED', 'Le Festival a changé. Actualisez l’événement.');
+      return readEventRankingPage(tx, edition.id, viewer.id, page);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   public async getRanking(identity: PlayerExecutionActor) {
