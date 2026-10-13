@@ -111,9 +111,15 @@
   "migration": {
     "name": "20261013110000_081_vote_result_budget",
     "privateNormalPrisma": "PASS",
-    "publicApplied": "NOT_YET_VERIFIED",
+    "publicApplied": "PASS",
     "previousPublicVerified": "080",
-    "historicalJsonRewritten": false
+    "historicalJsonRewritten": false,
+    "appliedAt": "2026-10-13T09:54:21.950Z",
+    "finished": 81,
+    "unresolved": 0,
+    "allChecksumsMatch": true,
+    "prismaStatus": "UP_TO_DATE",
+    "privateTablesProtected": 3
   },
   "reviews": {
     "publishedCandidate": "ec2c3470d5499c961aec9c6e3cf801045dcf0760",
@@ -133,14 +139,36 @@
       "technical": "eebb2a72a5f6a8c4fba6c6d57cb4891b6773dd2b58dc81732f3aa7fb35ff978e",
       "activity": "91c7c05f0b62ff005f223132b37fd24432107a42c8cc764458bbaafd1c85bb59",
       "visual": "bf956b60f50ab50440abe005d4472060a043134ebb93e4ccef12f85da91aec70"
-    }
+    },
+    "documentationCheckpoint": "60104dbd195c1013daeb9ffd654475e1695067d0",
+    "documentationDelta": "APPROVED; runtime unchanged; visual inherited"
   },
   "delivery": {
-    "mainPromotion": "PENDING",
-    "railway": "PENDING",
-    "cloudflare": "PENDING",
-    "postflight": "PENDING",
-    "humanRecipe": "FUTURE_OWNER"
+    "checkpoint": "60104dbd195c1013daeb9ffd654475e1695067d0",
+    "mainPromotion": "PASS strict FF; four refs equal; 0/0; clean",
+    "railway": {
+      "status": "SUCCESS",
+      "deployment": "f31c5b04-bd02-4a84-a8c3-7a4fa52c3e95",
+      "applicationReady": "2026-10-13T09:54:37.657Z"
+    },
+    "cloudflare": {
+      "status": "SUCCESS",
+      "deployment": "029bbf1b-39a6-4135-adf4-62308b7f72e0",
+      "exactProductionAssets": true
+    },
+    "postflight": {
+      "status": "PASS",
+      "health": 200,
+      "domains": 200,
+      "assetsIdentical": true,
+      "anonymousGuards": 12,
+      "exactCors": true,
+      "historyNoStore": true,
+      "initialProbeCorrection": "Boss probe URL lacked /me: 404; canonical route corrected and passed"
+    },
+    "finalDocumentationRuntime": "UNCHANGED; final SHA/deployments verified in delivery report without self-reference",
+    "humanRecipe": "FUTURE_OWNER",
+    "authenticatedPublicBrowser": "NOT_EXECUTED"
   },
   "privateEvidenceDirectory": "local-data/post-r1080-20261013",
   "scope": {
