@@ -755,6 +755,26 @@ it('presents real Game C without consulting messages or consuming a normal daily
   expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
   expect(onConsultMessages).not.toHaveBeenCalled(); expect(consumed).not.toHaveBeenCalled()
 })
+it('consults the short desktop inbox only after opening it and preserves the tutorial sender view', async () => {
+  const media = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList)
+  try {
+    const value = { ...afterJoin, gameC: { ...afterJoin.gameC, unviewedCount: 1 } }
+    const onConsultMessages = vi.fn(async () => value)
+    const { root, container, props } = mount({ value, onLoad: async () => value, onConsultMessages })
+    const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('event-game-c') }}><EventScreen {...props} /></TutorialPresentationContext.Provider>
+    await act(async () => root.render(render(false)))
+    selectGames(container)
+    await act(async () => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('send')
+    expect(onConsultMessages).not.toHaveBeenCalled()
+    await act(async () => container.querySelectorAll<HTMLButtonElement>('.event-game-c-views button')[1]!.click())
+    expect(onConsultMessages).toHaveBeenCalledOnce()
+    await act(async () => root.render(render(true)))
+    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('send')
+    await act(async () => root.render(render(false)))
+    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('messages')
+  } finally { media.mockRestore() }
+})
 it.each(['shop', 'messages'] as const)('restores the normal Event view without replaying the old %s notification intent', async mode => {
   const onConsultMessages = vi.fn(async () => afterJoin)
   const { root, container, props } = mount({ value: afterJoin, onLoad: async () => afterJoin, onConsultMessages, openShopToken: mode === 'shop' ? 1 : 0, openMessagesToken: mode === 'messages' ? 1 : 0 })

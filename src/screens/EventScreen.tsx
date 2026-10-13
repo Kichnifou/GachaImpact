@@ -17,6 +17,7 @@ import { useCalendarClaim } from '../event/use-calendar-claim'
 import EventRankingSection from './EventRankingSection'
 import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation, type EventDailyOpenIntent } from '../event/event-presentation'
 import '../event/event-games-layout.css'
+import EventMessageInbox from '../event/EventMessageInbox'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
@@ -73,9 +74,11 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
 }
 
 export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
+  const [normalGameCPane, setGameCPane] = useState<'send' | 'messages'>('send')
   const shortDesktop = useShortDesktop()
   const presentationMode = useTutorialPresentation()
   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
+  const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane
   const compactGeneral = useShortDesktop(820)
   const [normalGeneralPane, setGeneralPane] = useState<'overview' | 'calendar' | 'gift'>('overview')
   const generalPane = presentationMode.active && presentationMode.step?.anchor === 'event-calendar' ? 'calendar' : normalGeneralPane
@@ -181,6 +184,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     // oxlint-disable-next-line react/set-state-in-effect -- Notification intent selects the inbox before its fresh snapshot arrives.
     setSection('games')
     setGameTab(2)
+    setGameCPane('messages')
     void onLoad().then((latest) => { if (active && !latest.gameC.available) { setSection('registration'); setGameTab(0) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
     return () => { active = false }
   }, [sessionUserId, openMessagesToken, onLoad, presentationMode.active])
@@ -198,9 +202,9 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   }, [onSearchRecipients])
 
   useEffect(() => {
-    if (presentationMode.active || section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
+    if (presentationMode.active || section !== 'games' || gameTab !== 2 || shortDesktop && gameCPane !== 'messages' || value.gameC.unviewedCount === 0 || !onConsultMessages) return
     void onConsultMessages().catch((reason) => setError(apiErrorMessage(reason)))
-  }, [section, gameTab, value.gameC.unviewedCount, onConsultMessages, presentationMode.active])
+  }, [section, gameTab, gameCPane, shortDesktop, value.gameC.unviewedCount, onConsultMessages, presentationMode.active])
 
   useEffect(() => {
     if (section !== 'games' || !value.participation.joined || value.gameB.solvedToday) return
@@ -433,8 +437,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
         <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{value.gameB.solvedToday ? discoveryMessage(value.gameB) : gameBFeedback ?? ''}</p>
       </section>}
-      {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" className="panel event-game-c">
-        <header><span className="eyebrow">Message du Festival</span></header>
+      {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" data-pane={value.gameC.canSend ? gameCPane : 'messages'} className="panel event-game-c">
+        <header><span className="eyebrow">Message du Festival</span><nav className="event-game-c-views" aria-label="Vue des messages du Festival"><button type="button" aria-current={gameCPane === 'send' ? 'page' : undefined} onClick={() => setGameCPane('send')} disabled={!value.gameC.canSend}>Envoyer</button><button type="button" aria-current={gameCPane === 'messages' || !value.gameC.canSend ? 'page' : undefined} onClick={() => setGameCPane('messages')}>Reçus ({value.gameC.receivedMessages.length})</button></nav></header>
         {value.gameC.canSend ? <div className="event-game-c-send">
           <PlayerQuickSearch value={recipientSearchText} onValueChange={(text) => { setRecipientSearchText(text); setSelectedRecipient(null) }} onListPlayers={listRecipients} onSelect={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName) }} action={(closeSuggestions) => <button type="button" className="small-primary-button" onClick={() => { closeSuggestions(); setRecipientBrowserOpen(true) }}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>} />
           <label htmlFor="event-game-c-message">Votre message</label>
@@ -442,7 +446,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
           <button type="button" className="small-primary-button" disabled={pending || !selectedRecipient || !gameCMessage.trim()} onClick={() => void sendGameC()}>{pending ? 'Envoi…' : 'Envoyer'}</button>
         </div> : <p className="event-game-c-sent">{value.gameC.sentToday ? 'Envoyé aujourd’hui' : 'Rejoignez le Festival pour envoyer un message.'}</p>}
         <p className="event-game-c-feedback" role="status">{gameCFeedback ?? ''}</p>
-        <div className="event-game-c-inbox"><h3>Messages reçus aujourd’hui</h3>{value.gameC.receivedMessages.length ? value.gameC.receivedMessages.map((entry) => <article key={entry.id}><div><strong>{entry.sender.displayName}</strong><time dateTime={entry.createdAt}>{timeFormatter.format(new Date(entry.createdAt))}</time></div><p>{entry.message}</p></article>) : <p>Aucun message reçu aujourd’hui.</p>}</div>
+        <EventMessageInbox messages={value.gameC.receivedMessages} />
       </section>}
       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
     </ScrollableScreenPanel>
