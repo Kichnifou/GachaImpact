@@ -52,7 +52,9 @@ describe('real personal Box', () => {
     expect(appCssSource).toMatch(/\.box-collection-panel \.scrollable-screen-panel-content \{ gap: 8px; \}/)
     expect(html).toContain('Émilie')
     expect(html).toContain('<strong>4</strong> obtenus')
-    for (const label of ['Tous', '5★', '4★', 'Pyro', 'Hydro', 'Cryo', 'Électro', 'Anémo', 'Géo', 'Dendro']) expect(html).toContain(label)
+    for (const label of ['Filtrer les personnages 5 étoiles', 'Filtrer les personnages 4 étoiles', 'Pyro', 'Hydro', 'Cryo', 'Électro', 'Anémo', 'Géo', 'Dendro']) expect(html).toContain(label)
+    expect(html).not.toContain('Tous les éléments')
+    expect(html).not.toContain('role="tab"')
     for (let constellation = 0; constellation <= 6; constellation += 1) expect(html).toContain(`C${constellation}`)
   })
   it('groups favorites before rarity and sorts inside each group', () => {

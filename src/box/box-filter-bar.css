@@ -1,0 +1,13 @@
+.box-screen .box-filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
+.box-screen .box-filter-bar .search-field { flex: 1 1 120px; }
+.box-screen .box-filter-bar .sort-select { gap: 5px; }
+.box-screen .box-filter-bar .sort-select select { max-width: 135px; }
+.box-screen .box-filter-bar .box-constellation-filter select { width: 78px; }
+.box-screen .box-filter-bar .filter-group, .box-screen .box-filter-bar .element-filters { flex-wrap: nowrap; }
+@media (min-width: 1800px) {
+  .box-screen .box-filter-bar { flex-wrap: nowrap; }
+}
+@media (max-width: 760px) {
+  .box-screen .box-filter-bar .search-field { flex-basis: 100%; }
+  .box-screen .box-filter-bar .element-filters { flex-wrap: wrap; }
+}

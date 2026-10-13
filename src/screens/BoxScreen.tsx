@@ -1,13 +1,14 @@
 import { useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, BoxSortPreferenceDto, DailyCombatDto, ElementKey, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, PlayerBoxDto, StellaUseDto } from '../api/types'
-import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxRarityTab, BoxSortKey } from '../box/box-presentation'
-import { boxElements, initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
+import type { BoxConstellationFilter, BoxElementFilter, BoxFilters, BoxSortKey } from '../box/box-presentation'
+import { initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
 import { useBoxCollection } from '../box/use-box-collection'
 import type { StellaResultPresentation } from '../box/stella-result-presentation'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
-import GameAssetIcon from '../components/GameAssetIcon'
+import CollectionFilterChips from '../components/CollectionFilterChips'
+import '../box/box-filter-bar.css'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
@@ -152,17 +153,12 @@ function BoxSummary({ summary }: { summary: PlayerBoxDto['summary'] }) {
 
 function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (filters: BoxFilters) => void }) {
   const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
-  return <div data-tutorial-anchor="box-filters" className="box-filter-stack panel">
-    <div className="box-filter-primary">
-      <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={(event) => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
-      <div className="filter-group box-tabs" role="tablist" aria-label="Rareté des personnages">{([['all', 'Tous'], [5, '5★'], [4, '4★']] as const).map(([value, label]) => <button type="button" role="tab" aria-selected={filters.tab === value} className={`filter-chip${filters.tab === value ? ' active' : ''}`} onClick={() => update('tab', value as BoxRarityTab)} key={label}>{label}</button>)}</div>
-      <label className="sort-select"><span>Trier</span><select value={filters.sort} onChange={(event) => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
-      <button type="button" className="box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={`Tri ${filters.direction === 'asc' ? 'ascendant' : 'descendant'}`}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
-    </div>
-    <div className="box-filter-secondary">
-      <div className="element-filters" aria-label="Filtrer par élément"><button type="button" className={filters.element === 'all' ? 'active' : ''} aria-label="Tous les éléments" onClick={() => update('element', 'all')}>✦</button>{boxElements.map((element) => <button type="button" className={filters.element === element ? 'active' : ''} aria-label={elementLabel(element)} onClick={() => update('element', element as BoxElementFilter)} key={element}><GameAssetIcon className="filter-element-icon" src={getElementAssetPath(element)} fallback="✦" /></button>)}</div>
-      <label className="box-constellation-filter"><span>Constellation</span><select value={filters.constellation} onChange={(event) => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map((value) => <option value={value} key={value}>C{value}</option>)}</select></label>
-    </div>
+  return <div data-tutorial-anchor="box-filters" className="collection-filters box-filter-bar panel">
+    <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={event => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
+    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} element={filters.element === 'all' ? null : filters.element} onRarity={value => update('tab', value ?? 'all')} onElement={value => update('element', value ?? 'all')} />
+    <label className="box-constellation-filter"><span className="sr-only">Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
+    <label className="sort-select"><span>Trier</span><select aria-label="Critère de tri" value={filters.sort} onChange={event => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
+    <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
   </div>
 }
 
@@ -170,7 +166,6 @@ export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 
   return <section className={`panel box-status ${kind}`} role={kind === 'error' ? 'alert' : 'status'}><span aria-hidden="true">{kind === 'loading' ? '✦' : kind === 'error' ? '!' : '◇'}</span><h2 data-tutorial-anchor="screen-entry" data-tutorial-state={kind === "loading" ? "loading" : undefined}>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
 }
 
-function elementLabel(element: ElementKey) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }
 function combatStateFor(combat: DailyCombatDto | undefined, characterId: string) { const character = combat?.availableCharacters.find(({ id }) => id === characterId); return combat && character ? { ko: combat.koCharacterIds.includes(characterId), stats: character.combatStats } : undefined }
 function expeditionRewardLabel(result: ExpeditionClaimDto) { const amount = formatResourceAmount(result.reward.amount); if (result.reward.kind === 'primogems') return `+${amount} Primogemmes`; if (result.reward.kind === 'moras') return `+${amount} Moras`; const element = result.reward.resourceKey.replace('particles_', '') as ElementKey; return `+${amount} particules ${elementLabels[element] ?? ''}`.trim() }
 const idleExpedition: ExpeditionDto = { businessDate: '', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: false, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '0' }

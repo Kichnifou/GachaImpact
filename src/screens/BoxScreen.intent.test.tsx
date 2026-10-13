@@ -22,6 +22,23 @@ afterEach(() => {
 })
 
 describe('Box one-shot character intent', () => {
+  it('toggles rarity and elements independently of constellation and saves only sort changes', async () => {
+    const node = document.createElement('div'); document.body.append(node); const root = createRoot(node)
+    const save = vi.fn(async (value: PlayerBoxDto['preference']) => value)
+    await act(async () => root.render(<BoxScreen initialBox={box} onLoadBox={async () => box} onSetFavorite={vi.fn()} onSetSortPreference={save} onUseStella={vi.fn()} stellaRetryCharacterId={null} />))
+    const click = async (label: string) => act(async () => node.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)!.click())
+    const constellation = node.querySelector<HTMLSelectElement>('[aria-label="Constellation"]')!
+    act(() => { constellation.value = '0'; constellation.dispatchEvent(new Event('change', { bubbles: true })) })
+    await click('Filtrer les personnages 5 étoiles'); await click('Hydro')
+    expect(node.querySelectorAll('.box-character-card')).toHaveLength(2)
+    expect(constellation.value).toBe('0')
+    await click('Filtrer les personnages 5 étoiles'); await click('Hydro')
+    expect(node.querySelector('[aria-label="Hydro"]')?.getAttribute('aria-pressed')).toBe('false')
+    expect(constellation.value).toBe('0'); expect(save).not.toHaveBeenCalled()
+    await click('Tri ascendant')
+    expect(save).toHaveBeenCalledWith({ sortKey: 'alphabetical', direction: 'desc' })
+    act(() => root.unmount())
+  })
   it('keeps claim pending through an IDLE publication and the notification refresh', async () => {
     const node = document.createElement('div'); document.body.append(node); const root = createRoot(node)
     const idle: ExpeditionDto = { businessDate: '2040-01-01', operationalStatus: 'IDLE', departureUsedToday: false, canStartToday: true, activeCharacter: null, departedAt: null, readyAt: null, remainingSeconds: 0, startedOnCurrentBusinessDate: false, totalCompleted: '1' }
