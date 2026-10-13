@@ -1,3 +1,4 @@
+import { useShortDesktop } from '../hooks/use-short-desktop'
 import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -72,6 +73,7 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
 }
 
 export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
+  const shortDesktop = useShortDesktop()
   const presentationMode = useTutorialPresentation()
   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
@@ -369,7 +371,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
-  return <div data-business-pending={pending || shopPending} className="screen-content activity-shell event-screen long-screen-layout">
+  return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} className="screen-content activity-shell event-screen long-screen-layout">
     <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
       {section === 'registration' && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
