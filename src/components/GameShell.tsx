@@ -657,7 +657,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
       case 'bank':
         return <BankScreen initialBank={bankCache.read(player.id)} refreshToken={chatOwnerRevision} onLoad={loadBank} onLoadHistory={onLoadBankHistory} onOpenGlobalHistory={() => openHistory('bank')} onTransfer={transferBank} />
       case 'moderation':
-        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen ownerPlayerId={player.id} onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
+        return permissions.capabilities.moderationAccess ? <ModerationScreen actorPlayerId={player.id} capabilities={permissions.capabilities} onLoad={onLoadModeration} onListPlayers={onListModerationPlayers} onResource={moderateResource} onXp={moderateXp} onGacha={moderateGacha} onStella={moderateStella} onApplied={applyModerationResult} onLoadGiftCodes={onLoadAdminGiftCodes} onCreateGiftCode={onCreateGiftCode} onPublishGiftCode={onPublishGiftCode} onUpdateGiftCode={onUpdateGiftCode} onGiftCodeClaimants={onGiftCodeClaimants} /> : <HomeScreen onPersonalize={() => { setProfileId(player.id); navigate('profile',{profile:'Personnalisation',appearance:'AVATAR'},player.id) }} ownerPlayerId={player.id} onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
       case 'codes':
         return <GiftCodesScreen refreshToken={chatOwnerRevision} onLoad={onLoadGiftCodes} onClaim={claimGiftCode} />
       case 'shop':
@@ -681,7 +681,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
       case 'configuration':
         return <ConfigurationScreen onRefreshPlayerState={refreshAfterSnapshotImport} socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:
-        return <HomeScreen ownerPlayerId={player.id} onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
+        return <HomeScreen onPersonalize={() => { setProfileId(player.id); navigate('profile',{profile:'Personnalisation',appearance:'AVATAR'},player.id) }} ownerPlayerId={player.id} onNavigate={navigate} gacha={gacha} onSetGachaTarget={onSetGachaTarget} dailySummary={<HomeDailySummary {...compactDailyProps} />} />
     }
   }
 

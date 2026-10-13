@@ -10,11 +10,12 @@ type HomeScreenProps = {
   dailySummary?: ReactNode
   onNavigate: (screen: ScreenId, tabs?: Partial<DestinationTabs>, profileId?: string) => void
   ownerPlayerId?: string
+  onPersonalize?: () => void
   gacha: CurrentGachaDto
   onSetGachaTarget: (id: string) => Promise<void>
 }
 
-function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary, ownerPlayerId }: HomeScreenProps) {
+function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary, ownerPlayerId, onPersonalize }: HomeScreenProps) {
   return (
     <div data-tutorial-anchor="home" className="screen-content home-screen">
       <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
@@ -27,7 +28,7 @@ function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary, ownerPl
           { title: 'Arcade', icon: '◇', screen: 'activities-arcade' },
           { title: 'Personnalisation', icon: '✧', screen: 'profile' },
           { title: 'Missions', icon: '▤', screen: 'activities-missions' },
-        ] satisfies { title: string; icon: string; screen: ScreenId }[]).map(item => <AppButton className="home-shortcut" key={item.screen} onClick={() => onNavigate(item.screen, item.screen === 'profile' ? { profile: 'Personnalisation', appearance: 'AVATAR' } : undefined, item.screen === 'profile' ? ownerPlayerId : undefined)}><span className="home-shortcut-icon" aria-hidden="true">{item.icon}</span><strong>{item.title}</strong><span className="home-shortcut-arrow" aria-hidden="true">›</span></AppButton>)}
+        ] satisfies { title: string; icon: string; screen: ScreenId }[]).map(item => <AppButton className="home-shortcut" key={item.screen} onClick={() => item.screen === 'profile' && onPersonalize ? onPersonalize() : onNavigate(item.screen, item.screen === 'profile' ? { profile: 'Personnalisation', appearance: 'AVATAR' } : undefined, item.screen === 'profile' ? ownerPlayerId : undefined)}><span className="home-shortcut-icon" aria-hidden="true">{item.icon}</span><strong>{item.title}</strong><span className="home-shortcut-arrow" aria-hidden="true">›</span></AppButton>)}
       </nav>
       {dailySummary}
     </div>
