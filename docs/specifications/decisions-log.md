@@ -1,5 +1,19 @@
 # Journal des décisions validées
 
+## R1081 — finitions Activité, cartes standalone, Objectif et Boss (13/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat post-R1080 et ses compléments dans la conversation.** R1080 est livré techniquement, recette propriétaire globalement satisfaisante ; ce mandat apporte les finitions ciblées suivantes, sans rouvrir les thèmes.
+
+Activité : ne présenter que les jours réellement couverts depuis le 13 octobre 2026 à09:21:41 Europe/Paris ; garder la première journée partielle dans les données sans son ancien libellé UI. Pagination cohérente serveur, pseudos dépliables filtrés LAST_ACTIVITY PUBLIC/ACTIVE/blocs, agrégats tous canaux distincts des listes. Introduction exacte « Liste des joueurs actifs par jour. » et « Statistiques → » ouvrant une courbe quotidienne avec neuf plages calendaires, dix derniers jours par défaut. Aucun faux zéro antérieur, aucune activité passive ni passé reconstruit. [Contrat Activité](player-activity-v1.md).
+
+Chat standalone : éléments officiels sur les portraits, suppression des répétitions demandées ; !banniere conserve période et4★, !combat racine présente les quatre ennemis de sa rencontre, !select nommé sa cible, !vote les candidats/comptages figés. !expedition/!legende ciblée/!obtention gardent le texte métier utile et retirent les faits redondants. !pull1–10 produit **un seul GAME_RESULT durable**, gains principaux et bonusRewards cumulés exactement, effets passifs monétaires répétés exclus du cumul, personnages non dédupliqués et pity par tirage. Aucun coût/pity final/garantie répétée sous la grille, aucune nouvelle attribution. !ami demande devient alias consultatif de demandes sur standalone seulement. ProtocoleV1 fermé/borné étendu minimalement, anciens messages non migrés. [Contrat Chat](global-chat-v1.md).
+
+**Deux exceptions Twitch expressément demandées ensuite :** !actif retire « (Paris) » sur les DEUX canaux, calendrier Paris inchangé ; réponse !combat boss go fatale commence « 🎉 Félicitations ! 👑 Boss vaincu ! » avant les détails sur les DEUX canaux. Les autres textes, emojis, ordre, fractionnement et syntaxes Twitch restent identiques ; !pull Twitch garde ses parties[i/N]. Le classement de todayNames comme lecture répare l'échec préexistant du planificateur !actif, sans effet métier supplémentaire.
+
+Sidebar : uniquement Objectif actuel, portrait/nom/cinq étoiles à gauche ; garantie/Capture/pity et barres à droite, mêmes valeurs/couleurs/navigation. Boss : afficher les récompenses dans l'écran vaincu, distinguer le reçu personnel enregistré du barème des participants ; archiver sa notification au clic via le propriétaire existant ; afficher HP plutôt que baseHp dans le bilan. Aucun gain ni ajustement HP recalculé/modifié.
+
+Tests privés et reviews indépendantes puis review→FF main→Railway/Pages→postflight sont autorisés dans cette mission. Aucun nouvel environnement/coût, aucune mutation économique publique de QA ; recette humaine future distincte. État et preuves au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## R1080 — corrections post-recette R1079, Activité et audit global (13/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat du 13/10.** Chat standalone : contexte de réponse avant le flux heure/badge/pseudo/texte, essai sans séparateurs, clic volontaire Agrandir ET Réduire au vrai bas du fil affiché, brouillon et conversation conservés. Cette dernière règle supersède le maintien du point de lecture R1079 pour ces clics seulement ; polls, rerenders et resize navigateur ne sont pas des demandes de retour au bas. MP interne inchangé hors ce comportement. Tombstones et texte masqué restent protégés.

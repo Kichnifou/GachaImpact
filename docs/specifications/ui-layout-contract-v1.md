@@ -1,5 +1,15 @@
 # Contrat de layout UI V1
 
+## Finitions ciblées — R1081
+
+Historique Activité : dates couvertes seulement, compteurs dépliables indépendants sans décaler les axes des autres cartes ; pseudos longs/Unicode reviennent à la ligne. Introduction et petit lien Statistiques alignés avec retour mobile propre. Modale viewport-bornée/scroll interne, focus/Escape/retour déclencheur, graphe SVG lisible à un seul point comme sur cinq ans ; tableau exact disponible, labels X clairsemés et Y entiers. Aucune animation de dépliage nécessaire ; reduced-motion conservé.
+
+Chat : portraits contain, icône élémentaire officielle en bas à droite distincte de Nouveau en haut à gauche, étoiles/constellations et labels compacts ; flex-wrap en Chat étroit comme agrandi et réponses. compact facultatif masque le titre répété uniquement sur les nouvelles projections. Vote peut présenter son catalogue borné complet ; Pull1–10 reste un seul résultat durable. Ne pas toucher au scrolling Agrandir/Réduire R1080 ni aux MP. [Contrat Chat](global-chat-v1.md#présentation-compacte--r1081).
+
+Sidebar : seule carte Objectif actuel recomposée ; petite carte portrait carré contain puis nom et cinq étoiles contigus à gauche, garantie5★/Capture/pity5★+barre/pity4★+barre à droite. Couleur élémentaire, watermark, vrai contenu et cadre entier navigable conservés. Les variantes Équipe/Invocation restent indépendantes. À desktop<=640px de hauteur, player-secondary possède un défilement interne et les lignes intrinsèques empêchent de réduire l'Objectif à une bande illisible ; géométrie des formats usuels conservée. Pas de refonte générale CSS.
+
+Boss vaincu : bloc Récompenses reçues depuis reçu personnel (ou barème des participants clairement identifié), pas de bouton claim ; notification archivée au clic via serveur. Bilan remplace le terme technique baseHp par HP. Les preuves et limites visuelles réelles appartiennent au Master.
+
 ## Corrections Chat/Équipe — R1080
 
 Chat : aperçu de réponse au-dessus du flux inline complet, sans séparateurs globaux. Agrandir/Réduire est une demande explicite de retour au bas, après layout ; brouillon, conversation et jeu monté conservés, aucun acquittement caché. Cette règle supersède le point de lecture R1079 seulement pour ces clics.

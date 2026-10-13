@@ -1,5 +1,15 @@
 # GachaImpact — Architecture backend V1
 
+## Finitions de présentation et lectures — R1081
+
+PlayerActivityService reste l'unique propriétaire des lectures quotidiennes : history borne pagination/couverture, dayNames lit100noms maximum et un témoin suivant sous RepeatableRead/curseur Player UUID, statistics agrège les mêmes dates indexées sans lire de Players. Deux GET privés/no-store, acteur ACTIVE/paramètres stricts, neuf plages calendaires et borne36600jours ; aucune écriture, nouvel import ou recorder. [Contrat](../specifications/player-activity-v1.md#finitions-autorisées--r1081).
+
+PresentationSink indique si la projection fermée est acceptée ; métadonnées incomplètes gardent le texte historique exhaustif. StructuredChatResultV1 ajoute compact/élément/votes/pity et select/combat ; vote200cartes maximum, autres dix, JSON gelé256Kio pour vote contre16Kio ailleurs afin de conserver le catalogue complet avec portraits officiels longs. Faits24×300/titre200 et texte500 inchangés. GlobalChatService garde verrou premier reçu/publication atomique/IDs stables ; dispatcher n'annexe pas de nouveaux GAME_RESULT à un Pull consolidé : les missions débordantes entrent dans ses faits bornés, sans omission silencieuse.
+
+Pull standalone part des résultats économiques committés, somme bigint principal+bonusRewards, ne resomme jamais les descriptions monétaires passiveEffects ; XP/nonmonétaire seulement dans celles-ci. Personnages dans l'ordre et pity spécifique reçu, aucun nouveau moteur/RNG/crédit. Expédition et Vote étendent leurs seuls snapshots INTERNAL_CHAT par élément ; Select fige le personnage avant sélection dans eventContext durable, retry idempotent même après cible ultérieure. [Contrat Chat](../specifications/global-chat-v1.md#présentation-compacte--r1081).
+
+Le planificateur Twitch classe activityService.todayNames comme lecture, réparant le refus préexistant !actif sans déplacer l'activité. Les textes Twitch sont conservés sauf !actif sans (Paris) et félicitations avant détails de !combat boss go fatal, deux compléments explicites. MonthlyBoss readView lit le reçu personnel boss_rewards, sérialisé nullable dans l'API ; notification archivée via owner existant au clic, aucune récompense exécutée par l'affichage. Migration081 ajuste seulement le CHECK JSON Vote ; aucune variable fournisseur, autorité GLOBAL/NATIVE ou transport modifié.
+
 ## Propriétaire Activité — R1080
 
 PlayerActivityRecorder écrit dernières dates et témoin quotidien dans la transaction existante. PlayerActivityService possède les lectures Historique/commandes communes ; HistoryService expose la catégorie activity via la route authentifiée existante. Tables privées RLS/grants, snapshot nominatif RepeatableRead, filtrage public LAST_ACTIVITY et provenance Twitch distincte ; [contrat et limites](../specifications/player-activity-v1.md). Inventaires FK/claim/consentement classifiés sans lancer de migration historique.

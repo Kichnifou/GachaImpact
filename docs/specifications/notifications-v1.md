@@ -1,5 +1,9 @@
 # Notifications V1 — contrat transverse
 
+## Boss vaincu — complément R1081 du13/10/2026
+
+Le clic sur MONTHLY_BOSS_DEFEATED avec son action canonique OPEN_MONTHLY_BOSS ouvre Activités > Combat > Boss puis appelle l'archivage serveur existant. La ligne et le badge disparaissent du snapshot, l'objet Notification/payload/reçu et les récompenses restent conservés ; aucun second crédit ni claim. Le type/action/domaine doivent toujours correspondre au registre de présentation. Écran du Boss vaincu : récompenses reçues issues de boss_rewards du seul acteur, barème des participants identifié séparément si aucun reçu personnel complet ; même source autoritaire que l'attribution de la notification.
+
 ## Consolidation A — ouverture des fiches catalogue, 11/10/2026
 
 CATALOG_REVIEW_ADMIN et CHARACTER_IMPORTED_ADMIN : vérifier permission actuelle et existence de la cible exacte avant navigation ; ouverture valide entraîne archive serveur, disparition liste/badge, historique/reçus conservés. Double clic neutralisé ; cible périmée/erreur réseau non archivée et réessayable. Les polls obsolètes ne restaurent aucune ligne. Une nouvelle nouveauté sémantique peut réactiver le groupe selon le producteur existant. Autres types inchangés. [Contrat](../architecture/consolidated-r1066-r1077.md), preuves réelles au Master.

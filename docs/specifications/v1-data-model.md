@@ -1,5 +1,11 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Reçus et projections R1081 — aucune nouvelle table
+
+StructuredChatResultV1 est étendu par compact facultatif, elementKey validé, voteCount et pity par personnage ; select/combat rejoignent les commandes graphiques. Dix personnages maximum sauf vote200, faits/titres bornés inchangés, budget reçu JSON256Kio pour vote/16Kio ailleurs ; texte Chat toujours500caractères. Ancien JSON non migré et lisible. Expédition/Vote INTERNAL_CHAT figent elementKey dans leur snapshot existant ; Select conserve le personnage dans la mémoire d'intention avant mutation. Pull agrège les reçus autoritaires sans nouveau gain ni stockage économique concurrent.
+
+ActivityCoverage/PlayerDailyActivity restent inchangés : projection statistique agrégée et listes nominatives par curseur filtrées, aucune donnée nouvelle enregistrée. MonthlyBoss projette en lecture le boss_rewards du seul acteur comme receivedReward nullable, sans réattribuer ni modifier les montants. Migration081 ajuste seulement le CHECK de taille du JSON Vote ; aucune nouvelle table ni colonne.
+
 ## Activité quotidienne — R1080
 
 PlayerDailyActivity est un fait minimal durable unique Player/jour Europe/Paris : quatre témoins APPLICATION/GAMEPLAY/INTERNAL_CHAT/TWITCH, sans horaire individuel. ActivityCoverage porte le début réel de collecte. PlayerActivityState reste propriétaire des dernières dates. Aucun backfill ni source économique concurrente ; agrégats historiques et liste nominative publique filtrée sont distincts. Archives, confidentialité et consentement suivent le [contrat spécialisé](player-activity-v1.md) ; migration additive080, application publique non déduite du schéma.

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Budget de reçu Vote — migration additive081 / R1081
+
+20261013110000_081_vote_result_budget remplace atomiquement le CHECK global_chat_messages_result_presentation_check : JSONV1 Vote à200cartes maximum peut occuper256Kio dans sa forme PostgreSQL ; les autres commandes restent limitées à16Kio. Les garde-fous GAME_RESULT/SYSTEM/auteur null/objet JSON restent inchangés. Aucune réécriture de JSON historique, aucune table/champ/règle économique, policy RLS ou grant ajouté. Application normale via Prisma/predeploy Railway, tests privés de migration/registre/status et rejets de provenance/volume, puis vérification publique distincte au Master. Le texte public reste500caractères ; le contrat fermé en application conserve les validations champ par champ.
+
 ## Activité quotidienne — migration080 / R1080
 
 Migration additive20261013080000_080_daily_player_activity : activity_coverage(id='daily-v1',started_at timestamptz) singleton initialisé à l'application normale Prisma ; player_daily_activity(business_date DATE,player_id UUID,application,gameplay,internal_chat,twitch BOOLEAN) PK(date,Player), index Player, FK cascade et CHECK au moins un témoin. Trigger archived_player_write_guard commun ; RLS sur les deux tables et REVOKE PUBLIC/anon/authenticated, aucune policy navigateur. Pas de backfill ni timestamp individuel. Les booléens OR s'enregistrent par ON CONFLICT dans la transaction du recorder. [Contrat](../specifications/player-activity-v1.md). Présence SQL/versionnée, répétition privée et application publique sont des preuves distinctes au Master.

@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Finitions Activité/Objectif/Boss — R1081
+
+Historique > Activité conserve sa destination existante ; compteurs dépliables et modale Statistiques intégrés, aucune nouvelle destination ni nouvel écran Social. Sidebar Objectif actuel reste entièrement navigable vers Invocation malgré sa nouvelle composition portrait/nom/étoiles à gauche. Notification Boss vaincu ouvre toujours Activités > Combat > Boss puis s'archive côté serveur ; écran vaincu affiche les récompenses, Bilan garde son parcours existant. [Layout](ui-layout-contract-v1.md#finitions-ciblées--r1081), [Activité](player-activity-v1.md#finitions-autorisées--r1081), [Notifications](notifications-v1.md#boss-vaincu--complément-r1081-du13102026).
+
 ## Historique > Activité et taille Communauté — R1080
 
 Historique ajoute la catégorie typée activity aux cinq catégories existantes, au sérialiseur/allowlist navigateur et à HistoryScreen. Même destination principale, pile des dix destinations et règles F5 ; aucun UUID/fil/action restauré. Les cinq vues du Tutoriel existant ne changent pas de chapitre ; la vue activité est reconnue par l'écran réel sans étape ajoutée. Contrat [Activité](player-activity-v1.md).

@@ -1,5 +1,11 @@
 # Registre des commandes GachaImpact
 
+## Finitions de présentation — R1081, 13/10/2026
+
+Les syntaxes, propriétaires métier et règles ci-dessous sont conservés. Amendements standalone : !pull1–10 publie un seul résultat durable avec cumul exact des gains et cartes de tous personnages/pity par tirage ; !banniere devient courte avec5★/cible en cartes et4★ élémentaires sous la grille ; !combat racine montre les ennemis en cartes ; !select nommé montre sa cible ; !vote montre candidats/compteurs figés sans répétition ; !team/!expedition/!legende ciblée/!obtention gagnent les éléments officiels, les trois dernières retirent les faits redondants. !ami demande est un alias consultatif de demandes **INTERNAL_CHAT uniquement**, aucun envoi de demande. Le protocole et ses bornes sont dans [Chat](../specifications/global-chat-v1.md#présentation-compacte--r1081).
+
+Compléments propriétaire sur les DEUX canaux : !actif/!act/!active/!actifs/!actives (casse normalisée) répondent « ℹ️ Actifs aujourd’hui : … », sans « (Paris) », mêmes noms/confidentialité et journée Paris. Une réponse fatale !combat boss go commence « 🎉 Félicitations ! 👑 Boss vaincu ! » puis détaille dégâts/Team/PV/récompenses. Les autres sorties Twitch restent à la baseline, notamment !pull et ses parties[i/N] ; !ami demande ne change pas de signification Twitch. Aucun prix/gain/RNG/cooldown/permission modifié.
+
 ## !actif — R1080
 
 Commande canonique !actif sans arguments, alias !act/!active/!actifs/!actives et casse normalisée. Consultation des noms visibles actifs depuis minuit Europe/Paris ; liste vide honnête, tri stable, Unicode et découpage entre noms entiers par transport. Même service PlayerActivityService pour Historique et resolver partagé Chat/Twitch ; pas d'XP ni récompense spécifique, replay par reçus existants. Aucune mention notifiante. Réponse publique : LAST_ACTIVITY PUBLIC seulement et blocs bilatéraux, aucun override propriétaire/FRIENDS ; Twitch exige un témoin TWITCH et ne divulgue pas l'usage privé standalone. Compteurs agrégés tous canaux distincts. [Contrat et couverture](../specifications/player-activity-v1.md).

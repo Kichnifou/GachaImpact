@@ -1,0 +1,22 @@
+{
+  "mission": "R1081 post-R1080 activity, standalone cards, sidebar and owner Boss additions",
+  "date": "2026-10-13",
+  "baseline": "bbf1143753f403f4734e1de57206f60104afa027",
+  "runtime": "b893a22addeafddb650efa33c274b2f9d873f74c",
+  "initialGit": { "fourRefsEqual": true, "divergence": "0/0", "clean": true },
+  "authorizedTwitchTextExceptions": ["actif removes (Paris) on both channels", "fatal combat boss go starts with congratulations and defeat on both channels"],
+  "qualification": {
+    "quick": { "status": "PASS", "steps": "5/5" },
+    "full": { "status": "FAIL", "steps": "6/8", "frontend": { "passed": 1600, "failed": 4 }, "backend": { "passed": 2477, "failed": 6 }, "historicalFailureNamesIdentical": true, "sevenHistoricalAssertionFilesUnchanged": true },
+    "freshBaselineFull": { "status": "FAIL", "steps": "6/8", "frontend": { "passed": 1593, "failed": 5 }, "backend": { "passed": 2454, "failed": 6 }, "additionalChatPanelTimeout": { "full": "FAIL", "isolated": "PASS", "isolatedPassed": 1, "isolatedSkipped": 66, "classifiedFlaky": false } },
+    "targetedNonDb": { "frontend": "79/79 PASS", "backend": "222/222 PASS", "overlappingNotSummed": true },
+    "privatePostgresql": { "activity": "14/14 PASS; 81 normal Prisma migrations and status", "gacha": "9 PASS / 23 excluded; consolidated x1/x5/x10, private exact C6 credits and passives", "selectReplay": "1 PASS / 32 excluded; crash before freeze, later target and catalog change", "vote": "4/4 PASS", "expedition": "16/16 PASS", "boss": "10/10 PASS", "standaloneChat": "5/5 PASS; 200 vote cards persisted, byte/provenance guards and private RLS/grants", "schemasCleaned": true, "sharedPublicBusinessFixtures": false, "broadGachaAndGlobalChatSuitesQualified": false, "nonFatalPgClientQueryWarning": true },
+    "productionActivityReadOnly": { "observedAtParis": "2026-10-13 10:40", "coverageStartedAt": "2026-10-13T07:21:41.282Z", "accomplishedTwitchMessagesSinceCoverage": 37, "twitchPlayerDays": 3, "missingDaily": 0, "missingTwitchWitness": 0, "todayAggregatePlayers": 4, "todayTwitchPlayers": 3, "individualIdentitiesExported": false, "omissionReproduced": false, "limits": ["No specific individual case supplied", "No reconstruction before collection", "Names filtered separately by privacy and blocks"] },
+    "visualLocal": { "runtimeSourceBlobsCompared": 775, "sourceDifferences": 0, "correctedObservations": 68, "followups": 9, "formats": ["390x844", "844x390", "1366x768", "1920x1080", "2560x1440", "1366x520"], "css": "index-CH8QJoCx.css", "initialOldChatFixturesSuperseded": true, "correctedChatUsesRealResolver": true, "statisticsFixturesStartAtCollection": true, "javascriptErrors": 0, "horizontalOverflow": 0, "openP1P2": 0, "humanPublicRecipe": "NOT_EXECUTED" }
+  },
+  "migration": { "name": "20261013110000_081_vote_result_budget", "privateNormalPrisma": "PASS", "publicApplied": "NOT_YET_VERIFIED", "previousPublicVerified": "080", "historicalJsonRewritten": false },
+  "reviews": { "publishedCandidate": "PENDING", "technical": "PENDING", "visual": "PENDING" },
+  "delivery": { "mainPromotion": "PENDING", "railway": "PENDING", "cloudflare": "PENDING", "postflight": "PENDING", "humanRecipe": "FUTURE_OWNER" },
+  "privateEvidenceDirectory": "local-data/post-r1080-20261013",
+  "scope": { "newCosts": false, "newInfrastructure": false, "publicEconomicQaMutations": false, "themesReopened": false, "nextV1DomainStarted": false }
+}

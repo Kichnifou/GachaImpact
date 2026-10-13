@@ -2,6 +2,8 @@
 
 ## Étude des thèmes — 13/10/2026
 
+R1081 : le propriétaire accepte l'abandon des thèmes après cet audit. Aucun chantier de thèmes, bouton Soleil ou refonte CSS générale n'est prévu dans le mandat de finitions ni à réintroduire automatiquement dans la pré-release.
+
 Le mandat conditionnait les thèmes à une centralisation raisonnable démontrée. L'audit CSS/portails conclut que les tokens actuels ne suffisent pas sans migration générale dispersée :1356 lignes de couleurs directes App.css et douze autres feuilles, états métier mêlés à décoration. Aucune implémentation de thème ni préférence supplémentaire ; palette actuelle et apparence métier conservées. Le constat est une limite de ce périmètre, pas une interdiction définitive. Preuve datée au [grand audit](../architecture/evidence/documentation-audit-20261013.md).
 
 

@@ -1,5 +1,9 @@
 # Étape 29 — couverture des 37 sources de commandes
 
+## Extension postérieure — R1081
+
+Présentation standalone : dix commandes graphiques (les huit R1079 + select nommé/combat racine), Pull consolidé en un GAME_RESULT autoritaire, votes/cibles/ennemis figés et icônes élémentaires. Alias consultatif !ami demande= demandes sur INTERNAL_CHAT seulement. Deux exceptions Twitch validées ensuite : !actif sans (Paris) ; félicitations/victoire au début de !combat boss go fatal. Autres sorties Twitch et moteurs métier inchangés. todayNames est une lecture dans les intentions Twitch. [Contrat et bornes](../specifications/global-chat-v1.md#présentation-compacte--r1081), état/tests/reviews au Master ; les couvertures historiques ci-dessous restent datées.
+
 ## Extension postérieure — !actif R1080
 
 La matrice37sources est une preuve historique close de l'étape29. !actif est une extension moderne autorisée le13/10, pas une38e source legacy ni une réouverture de29. Registre partagé/Help, aliases et classification générique Twitch raccordés ; [contrat Activité](../specifications/player-activity-v1.md). Les recettes historiques n'incluent pas cette commande ; nouvelle recette publique au Master.

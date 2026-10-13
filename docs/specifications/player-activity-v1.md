@@ -1,5 +1,17 @@
 # Activité quotidienne des joueurs — R1080, 13/10/2026
 
+## Finitions autorisées — R1081
+
+La collecte réelle débute le13/10/2026 à09:21:41.282 Europe/Paris (`2026-10-13T07:21:41.282Z` dans ActivityCoverage). L'historique s'arrête à cette première date : dix jours couverts maximum/page, dernière page raccourcie, pages excessives ramenées à la dernière, aucune page de journées inconnues. Sans couverture : aucune entrée. Première journée PARTIAL conservée dans les données, mais aucun libellé « Journée de collecte partielle » dans l'interface. Aujourd'hui reste en cours, un jour couvert vide vaut zéro.
+
+Le clic sur le compteur ouvre les pseudos de ce jour sans nouveau panneau Social. `GET /api/v1/me/history/activity/players?date=YYYY-MM-DD&after=UUID` résout le seul acteur de session, refuse les dates hors collecte/futures et paramètres inconnus. Même filtre public LAST_ACTIVITY/ACTIVE/blocs bilatéraux que !actif standalone. Agrégat total, visibleTotal, pseudos et nextCursor seulement ; pas d'horaires ou données privées. Lots de100, requête101 maximum, curseur UUID Player croissant : ni renommage ni arrivée entre deux lectures ne répète un Player. Les arrivées avant curseur apparaissent au prochain rafraîchissement ; pas de promesse de snapshot multi-requêtes. Échec conserve le curseur et se réessaie sans saut ; fermer/rouvrir, changement de page et F5 relisent la source. Plusieurs dates peuvent rester ouvertes. Les noms sont textuels, aucune nouvelle permission Profil ; différence total/visibleTotal signalée discrètement.
+
+`GET /api/v1/me/history/activity/statistics?range=5d|10d|1m|3m|6m|1y|2y|5y|all` : agrégats quotidiens du même PlayerActivityService, ordre chronologique, aucune identité. Neuf libellés UI exacts : 5 derniers jours, 10 derniers jours (défaut), 1 mois, 3 mois, 6 mois, 1 an, 2 ans, 5 ans, Depuis toujours. Aujourd'hui inclus ; jours calendaires Paris, mois/années glissants avec anniversaire exclu et jour ramené au dernier jour du mois si nécessaire. Borne basse tronquée au début réel de couverture, pas de zéros avant. all signifie depuis collecte ; limite serveur36600jours, erreur explicite au-delà, jamais troncature silencieuse. Aucun accès Player individuel pour tracer la courbe.
+
+Introduction exacte « Liste des joueurs actifs par jour. », lien discret « Statistiques → ». Modale centrée « Statistiques d'activité », SVG léger, ordonnées entières, points exacts/ligne seulement si au moins deux jours, dates peu denses, tooltip souris et exploration clavier/tactile, tableau des données exactes sous la courbe. Scroll interne borné viewport, verrou body, focus piégé/restauré/Escape, chargement/erreur/Réessayer. APIs authentifiées acteur ACTIVE et no-store, aucune écriture de ces lectures.
+
+Complément explicite propriétaire : !actif retire « (Paris) » **sur standalone et Twitch**, en conservant tous les alias/casse, mêmes noms/confidentialité et journée Paris. L'ancienne mention Twitch inchangé ci-dessous s'applique aux autres sorties ; ce libellé R1081 la supersède. todayNames est enregistré comme méthode de lecture dans les intentions Twitch ; pas d'autre mutation ni changement du recorder.
+
 Contrat du mandat post-recette R1079. Le [Master](../master/PROJECT_MASTER_PLAN.md) possède seul le statut testé/reviewé/main/déployé et la prochaine action. Activité quotidienne et présence connectée sont distinctes.
 
 ## Source de vérité et événements
@@ -18,9 +30,9 @@ Le jour va de minuit Europe/Paris inclus au suivant exclu. `getBusinessDate`, le
 
 `ActivityCoverage('daily-v1').startedAt` est créé par la migration additive 080 au predeploy Prisma normal. C'est le début réel de collecte, pas la date de rédaction ni le premier joueur observé. Aucun backfill de `lastSeen`, dernière activité, XP ou soldes. La première journée est PARTIAL si la collecte commence après son minuit. Avant cette date : UNAVAILABLE/count null ; journée couverte sans témoin : zéro. Aujourd'hui reste « en cours ».
 
-`PlayerActivityService.history` est une lecture agrégée des témoins durables, dix jours par page, par dates indexées. Une page supplémentaire expose la frontière antérieure indisponible. Les nombres comprennent tous les canaux et les témoins historiques conservés d'un Player archivé, sans exposer son identité. Ils peuvent dépasser le nombre de noms publiables. Pas de liste d'horaires individuels. F5 et une nouvelle instance de service relisent PostgreSQL.
+`PlayerActivityService.history` est une lecture agrégée des témoins durables, dix jours couverts maximum par page, par dates indexées. R1081 supprime la page antérieure indisponible. Les nombres comprennent tous les canaux et les témoins historiques conservés d'un Player archivé, sans exposer son identité. Ils peuvent dépasser le nombre de noms publiables. Pas de liste d'horaires individuels. F5 et une nouvelle instance de service relisent PostgreSQL.
 
-Historique > Activité réutilise `ScreenHeader`, `ScrollableScreenPanel`, onglets et pagination. La destination typée `history=activity` est autorisée dans le propriétaire de navigation et son sérialiseur navigateur. Aucun nouvel écran principal, chapitre Tutoriel ou menu concurrent. Les états chargement, erreur/réessayer, zéro, partiel et indisponible sont distincts.
+Historique > Activité réutilise `ScreenHeader`, `ScrollableScreenPanel`, onglets et pagination. La destination typée `history=activity` est autorisée dans le propriétaire de navigation et son sérialiseur navigateur. Aucun nouvel écran principal, chapitre Tutoriel ou menu concurrent. Chargement, erreur/réessayer, zéro et absence de collecte restent distincts ; le statut partiel reste interne depuis R1081.
 
 ## Commande publique et confidentialité
 
