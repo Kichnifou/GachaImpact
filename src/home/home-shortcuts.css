@@ -1,0 +1,11 @@
+.home-screen .home-shortcuts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.home-screen .home-shortcut { min-width: 0; min-height: 62px; display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 12px 16px; text-align: left; background: linear-gradient(140deg, rgba(18, 37, 64, .92), rgba(8, 18, 34, .96)); }
+.home-shortcut strong { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+.home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
+.home-shortcut-arrow { color: #8babc7; font-size: 22px; }
+@media (min-width: 1501px) {
+  .screen-content.home-screen { grid-template-rows: minmax(380px, 1fr) auto auto; overflow-y: auto; }
+  .home-screen .home-banner { min-height: 380px; }
+}
+@media (max-width: 1000px) { .home-screen .home-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .home-screen .home-shortcuts { grid-template-columns: 1fr; } }

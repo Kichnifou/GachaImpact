@@ -10,6 +10,20 @@ const gacha = {
 } satisfies CurrentGachaDto
 
 describe('HomeScreen Invocation preview', () => {
+  it('opens exactly six typed destinations including the owner personalization subview', () => {
+    const onNavigate = vi.fn()
+    const tree = HomeScreen({ onNavigate, ownerPlayerId: 'owner', gacha, onSetGachaTarget: vi.fn() })
+    const nav = (tree.props.children as ReactElement[])[1]!
+    const buttons = nav.props.children as ReactElement<{ onClick: () => void }>[]
+    expect(buttons).toHaveLength(6)
+    buttons.forEach(button => button.props.onClick())
+    expect(onNavigate.mock.calls).toEqual([
+      ['characters-team', undefined, undefined], ['activities-event', undefined, undefined],
+      ['activities-contest', undefined, undefined], ['activities-arcade', undefined, undefined],
+      ['profile', { profile: 'Personnalisation', appearance: 'AVATAR' }, 'owner'],
+      ['activities-missions', undefined, undefined],
+    ])
+  })
   it('delegates the whole compact preview to Invocation navigation', () => {
     const onNavigate = vi.fn()
     const onSetGachaTarget = vi.fn()
