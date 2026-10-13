@@ -1,5 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Pilotage courant — décisions propriétaire après validation R1083 (13/10/2026)
+
+**Recette propriétaire R1083 validée (« c'est nickel »).** Les retouches MP/notifications d'onglet, passifs et garantie Pull, présentation C6 et alias `!top loose5050` ne font plus partie des actions à tester ; conserver leurs preuves historiques et la qualification technique 8/8 PASS au checkpoint `d77d2be05f872f176a37d791306860c63e622b7d`. Aucune recette exhaustive antérieure n'est induite de cette validation ciblée.
+
+**Deux chantiers restent à programmer pour la V1 :** (1) finitions graphiques et responsive/mobile, dont les rares débordements documentés ; (2) vraie bêta multijoueur, puis corrections démontrées par les essais. Le propriétaire arbitrera la suite à partir de ces deux chantiers ; aucune nouvelle mission Codex ne démarre sans mandat.
+
+**Ne plus présenter comme tâches autonomes à planifier :** trois scénarios de nouveaux joueurs (création, onboarding, récupération/liaison), à vérifier par le propriétaire lors d'utilisations réelles ; observations naturelles Event/Catalogue et autres situations (dont le tirage Event du 01/11/2026 à minuit Europe/Paris), à suivre passivement sans fabrication d'actions ; contrôle final V1 R1054, pris en charge naturellement par le propriétaire sans ticket séparé. Les contrats de sécurité et exigences documentées restent valides ; ceci allège uniquement la liste opérationnelle, sans déclarer ces parcours exécutés ni une ouverture officielle approuvée.
+
+**Qualification PostgreSQL élargie Gacha/GlobalChat :** les suites d'intégration étendues restent historiquement non qualifiées globalement (voir preuves des lots précédents) ; les tests ciblés métier et `verify:full` 8/8 R1083 ont réussi, ce qui ne prouve pas le succès des suites étendues. Aucun chantier distinct ni blocage automatique de pré-release n'est programmé pour elles à ce stade. Réexaminer seulement en cas d'incident pertinent, de régression réelle ou de besoin de preuve précis pendant la bêta, en conservant la sûreté des transactions/idempotence.
+
+**Prochaine action opérationnelle :** cadrer et lancer, après accord propriétaire, la passe graphique/mobile restante ; ensuite conduire la bêta multijoueur. Les anciennes « prochaines actions » des checkpoints ci-dessous sont historiques et supersédées par cette décision.
+
 ## Point courant — R1083 livré techniquement, finitions post-recette R1082, 13/10/2026
 
 **R1083 livré techniquement au checkpoint 653b17ad8845496855e99d3f4f116154326eca80 ; recette propriétaire ciblée future.** Base 4b637c0bfa91494a97eb98cd98757a77cdcec85c, runtime qualifié 2ff2cdcd62838373594a4c1105c6388381facc30. Après FF/push/fetch : main = review = origin/main = origin/review au checkpoint, divergence 0/0, propre. Cette clôture documentaire utile conserve le runtime ; son SHA final doit suivre les mêmes gates de publication, sans boucle de commit pour inscrire son propre SHA. [Décision R1083](../specifications/decisions-log.md#r1083--finitions-post-recette-r1082-et-archive-des-tests-13102026).
