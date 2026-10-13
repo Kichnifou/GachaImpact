@@ -10,6 +10,7 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerQuickSearch from '../components/PlayerQuickSearch'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
 import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
+import '../event/event-general-shop.css'
 import EventCalendar from './EventCalendar'
 import { useCalendarClaim } from '../event/use-calendar-claim'
 import EventRankingSection from './EventRankingSection'
@@ -387,12 +388,10 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </div>
 
       {value.participation.joined && <section data-tutorial-anchor="event-daily-bonus" className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {value.festival.currency.unit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}
-      <section className="panel event-foundation-card">
-        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.unit}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
-        {value.participation.joined
-          ? <span className="event-joined-status">Événement rejoint</span>
-          : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
-      </section>
+      {!value.participation.joined && <section className="panel event-foundation-card">
+        <div><span className="eyebrow">Participation volontaire</span><h2>Recevez 1 {value.festival.currency.unit}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
+        <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>
+      </section>}
       <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />
       {value.giftCode?.available && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
       </>}

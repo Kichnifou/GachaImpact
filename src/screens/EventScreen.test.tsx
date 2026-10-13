@@ -100,9 +100,8 @@ describe('EventScreen presentation', () => {
     const onClaimDailyBonus = vi.fn(async () => claimed)
     const mounted = mount({ value: afterJoin, onClaimDailyBonus })
     expect(mounted.container.textContent).toContain('+1 Jeton de Récolte')
-    const bonus = mounted.container.querySelector('.event-daily-bonus')!
-    const participation = mounted.container.querySelector('.event-foundation-card')!
-    expect(bonus.compareDocumentPosition(participation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(mounted.container.querySelector('.event-daily-bonus')).not.toBeNull()
+    expect(mounted.container.querySelector('.event-foundation-card')).toBeNull()
     await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-daily-bonus button')).find((button) => button.textContent === 'Réclamer')!.click(); await Promise.resolve() })
     expect(onClaimDailyBonus).toHaveBeenCalledWith(expect.any(String))
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={claimed} />))
@@ -197,7 +196,8 @@ describe('EventScreen presentation', () => {
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, false])
     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
-    expect(mounted.container.textContent).toContain('Événement rejoint')
+    expect(mounted.container.querySelector('.event-membership')?.textContent).toBe('Inscrit')
+    expect(mounted.container.querySelector('.event-foundation-card')).toBeNull()
     expect(mounted.container.querySelector('.event-game-a')).toBeNull()
   })
 
@@ -351,7 +351,8 @@ describe('EventScreen presentation', () => {
 
   it('separates the registration summary from the themed game tabs', () => {
     const { container } = mount({ value: afterJoin })
-    expect(container.textContent).toContain('Événement rejoint')
+    expect(container.querySelector('.event-membership')?.textContent).toBe('Inscrit')
+    expect(container.querySelector('.event-foundation-card')).toBeNull()
     expect(container.querySelector('.event-game-a')).toBeNull()
     selectGames(container)
     expect(container.querySelector('.event-stat-grid')).toBeNull()

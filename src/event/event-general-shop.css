@@ -1,0 +1,31 @@
+@media (min-width: 1121px) {
+  .event-frame .scrollable-screen-panel-body:has(> .event-hero),
+  .event-frame .scrollable-screen-panel-body:has(> .event-shop) { overflow: visible; container-type: size; align-content: start; gap: 8px; }
+  .event-frame .event-hero { min-height: 0; padding: 10px 14px; gap: 10px; }
+  .event-frame .event-hero-symbol { width: 44px; height: 44px; font-size: 28px; }
+  .event-frame .event-hero-copy h2 { font-size: 20px; margin-block: 3px; }
+  .event-frame .event-hero-copy p { font-size: 13px; margin: 0; }
+  .event-frame .event-stat { padding: 10px 14px; min-height: 0; }
+  .event-frame .event-stat strong { font-size: 18px; }
+  .event-frame .event-daily-bonus,
+  .event-frame .event-foundation-card { min-height: 0; padding: 10px 14px; gap: 8px; }
+  .event-frame .event-daily-bonus h2,
+  .event-frame .event-foundation-card h2 { font-size: 18px; margin-block: 4px; }
+  .event-frame .event-daily-bonus p,
+  .event-frame .event-foundation-card p { font-size: 13px; margin: 0; }
+  .event-frame .event-shop { gap: 10px; }
+  .event-frame .event-shop-balance { padding: 10px 14px; min-height: 0; }
+  .event-frame .event-shop-balance h2 { font-size: 20px; margin-block: 4px; }
+  .event-frame .event-shop-balance p { font-size: 13px; margin: 0; }
+  .event-frame .event-shop-grid { gap: 10px; }
+  .event-frame .event-shop-card { min-height: 0; padding: 12px; gap: 8px; }
+  .event-frame .event-shop-card h2 { font-size: 20px; }
+  .event-frame .event-shop-card p { font-size: 13px; line-height: 1.35; margin: 0; }
+  .event-frame .event-shop-icon { width: 32px; height: 32px; font-size: 22px; }
+  .event-frame .event-shop-feedback { margin: 0; min-height: 18px; }
+  .event-frame .event-calendar { padding: 10px; gap: 6px; }
+  .event-frame .event-calendar-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; }
+  .event-frame .event-calendar-cell { min-height: 0; padding: 4px; gap: 2px; }
+  .event-frame .event-calendar h2 { font-size: 18px; }
+  .event-frame .event-calendar > p { font-size: 12px; margin: 0; }
+}
