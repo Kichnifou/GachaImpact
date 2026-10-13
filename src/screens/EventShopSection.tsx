@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useShortDesktop } from '../hooks/use-short-desktop'
+import AppButton from '../components/AppButton'
 
 import type { EventDto } from '../api/types'
 import { eventCurrencyLabel } from '../event/event-presentation'
@@ -23,6 +25,8 @@ const cards = [
 ] as const
 
 export default function EventShopSection({ value, intent, pending, feedback, error, canConvert, canPurchaseCollection, onTransact }: Props) {
+  const shortDesktop = useShortDesktop()
+  const [offer, setOffer] = useState<EventShopTarget>('PRIMOGEMS')
   const [quantities, setQuantities] = useState<Record<'PRIMOGEMS' | 'MORAS', string>>({ PRIMOGEMS: '1', MORAS: '1' })
   const balance = BigInt(value.shop.balance)
   const max = balance > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(balance)
@@ -30,8 +34,9 @@ export default function EventShopSection({ value, intent, pending, feedback, err
   return <section data-tutorial-anchor="event-shop" className="event-shop" aria-label="Boutique du Festival">
     <div className="panel event-shop-balance"><div><span className="eyebrow">Votre solde du Festival</span><h2>{formatResourceAmount(value.shop.balance)} {eventCurrencyLabel(value.shop.balance, value.festival.currency)}</h2><p>Vos monnaies de ce Festival restent disponibles d’une année à l’autre.</p></div><span aria-hidden="true">{value.festival.currency.emoji}</span></div>
     {!value.shop.available && <p className="event-shop-preview">La boutique est consultable librement. Rejoignez le Festival pour effectuer un échange.</p>}
+    {shortDesktop && <nav className="event-shop-offers" aria-label="Articles du Festival">{(['PRIMOGEMS', 'MORAS', 'COLLECTION'] as const).map(target => <AppButton key={target} aria-pressed={offer === target} onClick={() => setOffer(target)}>{target === 'PRIMOGEMS' ? 'Primogemmes' : target === 'MORAS' ? 'Moras' : 'Collection'}</AppButton>)}</nav>}
     <div className="event-shop-grid">
-      {cards.map(({ target, title, icon, rate }) => {
+      {cards.filter(card => !shortDesktop || card.target === offer).map(({ target, title, icon, rate }) => {
         const displayedQuantity = intent?.target === target ? String(intent.quantity) : quantities[target]
         const quantity = /^\d+$/.test(displayedQuantity) ? Number(displayedQuantity) : NaN
         const valid = Number.isSafeInteger(quantity) && quantity > 0 && BigInt(quantity) <= balance
@@ -44,7 +49,7 @@ export default function EventShopSection({ value, intent, pending, feedback, err
           <button type="button" className="small-primary-button" disabled={!value.shop.available || !canConvert || pending || (!valid && intent?.target !== target) || Boolean(intent && intent.target !== target)} onClick={() => onTransact(target, quantity)}>{pending && intent?.target === target ? 'Échange…' : intent?.target === target ? 'Réessayer' : 'Convertir'}</button>
         </article>
       })}
-      <article className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>
+      {(!shortDesktop || offer === 'COLLECTION') && <article className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>}
     </div>
     <p className={`event-shop-feedback${feedback && !error ? ' success' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
   </section>

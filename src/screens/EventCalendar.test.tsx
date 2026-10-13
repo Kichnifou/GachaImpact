@@ -38,6 +38,21 @@ async function mount(current = value, onClaim: (key: string) => Promise<EventCal
 }
 
 describe('Christmas calendar UI', () => {
+  it('opens the current day page on short desktops and exposes all 25 days without a claim', async () => {
+    const media = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList)
+    try {
+      const { container, onClaim } = await mount()
+      expect(container.querySelector('[aria-label="Ouvrir la case du 14 décembre"]')).not.toBeNull()
+      await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Jours précédents"]')!.click())
+      const seen: number[] = []
+      for (let index = 0; index < 3; index++) {
+        seen.push(...Array.from(container.querySelectorAll('.event-calendar-cell strong'), node => Number(node.textContent)))
+        if (index < 2) await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Jours suivants"]')!.click())
+      }
+      expect(seen).toEqual(Array.from({ length: 25 }, (_, index) => index + 1))
+      expect(onClaim).not.toHaveBeenCalled()
+    } finally { media.mockRestore() }
+  })
   it('shows 25 readable cells, one action, a hidden future random amount and the Christmas reward', async () => {
     const { container } = await mount()
     expect(container.querySelectorAll('.event-calendar-cell')).toHaveLength(25)
