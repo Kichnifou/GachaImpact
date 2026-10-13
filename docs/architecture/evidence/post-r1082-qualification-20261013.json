@@ -110,7 +110,7 @@
     "publishedCandidate": "bec5d84d2563b3fb2573ae6bd73f3eac0a0137b8",
     "status": "APPROVED;MP/non-lus/debt,Pull/Twitch,visual/documentation",
     "openRuntimeFindings": 0,
-    "archiveP3": "Historical qualification fields explicitly named;data retained;published delta review required",
+    "archiveP3": "CLOSED;three independent reviews approved exact published documentation delta653b17ad;all historical values retained",
     "reports": [
       {
         "scope": "MP/non-lus/historical-debt",
@@ -125,13 +125,41 @@
         "sha256": "5217e55753aec3b5a8eeaa28e0413eaed2515b9424852b1b773facbff8c33bce"
       }
     ],
-    "independentMpTests": "167/167 PASS;overlap with author not summed"
+    "independentMpTests": "167/167 PASS;overlap with author not summed",
+    "documentationCandidate": "653b17ad8845496855e99d3f4f116154326eca80",
+    "documentationStatus": "APPROVED3/3;runtime unchanged;no rerun required"
   },
   "delivery": {
-    "status": "APPROVED candidate;documentation delta review/FF/deployment/postflight pending",
+    "status": "TECHNICALLY_DELIVERED at verified checkpoint;this useful documentation closure inherits runtime and requires exact final FF/deploy/postflight",
     "publicAuthenticatedRecipeExecuted": false,
     "publicEconomicQaExecuted": false,
-    "realMpSent": false
+    "realMpSent": false,
+    "checkpoint": "653b17ad8845496855e99d3f4f116154326eca80",
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true,
+    "railway": {
+      "sha": "653b17ad8845496855e99d3f4f116154326eca80",
+      "id": "0ab7bdff-d723-4898-b642-57638e17984a",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-13T15:06:33.550444767Z",
+      "online": true,
+      "replicas": 1,
+      "pendingWork": 0,
+      "issues": 0
+    },
+    "cloudflare": {
+      "status": "SUCCESS",
+      "preview": "https://02dccbe1.gachaimpact.pages.dev",
+      "exactProductionAssets": true
+    },
+    "postflight": {
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "routeGuards": "16/16 PASS;401/exact CORS,activity no-store",
+      "database": "READ_ONLY PASS;81 finished,0 unresolved,checksums/current081/privacy guards unchanged"
+    },
+    "humanRecipe": "PENDING_OWNER;no public artificial pull,MP or spend"
   },
   "visual": {
     "status": "PASS local compiled GameShell and exact published source equivalence",
