@@ -8,7 +8,7 @@ export type DestinationTabs={
   configuration:'menu'|'privacy'|'account'; social:'friends'|'requests'|'players';
   moderation:'system'|'characters'|'codes'|'banners'|'events'|'community'|'giveaway'|'audit';
   adminCharacters:'catalog'|'possessions'|'pipeline'; community:'chat'|'dm';
-  inventory:'all'|'resources'|'objects'|'collection'; history:'invocations'|'banners'|'event'|'bank'|'shop';
+  inventory:'all'|'resources'|'objects'|'collection'; history:'invocations'|'banners'|'event'|'bank'|'shop'|'activity';
   trades:'create'|'received'|'sent'|'history'; missions:'B'|'A'|'S'|'Z'; profileMissions:'B'|'A'|'S'|'Z';
   rankings:RankingCategory;
   communityPanel:'chat'|'direct'; directMailbox:'list'|'archives';

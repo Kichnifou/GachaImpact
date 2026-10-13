@@ -10,7 +10,7 @@ export const referenceTables = [
   'element_combat_matchups',
 ] as const;
 export const preservedTables = [
-  '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
+  'activity_coverage', '_prisma_migrations', 'players', 'web_identities', 'twitch_identities', 'player_preferences',
   'privacy_settings', 'player_role_assignments', 'twitch_link_resolutions', 'twitch_canonicalization_plans', 'legacy_friendship_facts',
   // Operational authorizations are not gameplay; rehearsal never enables or refreshes them.
   'twitch_gift_supreme_credentials', 'twitch_giveaway_credentials',
@@ -28,7 +28,7 @@ export const clearTables = [
   'event_calendar_claims', 'event_collection_acquisitions', 'player_event_currency_balances',
   'event_participants', 'event_milestone_claims', 'event_daily_player_states',
   'event_game_b_daily_states', 'friendships', 'friend_requests', 'friend_hearts',
-  'player_social_stats', 'player_blocks', 'player_activity_state', 'direct_conversations',
+  'player_social_stats', 'player_blocks', 'player_activity_state', 'player_daily_activity', 'direct_conversations',
   'direct_conversation_participants', 'direct_conversation_requests', 'direct_messages',
   'direct_message_reports', 'global_chat_messages', 'global_chat_state',
   'global_chat_read_states', 'global_chat_mentions', 'global_chat_reports',

@@ -15,6 +15,7 @@ export type ChatCommandDefinition = Readonly<{
 }>;
 
 const summaries: Readonly<Record<string, string>> = {
+  "actif": "Consultez les joueurs actifs aujourd’hui depuis minuit Paris, selon leur confidentialité.",
   "help": "Retrouvez les catégories ou l’aide d’une commande.",
   "element": "Choisissez votre élément permanent.",
   "banniere": "Consultez la rotation et ses personnages.",
@@ -57,6 +58,7 @@ const command = (name: string, category: ChatHelpCategory, syntax: string, inter
 
 /** Shared presentation metadata, bundled by both server and standalone Help. No business rules. */
 export const chatCommandRegistry: readonly ChatCommandDefinition[] = [
+  command('actif', 'social', '!actif', 'READY', ['act', 'active', 'actifs', 'actives']),
   command('help', 'progression', '!help [categorie|commande]', 'READY'),
   command('element', 'progression', '!element pyro|hydro|cryo|electro|anemo|geo|dendro', 'READY'),
   command('convertir', 'ressources', '!convertir <montant>', 'READY', ['conv']),

@@ -486,6 +486,7 @@ model Player {
   privacySettings       PrivacySetting[]
   sessions              PlayerSession[]
   activityState         PlayerActivityState?
+  dailyActivity         PlayerDailyActivity[]
   socialStats           PlayerSocialStats?
   friendRequestsSent    FriendRequest[] @relation("FriendRequestSender")
   friendRequestsReceived FriendRequest[] @relation("FriendRequestRecipient")
@@ -1755,6 +1756,27 @@ model PlayerSession {
   @@index([playerId, endedAt])
   @@index([lastHeartbeatAt])
   @@map("player_sessions")
+}
+
+model ActivityCoverage {
+  id        String   @id @db.Text
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+
+  @@map("activity_coverage")
+}
+
+model PlayerDailyActivity {
+  businessDate DateTime @map("business_date") @db.Date
+  playerId     String   @map("player_id") @db.Uuid
+  application  Boolean  @default(false)
+  gameplay     Boolean  @default(false)
+  internalChat Boolean  @default(false) @map("internal_chat")
+  twitch       Boolean  @default(false)
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@id([businessDate, playerId])
+  @@index([playerId])
+  @@map("player_daily_activity")
 }
 
 model PlayerActivityState {

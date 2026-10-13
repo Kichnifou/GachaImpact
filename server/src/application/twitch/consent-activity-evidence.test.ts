@@ -3,6 +3,17 @@ import { consentTables, consentClassifications } from './consent-activity-eviden
 const row = { player_id: 'fixture', last_app_activity_at: '2026-10-08T13:00:00.123456+00:00', last_gameplay_activity_at: null, last_internal_chat_at: null, last_twitch_activity_at: null, updated_at: '2026-10-08T13:00:00.123456+00:00' };
 const tables = (value: object) => ({ players: ['original raw player'], player_activity_state: [JSON.stringify(value)] });
 describe('activity consent projection', () => {
+  it('neutralizes only exact application-only daily witnesses and retains raw evidence', () => {
+    const daily = { application: true, business_date: '2026-10-13', gameplay: false, internal_chat: false, player_id: 'fixture', twitch: false };
+    const raw = { players: ['unchanged'], player_daily_activity: [JSON.stringify(daily)] };
+    expect(consentTables(raw)).toEqual({ players: ['unchanged'] });
+    expect(raw.player_daily_activity).toEqual([JSON.stringify(daily)]);
+    expect(consentClassifications([{ edge: 'player_daily_activity(player_id)->players(id)', classification: 'OWNED_PERSONAL' }], raw)).toEqual([]);
+    for (const change of [{ twitch: true }, { internal_chat: true }, { gameplay: true }, { future: null }, { application: false }]) {
+      const tables = { player_daily_activity: [JSON.stringify({ ...daily, ...change })] };
+      expect(consentTables(tables).player_daily_activity).toHaveLength(1);
+    }
+  })
   it('equates absent activity and a first application-only row without changing raw evidence', () => {
     const raw = tables(row), snapshot = JSON.stringify(raw);
     expect(consentTables(raw)).toEqual({ players: raw.players }); expect(JSON.stringify(raw)).toBe(snapshot);

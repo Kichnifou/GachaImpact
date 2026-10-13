@@ -801,8 +801,14 @@ export type BannerVoteDto = Readonly<{
   catalogVersion: string
 }>
 export type ChatRefreshScope = 'player' | 'resources' | 'progression' | 'gacha' | 'bannerVotes' | 'box' | 'teams' | 'inventory' | 'bank' | 'shop' | 'dailyChallenge' | 'wheel' | 'social' | 'trades' | 'expedition' | 'dailyCombat' | 'monthlyBoss' | 'contest' | 'event' | 'giftCodes' | 'notifications'
+export type ActivityHistoryDto = {
+  category: 'activity'; page: number; pageSize: number; total: number; totalPages: number;
+  today: string; coverageStartedAt: string | null;
+  entries: { date: string; today: boolean; status: 'COVERED' | 'PARTIAL' | 'UNAVAILABLE'; count: number | null }[];
+}
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
+  replyAuthor?: { id: string | null; displayName: string } | null
   resultPresentation?: import('../../server/src/domain/chat/structured-result').StructuredChatResult | null
   id: string
   author: { id: string; displayName: string; elementKey: string | null; avatarAssetPath?: string | null; badgeSymbol?: string | null } | null

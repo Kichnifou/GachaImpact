@@ -17,7 +17,8 @@ describe('History owner route', () => {
     const banners = vi.fn(async () => ({ category: 'banners', entries: [] }));
     const events = vi.fn(async () => ({ category: 'event', entries: [] }));
     const actor = vi.fn(async () => ({ id: 'owner-player' }));
-    await app.register(registerHistoryRoutes, { authenticate, service: { banners, events } as unknown as HistoryService, social: { actor } as unknown as SocialService });
+    const activity = vi.fn(async () => ({ category: 'activity', entries: [] }));
+    await app.register(registerHistoryRoutes, { authenticate, service: { banners, events, activity } as unknown as HistoryService, social: { actor } as unknown as SocialService });
     try {
       expect((await app.inject('/api/v1/me/history?category=event')).statusCode).toBe(401);
       expect((await app.inject({ url: '/api/v1/me/history?category=event&playerId=other', headers: { authorization: 'Bearer valid' } })).statusCode).toBe(400);
@@ -27,6 +28,11 @@ describe('History owner route', () => {
       expect(actor).toHaveBeenLastCalledWith({ subject: 'owner-subject' });
       expect(events).toHaveBeenCalledExactlyOnceWith('owner-player', 2);
       expect(banners).not.toHaveBeenCalled();
+      expect((await app.inject('/api/v1/me/history?category=activity')).statusCode).toBe(401);
+      const activityResponse = await app.inject({ url: '/api/v1/me/history?category=activity&page=2', headers: { authorization: 'Bearer valid' } });
+      expect(activityResponse.statusCode).toBe(200);
+      expect(activity).toHaveBeenCalledExactlyOnceWith(2);
+      expect(activityResponse.headers['cache-control']).toBe('no-store');
     } finally { await app.close(); }
   });
 });

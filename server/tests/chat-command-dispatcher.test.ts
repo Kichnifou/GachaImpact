@@ -6,6 +6,24 @@ import type { CurrentPlayerMissions } from '../src/application/missions/get-curr
 import { harness, commandId, actor } from './helpers/chat-command-harness.js';
 
 describe('Chat command adapters', () => {
+  it.each(['!actif', '!act', '!active', '!actifs', '!actives', '!Actif', '!ACTIVES'])('reads %s without creating a separate action or mentioning users', async command => {
+    const { services, send } = harness();
+    services.activityService.todayNames.mockResolvedValue(['Éloïse 🌙', '長い名前']);
+    const result = await send(command);
+    expect(result).toEqual('ℹ️ Actifs aujourd’hui (Paris) : Éloïse 🌙, 長い名前');
+    expect(services.activityService.todayNames).toHaveBeenCalledWith('self', 'INTERNAL_CHAT');
+  });
+  it('splits the complete active list between whole Unicode names', async () => {
+    const { services, chat, send } = harness();
+    const values = Array.from({ length: 90 }, (_, i) => `Éloïse_${i}_🌙_nom_composé_長い名前`);
+    services.activityService.todayNames.mockResolvedValue(values);
+    await send('!actif');
+    const result = chat.publishGameResult.mock.calls[0]![1] as string[];
+    expect(result.length).toBeGreaterThan(1);
+    expect(result.every(part => Array.from(part).length <= 500)).toBe(true);
+    const reconstructed = result.flatMap(part => part.replace(/^ℹ️ Actifs aujourd’hui \((?:Paris|suite)\) : /, '').split(', '));
+    expect(reconstructed).toEqual(values);
+  });
   it('publishes logical command parts and appends a Mission only when it fits intact', async () => {
     const { chat, send } = harness();
     chat.commandMissionCompletions.mockResolvedValueOnce(['Mission terminée.']);

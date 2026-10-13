@@ -22,17 +22,37 @@ function activityConsentRow(raw: string): string | null {
 }
 /** Consent projection only. The captured graph and backup are never modified. */
 export function consentTables(tables: Tables): Tables {
+  if (Object.hasOwn(tables, 'player_daily_activity')) {
+    const projected = tables.player_daily_activity!.map(dailyConsentRow).filter((row): row is string => row !== null).sort();
+    const { player_daily_activity: _daily, ...rest } = tables;
+    tables = projected.length ? { ...rest, player_daily_activity: projected } : rest;
+  }
   if (!Object.hasOwn(tables, 'player_activity_state')) return tables;
   const rows = tables.player_activity_state!.map(activityConsentRow).filter((row): row is string => row !== null).sort();
   const { player_activity_state: _raw, ...rest } = tables;
   return rows.length ? { ...rest, player_activity_state: rows } : rest;
 }
 export function consentClassifications<T extends { edge: string; classification: string }>(rows: T[], tables: Tables): T[] {
+  const daily = tables.player_daily_activity;
+  if (daily?.length && daily.every(row => dailyConsentRow(row) === null)) {
+    rows = rows.filter(row => row.edge !== 'player_daily_activity(player_id)->players(id)' || row.classification !== 'OWNED_PERSONAL');
+  }
   const activity = tables.player_activity_state;
   if (!activity?.length || activity.some(row => activityConsentRow(row) !== null)) return rows;
   // Only this known personal edge's technical row count is neutralized. Safety
   // classifications themselves, unknown edges and shared relations stay exact.
   return rows.filter(row => row.edge !== 'player_activity_state(player_id)->players(id)' || row.classification !== 'OWNED_PERSONAL');
+}
+
+/** Exact additive model only: unknown fields and non-application witnesses remain significant. */
+function dailyConsentRow(raw: string): string | null {
+  const row = JSON.parse(raw) as Record<string, unknown>;
+  if (Object.keys(row).sort().join() !== 'application,business_date,gameplay,internal_chat,player_id,twitch'
+    || typeof row.player_id !== 'string' || typeof row.business_date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(row.business_date)
+    || ['application', 'gameplay', 'internal_chat', 'twitch'].some(key => typeof row[key] !== 'boolean')) return raw;
+  if (row.application === true && row.gameplay === false && row.internal_chat === false && row.twitch === false) return null;
+  if (!row.gameplay && !row.internal_chat && !row.twitch) return raw;
+  return JSON.stringify({ business_date: row.business_date, player_id: row.player_id, gameplay: row.gameplay, internal_chat: row.internal_chat, twitch: row.twitch });
 }
 export function operatorConsentEvidence<T extends { web: { tables: Tables; shared: Tables; parents: Tables }; twitch: { tables: Tables; shared: Tables; parents: Tables } }>(evidence: T) {
   const graph = (value: T['web']) => ({ ...value, tables: consentTables(value.tables), shared: consentTables(value.shared), parents: consentTables(value.parents) });

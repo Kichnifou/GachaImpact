@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
-import type { Clock } from '../../domain/time/business-date.js';
+import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import { AppError } from '../../api/errors.js';
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { privacyAllowedWhere } from './privacy-service.js';
@@ -38,7 +38,7 @@ export class PresenceService {
       const row = await tx.playerSession.findUnique({ where: { sessionTokenHash } });
       if (row?.endedAt || (!row && !start)) throw new AppError('Session de présence terminée.', 409, 'PRESENCE_SESSION_ENDED');
       // Heartbeats never advance user activity. Client coalesces interactions; server bounds writes too.
-      const recordActivity = activity && (!row?.lastActivityAt || now.getTime() - row.lastActivityAt.getTime() >= 15_000);
+      const recordActivity = activity && (!row?.lastActivityAt || getBusinessDate(now) !== getBusinessDate(row.lastActivityAt) || now.getTime() - row.lastActivityAt.getTime() >= 15_000);
       if (!row) await tx.playerSession.create({ data: { playerId, sessionTokenHash, startedAt: now, lastHeartbeatAt: now, lastActivityAt: activity ? now : null } });
       else await tx.playerSession.update({ where: { id: row.id }, data: { lastHeartbeatAt: now, ...(start ? { endedAt: null } : {}), ...(recordActivity ? { lastActivityAt: now } : {}) } });
       if (recordActivity) await new PlayerActivityRecorder().record(tx, playerId, now, 'APPLICATION');

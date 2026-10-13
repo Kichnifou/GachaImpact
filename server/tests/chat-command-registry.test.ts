@@ -3,8 +3,8 @@ import { chatCommandRegistry, chatHelp, chatHelpCategories, commandHelp, findCha
 
 describe('Chat command registry', () => {
   it('contains every canonical root once and never invents retired commands', () => {
-    expect(chatCommandRegistry).toHaveLength(34);
-    expect(new Set(chatCommandRegistry.map(command => command.name)).size).toBe(34);
+    expect(chatCommandRegistry).toHaveLength(35);
+    expect(new Set(chatCommandRegistry.map(command => command.name)).size).toBe(35);
     for (const name of ['xp', 'gift', 'subscription', 'mp']) expect(findChatCommand(name)).toBeUndefined();
   });
 

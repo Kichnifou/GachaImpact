@@ -9519,7 +9519,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .chat-result-facts { margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; font-size: 10px; color: #b8cae4; }
 .community-is-expanded .chat-result-character { width: 94px; }
 .community-is-expanded .chat-result-portrait { height: 83px; }
-.chat-community-pane .chat-message { display: block; padding: 4px 10px; border-bottom: 1px solid rgba(108,143,198,.06); }
+.chat-community-pane .chat-message { display: block; padding: 4px 10px; border-bottom: 0; }
 .chat-community-pane .message-content { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .chat-community-pane .message-meta { display: inline; font-size: inherit; }
 .chat-community-pane .message-meta time { margin-right: 7px; font-size: 10px; color: #8492ac; white-space: nowrap; }
@@ -9528,7 +9528,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .chat-community-pane .chat-system-symbol { margin-right: 4px; color: #64dfb0; }
 .chat-community-pane .chat-message:has(.chat-game-label) { background: rgba(43,76,105,.15); border-left: 2px solid #467b98; }
 .chat-community-pane .chat-reply-preview { margin: 2px 0; font-size: 10px; }
-.chat-community-pane .chat-message:has(.chat-reply-preview) .message-meta { display: block; }
+/* Reply context precedes the complete inline author/message flow. */
 @media (min-width: 1000px) {
   .community-is-expanded .game-layout { grid-template-columns: 290px minmax(0,1fr); grid-template-areas: 'player chat'; }
   .community-is-expanded .player-sidebar { grid-area: player; }
@@ -9542,3 +9542,19 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 }
 
 .appearance-controls[hidden] { display: none; }
+
+/* Post-R1079: intrinsic Team geometry, scoped away from other portraits. */
+.team-screen, .team-screen > * { min-width: 0; }
+.team-screen .large-team-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.team-screen .team-slot-drag-wrapper:not(.empty-team-slot), .team-screen .character-showcase-team { height: auto; }
+.team-screen .character-showcase-team .large-character-portrait { aspect-ratio: 1; flex: 0 0 auto; min-height: 0; width: 100%; }
+.team-screen .character-showcase-team .character-portrait-image { height: 100%; }
+@media (max-width: 1440px) { .team-screen .large-team-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1121px) {
+  .team-screen { grid-template-rows: max-content max-content max-content max-content; align-content: start; overflow: auto; }
+  .team-screen > .large-team-grid { min-height: min-content; grid-auto-rows: max-content; align-content: start; }
+  .team-screen > .large-team-grid.team-count-0 { aspect-ratio: auto; min-height: clamp(220px, 38vh, 420px); }
+  .team-screen .team-count-0 .empty-team-card { min-height: clamp(220px, 38vh, 420px); }
+  .team-screen .team-bonuses { height: auto; min-height: 126px; }
+  .team-screen .team-reference-toggle { max-width: 100%; white-space: normal; }
+}

@@ -7,6 +7,7 @@ import { TwitchFavorChatPresenceConsumer } from '../application/twitch/twitch-fa
 import { SocialService } from '../application/social/social-service.js';
 import { AppearanceService } from '../application/appearance/appearance-service.js';
 import { RankingService } from '../application/ranking/ranking-service.js';
+import { PlayerActivityService } from '../application/player/player-activity-service.js';
 import { HistoryService } from '../application/history/history-service.js';
 import { DirectMessageReportService } from '../application/direct-messages/direct-message-report-service.js';
 import { ChoosePlayerElement } from '../application/player/choose-player-element.js';
@@ -268,6 +269,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     rankingService: new RankingService(database),
     arcadeService: new ArcadeService(database, getCurrentPlayer, clock),
     arcadeRecords: new ArcadeRecords(database),
+    activityService: new PlayerActivityService(database, clock),
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),

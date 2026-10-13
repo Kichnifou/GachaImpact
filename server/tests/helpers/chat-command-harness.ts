@@ -33,6 +33,7 @@ export function harness() {
     gameC: { theme: { label: 'Mot doux' }, sentToday: false, canSend: false, unviewedCount: 0 },
   };
   const services = {
+    activityService: { todayNames: vi.fn(async () => [] as string[]) },
     getCurrentGacha: execute({ banner: { startsAt: new Date('2026-09-27T22:00:00Z'), endsAt: new Date('2026-10-04T22:00:00Z'), featuredFiveStars: [{ id: 'five', name: 'A', elementKey: 'pyro' }], featuredFourStars: [{ id: 'four', name: 'B', elementKey: 'hydro' }] }, playerState: { pity5: 9, pity4: 2, guaranteedFeatured5: true, captureProgress: 1, selectedBannerCharacterId: 'five' } }),
     getCharacters: execute([{ id: 'five', name: 'A' }, { id: 'candidate', name: 'Candidat' }]),
     setGachaTarget: execute({}),

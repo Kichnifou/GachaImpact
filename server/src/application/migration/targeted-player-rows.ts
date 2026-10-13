@@ -11,7 +11,7 @@ export const personalReplacementTables = [
   'player_daily_challenges', 'player_expeditions', 'player_combat_stats', 'player_character_combat_stats',
   'player_daily_combat_loadouts', 'player_daily_combat_loadout_slots', 'player_daily_combat_states', 'player_daily_combat_kos',
   'daily_combat_attempts', 'daily_combat_attempt_members', 'player_boss_loadouts', 'player_boss_loadout_slots', 'player_boss_stats',
-  'player_favor_states', 'favor_grants', 'favor_daily_claims', 'player_social_stats', 'player_activity_state',
+  'player_favor_states', 'favor_grants', 'favor_daily_claims', 'player_social_stats', 'player_activity_state', 'player_daily_activity',
   'business_operations', 'migration_runs', 'migration_issues',
 ] as const;
 export const targetedBackupTables = [...personalReplacementTables, 'players', 'web_identities', 'twitch_identities',

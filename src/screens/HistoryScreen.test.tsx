@@ -17,6 +17,22 @@ const props = {
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it('shows today, partial collection, unknown history and a real zero without inventing data', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const onActivity = vi.fn(async () => ({ category: 'activity' as const, page: 1, pageSize: 10, total: 2, totalPages: 2, today: '2026-10-13', coverageStartedAt: '2026-10-12T08:00:00Z', entries: [
+      { date: '2026-10-13', today: true, status: 'COVERED' as const, count: 0 },
+      { date: '2026-10-12', today: false, status: 'PARTIAL' as const, count: 2 },
+      { date: '2026-10-11', today: false, status: 'UNAVAILABLE' as const, count: null },
+    ] }))
+    try {
+      await act(async () => { root.render(<HistoryScreen {...props} initialCategory="activity" onActivity={onActivity} />) })
+      expect(container.textContent).toContain('Aujourd’hui (en cours)')
+      expect(container.textContent).toContain('0 joueurs actifs')
+      expect(container.textContent).toContain('Journée de collecte partielle')
+      expect(container.textContent).toContain('Données indisponibles avant la collecte')
+      expect(onActivity).toHaveBeenCalledExactlyOnceWith(1)
+    } finally { act(() => root.unmount()) }
+  })
   it.each([
     ['COMPLETED', 'Gagnant du tirage : Hors Top 10'],
     ['NO_ELIGIBLE', 'Aucun gagnant — aucun participant éligible.'],
@@ -59,7 +75,7 @@ describe('HistoryScreen', () => {
     try {
       await act(async () => { root.render(<HistoryScreen {...props} />); await Promise.resolve() })
       const nav = container.querySelector<HTMLElement>('nav.activity-inner-tabs[role="tablist"]')!
-      expect([...nav.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Invocations', 'Bannières', 'Banque', 'Boutique', 'Event'])
+      expect([...nav.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Invocations', 'Bannières', 'Banque', 'Boutique', 'Event', 'Activité'])
       expect(nav.querySelectorAll('.app-button, .history-tabs')).toHaveLength(0)
       for (const name of ['Bannières', 'Banque', 'Boutique', 'Event']) {
         await act(async () => { tab(container, name).click(); await Promise.resolve() })

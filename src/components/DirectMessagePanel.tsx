@@ -1,5 +1,6 @@
 import { useDestinationTab,useDestinationRestoration } from '../navigation/destination-context'
 import PresenceDot from './PresenceDot'
+import { useExplicitThreadResize } from '../hooks/use-explicit-thread-resize'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useLatestRef } from '../hooks/use-latest-ref'
 import {
@@ -154,6 +155,7 @@ export default function DirectMessagePanel({
   isActive,
   intent,
   resetToken,
+  threadResizeToken = 0,
   onIntentConsumed,
   onUnreadChange,
   onOpenProfile,
@@ -162,6 +164,7 @@ export default function DirectMessagePanel({
   isActive: boolean;
   intent: DirectMessageOpenIntent | null;
   resetToken?: string | null;
+  threadResizeToken?: number;
   onIntentConsumed: (token: string) => void;
   onUnreadChange: (count: number) => void;
   onOpenProfile: (id: string) => void;
@@ -797,6 +800,17 @@ export default function DirectMessagePanel({
     if (isActive && selectedId && last)
       markConversationRead(selectedId, last.id);
   };
+  useExplicitThreadResize(list, threadResizeToken, () => {
+    if (isActive && view === 'conversation' && !document.hidden) {
+      prepend.current = null; liveScrollTop.current = null; scrollBottom();
+    }
+  }, `${playerId}:${isActive}:${view}:${selectedId}`);
+  useExplicitThreadResize(historyList, threadResizeToken, () => {
+    if (isActive && view === 'history' && historyList.current && !document.hidden) {
+      historyPrepend.current = null;
+      historyList.current.scrollTop = historyList.current.scrollHeight;
+    }
+  }, `${playerId}:${isActive}:${view}:${selectedId}`);
   const onScroll = () => {
     if (!list.current || initialScroll.current) return;
     const remaining =

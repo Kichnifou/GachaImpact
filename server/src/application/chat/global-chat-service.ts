@@ -37,7 +37,7 @@ export type ChatCursor = { createdAt: string; id: string };
 export type FrozenChatResult = { content: string | readonly string[]; presentation: StructuredChatResult | null };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string; standaloneResult?: FrozenChatResult };
 export type ChatMentionInput = { playerId: string; displayName: string };
-const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
+const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true, author: { select: { id: true, displayName: true } } } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -66,7 +66,7 @@ function project(row: {
   resultPresentation?: unknown;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
   replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedBadgeCosmetic?: { type: string; externalKey: string; displayName: string; isActive: boolean } | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
-  replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null } | null;
+  replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null; author?: { id: string; displayName: string } | null } | null;
   mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
   operation: { idempotencyKey: string | null } | null;
 }, viewerId?: string) {
@@ -78,6 +78,7 @@ function project(row: {
     resultPresentation: !deleted && row.messageType === 'GAME_RESULT' && isStructuredChatResult(row.resultPresentation) && row.resultPresentation.source.commandMessageId === row.replyToMessageId ? row.resultPresentation : null,
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
+    replyAuthor: row.replyToMessage?.deletionState === GlobalChatDeletionState.ACTIVE ? (row.replyToMessage.author ?? { id: null, displayName: 'GachaImpact' }) : null,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
     mentionedMe: !!viewerId && !deleted && row.mentions.some(mention => mention.mentionedPlayerId === viewerId),
     resolvedMentions: deleted ? [] : row.mentions.map(mention => ({ playerId: mention.mentionedPlayerId, displayName: mention.mentionedPlayer.displayName })),

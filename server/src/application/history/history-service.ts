@@ -1,3 +1,4 @@
+import { PlayerActivityService } from '../player/player-activity-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { GenerationVoteSnapshot } from '../../domain/gacha/gacha.js';
 
@@ -24,6 +25,8 @@ function voteSnapshot(value: unknown): GenerationVoteSnapshot | null {
 
 export class HistoryService {
   constructor(private readonly database: PrismaClient, private readonly now: () => Date = () => new Date()) {}
+
+  activity(page: number) { return new PlayerActivityService(this.database, { now: this.now }).history(page); }
 
   async banners(page: number) {
     const [total, rotations] = await Promise.all([

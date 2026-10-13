@@ -431,6 +431,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     setGachaTarget: (characterId: string) => request<{ playerState: PlayerGachaStateDto }>('/api/v1/gacha/target', { method: 'POST', body: JSON.stringify({ characterId, tabId: establishedSharedInvocationTabId() }) }),
     pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey, tabId: establishedSharedInvocationTabId() }) }),
     getGachaHistory: (page = 1) => request<GachaHistoryDto>(`/api/v1/gacha/history?page=${page}`),
+    getActivityHistory: (page = 1) => request<import('./types').ActivityHistoryDto>(`/api/v1/me/history?category=activity&page=${page}`),
     getHistory: (category: 'banners' | 'event', page = 1) => request<BannerHistoryDto | EventHistoryDto>(`/api/v1/me/history?category=${category}&page=${page}`),
     getBox: () => request<PlayerBoxDto>('/api/v1/me/box'),
     setBoxFavorite: (characterId: string, favorite: boolean) =>

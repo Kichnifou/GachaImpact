@@ -1,6 +1,6 @@
 /** Explicit ownership: adding a Twitch command requires a reviewed classification. */
 export const genericTwitchCommands = [
-  'help', 'element', 'convertir', 'echanger', 'banniere', 'select', 'vote', 'pity', 'pull',
+  'actif', 'help', 'element', 'convertir', 'echanger', 'banniere', 'select', 'vote', 'pity', 'pull',
   'box', 'obtention', 'stella', 'legende', 'concours', 'top', 'code', 'event', 'team',
   'passifs', 'banque', 'sac', 'coffre', 'shop', 'mission', 'faveur', 'roue', 'quotis',
   'expedition', 'combat', 'ami', 'infos', 'liste',

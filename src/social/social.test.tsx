@@ -129,6 +129,7 @@ describe('Social UI', () => {
     function Probe({ id }: { id: string }) { usePresence(id, api); return null }
     await mount(<Probe id="one" />)
     const key = vi.mocked(api.session).mock.calls[0]![0]
+    expect(api.session).toHaveBeenCalledWith(key, false)
     await act(async () => { await vi.advanceTimersByTimeAsync(45_000) })
     expect(api.heartbeat).toHaveBeenCalledWith(key, false)
     await act(async () => root!.render(<Probe id="two" />))

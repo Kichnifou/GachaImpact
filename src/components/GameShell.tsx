@@ -677,7 +677,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
       case 'rankings':
         return <RankingsScreen onLoad={onLoadRanking} onProfile={openProfile} />
       case 'history':
-        return <HistoryScreen key={player.id} initialCategory={historyIntent?.category ?? 'invocations'} onInvocations={onGetGachaHistory} onBannersOrEvent={onLoadHistory} onBank={onLoadBankHistory} onShop={onLoadShopHistory} />
+        return <HistoryScreen key={player.id} initialCategory={historyIntent?.category ?? 'invocations'} onInvocations={onGetGachaHistory} onActivity={getGameApiClient().getActivityHistory} onBannersOrEvent={onLoadHistory} onBank={onLoadBankHistory} onShop={onLoadShopHistory} />
       case 'configuration':
         return <ConfigurationScreen onRefreshPlayerState={refreshAfterSnapshotImport} socialActions={socialActions} initialTab={configurationTab} preference={menuPreference} onSave={saveMenuPreference} onReset={() => saveMenuPreference(defaultNavigationPreference)} />
       default:

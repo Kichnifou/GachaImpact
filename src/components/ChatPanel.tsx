@@ -8,6 +8,7 @@ import { elementColors } from '../utils/elementTheme'
 import DirectMessagePanel, { type DirectMessageOpenIntent } from './DirectMessagePanel'
 import { useDirectMessageDocumentTitle } from '../direct-messages/use-direct-message-document-title'
 import ChatResult from './ChatResult'
+import { useExplicitThreadResize } from '../hooks/use-explicit-thread-resize'
 
 type Props = { playerId: string; playerDisplayName?: string; playerElementKey?: string | null; playerAvatarAssetPath?: string | null; playerBadgeSymbol?: string | null; connectedCount?: number | null; isCollapsed: boolean; isExpanded?: boolean; onToggleExpanded?: () => void; onToggle: () => void; onOpenPlayers: () => void; onOpenProfile: (id: string) => void; onRefreshScopes: (scopes: readonly ChatRefreshScope[]) => Promise<void>; directMessageIntent?: DirectMessageOpenIntent | null; onDirectMessageIntentConsumed?: (token: string) => void }
 type Intent = { key: string; content: string; replyId: string | null; mentions: ChatMentionDto[]; burstTrigger: boolean }
@@ -126,6 +127,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [directUnread, setDirectUnread] = useState(0)
   useDirectMessageDocumentTitle(directUnread, playerId)
   const [localDirectIntent, setLocalDirectIntent] = useState<DirectMessageOpenIntent | null>(null)
+  const [threadResizeToken, setThreadResizeToken] = useState(0)
   const [directResetToken, setDirectResetToken] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessageDto[]>([])
   const [cursor, setCursor] = useState<{ createdAt: string; id: string } | null>(null)
@@ -159,6 +161,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const readId = useRef<string | null>(null)
   const olderBusy = useRef(false)
   const prepend = useRef<{ top: number; height: number } | null>(null)
+  const scrollPlacementRevision = useRef(0)
   const searchVersion = useRef(0)
   const lastRenderedId = useRef<string | null>(null)
   const messagesRef = useRef<ChatMessageDto[]>([])
@@ -371,10 +374,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (!list.current || !cursor || olderBusy.current) return
     olderBusy.current = true
     const anchor = { top: list.current.scrollTop, height: list.current.scrollHeight }
+    const placementRevision = scrollPlacementRevision.current
     try {
       const page = await api.messages(cursor)
       if (generation.current !== null && page.generation !== generation.current) { await messagesNow(true); return }
-      prepend.current = anchor
+      if (placementRevision === scrollPlacementRevision.current) prepend.current = anchor
+      else initialScrollPending.current = atBottom.current
       visibleMessageIds.current = page.visibleMessageIds ?? [...new Set([...visibleMessageIds.current, ...page.messages.map(item => item.id)])].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
       setMessages(current => orderMessages([...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current]).slice(0, CHAT_VISIBLE_MESSAGE_LIMIT))
       setCursor(page.nextCursor)
@@ -383,6 +388,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }
   const markRecent = () => { if (presentationActive.current) return; const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && chatActive && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
   const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.')); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); markRecent() }
+  useExplicitThreadResize(list, threadResizeToken, () => {
+    if (!chatActive || document.hidden) return
+    scrollPlacementRevision.current += 1
+    prepend.current = null
+    if (deferredLatest.current) initialScrollPending.current = true
+    atBottom.current = true
+    scrollBottom()
+  }, `${playerId}:${chatActive}`)
   const onScroll = () => { if (!list.current || initialScrollPending.current) return; const remaining = list.current.scrollHeight - list.current.scrollTop - list.current.clientHeight; atBottom.current = remaining < 80; setScrollbarAtBottom(remaining <= 2); if (atBottom.current) { if (deferredLatest.current) scrollBottom(); else { setNewCount(0); markRecent() } } if (list.current.scrollTop < 90) void loadOlder() }
   useEffect(() => {
     const match = draft.match(/(?:^|\s)@([^\s@]*)$/u), version = ++searchVersion.current
@@ -543,7 +556,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const showCharacterCount = characterCount >= 450
 
   return <aside data-business-pending={commandPending || messages.some(message => message.id.startsWith("optimistic:"))} data-tutorial-anchor="community" className={`chat-panel ${isCollapsed ? 'collapsed' : 'panel'}`} aria-label={isCollapsed ? 'Communauté repliée' : 'Communauté'}>
-    {isCollapsed ? <button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher la communauté, ${unread} messages Chat et ${directUnread} messages privés non lus`}><span aria-hidden="true">‹</span><strong>C</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}<strong>M</strong>{directUnread > 0 && <span className="unread-count direct">{directUnread > 99 ? '99+' : directUnread}</span>}</button> : <><div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>{activeTab === 'chat' ? 'Chat global' : 'Messages privés'}</h2></div><div className="community-header-actions">{onToggleExpanded && <button type="button" className="icon-button community-size-button" onClick={onToggleExpanded} aria-label={isExpanded ? "Réduire la communauté" : "Agrandir la communauté"} aria-pressed={isExpanded}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">{isExpanded ? <path d="M3 9h6V3M9 9 3 3m18 12h-6v6m0-6 6 6" /> : <path d="M15 3h6v6m0-6-7 7M9 21H3v-6m0 6 7-7" />}</svg></button>}<button type="button" className="icon-button" onClick={onToggle} aria-label="Replier la communauté"><span className="icon-glyph">›</span></button></div></div>
+    {isCollapsed ? <button type="button" className="chat-expand-button" onClick={onToggle} aria-label={`Afficher la communauté, ${unread} messages Chat et ${directUnread} messages privés non lus`}><span aria-hidden="true">‹</span><strong>C</strong>{unread > 0 && <span className="unread-count">{unread > 99 ? '99+' : unread}</span>}<strong>M</strong>{directUnread > 0 && <span className="unread-count direct">{directUnread > 99 ? '99+' : directUnread}</span>}</button> : <><div className="chat-header"><div><span className="eyebrow">Communauté</span><h2>{activeTab === 'chat' ? 'Chat global' : 'Messages privés'}</h2></div><div className="community-header-actions">{onToggleExpanded && <button type="button" className="icon-button community-size-button" onClick={() => { setThreadResizeToken(value => value + 1); onToggleExpanded?.() }} aria-label={isExpanded ? "Réduire la communauté" : "Agrandir la communauté"} aria-pressed={isExpanded}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">{isExpanded ? <path d="M3 9h6V3M9 9 3 3m18 12h-6v6m0-6 6 6" /> : <path d="M15 3h6v6m0-6-7 7M9 21H3v-6m0 6 7-7" />}</svg></button>}<button type="button" className="icon-button" onClick={onToggle} aria-label="Replier la communauté"><span className="icon-glyph">›</span></button></div></div>
     <div className="community-tabs" role="tablist" aria-label="Communauté"><button type="button" role="tab" aria-selected={activeTab === 'chat'} onClick={() => setActiveTab('chat')}>Chat{unread > 0 && <span className="community-tab-badge">{unread > 99 ? '99+' : unread}</span>}</button><button type="button" role="tab" aria-selected={activeTab === 'direct'} onClick={() => { setActiveTab('direct'); setDirectResetToken(crypto.randomUUID()) }}>MP{directUnread > 0 && <span className="community-tab-badge">{directUnread > 99 ? '99+' : directUnread}</span>}</button></div></>}
     <section className="community-pane chat-community-pane" hidden={isCollapsed || activeTab !== 'chat'} aria-label="Chat global">
     <button type="button" className="chat-presence" onClick={onOpenPlayers}><span className="status-dot" />{connectedCount === null ? 'Joueurs connectés' : `${connectedCount} joueur${connectedCount > 1 ? 's' : ''} connecté${connectedCount > 1 ? 's' : ''}`}<span aria-hidden="true">›</span></button>
@@ -563,9 +576,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         const replyTo = () => { setReply(message); setMenuId(null); focusComposer() }
         const mentionAuthor = () => { if (!message.author) return; setDraft(value => `${value}${value && !value.endsWith(' ') ? ' ' : ''}@${message.author!.displayName} `); setMentions(value => [...value, { playerId: message.author!.id, displayName: message.author!.displayName }]); setMenuId(null); focusComposer() }
         return <article className={`chat-message${message.mentionedMe || message.repliedToMe ? ' chat-message-mentioned' : ''}${optimistic ? ' chat-message-optimistic' : ''}`} style={authorStyle} data-message-id={message.id} data-command={optimistic && message.messageType === 'COMMAND' ? 'true' : undefined} data-hover-suppressed={suppressedHoverId === message.id ? 'true' : undefined} data-report-open={reportId === message.id ? 'true' : undefined} onPointerLeave={() => setSuppressedHoverId(current => current === message.id ? null : current)} key={message.id}>
-          <div className="message-content"><div className="message-meta"><time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>{game ? <><span className="chat-system-symbol" aria-hidden="true">✦</span><strong className="chat-game-label">GachaImpact</strong></> : <>{message.author?.badgeSymbol && <span className="chat-decorative-badge" aria-label={`Badge ${message.author.badgeSymbol}`}>{message.author.badgeSymbol}</span>}<button type="button" className="chat-author-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button></>}<span aria-hidden="true"> : </span></div>
-            {message.replyToMessageId && <div className="chat-reply-preview">↳ {message.replyPreview ?? 'Message supprimé'}</div>}
-            <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
+          <div className="message-content">{message.replyToMessageId && <div className="chat-reply-preview">{masked || (message.replyAuthor?.id && hidden.includes(message.replyAuthor.id)) ? 'Message masqué' : message.replyPreview === 'Message supprimé' ? 'Message supprimé' : <>En réponse à {message.replyAuthor ? <>{message.replyAuthor.id ? '@' : ''}{message.replyAuthor.displayName} : </> : null}{message.replyPreview ?? 'Message supprimé'}</>}</div>}<div className="message-meta"><time dateTime={message.createdAt}>{new Date(message.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</time>{game ? <><span className="chat-system-symbol" aria-hidden="true">✦</span><strong className="chat-game-label">GachaImpact</strong></> : <>{message.author?.badgeSymbol && <span className="chat-decorative-badge" aria-label={`Badge ${message.author.badgeSymbol}`}>{message.author.badgeSymbol}</span>}<button type="button" className="chat-author-button" aria-label={`Profil de ${message.authorLabel}`} onClick={() => message.author && onOpenProfile(message.author.id)}>{message.authorLabel}</button></>}<span aria-hidden="true"> : </span></div>            <p>{masked ? <>Message masqué — <button type="button" onClick={() => setRevealed(value => [...value, message.id])}>Afficher</button></> : message.deletionState === 'AUTHOR' ? 'Message supprimé' : message.deletionState === 'MODERATION' ? 'Message supprimé par la modération' : chatText(message.content ?? '', message.resolvedMentions)}</p>
             {game && !masked && message.deletionState === 'ACTIVE' && <ChatResult value={message.resultPresentation} />}
             {canAct && <><div className="chat-message-actions" aria-label={`Actions pour le message de ${message.authorLabel}`} onClickCapture={event => { if (event.detail) { setSuppressedHoverId(message.id); (document.activeElement as HTMLElement | null)?.blur() } }}>
               {canReport && <button type="button" title="Signaler" aria-label="Signaler" onClick={() => setReportId(message.id)}>⚑</button>}
@@ -600,7 +611,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     </div>
     </section>
     <section className="community-pane direct-community-pane" hidden={isCollapsed || activeTab !== 'direct'} aria-label="Messages privés">
-      <DirectMessagePanel playerId={playerId} isActive={!isCollapsed && activeTab === 'direct'} intent={resolvedDirectIntent} resetToken={directResetToken} onIntentConsumed={token => { setLocalDirectIntent(current => current?.token === token ? null : current); onDirectMessageIntentConsumed(token) }} onUnreadChange={setDirectUnread} onOpenProfile={onOpenProfile} />
+      <DirectMessagePanel threadResizeToken={threadResizeToken} playerId={playerId} isActive={!isCollapsed && activeTab === 'direct'} intent={resolvedDirectIntent} resetToken={directResetToken} onIntentConsumed={token => { setLocalDirectIntent(current => current?.token === token ? null : current); onDirectMessageIntentConsumed(token) }} onUnreadChange={setDirectUnread} onOpenProfile={onOpenProfile} />
     </section>
   </aside>
 }

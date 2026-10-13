@@ -54,6 +54,7 @@ import { commandText } from './command-presentation.js';
 import { resultCharacter, type PresentationSink } from './result-presentation.js';
 
 export type ChatCommandServices = Readonly<{
+  activityService: Pick<import('../player/player-activity-service.js').PlayerActivityService, 'todayNames'>;
   getCurrentGacha: Pick<GetCurrentGacha, 'execute'>;
   getCharacters: Pick<GetCharacters, 'execute'>;
   setGachaTarget: Pick<SetGachaTarget, 'execute'>;
@@ -167,6 +168,12 @@ export class PlayerCommandResolver {
     let presentError: ((error: unknown) => string | undefined) | undefined;
     try {
       switch (definition.handler) {
+        case 'actif': {
+          if (args.length) return syntax('!actif');
+          const actor = await this.services.socialService.actor(identity);
+          const values = await this.services.activityService.todayNames(actor.id, this.sourceChannel === 'TWITCH' ? 'TWITCH' : 'INTERNAL_CHAT');
+          return values.length ? entryParts('Actifs aujourd’hui (Paris) :', values, 'Actifs aujourd’hui (suite) :', ', ') : 'Aucun joueur actif visible aujourd’hui (Paris).';
+        }
         case 'legende': {
           const actor = await this.services.socialService.actor(identity);
           let target: { id: string; displayName: string } | null = actor;

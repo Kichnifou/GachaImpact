@@ -10,7 +10,7 @@ export function usePresence(playerId: string, actions?: SocialActions) {
   const [error, setError] = useState(false)
   useEffect(() => {
     if (!actions) return
-    let active = true, inFlight = false, polling = false, dirty = true, started = false, suspended = false
+    let active = true, inFlight = false, polling = false, dirty = false, started = false, suspended = false
     let key = crypto.randomUUID()
     try { sessionStorage.setItem('gachaimpact.presence.tab', key) } catch { /* Memory still isolates this tab. */ }
     let pulseTimer: number | undefined, pollTimer: number | undefined, interactionTimer: number | undefined
@@ -40,7 +40,7 @@ export function usePresence(playerId: string, actions?: SocialActions) {
     const wake = () => { window.clearTimeout(pollTimer); void refresh() }
     const end = () => { suspended = true; return actions.end(key).catch(() => undefined) }
     closeRef.current = end
-    const restore = () => { if (!suspended) return; suspended = false; key = crypto.randomUUID(); started = false; dirty = true; void pulse(); wake() }
+    const restore = () => { if (!suspended) return; suspended = false; key = crypto.randomUUID(); started = false; dirty = false; void pulse(); wake() }
     void pulse().then(wake)
     for (const event of ['pointerdown', 'keydown', 'touchstart', 'wheel']) window.addEventListener(event, interaction, { passive: true })
     window.addEventListener('pagehide', end)

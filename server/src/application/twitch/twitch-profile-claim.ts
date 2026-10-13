@@ -20,7 +20,7 @@ const knownTables: Record<string, string> = {
   web_identities: 'WebIdentity', player_sessions: 'PlayerSession', player_economy_stats: 'PlayerEconomyStats', player_wheel_stats: 'PlayerWheelStats',
   player_daily_reward_state: 'PlayerDailyRewardState', player_progression: 'PlayerProgression', player_gacha_states: 'PlayerGachaState',
   player_resource_balances: 'PlayerResourceBalance', player_permanent_mission_states: 'PlayerPermanentMissionState',
-  player_permanent_mission_progress: 'PlayerPermanentMissionProgress', privacy_settings: 'PrivacySetting', player_preferences: 'PlayerPreference', player_activity_state: 'PlayerActivityState',
+  player_permanent_mission_progress: 'PlayerPermanentMissionProgress', privacy_settings: 'PrivacySetting', player_preferences: 'PlayerPreference', player_activity_state: 'PlayerActivityState', player_daily_activity: 'PlayerDailyActivity',
   twitch_link_states: 'TwitchLinkState', twitch_link_resolutions: 'TwitchLinkResolution',
   notifications: 'Notification',
   player_bank_accounts: 'PlayerBankAccount',
@@ -153,6 +153,8 @@ export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, player
     } else if (model.name === 'PlayerPreference') {
       if (rows.some(row => row.preferenceKey === 'tutorial_v1' ? !isTutorialPreference(row.value)
         : row.preferenceKey !== 'tutorial_v1_autostart' || JSON.stringify(row.value) !== JSON.stringify({ version: 1, claimed: true }))) return false;
+    } else if (model.name === 'PlayerDailyActivity') {
+      if (rows.some(row => row.application !== true || row.gameplay !== false || row.internalChat !== false || row.twitch !== false)) return false;
     } else if (model.name === 'PlayerActivityState') {
       if (rows.length !== 1 || rows[0]!.lastInternalChatAt !== null || rows[0]!.lastTwitchActivityAt !== null || rows[0]!.lastGameplayActivityAt !== null) return false;
     } else return false;

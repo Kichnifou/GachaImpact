@@ -61,6 +61,20 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('ChatPanel réel', () => {
+  it('places reply context before the complete author/message flow', async () => {
+    chat.messages.mockResolvedValue({ messages: [{ ...message, replyToMessageId: 'target', replyPreview: 'Moi aussi', replyAuthor: { id: ownId, displayName: 'Moi' }, content: 'Qui toi aussi ?' }], nextCursor: null, generation: 0 })
+    const container = await mount()
+    const context = container.querySelector('.chat-reply-preview')!
+    const meta = container.querySelector('.message-meta')!
+    expect(context.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(context.textContent).toBe('En réponse à @Moi : Moi aussi')
+  })
+  it('does not reveal a masked target through another player reply', async () => {
+    sessionStorage.setItem(`chat.hidden.${ownId}`, JSON.stringify([otherId]))
+    chat.messages.mockResolvedValue({ messages: [{ ...message, author: { id: ownId, displayName: 'Moi', elementKey: null }, replyToMessageId: 'target', replyPreview: 'Texte caché cible', replyAuthor: { id: otherId, displayName: 'Autre' } }], nextCursor: null, generation: 0 })
+    const container = await mount()
+    expect(container.querySelector('.chat-reply-preview')?.textContent).not.toContain('Texte caché cible')
+  })
   it('switches Chat/MP with crossed unread badges while preserving the Chat draft and read boundary', async () => {
     directMessages.unread.mockResolvedValue({ unreadCount: 4, conversations: [] })
     const collapsed = await mount(true)
