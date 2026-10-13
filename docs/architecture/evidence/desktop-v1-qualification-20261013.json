@@ -29,14 +29,16 @@
     "quick": {
       "status": "PASS5/5",
       "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
-      "logSha256": "c92c0824c10e668e341277e709c6bb285a2091775210e77b9aab9cf57348543f"
+      "logSha256": "c92c0824c10e668e341277e709c6bb285a2091775210e77b9aab9cf57348543f",
+      "privateLog": "quick-qualified.log"
     },
     "full": {
       "status": "PASS8/8",
       "frontend": 1616,
       "backend": 2509,
       "logSha256": "6eb7dd86ad58bcd4cfb6342fcad26c182220510eaf42a58afde68de261ceebcc",
-      "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f"
+      "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+      "privateLog": "full-final.log"
     },
     "initialFull": {
       "status": "FAIL7/8",
@@ -195,7 +197,7 @@
     "procedure": "On review revert listed commits in listed newest-first order,retain neutral foundation,update only affected docs,tests/review then FFmain/deploy/postflight;no player data/economy mutation"
   },
   "visual": {
-    "status": "PASS_VISUEL_LOCAL;independent published SHA review pending",
+    "status": "PASS_VISUEL;published candidate source/production CSS equivalence confirmed by independent reviewer",
     "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
     "viewports": [
       [
@@ -307,15 +309,58 @@
     "reportSha256": "8e369d3dc9b2297b283cc7a12242af57208a4d0b214e6bcf3a14498446073fe3"
   },
   "reviews": {
-    "status": "PENDING_PUBLISHED_CANDIDATE",
-    "preReviewFindings": "Home owner profile and shared Profile filter scope reproduced red then green;visual Missions ghost row/Home low banner/MP height corrected in exclusive commits"
+    "status": "APPROVED technical and visual/documentation on exact published GitHub candidate",
+    "preReviewFindings": "CLOSED: Home owner profile and shared Profile filter scope reproduced red then green;visual layout findings corrected in exclusive lot commits",
+    "publishedCandidate": "b62215a8afa53bb9fdec5a36f527e8d6e6597109",
+    "openFindings": 0,
+    "reports": [
+      {
+        "scope": "technical/rollback/navigation/isolation",
+        "sha256": "8bf496932d6d2f446d9090d7df71751587ea8f95ee5e4c2040d9f664b7dba5ee"
+      },
+      {
+        "scope": "visual/documentation/rollback-pair",
+        "sha256": "1f0da4c1e995b275b7cb134dc717c6e672cbc58f82de0ae263f1b7e1c9f5de35"
+      }
+    ],
+    "finalDocumentationClosure": "Targeted independent published-delta review required;runtime inherited unchanged"
   },
   "delivery": {
-    "status": "CANDIDATE_NOT_DEPLOYED",
+    "status": "TECHNICALLY_DELIVERED at verified checkpoint;useful documentation closure requires exact final FF/deployment/postflight",
+    "checkpoint": "b62215a8afa53bb9fdec5a36f527e8d6e6597109",
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true,
+    "railway": {
+      "sha": "b62215a8afa53bb9fdec5a36f527e8d6e6597109",
+      "id": "2be92b22-c053-46d7-a68f-387c89a00821",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-13T18:26:23.559668293Z",
+      "online": true,
+      "replicas": 1,
+      "pendingWork": 0,
+      "issues": 0
+    },
+    "cloudflare": {
+      "status": "SUCCESS",
+      "preview": "https://38259f55.gachaimpact.pages.dev",
+      "exactProductionAssets": true,
+      "css": {
+        "file": "index-B7xUfsdv.css",
+        "sha256": "3f7d2b16945261d3818e96f65448879aa7d0a579a02b514e2483b34ca6358005"
+      }
+    },
+    "postflight": {
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "anonymousGuards": "16/16 PASS;401/exact CORS/activity no-store"
+    },
     "newMigration": false,
     "currentMigration": "081",
+    "databaseReadThisMission": false,
+    "schemaAndBackendUnchangedSinceBaseline": true,
     "publicEconomicActions": false,
     "realMpSent": false,
-    "ownerAestheticRecipe": "FUTURE"
+    "ownerAestheticRecipe": "FUTURE;no public authenticated recipe invented"
   }
 }
