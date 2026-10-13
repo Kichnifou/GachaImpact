@@ -17,6 +17,17 @@ const props = {
 const tab = (container: HTMLElement, name: string) => [...container.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(button => button.textContent === name)!
 
 describe('HistoryScreen', () => {
+  it('does not announce partial collection when coverage starts exactly at Paris midnight', async () => {
+    const container = document.createElement('div'); const root = createRoot(container)
+    const onActivity = async () => ({ category: 'activity' as const, page: 1, pageSize: 10, total: 1, totalPages: 2, today: '2026-10-13', coverageStartedAt: '2026-10-12T22:00:00Z', entries: [
+      { date: '2026-10-13', today: true, status: 'COVERED' as const, count: 0 },
+    ] })
+    try {
+      await act(async () => root.render(<HistoryScreen {...props} initialCategory="activity" onActivity={onActivity} />))
+      expect(container.textContent).toContain('Collecte depuis le')
+      expect(container.textContent).not.toContain('partielle')
+    } finally { act(() => root.unmount()) }
+  })
   it('shows today, partial collection, unknown history and a real zero without inventing data', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     const onActivity = vi.fn(async () => ({ category: 'activity' as const, page: 1, pageSize: 10, total: 2, totalPages: 2, today: '2026-10-13', coverageStartedAt: '2026-10-12T08:00:00Z', entries: [

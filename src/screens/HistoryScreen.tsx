@@ -73,7 +73,7 @@ export default function HistoryScreen({ initialCategory = 'invocations', onInvoc
       {loading && <p role="status">Chargement de l’historique…</p>}
       {!loading && !error && category === 'activity' && value && 'category' in value && value.category === 'activity' && <>
         <p>Joueurs uniques ayant utilisé le jeu, tous canaux confondus. Journées Europe/Paris ; aujourd’hui est en cours.</p>
-        <p>{value.coverageStartedAt ? `Collecte depuis le ${date(value.coverageStartedAt)}. La première journée est partielle.` : 'Collecte indisponible.'}</p>
+        <p>{value.coverageStartedAt ? `Collecte depuis le ${date(value.coverageStartedAt)}.` : 'Collecte indisponible.'}</p>
         <ol className="history-list">{value.entries.map(entry => <li key={entry.date}>
           <strong>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }).format(new Date(`${entry.date}T12:00:00Z`))}{entry.today ? ' · Aujourd’hui (en cours)' : ''}</strong>
           <span>{entry.count === null ? 'Données indisponibles avant la collecte' : `${number(entry.count)} joueur${entry.count === 1 ? '' : 's'} actif${entry.count === 1 ? '' : 's'}`}</span>
