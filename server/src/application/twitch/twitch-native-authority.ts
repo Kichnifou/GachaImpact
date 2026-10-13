@@ -22,6 +22,7 @@ const importedCanaryAdditionSchema = z.object({ twitchUserId: z.string().regex(/
 export type ImportedCanaryAddition = z.infer<typeof importedCanaryAdditionSchema>;
 export interface NativeAuthorityStore {
   read(db?: Prisma.TransactionClient): Promise<NativeAuthorityState>;
+  readAdmission?(twitchUserId: string, db?: Prisma.TransactionClient): Promise<{ state: NativeAuthorityState; covered: boolean }>;
   covers(twitchUserId: string, db?: Prisma.TransactionClient): Promise<boolean>;
   hasPersistedCanary(): Promise<boolean>;
   resumableMode(): Promise<'CANARY' | 'GLOBAL'>;
@@ -106,10 +107,16 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
   }
   async covers(twitchUserId: string, db: Prisma.TransactionClient = this.db) {
     if (this.config.twitchCommandPilot?.enabled !== true) return false;
+    return (await this.readAdmission(twitchUserId, db)).covered;
+  }
+  /** State and coverage are fresh from one snapshot, never a permission cache. */
+  async readAdmission(twitchUserId: string, db: Prisma.TransactionClient = this.db) {
+    if (this.config.twitchCommandPilot?.enabled !== true) return { state: await this.read(db), covered: false };
     // One PostgreSQL snapshot: separate target/identity reads can straddle a
     // concurrent first provision and wrongly reject a genuine new message.
-    const rows = await db.$queryRaw<{ covered: boolean | null }[]>`
-      SELECT (a.desired_mode = 'CANARY' OR a.desired_mode = 'GLOBAL' AND ${this.config.twitchCommandPilot.globalEnabled === true})
+    const rows = await db.$queryRaw<(NativeAuthorityState & { covered: boolean | null })[]>`
+      SELECT a.desired_mode AS "desiredMode", a.revision, a.operator_player_id AS "operatorPlayerId",
+        (a.desired_mode = 'CANARY' OR a.desired_mode = 'GLOBAL' AND ${this.config.twitchCommandPilot.globalEnabled === true})
         AND NOT EXISTS (SELECT 1 FROM twitch_link_resolutions r WHERE r.twitch_user_id = ${twitchUserId} AND r.completed_at IS NULL AND r.expires_at > now())
         AND ((t.twitch_user_id IS NULL AND i.twitch_user_id IS NULL AND a.desired_mode = 'GLOBAL')
           OR (t.data_authority = 'NATIVE' AND t.acknowledgement = ${STREAMERBOT_PATH_DISABLED} AND t.transferred_at IS NOT NULL
@@ -120,7 +127,8 @@ export class TwitchNativeAuthority implements NativeAuthorityStore {
       LEFT JOIN twitch_identities i ON i.twitch_user_id = ${twitchUserId}
       LEFT JOIN players p ON p.id = i.player_id
       WHERE a.id = ${key}`;
-    return rows[0]?.covered === true;
+    const row = rows[0];
+    return { state: { desiredMode: row?.desiredMode ?? 'OFF', revision: row?.revision ?? 0, operatorPlayerId: row?.operatorPlayerId ?? null }, covered: row?.covered === true };
   }
   async relinquishForRollback(actor: string, twitchUserId: string, backupHash: string) {
     return this.db.$transaction(async tx => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { twitchTimingMark, twitchTimingPhase } from '../../application/twitch/twitch-command-timing.js';
 import type { TwitchAppAccessTokenProvider } from './twitch-app-access-token-provider.js';
 
 const id = z.string().regex(/^\d+$/).max(128);
@@ -27,17 +28,18 @@ export class TwitchCommandChatClient {
     if (!parsed.success) throw new TwitchCommandSendError('CERTAIN', 'INVALID_INPUT');
     for (let attempt = 0; attempt < 2; attempt++) {
       let token: string;
-      try { token = await this.tokens.getToken(); }
+      try { token = await twitchTimingPhase('token', () => this.tokens.getToken()); }
       catch { throw new TwitchCommandSendError('CERTAIN', 'APP_TOKEN_UNAVAILABLE'); }
       // A disarm during lazy token acquisition must also stop the actual HTTP request.
-      if (!await canSend()) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
+      if (!await twitchTimingPhase('finalAuthority', async () => await canSend())) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
       let response: Response;
       try {
-        response = await this.request('https://api.twitch.tv/helix/chat/messages', { method: 'POST',
+        twitchTimingMark('firstHttpAttempt');
+        response = await twitchTimingPhase('helix', () => this.request('https://api.twitch.tv/helix/chat/messages', { method: 'POST',
           headers: { authorization: `Bearer ${token}`, 'client-id': this.clientId, 'content-type': 'application/json' },
           body: JSON.stringify({ broadcaster_id: input.broadcasterId, sender_id: input.senderId, message: input.message,
             ...(input.replyParentMessageId ? { reply_parent_message_id: input.replyParentMessageId } : {}), for_source_only: true }),
-          signal: AbortSignal.timeout(10_000) });
+          signal: AbortSignal.timeout(10_000) }));
       } catch { throw new TwitchCommandSendError('AMBIGUOUS', 'NETWORK'); }
       if (response.status === 401 && attempt === 0) { this.tokens.invalidate(token); continue; }
       if (response.status >= 500) throw new TwitchCommandSendError('AMBIGUOUS', 'UPSTREAM');
@@ -50,6 +52,7 @@ export class TwitchCommandChatClient {
       const message = result.data.data[0]!;
       if (!message.is_sent) throw new TwitchCommandSendError('CERTAIN', 'NOT_SENT');
       if (!message.message_id?.trim()) throw new TwitchCommandSendError('AMBIGUOUS', 'MISSING_MESSAGE_ID');
+      twitchTimingMark('firstHttpConfirmed');
       return message.message_id;
     }
     throw new TwitchCommandSendError('CERTAIN', 'HTTP_401');

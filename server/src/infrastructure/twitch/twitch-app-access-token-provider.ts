@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { twitchTimingDimensions } from '../../application/twitch/twitch-command-timing.js';
 import { AppError } from '../../api/errors.js';
 
 const tokenSchema = z.object({ access_token: z.string().min(1), expires_in: z.number().int().positive(), token_type: z.literal('bearer') });
@@ -13,8 +14,9 @@ export class TwitchAppAccessTokenProvider {
     private readonly request: typeof fetch = fetch, private readonly now: () => number = Date.now) {}
 
   async getToken(): Promise<string> {
-    if (this.cached && this.now() < this.cached.refreshAt) return this.cached.token;
-    if (this.pending) return this.pending;
+    if (this.cached && this.now() < this.cached.refreshAt) { twitchTimingDimensions({ token: 'warm' }); return this.cached.token; }
+    if (this.pending) { twitchTimingDimensions({ token: 'pending' }); return this.pending; }
+    twitchTimingDimensions({ token: 'cold' });
     this.pending = this.refresh();
     try { return await this.pending; }
     finally { this.pending = undefined; }

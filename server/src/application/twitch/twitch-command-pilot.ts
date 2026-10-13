@@ -1,4 +1,5 @@
 import { TwitchNativeAuthority, type NativeAuthorityStore, type NativeAuthorityState, type NativeAuthorityMode } from './twitch-native-authority.js';
+import { twitchTimingPhase, twitchTimingMark, twitchTimingDimensions } from './twitch-command-timing.js';
 import { PrismaTwitchPlayerStore } from '../../infrastructure/database/prisma-twitch-player-store.js';
 import type { TwitchMessageActivity } from './twitch-message-activity.js';
 import { AppError } from '../../api/errors.js';
@@ -73,7 +74,8 @@ export class TwitchCommandPilot {
       || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled !== true) {
       this.transport = undefined; return false;
     }
-    if (this.transport && this.transportRevision === state.revision && this.subscriptions?.activationAvailable) return true;
+    if (this.transport && this.transportRevision === state.revision && this.subscriptions?.activationAvailable) { twitchTimingDimensions({ transport: 'warm' }); return true; }
+    twitchTimingDimensions({ transport: 'cold' });
     this.transport = undefined;
     if (!this.subscriptions?.activationAvailable) return false;
     const identity = await this.db.twitchIdentity.findUnique({ where: { playerId: state.operatorPlayerId }, include: { player: true } });
@@ -106,6 +108,17 @@ export class TwitchCommandPilot {
       ...(resumeAuthority === undefined ? { authorityUnavailable: true } : {}) };
   }
   private async enabled(twitchUserId?: string) {
+    return twitchTimingPhase('authority', () => this.checkAdmission(twitchUserId));
+  }
+  private async checkAdmission(twitchUserId?: string) {
+    // Hot transport: keep every admission point, but read state + coverage together.
+    // A transport refresh may await Helix; its cold path must re-read coverage afterwards.
+    if (twitchUserId !== undefined && this.authority.readAdmission && this.transport && this.subscriptions?.activationAvailable) {
+      try {
+        const admission = await this.authority.readAdmission(twitchUserId);
+        if (admission.state.revision === this.transportRevision) return await this.validateTransport(admission.state) && admission.covered;
+      } catch { this.transport = undefined; return false; }
+    }
     if (!(await this.status()).commandPilotEnabled) return false;
     try { return twitchUserId === undefined || await this.authority.covers(twitchUserId); } catch { return false; }
   }
@@ -164,21 +177,25 @@ export class TwitchCommandPilot {
   }
 
   private async locked<T>(receiptId: string, action: (tx: Prisma.TransactionClient) => Promise<T>): Promise<T> {
-    return this.db.$transaction(async tx => {
+    return twitchTimingPhase('receiptTransaction', () => this.db.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id = 'twitch-commands' FOR SHARE`;
       await tx.$queryRaw`SELECT id FROM twitch_event_receipts WHERE id = ${receiptId}::uuid FOR UPDATE`;
       return action(tx);
-    }, { timeout: 60_000, maxWait: 10_000 });
+    }, { timeout: 60_000, maxWait: 10_000 }));
   }
 
   /** Short receipt transactions must never wait for a second pool connection. */
   private async enabledInTransaction(tx: Prisma.TransactionClient, chatterId: string) {
-    const state = await this.authority.read(tx);
+    return twitchTimingPhase('authority', () => this.checkTransactionalAdmission(tx, chatterId));
+  }
+  private async checkTransactionalAdmission(tx: Prisma.TransactionClient, chatterId: string) {
+    const admission = await this.authority.readAdmission?.(chatterId, tx);
+    const state = admission?.state ?? await this.authority.read(tx);
     return Boolean(this.transport && this.transportRevision === state.revision && state.operatorPlayerId
       && this.config.twitchCommandPilot?.enabled && this.config.twitch?.pilotPlayerIds.includes(state.operatorPlayerId)
       && this.config.twitch.pilotLogin === 'kichnifou' && this.subscriptions?.activationAvailable
       && (state.desiredMode === 'CANARY' || state.desiredMode === 'GLOBAL' && this.config.twitchCommandPilot.globalEnabled)
-      && await this.authority.covers(chatterId, tx));
+      && (admission ? admission.covered : await this.authority.covers(chatterId, tx)));
   }
 
   private async serializeExecution(receiptId: string, action: () => Promise<void>) {
@@ -205,16 +222,17 @@ export class TwitchCommandPilot {
       || event.source_broadcaster_user_id && event.source_broadcaster_user_id !== transport.broadcasterId) return;
     // Authority precedes identity/provisioning, parser and every business effect.
     if (!executeCommands || !isEligibleNativeChat(event) || !await this.enabled(event.chatter_user_id) || !event.message.text.trim()) return;
-    const existing = await this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } });
+    const existing = await twitchTimingPhase('identity', () => this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } }));
     if (await this.isNativeOutboundMessage(raw)) return;
-    const identity = existing ?? await this.players.resolve({ twitchUserId: event.chatter_user_id,
-      login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt: this.executor.capturedAt?.() ?? new Date() });
+    const identity = existing ?? await twitchTimingPhase('identity', () => this.players.resolve({ twitchUserId: event.chatter_user_id,
+      login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt: this.executor.capturedAt?.() ?? new Date() }));
+    if (identity) twitchTimingDimensions({ identity: existing ? 'existing' : 'resolved' });
     if (!await this.enabled(event.chatter_user_id) || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
       || identity.twitchUserId !== event.chatter_user_id) return;
     if (!event.message.text.trim()) return;
     let activityBodyLimit: number | undefined;
     if (this.messageActivity) {
-      const activity = await this.consumeMessageActivity(identity.player, event, receiptId);
+      const activity = await twitchTimingPhase('activity', () => this.consumeMessageActivity(identity.player, event, receiptId));
       if (activity === null) return;
       activityBodyLimit = activity.responseBodyLimit;
       if (!event.message.text.startsWith('!')) {
@@ -265,8 +283,8 @@ export class TwitchCommandPilot {
       if (before.saved?.stage === 'EXECUTING' && !before.saved.intent && before.saved.args !== undefined
         && await this.enabled(event.chatter_user_id) && this.executor.prepare) {
         const saved = before.saved;
-        const intent = frozenIntent.parse(await this.executor.prepare({ ...identity.player, displayName: saved.actorName }, saved.handler,
-          saved.args!, definition.syntax, saved.commandKey, saved.businessAt, saved.responseBodyLimit));
+        const intent = frozenIntent.parse(await twitchTimingPhase('intentPrepare', () => this.executor.prepare!({ ...identity.player, displayName: saved.actorName }, saved.handler,
+          saved.args!, definition.syntax, saved.commandKey, saved.businessAt, saved.responseBodyLimit)));
         await this.locked(receiptId, async tx => {
           const latest = await read(tx);
           if (!latest.saved || latest.saved.stage !== 'EXECUTING' || latest.saved.intent || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
@@ -277,17 +295,18 @@ export class TwitchCommandPilot {
       // Another process may have committed the intent. Always execute that winner.
       const current = await read(this.db), saved = current.saved;
       if (saved?.stage === 'EXECUTING' && (saved.intent || !this.executor.prepare || saved.args === undefined) && await this.enabled(event.chatter_user_id)) {
+        if (saved.intent) twitchTimingDimensions({ execution: saved.intent.mutation ? 'mutation' : 'consultation' });
         const preimage = structuredClone(saved);
-        const output = await this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler,
-          saved.args ?? args, definition.syntax, saved.commandKey, saved.intent);
+        const output = await twitchTimingPhase('business', () => this.executor.execute({ ...identity.player, displayName: saved.actorName }, saved.handler,
+          saved.args ?? args, definition.syntax, saved.commandKey, saved.intent));
         const segments = twitchResponseEntries(output, saved.responseBodyLimit);
         if (!segments.length) throw new Error('TWITCH_COMMAND_EMPTY_RESPONSE');
-        await this.locked(receiptId, async tx => {
+        await twitchTimingPhase('responsePublication', () => this.locked(receiptId, async tx => {
           const latest = await read(tx);
           if (!latest.saved || latest.saved.stage !== 'EXECUTING' || !await this.enabledInTransaction(tx, event.chatter_user_id)) return;
           if (!isDeepStrictEqual(latest.saved, preimage)) throw new Error('TWITCH_COMMAND_RECEIPT_CONFLICT');
           await save(tx, latest.minimal, { ...saved, stage: 'RESPONSES', responses: segments.map(entry => ({ ...entry, status: 'PENDING' })) });
-        });
+        }));
       }
       await this.deliver(receiptId, { senderId: transport.receiverId, chatterId: identity.twitchUserId, broadcasterId: event.broadcaster_user_id, replyParentMessageId: event.message_id });
     });
@@ -357,7 +376,7 @@ export class TwitchCommandPilot {
     // Reservation is committed before Event preparation can reconcile its existing owners.
     const initial = await this.read(this.db, canonical, event.chatter_user_id);
     const previous = initial.minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
-    const prepared = previous.plan ?? await this.messageActivity!.prepare(player, normal, new Date(previous.now));
+    const prepared = previous.plan ?? await twitchTimingPhase('activityPrepare', () => this.messageActivity!.prepare(player, normal, new Date(previous.now)));
     const activity = await this.locked(canonical, async tx => {
       const { minimal } = await this.read(tx, canonical, event.chatter_user_id);
       const prior = minimal.messageActivity as unknown as { now: string; responseBodyLimit?: number; plan?: Awaited<ReturnType<TwitchMessageActivity['prepare']>> };
@@ -369,7 +388,7 @@ export class TwitchCommandPilot {
       return prior;
     });
     if (!await this.enabled(event.chatter_user_id)) return null;
-    const output = await this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan, activity.responseBodyLimit);
+    const output = await twitchTimingPhase('activityBusiness', () => this.messageActivity!.consume(player, event.message_id, event.broadcaster_user_id, length, normal, new Date(activity.now), activity.plan, activity.responseBodyLimit));
     return { output, responseBodyLimit: activity.responseBodyLimit };
   }
 
@@ -509,6 +528,7 @@ export class TwitchCommandPilot {
       let sentId: string | undefined, failure: TwitchCommandSendError | undefined;
       try {
         if (!await canSend()) throw new TwitchCommandSendError('CERTAIN', 'PILOT_DISABLED');
+        twitchTimingMark('firstSendAttempt');
         sentId = await this.outbound.send({ broadcasterId: target.broadcasterId, senderId: target.senderId,
           message: text, replyParentMessageId: target.replyParentMessageId }, canSend);
       } catch (error) {
@@ -524,6 +544,7 @@ export class TwitchCommandPilot {
         await save(tx, minimal, saved, saved.responses.every(row => row.status === 'SENT'), failure?.reason === 'PILOT_DISABLED' ? undefined : failure?.reason);
       });
       if (failure) return;
+      twitchTimingMark('firstDurableSent'); twitchTimingMark('lastDurableSent');
     }
   }
   private async read(tx: Prisma.TransactionClient, receiptId: string, twitchUserId: string) {

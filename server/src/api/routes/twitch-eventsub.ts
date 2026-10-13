@@ -1,6 +1,8 @@
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { findChatCommand } from '../../application/chat/chat-command-registry.js';
+import { withTwitchCommandTiming, twitchTimingPhase } from '../../application/twitch/twitch-command-timing.js';
 import { TwitchObservationConflict, type TwitchEventObserver } from '../../application/twitch/twitch-event-observer.js';
 import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/twitch-favor-subscription-consumer.js';
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
@@ -68,6 +70,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
   app.post('/api/v1/twitch/eventsub', { bodyLimit: 256_000, logLevel: 'silent' }, async (request, reply) => {
+    const receivedAt = performance.now();
     const id = header(request.headers['twitch-eventsub-message-id']);
     const timestamp = header(request.headers['twitch-eventsub-message-timestamp']);
     const signature = header(request.headers['twitch-eventsub-message-signature']);
@@ -142,7 +145,8 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
       const parsed = chatEnvelope.safeParse(body);
       if (!parsed.success) return reply.code(400).send();
       const normalMessage = isFavorEligibleTwitchChatMessage(parsed.data.event.message.text);
-      const observed = await options.observer.observeTwitchEvent({
+      const processChat = async () => {
+      const observed = await twitchTimingPhase('observation', () => options.observer.observeTwitchEvent({
         externalEventId: id,
         eventType: parsed.data.subscription.type,
         twitchUserId: parsed.data.event.chatter_user_id,
@@ -151,15 +155,22 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
         sourceTimestamp: timestamp,
         contentHash: createHash('sha256').update(parsed.data.event.message.text).digest('hex'),
         transportPayloadHash: createHash('sha256').update(raw).digest('hex'),
-      });
-      const nativeOutbound = !isEligibleNativeChat(parsed.data.event) || (await options.commandPilot?.isNativeOutboundMessage?.(body) ?? false);
+      }));
+      const nativeOutbound = !isEligibleNativeChat(parsed.data.event) || (await twitchTimingPhase('echo', async () => await options.commandPilot?.isNativeOutboundMessage?.(body) ?? false));
       const giveawayOutbound = !nativeOutbound && options.giveaway && parsed.data.event.broadcaster_user_id && parsed.data.event.message_id
-        ? await options.giveaway.consume({ broadcasterUserId: parsed.data.event.broadcaster_user_id,
-          chatterUserId: parsed.data.event.chatter_user_id, messageId: parsed.data.event.message_id,
+        ? await twitchTimingPhase('giveaway', () => options.giveaway!.consume({ broadcasterUserId: parsed.data.event.broadcaster_user_id!,
+          chatterUserId: parsed.data.event.chatter_user_id, messageId: parsed.data.event.message_id!,
           text: parsed.data.event.message.text, messageType: parsed.data.event.message_type ?? 'text',
-          observedAt: new Date(timestamp), badges: parsed.data.event.badges }) : false;
-      if (normalMessage && !giveawayOutbound && !nativeOutbound) await options.favorChatPresence.consume(observed.receipt.id);
+          observedAt: new Date(timestamp), badges: parsed.data.event.badges })) : false;
+      if (normalMessage && !giveawayOutbound && !nativeOutbound) await twitchTimingPhase('favor', () => options.favorChatPresence.consume(observed.receipt.id));
       await options.commandPilot?.consumeAuthenticated(body, observed.receipt.id, !giveawayOutbound && !nativeOutbound);
+      };
+      const [root = '', quantity] = parsed.data.event.message.text.trim().split(/\s+/u);
+      const definition = root.startsWith('!') ? findChatCommand(root) : undefined;
+      const pullCount = definition?.handler === 'pull' && ['1', '5', '10'].includes(quantity ?? '1') ? Number(quantity ?? '1') as 1 | 5 | 10 : undefined;
+      if (definition?.permission === 'PLAYER' && definition.twitch && definition.handler) await withTwitchCommandTiming(receivedAt, definition.handler, pullCount, value => app.log.info({ twitchCommandTiming: value }, 'Twitch command timing'), processChat);
+      else if (!root.startsWith('!') && isEligibleNativeChat(parsed.data.event)) await withTwitchCommandTiming(receivedAt, 'message', undefined, value => app.log.info({ twitchCommandTiming: value }, 'Twitch command timing'), processChat);
+      else await processChat();
       return reply.code(204).send();
     } catch (error) {
       if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();

@@ -1,4 +1,5 @@
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
+import { twitchTimingDimensions } from './twitch-command-timing.js';
 import type { CurrentPlayer } from '../../domain/player/current-player.js';
 import type { Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
@@ -79,6 +80,7 @@ export class TwitchMessageActivity {
           const output: string[] = [];
           if (presence.daily && this.dailyReward) {
             const daily = await this.dailyReward.execute(actor, 'TWITCH', key);
+            twitchTimingDimensions({ dailyReward: daily.alreadyClaimed ? 'alreadyClaimed' : 'granted' });
             const element = player.elementKey;
             if (!daily.alreadyClaimed && element && isElementKey(element)) output.push(firstDailyMessageResult(player.displayName, element, daily));
           }

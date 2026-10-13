@@ -63,6 +63,25 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it('uses fresh combined admission on hot transport and observes a later hard-off', async () => {
+    const f = await fixture();
+    const read = f.authority.read.bind(f.authority), covers = f.authority.covers.bind(f.authority);
+    f.authority.readAdmission = vi.fn(async id => ({ state: await read(), covered: await covers(id) }));
+    const separate = vi.spyOn(f.authority, 'covers');
+    await f.pilot.consumeAuthenticated(commandEnvelope(), 'receipt');
+    expect(f.receipt.state).toBe('PROCESSED'); expect(f.authority.readAdmission).toHaveBeenCalled(); expect(separate).not.toHaveBeenCalled();
+    await f.authority.configure(playerId, 'OFF', []);
+    expect(await (f.pilot as unknown as { enabled(id: string): Promise<boolean> }).enabled('123')).toBe(false);
+  });
+  it('rechecks fresh coverage after a cold transport inspection await', async () => {
+    const f = await fixture(), transport = await f.subscriptions.inspectPilotChatTransport();
+    const read = f.authority.read.bind(f.authority), covers = f.authority.covers.bind(f.authority);
+    f.authority.readAdmission = vi.fn(async id => ({ state: await read(), covered: await covers(id) }));
+    f.subscriptions.inspectPilotChatTransport.mockImplementation(async () => { f.canaries.clear(); return transport; });
+    const cold = new TwitchCommandPilot(f.db, f.config, f.executor, f.outbound, f.parser, f.subscriptions, undefined, f.authority);
+    expect(await (cold as unknown as { enabled(id: string): Promise<boolean> }).enabled('123')).toBe(false);
+    expect(f.executor.execute).not.toHaveBeenCalled(); expect(f.outbound.send).not.toHaveBeenCalled();
+  });
   it('leaves an engaged activity receipt untouched when admission fails during its redelivery', async () => {
     const f = await fixture(), body = commandEnvelope('Bonjour');
     Object.assign(f.receipt, { externalReference: 'message-native:123:chat-message', payloadMinimal: { messageActivity: {
