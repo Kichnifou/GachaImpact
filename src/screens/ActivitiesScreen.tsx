@@ -1,5 +1,6 @@
 import { useTutorialView } from '../tutorial/tutorial-presentation'
 import { useDestinationTab } from '../navigation/destination-context'
+import { useShortDesktop } from '../hooks/use-short-desktop'
 import type { FavorDto } from '../api/types'
 import { projectDailies, type DailyItem } from '../dailies/daily-summary'
 import type { DailyClaimController } from '../dailies/use-daily-claim'
@@ -172,7 +173,9 @@ function DailiesScreen(props: Omit<ActivitiesScreenProps, 'screen'>) {
   const normalTab = hasDestination || selection.requestToken === dailiesOverviewRequestToken ? storedTab : dailiesRequestedTab
   const selectTab = (next: typeof tab) => {setStoredTab(next);setSelection({ tab: next, requestToken: dailiesOverviewRequestToken })}
   const tab = useTutorialView('activities-dailies', normalTab, ['overview', 'wheel', 'challenge'])
-  const tabs = <nav className="activity-inner-tabs" aria-label="Sections Quotidiennes"><button className={tab === 'overview' ? 'active' : ''} onClick={() => selectTab('overview')}>Aperçu</button><button className={tab === 'wheel' ? 'active' : ''} onClick={() => selectTab('wheel')}>Roue</button><button className={tab === 'challenge' ? 'active' : ''} onClick={() => selectTab('challenge')}>Défi</button></nav>
+  const shortDesktop = useShortDesktop()
+  const [overviewPage, setOverviewPage] = useState(0)
+  const tabs = <nav className="activity-inner-tabs" aria-label="Sections Quotidiennes"><button className={tab === 'overview' ? 'active' : ''} onClick={() => selectTab('overview')}>Aperçu</button><button className={tab === 'wheel' ? 'active' : ''} onClick={() => selectTab('wheel')}>Roue</button><button className={tab === 'challenge' ? 'active' : ''} onClick={() => selectTab('challenge')}>Défi</button>{tab === 'overview' && shortDesktop && <span className="daily-overview-pagination"><button aria-label="Activités précédentes" disabled={overviewPage === 0} onClick={() => setOverviewPage(page => page - 1)}>‹</button><span>{overviewPage + 1} / 3</span><button aria-label="Activités suivantes" disabled={overviewPage === 2} onClick={() => setOverviewPage(page => page + 1)}>›</button></span>}</nav>
   const items = props.dailyItems ?? projectDailies({ elementKey, favor: props.favor, reward: dailyRewardToday, wheel: wheelToday, challenge: dailyChallenge, combat: props.dailyCombat, boss: props.monthlyBoss, expedition: props.expedition, monotonicNow: props.expeditionMonotonicNow, event: props.event, friendship: props.friendship, friendshipDate: props.friendshipDate ?? dailyRewardToday.businessDate, errors: { favor: props.favorError, friendship: Boolean(props.friendshipError) } })
   const access = (item: DailyItem) => {
     switch (item.destination?.kind) {
@@ -185,8 +188,8 @@ function DailiesScreen(props: Omit<ActivitiesScreenProps, 'screen'>) {
       case 'event': if (onOpenDailyEvent) onOpenDailyEvent(item.destination.destination); else onNavigate('activities-event'); break
     }
   }
-  return <div className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div data-tutorial-anchor="dailies-overview" className="dailies-overview">
-    {items.map(item => item.id === 'reward' ? <div key={item.id} className="daily-overview-item" data-daily-activity={item.title}><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} controller={dailyClaim} summary={item} /></div> : <DailyOverviewCard key={item.id} title={item.title} status={item.status} completed={item.state === 'completed'} detail={item.id === 'expedition' && item.state === 'in_progress' && props.expedition ? <>{props.expedition.value.activeCharacter?.name ?? 'Personnage'} · <ExpeditionCountdown snapshot={props.expedition} monotonicNow={props.expeditionMonotonicNow ?? 0} /></> : item.detail} obtained={item.obtained} damage={item.damage} hideAction={item.id === 'favor' || item.id === 'expedition' && item.state === 'in_progress' || item.state === 'completed' || item.id === 'friendship' && !item.actionable || item.id === 'event' && !item.destination} onAccess={item.destination && !(item.id === 'expedition' && item.state === 'in_progress') ? () => access(item) : undefined} actionText={item.id === 'expedition' && item.status === 'À récupérer' ? 'Récupérer' : 'Accéder'} />)}
+  return <div data-fit-screen={tab === 'overview' ? true : undefined} className="screen-content activity-shell dailies-shell long-screen-layout"><ScreenHeader eyebrow="Activités" title="Quotidiennes" description="Retrouvez les activités du jour et leur disponibilité réelle." /><ScrollableScreenPanel className="dailies-frame" fixed={tabs}>{tab === 'overview' && <div data-tutorial-anchor="dailies-overview" className="dailies-overview">
+    {(shortDesktop ? items.slice(overviewPage * 3, overviewPage * 3 + 3) : items).map(item => item.id === 'reward' ? <div key={item.id} className="daily-overview-item" data-daily-activity={item.title}><DailyRewardCard variant="overview" today={dailyRewardToday} elementKey={elementKey} onClaim={onClaimDailyReward} controller={dailyClaim} summary={item} /></div> : <DailyOverviewCard key={item.id} title={item.title} status={item.status} completed={item.state === 'completed'} detail={item.id === 'expedition' && item.state === 'in_progress' && props.expedition ? <>{props.expedition.value.activeCharacter?.name ?? 'Personnage'} · <ExpeditionCountdown snapshot={props.expedition} monotonicNow={props.expeditionMonotonicNow ?? 0} /></> : item.detail} obtained={item.obtained} damage={item.damage} hideAction={item.id === 'favor' || item.id === 'expedition' && item.state === 'in_progress' || item.state === 'completed' || item.id === 'friendship' && !item.actionable || item.id === 'event' && !item.destination} onAccess={item.destination && !(item.id === 'expedition' && item.state === 'in_progress') ? () => access(item) : undefined} actionText={item.id === 'expedition' && item.status === 'À récupérer' ? 'Récupérer' : 'Accéder'} />)}
   </div>}{tab === 'wheel' && <WheelCard today={wheelToday} onSpin={onSpinWheel} />}{tab === 'challenge' && <DailyChallengeCard value={dailyChallenge} onPurchase={onPurchaseDailyChallenge} onSwitch={onSwitchDailyChallenge} onOpenParticleConversion={onOpenParticleConversion} onNavigate={onNavigate} />}</ScrollableScreenPanel></div>
 }
 
@@ -231,3 +234,4 @@ export function DailyChallengeCard({ value, onPurchase, onSwitch, onOpenParticle
   </section>
 }
 export default ActivitiesScreen
+import '../dailies/daily-overview-layout.css'
