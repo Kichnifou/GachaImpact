@@ -72,8 +72,9 @@ describe('Final owner recipe, step 29', () => {
   });
   it.each(elementKeys)('derives the compact %s passive from the current owner', async element => {
     const h = harness();
-    h.services.getCurrentPlayerTeams.execute.mockResolvedValue({ teams: [{ active: true, slots: [], passives: deriveTeamPassives([element, element]) }] } as never);
-    const text = await h.send('!team');
+    h.services.getCurrentPlayerTeams.execute.mockResolvedValue({ teams: [{ position: 1, active: true, slots: [], passives: deriveTeamPassives([element, element]) }] } as never);
+    expect(await h.send('!team')).toBe('✅ Team Moi :');
+    const text = h.chat.freezeCommandResult.mock.calls[0]![1].presentation!.facts.join(' ');
     expect(text).toContain('🧩 Passifs'); expect(text).not.toContain('chance sur'); expect(text).not.toContain('par vœu');
     const expected = { pyro: '×1,5 particules', hydro: '+0.6%', cryo: '1/10 : +1 XP', electro: '1/20 : +2 pity', anemo: '1/8 : +80 primos', geo: '×1,5 moras', dendro: '1/15 : +40 primos, +1000 moras, +5 particules/élément' };
     expect(text).toContain(expected[element]);

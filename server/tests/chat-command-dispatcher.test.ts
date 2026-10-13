@@ -172,7 +172,7 @@ describe('Chat command adapters', () => {
 
   it('passes the durable command message ID to mutation owners and publishes one public answer', async () => {
     const { chat, services, send } = harness();
-    expect(await send('!pull 1')).toContain('Invocation ×1');
+    expect(await send('!pull 1')).toBe('Moi obtient : 1 personnage(s).');
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 1, commandId);
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);

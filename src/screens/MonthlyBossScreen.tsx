@@ -5,7 +5,7 @@ import type { BoxCharacterDto, DailyCombatDto, MonthlyBossAttackDto, MonthlyBoss
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { getGameApiClient } from '../api/game-api'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
-import { getElementAssetPath } from '../utils/gameAssets'
+import { getElementAssetPath, currencyAssetPaths } from '../utils/gameAssets'
 import GameAssetIcon from '../components/GameAssetIcon'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import ModalCloseButton from '../components/ModalCloseButton'
@@ -63,7 +63,7 @@ export default function MonthlyBossScreen({ value, dailyCombat, box, onSetSlot, 
       {error && <p className="boss-feedback error" role="alert">{error}</p>}
     </section>
 
-    {value.status === 'DEFEATED' && <section className="panel boss-received-rewards" aria-label="Récompenses du Boss vaincu"><h3>{value.receivedReward ? 'Récompenses reçues' : 'Récompenses des participants'}</h3><p>+💠 {formatResourceAmount((value.receivedReward ?? value.reward).primogems)} Primos · +💰 {formatResourceAmount((value.receivedReward ?? value.reward).moras)} Moras</p>{value.receivedReward === null && <small>Aucune récompense personnelle enregistrée pour ce Boss.</small>}</section>}
+    {value.status === 'DEFEATED' && <section className="panel boss-received-rewards" aria-label="Récompenses du Boss vaincu"><h3>{value.receivedReward ? 'Récompenses reçues' : 'Récompenses des participants'}</h3><p className="boss-reward-currencies"><span><GameAssetIcon className="boss-reward-icon" src={currencyAssetPaths.primogem} fallback="✦" />+{formatResourceAmount((value.receivedReward ?? value.reward).primogems)} Primos</span><span><GameAssetIcon className="boss-reward-icon" src={currencyAssetPaths.mora} fallback="●" />+{formatResourceAmount((value.receivedReward ?? value.reward).moras)} Moras</span></p>{value.receivedReward === null && <small>Aucune récompense personnelle enregistrée pour ce Boss.</small>}</section>}
 
     {value.status === 'ALIVE' && <section data-tutorial-anchor="boss-formation" className="combat-loadout-section boss-shared-loadout"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header><div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character }) => character
       ? <PlayerCombatCard character={character} position={position} pending={Boolean(pending)} canOpenDetail={Boolean(box)} onOpenDetail={() => setDetailId(character.id)} onChange={() => setPicker(position)} onRemove={() => void mutate(`remove-${position}`, () => onRemoveSlot(position))} key={position} />

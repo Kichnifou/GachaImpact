@@ -45,7 +45,16 @@ export class ChatCommandDispatcher {
           const points = Array.from(oneLine(message));
           return Array.from({ length: Math.ceil(points.length / 300) }, (_, i) => points.slice(i * 300, (i + 1) * 300).join(''));
         });
-        const complete = { ...rendered, facts: [...rendered.facts, ...feedback] };
+        const facts = [...rendered.facts, ...feedback];
+        // Rare simultaneous progression/Mission bursts keep every recorded fact
+        // in the same receipt, packing adjacent facts before hitting the 24-row cap.
+        const packed: string[] = [];
+        for (const fact of facts) {
+          const last = packed.at(-1);
+          if (last && chatLength(`${last} · ${fact}`) <= 300) packed[packed.length - 1] = `${last} · ${fact}`;
+          else packed.push(fact);
+        }
+        const complete = { ...rendered, facts: facts.length > 24 ? packed : facts };
         if (chatLength(response) > 500 || !isStructuredChatResult(complete)) throw new AppError('Résultat d’invocation trop volumineux.', 500, 'CHAT_RESULT_INVALID');
         presentation = complete;
         resultContent = response;

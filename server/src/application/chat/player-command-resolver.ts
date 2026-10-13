@@ -258,8 +258,8 @@ export class PlayerCommandResolver {
           });
           if (!args.length) {
             const ranked = candidates.filter(entry => entry.voteCount > 0).sort((a,b) => b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'fr'));
-            if (this.sourceChannel === 'INTERNAL_CHAT' && this.present && candidates.length && candidates.length <= 200 && candidates.length === vote.candidates.length) {
-              const accepted = this.present({ command: 'vote', title: 'Votes bannière', compact: true, characters: [...candidates].sort((a,b) => b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'fr')).map(candidate => resultCharacter(catalog.find(c => c.id === candidate.characterId)!, { voteCount: candidate.voteCount })), facts: [] });
+            if (this.sourceChannel === 'INTERNAL_CHAT' && this.present && ranked.length && ranked.length <= 200 && candidates.length === vote.candidates.length) {
+              const accepted = this.present({ command: 'vote', title: 'Votes bannière', compact: true, characters: ranked.map(candidate => resultCharacter(catalog.find(c => c.id === candidate.characterId)!, { voteCount: candidate.voteCount })), facts: [] });
               if (accepted !== false) return vote.canVote ? '🗳️ Votes bannière · !vote <nom du personnage 5★> pour voter.' : '🗳️ Votes bannière · vote déjà utilisé ou cycle terminé.';
             }
             return ranked.length ? entryParts('🗳️ Votes bannière :', ranked.map(entry => `${entry.name} (${entry.voteCount} vote${entry.voteCount > 1 ? 's' : ''})`), '🗳️ Votes suite :') : '🗳️ Aucun vote enregistré pour cette semaine. Utilise !vote <nom du personnage 5★>.';

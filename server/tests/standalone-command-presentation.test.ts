@@ -27,7 +27,8 @@ describe('Eight standalone result adapters', () => {
     const frozen = h.chat.freezeCommandResult.mock.calls[0]![1];
     expect(isStructuredChatResult(frozen.presentation)).toBe(true);
     expect(frozen.presentation!.source.commandMessageId).toBe(commandId);
-    if (command === '!pull 1') { expect(frozen.content).toBe('🎲 Invocation ×1 · 1 personnage(s) obtenu(s).'); expect(twitch).toEqual(['🎉 Moi obtient ⭐⭐⭐⭐⭐ 🔥 A ! Nouveau personnage : C0.']); }
+    if (command === '!pull 1') { expect(frozen.content).toBe('Moi obtient : 1 personnage(s).'); expect(twitch).toEqual(['🎉 Moi obtient ⭐⭐⭐⭐⭐ 🔥 A ! Nouveau personnage : C0.']); }
+    else if (command === '!team') { expect(frozen.content).toBe('✅ Team Moi :'); expect(twitch).toEqual(['✅ Team Moi : 🔥 A (C1) | 🧩 Passifs : 🔥 ×1,25 particules']); }
     else if (command === '!banniere') { expect(frozen.content).toBe('🎯 Bannières (28/09 → 04/10)'); expect(twitch).toBe('🎯 Bannières (28/09 → 04/10) | ⭐⭐⭐⭐⭐ 🔥 A | ⭐⭐⭐⭐ 💧 B | 5★ ciblé : 🔥 A'); }
     else expect(frozen.content).toEqual(twitch);
     expect(content).toBe(typeof frozen.content === 'string' ? frozen.content : frozen.content[0]);

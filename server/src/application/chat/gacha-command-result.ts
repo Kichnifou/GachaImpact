@@ -8,21 +8,32 @@ import { chatNumber } from './chat-command-format.js';
 
 export const c6StatNames = { strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' } as const;
 export const characterLabel = (character: { name: string; elementKey: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] + ' ' : ''}${character.name}`;
+const standaloneGain = (key: string, amount: bigint) => {
+  const element = key.replace(/^particles_/u, '');
+  return key === 'moras' ? `+💰 ${chatNumber(amount)} Moras` : key === 'primogems' ? `+💎 ${chatNumber(amount)} Primos` : key === 'xp' ? `+✨ ${chatNumber(amount)} XP` : isElementKey(element) ? `+${chatElementEmojis[element]} ${chatNumber(amount)} particules ${chatElementNames[element]}` : `+${chatNumber(amount)} ${key}`;
+};
 
 /** Standalone only. Principal credits + bonusRewards are disjoint authoritative receipts.
  * passiveEffects repeats some credits: only XP (not in bonusRewards) and non-monetary
  * facts are read there. Neither current balances nor operation cost enter the sums. */
-export function standalonePullSummary(result: GachaPullResult): { text: string; facts: string[] } {
+export function standalonePullSummary(result: GachaPullResult, actorName = 'Joueur'): { text: string; facts: string[] } {
   const gains = new Map<string, bigint>(), facts: string[] = [];
+  const passiveGains = new Map<string, Map<string, bigint>>(), multipliers = new Set<string>();
+  const passive = (element: string, key: string, amount: bigint) => { const values = passiveGains.get(element) ?? new Map<string, bigint>(); values.set(key, (values.get(key) ?? 0n) + amount); passiveGains.set(element, values); };
   const add = (key: string, amount: bigint) => { if (amount !== 0n) gains.set(key, (gains.get(key) ?? 0n) + amount); };
   let pity = 0, captures = 0, backToBack = 0, maxed = 0, guarantees = 0, won = 0, lost = 0, early = 0;
   const levels = new Set<number>(); let overflow = 0;
   for (const row of result.results) {
     if (row.resourceKey && row.resourceAmount != null) add(row.resourceKey, row.resourceAmount);
-    for (const reward of row.bonusRewards) add(reward.resourceKey, reward.amount);
+    for (const reward of row.bonusRewards) {
+      add(reward.resourceKey, reward.amount);
+      const element = reward.causeKey.split('.')[2];
+      if (reward.causeKey.startsWith('team.passive.') && element && isElementKey(element)) passive(element, reward.resourceKey, reward.amount);
+    }
     for (const effect of row.passiveEffects) {
-      if (effect.type === 'xp') { add('xp', effect.amount); effect.levelsReached.forEach(level => levels.add(level)); overflow += effect.overflowRewardsGranted; }
+      if (effect.type === 'xp') { add('xp', effect.amount); passive('cryo', 'xp', effect.amount); effect.levelsReached.forEach(level => levels.add(level)); overflow += effect.overflowRewardsGranted; }
       if (effect.type === 'pity5') pity += effect.amount;
+      if (effect.type === 'secondary_reward_multiplier') multipliers.add(`${chatElementEmojis[effect.elementKey]} ${effect.elementKey === 'geo' ? 'Moras' : 'particules'} ×${(effect.numerator / effect.denominator).toLocaleString('fr-FR')}`);
     }
     if (row.captureTriggered) captures++;
     if (row.backToBack) backToBack++;
@@ -33,20 +44,30 @@ export function standalonePullSummary(result: GachaPullResult): { text: string; 
     if (row.c6Progression?.type === 'maxed') maxed++;
   }
   if (pity) facts.push(`⚡ +${pity} pity 5★`);
-  if (captures) facts.push(`✨ Capture de Brillance ×${captures}`);
-  if (backToBack) facts.push(`💥 Back-to-back ×${backToBack}`);
   if (guarantees) facts.push(`🎯 Garantie utilisée ×${guarantees}`);
-  if (won || lost || early) facts.push([won ? `50/50 gagné ×${won}` : '', lost ? `50/50 perdu ×${lost}` : '', early ? `🔥 Early ×${early}` : ''].filter(Boolean).join(' · '));
+  if (won || lost) facts.push([won ? `50/50 gagné ×${won}` : '', lost ? `50/50 perdu ×${lost}` : ''].filter(Boolean).join(' · '));
   if (maxed) facts.push(`🌟 Stats C6 au maximum ×${maxed} · compensations incluses`);
   const sortedLevels = [...levels].sort((a,b) => a-b);
   for (let i = 0; i < sortedLevels.length; i += 30) facts.push(`Niveaux atteints : ${sortedLevels.slice(i, i + 30).join(', ')}`);
   if (overflow) facts.push(`Bonus niveau 100 ×${overflow}`);
-  const gainText = [...gains].map(([key, amount]) => {
-    const element = key.replace(/^particles_/u, '');
-    return key === 'moras' ? `+💰 ${chatNumber(amount)} Moras` : key === 'primogems' ? `+💎 ${chatNumber(amount)} Primos` : key === 'xp' ? `+✨ ${chatNumber(amount)} XP` : isElementKey(element) ? `+${chatElementEmojis[element]} ${chatNumber(amount)} particules ${chatElementNames[element]}` : `+${chatNumber(amount)} ${key}`;
-  });
-  const prefix = `🎲 Invocation ×${result.operation.pullCount}`;
-  const text = gainText.length ? `${prefix} | ${gainText.join(' | ')}` : `${prefix} · ${result.results.filter(row => row.character).length} personnage(s) obtenu(s).`;
+  // Explanatory origins never enter gains again. Multipliers describe the already-recorded principal.
+  for (const [element, values] of passiveGains) {
+    const parts = [...values].map(([key, amount]) => ({ text: standaloneGain(key, amount), separator: ' · ' }));
+    facts.push(...logicalChatParts(`🧩 Inclus dans les gains ${chatElementEmojis[element as keyof typeof chatElementEmojis]} :`, parts, '🧩 Inclus (suite) :', 300));
+  }
+  if (multipliers.size) facts.push(`🧩 Multiplicateurs déjà inclus : ${[...multipliers].join(' · ')}`);
+  const announcements: string[] = [];
+  const occurrence = (count: number) => count > 1 ? ` ×${count}` : '';
+  if (!result.results.some(row => row.rarity === 5)) {
+    if (result.results.some(row => row.pity5AtPull === 74)) announcements.push('⚠️ Tu entres en soft pity...');
+    if (result.results.some(row => row.pity5AtPull === 80)) announcements.push('💀 Outch la hard...');
+  }
+  if (early) announcements.push(`🔥 WOW EARLY !!${occurrence(early)}`);
+  if (backToBack) announcements.push(`💥 INCROYABLE BACK-TO-BACK !!!${occurrence(backToBack)}`);
+  if (captures) announcements.push(`✨ CAPTURE DE BRILLANCE !${occurrence(captures)}`);
+  const gainText = [...gains].map(([key, amount]) => standaloneGain(key, amount));
+  const prefix = [...announcements, `${actorName} obtient :`].join(' ');
+  const text = gainText.length ? `${prefix} ${gainText.join(' | ')}` : `${prefix} ${result.results.filter(row => row.character).length} personnage(s).`;
   return chatLength(text) <= 500 ? { text, facts } : { text: `${prefix} · Gains détaillés ci-dessous.`, facts: [...gainText, ...facts] };
 }
 

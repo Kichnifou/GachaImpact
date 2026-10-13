@@ -16,7 +16,8 @@ describe('shared player command core', () => {
       const result = await resolvePlayerCommand(verifiedPlayerActor(player), handler as PlayerCommandHandler, handler === 'pull' ? ['1'] : [], command, commandId,
         f.services as unknown as PlayerCommandServices);
       if (handler === 'banniere') expect(standalone).toBe('🎯 Bannières (28/09 → 04/10)');
-      else if (handler === 'pull') expect(standalone).toContain('Invocation ×1');
+      else if (handler === 'pull') expect(standalone).toBe('Moi obtient : 1 personnage(s).');
+      else if (handler === 'team') { expect(standalone).toBe('✅ Team Moi :'); expect((typeof result === 'string' ? [result] : result)[0]).toBe('✅ Team Moi : 🔥 A (C0) | 🧩 Passifs : 🔥 ×1,25 particules'); }
       else expect((typeof result === 'string' ? [result] : result)[0]).toBe(standalone);
       const published = f.chat.publishGameResult.mock.calls.length;
       await resolvePlayerCommand(verifiedPlayerActor(player), handler, handler === 'pull' ? ['1'] : [], command, commandId, f.services as unknown as PlayerCommandServices);

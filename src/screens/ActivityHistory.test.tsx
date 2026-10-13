@@ -49,7 +49,8 @@ describe('Daily activity interactions', () => {
       for (const [range] of activityRanges) {
         await act(async () => { select.value = range; select.dispatchEvent(new Event('change', { bubbles: true })) })
         expect(document.querySelectorAll('svg circle')).toHaveLength(1)
-        expect(document.querySelector('tbody')?.textContent).toContain('13 octobre 2026')
+        expect(document.querySelector('tbody')).toBeNull()
+        expect(document.querySelector('output')?.textContent).toContain('13 octobre 2026')
       }
       const explore = document.querySelector<HTMLInputElement>('input[type="range"]')!
       explore.focus()
@@ -58,6 +59,35 @@ describe('Daily activity interactions', () => {
       expect(document.querySelector('[role="dialog"]')).toBeNull()
       expect(document.activeElement).toBe(trigger)
       expect(document.body.style.overflow).toBe('')
+    } finally { act(() => root.unmount()); host.remove() }
+  })
+  it('keeps a graph frame while switching ranges, rejects obsolete responses and retains errors inside it', async () => {
+    const host = document.createElement('div'); document.body.append(host); const root = createRoot(host)
+    const pending = new Map<string, { resolve: (v: unknown) => void; reject: (v: unknown) => void }>()
+    const reader = vi.fn((range: ActivityRange) => new Promise((resolve, reject) => pending.set(range, { resolve, reject })))
+    const series = (range: ActivityRange, count: number) => ({ range, today: '2026-10-13', coverageStartedAt: value.coverageStartedAt, entries: [{ date: '2026-10-13', count, today: true }] })
+    try {
+      await act(async () => root.render(<ActivityHistory value={value} onStatistics={reader as never} />))
+      await click(host.querySelector('.activity-statistics-link')!)
+      const frame = document.querySelector('.activity-chart-region')!
+      expect(frame).not.toBeNull()
+      await act(async () => pending.get('10d')!.resolve(series('10d', 2)))
+      const select = document.querySelector<HTMLSelectElement>('select')!
+      const change = async (range: string) => act(async () => { select.value = range; select.dispatchEvent(new Event('change', { bubbles: true })) })
+      await change('1m')
+      expect(document.querySelector('.activity-chart-region')).toBe(frame)
+      expect(frame.getAttribute('aria-busy')).toBe('true')
+      expect(document.querySelector('output')).toBeNull()
+      await change('5d')
+      await act(async () => pending.get('5d')!.resolve(series('5d', 7)))
+      await act(async () => pending.get('1m')!.resolve(series('1m', 99)))
+      expect(document.querySelector('output')?.textContent).toContain('7 joueurs')
+      expect(document.body.textContent).not.toContain('99 joueurs')
+      await change('all')
+      await act(async () => pending.get('all')!.reject(new Error('Lecture interrompue')))
+      expect(document.querySelector('.activity-chart-region')).toBe(frame)
+      expect(frame.querySelector('[role="alert"]')?.textContent).toContain('Réessayer')
+      expect(document.querySelector('.activity-exact-data')).toBeNull()
     } finally { act(() => root.unmount()); host.remove() }
   })
 });

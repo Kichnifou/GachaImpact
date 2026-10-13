@@ -20,13 +20,13 @@ describe('Post-R1080 standalone result receipts', () => {
       row({ resourceKey: 'particles_electro', resourceAmount: 50n, bonusRewards: [{ resourceKey: 'particles_electro', amount: 100n, causeKey: 'team.passive.dendro.bundle' }, { resourceKey: 'particles_hydro', amount: 100n, causeKey: 'team.passive.dendro.bundle' }, { resourceKey: 'primogems', amount: 1600n, causeKey: 'player.xp.level-reward' }], passiveEffects: [{ type: 'resource_bundle', elementKey: 'dendro', rewards: [{ resourceKey: 'particles_electro', amount: 100n }, { resourceKey: 'particles_hydro', amount: 100n }] }, { type: 'xp', elementKey: 'cryo', amount: 30n, xpAfter: 50n, levelsReached: [5], overflowRewardsGranted: 0 }, { type: 'pity5', elementKey: 'electro', amount: 2, requestedAmount: 2 }] }),
     ]);
     const summary = standalonePullSummary(result);
-    expect(summary.text).toBe('🎲 Invocation ×3 | +💰 3 500 Moras | +💎 1 936 Primos | +⚡ 150 particules Electro | +💧 100 particules Hydro | +✨ 30 XP');
-    expect(summary.facts).toEqual(['⚡ +2 pity 5★', 'Niveaux atteints : 5']);
+    expect(summary.text).toBe('Joueur obtient : +💰 3 500 Moras | +💎 1 936 Primos | +⚡ 150 particules Electro | +💧 100 particules Hydro | +✨ 30 XP');
+    expect(summary.facts).toEqual(['⚡ +2 pity 5★', 'Niveaux atteints : 5', '🧩 Inclus dans les gains 🌪️ : +💎 16 Primos', '🧩 Inclus dans les gains 🌿 : +⚡ 100 particules Electro · +💧 100 particules Hydro', '🧩 Inclus dans les gains ❄️ : +✨ 30 XP']);
     expect(summary.text).not.toContain('480');
   });
   it('preserves repeated character draws, per-draw pity, constellations and C6 markers', () => {
     const result = operation([row({ resultType: 'character', character, rarity: 5, resourceKey: null, resourceAmount: null, constellationAfter: 5, pity5AtPull: 79 }), row({ resultType: 'character', character, rarity: 5, resourceKey: null, resourceAmount: null, constellationAfter: 6, pity5AtPull: 3, wasNewCharacter: false }), row({ resultType: 'character', character: { ...character, rarity: 4 }, rarity: 4, resourceKey: null, resourceAmount: null, pity4AtPull: 8, bonusRewards: [{ causeKey: 'gacha.c6-duplicate-refund', resourceKey: 'primogems', amount: 160n }] })]);
-    expect(pullPresentation(result).characters).toMatchObject([{ id: 'same', pity: 79, constellation: 5, elementKey: 'cryo' }, { id: 'same', pity: 3, constellation: 6 }, { id: 'same', pity: 8, label: 'Déjà C6 · remboursement inclus' }]);
+    expect(pullPresentation(result).characters).toMatchObject([{ id: 'same', pity: 79, constellation: 5, elementKey: 'cryo' }, { id: 'same', pity: 3, constellation: 6 }, { id: 'same', pity: 8, label: '+160 Primos' }]);
     expect(pullPresentation(operation([row({ resultType: 'character', character, rarity: 5, resourceKey: null })])).characters[0]).not.toHaveProperty('pity');
   });
   it.each([1, 5, 10])('publishes x%s as one result and reuses the frozen receipt after interrupted publication', async count => {
@@ -58,7 +58,7 @@ describe('Post-R1080 standalone result receipts', () => {
     f.services.bannerVotes.getCurrent.mockResolvedValue({ candidates: Array.from({ length: 12 }, (_, i) => ({ characterId: `candidate-${i}`, voteCount: i })), canVote: true, ownVote: null } as never);
     await f.send('!vote');
     const frozen = f.chat.freezeCommandResult.mock.calls[0]![1];
-    expect(frozen.presentation?.characters).toHaveLength(12);
+    expect(frozen.presentation?.characters).toHaveLength(11);
     expect(frozen.presentation?.characters[0]).toMatchObject({ voteCount: 11, elementKey: 'geo' });
     expect(isStructuredChatResult(frozen.presentation)).toBe(true);
     expect(f.services.bannerVotes.vote).not.toHaveBeenCalled();

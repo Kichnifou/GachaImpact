@@ -67,8 +67,8 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const actor = await services.socialService.actor(identity);
       const actorName = await rememberName(actor.displayName);
       const result = await services.performGachaPullChat.execute(identity, count, commandMessageId);
-      const accepted = present?.(pullPresentation(result), result.operation.id);
-      return commandSource('INTERNAL_CHAT') === 'INTERNAL_CHAT' && present && accepted !== false ? standalonePullSummary(result).text : pullChatResult(actorName, result);
+      const accepted = present?.(pullPresentation(result, actorName), result.operation.id);
+      return commandSource('INTERNAL_CHAT') === 'INTERNAL_CHAT' && present && accepted !== false ? standalonePullSummary(result, actorName).text : pullChatResult(actorName, result);
     }
     case 'quotis': {
       const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;
@@ -92,8 +92,8 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       if (args.length) return syntax(usage);
       const [actor, state] = await Promise.all([services.socialService.actor(identity), services.getCurrentPlayerTeams.execute(identity)]);
       const team = state.teams.find(row => row.active);
-      if (team && present) present(teamPresentation(team));
-      return team ? viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`;
+      const accepted = team && present ? present(teamPresentation(team)) : false;
+      return team ? commandSource('INTERNAL_CHAT') === 'INTERNAL_CHAT' && present && accepted !== false ? `✅ Team ${actor.displayName} :` : viewTeam(actor.displayName, team) : `⚠️ ${actor.displayName}, cette Team est introuvable.`;
     }
     case 'sac': return args.length ? syntax(usage) : sacCommand(identity, services);
     case 'expedition': return args.length ? syntax(usage) : expeditionCommandSummary(await services.expeditionService.getState(identity));

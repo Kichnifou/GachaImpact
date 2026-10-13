@@ -3775,7 +3775,7 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 
 .bonus-grid article > div { min-width: 0; overflow: hidden; color: var(--muted); font-size: 8px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
 .bonus-grid strong { color: #e4f2ff; font-size: 9px; }
-.hydro { color: #62caff; }
+.bonus-element-icon.hydro { color: #62caff; }
 .gold { color: var(--gold); }
 .violet { color: var(--violet); }
 
@@ -9532,6 +9532,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .boss-received-rewards { padding: 16px 18px; }
 .boss-received-rewards h3 { margin: 0 0 8px; }
 .boss-received-rewards p { margin: 0; color: #f2cf78; }
+.boss-reward-currencies, .boss-reward-currencies > span { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.boss-reward-currencies { gap: 8px 16px; }
+.boss-reward-icon { display: inline-flex; width: 22px; height: 22px; flex: 0 0 22px; }
+.boss-reward-icon img { width: 100%; height: 100%; object-fit: contain; }
 .boss-received-rewards small { display: block; margin-top: 6px; color: var(--muted); }
 .player-sidebar .objective-values p { font-size: 10px; }
 @media (max-height: 780px) and (min-width: 1000px) {

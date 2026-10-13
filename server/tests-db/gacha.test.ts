@@ -56,6 +56,24 @@ it('replays standalone character metadata after a later catalog update without a
 }, 20_000);
 
 describe('Gacha foundation on the development database', () => {
+  it('retains the command actor after a crash before Chat freeze and later rename without another debit', async () => {
+    const fixture = await createPullPlayer(10000n), getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(database));
+    const clock = { now: () => fixture.now }, store = new PrismaGachaStore(database);
+    const chat = new GlobalChatService(database, getPlayer, clock, maxRandom);
+    const dispatcher = new ChatCommandDispatcher(chat, { performGachaPullChat: new PerformGachaPull(getPlayer, store, clock, procMoraRandom, 'INTERNAL_CHAT'), socialService: { actor: (identity: { subject: string }) => getPlayer.execute(identity) } } as unknown as ChatCommandServices);
+    const actor = await getPlayer.execute(fixture.identity), key = randomUUID();
+    vi.spyOn(chat, 'freezeCommandResult').mockRejectedValueOnce(new Error('before freeze'));
+    try {
+      await expect(dispatcher.send(fixture.identity, '!pull 5', key)).rejects.toThrow('before freeze');
+      const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+      await database.player.update({ where: { id: fixture.playerId }, data: { displayName: 'Renamed before Chat freeze retry' } });
+      const result = await dispatcher.send(fixture.identity, '!pull 5', key);
+      expect(result.results).toHaveLength(1); expect(result.results[0]!.content).toMatch(new RegExp(`^${actor.displayName} obtient :`));
+      expect(result.results[0]!.content).not.toContain('Renamed before');
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  });
   it.each([3, 10])('persists exact per-step resource totals for x%i and replays them after the live wallet changes', async count => {
     const fixture = await createPullPlayer(10000n);
     const store = new PrismaGachaStore(database);
@@ -106,7 +124,8 @@ describe('Gacha foundation on the development database', () => {
     const command = await database.globalChatMessage.findFirstOrThrow({ where: { authorPlayerId: fixture.playerId, messageType: 'COMMAND' } });
     const recorded = await store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: count as 1 | 5 | 10, idempotencyKey: command.id, now: fixture.now, random: { nextInt: () => { throw new Error('Replay must not draw.'); } }, sourceChannel: 'INTERNAL_CHAT' });
     const expected = await chat.readCommandResult(command.id);
-    expect(String(expected!.content)).toContain(standalonePullSummary(recorded).text);
+    const originalActor = await database.player.findUniqueOrThrow({ where: { id: fixture.playerId }, select: { displayName: true } });
+    expect(String(expected!.content)).toContain(standalonePullSummary(recorded, originalActor.displayName).text);
     const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
     await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } }, data: { amount: 1n } });
     await database.player.update({ where: { id: fixture.playerId }, data: { displayName: 'Renamed after the committed Pull' } });
