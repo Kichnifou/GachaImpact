@@ -29,6 +29,7 @@ import {
 } from "../direct-messages/use-direct-messages";
 import { elementLabels } from "../utils/formatters";
 import PlayerAvatar from './PlayerAvatar'
+import AppButton from './AppButton'
 
 export type DirectMessageOpenIntent = Readonly<{
   playerId: string;
@@ -189,6 +190,7 @@ export default function DirectMessagePanel({
     [search, setSearch] = useState(""),
     [candidates, setCandidates] = useState<DirectMessagePlayerDto[]>([]);
   const [searchError, setSearchError] = useState(""),
+    [targetResolution, setTargetResolution] = useState<'loading' | 'ready' | 'error'>('ready'),
     [searching, setSearching] = useState(false),
     [menuOpen, setMenuOpen] = useState(false),
     [confirmBlock, setConfirmBlock] = useState(false),
@@ -231,6 +233,8 @@ export default function DirectMessagePanel({
     nextSendId = useRef(0),
     draftRevision = useRef(0),
     searchVersion = useRef(0),
+    pendingTargetLookup = useRef<DirectMessagePlayerDto | null>(null),
+    handledOpenIntent = useRef<string | null>(null),
     list = useRef<HTMLDivElement>(null),
     historyList = useRef<HTMLDivElement>(null),
     composer = useRef<HTMLTextAreaElement>(null),
@@ -358,7 +362,8 @@ export default function DirectMessagePanel({
       return { ...current, [destination]: [...previous, payload].sort((left, right) => left.operationId - right.operationId) };
     });
   };
-  const leaveComposerSession = () => {
+  const leaveComposerSession = (keepTargetLookup = false) => {
+    if (!keepTargetLookup) pendingTargetLookup.current = null;
     stopTyping();
     if (queuedSendRef.current) {
       rememberFailed(queuedSendRef.current, queuedSendRef.current.destination);
@@ -378,6 +383,11 @@ export default function DirectMessagePanel({
   const changeDraft = (value: string) => {
     draftRevision.current += 1;
     setDraft(value);
+  };
+  const cancelOpenIntent = () => {
+    pendingTargetLookup.current = null;
+    searchVersion.current++;
+    if (intent) { handledOpenIntent.current = intent.token; onIntentConsumed(intent.token); }
   };
   const typeDraft = (value: string) => { if (value === draft) return; changeDraft(value); signalTyping(value) };
   const recoverSend = (destination: string) => {
@@ -447,23 +457,17 @@ export default function DirectMessagePanel({
   ) => {
     leaveComposerSession();
     const version = ++searchVersion.current;
-    if (fallback) {
-      setTarget(fallback);
-      setSearch(fallback.displayName);
-      setCandidates([]);
-      setSearchError("");
-      setSearching(false);
-    }
+    const chosen = fallback?.id === targetPlayerId ? fallback : { id: targetPlayerId, displayName: "Joueur", elementKey: null };
+    pendingTargetLookup.current = chosen;
+    setSelectedId(null); setProvisional(null); setTarget(chosen); setSearch(chosen.displayName);
+    setCandidates([]); setSearchError(""); setSearching(false); setView("new"); setDraft(""); clearReply(); setTargetResolution('loading');
     try {
       const existing = await model.openTarget(targetPlayerId);
-      if (version !== searchVersion.current) return;
+      if (version !== searchVersion.current) return false;
+      pendingTargetLookup.current = null;
+      setTargetResolution('ready');
       if (existing) openConversation(existing);
       else {
-        const chosen = fallback ?? {
-          id: targetPlayerId,
-          displayName: "Joueur",
-          elementKey: null,
-        };
         setSelectedId(null);
         setTarget(chosen);
         setSearch(chosen.displayName);
@@ -474,25 +478,34 @@ export default function DirectMessagePanel({
         intentRef.current = null;
         clearReply();
       }
+      return true;
     } catch (reason) {
-      if (version === searchVersion.current)
+      if (version === searchVersion.current) {
+        pendingTargetLookup.current = null;
+        setTargetResolution('error');
         setSearchError(
           reason instanceof Error ? reason.message : "Joueur indisponible.",
         );
+        return true;
+      }
+      return false;
     }
   };
   // oxlint-disable react/set-state-in-effect -- navigation intents and search boundaries deliberately reset owned UI state
   useEffect(() => {
-    if (presentationActive.current || !intent) return;
-    void openTarget(intent.playerId, intent.player).finally(() =>
-      onIntentConsumed(intent.token),
-    );
-  }, [intent?.token, presentation.active]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (presentationActive.current || !isActive) return;
+    const freshIntent = intent?.token !== handledOpenIntent.current ? intent : null;
+    const requested = freshIntent?.player ?? pendingTargetLookup.current;
+    const id = freshIntent?.playerId ?? requested?.id;
+    if (!id) return;
+    void openTarget(id, requested ?? undefined).then(handled => { if (handled && freshIntent) { handledOpenIntent.current = freshIntent.token; onIntentConsumed(freshIntent.token) } });
+  }, [intent?.token, presentation.active, isActive]); // eslint-disable-line react-hooks/exhaustive-deps
   // oxlint-disable-next-line react/set-state-in-effect -- an explicit click on the already mounted MP tab resets its internal route
   useLayoutEffect(() => {
     const key = `${playerId}:${resetToken}`;
     if (presentationActive.current || !resetToken || consumedReset.current === key) return;
     consumedReset.current = key;
+    cancelOpenIntent();
     leaveComposerSession();
     setView("list");
     setProvisional(null);
@@ -511,7 +524,7 @@ export default function DirectMessagePanel({
   const activityBoundary = useRef({ isActive, playerId });
   useLayoutEffect(() => {
     if (activityBoundary.current.isActive !== isActive || activityBoundary.current.playerId !== playerId) {
-      leaveComposerSession();
+      leaveComposerSession(activityBoundary.current.playerId === playerId);
       if (activityBoundary.current.playerId !== playerId) {
         setFailedSends({});
         setDraft("");
@@ -897,6 +910,7 @@ export default function DirectMessagePanel({
       setHistoryHighlight(anchor.messageId);
   };
   const returnToList = () => {
+    cancelOpenIntent();
     leaveComposerSession();
     setView(selected?.archived ? "archives" : "list");
     setProvisional(null);
@@ -1003,7 +1017,7 @@ export default function DirectMessagePanel({
   const send = (event: FormEvent) => {
     event.preventDefault();
     const content = draft.trim();
-    if (!content || Array.from(content).length > 1_000 || queuedSendRef.current || (!selectedId && sendBusy.current)) return;
+    if (!content || Array.from(content).length > 1_000 || queuedSendRef.current || (!selectedId && (sendBusy.current || targetResolution !== 'ready'))) return;
     stopTyping();
     const reply = selectedId ? currentReplyTarget : null;
     const signature = `${selectedId ?? target?.id}:${content}:${reply?.id ?? ""}`;
@@ -1030,6 +1044,7 @@ export default function DirectMessagePanel({
     void runTransport(payload);
   };
   const chooseTarget = async (candidate: DirectMessagePlayerDto) => {
+    cancelOpenIntent();
     await openTarget(candidate.id, candidate);
   };
   const act = async (
@@ -1521,6 +1536,7 @@ export default function DirectMessagePanel({
             type="button"
             className="dm-primary-action"
             onClick={() => {
+              cancelOpenIntent();
               leaveComposerSession();
               setView("new");
               setTarget(null);
@@ -1650,6 +1666,7 @@ export default function DirectMessagePanel({
             type="button"
             className="dm-back"
             onClick={() => {
+              cancelOpenIntent();
               leaveComposerSession();
               setView("list");
               setTarget(null);
@@ -1673,16 +1690,20 @@ export default function DirectMessagePanel({
             placeholder="Pseudo du joueur…"
             autoComplete="off"
             onChange={(event) => {
+              cancelOpenIntent();
+              setTargetResolution('ready');
               setSearch(event.target.value);
               setTarget(null);
             }}
           />
           {searching && <p>Recherche…</p>}
+          {target && targetResolution === 'loading' && <p role="status">Ouverture de la conversation…</p>}
           {searchError && (
             <p role="alert" className="error">
               {searchError}
             </p>
           )}
+          {target && targetResolution === 'error' && <AppButton onClick={() => void openTarget(target.id, target)}>Réessayer l’ouverture</AppButton>}
           {candidates.length > 0 && (
             <div className="dm-player-results">
               {candidates.map((candidate) => (
@@ -1710,7 +1731,7 @@ export default function DirectMessagePanel({
           <Composer
             draft={draft}
             setDraft={changeDraft}
-            pending={sendPending}
+            pending={sendPending || targetResolution !== 'ready'}
             queued={false}
             error={model.error}
             onClearError={model.clearError}

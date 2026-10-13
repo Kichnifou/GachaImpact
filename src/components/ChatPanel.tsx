@@ -184,8 +184,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const resolvedDirectIntent = directMessageIntent ?? localDirectIntent
 
   // oxlint-disable-next-line react/set-state-in-effect -- a GameShell deep-link deliberately activates the MP tab
-  useEffect(() => { if (!presentation.active && directMessageIntent) setActiveTab('direct') }, [directMessageIntent, presentation.active])
+  useEffect(() => { if (!presentation.active && directMessageIntent) { setLocalDirectIntent(null); setActiveTab('direct') } }, [directMessageIntent, presentation.active])
   const openDirectMessage = (player: NonNullable<ChatMessageDto['author']>) => {
+    if (directMessageIntent) onDirectMessageIntentConsumed(directMessageIntent.token)
     const target: DirectMessagePlayerDto = { id: player.id, displayName: player.displayName, elementKey: player.elementKey && player.elementKey in elementColors ? player.elementKey as DirectMessagePlayerDto['elementKey'] : null }
     setLocalDirectIntent({ playerId: player.id, token: crypto.randomUUID(), player: target }); setActiveTab('direct')
   }

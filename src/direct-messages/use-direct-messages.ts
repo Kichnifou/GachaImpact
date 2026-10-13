@@ -200,10 +200,13 @@ export function useDirectMessages(playerId: string, active: boolean, conversatio
   }, [refreshLists, refreshMessages]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const openTarget = useCallback(async (targetPlayerId: string) => {
+    // An explicit destination supersedes pending polls/older target resolutions,
+    // including a cache hit and an authenticated Player change.
+    const revision = ++listRevision.current;
     const known = [...normalRef.current, ...archivedRef.current].find(conversation => conversation.other.id === targetPlayerId)
     if (known) { void refreshLists(true); return known }
     const [current, old] = await Promise.all([api.list(false), api.list(true)])
-    publishLists(current.conversations, old.conversations); setListLoaded(true)
+    if (revision === listRevision.current) { publishLists(current.conversations, old.conversations); setListLoaded(true) }
     return [...current.conversations, ...old.conversations].find(conversation => conversation.other.id === targetPlayerId) ?? null
   }, [api, publishLists, refreshLists])
 
