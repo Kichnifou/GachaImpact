@@ -371,7 +371,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
-  return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} className="screen-content activity-shell event-screen long-screen-layout">
+  return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} data-fit-screen className="screen-content activity-shell event-screen long-screen-layout">
     <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
       {section === 'registration' && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
