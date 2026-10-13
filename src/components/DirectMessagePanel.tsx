@@ -30,6 +30,7 @@ import {
 import { elementLabels } from "../utils/formatters";
 import PlayerAvatar from './PlayerAvatar'
 import AppButton from './AppButton'
+import '../direct-messages/new-message-button.css'
 
 export type DirectMessageOpenIntent = Readonly<{
   playerId: string;
@@ -1539,7 +1540,7 @@ export default function DirectMessagePanel({
         <div className="dm-toolbar">
           <button
             type="button"
-            className="dm-primary-action"
+            className="dm-primary-action dm-new-conversation-action"
             onClick={() => {
               cancelOpenIntent();
               leaveComposerSession();
