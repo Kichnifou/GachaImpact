@@ -8,7 +8,7 @@
     "divergence": "0/0",
     "clean": true
   },
-  "state": "LOCAL_QUALIFIED_PUBLISHED_REVIEWS_PENDING",
+  "state": "PUBLISHED_REVIEW_APPROVED_FF_AND_DEPLOYMENT_PENDING",
   "newTwitchTextExceptions": [],
   "schema": {
     "newMigration": false,
@@ -97,10 +97,15 @@
       "twitch": "7 PASS/24 excluded",
       "overlappingNotSummed": true,
       "broadGachaAndGlobalChatQualified": false
+    },
+    "privateCleanup": {
+      "readOnly": true,
+      "newBatchSchemasRemaining": 0,
+      "preexistingSchemaPreserved": true
     }
   },
   "reviews": {
-    "publishedSha": "PENDING",
+    "publishedSha": "1d7b816f3ef3d6550e0e429813625f6855c7bdf4",
     "mpPrereview": {
       "status": "PASS97/97;all findings closed",
       "reportSha256": "96433fbbeb5d91852146870f4f7763dd0b9628c9ac4f83baff3887d3099a2c14"
@@ -110,7 +115,28 @@
       "css": "index-DRypTCMu.css",
       "cssSha256": "90ee878732d85bc2ba212ed83e11ec5571c21893f7db70a989f4a67019868259"
     },
-    "twitchPerformanceAndPull": "PROVISIONAL;final fixed source review pending"
+    "twitchPerformanceAndPull": "PROVISIONAL;final fixed source review pending",
+    "final": {
+      "identityMpPrivacy": "APPROVED;97 independent tests;exact tested MP blobs",
+      "twitchPerformanceTransactions": "APPROVED;strict119/119;160 pipeline runs;305 independent tests",
+      "pullPresentationAggregation": "APPROVED;canonical25facts packed losslessly and frozen/replayed once",
+      "visualDocumentation": "PASS VISUEL / APPROVED DOCUMENTATION",
+      "openP1P2": 0,
+      "privateReportHashes": [
+        {
+          "scope": "identityMpPrivacy",
+          "sha256": "92b44d0c67d47814b3f5b0b32263c1404f8983c870c9c806dd6ffd636f11a7d3"
+        },
+        {
+          "scope": "twitchPerformanceAndPull",
+          "sha256": "72dd90f11ed0d35b5b8658fbaba046ee8f50f05d0efa4c660b4115d547f6e09b"
+        },
+        {
+          "scope": "visualDocumentation",
+          "sha256": "fbcaaa1fb4eab77d4db7d95ac2e602aa9ed5a5bc61f7d260d36a5947cad2a1a1"
+        }
+      ]
+    }
   },
   "performance": {
     "pipeline": {
@@ -168,10 +194,11 @@
       }
     },
     "productionAfter": "PENDING passive observation;no public commands to create samples",
-    "wholeCommandGainClaimed": false
+    "wholeCommandGainClaimed": false,
+    "publishedSourceConfirmed": true
   },
   "delivery": {
-    "status": "PENDING reviews and FF",
+    "status": "APPROVED;FF main and exact deployment/postflight pending",
     "publicAuthenticatedRecipeExecuted": false,
     "publicEconomicQaExecuted": false,
     "realMpSent": false
