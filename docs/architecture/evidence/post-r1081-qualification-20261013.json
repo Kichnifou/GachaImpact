@@ -8,7 +8,7 @@
     "divergence": "0/0",
     "clean": true
   },
-  "state": "PUBLISHED_REVIEW_APPROVED_FF_AND_DEPLOYMENT_PENDING",
+  "state": "DELIVERED_TECHNICALLY_PUBLIC_RECIPE_PENDING",
   "newTwitchTextExceptions": [],
   "schema": {
     "newMigration": false,
@@ -135,7 +135,13 @@
           "scope": "visualDocumentation",
           "sha256": "fbcaaa1fb4eab77d4db7d95ac2e602aa9ed5a5bc61f7d260d36a5947cad2a1a1"
         }
-      ]
+      ],
+      "visualFinalDelta": "13 additional observations,one private actual dispatcher/replay PASS;25 original facts retained in5 lines max297 chars;no JS/overflow;ten rendered panels across six viewports"
+    },
+    "documentationAndInheritedRuntime": {
+      "publishedSha": "dae6f045f23b9cdeccb105f864f99708bf45f846",
+      "status": "APPROVED;P3 provisional label closed",
+      "reportSha256": "45c105ce1fcb305c2506cc7f5a64966a091c1a70b964da0a368a95e041573a3c"
     }
   },
   "performance": {
@@ -184,7 +190,8 @@
       },
       "pull5": {
         "n": 4,
-        "medianMs": 4116.5
+        "medianMs": 4116.5,
+        "quantityGroupingValidation": "Read-only exact frozen baseline window confirms n4 args quantity5;not inferred solely from response count"
       },
       "pull10": {
         "n": 2,
@@ -193,15 +200,82 @@
         "maxMs": 9450
       }
     },
-    "productionAfter": "PENDING passive observation;no public commands to create samples",
+    "productionAfter": {
+      "sha": "dae6f045f23b9cdeccb105f864f99708bf45f846",
+      "deployment": "f01eece1-21e6-4f32-b02c-a4034e0af717",
+      "source": "Railway deploy logs filtered Twitch command timing;passive only",
+      "windowStart": "2026-10-13T13:18:05.357Z",
+      "windowEnd": "2026-10-13T13:22:58.037Z",
+      "limit": 100,
+      "samples": 0,
+      "wholeCommandGainClaimed": false,
+      "phaseMeasurements": "NO_NATURAL_SAMPLE_OBSERVED",
+      "noTrafficInference": true,
+      "publicQaCommandsEmitted": false
+    },
     "wholeCommandGainClaimed": false,
     "publishedSourceConfirmed": true
   },
   "delivery": {
-    "status": "APPROVED;FF main and exact deployment/postflight pending",
+    "status": "VERIFIED at promoted checkpoint;useful documentation closure preserves runtime, final SHA/deployments verified separately in delivery report",
     "publicAuthenticatedRecipeExecuted": false,
     "publicEconomicQaExecuted": false,
-    "realMpSent": false
+    "realMpSent": false,
+    "promotedCheckpoint": "dae6f045f23b9cdeccb105f864f99708bf45f846",
+    "ffOnly": true,
+    "allFourRefsEqualAtCheckpoint": true,
+    "divergence": "0/0",
+    "cleanAtCheckpoint": true,
+    "railway": {
+      "sha": "dae6f045f23b9cdeccb105f864f99708bf45f846",
+      "id": "f01eece1-21e6-4f32-b02c-a4034e0af717",
+      "status": "SUCCESS",
+      "applicationReady": "2026-10-13T13:18:05.357080538Z",
+      "replicasOnline": 1,
+      "pendingWork": 0,
+      "activeWarnings": 0,
+      "activeCritical": 0
+    },
+    "cloudflare": {
+      "deployment": "4c056ddc-242e-4a7b-ab2d-3cfcbd813090",
+      "sha": "dae6f045f23b9cdeccb105f864f99708bf45f846",
+      "status": "SUCCESS",
+      "exactProductionAssets": true,
+      "artifacts": [
+        {
+          "path": "/assets/index-DRypTCMu.css",
+          "http": 200,
+          "sha256": "90ee878732d85bc2ba212ed83e11ec5571c21893f7db70a989f4a67019868259"
+        },
+        {
+          "path": "/assets/index-DfGgK1Ih.js",
+          "http": 200,
+          "sha256": "8af14c0b1b8f0a277a898d0c0a284e93097967fe3d8cc0069bf47a66c92355ee"
+        }
+      ]
+    },
+    "postflight": {
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "anonymousGuardChecks": 16,
+      "all401": true,
+      "exactCors": true,
+      "activityNoStore": true
+    },
+    "database": {
+      "readOnly": true,
+      "migrations": 81,
+      "unresolved": 0,
+      "checksumsMatch": true,
+      "prismaStatus": "Database schema is up to date",
+      "privateTablesProtected": 3,
+      "vote081BudgetVerified": true,
+      "coverageStartedAt": "2026-10-13T07:21:41.282Z",
+      "rolledBack076HistoryPreserved": true,
+      "manualDdl": false
+    },
+    "firstCloudflareProbe": "production-assets propagation mismatch;later exact-byte match PASS;no source defect inferred",
+    "privateServersStopped": true
   },
   "preservedDocumentationAudit": "docs/architecture/evidence/documentation-audit-20261013.md"
 }
