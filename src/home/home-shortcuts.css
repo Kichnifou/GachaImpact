@@ -4,11 +4,12 @@
 .home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
 .home-shortcut-arrow { color: #8babc7; font-size: 22px; }
 @media (min-width: 1121px) {
-  .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(300px, 1fr) auto auto; height: 100%; overflow-y: auto; }
+  .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(300px, 1fr) max-content max-content; height: 100%; overflow-y: auto; }
   .screen-content.home-screen:has(> .home-shortcuts) .home-banner { min-height: 300px; height: 100%; }
+  .screen-content.home-screen:has(> .home-shortcuts) .home-daily-summary { max-height: none; overflow: visible; align-self: stretch; }
 }
 @media (min-width: 1501px) {
-  .screen-content.home-screen:has(> .home-shortcuts) { grid-template-rows: minmax(380px, 1fr) auto auto; overflow-y: auto; }
+  .screen-content.home-screen:has(> .home-shortcuts) { grid-template-rows: minmax(380px, 1fr) max-content max-content; overflow-y: auto; }
   .screen-content.home-screen:has(> .home-shortcuts) .home-banner { min-height: 380px; }
 }
 @media (max-width: 1000px) { .home-screen .home-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
