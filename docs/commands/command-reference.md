@@ -1,5 +1,9 @@
 # Registre des commandes GachaImpact
 
+## Présentation post-recette — R1083
+
+!pull standalone : passif/passifs explicatif unique regroupé depuis effets enregistrés ; Garantie utilisée sans ×1, compteur si plusieurs, mêmes gains/reçus. !top : loose5050 devient le jeton affiché sur standalone ET Twitch, anciens lose5050/lost5050 acceptés, identifiant interne lost5050 inchangé ; aucune autre exception Twitch. [Contrat](../specifications/global-chat-v1.md#finitions-de-présence-et-pull--r1083).
+
 ## Amendement de présentation — R1082, 13/10/2026
 
 Standalone seulement : !vote sans arguments montre uniquement les votes positifs (vide explicite/aide sinon), sans réduire les candidats éligibles à la mutation. !team et !team N : en-tête Pseudo, vrai nom/numéro, cartes ordonnées et passifs compacts sous les cartes ; confirmations de mutation conservées. !pull1–10 : pseudo figé, annonces devant les gains, suppression soft/hard si un 5★ dans l'opération, remboursements exacts par carte et origines passives incluses dans les cumuls. Un GAME_RESULT/reçu, économie inchangée. Aucun texte/emoji/fractionnement Twitch modifié ; deux exceptions R1081 déjà livrées restent présentes. [Contrat complet](../specifications/global-chat-v1.md#corrections-post-recette--r1082).
@@ -576,7 +580,7 @@ Principales métriques legacy conservées :
 - `4stars` / `4`
 - `pity`
 - `5050` / `50/50`
-- `lose5050` / `lost5050`
+- `loose5050` ; aliases historiques `lose5050` / `lost5050`
 - `primos`
 - `moras`
 - `particles` / `particules`

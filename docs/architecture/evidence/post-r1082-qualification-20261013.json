@@ -1,0 +1,119 @@
+{
+  "mission": "R1083 post-recette R1082",
+  "date": "2026-10-13",
+  "baseline": "4b637c0bfa91494a97eb98cd98757a77cdcec85c",
+  "runtime": "2ff2cdcd62838373594a4c1105c6388381facc30",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "ownerRecipeR1082": "Main corrections tested and working;Ceotryd new MP confirmed;no exhaustive inference",
+  "qualification": {
+    "quick": "PASS5/5",
+    "full": {
+      "status": "PASS",
+      "steps": "8/8",
+      "frontend": {
+        "passed": 1612,
+        "failed": 0
+      },
+      "backend": {
+        "passed": 2509,
+        "failed": 0
+      },
+      "fullLogSha256": "e2c0d39b5e0e61da97f02d7f7a266cd12d4507377aabad65f2342271069de1cf"
+    },
+    "targeted": {
+      "ui": "167/167 PASS",
+      "historicalFrontend": "50/50 PASS",
+      "backend": "164/164 PASS",
+      "pull": "31/31 PASS",
+      "pullTop": "25/25 PASS",
+      "overlappingNotSummed": true
+    },
+    "intermediateFull": {
+      "runtime": "3eb2ebf450adea7741a64e68aa5a4a6318d0c8e4",
+      "status": "FAIL6/8",
+      "newFailures": [
+        "ChatPanel title test mocks hidden without visibilityState",
+        "post-r1080 facts exact expectation not yet aligned to newly requested grouping"
+      ],
+      "historicalTenFailures": 0,
+      "correction": "2ff2cdcd aligns native visibility fixture and exact new passive facts;no guard deletion"
+    },
+    "databaseTests": "NOT_RERUN;presentation/alias only,authoritative receipt/persistence/idempotency/RNG/schema owners unchanged;existing private R1082 evidence retained"
+  },
+  "historicalDebt": {
+    "archive": "historical-test-debt-20261013.json",
+    "status": "RESOLVED10/10;no tests skipped/deleted"
+  },
+  "changes": {
+    "mp": "Existing PresenceDot before name,scoped flex+ellipsis,no presence permission changes",
+    "title": "Native visibilitychange;normal while visible;existing1350ms only hidden+unread;cleanup on count/player/unmount;no read acknowledgement",
+    "pull": "Recorded distinct passive origins/coefficient;singular/plural;no double credit or multiplier;one guarantee without×1;bounded facts/frozen replay preserved",
+    "c6": "Compact x10 only9px constellation/refund,+3px margin,ordinary bonus8px wrap;widths/minima/grid columns and reveal/Chat preserved;content-stretched small-screen row contracts without enlargement",
+    "top": "Displayed/accepted loose5050 on both channels;lose5050/lost5050 aliases and internal lost5050 preserved"
+  },
+  "twitch": {
+    "pipelineModified": false,
+    "additionalOptimization": "NONE_JUSTIFIED",
+    "authorizedTextException": "Only !top help token lose5050→loose5050;new alias explicitly authorized on both channels",
+    "immutable119Baseline": "4b637c0",
+    "parity": "PENDING exact published SHA;119 unchanged plus separate top supplement"
+  },
+  "performance": {
+    "source": "One bounded read of expurgated Railway timing summaries",
+    "deployment": "ba39c0de-1d96-4112-af90-a6cca3b3b0e0",
+    "windowStart": "2026-10-13T13:28:17.529Z",
+    "windowEnd": "2026-10-13T14:16:30Z",
+    "scopes": 12,
+    "consultation": {
+      "n": 4,
+      "firstHttpMedianMs": 1853.79,
+      "httpConfirmedMedianMs": 2112.14,
+      "lastDurableSentMedianMs": 2196.09,
+      "serverFinishMedianMs": 2265.78
+    },
+    "pull1": {
+      "n": 2,
+      "firstHttpMedianMs": 2215.99,
+      "httpConfirmedMedianMs": 2453.68,
+      "lastDurableSentMedianMs": 2510.57,
+      "serverFinishMedianMs": 2577.1
+    },
+    "otherMutationSamples": 0,
+    "pull5Samples": 0,
+    "pull10Samples": 0,
+    "naturalMessageScopesWithoutHttp": 6,
+    "helixMsRange": [
+      231.1,
+      274.09
+    ],
+    "echoMsRange": [
+      72.19,
+      1590.3
+    ],
+    "phasesInclusive": true,
+    "noUserTypingOrTwitchDisplayLatencyClaim": true,
+    "noCausalBeforeAfterClaim": true,
+    "noSafeAdditionalOptimizationDemonstrated": true,
+    "previousR1082BenchmarksReusedNotRerun": true,
+    "reportSha256": "4bd7a7c5ea666f92e571f886cdd3d5e3524dfe04380f7e926f95d4cc425a71b7"
+  },
+  "schema": {
+    "newMigration": false,
+    "current": "081",
+    "expectedFinished": 81
+  },
+  "reviews": {
+    "status": "PENDING published SHA",
+    "historicalClassification": "Independent completed;22b7d198...;exact hash in archive"
+  },
+  "delivery": {
+    "status": "PENDING reviews/FF/deployments",
+    "publicAuthenticatedRecipeExecuted": false,
+    "publicEconomicQaExecuted": false,
+    "realMpSent": false
+  }
+}

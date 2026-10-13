@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Conclusion de latence Twitch — R1083
+
+Analyse proportionnée unique de12 synthèses expurgées du processus R1082 :4 consultations,2 Pull×1 et6 messages sans HTTP ; zéro échantillon mutation hors Pull/×5/×10. Depuis réception EventSub : premier HTTP médian 1853,79ms/2215,99ms, confirmation Helix 2112,14ms/2453,68ms, dernier SENT durable 2196,09ms/2510,57ms, fin serveur 2265,78ms/2577,10ms (consult/Pull1). Helix 231–274ms, anti-écho variable 72–1590ms ; phases activité/transactions inclusives non additionnables, pas de preuve de plan/verrou/pool justifiant suppression de lecture. Aucun délai saisie→affichage Twitch ni gain causal avant/après déduit. Le frontend React n'est pas dans ce parcours ; services métier partagés ne prouvent pas une cause. **Aucune modification Twitch supplémentaire justifiée.** Admission R1082, SENDING avant HTTP, revalidation après token et AMBIGUOUS conservés. [Mesures/limites](evidence/post-r1082-qualification-20261013.json).
+
+Seul changement de registre : alias !top loose5050 vers la métrique existante lost5050, anciens alias conservés ; aucun changement de requête/droits/classement, modèle ou migration. Présentation Pull standalone seulement ; propriétaires métier/persistance/RNG/idempotence inchangés, aucun nouveau test DB nécessaire pour ces projections.
+
 ## Admission Twitch et présentation post-recette — R1082
 
 TwitchNativeAuthority.readAdmission lit dans un seul snapshot état/révision/opérateur et le prédicat complet de covers (mode/capacité, target/identité ACTIVE, transfert/acknowledgement, résolution de liaison). covers délègue à ce propriétaire. Pilot enabled conserve tous ses points de revalidation : admission combinée seulement si transport chaud de même révision ; chemin froid garde status/validation puis couverture fraîche après attente Helix. enabledInTransaction utilise la connexion et les verrous existants, jamais une seconde connexion. Contrôle client après acquisition du token, SENDING avant HTTP, ordre séquentiel et interdiction de retry AMBIGUOUS conservés. Aucun cache d'autorité/permission, DDL, index ou fournisseur ajouté. [GLOBAL](twitch-global-r1064.md#admission-et-preuves-didentité).

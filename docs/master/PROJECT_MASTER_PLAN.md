@@ -1,5 +1,23 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Point courant — R1083 candidat, finitions post-recette R1082, 13/10/2026
+
+R1082 testé par le propriétaire : principaux correctifs fonctionnels, dont nouveau MP Ceotryd confirmé ; aucune recette exhaustive déduite. R1083 implémenté et qualifié localement, **publication/reviews du vrai SHA et livraison encore à obtenir**. [Décision](../specifications/decisions-log.md#r1083--finitions-post-recette-r1082-et-archive-des-tests-13102026).
+
+Base exacte après fetch **4b637c0bfa91494a97eb98cd98757a77cdcec85c**, quatre refs alignées 0/0, propre ; runtime local **2ff2cdcd62838373594a4c1105c6388381facc30** sur review, main/origines restent à la base avant publication. Commits séparés UI, présentation Pull/aliasTop, correction légitime des tests historiques, puis ajustement de texte mobile/fixtures nouvelles.
+
+Livrable : présence MP à gauche, titre normal au premier plan/clignotement seulement caché avec non-lus, passif(s) Pull explicatifs bornés sans double gain, garantie sans ×1, C6/refund×10 plus lisibles. Complément propriétaire !top loose5050 sur DEUX canaux, anciens alias conservés. Économie, présence/confidentialité, Ceotryd, RNG, persistance et ordre Twitch préservés ; unique exception textuelle aide !top.
+
+Qualification runtime : **quick 5/5, full 8/8 PASS**, frontend 1612/1612, backend 2509/2509. UI 167/167, frontend historique 50/50, backend 164/164 puis Pull 31/31 etTop/Pull 25/25 recouvrants, non additionnés. Premier full 6/8 a relevé deux nouvelles attentes à aligner au comportement demandé, corrigées puis full final réellement vert. **Dette historique de tests résolue 10/10 — [archive unique](../architecture/evidence/historical-test-debt-20261013.json)** : 4 fixtures inadéquates, 6 attentes obsolètes, aucune assertion supprimée/skip ni timeout relevé. Suites DB élargies historiques toujours non qualifiées globalement, distinctes ; aucun rerun PostgreSQL pour ces seules présentations, propriétaires sensibles inchangés.
+
+Dernière analyse Twitch : **aucune modification supplémentaire justifiée**. Lecture passive bornée 12 scopes (4 consultations/2Pull1/6 messages), premier HTTP médian 1,85 s/2,22 s, Helix 231–274ms ; pas de ×5/×10 ni latence saisie→affichage/avant-après comparable. Mesures R1082 réutilisées, phases inclusives non additionnées. Pas d'optimisation des contrôles ou nouveau fournisseur/coût. [Qualification/limites](../architecture/evidence/post-r1082-qualification-20261013.json).
+
+Reviews indépendantes MP/non-lus/dette, Pull/parité Twitch et visuel/documentation **pendantes sur SHA publié**, QA locale en cours. Aucun déploiement nouveau annoncé ici. Pas de migration nouvelle, 081 conservée. AGENTS/Guide/workflow/handoff/roadmap/déploiement/modèle/schéma et Social examinés laissés inchangés ; audit documentaire 13/10 préservé, aucun second audit global. Propriétaires ajustés : Master, décision, Chat, layout, commandes, conclusion backend et deux preuves bornées.
+
+Prochaine action de livraison : publication review, reviews/corrections, FF strict main, Railway/Cloudflare au SHA exact et postflight. Puis **recette esthétique propriétaire ciblée** : MP gauche, titre visible/caché, passifs/garantie Pull, C6/refund×10, !top loose5050, réactivité Twitch normale. Aucun MP/Pull/dépense artificiels ; après rapport STOP, aucun autre chantier.
+
+Le checkpoint R1082 ci-dessous est historique ; ses preuves sont conservées.
+
 ## Point courant — R1082 livré techniquement, corrections post-recette et latence Twitch, 13/10/2026
 
 Mandat de continuité R1081 autorisé jusqu'aux reviews indépendantes, promotion FF et déploiements. R1081 est livré et sa recette propriétaire est globalement satisfaisante, avec les corrections ciblées ci-dessous ; aucune recette exhaustive déduite. **R1082 est livré techniquement après reviews indépendantes, FF main et contrôles Railway/Cloudflare/PostgreSQL ; recette propriétaire ciblée future.** Même domaine V1 pré-release silencieuse, aucun chantier suivant. [Décision R1082](../specifications/decisions-log.md#r1082--corrections-post-recette-r1081-et-latence-twitch-13102026).

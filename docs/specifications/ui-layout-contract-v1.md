@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## Finitions MP et récapitulatif×10 — R1083
+
+MP seulement : point avant le pseudo dans un flex min-width0, espace droit 6 px, point 8 px non rétrécissable et nom tronqué dans son propre span ; structure liste/heure/actions préservée. Social conserve son placement antérieur. Présence privée sans point, mêmes couleurs et accessible title/aria.
+
+Récapitulatif Invocation×10 seulement (.sequence-summary .pull-result-card.compact) : progression C6 et remboursement 9 px, marge supérieure remboursement 3 px, or/centrage conservés ; autres bonus 8 px bornés et overflow-wrap pour conserver la mention C6 maxée/ressources visibles. Largeurs, minima et colonnes de cartes/grille conservés ; la rangée auparavant étirée par les bonus se contracte sur petit format, sans agrandissement. Dix résultats ordonnés, portraits/noms/étoiles, révélations individuelles et cartes Chat conservés. Contrôle compilé GameShell aux formats 390×844, 1366×768, 1920×1080, 2560×1440 et largeur réduite. Titre navigateur selon [le contrat MP](global-chat-v1.md#finitions-de-présence-et-pull--r1083).
+
 ## Retouches post-recette — R1082
 
 La couleur décorative Hydro est limitée à la primitive d'icône bonus ; aucune classe élémentaire générique ne colore l'identité textuelle des cartes. Noms uniformes Box/Profil/sélecteurs et autres surfaces partagées, bordures/fonds/icônes/raretés et couleurs des auteurs Player du Chat préservés. Vérifier styles calculés sur sept éléments et hover/focus/sélection.
@@ -179,7 +185,7 @@ Réutiliser le pattern floating-panel et useModalDialog : backdrop, fermeture so
 
 Profil > Personnalisation : seule la sous-navigation Avatars/Titres est sticky dans le body scroll réel du profil, fond opaque et z-index local ; ni la navigation Profil ni les autres onglets ne deviennent sticky. Titres de niveaux = famille dérivée PLAYER_LEVEL, ordre 100/75/50/25/10 ; gradients sombres améthyste/platine/or/argent/bronze, noms/conditions/locked/owned/equipped lisibles. Les autres familles ne rejoignent pas cette section.
 
-Social : pastille accessible à droite du pseudo sans retirer les textes existants. MP : même pastille sans nouveau texte visible. PRIVATE : aucun point ; [règles et projection groupée](global-chat-v1.md#self-mention-et-présence-des-mp--r1027).
+Social : pastille accessible à droite du pseudo sans retirer les textes existants. MP : même pastille à gauche depuis R1083, sans nouveau texte visible. PRIVATE : aucun point ; [règles et projection groupée](global-chat-v1.md#self-mention-et-présence-des-mp--r1027).
 
 Arcade : [contrat étape 28](arcade-v1.md#multijoueur-arcade--étape-28). Bloc compact dans la colonne gauche existante, plateau central de dimensions inchangées ; boutons Prêt/Annuler et Refuser présents avec largeur réservée. Petit desktop/mobile : bloc avant plateau dans le flux, aucun overflow horizontal ; Règles/Records restent accessibles. Deux vrais pseudos/couleurs fixes et indication accessible de soi en partie partagée ; aucune citation IA, droite structurellement vide. Les états pending/active/quit/replay utilisent les mêmes cadres ; aucune nouvelle ScreenId ni destination.
 
