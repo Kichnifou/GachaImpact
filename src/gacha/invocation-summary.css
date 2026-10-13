@@ -1,0 +1,10 @@
+.invocation-screen .gacha-state-summary { gap: 12px; }
+.invocation-screen .primary-pity .pity-row { font-size: 14px; }
+.invocation-screen .gacha-state-secondary { gap: 12px; }
+.invocation-screen .gacha-state-secondary .pity-row,
+.invocation-screen .gacha-state-secondary .banner-status,
+.invocation-screen .gacha-state-secondary .banner-status span { font-size: 12px; }
+.invocation-screen .gacha-state-secondary .banner-status strong { font-size: 14px; }
+@media (max-width: 700px) {
+  .invocation-screen .gacha-state-secondary { gap: 8px; }
+}
