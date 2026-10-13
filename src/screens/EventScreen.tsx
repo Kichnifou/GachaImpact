@@ -79,11 +79,10 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const presentationMode = useTutorialPresentation()
   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
   const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane
-  const compactGeneral = useShortDesktop(820)
   const [normalGeneralPane, setGeneralPane] = useState<'overview' | 'calendar' | 'gift'>('overview')
   const generalPane = presentationMode.active && presentationMode.step?.anchor === 'event-calendar' ? 'calendar' : normalGeneralPane
-  const showCalendarOnly = compactGeneral && Boolean(value.calendar) && generalPane === 'calendar'
-  const showGiftOnly = compactGeneral && Boolean(value.giftCode?.available) && generalPane === 'gift'
+  const showCalendarOnly = Boolean(value.calendar) && generalPane === 'calendar'
+  const showGiftOnly = Boolean(value.giftCode?.available) && generalPane === 'gift'
   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
   const [normalSection, setSection] = useDestinationTab('event',openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
   const consumedShopToken = useRef<string | null>(null)
@@ -373,7 +372,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
       <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
     </nav>
-    {section === 'registration' && compactGeneral && (value.calendar || value.giftCode?.available) && <nav className="activity-inner-tabs event-general-tabs" aria-label="Vue générale du Festival"><button type="button" className={!showCalendarOnly && !showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('overview')}>Résumé</button>{value.calendar && <button type="button" className={showCalendarOnly ? 'active' : ''} onClick={() => setGeneralPane('calendar')}>Calendrier</button>}{value.giftCode?.available && <button type="button" className={showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('gift')}>Code cadeau</button>}</nav>}
+    {section === 'registration' && (value.calendar || value.giftCode?.available) && <nav className="activity-inner-tabs event-general-tabs" aria-label="Vue générale du Festival"><button type="button" className={!showCalendarOnly && !showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('overview')}>Résumé</button>{value.calendar && <button type="button" className={showCalendarOnly ? 'active' : ''} onClick={() => setGeneralPane('calendar')}>Calendrier</button>}{value.giftCode?.available && <button type="button" className={showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('gift')}>Code cadeau</button>}</nav>}
     {section === 'games' && <nav data-tutorial-anchor={guidedView?.startsWith("games-") && ((gameTab < 2 && !value.participation.joined) || (gameTab === 2 && !value.gameC.available)) ? `event-game-${["a", "b", "c"][gameTab]}` : undefined} data-tutorial-fallback="true" className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}
@@ -407,8 +406,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>
       </section>}
       </>}
-      {(!compactGeneral || showCalendarOnly) && <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />}
-      {value.giftCode?.available && (!compactGeneral || showGiftOnly) && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
+      {showCalendarOnly && <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />}
+      {value.giftCode?.available && showGiftOnly && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
       </>}
       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}

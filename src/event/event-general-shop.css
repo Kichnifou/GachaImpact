@@ -88,3 +88,6 @@
   .event-frame .event-calendar-cell span { font-size: 11px; }
   .event-frame .event-calendar-cell small { font-size: 10px; }
 }
+@media (min-width: 1121px) {
+  .event-frame .app-button.event-calendar-cell { min-height: 0; padding: 4px; gap: 2px; }
+}
