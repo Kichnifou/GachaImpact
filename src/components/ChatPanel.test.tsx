@@ -807,6 +807,7 @@ describe('ChatPanel réel', () => {
   })
 
   it('updates the browser title from lightweight MP unread polling while hidden', async () => {
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden')
     const descriptor = Object.getOwnPropertyDescriptor(document, 'hidden')
     Object.defineProperty(document, 'hidden', { configurable: true, value: true })
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
@@ -824,6 +825,7 @@ describe('ChatPanel réel', () => {
       await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
       expect(document.title).toBe('GachaImpact')
     } finally {
+        visibility.mockRestore()
       vi.useRealTimers()
       if (descriptor) Object.defineProperty(document, 'hidden', descriptor)
       else Reflect.deleteProperty(document, 'hidden')

@@ -21,7 +21,7 @@ describe('Post-R1080 standalone result receipts', () => {
     ]);
     const summary = standalonePullSummary(result);
     expect(summary.text).toBe('Joueur obtient : +💰 3 500 Moras | +💎 1 936 Primos | +⚡ 150 particules Electro | +💧 100 particules Hydro | +✨ 30 XP');
-    expect(summary.facts).toEqual(['⚡ +2 pity 5★', 'Niveaux atteints : 5', '🧩 Inclus dans les gains 🌪️ : +💎 16 Primos', '🧩 Inclus dans les gains 🌿 : +⚡ 100 particules Electro · +💧 100 particules Hydro', '🧩 Inclus dans les gains ❄️ : +✨ 30 XP']);
+    expect(summary.facts).toEqual(['Niveaux atteints : 5', '🧩 passifs : ⚡ +2 pity 5★ · +16 Primos · 🌿 +100 particules Electro · 🌿 +100 particules Hydro · +30 XP']);
     expect(summary.text).not.toContain('480');
   });
   it('preserves repeated character draws, per-draw pity, constellations and C6 markers', () => {

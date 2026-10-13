@@ -546,6 +546,9 @@
 .sequence-summary .pull-result-card.compact .pull-resource-amount { font-size: 11px; }
 .sequence-summary .pull-result-card.compact .pull-bonus {
   display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 8px;
   line-height: 1.2;
 }
 .sequence-summary .pull-result-card.compact .pull-character-identity > .pull-c6-constellation { font-size: 9px; line-height: 1.25; }
