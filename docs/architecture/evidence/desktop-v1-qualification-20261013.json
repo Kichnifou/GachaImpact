@@ -1,0 +1,321 @@
+{
+  "mission": "R1084 desktop graphics V1",
+  "date": "2026-10-13",
+  "baseline": "e2eef5131abfab2d7fe214831dcda65a06bad0bd",
+  "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "clean": true,
+    "divergence": "0/0",
+    "ownerRecipeR1083": "VALIDATED by explicit owner bootstrap"
+  },
+  "scope": [
+    "UI-CATALOGUE",
+    "UI-BOX",
+    "UI-CONCOURS",
+    "UI-ACCUEIL",
+    "UI-MISSIONS",
+    "UI-MP"
+  ],
+  "foundation": {
+    "commits": [
+      "237f2b9cb457d5193b5666a5ebf37592bca0b064",
+      "5635962fa1c33bb23d00e3b8cfe2abc1cd39db9d"
+    ],
+    "neutralOptIn": true,
+    "keepOnSingleLotRollback": true
+  },
+  "qualification": {
+    "quick": {
+      "status": "PASS5/5",
+      "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+      "logSha256": "c92c0824c10e668e341277e709c6bb285a2091775210e77b9aab9cf57348543f"
+    },
+    "full": {
+      "status": "PASS8/8",
+      "frontend": 1616,
+      "backend": 2509,
+      "logSha256": "6eb7dd86ad58bcd4cfb6342fcad26c182220510eaf42a58afde68de261ceebcc",
+      "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f"
+    },
+    "initialFull": {
+      "status": "FAIL7/8",
+      "frontendFailures": 3,
+      "cause": "Obsolete Home assertion expects no shortcuts;explicitly requested six now asserted,other daily protections retained"
+    },
+    "initialQuick": {
+      "status": "FAIL4/5",
+      "cause": "Three TypeScript import/test-node errors corrected in exclusive Box/Home commits"
+    },
+    "databaseTests": "NOT_RUN;frontend-only presentation/navigation, no authoritative owners or schemas changed"
+  },
+  "rollback": {
+    "status": "PASS6/6 compilation/build/all-six-targeted/exact files",
+    "method": "Each temporary branch starts complete runtime;revert only that lot newest-first;no reset/rewrite main/review",
+    "lots": [
+      {
+        "lot": "UI-CATALOGUE",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "237aa328f5f54a0df9655b48babd6fa117162021",
+          "47e09cbe6ccb9b7189a191eb1382acaec702aec1"
+        ],
+        "reverted": "0b7436434167c81b1abde7a8718b424b9dbeabd9",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/components/CollectionFilters.tsx",
+          "src/screens/CharactersScreen.test.tsx",
+          "src/screens/CharactersScreen.tsx",
+          "src/screens/CharactersScreen.votes.test.tsx"
+        ],
+        "targetedPassed": 183,
+        "logSha256": "d7395e116bfea26de01ea084f73a5ae177af9cb419d0867c56972df598ecb635"
+      },
+      {
+        "lot": "UI-BOX",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "d0b86117da11aefa8b879acc8c9bd0b91b9fdbcc",
+          "fd0b3bfbc5efd3061a6babcff90e1c2d711204e6"
+        ],
+        "reverted": "12cb8990f8c15bf448a6a5fe4f26121f25c77cf1",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/box/box-filter-bar.css",
+          "src/screens/BoxScreen.intent.test.tsx",
+          "src/screens/BoxScreen.test.tsx",
+          "src/screens/BoxScreen.tsx"
+        ],
+        "targetedPassed": 182,
+        "logSha256": "e2247017a7331965e9d2d51cfca05b32ba2b579ac5c1d4b8f667de7d0998ffd4"
+      },
+      {
+        "lot": "UI-CONCOURS",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "0c84dc3d415708324ba01d62bd67e19acf0610d5"
+        ],
+        "reverted": "e1e81673e8122ce9ffa15adda7856f75edef9fef",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/contest/contest-empty-layout.css",
+          "src/screens/ContestScreen.tsx"
+        ],
+        "targetedPassed": 183,
+        "logSha256": "8312983b12dd5c81c91613665179bc9c84506aa762cc2a502ef6a01d5dcf910e"
+      },
+      {
+        "lot": "UI-ACCUEIL",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "925ddf3b5dcab2abc0b17e1746400fc2efde843a",
+          "613e67f379a5bf1b759f5d8c219587323fc2d125",
+          "5808b2179f0b06487232f5c4cc799abd4237825b",
+          "fd304b56bab444f95cb2ae65a8b01ddb75fdd528",
+          "8bd113a1538f2e1320a4f8d794e0b848df191480",
+          "a218b849515fc2efcff67458284dca346a4ad09e"
+        ],
+        "reverted": "f2a9ac69ebc461881191f0fcdff97522556bfca4",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/components/GameShell.tsx",
+          "src/dailies/daily-controller.test.tsx",
+          "src/home/home-shortcuts.css",
+          "src/screens/HomeScreen.test.tsx",
+          "src/screens/HomeScreen.tsx"
+        ],
+        "targetedPassed": 182,
+        "logSha256": "1070eb991b9af70f0b7cdf4aed7d190dc87a56fda3da41ea070b538ff49e83d6"
+      },
+      {
+        "lot": "UI-MISSIONS",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+          "dc7060ec817340b39f3375cb721516493b351d50",
+          "8991f2b0d6db525abaf11209491ef22465315e6f",
+          "72caa1cc8c955efdab8df56abd425f688307850c"
+        ],
+        "reverted": "91f149f159ef18c56a89ec185330d98d14638724",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/missions/MissionPages.tsx",
+          "src/missions/MissionProjectionView.tsx",
+          "src/missions/mission-pages.css",
+          "src/screens/MissionsScreen.test.tsx",
+          "src/screens/MissionsScreen.tsx"
+        ],
+        "targetedPassed": 181,
+        "logSha256": "a630f2fbfd4cc3b3e8d6e91f8b5f8a326071fc85fe24added05942f86f2a0a70"
+      },
+      {
+        "lot": "UI-MP",
+        "candidate": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+        "commitsRevertedNewestFirst": [
+          "ae041c606396577997ecfb8abca9d00a3abf5604",
+          "b7dea2ce62acdc424839e1cf9490f3c05d035ccc"
+        ],
+        "reverted": "8261b7719a3085c0abb7d79b63b340f27c53e728",
+        "compile": "PASS",
+        "build": "PASS",
+        "targetedAllSix": "PASS",
+        "exactFileBoundary": "PASS",
+        "files": [
+          "src/components/DirectMessagePanel.tsx",
+          "src/direct-messages/new-message-button.css"
+        ],
+        "targetedPassed": 183,
+        "logSha256": "8647c890e9eff4b939deea20feebf6906739e0c72305bb098d66052093de3e3c"
+      }
+    ],
+    "independentCoupledVisual": {
+      "status": "PASS",
+      "testedRuntime": "ae041c606396577997ecfb8abca9d00a3abf5604",
+      "rollbackCatalogue": "ba21b79f5d9e59cef2595072abe61e10f3c3a7b7",
+      "rollbackBox": "6f19ccfb2dd25741dd456e17377c68f6420bb93c",
+      "observations": 4,
+      "reportSha256": "b9a061a47c80459e334cd73976780847e31ea18ad396cce4fb8579e4afe11f23",
+      "laterDeltas": "Home/Missions scoped CSS and explicit star span colors preserve both coupled geometries;final all-six matrix rerun"
+    },
+    "procedure": "On review revert listed commits in listed newest-first order,retain neutral foundation,update only affected docs,tests/review then FFmain/deploy/postflight;no player data/economy mutation"
+  },
+  "visual": {
+    "status": "PASS_VISUEL_LOCAL;independent published SHA review pending",
+    "runtime": "5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f",
+    "viewports": [
+      [
+        390,
+        844
+      ],
+      [
+        844,
+        390
+      ],
+      [
+        1366,
+        768
+      ],
+      [
+        1920,
+        1080
+      ],
+      [
+        2560,
+        1440
+      ],
+      [
+        1366,
+        520
+      ],
+      [
+        1120,
+        800
+      ]
+    ],
+    "method": "Private compiled complete GameShell,production CSS,synthetic fixtures;actual PNG inspections/geometry/focus/scroll/navigation",
+    "baselineObservations": 50,
+    "initialCandidateObservations": 50,
+    "targetedCorrections": "21+11+2 overlapping observations;not a unique-sample total",
+    "functionalObservations": 17,
+    "coupledRollbackObservations": 4,
+    "css": {
+      "file": "index-B7xUfsdv.css",
+      "sha256": "3f7d2b16945261d3818e96f65448879aa7d0a579a02b514e2483b34ca6358005"
+    },
+    "results": {
+      "catalogue": "PASS: gold/violet stars + seven element toggles; normalized search, combined filters, re-click off; active/hover/focus colors fixed; 2px visible focus; no empty feedback element; 1920 empty gap45→25px, errors/preparations remain rendered.",
+      "box": "PASS: one filter row1920/2560, ordered search/stars/elements/constellation/sort/direction; mobile wraps without horizontal document overflow; category state retained, sort preference callback and favorite handling remain private/reversible.",
+      "contest": "PASS: empty composition distributed vertically, controls grouped; lobby/running/result synthetic states covered390 and1366x520, no JS/horizontal overflow.",
+      "home": "PASS: exactly six3x2 tiles on desktop; six typed destinations, browser back/forward; own personalization after visiting foreign profile. Final1366x520 banner300px, grid300/134/86 +28gap, scroll548/client321; six tiles and daily accessed by keyboard,0 intersection.1920 intact.",
+      "missions": "PASS:1920/2560 nine normal cards3x3 without vertical scrolling; canonical order/unique complete18/9/4 across pages, rank reset, Zlocked/active/completed. Long330-character descriptions reduce1920 to six cards while preserving text/rewards. Final1366x520 one effective scroll owner: body140/140, pagewindow37/223, cards221/221; all rewards reached by actual scroll.1366x768 body388/388. Profile retains18 canonical cards and no pagination.",
+      "mp": "PASS: button34px/font13/padding6px12px at sevenformats, baseline36desktop/42mobile/font16. Keyboard activates new composer/search. Other controls/presence layout preserved.",
+      "rollbackCatalogue": "PASS actual compiled worktree ba21b79f5d9e59cef2595072abe61e10f3c3a7b7: old Catalogue filters/gap return, new Box remains intact.",
+      "rollbackBox": "PASS actual compiled worktree6f19ccfb2dd25741dd456e17377c68f6420bb93c: old Box two rows return, new Catalogue remains intact. Later Home/Missions scoped deltas and neutral star color preserve this paired geometry."
+    },
+    "findings": [
+      {
+        "id": "Missions1920GhostRow",
+        "severity": "P2",
+        "status": "CLOSED",
+        "fix": "8991f2b0",
+        "proof": "final-card-delta.json9cards"
+      },
+      {
+        "id": "HomeLowBannerCascade",
+        "severity": "P2",
+        "status": "CLOSED",
+        "fix": "613e67f3",
+        "proof": "final-deltas.json banner300"
+      },
+      {
+        "id": "HomeLowDailyOverlap",
+        "severity": "P2",
+        "status": "CLOSED",
+        "fix": "925ddf3b",
+        "proof": "final-deltas.json overlap0, actual keyboard/scroll PNG"
+      },
+      {
+        "id": "MPDesktopHeightUnchanged",
+        "severity": "P2",
+        "status": "CLOSED",
+        "fix": "ae041c60",
+        "proof": "corrected-measures.json34px"
+      },
+      {
+        "id": "StarActiveColor",
+        "severity": "P3",
+        "status": "CLOSED",
+        "fix": "5635962f",
+        "proof": "final-deltas.json16colorstates"
+      },
+      {
+        "id": "MissionLowOuterScroll",
+        "severity": "P3",
+        "status": "CLOSED",
+        "fix": "dc7060ec",
+        "proof": "final-deltas.json bodyclient=scroll"
+      },
+      {
+        "id": "MissionLowLongCardFrame",
+        "severity": "P3",
+        "status": "CLOSED",
+        "fix": "5c95cc5f",
+        "proof": "final-card-delta.json client=scroll221"
+      }
+    ],
+    "sourceEquivalence": "786 src/server Git blobs matched after explicit LF normalization;production CSS exact SHA256",
+    "limits": [
+      "Owner public aesthetic recipe pending;no authenticated public behavior claimed",
+      "1366x520 existing shell leaves37px mission page window;one effective internal scroll reaches complete cards/rewards and pager remains visible",
+      "No general shell/mobile redesign;seven inline owner references supplemented by textual mandate and actual baseline"
+    ],
+    "reportSha256": "8e369d3dc9b2297b283cc7a12242af57208a4d0b214e6bcf3a14498446073fe3"
+  },
+  "reviews": {
+    "status": "PENDING_PUBLISHED_CANDIDATE",
+    "preReviewFindings": "Home owner profile and shared Profile filter scope reproduced red then green;visual Missions ghost row/Home low banner/MP height corrected in exclusive commits"
+  },
+  "delivery": {
+    "status": "CANDIDATE_NOT_DEPLOYED",
+    "newMigration": false,
+    "currentMigration": "081",
+    "publicEconomicActions": false,
+    "realMpSent": false,
+    "ownerAestheticRecipe": "FUTURE"
+  }
+}

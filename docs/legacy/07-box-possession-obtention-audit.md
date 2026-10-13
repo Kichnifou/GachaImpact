@@ -1,5 +1,9 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
+## Passe graphique desktop — R1084
+
+La seule barre Box est harmonisée avec Catalogue : recherche, étoiles 5/4 toggle, sept éléments toggle, constellation, tri et direction. Aucun filtre actif signifie tous ; autres catégories conservées à chaque changement. Une ligne à 1920/2560, regroupement responsive propre plus étroit. Préférences Player, priorité favoris, possessions, Stella, Expédition, détail et ancres inchangés. Primitive opt-in neutre commune, adaptation Box réversible séparément de Catalogue. [Registre](../architecture/evidence/desktop-v1-qualification-20261013.json).
+
 **Révision propriétaire étape 29 — R1037 :** Box.txt : listes complètes 5★ puis 4★, emojis + (Cn), filtres rareté/C6 exact/élément, pagination 5+5 avec complément, favoris alphabétiques et tri textuel a/d/c/e (changement ascendant/répétition inverse). SetBoxCharacterFavorite/SetBoxSortPreference existants ; matching exact normalisé R153, aucune copie affichée. Split logique par personnage, intentions de mutation stables au retry. Présentation Chat indépendante de la priorité favoris UI ; UI et modèle inchangés. Textes/arbitrages validés avant code, implémentation et tests automatiques dans ce lot ; déploiement/recette publique distincts et encore à vérifier. [Contrat Chat courant](../commands/command-reference.md). Aucune dépendance JSON legacy runtime ni activation Twitch.
 
 Statut : CLÔTURÉ — R117 À R176 VALIDÉS

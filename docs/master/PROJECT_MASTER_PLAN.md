@@ -1,5 +1,15 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Passe graphique desktop — R1084
+
+Mandat propriétaire des six surfaces implémenté sur review, **candidat non encore promu/déployé**. Base exacte e2eef5131abfab2d7fe214831dcda65a06bad0bd, quatre refs initiales alignées 0/0/propre ; runtime 5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f. R1083 recette propriétaire validée selon bootstrap, ses preuves conservées.
+
+Catalogue : filtres toggle étoiles/éléments et espace vide retiré ; Box harmonisée sur une ligne desktop ; Concours vide réparti ; Accueil six raccourcis typés 3×2 et profil propriétaire ; Missions Activités paginées/adaptatives 3×3, Profil préservé ; seul Nouveau message MP réduit. Six frontières de rollback et fondation opt-in neutre, aucun backend/économie/auth/Twitch/migration touché. **Quick 5/5 et full 8/8 PASS**, frontend 1616/backend 2509. Premier full 7/8 (trois attentes Home obsolètes) puis correction protectrice et requalification réelle. Six réversions individuelles compile/build/tests des six surfaces PASS, aucun conflit ; contrôle visuel couplé Catalogue/Box PASS. QA visuelle privée PASS sur sept formats, six destinations/Retour-Avancer/Profil et neuf Missions à1920/2560 ; CSS index-B7xUfsdv.css SHA2563f7d2b16945261d3818e96f65448879aa7d0a579a02b514e2483b34ca6358005. À1366×520, fenêtre Missions37px avec unique scroll réel donnant accès à tous textes/récompenses ; aucun chantier global de coque. Reviews du SHA publié encore à terminer. [Registre exact lots/commits/fichiers/preuves](../architecture/evidence/desktop-v1-qualification-20261013.json), [décision](../specifications/decisions-log.md#r1084--passe-graphique-desktop-et-rollback-indépendant-13102026).
+
+Prochaine action : reviews indépendantes sur le vrai SHA GitHub, corriger/retester si nécessaire, FF main, Railway/Cloudflare exacts et postflight proportionné. Migration 081 inchangée ; aucun test DB ou action publique artificielle. Recette esthétique propriétaire ensuite sur les six surfaces, puis STOP ; aucun chantier mobile général/bêta lancé. Guide/AGENTS/workflow/handoff/roadmap/modèles/schéma/architecture/commandes/audit 13 octobre conservés sans nouvel audit global.
+
+Le pilotage R1083 ci-dessous est conservé comme historique ; le mandat et la prochaine action courants sont ceux de R1084 ci-dessus.
+
 ## Pilotage courant — décisions propriétaire après validation R1083 (13/10/2026)
 
 **Recette propriétaire R1083 validée (« c'est nickel »).** Les retouches MP/notifications d'onglet, passifs et garantie Pull, présentation C6 et alias `!top loose5050` ne font plus partie des actions à tester ; conserver leurs preuves historiques et la qualification technique 8/8 PASS au checkpoint `d77d2be05f872f176a37d791306860c63e622b7d`. Aucune recette exhaustive antérieure n'est induite de cette validation ciblée.

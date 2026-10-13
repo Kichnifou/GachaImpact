@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Passe graphique desktop — R1084
+
+Cette décision supersède l’ancienne présentation d’Accueil sans raccourcis décrite historiquement plus bas ; les actions et données Quotidiennes restent celles de leur propriétaire.
+
+Accueil ajoute exactement six raccourcis après BannerHero et avant dailySummary : Équipe→characters-team ; Événement→activities-event ; Concours→activities-contest ; Arcade→activities-arcade ; Missions→activities-missions ; Personnalisation→profile du Player propriétaire avec tabs profile=Personnalisation et appearance=AVATAR. Le callback rétablit explicitement profileId propriétaire avant navigate, même après consultation d’autrui. Navigation typée et history.state/hash existants, Précédent/Suivant et Retour/Avancer conservés ; aucun clic DOM simulé. Les gates/tutoriel existants restent propriétaires. Missions pagine localement les cartes ordonnées sans changer les destinations/rangs ; Profil Missions reste non paginé.
+
 ## Destination MP explicite — R1082
 
 Liste connectée → Profil actif → Message privé → GameShell/ChatPanel/DirectMessagePanel conserve l'UUID de destination. L'intention attend isActive, s'ouvre sur sa paire ou composeur, jamais sur le fil d'un autre Player archivé. Token consommé après traitement courant ; réponse dépassée ignorée, choix/annulation manuelle consomme son token. Une résolution interrompue par onglet reprend sans perdre sa cible ; erreur/réessai visibles. Les publications de listes obsolètes et celles d'un compte précédent sont invalidées par révision. Aucune destination MP/UUID restaurée via F5, aucune fusion d'historiques ; contrôle ACTIVE/confidentialité/blocs serveur inchangé. [Contrat](global-chat-v1.md#corrections-post-recette--r1082).

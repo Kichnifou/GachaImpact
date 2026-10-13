@@ -1,5 +1,15 @@
 # Contrat de layout UI V1
 
+## Passe graphique desktop — R1084
+
+R1084 supersède uniquement les anciennes clauses d’Accueil sans raccourcis/à deux rangées et la réservation du feedback Catalogue vide. Les réservations de feedback sur les cartes de vote restent valides.
+
+Filtres Catalogue/Box : primitive opt-in de deux étoiles et sept éléments, état actif aria-pressed et re-clic désactivant la catégorie ; nom accessible explicite, focus visible, catégories cumulables. Box conserve constellation/tri et tient sur une ligne à 1920/2560 ; retour à la ligne autorisé plus étroit. Le filtre partagé historique du Profil conserve sa présentation par défaut. Catalogue n’alloue plus 20 px au feedback vide ; les erreurs restent visibles et les zones de vote sur cartes restent stables.
+
+Concours vide : deux groupes (intro ; sélection+action) répartis selon hauteur disponible, aucune modification des états actifs. Accueil : six tuiles 3×2 desktop puis 2/1 colonnes, même cadre entier cliquable/focus ; la région centrale scrolle à faible hauteur, bannière avec minimum lisible et Quotidiennes accessibles. MP : classe dm-new-conversation-action seulement, 34 px/texte 13 px/padding 6 px vertical ; présence et autres contrôles inchangés.
+
+Missions Activités utilise la variante missions-paged : header sans description/hauteur fantôme, rangs compacts, capacité mesurée par ResizeObserver,3 colonnes × 3 lignes à 1920 suffisant. Ordre canonique avant partition, pages entières sans perte/doublon, index remis à zéro au rang/longueur, boutons discrets aux limites et reduced-motion. Des descriptions longues réduisent le nombre de rangées ; une carte exceptionnellement haute reste entièrement accessible par le seul mission-page-window scrollable. Profil garde la grille initiale. Aucun masquage des descriptions/récompenses pour tenir neuf cartes. [Preuves](../architecture/evidence/desktop-v1-qualification-20261013.json).
+
 ## Finitions MP et récapitulatif×10 — R1083
 
 MP seulement : point avant le pseudo dans un flex min-width0, espace droit 6 px, point 8 px non rétrécissable et nom tronqué dans son propre span ; structure liste/heure/actions préservée. Social conserve son placement antérieur. Présence privée sans point, mêmes couleurs et accessible title/aria.
