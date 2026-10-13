@@ -2,7 +2,7 @@
   "mission": "R1085 post-R1084",
   "baseline": "7c7859498d750ecbc41ead95d02593f72b295b3a",
   "runtime": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc",
-  "status": "LOCAL QUALIFIED; publication, independent published-SHA reviews and deployments pending",
+  "status": "TECHNICALLY DELIVERED at publishedCandidate; owner aesthetic acceptance remains future. Documentation closure must follow review, fast-forward and exact deployment checks.",
   "neutralFoundations": [
     "08bcef62f5984ad933112269b99777852ba4a98c",
     "081365655972398027a31fb4ab0e96cc7d69a279",
@@ -366,5 +366,105 @@
     "docs/architecture/backend-architecture-v1.md",
     "docs/architecture/postgresql-schema-v1.md",
     "docs/commands/command-reference.md"
-  ]
+  ],
+  "publishedCandidate": "fa83b4316da398080ed62dddf76074f934f36a1f",
+  "independentReviews": [
+    {
+      "file": "visual-published-fa83b431.json",
+      "verdict": "PASS",
+      "sha": "fa83b4316da398080ed62dddf76074f934f36a1f",
+      "sha256": "f6e26d506c84a81b462f8a9c26207e02f2e09e3d370dc8be81d6076ca0289c11"
+    },
+    {
+      "file": "INDEPENDENT-TECHNICAL-REVIEW-fa83b431.json",
+      "verdict": "APPROVED",
+      "sha": "fa83b4316da398080ed62dddf76074f934f36a1f",
+      "sha256": "705325fa86ea0e517c0685daf7e4b1990fd40f075c1f2fa03327a699c3930106"
+    }
+  ],
+  "deployment": {
+    "cloudflare": {
+      "sha": "fa83b4316da398080ed62dddf76074f934f36a1f",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/992cb46d-9cf5-444f-a2d2-1c44ee67dc3d",
+      "startedAt": "2026-10-13T21:33:46Z",
+      "completedAt": "2026-10-13T21:33:46Z",
+      "preview": "https://992cb46d.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-BWdiRZhe.js",
+          "http": 200,
+          "sha256": "33550e82e903ca73d30fa52b9b9b1dc6ce3632375a4088c8c635cfeb35172bd2"
+        },
+        {
+          "path": "/assets/index-p5FgGXaB.css",
+          "http": 200,
+          "sha256": "b9da6a6d7bd72ac2237cc288eeeb516478dc0a194775606dbf1e23b26ba6a294"
+        }
+      ]
+    },
+    "railway": {
+      "deploymentId": "7fb8ed6d-e1c1-4cd8-9782-bac961826bc8",
+      "commitHash": "fa83b4316da398080ed62dddf76074f934f36a1f",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-13T21:34:30.596907873Z",
+      "replicas": {
+        "running": 1,
+        "crashed": 0,
+        "total": 1
+      },
+      "pendingWork": [],
+      "issues": {
+        "warningCount": 0,
+        "criticalCount": 0
+      }
+    },
+    "postflight": {
+      "at": "2026-10-13T21:34:58.225Z",
+      "phase": "first",
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-BWdiRZhe.js",
+              "sha256": "33550e82e903ca73d30fa52b9b9b1dc6ce3632375a4088c8c635cfeb35172bd2"
+            },
+            {
+              "path": "/assets/index-p5FgGXaB.css",
+              "sha256": "b9da6a6d7bd72ac2237cc288eeeb516478dc0a194775606dbf1e23b26ba6a294"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-BWdiRZhe.js",
+              "sha256": "33550e82e903ca73d30fa52b9b9b1dc6ce3632375a4088c8c635cfeb35172bd2"
+            },
+            {
+              "path": "/assets/index-p5FgGXaB.css",
+              "sha256": "b9da6a6d7bd72ac2237cc288eeeb516478dc0a194775606dbf1e23b26ba6a294"
+            }
+          ]
+        }
+      ]
+    },
+    "anonymousGuards": {
+      "at": "2026-10-13T21:34:59.029Z",
+      "count": 18,
+      "all401": true,
+      "exactCors": true,
+      "historyNoStore": true
+    }
+  }
 }
