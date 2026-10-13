@@ -4,6 +4,7 @@ import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage } from '../utils/formatters'
 import MissionProjectionView from '../missions/MissionProjectionView'
+import '../missions/mission-pages.css'
 
 type MissionsScreenProps = Readonly<{ onLoad: () => Promise<PlayerMissionsDto>; refreshToken?: number }>
 
@@ -33,9 +34,9 @@ function MissionsScreen({ onLoad, refreshToken = 0 }: MissionsScreenProps) {
   let content
   if (loading && !value) content = <div data-tutorial-state="loading" className="missions-state" role="status">Chargement des Missions…</div>
   else if (error) content = <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{error}</p><button type="button" className="small-primary-button" onClick={retry}>Réessayer</button></div>
-  else content = value ? <MissionProjectionView value={value} /> : null
+  else content = value ? <MissionProjectionView value={value} paginated /> : null
 
-  return <div className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" description="Suivez vos objectifs permanents et leurs récompenses." /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
+  return <div className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
 }
 
 export default MissionsScreen

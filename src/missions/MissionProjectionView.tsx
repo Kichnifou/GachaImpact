@@ -3,19 +3,20 @@ import { useTutorialView } from '../tutorial/tutorial-presentation'
 import type { PermanentMissionDto, PermanentMissionProjectionDto } from '../api/types'
 import { formatResourceAmount } from '../utils/formatters'
 import { lockedZMessage, orderMissionCards, preferredMissionRank, progressPercent } from './mission-presentation'
+import MissionPages from './MissionPages'
 
 const ranks = ['B', 'A', 'S', 'Z'] as const
 
-export default function MissionProjectionView({ value }: Readonly<{ value: PermanentMissionProjectionDto }>) {
+export default function MissionProjectionView({ value, paginated = false }: Readonly<{ value: PermanentMissionProjectionDto; paginated?: boolean }>) {
   const [normalRank, setRank] = useDestinationTab(useDestinationScreen()==='profile'?'profileMissions':'missions',() => preferredMissionRank(value))
   const rank = useTutorialView('activities-missions', normalRank, ranks)
   const missions = rank === 'Z' ? value.z.status === 'LOCKED' ? [] : value.z.missions : value.ranks[rank]
-  return <div className="mission-projection-view">
+  return <div className={`mission-projection-view${paginated ? ' missions-paged' : ''}`}>
     <nav data-tutorial-anchor="missions-ranks" className="activity-inner-tabs missions-rank-tabs" aria-label="Rangs des Missions">{ranks.map(candidate => <button type="button" data-tutorial-anchor={candidate === 'Z' ? 'missions-rank-z-tab' : undefined} className={rank === candidate ? 'active' : ''} aria-pressed={rank === candidate} key={candidate} onClick={() => setRank(candidate)}>{candidate}</button>)}</nav>
     <div data-tutorial-anchor="missions-progress" className="mission-projection-content">
       {rank === 'Z' && value.z.status === 'LOCKED'
         ? <div className="missions-state missions-z-locked"><strong>Rang Z verrouillé</strong><p>{lockedZMessage}</p></div>
-        : <>{rank === 'Z' && value.z.status === 'COMPLETED' && <p className="mission-rank-summary">✅ Rang Z terminé</p>}<div className="mission-grid" data-mission-rank={rank}>{orderMissionCards(missions).map(mission => <MissionCard key={mission.externalKey} mission={mission} />)}</div></>}
+        : <>{rank === 'Z' && value.z.status === 'COMPLETED' && <p className="mission-rank-summary">✅ Rang Z terminé</p>}{paginated ? <div className="mission-rank-pages" data-mission-rank={rank}><MissionPages key={`${rank}:${missions.length}`} missions={orderMissionCards(missions)} renderCard={mission => <MissionCard key={mission.externalKey} mission={mission} />} /></div> : <div className="mission-grid" data-mission-rank={rank}>{orderMissionCards(missions).map(mission => <MissionCard key={mission.externalKey} mission={mission} />)}</div>}</>}
     </div>
   </div>
 }
