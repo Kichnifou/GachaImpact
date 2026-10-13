@@ -3,6 +3,10 @@
 .home-shortcut strong { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
 .home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
 .home-shortcut-arrow { color: #8babc7; font-size: 22px; }
+@media (min-width: 1121px) {
+  .screen-content.home-screen { display: grid; grid-template-rows: minmax(220px, 1fr) auto auto; height: 100%; overflow-y: auto; }
+  .home-screen .home-banner { min-height: 220px; height: 100%; }
+}
 @media (min-width: 1501px) {
   .screen-content.home-screen { grid-template-rows: minmax(380px, 1fr) auto auto; overflow-y: auto; }
   .home-screen .home-banner { min-height: 380px; }

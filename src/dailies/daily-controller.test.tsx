@@ -245,7 +245,7 @@ describe('Shared daily consultation and claim', () => {
     }
     await act(async () => root.render(<HomeHarness />))
     expect(container.querySelectorAll('.home-daily-suggestion')).toHaveLength(count)
-    expect(container.querySelector('.home-shortcuts')).toBeNull()
+    expect(container.querySelectorAll('.home-shortcuts button')).toHaveLength(6)
     expect(container.querySelectorAll('.shortcut-card')).toHaveLength(0)
     expect(container.querySelector('.home-banner-preview')).not.toBeNull()
     await click('.home-banner-hit-area')
