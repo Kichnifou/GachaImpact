@@ -60,6 +60,8 @@ Ce fichier porte le contrat des commandes ; le registre pur partagé alimente le
 
 ## Passe finale Twitch / commandes R939–R942
 
+**Qualification historique :** les états d'activation, d'autorité et prochaines actions décrits dans cette section sont ceux des lots R939–R942 et de leurs premières extensions. Ils sont supersédés par [NATIVE/GLOBAL R1064](../architecture/twitch-global-r1064.md) et l'état actuel du [Master](../master/PROJECT_MASTER_PLAN.md). Ils ne signifient pas qu'aucune commande Twitch n'est aujourd'hui exécutée, ni que Streamer.bot reste l'autorité globale. Les contrats de syntaxe, d'identité et de traitement commun restent applicables selon leurs propriétaires actuels.
+
 **Méthode propriétaire étape 29 — R1038 amendement de R1036 :** le [protocole canonique](../process/implementation-workflow.md#protocole-propriétaire--étape-29-uniquement-r1036) autorise une mission regroupant les 31 sources restantes, lecture intégrale et choix des formulations sous délégation, sans validation tableau par tableau. Candidat complet et contrôles verts avant push review puis promotion strictement fast-forward du même candidat vers main, sans review ChatGPT intermédiaire. Après publication, vérifier le SHA et le déploiement exacts, puis la courte [recette essentielle](step-29-command-coverage.md#recette-propriétaire-essentielle-après-contrôle-du-sha-et-du-déploiement). Aucune activation Twitch.
 
 **Étape 29 CLÔTURÉE PAR DÉCISION PROPRIÉTAIRE R1039 :** recette publique représentative R1038 et derniers retours explicitement bornés. Correctifs testés automatiquement et promotion du même candidat autorisée sans nouvelle review ou gate manuel. Aucune validation publique individuelle des dernières corrections présumée ; étape 30 ensuite clôturée R1041 ; le pilote R1042 était alors candidat non activé. Les phases ultérieures et GLOBAL R1064 sont acquises dans leur périmètre au Master, sans replay des anciennes gates.
@@ -73,6 +75,8 @@ Twitch et Chat standalone peuvent rester deux flux distincts, sans mirroring obl
 Après validation du transport 2B-2, pause de Twitch avancé et passage aux domaines V1 suivants. R1034 clôture 27 par décision de périmètre : la charge/performance restante est acceptée en observation bêta/situation réelle, non bloquante, sans campagne obligatoire pré-migration ; [l'architecture](../architecture/backend-architecture-v1.md) décrit le trafic/latence/pool/retries à mesurer. Le pilote conserve une écriture Receipt par notification ; sa seule purge codée suit la [politique de rétention](../specifications/data-retention-v1.md). Les commandes ordinaires seront évaluées en mémoire, sans historique Twitch ordinaire persistant lorsque inutile.
 
 ## Restitution finale propriétaire — R1039
+
+**Qualification historique :** les états OFF, absence de parser/outbound/EventSub/cutover, autorité Streamer.bot et prochaines actions de cette section décrivent le seul lot R1039. Les phases ultérieures ont été livrées sous [NATIVE/GLOBAL R1064](../architecture/twitch-global-r1064.md) ; le [Master](../master/PROJECT_MASTER_PLAN.md) porte leurs preuves et l'état courant. Cette restitution conserve la preuve de recette R1039 et n'impose pas de replay.
 
 Ces présentations remplacent les formulations R1038 concernées, sans changer les règles métier.
 
@@ -1210,7 +1214,7 @@ Les aides ne recommandent qu'une seule syntaxe canonique.
 ## `!ami`
 
 - **Statut audit :** CLÔTURÉ — R451 à R525
-- **État étape 29 :** Recette publique du lot Ami R1035 confirmée par le propriétaire, sauf retrait demandé de la sous-commande liste (R1036). Retrait implémenté/testé, à recetter après déploiement. Twitch natif non activé ; Streamer.bot reste autoritatif. UI et Chat utilisent le propriétaire Friendship existant, réutilisable par le futur adapter Twitch.
+- **État historique de l'étape 29 :** recette publique du lot Ami R1035 confirmée par le propriétaire, sauf retrait demandé de la sous-commande liste (R1036). À ce checkpoint, le retrait était implémenté/testé et sa recette encore future, tandis que Twitch natif n'était pas activé. Depuis, le resolver partagé utilise le même propriétaire Friendship depuis UI, Chat et Twitch sous [NATIVE/GLOBAL R1064](../architecture/twitch-global-r1064.md). Recettes réellement rapportées et état des canaux au Master ; aucune validation individuelle supplémentaire déduite de ce changement documentaire.
 - **Résumé :** `!ami`
 - **Demandes :** `!ami demandes`, reçues et envoyées séparées, nombre restant indiqué si nécessaire
 - **Ajouter :** `!ami ajouter <pseudo>`
