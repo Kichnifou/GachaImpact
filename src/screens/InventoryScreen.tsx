@@ -180,10 +180,10 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   if (!inventory && !error) return <InventoryStatus title="Ouverture de votre Sac…" detail="Synchronisation de vos ressources et objets." />
   if (!inventory) return <InventoryStatus title="Impossible de charger votre Sac" detail={error ?? 'Erreur inconnue'} onRetry={() => void load()} />
 
-  return <div data-business-pending={Boolean(stellaPendingId || favoritePendingId || stellaFeedback?.visual)} className="screen-content inventory-screen">
+  return <div data-business-pending={Boolean(stellaPendingId || favoritePendingId || stellaFeedback?.visual)} data-fit-screen className="screen-content inventory-screen">
     <div className="inventory-layout">
       <nav data-tutorial-anchor="inventory-tabs" className="inventory-categories panel" aria-label="Catégories du Sac">
-        {categories.map((category) => <button type="button" className={activeCategory === category.id ? 'active' : ''} onClick={() => setActiveCategory(category.id)} key={category.id}>
+        {categories.map((category) => <button type="button" aria-current={activeCategory === category.id ? 'page' : undefined} className={activeCategory === category.id ? 'active' : ''} onClick={() => setActiveCategory(category.id)} key={category.id}>
           <span aria-hidden="true">{category.icon}</span><strong>{category.label}</strong><small>{inventoryCategoryCount(inventory, category.id)}</small>
         </button>)}
       </nav>
@@ -198,7 +198,7 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
           {error && <p className="inventory-inline-error" role="alert">{error}</p>}
           {entries.length ? <div className="inventory-groups">{groups.map((group) => <section className="inventory-group" aria-labelledby={`inventory-group-${group.id}`} key={group.id}>
             <header className="inventory-group-heading"><span id={`inventory-group-${group.id}`}>{group.label}</span></header>
-            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onNavigateTrades={onNavigateTrades} onSelectItem={(item) => void openItemDetail(item)} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
+            <div className="inventory-grid">{group.entries.map((entry) => <InventoryCard compactCollection={activeCategory === 'collection'} entry={entry} mainElementKey={elementKey} onConvert={() => setConversionOpen(true)} onNavigateShop={onNavigateShop} onNavigateBank={onNavigateBank} onNavigateTrades={onNavigateTrades} onSelectItem={(item) => void openItemDetail(item)} onUseStella={() => void openStellaPicker()} key={entry.type === 'resource' ? entry.resource.key : entry.item.id} />)}</div>
           </section>)}</div>
             : <div className="inventory-empty" role="status"><span aria-hidden="true">◇</span><strong>{query ? 'Aucun résultat' : emptyTitle(activeCategory)}</strong><p>{query ? 'Modifiez votre recherche pour retrouver une entrée.' : emptyDetail(activeCategory)}</p></div>}
         </div>
@@ -216,7 +216,7 @@ function InventoryScreen({ initialInventory, refreshToken = 0, resources, elemen
   </div>
 }
 
-function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNavigateBank, onNavigateTrades, onSelectItem, onUseStella }: { entry: InventoryEntry; mainElementKey: ElementKey; onConvert: () => void; onNavigateShop: () => void; onNavigateBank: () => void; onNavigateTrades?: () => void; onSelectItem: (item: InventoryItemDto) => void; onUseStella: () => void }) {
+function InventoryCard({ entry, compactCollection, mainElementKey, onConvert, onNavigateShop, onNavigateBank, onNavigateTrades, onSelectItem, onUseStella }: { entry: InventoryEntry; compactCollection: boolean; mainElementKey: ElementKey; onConvert: () => void; onNavigateShop: () => void; onNavigateBank: () => void; onNavigateTrades?: () => void; onSelectItem: (item: InventoryItemDto) => void; onUseStella: () => void }) {
   if (entry.type === 'resource') {
     const content = <><ResourceIcon resource={entry.resource} /><span className="inventory-card-copy"><strong>{entry.resource.displayName}</strong><p>{resourceDetail(entry.resource, entry.amount)}</p></span><span className="item-amount">× {formatResourceAmount(entry.amount)}</span></>
     const action = entry.resource.key === 'primogems'
@@ -235,7 +235,7 @@ function InventoryCard({ entry, mainElementKey, onConvert, onNavigateShop, onNav
   if (entry.item.externalKey === MASTERLESS_STELLA_FORTUNA_KEY) return <button type="button" className="inventory-item inventory-stella-card contextual-card violet" disabled={!owned} onClick={onUseStella}>
     <span className="item-icon violet" aria-hidden="true"><span className="item-icon-glyph">{owned ? '✦' : '?'}</span></span><span className="inventory-card-copy"><strong>{entry.item.displayName}</strong><p>{entry.item.description ?? 'Renforce un personnage 5★ possédé.'}</p></span><span className="item-amount">× {formatResourceAmount(entry.item.quantity)}</span><span className="inventory-card-action">Utiliser →</span>
   </button>
-  return <InventoryObjectCard item={entry.item} onSelect={() => onSelectItem(entry.item)} />
+  return <InventoryObjectCard item={entry.item} compact={compactCollection} onSelect={() => onSelectItem(entry.item)} />
 }
 
 function ResourceIcon({ resource }: { resource: InventoryResourceDto }) {
@@ -318,3 +318,4 @@ function emptyTitle(category: InventoryCategory) { return category === 'collecti
 function emptyDetail(category: InventoryCategory) { return category === 'collection' ? 'Les éléments de collection connus apparaîtront ici.' : category === 'objects' ? 'Vos objets actifs apparaîtront ici.' : 'Le serveur ne retourne actuellement aucune entrée.' }
 
 export default InventoryScreen
+import '../inventory/inventory-layout.css'
