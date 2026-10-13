@@ -1,0 +1,18 @@
+.event-screen > .event-screen-header { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 2fr); align-items: center; gap: 14px; height: auto; padding: 14px 18px; }
+.event-screen-header .event-title { min-width: 0; }
+.event-screen-header .event-title h1 { font-size: clamp(20px, 1.8vw, 30px); }
+.event-screen-header .event-title p { font-size: 12px; line-height: 1.35; }
+.event-screen-header .event-milestone-progress { min-width: 0; padding: 8px; }
+.event-screen-header .event-milestone-track-scroll { min-width: 0; overflow: visible; }
+.event-screen-header .event-milestone-track { min-width: 0; }
+.event-screen-header .event-milestone-marker { min-width: 0; }
+.event-screen-header .event-milestone-marker small { font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+@media (max-width: 1600px) {
+  .event-screen > .event-screen-header { grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 14px; }
+  .event-screen-header .event-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px 12px; }
+  .event-screen-header .event-title p { margin: 0; }
+}
+@media (max-width: 650px) {
+  .event-screen-header .event-milestone-track-scroll { overflow-x: auto; }
+  .event-screen-header .event-milestone-track { min-width: 560px; }
+}

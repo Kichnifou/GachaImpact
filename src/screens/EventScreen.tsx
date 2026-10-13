@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
-import ScreenHeader from '../components/ScreenHeader'
+import EventScreenHeader from '../event/EventScreenHeader'
 import AppButton from '../components/AppButton'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerQuickSearch from '../components/PlayerQuickSearch'
@@ -49,13 +49,6 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
 const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
 const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
-const milestonePreferenceKey = (playerId: string) => `gachaimpact:event:milestones-collapsed:${playerId}`
-const readMilestonePreference = (playerId: string) => {
-  try { return window.localStorage.getItem(milestonePreferenceKey(playerId)) === 'true' } catch { return false }
-}
-const saveMilestonePreference = (playerId: string, collapsed: boolean) => {
-  try { window.localStorage.setItem(milestonePreferenceKey(playerId), String(collapsed)) } catch { /* Keep the choice for this mounted screen. */ }
-}
 
 function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Math.ceil(durationMs / 1000)))
@@ -109,7 +102,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
   const [recipientBrowserOpen, setRecipientBrowserOpen] = useState(false)
-  const [milestonePreference, setMilestonePreference] = useState(() => ({ playerId: sessionUserId, collapsed: readMilestonePreference(sessionUserId) }))
   const [selectedRecipient, setSelectedRecipient] = useState<EventGameCRecipientsDto['recipients'][number] | null>(null)
   const [recipientSearchText, setRecipientSearchText] = useState('')
   const [gameCMessage, setGameCMessage] = useState('')
@@ -360,22 +352,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
 
   const presentation = eventPresentation(value.festival.key)
   const expiredToday = eventGameAExpiredToday(value)
-  const milestonesCollapsed = presentationMode.active && presentationMode.step?.id === "event-milestones" ? false : milestonePreference.playerId === sessionUserId ? milestonePreference.collapsed : readMilestonePreference(sessionUserId)
-  const toggleMilestones = () => {
-    const next = !milestonesCollapsed
-    setMilestonePreference({ playerId: sessionUserId, collapsed: next })
-    saveMilestonePreference(sessionUserId, next)
-  }
-  const milestoneProgress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   const tabs = <>
-    <section data-tutorial-anchor="event-milestones" className={`event-milestone-progress${milestonesCollapsed ? ' collapsed' : ''}`} aria-label="Progression du Festival">
-      {milestonesCollapsed && <button type="button" className="event-milestone-hit-area" aria-label="Afficher les paliers depuis le bandeau" aria-expanded="false" aria-controls="event-milestone-track" onClick={toggleMilestones} />}
-      <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span><button type="button" aria-expanded={!milestonesCollapsed} aria-controls="event-milestone-track" onClick={toggleMilestones}>{milestonesCollapsed ? 'Afficher les paliers' : 'Rétracter les paliers'}</button></div>
-      <div id="event-milestone-track" className="event-milestone-track-scroll" hidden={milestonesCollapsed}><div className="event-milestone-track">
-        <span className="event-milestone-fill" role="progressbar" aria-label="Paliers du Festival" aria-valuemin={0} aria-valuemax={80} aria-valuenow={Math.min(80, value.milestones.currentPoints)} style={{ width: `${milestoneProgress}%` }} />
-        {value.milestones.thresholds.map((threshold) => <div className={`event-milestone-marker${threshold.rewarded ? ' rewarded' : threshold.reached ? ' reached' : ''}`} key={threshold.points}><span aria-hidden="true">◆</span><strong>{threshold.points}</strong><small>{threshold.rewardLabel}</small></div>)}
-      </div></div>
-    </section>
     <nav className="activity-inner-tabs event-tabs" aria-label="Sections Événement">
       <button type="button" className={section === 'registration' ? 'active' : ''} aria-current={section === 'registration' ? 'page' : undefined} onClick={() => setSection('registration')}>Général</button>
       <button type="button" className={section === 'games' ? 'active' : ''} aria-current={section === 'games' ? 'page' : undefined} disabled={!value.participation.joined && !value.gameC.available} onClick={() => { setGameTab(value.participation.joined ? 0 : 2); setSection('games') }}>Jeux</button>
@@ -390,7 +367,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
   return <div data-business-pending={pending || shopPending} className="screen-content activity-shell event-screen long-screen-layout">
-    <ScreenHeader eyebrow="Activités · Événement" title={value.festival.title} description={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
+    <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
       {section === 'registration' && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
         <div className="event-hero-symbol" aria-hidden="true">{value.festival.emoji}</div>
