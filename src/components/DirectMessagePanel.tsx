@@ -182,7 +182,12 @@ export default function DirectMessagePanel({
   const restoration=useDestinationRestoration();
   const [appliedRestoration,setAppliedRestoration]=useState(restoration);
   const restoring=hasDestination&&restoration!==appliedRestoration;
-  useLayoutEffect(()=>{if(!restoring)return;setAppliedRestoration(restoration);setView(mailbox);setSelectedId(null);setTarget(null);setProvisional(null);setMenuOpen(false);setConfirmBlock(false);setListMenuId(null);setListBlockTarget(null)},[restoring,restoration,mailbox]);
+  useLayoutEffect(()=>{
+    if(!restoring)return;
+    // Browser Back/Forward is an explicit destination too: an older lookup cannot reopen its thread.
+    cancelOpenIntent(); leaveComposerSession();
+    setAppliedRestoration(restoration);setView(mailbox);setSelectedId(null);setTarget(null);setProvisional(null);setMenuOpen(false);setConfirmBlock(false);setListMenuId(null);setListBlockTarget(null)
+  },[restoring,restoration,mailbox]);
   const destinationView=hasDestination&&(restoring||normalView==='list'||normalView==='archives')?mailbox:normalView;
   const selectedId = restoring?null:guidedView === "conversation" || guidedView === "history" ? guidedId : normalSelectedId;
   const view = guidedView && ((guidedView !== "conversation" && guidedView !== "history") || guidedId) ? guidedView : guidedView ? "list" : destinationView;

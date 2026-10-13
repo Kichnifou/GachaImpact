@@ -8,12 +8,30 @@ const chat = vi.hoisted(() => ({ messages: vi.fn(), unread: vi.fn(), read: vi.fn
 vi.mock('../api/game-api', () => ({ ApiError: class extends Error {}, getGameApiClient: () => ({ directMessages, chat }) }))
 import ChatPanel from './ChatPanel'
 import DirectMessagePanel from './DirectMessagePanel'
+import { DestinationContext } from '../navigation/destination-context'
+import { DestinationHistory } from '../navigation/destination-history'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const own = '11111111-1111-4111-8111-111111111111', active = '77777777-7777-4777-8777-777777777777'
 const old: DirectConversationDto = { id: '88888888-8888-4888-8888-888888888888', other: { id: '66666666-6666-4666-8666-666666666666', displayName: 'Ancien profil archivé', elementKey: null }, archived: false, lastMessageAt: null, lastMessage: null, request: null, unreadCount: 0, readReceiptsEnabled: true, canSend: false, blockedByMe: false }
 const roots: ReturnType<typeof createRoot>[] = []
 beforeEach(() => { vi.clearAllMocks(); sessionStorage.clear(); chat.messages.mockResolvedValue({ messages: [], nextCursor: null, generation: 0 }); chat.unread.mockResolvedValue({ unreadCount: 0, generation: 0 }); directMessages.unread.mockResolvedValue({ unreadCount: 0 }); directMessages.messages.mockResolvedValue({ messages: [], nextCursor: null }); directMessages.players.mockResolvedValue({ players: [] }); directMessages.list.mockImplementation(async (archived: boolean) => ({ conversations: archived ? [] : [old] })) })
 afterEach(() => { act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
+it('cancels a pending explicit target when browser history restores the mailbox', async () => {
+  directMessages.list.mockResolvedValue({ conversations: [] });
+  const host = document.createElement('div'); document.body.append(host); const root = createRoot(host); roots.push(root)
+  const history = new DestinationHistory(own, { screen: 'home', tabs: { communityPanel: 'direct', directMailbox: 'list' } })
+  const consumed = vi.fn(), unread = vi.fn(), intent = { playerId: active, token: 'external-history', player: { id: active, displayName: 'Cible explicite', elementKey: null } }
+  const render = (target: typeof intent | null) => root.render(<DestinationContext.Provider value={{ history, disabled: false, onTab: () => undefined }}><DirectMessagePanel playerId={own} isActive intent={target} onIntentConsumed={consumed} onUnreadChange={unread} onOpenProfile={() => undefined} /></DestinationContext.Provider>)
+  await act(async () => render(null))
+  const pending: (() => void)[] = []
+  directMessages.list.mockImplementation(() => new Promise(resolve => pending.push(() => resolve({ conversations: [] }))))
+  await act(async () => render(intent))
+  await act(async () => { history.native({ screen: 'home', tabs: { communityPanel: 'direct', directMailbox: 'archives' } }); render(intent) })
+  await act(async () => pending.splice(0).forEach(resolve => resolve()))
+  expect(consumed).toHaveBeenCalledWith('external-history')
+  expect(host.querySelector('#dm-message')).toBeNull()
+  expect(host.querySelector('.dm-thread-header')?.textContent ?? '').not.toContain('Cible explicite')
+})
 it.each([false, true])('opens the explicit active Profile destination after tab activation; existing pair=%s', async existing => {
   const host = document.createElement('div'); document.body.append(host); const root = createRoot(host); roots.push(root)
   const consumed = vi.fn(), noop = () => undefined
