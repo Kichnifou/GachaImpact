@@ -1,0 +1,8 @@
+.contest-body > .contest-empty { align-content: space-evenly; grid-template-rows: auto auto; gap: clamp(20px, 4vh, 60px); padding: clamp(20px, 4vh, 48px) 18px; }
+.contest-empty > .contest-empty-intro, .contest-empty > .contest-empty-actions { width: 100%; min-width: 0; display: grid; justify-items: center; gap: 14px; }
+.contest-empty > .contest-empty-intro { max-width: 580px; }
+.contest-empty > .contest-empty-actions { max-width: 360px; }
+.contest-empty .contest-empty-actions > label { width: 100%; }
+@media (max-height: 600px), (max-width: 760px) {
+  .contest-body > .contest-empty { min-height: 300px; gap: 24px; padding-block: 24px; }
+}

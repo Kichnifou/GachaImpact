@@ -7,6 +7,7 @@ import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/f
 import CharacterAssetImage from '../components/CharacterAssetImage'
 import AppButton, { type AppButtonVariant } from '../components/AppButton'
 import ModalCloseButton from '../components/ModalCloseButton'
+import '../contest/contest-empty-layout.css'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { useModalDialog } from '../components/useModalDialog'
@@ -217,11 +218,11 @@ function useLatestScoreFeedback(contest: ContestSnapshotDto | null): ScoreFeedba
 
 function ContestEmpty({ value, selectedLegendId, onSelect, pending, onOpen }: { value: ContestDto; selectedLegendId: string; onSelect: (id: string) => void; pending: string | null; onOpen: () => void }) {
   const loading = pending?.startsWith('open:') ?? false
-  return <section className="panel contest-empty"><span className="contest-theme-glyph" aria-hidden="true">✦</span><h2>Aucun Concours actif</h2><p>Ouvrez un lobby et devenez son premier participant.</p>
+  return <section className="panel contest-empty"><div className="contest-empty-intro"><span className="contest-theme-glyph" aria-hidden="true">✦</span><h2>Aucun Concours actif</h2><p>Ouvrez un lobby et devenez son premier participant.</p></div><div className="contest-empty-actions">
     {value.legends.length > 0 ? <LegendSelect legends={value.legends} theme={value.theme} value={selectedLegendId} onChange={onSelect} disabled={Boolean(pending)} /> : <p className="contest-empty-note">Une Légende 5★ C6 active est nécessaire pour participer.</p>}
     {value.dailyUsed && <p className="contest-empty-note">Votre participation quotidienne est déjà utilisée.</p>}
     <AppButton variant="primary" className="contest-mutation-button" disabled={!value.permissions.canOpen || Boolean(pending) || !selectedLegendId} aria-busy={loading} onClick={onOpen}>{loading ? 'Ouverture…' : 'Ouvrir un lobby'}</AppButton>
-  </section>
+  </div></section>
 }
 
 function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLegendId: string; onSelect: (id: string) => void; pending: string | null; run: Runner; now: number }) {
