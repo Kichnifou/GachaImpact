@@ -40,7 +40,7 @@ function ShopScreen({ initialShop, refreshToken = 0, onLoad, onLoadHistory, onOp
 
   if (!shop) return <div className="screen-content shop-screen"><section data-tutorial-state={!error ? "loading" : undefined} data-tutorial-anchor={error ? "screen-entry" : undefined} className="panel shop-status" role={error ? 'alert' : 'status'}><strong>{error ?? 'Ouverture de la Boutique…'}</strong>{error && <button type="button" onClick={() => void load()}>Réessayer</button>}</section></div>
 
-  return <div data-business-pending={Boolean(pendingItemId)} className="screen-content shop-screen long-screen-layout">
+  return <div data-business-pending={Boolean(pendingItemId)} data-fit-screen className="screen-content shop-screen long-screen-layout">
     <ScrollableScreenPanel className="shop-screen-panel" bodyClassName="shop-scroll-body" fixed={<>
       <header className="shop-hero"><div><span className="eyebrow">Échanges astraux</span><h1 data-tutorial-anchor="screen-entry">Boutique</h1><p>Le catalogue et chaque transaction sont validés par le serveur.</p></div><button type="button" data-tutorial-anchor="shop-wallet" className="shop-wallet" onClick={onNavigateBank} aria-label={`Ouvrir la Banque — portefeuille ${formatResourceAmount(shop.resources.moras)} Moras`}><GameAssetIcon className="shop-wallet-icon" src={currencyAssetPaths.mora} fallback="●" /><span>Portefeuille</span><strong>{formatResourceAmount(shop.resources.moras)} Moras</strong></button></header>
       <div className="shop-feedback-slot" aria-live="polite">{error ? <span className="error" role="alert">{error}</span> : feedback ? <span>{feedback}</span> : <span aria-hidden="true">&nbsp;</span>}</div>
@@ -118,3 +118,4 @@ function formatProbability(basisPoints: number) { return `${new Intl.NumberForma
 function formatPurchaseDate(value: string) { return new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value)) }
 
 export default ShopScreen
+import '../shop/shop-layout.css'
