@@ -9,6 +9,47 @@ import { chatNumber } from './chat-command-format.js';
 export const c6StatNames = { strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' } as const;
 export const characterLabel = (character: { name: string; elementKey: string }) => `${isElementKey(character.elementKey) ? chatElementEmojis[character.elementKey] + ' ' : ''}${character.name}`;
 
+/** Standalone only. Principal credits + bonusRewards are disjoint authoritative receipts.
+ * passiveEffects repeats some credits: only XP (not in bonusRewards) and non-monetary
+ * facts are read there. Neither current balances nor operation cost enter the sums. */
+export function standalonePullSummary(result: GachaPullResult): { text: string; facts: string[] } {
+  const gains = new Map<string, bigint>(), facts: string[] = [];
+  const add = (key: string, amount: bigint) => { if (amount !== 0n) gains.set(key, (gains.get(key) ?? 0n) + amount); };
+  let pity = 0, captures = 0, backToBack = 0, maxed = 0, guarantees = 0, won = 0, lost = 0, early = 0;
+  const levels = new Set<number>(); let overflow = 0;
+  for (const row of result.results) {
+    if (row.resourceKey && row.resourceAmount != null) add(row.resourceKey, row.resourceAmount);
+    for (const reward of row.bonusRewards) add(reward.resourceKey, reward.amount);
+    for (const effect of row.passiveEffects) {
+      if (effect.type === 'xp') { add('xp', effect.amount); effect.levelsReached.forEach(level => levels.add(level)); overflow += effect.overflowRewardsGranted; }
+      if (effect.type === 'pity5') pity += effect.amount;
+    }
+    if (row.captureTriggered) captures++;
+    if (row.backToBack) backToBack++;
+    if (row.guaranteeConsumed) guarantees++;
+    if (row.wasFiftyFifty) { if (row.wonFiftyFifty) won++; else lost++; }
+    if (row.rarity === 5 && row.pity5AtPull != null && row.pity5AtPull >= 2 && row.pity5AtPull <= 35) early++;
+    if (row.c6Progression?.type === 'stat') facts.push(`🌟 ${row.character?.name ?? 'Personnage'} : +1 ${c6StatNames[row.c6Progression.stat]} (${row.c6Progression.valueAfter}/20)`);
+    if (row.c6Progression?.type === 'maxed') maxed++;
+  }
+  if (pity) facts.push(`⚡ +${pity} pity 5★`);
+  if (captures) facts.push(`✨ Capture de Brillance ×${captures}`);
+  if (backToBack) facts.push(`💥 Back-to-back ×${backToBack}`);
+  if (guarantees) facts.push(`🎯 Garantie utilisée ×${guarantees}`);
+  if (won || lost || early) facts.push([won ? `50/50 gagné ×${won}` : '', lost ? `50/50 perdu ×${lost}` : '', early ? `🔥 Early ×${early}` : ''].filter(Boolean).join(' · '));
+  if (maxed) facts.push(`🌟 Stats C6 au maximum ×${maxed} · compensations incluses`);
+  const sortedLevels = [...levels].sort((a,b) => a-b);
+  for (let i = 0; i < sortedLevels.length; i += 30) facts.push(`Niveaux atteints : ${sortedLevels.slice(i, i + 30).join(', ')}`);
+  if (overflow) facts.push(`Bonus niveau 100 ×${overflow}`);
+  const gainText = [...gains].map(([key, amount]) => {
+    const element = key.replace(/^particles_/u, '');
+    return key === 'moras' ? `+💰 ${chatNumber(amount)} Moras` : key === 'primogems' ? `+💎 ${chatNumber(amount)} Primos` : key === 'xp' ? `+✨ ${chatNumber(amount)} XP` : isElementKey(element) ? `+${chatElementEmojis[element]} ${chatNumber(amount)} particules ${chatElementNames[element]}` : `+${chatNumber(amount)} ${key}`;
+  });
+  const prefix = `🎲 Invocation ×${result.operation.pullCount}`;
+  const text = gainText.length ? `${prefix} | ${gainText.join(' | ')}` : `${prefix} · ${result.results.filter(row => row.character).length} personnage(s) obtenu(s).`;
+  return chatLength(text) <= 500 ? { text, facts } : { text: `${prefix} · Gains détaillés ci-dessous.`, facts: [...gainText, ...facts] };
+}
+
 /** Presentation uses the recorded transaction, including each gain and triggered passive. */
 export function pullChatResult(actorName: string, result: GachaPullResult): readonly string[] {
   return result.results.flatMap(row => {

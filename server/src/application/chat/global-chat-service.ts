@@ -18,7 +18,7 @@ import { scopesForOperation, type ChatRefreshScope } from './chat-refresh-scopes
 import { PermanentMissionService } from '../missions/permanent-mission-service.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 import { freeBadgeSymbol } from '../appearance/badges.js';
-import { isStructuredChatResult, type StructuredChatResult } from '../../domain/chat/structured-result.js';
+import { isStructuredChatResult, structuredResultByteLimit, type StructuredChatResult } from '../../domain/chat/structured-result.js';
 import { ClaimDailyReward } from '../daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from '../../infrastructure/database/prisma-daily-reward-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
@@ -385,7 +385,7 @@ export class GlobalChatService {
   async freezeCommandResult(commandMessageId: string, proposed: FrozenChatResult): Promise<FrozenChatResult> {
     const parts = typeof proposed.content === 'string' ? [proposed.content] : proposed.content;
     if (!parts.length || parts.some(part => !part || Array.from(part).length > 500 || /[\r\n\u2028\u2029]/u.test(part))) throw invalid('Résultat Chat invalide.');
-    if (proposed.presentation && (!isStructuredChatResult(proposed.presentation) || proposed.presentation.source.commandMessageId !== commandMessageId || Buffer.byteLength(JSON.stringify(proposed.presentation)) > 16_384)) throw invalid('Présentation Chat invalide.');
+    if (proposed.presentation && (!isStructuredChatResult(proposed.presentation) || proposed.presentation.source.commandMessageId !== commandMessageId || Buffer.byteLength(JSON.stringify(proposed.presentation)) > structuredResultByteLimit(proposed.presentation.command))) throw invalid('Présentation Chat invalide.');
     return this.database.$transaction(async tx => {
       const rows = await tx.$queryRaw<{ result_summary: ChatOperationSummary; operation_id: string }[]>`
         SELECT o.result_summary, m.operation_id FROM business_operations o JOIN global_chat_messages m ON m.operation_id = o.id

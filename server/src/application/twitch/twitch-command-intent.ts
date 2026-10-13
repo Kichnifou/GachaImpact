@@ -21,6 +21,7 @@ export const commandMutations = [
 ] as const;
 const mutations = new Set<string>(commandMutations);
 const reads = new Set([
+  'activityService.todayNames',
   'getCurrentGacha.execute', 'getCharacters.execute', 'bannerVotes.getCurrent', 'getCurrentPlayerBox.execute',
   'getCurrentPlayerTeams.execute', 'getCurrentPlayerInventory.execute', 'getCurrentPlayerBank.execute', 'getCurrentPlayerShop.execute',
   'socialService.actor', 'socialService.directory', 'socialService.connected', 'socialService.profile', 'socialService.favor', 'socialService.legends', 'socialService.friends',

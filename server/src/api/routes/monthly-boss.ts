@@ -73,6 +73,7 @@ function serializeView(view: MonthlyBossView) {
     availableCharacters: view.availableCharacters.map(serializeCharacter),
     preview: view.preview ? { totalDamage: view.preview.totalDamage.toString(), contributions: view.preview.contributions.map((item) => ({ ...item, damageBeforeResistance: item.damageBeforeResistance.toString(), damage: item.damage.toString() })) } : null,
     reward: { primogems: view.reward.primogems.toString(), moras: view.reward.moras.toString() },
+    receivedReward: view.receivedReward ? { primogems: view.receivedReward.primogems.toString(), moras: view.receivedReward.moras.toString() } : null,
     participation: view.participation ? { ...view.participation, totalDamage: view.participation.totalDamage.toString(), attackCount: view.participation.attackCount.toString(), bestHit: view.participation.bestHit.toString(), contributionBasisPoints: view.participation.contributionBasisPoints.toString() } : null,
     ranking: view.ranking.map(serializeRanking),
     defeatedSummary: view.defeatedSummary ? serializeSummary(view.defeatedSummary) : null,

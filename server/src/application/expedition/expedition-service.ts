@@ -17,8 +17,8 @@ import { PermanentMissionService } from '../missions/permanent-mission-service.j
 const MAX_ATTEMPTS = 4;
 const characterSelect = { id: true, externalKey: true, name: true, rarity: true, elementKey: true, weaponType: true, region: true, iconPath: true, splashPath: true, wishPath: true, fullbodyPath: true } as const;
 type Client = PrismaClient | Prisma.TransactionClient;
-export type ExpeditionCommandSnapshot = { character: { id: string; name: string; iconPath: string | null; rarity: number }; departedAt: string | null; readyAt: string | null; balanceAfter?: string };
-const commandSnapshot = (character: ExpeditionCommandSnapshot['character'], departedAt: Date | null, readyAt: Date | null, balanceAfter?: string): ExpeditionCommandSnapshot => ({ character: { id: character.id, name: character.name, iconPath: character.iconPath, rarity: character.rarity }, departedAt: departedAt?.toISOString() ?? null, readyAt: readyAt?.toISOString() ?? null, ...(balanceAfter ? { balanceAfter } : {}) });
+export type ExpeditionCommandSnapshot = { character: { id: string; name: string; iconPath: string | null; rarity: number; elementKey?: string }; departedAt: string | null; readyAt: string | null; balanceAfter?: string };
+const commandSnapshot = (character: ExpeditionCommandSnapshot['character'], departedAt: Date | null, readyAt: Date | null, balanceAfter?: string): ExpeditionCommandSnapshot => ({ character: { id: character.id, name: character.name, iconPath: character.iconPath, rarity: character.rarity, ...(character.elementKey ? { elementKey: character.elementKey } : {}) }, departedAt: departedAt?.toISOString() ?? null, readyAt: readyAt?.toISOString() ?? null, ...(balanceAfter ? { balanceAfter } : {}) });
 
 export type ExpeditionView = Readonly<{
   businessDate: string;

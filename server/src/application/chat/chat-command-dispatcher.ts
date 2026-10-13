@@ -5,6 +5,7 @@ import { PlayerCommandResolver, type ChatCommandServices } from './player-comman
 import { appendCommandFeedback } from './command-mission-feedback.js';
 import { graphicalCommands, isStructuredChatResult, type StructuredChatResult } from '../../domain/chat/structured-result.js';
 import { parseChatCommand } from './chat-command-registry.js';
+import { chatLength } from './chat-list-result.js';
 export type { ChatCommandServices } from './player-command-resolver.js';
 const oneLine = (value: string) => value.replace(/[\r\n\u2028\u2029]/gu, ' ').trim();
 
@@ -26,12 +27,30 @@ export class ChatCommandDispatcher {
     let presentation: StructuredChatResult | null = null;
     const response = await new PlayerCommandResolver(this.chat, this.services, 'INTERNAL_CHAT', (value, operationId) => {
       const candidate = { ...value, version: 1 as const, source: { channel: 'INTERNAL_CHAT' as const, commandMessageId: sent.message.id, ...(operationId ? { operationId } : {}) } };
-      if (isStructuredChatResult(candidate)) presentation = candidate;
+      if (!isStructuredChatResult(candidate)) return false;
+      presentation = candidate;
+      return true;
     }).resolve(identity, sent.message.content!, sent.message.id);
     const missions = await this.chat.commandMissionCompletions(sent.message.id);
     // Legacy free text keeps its established splitting before feedback becomes bounded parts.
     const parts = appendCommandFeedback(typeof response === 'string' ? splitGameResult(oneLine(response)) : response.map(oneLine), missions.map(oneLine), 500);
-    const resultContent = typeof response === 'string' && parts.length === 1 ? parts[0]! : parts;
+    // A consolidated Pull has exactly one durable GAME_RESULT. Overflow feedback
+    // is preserved in bounded structured facts, never published as extra pulls.
+    let resultContent: string | readonly string[] = typeof response === 'string' && parts.length === 1 ? parts[0]! : parts;
+    const rendered = presentation as StructuredChatResult | null;
+    if (rendered?.command === 'pull' && rendered.compact && typeof response === 'string') {
+      if (parts.length === 1) resultContent = parts[0]!;
+      else {
+        const feedback = missions.flatMap(message => {
+          const points = Array.from(oneLine(message));
+          return Array.from({ length: Math.ceil(points.length / 300) }, (_, i) => points.slice(i * 300, (i + 1) * 300).join(''));
+        });
+        const complete = { ...rendered, facts: [...rendered.facts, ...feedback] };
+        if (chatLength(response) > 500 || !isStructuredChatResult(complete)) throw new AppError('Résultat d’invocation trop volumineux.', 500, 'CHAT_RESULT_INVALID');
+        presentation = complete;
+        resultContent = response;
+      }
+    }
     const snapshot = graphical ? await this.chat.freezeCommandResult(sent.message.id, { content: resultContent, presentation }) : { content: resultContent, presentation: null };
     const published = snapshot.presentation ? await this.chat.publishGameResult(sent.message.id, snapshot.content, snapshot.presentation) : await this.chat.publishGameResult(sent.message.id, snapshot.content);
     return { ...sent, refreshScopes: await this.chat.commandRefreshScopes(sent.message.id), result: published.message, results: published.messages };

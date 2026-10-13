@@ -15,7 +15,9 @@ describe('shared player command core', () => {
       const standalone = await f.send(command);
       const result = await resolvePlayerCommand(verifiedPlayerActor(player), handler as PlayerCommandHandler, handler === 'pull' ? ['1'] : [], command, commandId,
         f.services as unknown as PlayerCommandServices);
-      expect((typeof result === 'string' ? [result] : result)[0]).toBe(standalone);
+      if (handler === 'banniere') expect(standalone).toBe('🎯 Bannières (28/09 → 04/10)');
+      else if (handler === 'pull') expect(standalone).toContain('Invocation ×1');
+      else expect((typeof result === 'string' ? [result] : result)[0]).toBe(standalone);
       const published = f.chat.publishGameResult.mock.calls.length;
       await resolvePlayerCommand(verifiedPlayerActor(player), handler, handler === 'pull' ? ['1'] : [], command, commandId, f.services as unknown as PlayerCommandServices);
       expect(f.chat.publishGameResult.mock.calls).toHaveLength(published);

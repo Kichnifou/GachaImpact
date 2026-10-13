@@ -37,10 +37,10 @@ beforeEach(async () => {
 afterAll(() => fixture.cleanup(), 60_000);
 
 describe('Daily activity on isolated PostgreSQL', () => {
-  it('has 80 normal finished migrations, private tables, checks and indexed uniqueness', async () => {
+  it('has 81 normal finished migrations, private tables, checks and indexed uniqueness', async () => {
     expect(fixture.migrationStatus).toContain('up to date');
     const rows = await database.$queryRaw<{ n: bigint }[]>`SELECT count(*) n FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL`;
-    expect(Number(rows[0]!.n)).toBe(80);
+    expect(Number(rows[0]!.n)).toBe(81);
     const protections = await database.$queryRaw<{ relname: string; relrowsecurity: boolean; anon: boolean; authenticated: boolean }[]>`SELECT c.relname, c.relrowsecurity,
       has_table_privilege('anon', c.oid, 'SELECT,INSERT,UPDATE,DELETE') anon,
       has_table_privilege('authenticated', c.oid, 'SELECT,INSERT,UPDATE,DELETE') authenticated
@@ -75,11 +75,11 @@ describe('Daily activity on isolated PostgreSQL', () => {
     expect(history.entries.slice(0, 3)).toEqual([
       { date: '2026-10-13', today: true, status: 'COVERED', count: 0 },
       { date: '2026-10-12', today: false, status: 'PARTIAL', count: 0 },
-      { date: '2026-10-11', today: false, status: 'UNAVAILABLE', count: null },
     ]);
     await record(alice, 'APPLICATION');
     expect((await service().history(1)).entries[0]!.count).toBe(1);
-    expect((await service().history(1_000_000)).entries.every(row => row.count === null)).toBe(true);
+    expect(await service().history(1_000_000)).toMatchObject({ page: 1, total: 2, totalPages: 1 });
+    expect((await service().history(1_000_000)).entries).toHaveLength(2);
   });
   it('counts protected activity in aggregates without exposing names or web usage to Twitch', async () => {
     await record(alice, 'APPLICATION'); await record(bob, 'TWITCH');
@@ -108,6 +108,50 @@ describe('Daily activity on isolated PostgreSQL', () => {
     const names = await service().todayNames(alice, 'TWITCH');
     expect(names).toEqual(players.map(player => player.displayName));
     expect(new Set(names).size).toBe(205);
+  });
+  it('starts exactly at actual collection, clamps pagination and retains the first partial day', async () => {
+    await database.activityCoverage.update({ where: { id: 'daily-v1' }, data: { startedAt: new Date('2026-10-13T07:21:41.282Z') } });
+    expect(await service().history(99)).toMatchObject({ page: 1, total: 1, totalPages: 1, entries: [{ date: '2026-10-13', status: 'PARTIAL', count: 0 }] });
+    for (const range of ['5d', '10d', '1m', '3m', '6m', '1y', '2y', '5y', 'all'] as const) {
+      expect((await service().statistics(range)).entries).toEqual([{ date: '2026-10-13', today: true, count: 0 }]);
+    }
+    await expect(service().dayNames(alice, '2026-10-12')).rejects.toMatchObject({ code: 'ACTIVITY_DATE_INVALID' });
+    await expect(service().dayNames(alice, '2026-10-14')).rejects.toMatchObject({ code: 'ACTIVITY_DATE_INVALID' });
+  });
+  it('keeps covered zeroes and exact all-channel aggregates across calendar pages and statistics', async () => {
+    await database.activityCoverage.update({ where: { id: 'daily-v1' }, data: { startedAt: new Date('2026-09-20T22:00:00Z') } });
+    await record(alice, 'TWITCH'); await record(alice, 'APPLICATION'); await record(bob, 'INTERNAL_CHAT');
+    const last = await service().history(500);
+    expect(last).toMatchObject({ page: 3, total: 23, totalPages: 3 });
+    expect(last.entries).toHaveLength(3);
+    expect(last.entries.at(-1)?.date).toBe('2026-09-21');
+    const stats = await service().statistics('all');
+    expect(stats.entries).toHaveLength(23);
+    expect(stats.entries.at(-1)?.count).toBe(2);
+    expect(stats.entries.slice(0, -1).every(day => day.count === 0)).toBe(true);
+  });
+  it('filters historical names while keeping global aggregate totals and no mutation on reads', async () => {
+    await record(alice, 'APPLICATION'); await record(bob, 'TWITCH'); await record(privateId, 'TWITCH'); await record(friendsId, 'TWITCH');
+    expect(await service().dayNames(alice, '2026-10-13')).toMatchObject({ total: 4, visibleTotal: 2, nextCursor: null });
+    expect((await service().dayNames(alice, '2026-10-13')).names.sort()).toEqual(['Éloïse 🌙', '長い名前'].sort());
+    await database.playerBlock.create({ data: { blockerPlayerId: bob, blockedPlayerId: alice } });
+    expect((await service().dayNames(alice, '2026-10-13')).names).toEqual(['Éloïse 🌙']);
+    expect((await service().statistics('10d')).entries.at(-1)?.count).toBe(4);
+    expect(await database.playerDailyActivity.count()).toBe(4);
+  });
+  it('does not repeat Players when a name changes or activity arrives between bounded name batches', async () => {
+    const players = Array.from({ length: 101 }, (_, i) => ({ id: `11111111-1111-4111-8111-${(i + 1).toString(16).padStart(12, '0')}`, displayName: `Joueur ${i}` }));
+    await database.player.createMany({ data: players });
+    await database.playerDailyActivity.createMany({ data: players.map(p => ({ playerId: p.id, businessDate: new Date('2026-10-13T00:00:00Z'), twitch: true })) });
+    const first = await service().dayNames(alice, '2026-10-13');
+    expect(first.names).toHaveLength(100);
+    await database.player.update({ where: { id: players[0]!.id }, data: { displayName: 'ZZZ renommé' } });
+    const late = await database.player.create({ data: { id: '11111111-1111-4111-8111-000000000102', displayName: 'AAA arrivé' } });
+    await record(late.id, 'TWITCH');
+    const second = await service().dayNames(alice, '2026-10-13', first.nextCursor!);
+    expect(second.names).toEqual(['Joueur 100', 'AAA arrivé']);
+    expect(second.nextCursor).toBeNull();
+    expect(new Set([...first.names, ...second.names]).size).toBe(102);
   });
   it('excludes archived names while retaining historical anonymous counts', async () => {
     await record(bob, 'TWITCH');

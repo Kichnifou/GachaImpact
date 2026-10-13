@@ -10,7 +10,7 @@ describe('Chat command adapters', () => {
     const { services, send } = harness();
     services.activityService.todayNames.mockResolvedValue(['Éloïse 🌙', '長い名前']);
     const result = await send(command);
-    expect(result).toEqual('ℹ️ Actifs aujourd’hui (Paris) : Éloïse 🌙, 長い名前');
+    expect(result).toEqual('ℹ️ Actifs aujourd’hui : Éloïse 🌙, 長い名前');
     expect(services.activityService.todayNames).toHaveBeenCalledWith('self', 'INTERNAL_CHAT');
   });
   it('splits the complete active list between whole Unicode names', async () => {
@@ -21,7 +21,7 @@ describe('Chat command adapters', () => {
     const result = chat.publishGameResult.mock.calls[0]![1] as string[];
     expect(result.length).toBeGreaterThan(1);
     expect(result.every(part => Array.from(part).length <= 500)).toBe(true);
-    const reconstructed = result.flatMap(part => part.replace(/^ℹ️ Actifs aujourd’hui \((?:Paris|suite)\) : /, '').split(', '));
+    const reconstructed = result.flatMap(part => part.replace(/^ℹ️ Actifs aujourd’hui(?: \(suite\))? : /, '').split(', '));
     expect(reconstructed).toEqual(values);
   });
   it('publishes logical command parts and appends a Mission only when it fits intact', async () => {
@@ -39,7 +39,8 @@ describe('Chat command adapters', () => {
     current.banner.featuredFourStars = elements.slice(1).map((elementKey, index) => ({ id: `four-${index}`, name: `Quatre ${index}`, elementKey }));
     const before = structuredClone(current);
     const result = await send(command);
-    expect(result).toBe('🎯 Bannières (28/09 → 04/10) | ⭐⭐⭐⭐⭐ 🔥 Cinq 0, 💧 Cinq 1, ❄️ Cinq 2, ⚡ Cinq 3 | ⭐⭐⭐⭐ 💧 Quatre 0, ❄️ Quatre 1, ⚡ Quatre 2, 🌪️ Quatre 3, ☄️ Quatre 4, 🌿 Quatre 5 | 5★ ciblé : 🔥 Cinq 0');
+    expect(result).toBe('🎯 Bannières (28/09 → 04/10)');
+    expect((chat.publishGameResult.mock.calls[0] as unknown[])[2]).toMatchObject({ characters: [{ name: 'Cinq 0', label: 'Cible', elementKey: 'pyro' }, { name: 'Cinq 1' }, { name: 'Cinq 2' }, { name: 'Cinq 3' }], facts: ['⭐⭐⭐⭐ 💧 Quatre 0, ❄️ Quatre 1, ⚡ Quatre 2, 🌪️ Quatre 3, ☄️ Quatre 4, 🌿 Quatre 5'] });
     expect(Array.from(result!).length).toBeLessThanOrEqual(500);
     expect(chat.publishGameResult).toHaveBeenCalledTimes(1);
     expect(services.getCurrentGacha.execute).toHaveBeenLastCalledWith(actor);
@@ -50,10 +51,11 @@ describe('Chat command adapters', () => {
     expect(current).toEqual(before);
   });
   it.each([null, 'four', 'obsolete'])('instructs selection for missing or stale target %s', async target => {
-    const { services, send } = harness();
+    const { services, chat, send } = harness();
     const current = await services.getCurrentGacha.execute();
     current.playerState.selectedBannerCharacterId = target as never;
-    expect(await send('!banniere')).toBe('🎯 Bannières (28/09 → 04/10) | ⭐⭐⭐⭐⭐ 🔥 A | ⭐⭐⭐⭐ 💧 B | Utilise !select nom_du_perso pour choisir ton 5★ ciblé.');
+    expect(await send('!banniere')).toBe('🎯 Bannières (28/09 → 04/10)');
+    expect((chat.publishGameResult.mock.calls[0] as unknown[])[2]).toMatchObject({ facts: ['⭐⭐⭐⭐ 💧 B', 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.'] });
     expect(services.setGachaTarget.execute).not.toHaveBeenCalled();
   });
   it.each([
@@ -170,7 +172,7 @@ describe('Chat command adapters', () => {
 
   it('passes the durable command message ID to mutation owners and publishes one public answer', async () => {
     const { chat, services, send } = harness();
-    expect(await send('!pull 1')).toContain('Moi obtient ⭐⭐⭐⭐⭐');
+    expect(await send('!pull 1')).toContain('Invocation ×1');
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 1, commandId);
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);
@@ -364,12 +366,13 @@ describe('Chat command adapters', () => {
 
   it('lists every persisted Pull result for x10 without inventing a reward', async () => {
     const { services, chat, send } = harness();
-    services.performGachaPullChat.execute.mockResolvedValue({ operation: { primogemCost: 1_600n, pullCount: 10 }, results: Array.from({ length: 10 }, (_, index) => ({ index: index + 1, character: { name: `Personnage${index + 1}`, elementKey: 'hydro' }, rarity: 4, constellationAfter: 2, bonusRewards: [], passiveEffects: [] })) } as never);
+    services.performGachaPullChat.execute.mockResolvedValue({ operation: { primogemCost: 1_600n, pullCount: 10 }, results: Array.from({ length: 10 }, (_, index) => ({ index: index + 1, character: { id: `character-${index}`, name: `Personnage${index + 1}`, rarity: 4, elementKey: 'hydro' }, rarity: 4, constellationAfter: 2, bonusRewards: [], passiveEffects: [] })) } as never);
     await send('!pull 10');
-    const answer = (chat.publishGameResult.mock.calls[0]![1] as readonly string[]).join(' ');
-    expect(answer).toContain('Personnage1');
-    expect(answer).toContain('Personnage10');
-    expect(chat.publishGameResult.mock.calls[0]![1]).toHaveLength(10);
+    const answer = chat.publishGameResult.mock.calls[0]![1];
+    expect(typeof answer).toBe('string');
+    expect(answer).not.toMatch(/\[\d+\/10\]/u);
+    const graphic = (chat.publishGameResult.mock.calls[0] as unknown[])[2] as { characters: { name: string }[] };
+    expect(graphic.characters.map(c => c.name)).toEqual(Array.from({length: 10}, (_, i) => `Personnage${i+1}`));
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 10, commandId);
   });
 

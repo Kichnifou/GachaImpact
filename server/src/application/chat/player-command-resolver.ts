@@ -172,7 +172,7 @@ export class PlayerCommandResolver {
           if (args.length) return syntax('!actif');
           const actor = await this.services.socialService.actor(identity);
           const values = await this.services.activityService.todayNames(actor.id, this.sourceChannel === 'TWITCH' ? 'TWITCH' : 'INTERNAL_CHAT');
-          return values.length ? entryParts('Actifs aujourd’hui (Paris) :', values, 'Actifs aujourd’hui (suite) :', ', ') : 'Aucun joueur actif visible aujourd’hui (Paris).';
+          return values.length ? entryParts('Actifs aujourd’hui :', values, 'Actifs aujourd’hui (suite) :', ', ') : 'Aucun joueur actif visible aujourd’hui.';
         }
         case 'legende': {
           const actor = await this.services.socialService.actor(identity);
@@ -197,7 +197,7 @@ export class PlayerCommandResolver {
           const legend = view.data.legends.find(row => normalizePlayerSearch(row.character.name) === normalizePlayerSearch(characterName));
           if (!legend) return commandText('Légende introuvable parmi les personnages C6 accessibles.');
           const stats = legend.stats;
-          this.present?.({ command: 'legende', title: `Légende de ${target.displayName}`, characters: [resultCharacter(legend.character, { rarity: 5, constellation: 6 })], facts: [`Force ${stats.strength} · Intelligence ${stats.intelligence} · Beauté ${stats.beauty} · Charisme ${stats.charisma} · Popularité ${stats.popularity}`, `Concours ${legend.totals.contests} · victoires ${legend.totals.wins}`] });
+          this.present?.({ command: 'legende', title: `Légende de ${target.displayName}`, compact: true, characters: [resultCharacter(legend.character, { rarity: 5, constellation: 6 })], facts: [] });
           return entryParts(`🏆 ${characterLabel(legend.character)} :`, [`💪 Force ${stats.strength} · 🧠 Intelligence ${stats.intelligence} · ✨ Beauté ${stats.beauty} · 👑 Charisme ${stats.charisma} · 🎭 Popularité ${stats.popularity}`, `Concours ${legend.totals.contests}, victoires ${legend.totals.wins}`, ...Object.entries(legend.themes).map(([key, theme]) => `${({ strength: 'Force', intelligence: 'Intelligence', beauty: 'Beauté', charisma: 'Charisme', popularity: 'Popularité' } as Record<string, string>)[key.toLowerCase()] ?? 'Concours'} : ${theme.title ?? 'Sans titre'} (${theme.wins}/${theme.participations} victoires)`)], `🏆 ${legend.character.name} (suite) :`);
         }
         case 'top': {
@@ -241,9 +241,13 @@ export class PlayerCommandResolver {
           const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.id ?? '');
           if (!characterId) return `⚠️ Personnage 5★ introuvable sur la bannière. ${definition.syntax}.`;
           const disposition = await this.chat.rememberCommandText(commandMessageId, 'action', characterId === playerState.selectedBannerCharacterId ? 'already' : 'selected');
+          const selectedSnapshot = this.sourceChannel === 'INTERNAL_CHAT' && this.present
+            ? await this.chat.rememberCommandText(commandMessageId, 'eventContext', character ? JSON.stringify(resultCharacter(character, { label: 'Cible' })) : '') : null;
           await this.services.setGachaTarget.execute(identity, characterId, commandMessageId, this.sourceChannel);
           await this.chat.rememberCommandRefreshScopes(commandMessageId, ['gacha']);
-          const name = character?.id === characterId ? character.name : (await this.services.getCharacters.execute()).find(entry => entry.id === characterId)?.name ?? args.join(' ');
+          const selected = selectedSnapshot ? JSON.parse(selectedSnapshot) as ReturnType<typeof resultCharacter> : null;
+          if (selected) this.present?.({ command: 'select', title: 'Cible sélectionnée', compact: true, characters: [selected], facts: [] });
+          const name = selected?.name ?? (character?.id === characterId ? character.name : (await this.services.getCharacters.execute()).find(entry => entry.id === characterId)?.name ?? args.join(' '));
           return disposition === 'already' ? `⚠️ ${name} est déjà ciblé.` : `✅ Cible 5★ sélectionnée : ${name}. Utilise !pull pour invoquer.`;
         }
         case 'vote': {
@@ -254,21 +258,27 @@ export class PlayerCommandResolver {
           });
           if (!args.length) {
             const ranked = candidates.filter(entry => entry.voteCount > 0).sort((a,b) => b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'fr'));
-            const own = vote.ownVote ? catalog.find(c => c.id === vote.ownVote?.characterId) : null;
-            if (own) this.present?.({ command: 'vote', title: 'Votre vote à la commande', characters: [resultCharacter(own)], facts: [`${vote.candidates.find(c => c.characterId === own.id)?.voteCount ?? 0} vote(s)`] });
+            if (this.sourceChannel === 'INTERNAL_CHAT' && this.present && candidates.length && candidates.length <= 200 && candidates.length === vote.candidates.length) {
+              const accepted = this.present({ command: 'vote', title: 'Votes bannière', compact: true, characters: [...candidates].sort((a,b) => b.voteCount - a.voteCount || a.name.localeCompare(b.name, 'fr')).map(candidate => resultCharacter(catalog.find(c => c.id === candidate.characterId)!, { voteCount: candidate.voteCount })), facts: [] });
+              if (accepted !== false) return vote.canVote ? '🗳️ Votes bannière · !vote <nom du personnage 5★> pour voter.' : '🗳️ Votes bannière · vote déjà utilisé ou cycle terminé.';
+            }
             return ranked.length ? entryParts('🗳️ Votes bannière :', ranked.map(entry => `${entry.name} (${entry.voteCount} vote${entry.voteCount > 1 ? 's' : ''})`), '🗳️ Votes suite :') : '🗳️ Aucun vote enregistré pour cette semaine. Utilise !vote <nom du personnage 5★>.';
           }
           const character = named(candidates, args.join(' '), true);
           const characterId = await this.chat.rememberCommandText(commandMessageId, 'targetId', character?.characterId ?? '');
           const disposition = await this.chat.rememberCommandText(commandMessageId, 'action', JSON.stringify({ rotationId: vote.bannerRotationId, already: Boolean(vote.ownVote), name: character?.name ?? args.join(' ') }));
           const intent = disposition.startsWith('{') ? JSON.parse(disposition) as { rotationId: string; already: boolean; name?: string } : { rotationId: disposition, already: false };
-          if (intent.already) return `⚠️ Ton vote est déjà utilisé pour ${catalog.find(entry => entry.id === vote.ownVote?.characterId)?.name ?? 'cette semaine'}.`;
+          if (intent.already) {
+            const own = catalog.find(entry => entry.id === vote.ownVote?.characterId);
+            if (own) this.present?.({ command: 'vote', title: 'Vote déjà utilisé', compact: true, characters: [resultCharacter(own, { voteCount: vote.candidates.find(c => c.characterId === own.id)?.voteCount ?? 0 })], facts: [] });
+            return `⚠️ Ton vote est déjà utilisé pour ${own?.name ?? 'cette semaine'}.`;
+          }
           if (!characterId) return `⚠️ Candidat de vote introuvable ou ambigu. ${definition.syntax}.`;
           const voted = this.present
             ? await this.services.bannerVotes.vote(identity, characterId, intent.rotationId, this.sourceChannel, commandMessageId)
             : await this.services.bannerVotes.vote(identity, characterId, intent.rotationId, this.sourceChannel);
           const votedCharacter = voted.commandCharacter ?? catalog.find(c => c.id === characterId);
-          if (votedCharacter) this.present?.({ command: 'vote', title: 'Vote enregistré', characters: [resultCharacter(votedCharacter)], facts: [`${voted.candidates.find(c => c.characterId === characterId)?.voteCount ?? 0} vote(s) à la commande`] });
+          if (votedCharacter) this.present?.({ command: 'vote', title: 'Vote enregistré', compact: true, characters: [resultCharacter(votedCharacter, { voteCount: voted.candidates.find(c => c.characterId === characterId)?.voteCount ?? 0 })], facts: [] });
           await this.chat.rememberCommandRefreshScopes(commandMessageId, ['bannerVotes']);
           return `✅ Vote enregistré pour ${intent.name ?? catalog.find(entry => entry.id === characterId)?.name ?? args.join(' ')}.`;
         }
@@ -278,7 +288,7 @@ export class PlayerCommandResolver {
           if (!args.length) return syntax(definition.syntax);
           const box = await this.services.getCurrentPlayerBox.execute(identity);
           const character = box.characters.find(entry => normalizePlayerSearch(entry.name) === normalizePlayerSearch(args.join(' ')));
-          if (character) this.present?.({ command: 'obtention', title: 'Première obtention', characters: [resultCharacter(character)], facts: [character.firstObtainedAt.toISOString()] });
+          if (character) this.present?.({ command: 'obtention', title: 'Première obtention', compact: true, characters: [resultCharacter(character)], facts: [] });
           return character ? `📅 ${characterLabel(character)} : première obtention le ${character.firstObtainedAt.toLocaleString('fr-FR', { timeZone: 'Europe/Paris', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.` : commandText('Ce personnage ne fait pas partie de votre Box.');
         }
         case 'stella': {
@@ -375,7 +385,7 @@ export class PlayerCommandResolver {
           const actor = await this.services.socialService.actor(identity);
           return `✅ ${actor.displayName} convertit ${isElementKey(actor.elementKey ?? '') ? resourceText('particles_' + actor.elementKey, amount) : amount + ' particules personnelles'} en ${resourceText('primogems', amount)} (${chatNumber(result.resources.primogems)}).`;
         }
-        case 'ami': return await amiCommand(identity, args, commandMessageId, this.services.socialService, this.chat,
+        case 'ami': return await amiCommand(identity, this.sourceChannel === 'INTERNAL_CHAT' && args.length === 1 && normalizePlayerSearch(args[0]!) === 'demande' ? ['demandes'] : args, commandMessageId, this.services.socialService, this.chat,
           raw => this.player(identity, raw), (values, limit) => names(values, limit, ' · '), syntax(definition.syntax));
         case 'echanger': {
           const actor = await this.services.tradePlayer.execute(identity);
@@ -565,7 +575,7 @@ export class PlayerCommandResolver {
               }
               const result = await this.services.expeditionService.claim(identity, commandMessageId, this.sourceChannel);
               const balance = this.present && result.commandSnapshot?.balanceAfter ? BigInt(result.commandSnapshot.balanceAfter) : result.resources[result.reward.resourceKey];
-              if (result.commandSnapshot) this.present?.({ command: 'expedition', title: 'Retour d’expédition', characters: [resultCharacter(result.commandSnapshot.character)], facts: [`+${resourceText(result.reward.resourceKey, result.reward.amount)} (${chatNumber(balance)})`] }, result.operation.id);
+              if (result.commandSnapshot) this.present?.({ command: 'expedition', title: 'Retour d’expédition', compact: true, characters: [resultCharacter(result.commandSnapshot.character)], facts: [] }, result.operation.id);
               return `✅ 🧭 ${label.character} revient d’expédition pour ${label.player} : +${resourceText(result.reward.resourceKey, result.reward.amount)} (${chatNumber(balance)}).`;
             }
             if (!await this.chat.hasConfirmedCommandMutation(commandMessageId)) {
@@ -580,10 +590,10 @@ export class PlayerCommandResolver {
             const result = await this.services.expeditionService.start(identity, characterId, commandMessageId, this.sourceChannel);
             const snapshot = this.present ? result.commandSnapshot : undefined;
             const seconds = snapshot?.departedAt && snapshot.readyAt ? (Date.parse(snapshot.readyAt) - Date.parse(snapshot.departedAt)) / 1000 : result.view.departedAt && result.view.readyAt ? (result.view.readyAt.getTime() - result.view.departedAt.getTime()) / 1000 : EXPEDITION_DURATION_MS / 1000;
-            if (snapshot) this.present?.({ command: 'expedition', title: 'Départ en expédition', characters: [resultCharacter(snapshot.character)], facts: [`Durée : ${durationText(seconds)}`, ...(snapshot.readyAt ? [`Retour : ${snapshot.readyAt}`] : [])] }, result.operation.id);
+            if (snapshot) this.present?.({ command: 'expedition', title: 'Départ en expédition', compact: true, characters: [resultCharacter(snapshot.character)], facts: [] }, result.operation.id);
             return `✅ 🧭 ${label} en expédition. Retour dans ${durationText(seconds)} !`;
           }
-          if (view.activeCharacter) this.present?.({ command: 'expedition', title: view.operationalStatus === 'READY' ? 'Expédition à récupérer' : 'Expédition en cours à la commande', characters: [resultCharacter(view.activeCharacter)], facts: [...(view.readyAt ? [`Retour : ${view.readyAt.toISOString()}`] : []), `Durée restante à la commande : ${durationText(view.remainingSeconds)}`] });
+          if (view.activeCharacter) this.present?.({ command: 'expedition', title: view.operationalStatus === 'READY' ? 'Expédition à récupérer' : 'Expédition en cours', compact: true, characters: [resultCharacter(view.activeCharacter)], facts: [] });
           return expeditionCommandSummary(view);
         }
         // Keep every invocation opaque until the owner authorizes the public reveal.
@@ -601,10 +611,10 @@ export class PlayerCommandResolver {
               const members = result.result.members.map(member => `${isElementKey(member.elementKeySnapshot) ? chatElementEmojis[member.elementKeySnapshot] : member.elementKeySnapshot} ${member.characterNameSnapshot} (C${member.constellationSnapshot})`);
               const headline = `⚔️ ${actor.displayName} inflige ${chatNumber(result.result.damage)} DMG à ${result.view.boss.name}`;
               const hp = `❤️ PV restants : ${chatNumber(result.view.boss.currentHp)}/${chatNumber(result.view.boss.maxHp)}`;
-              return logicalChatParts(headline, [
+              return logicalChatParts(`${result.result.defeated ? '🎉 Félicitations ! 👑 Boss vaincu ! ' : ''}${headline}`, [
                 ...members.map((member, index) => ({ text: `${index === 0 ? 'grâce à sa team [' : ''}${member}${index === members.length - 1 ? ']' : ''}`, separator: ' - ' })),
                 { text: hp, separator: ' | ' },
-                ...(result.result.defeated ? [{ text: '👑 Boss vaincu !', separator: ' | ' }, { text: `Récompense des participants : +${resourceText('primogems', result.view.reward.primogems)} | +${resourceText('moras', result.view.reward.moras)}`, separator: ' | ' }] : []),
+              ...(result.result.defeated ? [{ text: `Récompense des participants : +${resourceText('primogems', result.view.reward.primogems)} | +${resourceText('moras', result.view.reward.moras)}`, separator: ' | ' }] : []),
               ], '⚔️ Boss (suite) :');
             }
             const boss = await this.services.monthlyBossService.getCurrentForChat(identity);
@@ -653,6 +663,10 @@ export class PlayerCommandResolver {
           const activePreview = combat.status === 'COMPLETED' ? null : await this.services.dailyCombatService.previewActiveTeam(identity);
           const actions = [activePreview ? '!combat go' : null, combat.status !== 'COMPLETED' && combat.availableCharacterCount >= 4 ? '!combat auto' : null].filter(Boolean);
           const marker = combat.status === 'COMPLETED' ? '✅' : combat.status === 'BLOCKED' ? '➖' : '⏳';
+          if (this.sourceChannel === 'INTERNAL_CHAT' && this.present) {
+            const accepted = this.present({ command: 'combat', title: 'Combat du jour · ennemis', compact: true, characters: combat.encounter.enemies.map(enemy => resultCharacter(enemy.character)), facts: [] });
+            if (accepted !== false) return `ℹ️ ⚔️ Combat du jour : ${marker} | ${actions.length ? `Lance : ${actions.join(' | ')}` : 'aucune tentative disponible'} | Ennemis :`;
+          }
           return entryParts(`ℹ️ ⚔️ Combat du jour : ${marker} | ${actions.length ? `Lance : ${actions.join(' | ')}` : 'aucune tentative disponible'} | Ennemis :`, combat.encounter.enemies.map(enemy => characterLabel(enemy.character)), '⚔️ Ennemis (suite) :', ' - ');
         }
         case 'quotis': return await resolvePlayerCommand(identity, 'quotis', args, definition.syntax, commandMessageId, this.services, name => this.chat.rememberCommandText(commandMessageId, 'action', name));

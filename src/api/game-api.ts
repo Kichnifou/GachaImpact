@@ -432,6 +432,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     pullGacha: (count: 1 | 10, idempotencyKey: string) => request<GachaPullDto>('/api/v1/gacha/pull', { method: 'POST', body: JSON.stringify({ count, idempotencyKey, tabId: establishedSharedInvocationTabId() }) }),
     getGachaHistory: (page = 1) => request<GachaHistoryDto>(`/api/v1/gacha/history?page=${page}`),
     getActivityHistory: (page = 1) => request<import('./types').ActivityHistoryDto>(`/api/v1/me/history?category=activity&page=${page}`),
+    getActivityPlayers: (date: string, after?: string) => request<import('./types').ActivityPlayersDto>(`/api/v1/me/history/activity/players?date=${encodeURIComponent(date)}${after ? `&after=${encodeURIComponent(after)}` : ''}`),
+    getActivityStatistics: (range: import('./types').ActivityRange) => request<import('./types').ActivityStatisticsDto>(`/api/v1/me/history/activity/statistics?range=${range}`),
     getHistory: (category: 'banners' | 'event', page = 1) => request<BannerHistoryDto | EventHistoryDto>(`/api/v1/me/history?category=${category}&page=${page}`),
     getBox: () => request<PlayerBoxDto>('/api/v1/me/box'),
     setBoxFavorite: (characterId: string, favorite: boolean) =>

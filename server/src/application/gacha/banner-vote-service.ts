@@ -28,13 +28,13 @@ export class BannerVoteService {
           if (receiptKey) {
             const receipt = await tx.businessOperation.findFirst({ where: { sourceChannel, idempotencyKey: receiptKey } });
             if (receipt) {
-              const saved = receipt.resultSummary as unknown as { characterId: string; bannerRotationId: string; snapshot: Awaited<ReturnType<BannerVoteService['snapshot']>> & { commandCharacter?: { id: string; name: string; iconPath: string | null; rarity: number } } };
+              const saved = receipt.resultSummary as unknown as { characterId: string; bannerRotationId: string; snapshot: Awaited<ReturnType<BannerVoteService['snapshot']>> & { commandCharacter?: { id: string; name: string; iconPath: string | null; rarity: number; elementKey?: string } } };
               if (receipt.playerId !== player.id || receipt.operationType !== 'banner.vote.command' || receipt.status !== 'COMPLETED' || saved.characterId !== characterId || saved.bannerRotationId !== bannerRotationId) throw new BusinessError('BANNER_VOTE_IDEMPOTENCY_CONFLICT', 'Ce résultat appartient à une autre demande.');
               return { ...saved.snapshot, alreadyProcessed: true };
             }
           }
           const result = async (alreadyProcessed: boolean) => {
-            const commandCharacter = receiptKey ? await tx.character.findUnique({ where: { id: characterId }, select: { id: true, name: true, iconPath: true, rarity: true } }) : null;
+            const commandCharacter = receiptKey ? await tx.character.findUnique({ where: { id: characterId }, select: { id: true, name: true, iconPath: true, rarity: true, elementKey: true } }) : null;
             const snapshot = { ...await this.snapshot(tx, player.id, bannerRotationId), ...(commandCharacter ? { commandCharacter } : {}) };
             if (receiptKey) await tx.businessOperation.create({ data: { playerId: player.id, sourceChannel, idempotencyKey: receiptKey, operationType: 'banner.vote.command', status: 'COMPLETED', completedAt: commandNow(this.clock), resultSummary: { characterId, bannerRotationId, snapshot } } });
             return { ...snapshot, alreadyProcessed };

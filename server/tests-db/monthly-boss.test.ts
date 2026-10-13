@@ -173,6 +173,9 @@ describe('monthly Boss persistence', () => {
     const victoryNotifications = await database.notification.findMany({ where: { actionTargetId: boss.boss.id, typeKey: 'MONTHLY_BOSS_DEFEATED', state: 'UNREAD' } });
     expect(victoryNotifications).toHaveLength(2);
     expect(victoryNotifications.some(({ playerId }) => playerId === nonParticipant.id)).toBe(false);
+    expect((await left.service.getCurrent(identity)).receivedReward).toEqual(MONTHLY_BOSS_REWARD);
+    expect((await right.service.getCurrent(identity)).receivedReward).toEqual(MONTHLY_BOSS_REWARD);
+    expect((await nonParticipant.service.getCurrent(identity)).receivedReward).toBeNull();
     for (const notification of victoryNotifications) expect(notification.payload).toMatchObject({
       title: 'Boss vaincu',
       bossName: boss.boss.name,

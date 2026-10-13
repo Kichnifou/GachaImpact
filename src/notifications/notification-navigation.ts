@@ -15,6 +15,7 @@ export function resolveNotificationNavigation(notification: NotificationDto): No
     targetId: (destination === 'expedition' || destination === 'arcade-invite' || destination === 'admin-character' || destination === 'admin-candidate') ? notification.actionTargetId : null,
     archiveOnOpen: destination !== null && (
       notification.typeKey === 'ARCADE_INVITE' ||
+      notification.typeKey === 'MONTHLY_BOSS_DEFEATED' ||
       notification.typeKey === 'FRIEND_REQUEST_ACCEPTED' ||
       notification.typeKey === 'TRADE_ACCEPTED' ||
       notification.typeKey === 'CHARACTER_AVATARS_UNLOCKED'

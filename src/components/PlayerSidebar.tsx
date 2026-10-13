@@ -143,6 +143,7 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
           <span>Objectif actuel</span>
         </button>
         {featuredCharacter ? <div className="objective-content">
+          <div className="objective-character">
           <div className="objective-art" aria-label={`Portrait de ${featuredCharacter.name}`}>
             <CharacterAssetImage
               characterName={featuredCharacter.name}
@@ -152,11 +153,12 @@ function PlayerSidebar({ dailyTracker, isOpen, onClose, onOpenProfile, onNavigat
               alt={featuredCharacter.name}
             />
           </div>
-          <div>
             <div className="objective-name-line">
               <h3>{featuredCharacter.name}</h3>
               <span className="stars">★★★★★</span>
             </div>
+          </div>
+          <div className="objective-values">
             <p className="objective-guarantee">Garantie 5★ : {gacha.playerState.guaranteedFeatured5 ? 'Oui' : 'Non'}</p>
             <p className="objective-brilliance">Capture : <strong>{gacha.playerState.captureProgress} / 3</strong></p>
             <div className="pity-row"><span>Pity 5★</span><strong>{gacha.playerState.pity5} / 90</strong></div>

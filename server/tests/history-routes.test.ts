@@ -7,6 +7,22 @@ import type { HistoryService } from '../src/application/history/history-service.
 import type { SocialService } from '../src/application/social/social-service.js';
 
 describe('History owner route', () => {
+  it('guards bounded activity statistics and visible names using only the session actor', async () => {
+    const app = Fastify({ logger: false }); registerAuthenticationContext(app);
+    const authenticate: preHandlerHookHandler = async request => { if (!request.headers.authorization) throw new AppError('Unauthorized', 401, 'UNAUTHORIZED'); request.authenticatedIdentity = { subject: 'self' }; };
+    const activityNames = vi.fn(async () => ({ names: [] })), activityStatistics = vi.fn(async () => ({ entries: [] }));
+    await app.register(registerHistoryRoutes, { authenticate, service: { activityNames, activityStatistics } as unknown as HistoryService, social: { actor: vi.fn(async () => ({ id: 'actor' })) } as unknown as SocialService });
+    try {
+      for (const path of ['/api/v1/me/history/activity/statistics', '/api/v1/me/history/activity/players?date=2026-10-13']) expect((await app.inject(path)).statusCode).toBe(401);
+      const headers = { authorization: 'valid' };
+      for (const query of ['range=bad', 'range=all&playerId=other', 'from=2020-01-01']) expect((await app.inject({ url: `/api/v1/me/history/activity/statistics?${query}`, headers })).statusCode).toBe(400);
+      const stats = await app.inject({ url: '/api/v1/me/history/activity/statistics?range=5y', headers });
+      expect(stats.statusCode).toBe(200); expect(stats.headers['cache-control']).toBe('no-store'); expect(activityStatistics).toHaveBeenCalledWith('5y');
+      for (const query of ['date=2026-02-30', 'date=2026-10-13&playerId=other', 'date=2026-10-13&after=invalid']) expect((await app.inject({ url: `/api/v1/me/history/activity/players?${query}`, headers })).statusCode).toBe(400);
+      const names = await app.inject({ url: '/api/v1/me/history/activity/players?date=2026-10-13', headers });
+      expect(names.statusCode).toBe(200); expect(names.headers['cache-control']).toBe('no-store'); expect(activityNames).toHaveBeenCalledWith('actor', '2026-10-13', undefined);
+    } finally { await app.close(); }
+  });
   it('requires authentication, rejects a target player parameter, and reads only the authenticated owner', async () => {
     const app = Fastify({ logger: false });
     registerAuthenticationContext(app);

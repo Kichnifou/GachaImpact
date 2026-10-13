@@ -5,7 +5,7 @@ import { isElementKey } from '../../domain/economy/resources.js';
 import { chatElementEmojis, chatLength, chatResponseLimit, logicalChatParts } from './chat-list-result.js';
 import { commandSource } from '../player/player-command-execution.js';
 import { entryParts, durationText, sacCommand } from './chat-command-format.js';
-import { pullChatResult } from './gacha-command-result.js';
+import { pullChatResult, standalonePullSummary } from './gacha-command-result.js';
 import { viewTeam } from './team-command.js';
 import { BusinessError } from '../errors.js';
 import { optionalRecoveryDomain } from '../player/player-recovery-readiness.js';
@@ -51,7 +51,8 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const period = `${dateText(banner.startsAt)} → ${dateText(new Date(banner.endsAt.getTime() - 1))}`;
       const target = banner.featuredFiveStars.find(c => c.id === playerState.selectedBannerCharacterId);
       const targetText = target ? `5★ ciblé : ${characterText(target)}` : 'Utilise !select nom_du_perso pour choisir ton 5★ ciblé.';
-      present?.({ command: 'banniere', title: `Bannières · ${period}`, characters: banner.featuredFiveStars.map(c => resultCharacter(c, { rarity: 5, label: c.id === target?.id ? 'Cible' : '5★ à l’affiche' })), facts: [targetText] });
+      const accepted = present?.({ command: 'banniere', title: `Bannières · ${period}`, compact: true, characters: banner.featuredFiveStars.map(c => resultCharacter(c, { rarity: 5, ...(c.id === target?.id ? { label: 'Cible' } : {}) })), facts: [...logicalChatParts('⭐⭐⭐⭐', banner.featuredFourStars.map(c => ({ text: characterText(c), separator: ', ' })), '⭐⭐⭐⭐ (suite)', 300), ...(!target ? [targetText] : [])] });
+      if (commandSource('INTERNAL_CHAT') === 'INTERNAL_CHAT' && present && accepted !== false) return `🎯 Bannières (${period})`;
       const text = `🎯 Bannières (${period}) | ⭐⭐⭐⭐⭐ ${banner.featuredFiveStars.map(characterText).join(', ')} | ⭐⭐⭐⭐ ${banner.featuredFourStars.map(characterText).join(', ')} | ${targetText}`;
       if (commandSource('INTERNAL_CHAT') !== 'TWITCH' || chatLength(text) <= chatResponseLimit()) return text;
       return logicalChatParts(`🎯 Bannières (${period}) |`, [
@@ -66,8 +67,8 @@ export async function resolvePlayerCommand(identity: PlayerExecutionActor, handl
       const actor = await services.socialService.actor(identity);
       const actorName = await rememberName(actor.displayName);
       const result = await services.performGachaPullChat.execute(identity, count, commandMessageId);
-      if (present) present(pullPresentation(result), result.operation.id);
-      return pullChatResult(actorName, result);
+      const accepted = present?.(pullPresentation(result), result.operation.id);
+      return commandSource('INTERNAL_CHAT') === 'INTERNAL_CHAT' && present && accepted !== false ? standalonePullSummary(result).text : pullChatResult(actorName, result);
     }
     case 'quotis': {
       const invalid = noArgs(args, definition.syntax); if (invalid) return invalid;

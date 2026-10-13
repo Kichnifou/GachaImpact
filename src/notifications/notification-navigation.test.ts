@@ -51,6 +51,7 @@ describe('notification navigation registry', () => {
     ['social', 'FRIEND_REQUEST_ACCEPTED', 'OPEN_SOCIAL_FRIENDS'],
     ['trades', 'TRADE_ACCEPTED', 'OPEN_TRADES_HISTORY'],
     ['appearance', 'CHARACTER_AVATARS_UNLOCKED', 'OPEN_PROFILE_PERSONALIZATION'],
+    ['monthly-boss', 'MONTHLY_BOSS_DEFEATED', 'OPEN_MONTHLY_BOSS'],
   ])('preserves %s:%s auto archive', (domainKey, typeKey, actionKey) => {
     expect(resolveNotificationNavigation({ ...base, domainKey, typeKey, actionKey }).archiveOnOpen).toBe(true)
   })

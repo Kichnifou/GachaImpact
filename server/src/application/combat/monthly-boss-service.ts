@@ -97,6 +97,7 @@ export type MonthlyBossView = Readonly<{
   availableCharacters: readonly MonthlyBossCharacter[];
   preview: null | { totalDamage: bigint; contributions: ReturnType<typeof calculateBossDamage>['contributions'] };
   reward: typeof MONTHLY_BOSS_REWARD;
+  receivedReward?: { primogems: bigint; moras: bigint } | null;
   participation: null | { rank: number; totalDamage: bigint; attackCount: bigint; bestHit: bigint; contributionBasisPoints: bigint };
   ranking: readonly MonthlyBossRankingEntry[];
   defeatedSummary: MonthlyBossSummary | null;
@@ -514,6 +515,7 @@ async function readView(client: Client, playerId: string, businessDate: string, 
   const preview = complete ? calculateBossDamage(selected.map((character) => ({ id: character.id, name: character.name, rarity: character.rarity, constellation: character.constellation, elementKey: character.elementKey })), elementKey(boss.resistanceElementKey)) : null;
   const own = ranking.find((entry) => entry.playerId === playerId);
   const defeated = Boolean(boss.defeatedAt);
+  const receivedReward = defeated ? await client.bossReward.findUnique({ where: { bossId_playerId: { bossId, playerId } }, select: { primogems: true, moras: true } }) : null;
   const nextBaseAdjustment = boss.defeatedAt ? calculateNextBossBase({ baseHp: boss.baseHp, currentHp: boss.currentHp, monthStart: databaseDateToBusinessDate(boss.monthStart), defeatedAt: boss.defeatedAt }).adjustment : null;
   return {
     businessDate,
@@ -526,6 +528,7 @@ async function readView(client: Client, playerId: string, businessDate: string, 
     availableCharacters: characters,
     preview,
     reward: MONTHLY_BOSS_REWARD,
+    receivedReward: receivedReward?.primogems != null && receivedReward.moras != null ? { primogems: receivedReward.primogems, moras: receivedReward.moras } : null,
     participation: own ? { rank: own.rank, totalDamage: own.totalDamage, attackCount: own.attackCount, bestHit: own.bestHit, contributionBasisPoints: calculateContributionBasisPoints(own.totalDamage, boss.maxHp) } : null,
     ranking: summary.records.topThree,
     defeatedSummary: defeated ? summary : null,

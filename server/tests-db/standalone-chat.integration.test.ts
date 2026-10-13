@@ -80,4 +80,23 @@ describe('Standalone Chat through canonical private migrations', () => {
     await db.globalChatMessage.update({ where: { id: one.message.id }, data: { deletionState: 'MODERATION', deletedAt: new Date() } });
     expect((await chat.list(identity())).messages.find(m => m.id === one.message.id)?.resultPresentation).toBeNull();
   });
+  it('persists the full bounded vote catalog with long official portraits and rejects budgets for other commands', async () => {
+    const sent = await chat.send(identity(), '!vote', randomUUID());
+    const portrait = `https://fixture.supabase.co/storage/v1/object/public/character-catalog/characters/${randomUUID()}/icon/${'a'.repeat(64)}.png`;
+    const presentation: StructuredChatResult = { version: 1, command: 'vote', compact: true, title: 'Votes bannière', source: { channel: 'INTERNAL_CHAT', commandMessageId: sent.message.id }, facts: [], characters: Array.from({ length: 200 }, (_, i) => ({ id: randomUUID(), name: `${'🌙'.repeat(110)}${i}`, portrait, rarity: 5, constellation: null, elementKey: 'cryo', voteCount: i })) };
+    expect(Buffer.byteLength(JSON.stringify(presentation))).toBeGreaterThan(16_384);
+    const frozen = await chat.freezeCommandResult(sent.message.id, { content: '🗳️ Votes bannière', presentation });
+    const published = await chat.publishGameResult(sent.message.id, frozen.content, frozen.presentation);
+    expect((await chat.list(identity())).messages.find(m => m.id === published.message.id)?.resultPresentation?.characters).toHaveLength(200);
+    expect(await chat.readCommandResult(sent.message.id)).toEqual(frozen);
+    await expect(chat.freezeCommandResult(sent.message.id, { content: 'overflow', presentation: { ...presentation, characters: [...presentation.characters, presentation.characters[0]!] } })).rejects.toThrow('Présentation Chat invalide');
+    await expect(chat.freezeCommandResult(sent.message.id, { content: 'overflow', presentation: { ...presentation, command: 'team' } })).rejects.toThrow('Présentation Chat invalide');
+    const largeOrdinary = { ...presentation, command: 'team', characters: [], facts: Array(24).fill('🌙'.repeat(300)) };
+    await expect(chat.freezeCommandResult(sent.message.id, { content: 'overflow', presentation: largeOrdinary as StructuredChatResult })).rejects.toThrow('Présentation Chat invalide');
+    await expect(db.globalChatMessage.create({ data: { messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM', authorPlayerId: owner, content: 'wrong author', resultPresentation: presentation as never } })).rejects.toThrow('global_chat_messages_result_presentation_check');
+    await expect(db.globalChatMessage.create({ data: { messageType: 'GAME_RESULT', sourceChannel: 'SYSTEM', content: 'ordinary overflow', resultPresentation: largeOrdinary as never } })).rejects.toThrow('global_chat_messages_result_presentation_check');
+    expect(fixture.migrationStatus).toContain('up to date');
+    const guards = await db.$queryRaw<{ rls: boolean; anon: boolean; authenticated: boolean }[]>`SELECT relrowsecurity rls, has_table_privilege('anon', c.oid, 'SELECT,INSERT,UPDATE,DELETE') anon, has_table_privilege('authenticated', c.oid, 'SELECT,INSERT,UPDATE,DELETE') authenticated FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=current_schema() AND relname='global_chat_messages'`;
+    expect(guards).toEqual([{ rls: true, anon: false, authenticated: false }]);
+  });
 });

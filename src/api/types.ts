@@ -485,6 +485,7 @@ export type MonthlyBossDto = Readonly<{
   canAttack: boolean
   loadout: Readonly<{ slots: readonly Readonly<{ position: 1 | 2 | 3 | 4; character: MonthlyBossCharacterDto | null }>[] }>
   availableCharacters: readonly MonthlyBossCharacterDto[]
+  receivedReward?: Readonly<{ primogems: string; moras: string }> | null
   preview: Readonly<{ totalDamage: string; contributions: readonly Readonly<{ characterId: string; characterName: string; rarity: 4 | 5; constellation: number; elementKey: ElementKey; damageBeforeResistance: string; resistanceApplied: boolean; damage: string }>[] }> | null
   reward: Readonly<{ primogems: string; moras: string }>
   participation: Readonly<{ rank: number; totalDamage: string; attackCount: string; bestHit: string; contributionBasisPoints: string }> | null
@@ -806,6 +807,9 @@ export type ActivityHistoryDto = {
   today: string; coverageStartedAt: string | null;
   entries: { date: string; today: boolean; status: 'COVERED' | 'PARTIAL' | 'UNAVAILABLE'; count: number | null }[];
 }
+export type ActivityRange = '5d' | '10d' | '1m' | '3m' | '6m' | '1y' | '2y' | '5y' | 'all'
+export type ActivityStatisticsDto = { range: ActivityRange; today: string; coverageStartedAt: string | null; entries: { date: string; count: number; today: boolean }[] }
+export type ActivityPlayersDto = { date: string; total: number; visibleTotal: number; nextCursor: string | null; names: string[] }
 export type ChatMentionDto = { playerId: string; displayName: string }
 export type ChatMessageDto = {
   replyAuthor?: { id: string | null; displayName: string } | null

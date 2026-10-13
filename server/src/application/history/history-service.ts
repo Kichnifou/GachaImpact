@@ -1,4 +1,4 @@
-import { PlayerActivityService } from '../player/player-activity-service.js';
+import { PlayerActivityService, type ActivityRange } from '../player/player-activity-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { GenerationVoteSnapshot } from '../../domain/gacha/gacha.js';
 
@@ -27,6 +27,8 @@ export class HistoryService {
   constructor(private readonly database: PrismaClient, private readonly now: () => Date = () => new Date()) {}
 
   activity(page: number) { return new PlayerActivityService(this.database, { now: this.now }).history(page); }
+  activityNames(viewerId: string, date: string, after?: string) { return new PlayerActivityService(this.database, { now: this.now }).dayNames(viewerId, date, after); }
+  activityStatistics(range: ActivityRange) { return new PlayerActivityService(this.database, { now: this.now }).statistics(range); }
 
   async banners(page: number) {
     const [total, rotations] = await Promise.all([

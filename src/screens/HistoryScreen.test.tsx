@@ -24,23 +24,23 @@ describe('HistoryScreen', () => {
     ] })
     try {
       await act(async () => root.render(<HistoryScreen {...props} initialCategory="activity" onActivity={onActivity} />))
-      expect(container.textContent).toContain('Collecte depuis le')
+      expect(container.textContent).toContain('Liste des joueurs actifs par jour.')
       expect(container.textContent).not.toContain('partielle')
     } finally { act(() => root.unmount()) }
   })
-  it('shows today, partial collection, unknown history and a real zero without inventing data', async () => {
+  it('shows covered days and real zero without displaying the partial-day label', async () => {
     const container = document.createElement('div'); const root = createRoot(container)
     const onActivity = vi.fn(async () => ({ category: 'activity' as const, page: 1, pageSize: 10, total: 2, totalPages: 2, today: '2026-10-13', coverageStartedAt: '2026-10-12T08:00:00Z', entries: [
       { date: '2026-10-13', today: true, status: 'COVERED' as const, count: 0 },
       { date: '2026-10-12', today: false, status: 'PARTIAL' as const, count: 2 },
-      { date: '2026-10-11', today: false, status: 'UNAVAILABLE' as const, count: null },
+
     ] }))
     try {
       await act(async () => { root.render(<HistoryScreen {...props} initialCategory="activity" onActivity={onActivity} />) })
       expect(container.textContent).toContain('Aujourd’hui (en cours)')
       expect(container.textContent).toContain('0 joueurs actifs')
-      expect(container.textContent).toContain('Journée de collecte partielle')
-      expect(container.textContent).toContain('Données indisponibles avant la collecte')
+      expect(container.textContent).not.toContain('Journée de collecte partielle')
+      expect(container.textContent).not.toContain('Données indisponibles avant la collecte')
       expect(onActivity).toHaveBeenCalledExactlyOnceWith(1)
     } finally { act(() => root.unmount()) }
   })

@@ -6,7 +6,8 @@ import { GetCurrentPlayer } from '../src/application/player/get-current-player.j
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js';
 import { GlobalChatService } from '../src/application/chat/global-chat-service.js';
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
-import { pullChatResult } from '../src/application/chat/gacha-command-result.js';
+import { pullChatResult, standalonePullSummary } from '../src/application/chat/gacha-command-result.js';
+import { pullPresentation } from '../src/application/chat/result-presentation.js';
 import { PerformGachaPull, SetGachaTarget } from '../src/application/gacha/gacha-services.js';
 import { getParisWeekWindow, selectBannerFeatured } from '../src/domain/gacha/gacha.js';
 import { loadConfig } from '../src/config/environment.js';
@@ -81,7 +82,7 @@ describe('Gacha foundation on the development database', () => {
     const history = await store.getHistory(fixture.playerId, 1);
     expect(history.results.map(row => row.resourceTotalsAfter)).toEqual([...first.results].reverse().map(row => row.resourceTotalsAfter));
   }, 60_000);
-  it.each([1, 3, 10])('publishes exactly x%i principal Pull results atomically after a failed later insert, then replays the same IDs', async count => {
+  it.each([1, 5, 10])('consolidates x%i Pull into one durable result after interrupted publication, then replays the same ID', async count => {
     const fixture = await createPullPlayer(10000n);
     const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(database));
     const clock = { now: () => fixture.now };
@@ -92,9 +93,8 @@ describe('Gacha foundation on the development database', () => {
       socialService: { actor: (identity: { subject: string }) => getPlayer.execute(identity) },
     } as unknown as ChatCommandServices);
     const key = randomUUID();
-    const failMarker = count > 1 ? `[${count}/${count}]` : 'obtient';
     const schema = isolated.schema;
-    await isolated.admin.query(`CREATE FUNCTION "${schema}".reject_pull_part() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.message_type = 'GAME_RESULT' AND position('${failMarker}' in NEW.content) > 0 THEN RAISE EXCEPTION 'pull publication failed'; END IF; RETURN NEW; END $$`);
+    await isolated.admin.query(`CREATE FUNCTION "${schema}".reject_pull_part() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.message_type = 'GAME_RESULT' THEN RAISE EXCEPTION 'pull publication failed'; END IF; RETURN NEW; END $$`);
     await isolated.admin.query(`CREATE TRIGGER reject_pull_part BEFORE INSERT ON "${schema}".global_chat_messages FOR EACH ROW EXECUTE FUNCTION "${schema}".reject_pull_part()`);
     try {
       await expect(dispatcher.send(fixture.identity, `!pull ${count}`, key)).rejects.toThrow('pull publication failed');
@@ -104,18 +104,64 @@ describe('Gacha foundation on the development database', () => {
       await isolated.admin.query(`DROP FUNCTION "${schema}".reject_pull_part()`);
     }
     const command = await database.globalChatMessage.findFirstOrThrow({ where: { authorPlayerId: fixture.playerId, messageType: 'COMMAND' } });
-    const recorded = await store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: count as 1 | 3 | 10, idempotencyKey: command.id, now: fixture.now, random: { nextInt: () => { throw new Error('Replay must not draw.'); } }, sourceChannel: 'INTERNAL_CHAT' });
-    const expected = pullChatResult((await getPlayer.execute(fixture.identity)).displayName, recorded);
+    const recorded = await store.pull({ playerId: fixture.playerId, playerElementKey: 'hydro', count: count as 1 | 5 | 10, idempotencyKey: command.id, now: fixture.now, random: { nextInt: () => { throw new Error('Replay must not draw.'); } }, sourceChannel: 'INTERNAL_CHAT' });
+    const expected = await chat.readCommandResult(command.id);
+    expect(String(expected!.content)).toContain(standalonePullSummary(recorded).text);
     const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
     await database.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } }, data: { amount: 1n } });
     await database.player.update({ where: { id: fixture.playerId }, data: { displayName: 'Renamed after the committed Pull' } });
-    const first = await dispatcher.send(fixture.identity, `!pull ${count}`, key);
-    expect(first.results.slice(0, count).map(message => message.content)).toEqual(expected);
-    expect(first.results.filter(message => /^(🎉|✅) /u.test(message.content ?? ''))).toHaveLength(count);
+    const [first, concurrent] = await Promise.all([dispatcher.send(fixture.identity, `!pull ${count}`, key), dispatcher.send(fixture.identity, `!pull ${count}`, key)]);
+    expect(first.results.map(message => message.content)).toEqual([expected!.content]);
+    expect(first.results).toHaveLength(1);
+    expect(concurrent.results.map(m => m.id)).toEqual(first.results.map(m => m.id));
     const replay = await dispatcher.send(fixture.identity, `!pull ${count}`, key);
     expect(replay.results.map(message => message.id)).toEqual(first.results.map(message => message.id));
     expect(await database.pullResult.count({ where: { pullOperation: { playerId: fixture.playerId } } })).toBe(count);
     expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+  }, 60_000);
+  it('consolidates multiple C6 refunds and recorded passives against exact private ledger credits', async () => {
+    const fixture = await createPullPlayer(1600n), store = new PrismaGachaStore(database);
+    try {
+      await configureTeams(fixture.playerId, ['anemo', 'anemo', 'dendro', 'dendro']);
+      await database.playerCharacter.upsert({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } }, create: { playerId: fixture.playerId, characterId: fixture.targetId, copies: 7, constellation: 6, firstObtainedAt: fixture.now }, update: { copies: 7, constellation: 6 } });
+      await database.c6CompetitionProgress.upsert({ where: { playerId_characterId: { playerId: fixture.playerId, characterId: fixture.targetId } }, create: { playerId: fixture.playerId, characterId: fixture.targetId, unlockedAt: fixture.now, strength: 20, intelligence: 20, beauty: 20, charisma: 20, popularity: 20 }, update: { strength: 20, intelligence: 20, beauty: 20, charisma: 20, popularity: 20 } });
+      const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: 5 as const, idempotencyKey: randomUUID(), now: fixture.now, random: { nextInt: () => 0 }, sourceChannel: 'INTERNAL_CHAT' as const };
+      const result = await store.pull(input);
+      const summary = standalonePullSummary(result), presentation = pullPresentation(result);
+      expect(summary.text).toContain('+💎 1 400 Primos');
+      expect(summary.text).toContain('+💰 505 000 Moras');
+      expect(summary.text).toContain('+⚡ 25 particules Electro');
+      expect(presentation.characters.map(c => c.id)).toEqual(Array(5).fill(fixture.targetId));
+      expect(presentation.characters.map(c => c.pity)).toEqual([1, 1, 1, 1, 1]);
+      const credits = await database.resourceMovement.groupBy({ by: ['resourceKey'], where: { playerId: fixture.playerId, causeKey: { in: ['gacha.c6-duplicate-refund', 'gacha.c6-maxed-compensation', 'team.passive.anemo.primogem-recovery', 'team.passive.dendro.bundle'] } }, _sum: { delta: true } });
+      expect(credits.find(r => r.resourceKey === 'primogems')?._sum.delta).toBe(1400n);
+      expect(credits.find(r => r.resourceKey === 'moras')?._sum.delta).toBe(505000n);
+      const count = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+      const retry = await store.pull({ ...input, random: { nextInt: () => { throw Error('No reroll'); } } });
+      expect(standalonePullSummary(retry)).toEqual(summary);
+      expect(pullPresentation(retry)).toEqual(presentation);
+      expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(count);
+    } finally { await deletePullPlayer(fixture.playerId); }
+  }, 90_000);
+  it('preserves the selected target card after a crash before Chat freeze and a later target change', async () => {
+    const fixture = await createPullPlayer(1600n), store = new PrismaGachaStore(database);
+    const getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(database)), clock = { now: () => fixture.now };
+    const current = (await store.getCurrent(fixture.playerId))!;
+    const selected = current.banner.featuredFiveStars[1]!;
+    const later = current.banner.featuredFiveStars[2]!;
+    const chat = new GlobalChatService(database, getPlayer, clock, maxRandom);
+    const dispatcher = new ChatCommandDispatcher(chat, { getCurrentGacha: { execute: () => store.getCurrent(fixture.playerId) }, setGachaTarget: new SetGachaTarget(getPlayer, store, clock), getCharacters: { execute: () => store.listActiveCharacters() } } as unknown as ChatCommandServices);
+    const key = randomUUID();
+    const freeze = vi.spyOn(chat, 'freezeCommandResult').mockRejectedValueOnce(Error('crash before freeze'));
+    try {
+      await expect(dispatcher.send(fixture.identity, `!select ${selected.name}`, key)).rejects.toThrow('crash before freeze');
+      await store.setTarget(fixture.playerId, later.id, randomUUID(), 'INTERNAL_CHAT');
+      await database.character.update({ where: { id: selected.id }, data: { name: 'Renamed after selection' } });
+      const retry = await dispatcher.send(fixture.identity, `!select ${selected.name}`, key);
+      expect(retry.result?.resultPresentation?.characters[0]).toMatchObject({ id: selected.id, name: selected.name, label: 'Cible', elementKey: selected.elementKey });
+      expect((await store.getCurrent(fixture.playerId))!.playerState.selectedBannerCharacterId).toBe(later.id);
+      expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(0);
+    } finally { freeze.mockRestore(); await database.character.update({ where: { id: selected.id }, data: { name: selected.name } }); await deletePullPlayer(fixture.playerId); }
   }, 60_000);
   it('stores exact per-pull pity and B2B across operations and replays them without RNG', async () => {
     const fixture = await createPullPlayer(1000n);

@@ -9,11 +9,12 @@ import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 import './history.css'
+import ActivityHistory, { type ActivityReaders } from './ActivityHistory'
 
 export type HistoryCategory = 'invocations' | 'banners' | 'bank' | 'shop' | 'event' | 'activity'
 type BankFilter = 'ALL' | 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'
 type Page = GachaHistoryDto | BannerHistoryDto | BankHistoryDto | ShopHistoryDto | EventHistoryDto | ActivityHistoryDto
-type Props = {
+type Props = ActivityReaders & {
   initialCategory?: HistoryCategory
   onInvocations: (page: number) => Promise<GachaHistoryDto>
   onBannersOrEvent: (category: 'banners' | 'event', page: number) => Promise<BannerHistoryDto | EventHistoryDto>
@@ -37,7 +38,7 @@ const effectLabel = (effect: ShopEffectDto) => effect.type === 'resource_bundle'
     : effect.type === 'ticket_other_element_particles' || effect.type === 'ticket_main_element_particles' ? `+${formatResourceAmount(effect.amount)} particules ${effect.elementKey}` : effect.label
 
 const loadActivity = (page: number) => getGameApiClient().getActivityHistory(page)
-export default function HistoryScreen({ initialCategory = 'invocations', onInvocations, onBannersOrEvent, onBank, onShop, onActivity = loadActivity }: Props) {
+export default function HistoryScreen({ initialCategory = 'invocations', onInvocations, onBannersOrEvent, onBank, onShop, onActivity = loadActivity, onPlayers, onStatistics }: Props) {
   const [normalcategory, setCategory] = useDestinationTab('history',initialCategory)
   const category = useTutorialView('history', normalcategory, ['invocations', 'banners', 'bank', 'shop', 'event', 'activity'])
   const [page, setPage] = useState(1)
@@ -71,15 +72,7 @@ export default function HistoryScreen({ initialCategory = 'invocations', onInvoc
     </div>} footer={value && <div className="history-pagination"><AppButton disabled={page <= 1} onClick={() => turnPage(page - 1)}>Précédent</AppButton><span>Page {page} / {totalPages}</span><AppButton disabled={page >= totalPages} onClick={() => turnPage(page + 1)}>Suivant</AppButton></div>}>
       {error && <div role="alert" className="history-error"><p>{error}</p><AppButton onClick={() => { setLoading(true); setError(null); setRevision(n => n + 1) }}>Réessayer</AppButton></div>}
       {loading && <p role="status">Chargement de l’historique…</p>}
-      {!loading && !error && category === 'activity' && value && 'category' in value && value.category === 'activity' && <>
-        <p>Joueurs uniques ayant utilisé le jeu, tous canaux confondus. Journées Europe/Paris ; aujourd’hui est en cours.</p>
-        <p>{value.coverageStartedAt ? `Collecte depuis le ${date(value.coverageStartedAt)}.` : 'Collecte indisponible.'}</p>
-        <ol className="history-list">{value.entries.map(entry => <li key={entry.date}>
-          <strong>{new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'Europe/Paris' }).format(new Date(`${entry.date}T12:00:00Z`))}{entry.today ? ' · Aujourd’hui (en cours)' : ''}</strong>
-          <span>{entry.count === null ? 'Données indisponibles avant la collecte' : `${number(entry.count)} joueur${entry.count === 1 ? '' : 's'} actif${entry.count === 1 ? '' : 's'}`}</span>
-          {entry.status === 'PARTIAL' && <small>Journée de collecte partielle</small>}
-        </li>)}</ol>
-      </>}
+      {!loading && !error && category === 'activity' && value && 'category' in value && value.category === 'activity' && <ActivityHistory key={`${page}:${revision}`} value={value} onPlayers={onPlayers} onStatistics={onStatistics} />}
       {!loading && !error && category === 'invocations' && value && 'results' in value && (value.results.length ? <ol className="history-list">{value.results.map((item, index) => <li key={`${item.operationId}:${item.index}:${index}`}><strong>{item.character?.name ?? (item.resourceAmount ? `${formatResourceAmount(item.resourceAmount)} ${item.resourceKey ?? ''}` : 'Résultat')}</strong><span>{item.rarity ? `${item.rarity}★ · ` : ''}{date(item.occurredAt)}</span><small>Tirage {item.operationPullCount} · Pity 5★ {item.pity5AtPull ?? '—'} · Pity 4★ {item.pity4AtPull ?? '—'}</small></li>)}</ol> : <p>Aucune invocation enregistrée.</p>)}
       {!loading && !error && category === 'banners' && value && 'category' in value && value.category === 'banners' && (value.entries.length ? <div className="history-cards">{value.entries.map(entry => <article className="history-card" key={entry.id}><h2>Bannière du {date(entry.startsAt)}</h2><p>Du {date(entry.startsAt)} au {date(entry.endsAt)} · Statut : {entry.status === "ACTIVE" ? "active" : "terminée"}</p><p><strong>Sélection :</strong> {entry.featured.filter(item => item.rarity === 5).length} personnages 5★ · {entry.featured.filter(item => item.rarity === 4).length} personnages 4★</p><ul className="history-featured">{entry.featured.map(item => <li key={item.characterId}>{item.rarity}★ · {item.name} · {item.source === "COMMUNITY_VOTE" ? "vote communautaire" : item.source === "RANDOM_FALLBACK" ? "tirage de départage" : "tirage aléatoire"}</li>)}</ul>{entry.generationVoteSnapshot ? <><p><strong>Choix communauté :</strong> {entry.generationVoteSnapshot.selectedCharacterName}</p>{entry.generationVoteSnapshot.candidates.some(candidate => candidate.voteCount > 0) && <ul className="history-votes">{entry.generationVoteSnapshot.candidates.filter(candidate => candidate.voteCount > 0).map(candidate => <li key={candidate.characterId}>{candidate.characterName} <strong>{number(candidate.voteCount)} vote{candidate.voteCount > 1 ? 's' : ''}</strong></li>)}</ul>}</> : null}</article>)}</div> : <p>Aucune bannière enregistrée.</p>)}
       {!loading && !error && category === 'bank' && value && 'operations' in value && (value.operations.length ? <ol className="history-list">{value.operations.map(item => <li key={item.id}><strong>{item.type === 'DEPOSIT' ? 'Dépôt' : item.type === 'WITHDRAWAL' ? 'Retrait' : 'Intérêt quotidien'} · {item.type === 'WITHDRAWAL' ? '−' : '+'}{formatResourceAmount(item.amount)} Moras</strong><span>{date(item.createdAt)}</span><small>Banque : {formatResourceAmount(item.bankBalanceAfter)} · Portefeuille : {item.walletBalanceAfter === null ? '—' : formatResourceAmount(item.walletBalanceAfter)}</small></li>)}</ol> : <p>Aucune opération enregistrée pour ce filtre.</p>)}

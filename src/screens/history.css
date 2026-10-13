@@ -17,4 +17,30 @@
 .history-votes strong, .history-event-top strong { margin-left: auto; white-space: nowrap; }
 .history-pagination { display: flex; align-items: center; justify-content: center; gap: .75rem; }
 .history-error { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.activity-introduction { display: flex; align-items: center; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.activity-introduction p { margin: 0; }
+.activity-statistics-link, .activity-players-toggle { appearance: none; background: transparent; border: 1px solid transparent; border-radius: 6px; color: #82d5ff; cursor: pointer; min-height: 36px; padding: .35rem .5rem; font: inherit; text-align: left; }
+.activity-statistics-link:hover, .activity-players-toggle:hover { background: #213c56; color: #d5f3ff; }
+.activity-statistics-link:focus-visible, .activity-players-toggle:focus-visible { outline: 2px solid #82d5ff; outline-offset: 2px; }
+.activity-players-toggle { justify-self: start; padding-left: 0; }
+.activity-players ul { display: flex; flex-wrap: wrap; gap: .4rem 1rem; list-style: none; padding: 0; }
+.activity-history-list .activity-players li { padding: 0; border: 0; background: transparent; overflow-wrap: anywhere; }
+.activity-players small { display: block; margin-block: .5rem; }
+.activity-statistics-modal { width: min(760px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.activity-statistics-modal h2 { font-size: clamp(1.05rem, 3vw, 1.4rem); }
+.activity-statistics-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px; }
+.activity-range { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.activity-range select { color: #e9f5ff; background: #172d46; border: 1px solid #527b9f; border-radius: 6px; padding: .5rem; cursor: pointer; max-width: 100%; }
+.activity-chart { width: 100%; height: auto; display: block; margin-top: 1rem; overflow: visible; }
+.activity-chart text { fill: #c2d9eb; font-size: 13px; }
+.activity-chart-grid { stroke: #36516b; stroke-width: 1; }
+.activity-chart-line { fill: none; stroke: #70d5ff; stroke-width: 2; }
+.activity-chart-point { fill: #96e4ff; cursor: pointer; }
+.activity-chart-tooltip { display: block; text-align: center; color: #d5f3ff; font-size: .9rem; }
+.activity-chart-selector { display: grid; gap: .3rem; margin-top: .6rem; }
+.activity-chart-selector input { width: 100%; cursor: pointer; }
+.activity-exact-data { margin-top: 1rem; }
+.activity-exact-data summary { cursor: pointer; padding-block: .5rem; }
+.activity-exact-data table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.activity-exact-data th, .activity-exact-data td { padding: .4rem; text-align: left; border-bottom: 1px solid #36516b; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .history-controls { padding: .6rem; } .history-pagination { gap: .3rem; } .history-pagination .app-button { min-width: 0; padding-inline: .5rem; } }

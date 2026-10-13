@@ -9512,6 +9512,8 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .chat-result-character.rarity-4 { border-color: #9266ba; background: linear-gradient(150deg,#493965,#172039); }
 .chat-result-portrait { display: block; position: relative; width: 100%; height: 67px; overflow: hidden; }
 .chat-result-image { width: 100%; height: 100%; object-fit: contain; }
+.chat-result-frame { display: block; width: 100%; height: 100%; }
+.chat-result-element { position: absolute; z-index: 1; width: 19px; height: 19px; right: 0; bottom: 0; }
 .chat-result-character > strong { width: 100%; overflow-wrap: anywhere; font-size: 10px; }
 .chat-result-character mark { position: absolute; top: 2px; left: 2px; padding: 1px 3px; border-radius: 3px; background: #e8c46e; color: #251c0b; font-size: 8px; }
 .chat-result-rarity { color: #f4cf76; letter-spacing: -.5px; }
@@ -9519,6 +9521,26 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .chat-result-facts { margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; font-size: 10px; color: #b8cae4; }
 .community-is-expanded .chat-result-character { width: 94px; }
 .community-is-expanded .chat-result-portrait { height: 83px; }
+.player-sidebar .objective-content { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; }
+.objective-character { min-width: 0; display: grid; align-content: start; gap: 0; border: 1px solid color-mix(in srgb, var(--objective-element) 35%, transparent); border-radius: 7px; background: rgba(10, 22, 40, .55); overflow: hidden; }
+.player-sidebar .objective-character .objective-art { width: 100%; height: auto; aspect-ratio: 1; border: 0; border-radius: 0; }
+.player-sidebar .objective-character .objective-asset-image { width: 100%; height: 100%; object-fit: contain; }
+.objective-character .objective-name-line { gap: 1px; padding: 2px 4px 3px; }
+.player-sidebar .objective-character h3 { font-size: 11px; line-height: 1.15; overflow-wrap: anywhere; margin: 0; }
+.objective-character .stars { font-size: 9px; line-height: 1.1; }
+.objective-values { min-width: 0; }
+.boss-received-rewards { padding: 16px 18px; }
+.boss-received-rewards h3 { margin: 0 0 8px; }
+.boss-received-rewards p { margin: 0; color: #f2cf78; }
+.boss-received-rewards small { display: block; margin-top: 6px; color: var(--muted); }
+.player-sidebar .objective-values p { font-size: 10px; }
+@media (max-height: 780px) and (min-width: 1000px) {
+  .player-sidebar .objective-content { grid-template-columns: 64px minmax(0, 1fr); gap: 8px; }
+}
+@media (min-width: 1121px) and (max-height: 640px) {
+  .player-sidebar .player-secondary { grid-template-rows: max-content max-content max-content minmax(64px, 1fr); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .player-sidebar .objective-card { min-height: max-content; }
+}
 .chat-community-pane .chat-message { display: block; padding: 4px 10px; border-bottom: 0; }
 .chat-community-pane .message-content { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .chat-community-pane .message-meta { display: inline; font-size: inherit; }

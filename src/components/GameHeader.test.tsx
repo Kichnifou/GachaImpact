@@ -9,6 +9,18 @@ import GameHeader from './GameHeader'
 const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 const roots: Root[] = []
+it('opens a defeated Boss and persistently removes its notification from the list', async () => {
+  const notification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', rewards: [{ resourceKey: 'primogems', amount: '16000' }] }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss', createdAt: '2026-10-13T08:40:00Z', readAt: null }
+  const onOpenNotification = vi.fn(), archive = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))
+  function Harness() { const [value, setValue] = useState<{ unreadCount: number; notifications: typeof notification[] }>({ unreadCount: 1, notifications: [notification] }); return <GameHeader displayName="Test" onNavigateHome={vi.fn()} onOpenSidebar={vi.fn()} onSignOut={vi.fn()} showModeration={false} onOpenModeration={vi.fn()} onOpenMenu={vi.fn()} onOpenNotification={onOpenNotification} notifications={value} onArchiveNotification={async () => { const next = await archive(); setValue(next); return next }} /> }
+  const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
+  await act(async () => root.render(<Harness />))
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+  await act(async () => container.querySelector<HTMLButtonElement>('.notification-item')!.click())
+  expect(onOpenNotification).toHaveBeenCalledWith(notification); expect(archive).toHaveBeenCalledOnce()
+  await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Afficher les notifications"]')!.click())
+  expect(container.querySelector('.notification-item')).toBeNull()
+});
 
 it.each(['CATALOG_REVIEW_ADMIN','CHARACTER_IMPORTED_ADMIN'])('archives %s only after a valid opening and guards double clicks',async(typeKey)=>{
   const candidate=typeKey==='CATALOG_REVIEW_ADMIN';
