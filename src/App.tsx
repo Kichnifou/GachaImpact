@@ -1,6 +1,7 @@
 import AppBootstrap from './AppBootstrap'
 import { AuthProvider } from './auth/AuthProvider'
 import './App.css'
+import './components/height-adaptive-screen.css'
 import { useState } from 'react'
 import { isRecoveryLocation } from './auth/password-security'
 import PasswordRecoveryScreen from './components/PasswordRecoveryScreen'

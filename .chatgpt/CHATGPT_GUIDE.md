@@ -1,5 +1,7 @@
 # GachaImpact — Guide opératoire pour ChatGPT
 
+**Règle permanente — adaptation dynamique :** pour une demande « sans scroll » ou « faire tenir », réorganiser l'intérieur selon largeur et hauteur utiles, avant d'envisager un défilement. Préserver textes et actions lisibles ; ni clipping, scrollbar cachée, scroll déplacé, ni cartes géantes sur une page partielle. Un repli nécessite un arbitrage précis étayé par les mesures du GameShell compilé. Voir le [contrat UI](../docs/specifications/ui-layout-contract-v1.md) et le [workflow](../docs/process/implementation-workflow.md) pour les exceptions et la qualification.
+
 > **But de ce fichier**
 >
 > Ce fichier est un méga-prompt stable destiné à ChatGPT.

@@ -60,6 +60,8 @@ La maquette `Concept1.png` fournie par le propriétaire constitue la référence
 
 Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-drop et responsive sont définies dans `docs/specifications/ui-layout-contract-v1.md`. Toute évolution d’un écran long ou d’une modale de données doit respecter ce contrat et identifier explicitement le conteneur propriétaire du défilement.
 
+Lorsqu'un écran est demandé sans scroll, adapter son organisation à la largeur **et** à la hauteur utiles avant tout repli : régions, cartes, illustrations, espacements et contrôles. Ne pas masquer le débordement, réduire le texte jusqu'à l'illisibilité, déplacer le scroll vers un parent ou en réintroduire un sans arbitrage précis. Une page partielle conserve des cartes comparables à une page complète. Mesurer le viewport CSS réel et les régions internes dans le GameShell compilé ; une capture à la seule résolution nominale ne suffit pas. Le contrat UI porte les exceptions et les preuves ; les surfaces hors mandat restent inchangées.
+
 Les portraits de personnages suivent ce même contrat UI : aucune initiale de Player ou de personnage ne sert de fallback d’image.
 
 Les contrôles d’action ajoutés à une surface doivent réutiliser une base de bouton partagée à styles explicites : fond, texte, bordure et états hover, `focus-visible`, disabled et pending ne peuvent dépendre du style natif clair du navigateur ni du seul parent DOM. Toute surface UI touchée est vérifiée visuellement dans le `GameShell` complet avec les feuilles de style de production réellement chargées, aux viewports pertinents définis par le contrat UI.

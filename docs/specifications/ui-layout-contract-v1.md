@@ -1,5 +1,15 @@
 # Contrat de layout UI V1
 
+## Adaptation dynamique avant scroll — R1085, décision propriétaire du 13/10/2026
+
+Une demande « sans scroll », « faire tenir » ou d'adaptation d'écran impose une réorganisation selon largeur **et** hauteur utiles : répartition des régions, cartes, espacements, illustrations et contrôles. Conserver les textes et les actions lisibles, sans scale global, clipping, scrollbar cachée ou défilement déplacé. Ne pas étirer une page partielle pour remplir le cadre. Un fallback scroll exige un arbitrage explicite et précis, après mesures et tentative de réorganisation.
+
+Périmètre sans scroll de cette mission : Accueil, Aperçu des Quotidiennes, Entraînement, présentation Event (dont classement paginé par cinq), Sac Ressources/Objets/Collection, Boutique. Missions : six cartes en 3×2 aux grands desktops, capacité adaptée aux petites régions, ordre canonique intégral et dimensions conservées sur page partielle. Les cartes Collection non possédées restent présentes. Jeux C : messages complets, aucune pagination silencieuse autorisée. Paliers Event permanents dans le titre, huit seuils et période visibles.
+
+Exceptions conservées : Sac Tout, listes Box/Catalogue, Configuration Menu/Confidentialité/Compte avec scroll intérieur encadré, modales et historiques hors mandat. Profil conserve ses filtres et sa présentation Missions. Les replis R1084 contraires à ce mandat sont supersédés ; ses captures et résultats restent des preuves historiques, sans valoir validation de R1085.
+
+Les barres de navigation peuvent se réorganiser horizontalement et les titres/espacements se compacter aux faibles hauteurs, uniquement lorsque l'écran concerné active cette adaptation. Les contrôles restent présents. La qualification utilise le GameShell compilé et les styles de production, relève les dimensions CSS réelles et inspecte aussi les chevauchements, pas seulement les scrollbars. État d'implémentation, limites et livraison au Master.
+
 ## Passe graphique desktop — R1084
 
 R1084 supersède uniquement les anciennes clauses d’Accueil sans raccourcis/à deux rangées et la réservation du feedback Catalogue vide. Les réservations de feedback sur les cartes de vote restent valides.

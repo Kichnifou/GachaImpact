@@ -1,5 +1,9 @@
 # Rôle de ce document
 
+## Qualification des demandes sans scroll — décision du 13/10/2026
+
+Réorganiser les régions selon les deux dimensions utiles avant tout repli. La qualification relève viewport CSS, DPR, zoom/visualViewport, hauteur réellement disponible après shell, ainsi que client/scrollWidth et client/scrollHeight des régions et des cartes. Inspecter les captures complètes avec CSS de production, chat ouvert/replié, pages partielles et états chargés/disponibles/en cours/terminés/erreur pertinents. La géométrie seule ne détecte pas tous les chevauchements : contrôler aussi les limites des enfants et les clics normaux. Ne pas masquer ou déporter un dépassement. Toute impossibilité résiduelle exige mesures, cause et arbitrage minimal précis ; ne pas inventer un fallback scroll. Conserver les anciennes preuves comme historiques. Les lots visuels retirables séparément sont qualifiés dans des worktrees de réversion, avec build et tests des frontières concernées.
+
 Ce document est la source de vérité du déroulement opérationnel d’un lot de développement GachaImpact, de sa conception jusqu’à sa validation publique et à son checkpoint Git. Le propriétaire, ChatGPT et Codex doivent le lire lorsqu’ils préparent, implémentent, reviewent ou valident un lot.
 
 Il possède la méthode de travail et la répartition des responsabilités entre ces étapes. Il n’est ni un tracker d’avancement, ni une roadmap, ni un journal de décisions produit, ni un remplacement du Master.

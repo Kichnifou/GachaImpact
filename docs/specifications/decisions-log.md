@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1085 — continuité post-recette R1084 (13/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE par le mandat joint et sa confirmation de livraison complète.** Adaptation dynamique avant scroll selon le contrat UI ; Missions 3×2 sur grands desktops, Accueil trois régions complètes, filtres Box/Catalogue multiéléments en union et intersection avec les autres critères, Quotidiennes complètes, Sidebar terminé compacte sans compte à rebours affiché, lisibilité Invocation, Entraînement complet, paliers Event permanents dans le titre, Général/Shop/Jeux compacts, classement intégral paginé serveur par cinq sans changer le top10 Twitch, Sac horizontal et Collection intégrale, Boutique lisible, Configuration encadrée. Aucun changement économique, aucune migration de schéma. Les mécanismes quotidiens, permissions, ordres canoniques et autorités métier sont conservés.
+
+Quatorze frontières de retour arrière : Missions, Accueil, filtres Box/Catalogue, Sidebar, Aperçu, Invocation, Entraînement, header Event, Général/Shop Event, classement Event, Jeux Event, Sac, Boutique, Configuration. Une fondation neutre opt-in d'adaptation à la hauteur peut rester lorsque l'un de ses consommateurs est retiré. Chaque retrait doit être vérifié séparément. Livraison dans la même mission review → revue indépendante du SHA publié → main par FF strict → déploiements → postflight. Cette décision n'est pas une preuve de livraison : état courant au Master.
+
 ## R1084 — passe graphique desktop et rollback indépendant (13/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat desktop du 13/10.** Six lots exclusivement visuels/navigation : UI-CATALOGUE, UI-BOX, UI-CONCOURS, UI-ACCUEIL, UI-MISSIONS et UI-MP. Chaque lot possède ses propres commits et CSS scopée. La primitive CollectionFilterChips est une fondation neutre opt-in, conservée lors du retrait d’un seul consommateur ; Profil garde ses filtres et Missions non paginées. Aucune économie, permission, auth, donnée de personnage, logique serveur, migration ou transport Twitch modifié.
