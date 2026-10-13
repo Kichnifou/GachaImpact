@@ -32,6 +32,18 @@ Le parcours opérationnel est détaillé aux sections 4–6. Le Master distingue
 
 La règle consolidée du 09/10 est désormais incluse dans ce cycle permanent. Son ancien lien est conservé pour les références historiques.
 
+## Exécution directe par ChatGPT ou délégation Codex — décision propriétaire du 13/10/2026
+
+Pendant les finitions de GachaImpact V1, **ChatGPT peut implémenter directement dans GitHub les petites retouches explicitement demandées par le propriétaire**, au lieu de rédiger systématiquement un prompt Codex. Le propriétaire peut transmettre des captures et regrouper ses retours ; ChatGPT inspecte les composants actuels, limite le diff au besoin validé, choisit l’exécutant et explique brièvement le choix. Cette délégation ne vaut pas autorisation pour une modification future non encore demandée.
+
+- **ChatGPT en direct** : documentation et corrections locales simples de CSS, de texte, d’alignement ou de composants React, lorsque le diff et ses risques peuvent réellement être examinés, que les vérifications pertinentes sont accessibles et que l’invariant existant est préservé. Ne pas déclarer un test local/browser exécuté s’il ne l’a pas été.
+- **Codex recommandé** : changements structurants ou transverses, gros refactors, backend métier, économie, RNG/pity, auth/identités, droits/MP, migrations, transactions/idempotence, transport Twitch, concurrence, forte dépendance aux tests locaux ou à une review indépendante. ChatGPT ne doit pas « faire soi-même » au prix de sauter une gate de sûreté ; dans ce cas, préparer un mandat Codex précis.
+- **Pour tous les deux** : une demande de modification autorisée vise par défaut le cycle complet dans **une seule mission**, `review` → tests et contrôle du vrai diff/SHA → reviews indépendantes requises → promotion fast-forward strict `main` → déclenchement/vérification des déploiements → postflight. « En même temps » signifie **sans second GO générique**, pas un push simultané qui contournerait la gate `review`.
+- **En cas de preuve manquante ou de doute sérieux** : garder la modification sur `review` ou ne pas publier de code, expliquer le blocker et déléguer à Codex si ses moyens permettent la qualification. Un déploiement réussi ne prouve pas une recette visuelle authentifiée ; la validation finale du rendu appartient au propriétaire après publication.
+- **Pas de doublon de travail** : ne pas imposer Codex pour un petit correctif sûr ; ne pas demander de reproduire une vérification déjà prouvée. Ne pas utiliser un coût/token inférieur comme raison de réduire les tests ou supprimer la protection d’une fonctionnalité.
+
+Cette répartition complète le cycle permanent du 10/10 sans le superséder. Les règles permanentes d’AGENTS, les gates sensibles, la production vivante et l’interdiction de nouvelles dépenses non autorisées restent inchangées.
+
 ## Production vivante et comparaisons BEFORE/AFTER — directive propriétaire du 10/10/2026
 
 ### Activité normale des joueurs — norme permanente précisée le 10/10/2026

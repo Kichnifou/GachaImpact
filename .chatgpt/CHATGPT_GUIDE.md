@@ -16,6 +16,12 @@
 
 Toute mission de développement autorisée accomplit par défaut développement, tests, publication/review, main, déploiements et postflight dans la même mission, sans nouveau prompt ni GO entre gates réussies. Un mécanisme sensible exige une review réellement indépendante du vrai SHA publié ; corriger et faire revoir les findings avant promotion. Exceptions explicitement motivées et vrais blockers seulement. L'autorisation reste limitée au mandat ; aucune nouvelle économie, migration de joueurs, dépense ni application métier hors périmètre. Le [workflow canonique](../docs/process/implementation-workflow.md#cycle-permanent-review--main--décision-propriétaire-du-10102026) porte la procédure et les gates ; le Master porte l'état réel. Distinguer candidat, main, déployé, appliqué et recette publique.
 
+# Méthode ChatGPT direct / Codex — décision du 13/10/2026
+
+Le propriétaire peut confier **directement à ChatGPT** les petites corrections de finition GachaImpact, notamment à partir de captures et retours graphiques, plutôt que d'utiliser systématiquement Codex. ChatGPT étudie d'abord le code actuel et le risque, puis effectue lui-même les retouches localisées qu'il peut qualifier correctement avec les outils disponibles. **Codex est privilégié** pour les évolutions complexes, backend sensibles, économie, auth/identité, migrations, concurrence, transport Twitch ou lorsque les tests/reviews nécessaires ne sont pas réalisables directement. ChatGPT explique brièvement son arbitrage, sans promettre des tests ou interactions impossibles dans sa session.
+
+Chaque lot explicitement autorisé suit par défaut dans la même mission : `review` → vérifications et reviews nécessaires → `main` fast-forward → déploiements → postflight, sans nouveau GO générique entre les gates réussies. Ne jamais promouvoir un changement à risque sans preuve suffisante. Le propriétaire vérifie ensuite le rendu sur la production. Les nouvelles captures ne valent pas à elles seules autorisation de modifier des zones non demandées. La [procédure canonique](../docs/process/implementation-workflow.md#exécution-directe-par-chatgpt-ou-délégation-codex--décision-propriétaire-du-13102026) fixe les limites et garde-fous.
+
 # 1. Projet
 
 **Production vivante — règle permanente du 10/10/2026 :** les joueurs continuent de jouer sur Twitch et le standalone pendant les missions. Leurs commandes, nouveaux comptes, sessions, achats, gains et variations ordinaires sont du **bruit de fond à ignorer lorsqu'il est hors périmètre** : ne pas interrompre le travail ni mener d'enquêtes inutiles. Seuls les changements liés au lot, à un contrôle indispensable ou à un risque sérieux (perte, double gain, identité, permissions, sécurité) appellent une investigation. Le [workflow de production vivante](../docs/process/implementation-workflow.md#production-vivante-et-comparaisons-beforeafter--directive-propriétaire-du-10102026) est la source détaillée de cette norme pour ChatGPT et Codex.
@@ -53,8 +59,8 @@ Au démarrage du projet standalone, ChatGPT a notamment servi à :
 Répartition générale des rôles :
 
 - **Axel / propriétaire du projet** : décide de l'expérience joueur, des règles produit, du gameplay, de l'économie et des orientations importantes ;
-- **ChatGPT** : aide à auditer le legacy, poser les décisions utiles, maintenir la cohérence documentaire, préparer la roadmap et construire des demandes précises pour Codex ;
-- **Codex** : agent principal d'implémentation du code, utilisé progressivement sur des lots bornés à partir des documents validés ;
+- **ChatGPT** : pilote les décisions et la cohérence documentaire, examine le code et peut livrer lui-même des petites corrections vérifiables ; prépare un mandat Codex lorsque le risque ou la taille l'exige ;
+- **Codex** : agent d'implémentation privilégié pour les lots complexes ou sensibles exigeant un environnement de développement, des tests approfondis ou des reviews indépendantes ;
 - **repository GitHub** : mémoire externe durable et source de contexte commune, afin que le projet ne dépende pas de la mémoire d'une conversation ou d'un agent.
 
 Les propositions techniques formulées historiquement par ChatGPT ne sont pas automatiquement des décisions actuelles. Une technologie, architecture ou fonctionnalité n'est considérée comme décidée que si les documents actuels du repository la présentent comme validée.
