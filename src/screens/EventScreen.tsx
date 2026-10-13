@@ -107,9 +107,10 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       // oxlint-disable-next-line react/set-state-in-effect -- Explicit one-shot navigation intent.
       setSection(dailyIntent.section)
       setGameTab(dailyIntent.section === 'games' ? dailyIntent.game : 0)
+      if (dailyIntent.section === 'registration') setGeneralPane(!value.canJoin && value.calendar?.canClaimToday ? 'calendar' : 'overview')
     }
     onDailyIntentConsumed?.(dailyIntent.token)
-  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken, presentationMode.active])
+  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken, presentationMode.active, value.canJoin, value.calendar?.canClaimToday])
   const [selectedCode, setSelectedCode] = useState<string | null>(null)
   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)

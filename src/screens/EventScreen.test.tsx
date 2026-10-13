@@ -88,12 +88,19 @@ describe('EventScreen presentation', () => {
     const mounted = mount({ value: { ...afterJoin, giftCode: { available: true } } })
     const onOpenCodes = vi.fn()
     act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, giftCode: { available: true } }} onOpenCodes={onOpenCodes} />))
+    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-general-tabs button')).find(button => button.textContent === 'Code cadeau')!.click())
     const link = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Voir les Codes')!
     act(() => link.click())
     expect(onOpenCodes).toHaveBeenCalledOnce()
     act(() => mounted.root.render(<EventScreen {...mounted.props} openShopToken={1} />))
     expect(mounted.container.querySelector('.event-shop')).not.toBeNull()
     expect(mounted.container.textContent).not.toContain('Voir les Codes')
+  })
+  it('opens the actionable calendar from a daily intent without claiming it', () => {
+    const value = { ...afterJoin, calendar: { startsOn: '2026-12-01', endsOn: '2026-12-25', currentDay: 14, recap: false, canClaimToday: true, days: [{ day: 14, state: 'AVAILABLE' as const, reward: null }] } }
+    const { container } = mount({ value, dailyIntent: { token: 'calendar-intent', section: 'registration' } })
+    expect(container.querySelector('.event-calendar')).not.toBeNull()
+    expect(container.querySelector('.event-hero')).toBeNull()
   })
   it('claims the daily bonus once and shows the next-day reset without a fake claim action', async () => {
     const claimed: EventDailyBonusClaimDto = { ...afterJoin, dailyBonus: { claimedToday: true, canClaim: false }, currency: { amount: '2' }, operation: { id: 'bonus-operation', alreadyProcessed: false } }
