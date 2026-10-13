@@ -139,7 +139,11 @@ describe('DirectMessagePanel', () => {
     const assertDot = (scope:Element) => {
       const dot=scope.querySelector('.presence-dot')
       if(status==='PRIVATE')expect(dot).toBeNull()
-      else expect(dot?.classList.contains('presence-dot-'+status.toLowerCase())).toBe(true)
+      else {
+        expect(dot?.classList.contains('presence-dot-'+status.toLowerCase())).toBe(true)
+        expect(dot?.parentElement?.firstElementChild).toBe(dot)
+        expect(dot?.nextElementSibling?.textContent).toBe(conversation.other.displayName)
+      }
       expect(scope.textContent).not.toMatch(/En ligne|Absent|Hors ligne/)
     }
     assertDot(container.querySelector('.dm-conversation-row')!)

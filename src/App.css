@@ -548,7 +548,8 @@
   display: block;
   line-height: 1.2;
 }
-.sequence-summary .pull-result-card.compact .pull-c6-refund { font-size: 6px; }
+.sequence-summary .pull-result-card.compact .pull-character-identity > .pull-c6-constellation { font-size: 9px; line-height: 1.25; }
+.sequence-summary .pull-result-card.compact .pull-c6-refund { margin-top: 3px; font-size: 9px; line-height: 1.25; text-align: center; }
 .sequence-summary .pull-result-card.compact .pull-c6-stat { font-size: 6px; line-height: 1.15; }
 
 .gacha-detail-overlay {
@@ -9226,7 +9227,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .dm-player-results { display: grid; border: 1px solid rgba(104, 145, 199, .2); border-radius: 8px; overflow: hidden; }
 .dm-player-results button { display: flex; align-items: center; gap: 9px; padding: 8px; cursor: pointer; color: #dce8f8; text-align: left; border: 0; border-bottom: 1px solid rgba(104, 145, 199, .12); background: rgba(14, 27, 49, .84); }
 .dm-player-results button:last-child { border-bottom: 0; }
-.dm-player-results button span:last-child { display: grid; gap: 2px; }
+.dm-player-results button > span:last-child { min-width: 0; display: grid; gap: 2px; }
 .dm-player-results small, .dm-new-body p, .dm-new-hint { color: #8092ad; font-size: 9px; }
 
 @media (max-width: 1120px) {
@@ -9333,6 +9334,9 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 /* Authorized presence, shared by Social and private messages. */
 .presence-dot[class*="presence-dot-"] { display:inline-block; width:8px; height:8px; margin-left:7px; border-radius:50%; vertical-align:middle; flex-shrink:0; }
+.dm-player-identity { min-width: 0; display: flex; align-items: center; }
+.dm-player-identity > .presence-dot[class*="presence-dot-"] { margin: 0 6px 0 0; }
+.dm-player-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .presence-dot-online { background:#65d7a1; box-shadow:0 0 5px #65d7a144; }
 .presence-dot-away { background:#eac46a; }
 .presence-dot-offline { background:#8d99a9; }

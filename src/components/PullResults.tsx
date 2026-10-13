@@ -50,7 +50,7 @@ export function PullResultCard({ result, order = 0, compact = false }: { result:
             {!compact && <small className="pull-result-progression">{revealProgression}</small>}
             <strong style={compact ? undefined : individualRevealNameStyle}>{result.character.name}</strong>
             <span className="pull-result-rarity">{'★'.repeat(rarity)}</span>
-            {compact && <small>{revealProgression}</small>}
+            {compact && <small className={result.constellationAfter === 6 && !result.wasNewCharacter ? 'pull-c6-constellation' : undefined}>{revealProgression}</small>}
             {compact && event && <small className="pull-event">{event}</small>}
           </span>
           {!compact && passiveEffects.length > 0 && <PassiveEffects effects={passiveEffects} alignment="character" />}

@@ -1600,7 +1600,7 @@ export default function DirectMessagePanel({
                 <button type="button" className="dm-conversation-row-open" onClick={(event) => { event.stopPropagation(); openConversation(conversation); }}>
                   <Avatar player={conversation.other} />
                   <span className="dm-conversation-copy">
-                    <strong>{conversation.other.displayName}<PresenceDot presence={conversation.other.presence} /></strong>
+                    <strong className="dm-player-identity"><PresenceDot presence={conversation.other.presence} /><span className="dm-player-name">{conversation.other.displayName}</span></strong>
                     <small>
                       {conversation.request?.state === "PENDING"
                         ? conversation.request.senderPlayerId === playerId ? "Demande envoyée" : "Demande reçue"
@@ -1719,7 +1719,7 @@ export default function DirectMessagePanel({
                 >
                   <Avatar player={candidate} />
                   <span>
-                    <strong>{candidate.displayName}<PresenceDot presence={candidate.presence} /></strong>
+                    <strong className="dm-player-identity"><PresenceDot presence={candidate.presence} /><span className="dm-player-name">{candidate.displayName}</span></strong>
                     <small>
                       {candidate.elementKey
                         ? elementLabels[candidate.elementKey]
@@ -1926,7 +1926,7 @@ export default function DirectMessagePanel({
             >
               <Avatar player={other} />
               <span>
-                <strong>{other.displayName}<PresenceDot presence={other.presence} /></strong>
+                <strong className="dm-player-identity"><PresenceDot presence={other.presence} /><span className="dm-player-name">{other.displayName}</span></strong>
                 <small>Voir le profil</small>
               </span>
             </button>
