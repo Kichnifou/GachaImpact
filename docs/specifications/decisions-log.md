@@ -1,5 +1,15 @@
 # Journal des décisions validées
 
+## R1082 — corrections post-recette R1081 et latence Twitch (13/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat de continuité du 13/10.** Le profil actif doit ouvrir le fil de sa paire de Players, ou le composeur du premier envoi normal. L'ancien fil du Player archivé reste séparé, avec ses auteurs et droits historiques ; aucune fusion, réactivation ou migration de progression. Une intention explicite ne peut être remplacée par cache, réponse obsolète ou restauration obsolète ; erreur visible avec destination conservée et retry. Les annulations/choix manuels, dont Retour/Avancer volontaire, supersèdent l'intention, les interruptions de panneau restent reprenables. [Contrat MP](global-chat-v1.md#corrections-post-recette--r1082), [décision historique préservée](../architecture/r1055-operator-resolution.md).
+
+Identité textuelle des personnages uniforme pour les sept éléments ; couleurs décoratives et auteurs Player du Chat conservés. Statistiques : retrait du tableau, cadre stable pendant chargement/rafraîchissement/erreur, focus entier, neuf plages et données exactes/clavier conservés. Boss : assets officiels Primos/Moras, mêmes reçus/barèmes/notification/HP et félicitations.
+
+Standalone exclusivement : !vote consultatif ne montre que les votes positifs, tri existant et éligibilité à voter inchangés ; aucun vote donne une aide explicite sans grille. !team : en-tête « ✅ Team Pseudo : », sous-titre nom/Team N réel, membres ordonnés et passifs compacts ; confirmations mutatives conservées. !pull : « Pseudo obtient : », acteur figé, annonces reconnues avant les gains, remboursements propres à chaque carte depuis le reçu. Dès qu'un 5★ existe dans l'opération, aucune annonce soft/hard ; pity exact des cartes conservé. Principal + bonusRewards + XP enregistré une seule fois, origines passives explicites sans re-crédit ni remultiplication. Un GAME_RESULT durable, faits/feedback regroupés sans perte si la borne 24 lignes est atteinte ; texte 500 et faits 300 inchangés. Aucun ancien JSON réécrit, aucun prix/RNG/gain/règle économique changé.
+
+Twitch : aucune nouvelle exception textuelle. Optimiser seulement après mesure, par admission fraîche SQL état/couverture sur chemin chaud et transaction ; conserver toutes revalidations, contrôle après rafraîchissement froid/token, SENDING avant HTTP, ordre et règles AMBIGUOUS. Traces serveur monotones expurgées sans texte/identité/secret ; aucun endpoint de diagnostic ou nouvel investissement. Tests privés et reviews indépendantes du vrai SHA puis cycle review→FF main→déploiements→postflight autorisés. La recette publique reste future ; aucun message MP, Pull ou vote artificiel.
+
 ## R1081 — finitions Activité, cartes standalone, Objectif et Boss (13/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat post-R1080 et ses compléments dans la conversation.** R1080 est livré techniquement, recette propriétaire globalement satisfaisante ; ce mandat apporte les finitions ciblées suivantes, sans rouvrir les thèmes.

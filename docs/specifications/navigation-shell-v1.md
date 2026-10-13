@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Destination MP explicite — R1082
+
+Liste connectée → Profil actif → Message privé → GameShell/ChatPanel/DirectMessagePanel conserve l'UUID de destination. L'intention attend isActive, s'ouvre sur sa paire ou composeur, jamais sur le fil d'un autre Player archivé. Token consommé après traitement courant ; réponse dépassée ignorée, choix/annulation manuelle consomme son token. Une résolution interrompue par onglet reprend sans perdre sa cible ; erreur/réessai visibles. Les publications de listes obsolètes et celles d'un compte précédent sont invalidées par révision. Aucune destination MP/UUID restaurée via F5, aucune fusion d'historiques ; contrôle ACTIVE/confidentialité/blocs serveur inchangé. [Contrat](global-chat-v1.md#corrections-post-recette--r1082).
+
 ## Finitions Activité/Objectif/Boss — R1081
 
 Historique > Activité conserve sa destination existante ; compteurs dépliables et modale Statistiques intégrés, aucune nouvelle destination ni nouvel écran Social. Sidebar Objectif actuel reste entièrement navigable vers Invocation malgré sa nouvelle composition portrait/nom/étoiles à gauche. Notification Boss vaincu ouvre toujours Activités > Combat > Boss puis s'archive côté serveur ; écran vaincu affiche les récompenses, Bilan garde son parcours existant. [Layout](ui-layout-contract-v1.md#finitions-ciblées--r1081), [Activité](player-activity-v1.md#finitions-autorisées--r1081), [Notifications](notifications-v1.md#boss-vaincu--complément-r1081-du13102026).

@@ -1,5 +1,9 @@
 # Étape 29 — couverture des 37 sources de commandes
 
+## Finitions post-recette — R1082
+
+Les seules projections !vote/!team/!pull standalone sont amendées selon [le contrat R1082](../specifications/global-chat-v1.md#corrections-post-recette--r1082). La couverture des sources, syntaxes, propriétaires et sorties Twitch reste inchangée. Optimisation technique Twitch par admission fraîche SQL et métriques expurgées ; état/mesures/reviews au Master. Aucune réouverture de l'étape29 ni autre domaine.
+
 ## Extension postérieure — R1081
 
 Présentation standalone : dix commandes graphiques (les huit R1079 + select nommé/combat racine), Pull consolidé en un GAME_RESULT autoritaire, votes/cibles/ennemis figés et icônes élémentaires. Alias consultatif !ami demande= demandes sur INTERNAL_CHAT seulement. Deux exceptions Twitch validées ensuite : !actif sans (Paris) ; félicitations/victoire au début de !combat boss go fatal. Autres sorties Twitch et moteurs métier inchangés. todayNames est une lecture dans les intentions Twitch. [Contrat et bornes](../specifications/global-chat-v1.md#présentation-compacte--r1081), état/tests/reviews au Master ; les couvertures historiques ci-dessous restent datées.

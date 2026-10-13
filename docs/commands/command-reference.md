@@ -1,5 +1,9 @@
 # Registre des commandes GachaImpact
 
+## Amendement de présentation — R1082, 13/10/2026
+
+Standalone seulement : !vote sans arguments montre uniquement les votes positifs (vide explicite/aide sinon), sans réduire les candidats éligibles à la mutation. !team et !team N : en-tête Pseudo, vrai nom/numéro, cartes ordonnées et passifs compacts sous les cartes ; confirmations de mutation conservées. !pull1–10 : pseudo figé, annonces devant les gains, suppression soft/hard si un 5★ dans l'opération, remboursements exacts par carte et origines passives incluses dans les cumuls. Un GAME_RESULT/reçu, économie inchangée. Aucun texte/emoji/fractionnement Twitch modifié ; deux exceptions R1081 déjà livrées restent présentes. [Contrat complet](../specifications/global-chat-v1.md#corrections-post-recette--r1082).
+
 ## Finitions de présentation — R1081, 13/10/2026
 
 Les syntaxes, propriétaires métier et règles ci-dessous sont conservés. Amendements standalone : !pull1–10 publie un seul résultat durable avec cumul exact des gains et cartes de tous personnages/pity par tirage ; !banniere devient courte avec5★/cible en cartes et4★ élémentaires sous la grille ; !combat racine montre les ennemis en cartes ; !select nommé montre sa cible ; !vote montre candidats/compteurs figés sans répétition ; !team/!expedition/!legende ciblée/!obtention gagnent les éléments officiels, les trois dernières retirent les faits redondants. !ami demande est un alias consultatif de demandes **INTERNAL_CHAT uniquement**, aucun envoi de demande. Le protocole et ses bornes sont dans [Chat](../specifications/global-chat-v1.md#présentation-compacte--r1081).

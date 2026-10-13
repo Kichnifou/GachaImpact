@@ -1,0 +1,180 @@
+{
+  "mission": "R1082 post-recette R1081",
+  "date": "2026-10-13",
+  "baseline": "8ff80cff65a59a118befa54df37005e8805eb8d3",
+  "runtime": "971e260664feecfd870eade73722065704beb390",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "state": "LOCAL_QUALIFIED_PUBLISHED_REVIEWS_PENDING",
+  "newTwitchTextExceptions": [],
+  "schema": {
+    "newMigration": false,
+    "retainedMigration": "081",
+    "privateMigrationCount": 81
+  },
+  "qualification": {
+    "quick": "5/5 PASS",
+    "frontendMpChat": "165/165 PASS after final browser-restoration correction",
+    "backendTargeted": "149/149 PASS then overlapping20/20 Pull/adapters",
+    "fullPriorRuntime": {
+      "runtime": "8b406a109c1508cb50d61e59f6c1eaf0fe81cb9d",
+      "steps": "FAIL6/8",
+      "frontend": {
+        "passed": 1606,
+        "failed": 4
+      },
+      "backend": {
+        "passed": 2492,
+        "failed": 6
+      },
+      "historicalFailureNamesEqual": true,
+      "failures": [
+        "src/components/PlayerSidebar.test.ts > Player sidebar progression > shows only the objective portrait while preserving its text, watermark and navigation",
+        "src/components/PullResults.test.tsx > PullResults > renders all ten persisted results in server order with a visible five-star",
+        "src/components/PullResults.test.tsx > PullResults > uses a clean full-stage reveal with only Nouveau or capped Cx progression",
+        "src/screens/BoxScreen.test.tsx > real personal Box > prioritizes the icon in detail, falls back to an existing asset and renders no element badge",
+        "tests/chat-owner-recipe.test.ts > Final owner recipe, step 29 > renders safe eligibility reason NOT_FOUND",
+        "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > converts via conv using the same owner, bigint amount, key and authoritative total",
+        "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > keeps ga gated on standalone and does not call a business service",
+        "tests/command-fixes-20261010.test.ts > Legends exact resolution and privacy > does not use partial character matches and refuses private third-party details",
+        "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on INTERNAL_CHAT",
+        "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on TWITCH"
+      ],
+      "unchangedAssertionFiles": [
+        "src/components/PlayerSidebar.test.ts",
+        "src/components/PullResults.test.tsx",
+        "src/screens/BoxScreen.test.tsx",
+        "server/tests/chat-remaining-commands.test.ts",
+        "server/tests/command-fixes-20261010.test.ts",
+        "server/tests/post-recipe-polish-20261010.test.ts"
+      ],
+      "historicalEligibilityBlockUnchanged": true
+    },
+    "fullFinalRuntime": {
+      "runtime": "971e260664feecfd870eade73722065704beb390",
+      "status": "FAIL",
+      "steps": "6/8",
+      "frontend": {
+        "passed": 1607,
+        "failed": 4
+      },
+      "backend": {
+        "passed": 2492,
+        "failed": 6
+      },
+      "historicalFailureNamesEqual": true,
+      "failures": [
+        "src/components/PlayerSidebar.test.ts > Player sidebar progression > shows only the objective portrait while preserving its text, watermark and navigation",
+        "src/components/PullResults.test.tsx > PullResults > renders all ten persisted results in server order with a visible five-star",
+        "src/components/PullResults.test.tsx > PullResults > uses a clean full-stage reveal with only Nouveau or capped Cx progression",
+        "src/screens/BoxScreen.test.tsx > real personal Box > prioritizes the icon in detail, falls back to an existing asset and renders no element badge",
+        "tests/chat-owner-recipe.test.ts > Final owner recipe, step 29 > renders safe eligibility reason NOT_FOUND",
+        "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > converts via conv using the same owner, bigint amount, key and authoritative total",
+        "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > keeps ga gated on standalone and does not call a business service",
+        "tests/command-fixes-20261010.test.ts > Legends exact resolution and privacy > does not use partial character matches and refuses private third-party details",
+        "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on INTERNAL_CHAT",
+        "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on TWITCH"
+      ],
+      "unchangedAssertionFiles": [
+        "src/components/PlayerSidebar.test.ts",
+        "src/components/PullResults.test.tsx",
+        "src/screens/BoxScreen.test.tsx",
+        "server/tests/chat-remaining-commands.test.ts",
+        "server/tests/command-fixes-20261010.test.ts",
+        "server/tests/post-recipe-polish-20261010.test.ts"
+      ],
+      "historicalEligibilityBlockUnchanged": true,
+      "buildsTypesLintDiffChecks": "PASS"
+    },
+    "privatePostgresql": {
+      "mp": "17/17 PASS",
+      "freshAdmission": "1/1 PASS;81 normal migrations/status",
+      "gacha": "10 PASS/23 excluded",
+      "actorBeforeFreeze": "1 PASS/33 excluded",
+      "twitch": "7 PASS/24 excluded",
+      "overlappingNotSummed": true,
+      "broadGachaAndGlobalChatQualified": false
+    }
+  },
+  "reviews": {
+    "publishedSha": "PENDING",
+    "mpPrereview": {
+      "status": "PASS97/97;all findings closed",
+      "reportSha256": "96433fbbeb5d91852146870f4f7763dd0b9628c9ac4f83baff3887d3099a2c14"
+    },
+    "visualPrereview": {
+      "status": "PASS65 observations+12 followups+14 interaction probes",
+      "css": "index-DRypTCMu.css",
+      "cssSha256": "90ee878732d85bc2ba212ed83e11ec5571c21893f7db70a989f4a67019868259"
+    },
+    "twitchPerformanceAndPull": "PROVISIONAL;final fixed source review pending"
+  },
+  "performance": {
+    "pipeline": {
+      "environment": "real pilot/client;synthetic immediate dependencies;not E2E",
+      "runs": 160,
+      "warmAuthorityQueryCallsOnePart": [
+        31,
+        16
+      ],
+      "warmAuthorityQueryCallsTenParts": [
+        103,
+        52
+      ],
+      "beforeFirstHttp": [
+        27,
+        14
+      ],
+      "admissionCheckpointsUnchanged": true
+    },
+    "postgresComponent": {
+      "environment": "read-only local Windows;one connection;RepeatableRead;real class methods",
+      "alternatingPairs": 30,
+      "warmups": 2,
+      "equalResults": "30/30",
+      "medianMs": [
+        52.7,
+        26.66
+      ],
+      "p95Ms": [
+        62.55,
+        31.56
+      ],
+      "pairedMedianSavingMs": 25.98
+    },
+    "productionBefore": {
+      "scope": "received_at to processed_at;natural traffic;not first reply/E2E",
+      "afterApplicationReady": "8ff80cf",
+      "consultation": {
+        "n": 8,
+        "medianMs": 2142
+      },
+      "pull1": {
+        "n": 1,
+        "medianMs": 2068
+      },
+      "pull5": {
+        "n": 4,
+        "medianMs": 4116.5
+      },
+      "pull10": {
+        "n": 2,
+        "medianMs": 7902,
+        "minMs": 6354,
+        "maxMs": 9450
+      }
+    },
+    "productionAfter": "PENDING passive observation;no public commands to create samples",
+    "wholeCommandGainClaimed": false
+  },
+  "delivery": {
+    "status": "PENDING reviews and FF",
+    "publicAuthenticatedRecipeExecuted": false,
+    "publicEconomicQaExecuted": false,
+    "realMpSent": false
+  },
+  "preservedDocumentationAudit": "docs/architecture/evidence/documentation-audit-20261013.md"
+}

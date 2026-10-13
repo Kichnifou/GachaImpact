@@ -1,8 +1,16 @@
 # Contrat de layout UI V1
 
+## Retouches post-recette — R1082
+
+La couleur décorative Hydro est limitée à la primitive d'icône bonus ; aucune classe élémentaire générique ne colore l'identité textuelle des cartes. Noms uniformes Box/Profil/sélecteurs et autres surfaces partagées, bordures/fonds/icônes/raretés et couleurs des auteurs Player du Chat préservés. Vérifier styles calculés sur sept éléments et hover/focus/sélection.
+
+Modale Statistiques : zone graphique de hauteur responsive stable pendant données/pending/erreur, padding supérieur8px, neuf plages et exploration du point exact, sans tableau. Hauteur totale viewport-bornée et scroll interne ; aucune ancienne série présentée comme nouvelle. Boss vaincu : GameAssetIcon/currencyAssetPaths officiels 22×22, noms accessibles via texte Primos/Moras et fallback existant, mêmes montants et états de reçu.
+
+Cartes Chat Team/Pull/Vote suivent [R1082](global-chat-v1.md#corrections-post-recette--r1082) ; wrappers et noms/faits longs se replient dans les panneaux étroit/agrandi. Aucun changement du défilement au bas R1080, des séparateurs ou du thème. [Preuves au Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Finitions ciblées — R1081
 
-Historique Activité : dates couvertes seulement, compteurs dépliables indépendants sans décaler les axes des autres cartes ; pseudos longs/Unicode reviennent à la ligne. Introduction et petit lien Statistiques alignés avec retour mobile propre. Modale viewport-bornée/scroll interne, focus/Escape/retour déclencheur, graphe SVG lisible à un seul point comme sur cinq ans ; tableau exact disponible, labels X clairsemés et Y entiers. Aucune animation de dépliage nécessaire ; reduced-motion conservé.
+Historique Activité : dates couvertes seulement, compteurs dépliables indépendants sans décaler les axes des autres cartes ; pseudos longs/Unicode reviennent à la ligne. Introduction et petit lien Statistiques alignés avec retour mobile propre. Modale viewport-bornée/scroll interne, focus/Escape/retour déclencheur, graphe SVG lisible à un seul point comme sur cinq ans ; tableau exact retiré par R1082, labels X clairsemés et Y entiers. Aucune animation de dépliage nécessaire ; reduced-motion conservé.
 
 Chat : portraits contain, icône élémentaire officielle en bas à droite distincte de Nouveau en haut à gauche, étoiles/constellations et labels compacts ; flex-wrap en Chat étroit comme agrandi et réponses. compact facultatif masque le titre répété uniquement sur les nouvelles projections. Vote peut présenter son catalogue borné complet ; Pull1–10 reste un seul résultat durable. Ne pas toucher au scrolling Agrandir/Réduire R1080 ni aux MP. [Contrat Chat](global-chat-v1.md#présentation-compacte--r1081).
 

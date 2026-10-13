@@ -1,5 +1,9 @@
 # Activité quotidienne des joueurs — R1080, 13/10/2026
 
+## Modale stable — R1082
+
+Retirer le bloc « Données quotidiennes exactes » et son tableau ; conserver les mêmes données quotidiennes, neuf plages/default10d, points/axes/exploration clavier et tactile. Le cadre graphique garde une hauteur responsive bornée, y compris pendant chargement initial, rafraîchissement lent, erreur et retry. L'ancienne série n'est pas affichée comme nouvelle période ; la dernière requête sélectionnée gagne. Header/sélecteur restent montés, marge haute8px pour focus entier, scroll interne/viewport/focus/Escape/retour déclencheur conservés. Aucun cache durable ni changement API, collecte, journées Paris ou confidentialité.
+
 ## Finitions autorisées — R1081
 
 La collecte réelle débute le13/10/2026 à09:21:41.282 Europe/Paris (`2026-10-13T07:21:41.282Z` dans ActivityCoverage). L'historique s'arrête à cette première date : dix jours couverts maximum/page, dernière page raccourcie, pages excessives ramenées à la dernière, aucune page de journées inconnues. Sans couverture : aucune entrée. Première journée PARTIAL conservée dans les données, mais aucun libellé « Journée de collecte partielle » dans l'interface. Aujourd'hui reste en cours, un jour couvert vide vaut zéro.
@@ -8,7 +12,7 @@ Le clic sur le compteur ouvre les pseudos de ce jour sans nouveau panneau Social
 
 `GET /api/v1/me/history/activity/statistics?range=5d|10d|1m|3m|6m|1y|2y|5y|all` : agrégats quotidiens du même PlayerActivityService, ordre chronologique, aucune identité. Neuf libellés UI exacts : 5 derniers jours, 10 derniers jours (défaut), 1 mois, 3 mois, 6 mois, 1 an, 2 ans, 5 ans, Depuis toujours. Aujourd'hui inclus ; jours calendaires Paris, mois/années glissants avec anniversaire exclu et jour ramené au dernier jour du mois si nécessaire. Borne basse tronquée au début réel de couverture, pas de zéros avant. all signifie depuis collecte ; limite serveur36600jours, erreur explicite au-delà, jamais troncature silencieuse. Aucun accès Player individuel pour tracer la courbe.
 
-Introduction exacte « Liste des joueurs actifs par jour. », lien discret « Statistiques → ». Modale centrée « Statistiques d'activité », SVG léger, ordonnées entières, points exacts/ligne seulement si au moins deux jours, dates peu denses, tooltip souris et exploration clavier/tactile, tableau des données exactes sous la courbe. Scroll interne borné viewport, verrou body, focus piégé/restauré/Escape, chargement/erreur/Réessayer. APIs authentifiées acteur ACTIVE et no-store, aucune écriture de ces lectures.
+Introduction exacte « Liste des joueurs actifs par jour. », lien discret « Statistiques → ». Modale centrée « Statistiques d'activité », SVG léger, ordonnées entières, points exacts/ligne seulement si au moins deux jours, dates peu denses, tooltip souris et exploration clavier/tactile, information exacte du point sélectionné et exploration clavier/tactile ; tableau retiré par R1082. Scroll interne borné viewport, verrou body, focus piégé/restauré/Escape, chargement/erreur/Réessayer. APIs authentifiées acteur ACTIVE et no-store, aucune écriture de ces lectures.
 
 Complément explicite propriétaire : !actif retire « (Paris) » **sur standalone et Twitch**, en conservant tous les alias/casse, mêmes noms/confidentialité et journée Paris. L'ancienne mention Twitch inchangé ci-dessous s'applique aux autres sorties ; ce libellé R1081 la supersède. todayNames est enregistré comme méthode de lecture dans les intentions Twitch ; pas d'autre mutation ni changement du recorder.
 
