@@ -115,7 +115,7 @@
       "css": "index-DRypTCMu.css",
       "cssSha256": "90ee878732d85bc2ba212ed83e11ec5571c21893f7db70a989f4a67019868259"
     },
-    "twitchPerformanceAndPull": "PROVISIONAL;final fixed source review pending",
+    "twitchPerformanceAndPull": "APPROVED on published1d7b816; final fixed source reviewed",
     "final": {
       "identityMpPrivacy": "APPROVED;97 independent tests;exact tested MP blobs",
       "twitchPerformanceTransactions": "APPROVED;strict119/119;160 pipeline runs;305 independent tests",
