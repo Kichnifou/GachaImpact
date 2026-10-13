@@ -25,7 +25,7 @@ export const rankingRegistry: readonly RankingDefinition[] = [
   define('pulls', 'Pulls', 'GACHA', 'gacha', general), define('rate5', 'Taux de 5★', 'GACHA', 'gacha', general, ['taux5', 'luck'], 'PERCENT', 'pulls>=100'),
   define('stars5', '5★ obtenus', 'GACHA', 'gacha', general, ['5stars', '5']), define('stars4', '4★ obtenus', 'GACHA', 'gacha', general, ['4stars', '4']),
   define('pity5', 'Pity 5★', 'GACHA', 'gacha', ['PITY_GUARANTEE'], ['pity'], 'PITY5'), define('won5050', '50/50 gagnés', 'GACHA', 'gacha', general, ['5050', '50/50']),
-  define('lost5050', '50/50 perdus', 'GACHA', 'gacha', general, ['lose5050', 'lost5050']),
+  define('lost5050', '50/50 perdus', 'GACHA', 'gacha', general, ['loose5050', 'lose5050', 'lost5050']),
   define('primos', 'Primogemmes', 'RESSOURCES', 'balances', currency), define('moras', 'Patrimoine Moras', 'RESSOURCES', 'bank', ['CURRENCY_BALANCES', 'BANK']),
   define('particles', 'Particules totales', 'RESSOURCES', 'balances', currency, ['particules']),
   ...elementKeys.map(key => define(key, `Particules ${chatElementNames[key]}`, 'RESSOURCES', 'balances', currency)),

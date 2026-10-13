@@ -18,8 +18,8 @@ const standaloneGain = (key: string, amount: bigint) => {
  * facts are read there. Neither current balances nor operation cost enter the sums. */
 export function standalonePullSummary(result: GachaPullResult, actorName = 'Joueur'): { text: string; facts: string[] } {
   const gains = new Map<string, bigint>(), facts: string[] = [];
-  const passiveGains = new Map<string, Map<string, bigint>>(), multipliers = new Set<string>();
-  const passive = (element: string, key: string, amount: bigint) => { const values = passiveGains.get(element) ?? new Map<string, bigint>(); values.set(key, (values.get(key) ?? 0n) + amount); passiveGains.set(element, values); };
+  const passiveGains = new Map<string, Map<string, bigint>>(), multipliers = new Set<string>(), chanceBonuses = new Set<number>();
+  const passive = (element: string, key: string, amount: bigint) => { if (!amount) return; const values = passiveGains.get(element) ?? new Map<string, bigint>(); values.set(key, (values.get(key) ?? 0n) + amount); passiveGains.set(element, values); };
   const add = (key: string, amount: bigint) => { if (amount !== 0n) gains.set(key, (gains.get(key) ?? 0n) + amount); };
   let pity = 0, captures = 0, backToBack = 0, maxed = 0, guarantees = 0, won = 0, lost = 0, early = 0;
   const levels = new Set<number>(); let overflow = 0;
@@ -33,7 +33,8 @@ export function standalonePullSummary(result: GachaPullResult, actorName = 'Joue
     for (const effect of row.passiveEffects) {
       if (effect.type === 'xp') { add('xp', effect.amount); passive('cryo', 'xp', effect.amount); effect.levelsReached.forEach(level => levels.add(level)); overflow += effect.overflowRewardsGranted; }
       if (effect.type === 'pity5') pity += effect.amount;
-      if (effect.type === 'secondary_reward_multiplier') multipliers.add(`${chatElementEmojis[effect.elementKey]} ${effect.elementKey === 'geo' ? 'Moras' : 'particules'} ×${(effect.numerator / effect.denominator).toLocaleString('fr-FR')}`);
+      if (effect.type === 'secondary_reward_multiplier' && effect.amountAfter !== effect.amountBefore) multipliers.add(`${effect.elementKey === 'geo' ? 'Moras' : 'particules'} ×${(effect.numerator / effect.denominator).toLocaleString('fr-FR')}`);
+      if (effect.type === 'five_star_chance_bonus' && effect.basisPoints > 0) chanceBonuses.add(effect.basisPoints);
     }
     if (row.captureTriggered) captures++;
     if (row.backToBack) backToBack++;
@@ -43,19 +44,26 @@ export function standalonePullSummary(result: GachaPullResult, actorName = 'Joue
     if (row.c6Progression?.type === 'stat') facts.push(`🌟 ${row.character?.name ?? 'Personnage'} : +1 ${c6StatNames[row.c6Progression.stat]} (${row.c6Progression.valueAfter}/20)`);
     if (row.c6Progression?.type === 'maxed') maxed++;
   }
-  if (pity) facts.push(`⚡ +${pity} pity 5★`);
-  if (guarantees) facts.push(`🎯 Garantie utilisée ×${guarantees}`);
+  if (guarantees) facts.push(`🎯 Garantie utilisée${guarantees > 1 ? ` ×${guarantees}` : ''}`);
   if (won || lost) facts.push([won ? `50/50 gagné ×${won}` : '', lost ? `50/50 perdu ×${lost}` : ''].filter(Boolean).join(' · '));
   if (maxed) facts.push(`🌟 Stats C6 au maximum ×${maxed} · compensations incluses`);
   const sortedLevels = [...levels].sort((a,b) => a-b);
   for (let i = 0; i < sortedLevels.length; i += 30) facts.push(`Niveaux atteints : ${sortedLevels.slice(i, i + 30).join(', ')}`);
   if (overflow) facts.push(`Bonus niveau 100 ×${overflow}`);
   // Explanatory origins never enter gains again. Multipliers describe the already-recorded principal.
+  const passiveParts = [...multipliers, ...[...chanceBonuses].map(value => `chance 5★ +${(value / 100).toLocaleString('fr-FR')}%`), ...(pity ? [`⚡ +${pity} pity 5★`] : [])];
   for (const [element, values] of passiveGains) {
-    const parts = [...values].map(([key, amount]) => ({ text: standaloneGain(key, amount), separator: ' · ' }));
-    facts.push(...logicalChatParts(`🧩 Inclus dans les gains ${chatElementEmojis[element as keyof typeof chatElementEmojis]} :`, parts, '🧩 Inclus (suite) :', 300));
+    for (const [key, amount] of values) {
+      const particle = key.replace(/^particles_/u, '');
+      const label = key === 'primogems' ? 'Primos' : key === 'moras' ? 'Moras' : key === 'xp' ? 'XP' : isElementKey(particle) ? `particules ${chatElementNames[particle]}` : key;
+      passiveParts.push(`${element === 'dendro' ? '🌿 ' : ''}+${chatNumber(amount)} ${label}`);
+    }
   }
-  if (multipliers.size) facts.push(`🧩 Multiplicateurs déjà inclus : ${[...multipliers].join(' · ')}`);
+  const effectCount = multipliers.size + chanceBonuses.size + passiveGains.size + (pity ? 1 : 0);
+  if (effectCount) {
+    const label = effectCount === 1 ? 'passif' : 'passifs';
+    facts.push(...logicalChatParts(`🧩 ${label} :`, passiveParts.map(text => ({ text, separator: ' · ' })), `🧩 ${label} (suite) :`, 300));
+  }
   const announcements: string[] = [];
   const occurrence = (count: number) => count > 1 ? ` ×${count}` : '';
   if (!result.results.some(row => row.rarity === 5)) {

@@ -1,9 +1,12 @@
 import {planPlayerXpGrant} from '../src/domain/player/xp-grant.js';
-import {it,expect} from 'vitest';
+import {it,expect,vi,afterEach} from 'vitest';
 import {harness} from './helpers/chat-command-harness.js';
 import {standalonePullSummary} from '../src/application/chat/gacha-command-result.js';
 import {pullPresentation} from '../src/application/chat/result-presentation.js';
-it('packs canonical C6/passive/Mission bursts without loss and replays one frozen result after publication interruption',async()=>{
+import * as presentationModule from '../src/application/chat/result-presentation.js';
+import legacy from './fixtures/r1082-pull-budget-facts.json' with {type:'json'};
+afterEach(()=>vi.restoreAllMocks());
+it.each([false,true])('preserves canonical C6/passive/Mission facts and one frozen replay; historical formatter=%s',async historical=>{
  const h=harness();
  const rows=Array.from({length:10},(_,i)=>({index:i+1,resultType:'character',character:{id:'five',name:'A',elementKey:'pyro',rarity:5,iconPath:null},rarity:5,resourceKey:null,resourceAmount:null,wasNewCharacter:false,constellationAfter:6,copiesAfter:8+i,wasFiftyFifty:i>0,wonFiftyFifty:i>0?true:null,guaranteeConsumed:i===0,captureTriggered:false,backToBack:i>0,pity5AtPull:i===0?1:3,pity4AtPull:1,
  c6Progression:{type:'stat',stat:'strength',valueAfter:2+i},
@@ -15,11 +18,14 @@ it('packs canonical C6/passive/Mission bursts without loss and replays one froze
  h.services.performGachaPullChat.execute.mockResolvedValue(result as never);
  const missions=['Archonte des vœux','Millionnaire','Archonte élémentaire','Couronne des constellations','Amitié parfaite','Sommet de l’aventure','Maître du combat'].map((name,index)=>`🎯 Mission terminée : ${name} (+${index<3?16000:160000} Primogemmes).`);
  missions.push('✅ Défi terminé : +💠800 Primogemmes.');h.chat.commandMissionCompletions.mockResolvedValue(missions);
- const summary=standalonePullSummary(result as never,'Moi'),presentation=pullPresentation(result as never);
+ const summary=standalonePullSummary(result as never,'Moi'),presentation={...pullPresentation(result as never),...(historical?{facts:legacy.facts}:{})};
+ // Preserve the original 17+8 overflow reproduction as an immutable formatter boundary fixture.
+ if(historical)vi.spyOn(presentationModule,'pullPresentation').mockReturnValue(presentation);
  h.chat.publishGameResult.mockRejectedValueOnce(new Error('publication interruption'));
  await expect(h.send('!pull 10')).rejects.toThrow('publication interruption');
  const frozen=h.chat.freezeCommandResult.mock.calls[0]![1];
- expect(presentation.facts.length+missions.length).toBeGreaterThan(24);
+ if(historical)expect(presentation.facts.length+missions.length).toBeGreaterThan(24);
+ else expect(presentation.facts.length+missions.length).toBeLessThanOrEqual(24);
  expect(frozen.presentation!.facts.length).toBeLessThanOrEqual(24);
  expect(frozen.presentation!.facts.every(f=>Array.from(f).length<=300)).toBe(true);
  const all=frozen.presentation!.facts.join(' · ');

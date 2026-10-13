@@ -9,7 +9,7 @@ describe('R1082 standalone presentation', () => {
   it.each(['pyro', 'geo'] as const)('never reapplies the recorded %s multiplier to principal credits', element => {
     const result = operation([row({ resourceKey: element === 'geo' ? 'moras' : 'particles_hydro', resourceAmount: 1500n, passiveEffects: [{ type: 'secondary_reward_multiplier', elementKey: element, numerator: 3, denominator: 2, amountBefore: 1000n, amountAfter: 1500n }] })]);
     const summary = standalonePullSummary(result, 'Pseudo');
-    expect(summary.text).toContain('1 500'); expect(summary.text).not.toContain('2 250'); expect(summary.facts).toEqual([`🧩 Multiplicateurs déjà inclus : ${element === 'geo' ? '☄️ Moras' : '🔥 particules'} ×1,5`]);
+    expect(summary.text).toContain('1 500'); expect(summary.text).not.toContain('2 250'); expect(summary.facts).toEqual([`🧩 passif : ${element === 'geo' ? 'Moras' : 'particules'} ×1,5`]);
   });
   it('shows separate 4★ and 5★ refunds, never the operation total on either card', () => {
     const character = { id: 'same', name: 'Personnage', elementKey: 'hydro' } as never;
@@ -48,7 +48,7 @@ describe('R1082 standalone presentation', () => {
     expect(summary.text).toBe('Pseudo figé obtient : +💰 1 250 Moras | +💎 120 Primos');
     expect(pullPresentation(result).characters[0]?.label).toBe('+80 Primos');
     expect(pullPresentation(result).characters[1]?.label).toBeUndefined();
-    expect(summary.facts.join(' ')).toContain('🌿'); expect(summary.facts.join(' ')).toContain('☄️');
+    expect(summary.facts.join(' ')).toContain('🌿 +40 Primos'); expect(summary.facts.join(' ')).toContain('Moras ×1,25');
   });
   it.each([false, true])('announces recorded thresholds only when no five star exists in the operation; five=%s', five => {
     const result = operation([row({ pity5AtPull: 74 }), row({ pity5AtPull: 80 }), ...(five ? [row({ rarity: 5, pity5AtPull: 3, backToBack: true, captureTriggered: true })] : [])]);
