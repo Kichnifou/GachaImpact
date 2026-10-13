@@ -1,0 +1,100 @@
+diff --git a/src/dailies/DailyTrackerCard.tsx b/src/dailies/DailyTrackerCard.tsx
+index 508d2975..45d327c2 100644
+--- a/src/dailies/DailyTrackerCard.tsx
++++ b/src/dailies/DailyTrackerCard.tsx
+@@ -6,7 +6,6 @@ import type { DailyClaimController } from './use-daily-claim'
+ import { dailyTrackerStatus } from './daily-compact-presentation'
+ import { useDailyResetCountdown } from './use-daily-reset-countdown'
+ import './dailies.css'
+-import './sidebar-completion.css'
+ 
+ export type DailyCompactProps = { items: readonly DailyItem[]; tracker: DailyTracker; claim: DailyClaimController; onOpen: (item: DailyItem) => void; onOverview: () => void; refreshing?: boolean }
+ 
+@@ -29,11 +28,11 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
+   }
+   const currentMessage = claim.pending ? 'Récupération…' : claim.error || claim.feedback
+   const completed = !selected && tracker.message === 'Terminé ✅'
+-  useDailyResetCountdown(completed, tracker.businessDate)
++  const resetCountdown = useDailyResetCountdown(completed, tracker.businessDate)
+   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id) && (item.state === 'waiting' || item.state === 'in_progress' || item.actionable))?.deadline
+-  const status = currentMessage || (selected ? dailyTrackerStatus(selected) : completed ? '' : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
++  const status = currentMessage || (selected ? dailyTrackerStatus(selected) : completed ? resetCountdown : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
+   const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
+-  return <section data-tutorial-anchor="daily-tracker" data-completed={completed && !currentMessage && !refreshing} className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
++  return <section data-tutorial-anchor="daily-tracker" className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
+     <button type="button" className="daily-tracker-hit-target" disabled={!actionable} aria-label={selected ? `${isClaim ? 'Récupérer' : 'Accéder à'} ${selected.title}` : 'Activité indisponible'} onClick={run} />
+     <header className="daily-tracker-heading"><div><h2 ref={heading} tabIndex={-1}>{title}</h2></div>
+       <AppButton variant="icon" className="daily-tracker-hide" disabled={!selected || !tracker.canHide || claim.locked} aria-label={selected ? `Masquer ${selected.title} pour aujourd’hui` : 'Masquer une activité'} onClick={hide}>×</AppButton>
+diff --git a/src/dailies/daily-controller.test.tsx b/src/dailies/daily-controller.test.tsx
+index 8bd9252f..48ab3021 100644
+--- a/src/dailies/daily-controller.test.tsx
++++ b/src/dailies/daily-controller.test.tsx
+@@ -109,37 +109,35 @@ describe('tracker card hit target and compact Home footer', () => {
+ })
+ 
+ describe('Shared daily consultation and claim', () => {
+-  it('retains compact completion across F5 with known nonapplicable owners', async () => {
++  it('retains completion and its Paris countdown across F5 with known nonapplicable owners', async () => {
+     vi.setSystemTime(new Date('2026-10-02T21:30:00Z'))
+     const source = dailySources()
+     const projected = projectDailies({ ...source, favor: { ...source.favor!, active: false, claimStatus: 'UNAVAILABLE' }, friendship: { ...source.friendship!, activeFriends: 0, available: 0, alreadySent: 0 } })
+     const items = projected.map(row => row.id === 'favor' || row.id === 'friendship' ? row : { ...row, state: 'completed' as const, actionable: false })
+     await render({ items })
+     expect(control.message).toBe('Terminé ✅')
+-    expect(container.querySelector('.daily-tracker-status')).toBeNull()
+-    expect(container.querySelector('.daily-tracker')?.getAttribute('data-completed')).toBe('true')
++    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+     await act(async () => root.unmount()); root = createRoot(container)
+     await render({ items })
+     expect(control.message).toBe('Terminé ✅')
+-    expect(container.querySelector('.daily-tracker-status')).toBeNull()
++    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+   })
+-  it('keeps completion compact across Paris midnight and restores activity from the next server date', async () => {
++  it('shows the Paris reset instead of a completed Expedition deadline and waits for the next server date', async () => {
+     vi.setSystemTime(new Date('2026-10-03T21:33:00Z'))
+     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false, deadline: item.id === 'expedition' ? '2026-10-04T10:33:00Z' : undefined }))
+     await render({ items, date: '2026-10-03' })
+     const status = () => container.querySelector('.daily-tracker-status')?.textContent
+-    expect(status()).toBeUndefined()
++    expect(status()).toBe('Réinitialisation dans 27 min')
+     expect(container.querySelector('.daily-tracker')?.textContent).not.toContain('Prochaine échéance')
+     await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+-    expect(status()).toBeUndefined()
++    expect(status()).toBe('Réinitialisation dans 26 min')
+     await act(async () => { await vi.advanceTimersByTimeAsync(26 * 60_000) })
+-    expect(status()).toBeUndefined()
++    expect(status()).toBe('Réinitialisation dans 0 min')
+     expect(control.message).toBe('Terminé ✅')
+     await render({ items, date: '2026-10-04' })
+-    expect(status()).toBeUndefined()
++    expect(status()).toBe('Réinitialisation dans 24 h 0 min')
+     await render({ items: items.map(item => item.id === 'expedition' ? { ...item, state: 'in_progress', detail: 'Skirk · 12:33:00', deadline: '2026-10-04T10:33:00Z' } : item), date: '2026-10-04' })
+     expect(status()).toBe('Skirk · 12:33:00')
+-    expect(container.querySelector('.daily-tracker')?.getAttribute('data-completed')).toBe('false')
+   })
+   it('retains a pertinent selection across rereads, rotates manually and ignores hidden items', async () => {
+     await render()
+diff --git a/src/dailies/sidebar-completion.css b/src/dailies/sidebar-completion.css
+deleted file mode 100644
+index 43b51367..00000000
+--- a/src/dailies/sidebar-completion.css
++++ /dev/null
+@@ -1,17 +0,0 @@
+-@media (min-width: 1121px) {
+-  .player-secondary:has(> .daily-tracker[data-completed="true"]) {
+-    grid-template-rows: minmax(min-content, 1fr) minmax(min-content, 1fr) minmax(min-content, 1fr) auto;
+-  }
+-  .player-sidebar .daily-card.daily-tracker[data-completed="true"] {
+-    height: auto;
+-    min-height: 0;
+-    grid-template-rows: auto auto auto;
+-    gap: 6px;
+-    padding-block: 10px;
+-  }
+-  .daily-tracker[data-completed="true"] .daily-tracker-heading { grid-template-rows: 24px; }
+-  .daily-tracker[data-completed="true"] .daily-tracker-heading > div:first-child { grid-row: 1; }
+-  .daily-tracker[data-completed="true"] .daily-tracker-content { justify-content: center; padding-block: 4px; }
+-  .daily-tracker[data-completed="true"] .daily-tracker-summary { margin: 0; text-align: center; }
+-  .player-sidebar .objective-guarantee, .player-sidebar .objective-brilliance { font-size: 12px; line-height: 1.4; }
+-}

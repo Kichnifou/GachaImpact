@@ -1,0 +1,160 @@
+diff --git a/src/missions/MissionPages.tsx b/src/missions/MissionPages.tsx
+index 2515842a..add64ad6 100644
+--- a/src/missions/MissionPages.tsx
++++ b/src/missions/MissionPages.tsx
+@@ -1,17 +1,17 @@
+-import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
++import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
+ import type { PermanentMissionDto } from '../api/types'
+ import AppButton from '../components/AppButton'
+ 
+ export function missionPageGeometry(width: number, height: number) {
+   const columns = width >= 720 ? 3 : width >= 480 ? 2 : 1
+-  const rows = height >= 350 ? 2 : 1
++  const rows = Math.max(1, Math.min(3, Math.floor((height - 38 + 8) / 193)))
+   return { columns, rows }
+ }
+ 
+ /** Presentation only; the parent supplies the complete canonical order. */
+ export default function MissionPages({ missions, renderCard }: { missions: readonly PermanentMissionDto[]; renderCard: (mission: PermanentMissionDto) => ReactNode }) {
+   const viewport = useRef<HTMLDivElement>(null)
+-  const [geometry, setGeometry] = useState({ columns: 3, rows: 2 })
++  const [geometry, setGeometry] = useState({ columns: 3, rows: 3 })
+   const [page, setPage] = useState(0)
+   const [direction, setDirection] = useState(1)
+   const capacity = geometry.columns * geometry.rows
+@@ -21,10 +21,7 @@ export default function MissionPages({ missions, renderCard }: { missions: reado
+     const node = viewport.current
+     if (!node) return
+     const measure = () => {
+-      if (node.clientWidth && node.clientHeight) {
+-        const next = missionPageGeometry(node.clientWidth, node.clientHeight)
+-        setGeometry(previous => previous.columns === next.columns && previous.rows === next.rows ? previous : next)
+-      }
++      if (node.clientWidth && node.clientHeight) setGeometry(missionPageGeometry(node.clientWidth, node.clientHeight))
+     }
+     measure()
+     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+@@ -32,6 +29,11 @@ export default function MissionPages({ missions, renderCard }: { missions: reado
+     window.addEventListener('resize', measure)
+     return () => { observer?.disconnect(); window.removeEventListener('resize', measure) }
+   }, [])
++  useLayoutEffect(() => {
++    // Long descriptions may require fewer rows, never clipping their contents.
++    const cards = viewport.current?.querySelectorAll<HTMLElement>('.mission-card')
++    if (geometry.rows > 1 && cards && [...cards].some(card => card.scrollHeight > card.clientHeight + 1)) setGeometry(value => ({ ...value, rows: value.rows - 1 }))
++  }, [missions, current, geometry])
+   const move = (delta: -1 | 1) => { setDirection(delta); setPage(Math.max(0, Math.min(pages - 1, current + delta))) }
+   return <div ref={viewport} className="mission-pages" style={{ '--mission-columns': geometry.columns, '--mission-rows': geometry.rows } as CSSProperties}>
+     <div className="mission-page-window">
+diff --git a/src/missions/mission-pages.css b/src/missions/mission-pages.css
+index 0f4282b8..14bc9768 100644
+--- a/src/missions/mission-pages.css
++++ b/src/missions/mission-pages.css
+@@ -6,11 +6,12 @@
+ .missions-paged .mission-projection-content { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+ .missions-paged .mission-rank-pages { min-height: 0; flex: 1; }
+ .missions-paged .mission-pages { height: 100%; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 6px; }
+-.missions-paged .mission-page-window { min-height: 0; container-type: size; }
+-.missions-paged .mission-page-grid { height: 100%; min-height: 0; grid-template-columns: repeat(var(--mission-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--mission-rows), minmax(min-content, min(240px, calc((100cqh - 8px * (var(--mission-rows) - 1)) / var(--mission-rows))))); align-content: start; gap: 8px; }
+-.missions-paged .mission-card { min-height: 0; grid-template-rows: auto auto auto auto auto; align-content: center; gap: clamp(3px, 1cqh, 8px); padding: clamp(6px, 1.5cqh, 12px) 12px; }
++.missions-paged .mission-page-window { min-height: 0; overflow-x: clip; overflow-y: auto; }
++.missions-paged .mission-page-grid { height: 100%; min-height: 185px; grid-template-columns: repeat(var(--mission-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--mission-rows), minmax(185px, 1fr)); align-content: start; gap: 8px; }
++.missions-paged .mission-page-grid[data-mission-rows="1"] { grid-template-rows: minmax(max-content, 1fr); }
++.missions-paged .mission-card { min-height: 0; grid-template-rows: auto minmax(min-content, 1fr) auto auto auto; gap: 6px; padding: 10px 12px; }
+ .missions-paged .mission-card-copy { min-height: 0; overflow-wrap: anywhere; }
+-.missions-paged .mission-card-copy p { margin-top: 3px; font-size: 12px; line-height: 1.3; }
++.missions-paged .mission-card-copy p { margin-top: 4px; font-size: 11px; line-height: 1.35; }
+ .missions-paged .mission-card > footer { padding-top: 6px; flex-direction: row; align-items: center; }
+ .missions-paged .mission-progress-copy { flex-direction: row; align-items: end; }
+ .missions-paged .mission-progress-copy strong { text-align: right; }
+diff --git a/src/screens/MissionsScreen.test.tsx b/src/screens/MissionsScreen.test.tsx
+index ceea52a2..80a703b3 100644
+--- a/src/screens/MissionsScreen.test.tsx
++++ b/src/screens/MissionsScreen.test.tsx
+@@ -46,18 +46,17 @@ describe('MissionsScreen', () => {
+     const keys = () => [...container.querySelectorAll<HTMLElement>('[data-mission-key]')].map(n => n.dataset.missionKey)
+     const seen = [...keys()]
+     const next = () => container.querySelector<HTMLButtonElement>('[aria-label="Missions suivantes"]')!
+-    expect(keys()).toHaveLength(6)
++    expect(keys()).toHaveLength(9)
+     expect(container.textContent).not.toContain('Suivez vos objectifs')
+-    while (!next().disabled) { act(() => next().click()); seen.push(...keys()) }
++    act(() => next().click()); seen.push(...keys()); act(() => next().click()); seen.push(...keys())
+     expect(keys()).toHaveLength(1); expect(next().disabled).toBe(true)
+     expect(seen).toHaveLength(19); expect(new Set(seen).size).toBe(19)
+     expect(seen).toEqual(projection.ranks.B.map(m => m.externalKey))
+     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Missions précédentes"]')!.click())
+-    expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('3')
++    expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('2')
+     act(() => [...container.querySelectorAll<HTMLButtonElement>('.missions-rank-tabs button')].find(n => n.textContent === 'A')!.click())
+     expect(container.querySelector('[data-mission-page]')?.getAttribute('data-mission-page')).toBe('1')
+-    expect(keys()).toHaveLength(6)
+-    expect(next().disabled).toBe(false)
++    expect(container.querySelector('.mission-pagination')).toBeNull()
+     act(() => root.render(<MissionProjectionView value={projection} />))
+     expect(container.querySelectorAll('.mission-card')).toHaveLength(19)
+     expect(container.querySelector('.mission-pages')).toBeNull()
+@@ -67,8 +66,8 @@ describe('MissionsScreen', () => {
+     expect(keys()).toHaveLength(4); expect(container.querySelector('.mission-pagination')).toBeNull()
+   })
+   it('uses a bounded readable capacity for narrow and low viewports', () => {
+-    expect(missionPageGeometry(1000, 640)).toEqual({ columns: 3, rows: 2 })
+-    expect(missionPageGeometry(600, 400)).toEqual({ columns: 2, rows: 2 })
++    expect(missionPageGeometry(1000, 640)).toEqual({ columns: 3, rows: 3 })
++    expect(missionPageGeometry(600, 400)).toEqual({ columns: 2, rows: 1 })
+     expect(missionPageGeometry(320, 280)).toEqual({ columns: 1, rows: 1 })
+   })
+   it.each(['missions-ranks', 'missions-progress', 'missions-secret-z'] as const)('presents %s on B for locked and unlocked Z, restoring the normal rank afterward', async (stepId: TutorialStepId) => {
+@@ -83,7 +82,7 @@ describe('MissionsScreen', () => {
+       expect(z.getAttribute('aria-pressed')).toBe('true')
+       act(() => root.render(render(true)))
+       expect(z.getAttribute('aria-pressed')).toBe('false')
+-      expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
++      expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+       expect(container.querySelector('[data-tutorial-anchor="missions-progress"] [data-mission-rank="B"]')).not.toBeNull()
+       expect(container.querySelector('[data-mission-rank="Z"]')).toBeNull()
+       expect(container.textContent).not.toContain('Description publique Z')
+@@ -94,17 +93,14 @@ describe('MissionsScreen', () => {
+       expect(container.querySelector('[data-mission-rank="Z"]') !== null).toBe(value === unlocked)
+     }
+   })
+-  it('loads once on entry and exposes all nine authoritative cards across six-card pages', async () => {
++  it('loads once on entry and opens rank B with its nine authoritative cards', async () => {
+     const { container, onLoad } = await mount()
+     expect(onLoad).toHaveBeenCalledOnce()
+-    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
+-    expect(container.textContent).toMatch(/En cours.*Verrouillée/s)
+-    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Missions suivantes"]')!.click())
+-    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(3)
++    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+     expect(container.textContent).toContain('Mission B1')
+     expect(container.textContent).toContain('9 007 199 254 740 993 / 9 007 199 254 740 993')
+     expect(container.textContent).toContain('+1 600 Primogemmes')
+-    expect(container.textContent).toMatch(/Verrouillée.*Terminée/s)
++    expect(container.textContent).toMatch(/En cours.*Verrouillée.*Terminée/s)
+     expect(container.querySelector('[data-mission-key] button')).toBeNull()
+   })
+ 
+@@ -146,7 +142,7 @@ describe('MissionsScreen', () => {
+     expect(container.querySelector('[role="alert"]')?.textContent).toContain('Missions indisponibles')
+     await act(async () => { container.querySelector<HTMLButtonElement>('[role="alert"] button')!.click(); await Promise.resolve(); await Promise.resolve() })
+     expect(onLoad).toHaveBeenCalledTimes(2)
+-    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(6)
++    expect(container.querySelectorAll('[data-mission-rank="B"] .mission-card')).toHaveLength(9)
+   })
+ 
+   it('performs a fresh read on each screen entry', async () => {
+diff --git a/src/screens/MissionsScreen.tsx b/src/screens/MissionsScreen.tsx
+index b721e9da..d249ab9b 100644
+--- a/src/screens/MissionsScreen.tsx
++++ b/src/screens/MissionsScreen.tsx
+@@ -36,7 +36,7 @@ function MissionsScreen({ onLoad, refreshToken = 0 }: MissionsScreenProps) {
+   else if (error) content = <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{error}</p><button type="button" className="small-primary-button" onClick={retry}>Réessayer</button></div>
+   else content = value ? <MissionProjectionView value={value} paginated /> : null
+ 
+-  return <div data-fit-screen className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
++  return <div className="screen-content activity-shell missions-screen long-screen-layout"><ScreenHeader eyebrow="Activités" title="Missions" /><ScrollableScreenPanel className="missions-frame">{content}</ScrollableScreenPanel></div>
+ }
+ 
+ export default MissionsScreen

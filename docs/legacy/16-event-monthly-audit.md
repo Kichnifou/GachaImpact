@@ -1,5 +1,13 @@
 # 16 — Audit Event / monthly
 
+## Présentation et lecture classement — R1085
+
+Huit paliers permanents dans le titre avec période ; préférence de repli obsolète ignorée. Libellés raccourcis uniquement standalone. Général retire le bloc d'inscription après confirmation serveur ; états Noël/calendrier/cadeau restent conditionnels. Shop et Jeux se compactent ; onglets Jeux soulignés, Jeu B indique le vrai découvreur dans le message final. Carte blanche propriétaire en recette autorise le parcours paginé des messages complets du Jeu C et les vues Envoyer/Reçus à faible hauteur ; aucune limite d'envoi, réception, consultation ni récompense modifiée.
+
+Général utilise les vues explicites Résumé/Calendrier/Code cadeau selon les contenus disponibles. Calendrier : dix jours par page sur desktop de hauteur ≤820 px, vingt-cinq au-delà ; jour courant initial, intention Quotidiennes et tutoriel ouvrant la bonne vue. À hauteur ≤650 px, les huit paliers passent dans une colonne latérale et le Shop affiche une offre sélectionnable à la fois. Le Jeu C conserve le texte complet ; les retours à la ligne sont normalisés visuellement, sans modifier le message enregistré. À faible hauteur, consulter exige l'ouverture effective de Reçus ; afficher seulement Envoyer ne marque rien comme consulté.
+
+Route authentifiée distincte `GET /api/v1/me/event/ranking/page?editionId=<uuid>&page=<entier>` : cinq entrées maximum, page bornée/recalée, total/pages/rang personnel, ordre points décroissants puis joinedAt croissant (null en dernier) puis playerId croissant ; comptes archivés exclus. Lecture RepeatableRead sans matérialisation d'édition dans ce chemin. Édition étrangère au mois courant refusée. L'ancienne route et `getRanking()` top10 utilisés par Chat/Twitch sont conservés. Frontend ignore les réponses devenues obsolètes et repart de la première page au changement d'édition. Aucun schéma ni index nouveau. Tests sur schéma PostgreSQL privé, aucune mutation gameplay publique. État de livraison au Master.
+
 ## Qualification des compléments de pré-release — 13/10/2026
 
 Les blocs « complément futur/non implémenté R1057 » et les formulations de passation du08/10 conservent leur statut **historique**. Le moteur enrichi est depuis implémenté/déployé et sa recette CADEAU_PHASE1 rapportée : [propriétaire R1057](../architecture/gift-code-enriched-r1057.md). L'import usedCodes est physique, sans nouveau paiement historique. Le tirage mensuel R1053 est implémenté ; son premier tirage naturel01/11/2026 à00:00 Europe/Paris reste une observation future distincte, jamais simulée. L'audit legacy clos et ses décisions ne sont pas réécrits rétroactivement.

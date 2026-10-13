@@ -1,0 +1,257 @@
+diff --git a/src/event/EventMessageInbox.test.tsx b/src/event/EventMessageInbox.test.tsx
+deleted file mode 100644
+index 05fe883b..00000000
+--- a/src/event/EventMessageInbox.test.tsx
++++ /dev/null
+@@ -1,26 +0,0 @@
+-// @vitest-environment happy-dom
+-import { act } from 'react'
+-import { createRoot } from 'react-dom/client'
+-import { expect, it } from 'vitest'
+-import EventMessageInbox from './EventMessageInbox'
+-
+-;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+-
+-it('preserves every character while paging messages and keeps the selected message across refreshes', () => {
+-  const messages = Array.from({ length: 6 }, (_, index) => ({ id: `m${index}`, sender: { id: `s${index}`, displayName: `Sender ${index}` }, message: `${index}${'a'.repeat(499)}`, createdAt: '2026-10-13T12:00:00Z', viewed: true }))
+-  const container = document.createElement('div'); document.body.append(container)
+-  const root = createRoot(container)
+-  try {
+-    act(() => root.render(<EventMessageInbox messages={messages} />))
+-    for (const message of messages) {
+-      expect(container.querySelector('article p')?.textContent).toBe(message.message)
+-      const next = container.querySelector<HTMLButtonElement>('[aria-label="Message suivant"]')!
+-      expect(next.disabled).toBe(message === messages.at(-1))
+-      if (!next.disabled) act(() => next.click())
+-    }
+-    act(() => root.render(<EventMessageInbox messages={[{ ...messages[0], id: 'new' }, ...messages]} />))
+-    expect(container.querySelector('article p')?.textContent).toBe(messages[5].message)
+-    act(() => root.render(<EventMessageInbox messages={messages.slice(0, 1)} />))
+-    expect(container.querySelector('article p')?.textContent).toBe(messages[0].message)
+-  } finally { act(() => root.unmount()); container.remove() }
+-})
+diff --git a/src/event/EventMessageInbox.tsx b/src/event/EventMessageInbox.tsx
+deleted file mode 100644
+index 57f618d8..00000000
+--- a/src/event/EventMessageInbox.tsx
++++ /dev/null
+@@ -1,21 +0,0 @@
+-import { useState } from 'react'
+-import type { EventDto } from '../api/types'
+-import AppButton from '../components/AppButton'
+-
+-const time = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
+-
+-export default function EventMessageInbox({ messages }: { messages: EventDto['gameC']['receivedMessages'] }) {
+-  const [selectedId, setSelectedId] = useState<string | null>(null)
+-  const index = Math.max(0, messages.findIndex(message => message.id === selectedId))
+-  const message = messages[index]
+-  return <div className="event-game-c-inbox">
+-    <header className="event-message-heading"><h3>Messages reçus aujourd’hui</h3>
+-      {messages.length > 1 && <nav aria-label="Messages du Festival">
+-        <AppButton aria-label="Message précédent" disabled={index === 0} onClick={() => setSelectedId(messages[index - 1].id)}>‹</AppButton>
+-        <span aria-live="polite">{index + 1} / {messages.length}</span>
+-        <AppButton aria-label="Message suivant" disabled={index === messages.length - 1} onClick={() => setSelectedId(messages[index + 1].id)}>›</AppButton>
+-      </nav>}
+-    </header>
+-    {message ? <article><div><strong>{message.sender.displayName}</strong><time dateTime={message.createdAt}>{time.format(new Date(message.createdAt))}</time></div><p>{message.message}</p></article> : <p>Aucun message reçu aujourd’hui.</p>}
+-  </div>
+-}
+diff --git a/src/event/event-games-layout.css b/src/event/event-games-layout.css
+deleted file mode 100644
+index f0ed76cd..00000000
+--- a/src/event/event-games-layout.css
++++ /dev/null
+@@ -1,58 +0,0 @@
+-.event-screen .event-game-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 8px 14px; }
+-.event-screen .event-game-tabs button.active { color: #ccecff; border-bottom-color: #50c7ff; background: transparent; }
+-.event-screen .event-game-tabs button:focus-visible { outline: 2px solid #70dcff; outline-offset: -2px; }
+-.event-game-c .event-game-c-views { display: none; }
+-.event-game-c .event-message-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+-.event-game-c .event-message-heading h3 { margin: 0; font-size: 14px; }
+-.event-message-heading nav { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+-.event-message-heading .app-button { min-height: 28px; padding: 3px 10px; }
+-@media (min-width: 1121px) {
+-  .event-frame .scrollable-screen-panel-body:has(> [data-tutorial-anchor^="event-game-"]) { overflow: visible; container-type: size; }
+-  .event-frame .event-game-a,
+-  .event-frame .event-game-b,
+-  .event-frame .event-game-c { padding: 12px; gap: 8px; }
+-  .event-frame .event-game-a-window { padding: 10px; gap: 4px; }
+-  .event-frame .event-game-b > p { font-size: 13px; line-height: 1.35; }
+-  .event-frame .event-game-b-codes { gap: 5px; }
+-  .event-frame .event-game-b-code { min-height: 30px; }
+-  .event-frame .event-game-b-action { min-height: 32px; }
+-  .event-frame .event-game-c { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+-  .event-frame .event-game-c > header { grid-column: 1 / -1; }
+-  .event-frame .event-game-c-send { grid-column: 1; gap: 6px; }
+-  .event-frame .event-game-c-feedback { grid-column: 1; }
+-  .event-frame .event-game-c-inbox { grid-column: 2; grid-row: 2 / span 3; gap: 6px; }
+-  .event-frame .event-game-c-inbox article { padding: 8px; }
+-  .event-frame .event-game-c-inbox article p { font-size: 13px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+-}
+-@media (min-width: 1121px) and (max-height: 820px) {
+-  .event-frame .scrollable-screen-panel-controls:has(.event-game-tabs) { grid-template-columns: auto minmax(0, 1fr); gap: 4px; }
+-  .event-frame .event-game-tabs { border-top: 0; }
+-  .event-frame .event-game-b { padding: 8px; gap: 6px; }
+-  .event-frame .event-game-b-code { min-height: 28px; }
+-  .event-frame .event-game-b-codes { gap: 4px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .event-frame .event-game-c { grid-template-columns: minmax(0, 1fr); padding: 6px; gap: 4px; }
+-  .event-game-c > header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+-  .event-game-c .event-game-c-views { display: flex; gap: 4px; }
+-  .event-game-c-views button { border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; background: #12243c; color: var(--text); }
+-  .event-game-c-views button[aria-current="page"] { border-color: #69d3ff; }
+-  .event-game-c-views button:focus-visible { outline: 2px solid #69d3ff; }
+-  .event-frame .event-game-c-inbox { grid-column: 1; grid-row: auto; }
+-  .event-game-c[data-pane="send"] .event-game-c-inbox,
+-  .event-game-c[data-pane="messages"] .event-game-c-send { display: none; }
+-  .event-frame .event-game-c-inbox article { padding: 6px; }
+-  .event-frame .event-game-c-inbox article p { margin: 4px 0 0; line-height: 1.25; }
+-  .event-frame .event-game-c-send { grid-template-columns: auto minmax(0, 1fr); }
+-  .event-game-c-send .player-quick-search { grid-column: 1 / -1; }
+-  .event-game-c-send textarea { min-height: 50px; height: 50px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .event-frame .activity-inner-tabs { min-width: 0; gap: 2px; padding-inline: 0; }
+-  .event-screen .event-frame .activity-inner-tabs button { min-height: 28px; padding: 3px 6px; font-size: 12px; }
+-  .event-frame .event-game-b { gap: 4px; padding: 6px; }
+-  .event-frame .event-game-b-codes { gap: 3px; }
+-  .event-frame .event-game-b-code { min-height: 25px; }
+-  .event-frame .event-game-b > p { margin: 0; font-size: 12px; }
+-  .event-frame .event-game-b-action { min-height: 28px; padding-block: 4px; }
+-}
+diff --git a/src/screens/EventScreen.test.tsx b/src/screens/EventScreen.test.tsx
+index 62600cea..bbd84e19 100644
+--- a/src/screens/EventScreen.test.tsx
++++ b/src/screens/EventScreen.test.tsx
+@@ -431,7 +431,7 @@ describe('EventScreen presentation', () => {
+     const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: discovererId, displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
+     const { container, root, props } = mount({ value }); selectGames(container)
+     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+-    expect(container.querySelector('.event-game-b-feedback')?.textContent).toContain('Combinaison découverte par Kyo !')
++    expect(container.querySelector('.event-game-b')?.textContent).toContain('Découvert par Kyo')
+     const winningCode = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).find(({ textContent }) => textContent?.includes('11111'))
+     expect(winningCode?.textContent).toBe('✓ 11111')
+     expect(winningCode?.classList.contains('resolved')).toBe(true)
+@@ -762,26 +762,6 @@ it('presents real Game C without consulting messages or consuming a normal daily
+   expect(container.querySelector('.event-game-tabs .active')?.textContent).toBe('Panier')
+   expect(onConsultMessages).not.toHaveBeenCalled(); expect(consumed).not.toHaveBeenCalled()
+ })
+-it('consults the short desktop inbox only after opening it and preserves the tutorial sender view', async () => {
+-  const media = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList)
+-  try {
+-    const value = { ...afterJoin, gameC: { ...afterJoin.gameC, unviewedCount: 1 } }
+-    const onConsultMessages = vi.fn(async () => value)
+-    const { root, container, props } = mount({ value, onLoad: async () => value, onConsultMessages })
+-    const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('event-game-c') }}><EventScreen {...props} /></TutorialPresentationContext.Provider>
+-    await act(async () => root.render(render(false)))
+-    selectGames(container)
+-    await act(async () => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[2]!.click())
+-    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('send')
+-    expect(onConsultMessages).not.toHaveBeenCalled()
+-    await act(async () => container.querySelectorAll<HTMLButtonElement>('.event-game-c-views button')[1]!.click())
+-    expect(onConsultMessages).toHaveBeenCalledOnce()
+-    await act(async () => root.render(render(true)))
+-    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('send')
+-    await act(async () => root.render(render(false)))
+-    expect(container.querySelector('.event-game-c')?.getAttribute('data-pane')).toBe('messages')
+-  } finally { media.mockRestore() }
+-})
+ it.each(['shop', 'messages'] as const)('restores the normal Event view without replaying the old %s notification intent', async mode => {
+   const onConsultMessages = vi.fn(async () => afterJoin)
+   const { root, container, props } = mount({ value: afterJoin, onLoad: async () => afterJoin, onConsultMessages, openShopToken: mode === 'shop' ? 1 : 0, openMessagesToken: mode === 'messages' ? 1 : 0 })
+diff --git a/src/screens/EventScreen.tsx b/src/screens/EventScreen.tsx
+index 53018d58..79369de3 100644
+--- a/src/screens/EventScreen.tsx
++++ b/src/screens/EventScreen.tsx
+@@ -16,8 +16,6 @@ import EventCalendar from './EventCalendar'
+ import { useCalendarClaim } from '../event/use-calendar-claim'
+ import EventRankingSection from './EventRankingSection'
+ import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation, type EventDailyOpenIntent } from '../event/event-presentation'
+-import '../event/event-games-layout.css'
+-import EventMessageInbox from '../event/EventMessageInbox'
+ import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+ 
+ type Props = Readonly<{
+@@ -53,7 +51,6 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
+ const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
+ const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
+ const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
+-const discoveryMessage = (game: EventDto['gameB']) => `Combinaison découverte par ${game.discoveredBy?.displayName ?? 'un participant'} ! Tous les participants gagnent 1 point et 1 monnaie du Festival.`
+ 
+ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
+   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Math.ceil(durationMs / 1000)))
+@@ -74,11 +71,9 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
+ }
+ 
+ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
+-  const [normalGameCPane, setGameCPane] = useState<'send' | 'messages'>('send')
+   const shortDesktop = useShortDesktop()
+   const presentationMode = useTutorialPresentation()
+   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
+-  const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane
+   const [normalGeneralPane, setGeneralPane] = useState<'overview' | 'calendar' | 'gift'>('overview')
+   const generalPane = presentationMode.active && presentationMode.step?.anchor === 'event-calendar' ? 'calendar' : normalGeneralPane
+   const showCalendarOnly = Boolean(value.calendar) && generalPane === 'calendar'
+@@ -184,7 +179,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+     // oxlint-disable-next-line react/set-state-in-effect -- Notification intent selects the inbox before its fresh snapshot arrives.
+     setSection('games')
+     setGameTab(2)
+-    setGameCPane('messages')
+     void onLoad().then((latest) => { if (active && !latest.gameC.available) { setSection('registration'); setGameTab(0) } }).catch((reason) => { if (active) setError(apiErrorMessage(reason)) })
+     return () => { active = false }
+   }, [sessionUserId, openMessagesToken, onLoad, presentationMode.active])
+@@ -202,9 +196,9 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+   }, [onSearchRecipients])
+ 
+   useEffect(() => {
+-    if (presentationMode.active || section !== 'games' || gameTab !== 2 || shortDesktop && gameCPane !== 'messages' || value.gameC.unviewedCount === 0 || !onConsultMessages) return
++    if (presentationMode.active || section !== 'games' || gameTab !== 2 || value.gameC.unviewedCount === 0 || !onConsultMessages) return
+     void onConsultMessages().catch((reason) => setError(apiErrorMessage(reason)))
+-  }, [section, gameTab, gameCPane, shortDesktop, value.gameC.unviewedCount, onConsultMessages, presentationMode.active])
++  }, [section, gameTab, value.gameC.unviewedCount, onConsultMessages, presentationMode.active])
+ 
+   useEffect(() => {
+     if (section !== 'games' || !value.participation.joined || value.gameB.solvedToday) return
+@@ -292,7 +286,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       if (sameBoundary()) {
+         setGameBIntent(null)
+         setSelectedCode(null)
+-        setGameBFeedback(result.attempt.kind === 'CORRECT' ? discoveryMessage(result.gameB) : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
++        setGameBFeedback(result.attempt.kind === 'CORRECT' ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
+       }
+     } catch (reason) {
+       if (sameBoundary()) {
+@@ -426,7 +420,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       </section>}
+       {section === 'games' && gameTab === 1 && value.participation.joined && <section data-tutorial-anchor="event-game-b" className="panel event-game-b">
+         <div className="event-game-b-heading"><span className="eyebrow">Énigme collective du Festival</span><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
+-        {!value.gameB.solvedToday && <p>Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.</p>}
++        <p>{value.gameB.solvedToday ? `Découvert par ${value.gameB.discoveredBy?.displayName ?? 'un participant'}.` : 'Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.'}</p>
+         {value.gameB.solvedToday === false && <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>}
+         <div className="event-game-b-legend"><span>Disponible</span><span>Déjà testée</span></div>
+         <div className="event-game-b-codes" aria-label="Combinaisons du Grenier">{Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')).map((code) => {
+@@ -435,10 +429,10 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+           return <button type="button" className={`event-game-b-code${resolved ? ' resolved' : tested ? ' tested' : ''}${selectedCode === code ? ' selected' : ''}`} disabled={resolved || tested || !value.gameB.canAttempt || pending || Boolean(gameBIntent)} aria-pressed={selectedCode === code && !tested && !resolved} onClick={() => setSelectedCode(code)} key={code}>{resolved ? `✓ ${code}` : code}</button>
+         })}</div>
+         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
+-        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{value.gameB.solvedToday ? discoveryMessage(value.gameB) : gameBFeedback ?? ''}</p>
++        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
+       </section>}
+-      {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" data-pane={value.gameC.canSend ? gameCPane : 'messages'} className="panel event-game-c">
+-        <header><span className="eyebrow">Message du Festival</span><nav className="event-game-c-views" aria-label="Vue des messages du Festival"><button type="button" aria-current={gameCPane === 'send' ? 'page' : undefined} onClick={() => setGameCPane('send')} disabled={!value.gameC.canSend}>Envoyer</button><button type="button" aria-current={gameCPane === 'messages' || !value.gameC.canSend ? 'page' : undefined} onClick={() => setGameCPane('messages')}>Reçus ({value.gameC.receivedMessages.length})</button></nav></header>
++      {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" className="panel event-game-c">
++        <header><span className="eyebrow">Message du Festival</span></header>
+         {value.gameC.canSend ? <div className="event-game-c-send">
+           <PlayerQuickSearch value={recipientSearchText} onValueChange={(text) => { setRecipientSearchText(text); setSelectedRecipient(null) }} onListPlayers={listRecipients} onSelect={(recipient) => { setSelectedRecipient(recipient); setRecipientSearchText(recipient.displayName) }} action={(closeSuggestions) => <button type="button" className="small-primary-button" onClick={() => { closeSuggestions(); setRecipientBrowserOpen(true) }}>{selectedRecipient ? 'Changer' : 'Choisir un joueur'}</button>} />
+           <label htmlFor="event-game-c-message">Votre message</label>
+@@ -446,7 +440,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+           <button type="button" className="small-primary-button" disabled={pending || !selectedRecipient || !gameCMessage.trim()} onClick={() => void sendGameC()}>{pending ? 'Envoi…' : 'Envoyer'}</button>
+         </div> : <p className="event-game-c-sent">{value.gameC.sentToday ? 'Envoyé aujourd’hui' : 'Rejoignez le Festival pour envoyer un message.'}</p>}
+         <p className="event-game-c-feedback" role="status">{gameCFeedback ?? ''}</p>
+-        <EventMessageInbox messages={value.gameC.receivedMessages} />
++        <div className="event-game-c-inbox"><h3>Messages reçus aujourd’hui</h3>{value.gameC.receivedMessages.length ? value.gameC.receivedMessages.map((entry) => <article key={entry.id}><div><strong>{entry.sender.displayName}</strong><time dateTime={entry.createdAt}>{timeFormatter.format(new Date(entry.createdAt))}</time></div><p>{entry.message}</p></article>) : <p>Aucun message reçu aujourd’hui.</p>}</div>
+       </section>}
+       <p className="event-feedback" role={error ? 'alert' : 'status'}>{error ?? ''}</p>
+     </ScrollableScreenPanel>

@@ -1,0 +1,370 @@
+{
+  "mission": "R1085 post-R1084",
+  "baseline": "7c7859498d750ecbc41ead95d02593f72b295b3a",
+  "runtime": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc",
+  "status": "LOCAL QUALIFIED; publication, independent published-SHA reviews and deployments pending",
+  "neutralFoundations": [
+    "08bcef62f5984ad933112269b99777852ba4a98c",
+    "081365655972398027a31fb4ab0e96cc7d69a279",
+    "d6851973288b221aa6a4ec500a906bc1dd285910",
+    "62010a709c9863e90df238a4932441bac28299b7"
+  ],
+  "lots": [
+    {
+      "name": "Missions",
+      "commitsOldestFirst": [
+        "01855aa9a74a0679ff68424c85b1a3664b039d4b"
+      ],
+      "revertNewestFirst": [
+        "01855aa9a74a0679ff68424c85b1a3664b039d4b"
+      ],
+      "files": [
+        "src/missions/MissionPages.tsx",
+        "src/missions/mission-pages.css",
+        "src/screens/MissionsScreen.test.tsx",
+        "src/screens/MissionsScreen.tsx"
+      ]
+    },
+    {
+      "name": "Home",
+      "commitsOldestFirst": [
+        "242c5d52a52793d9683b88e90051f6574dab1f24"
+      ],
+      "revertNewestFirst": [
+        "242c5d52a52793d9683b88e90051f6574dab1f24"
+      ],
+      "files": [
+        "src/home/home-shortcuts.css",
+        "src/screens/HomeScreen.tsx"
+      ]
+    },
+    {
+      "name": "Filters",
+      "commitsOldestFirst": [
+        "6279397461e67c171861f7c37e312b142d8274d1"
+      ],
+      "revertNewestFirst": [
+        "6279397461e67c171861f7c37e312b142d8274d1"
+      ],
+      "files": [
+        "docs/legacy/07-box-possession-obtention-audit.md",
+        "src/box/box-filter-bar.css",
+        "src/box/box-presentation.ts",
+        "src/components/CollectionFilterChips.tsx",
+        "src/components/CollectionFilters.tsx",
+        "src/components/collection-filter-chips.css",
+        "src/screens/BoxScreen.test.tsx",
+        "src/screens/BoxScreen.tsx",
+        "src/screens/CharactersScreen.test.tsx",
+        "src/screens/CharactersScreen.tsx"
+      ]
+    },
+    {
+      "name": "Sidebar",
+      "commitsOldestFirst": [
+        "f46fb4d7c5507982301539f90048831c16db89e4"
+      ],
+      "revertNewestFirst": [
+        "f46fb4d7c5507982301539f90048831c16db89e4"
+      ],
+      "files": [
+        "src/dailies/DailyTrackerCard.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/sidebar-completion.css"
+      ]
+    },
+    {
+      "name": "Daily",
+      "commitsOldestFirst": [
+        "9350bbe781851111dca4f13c355a7f860bd8dd57"
+      ],
+      "revertNewestFirst": [
+        "9350bbe781851111dca4f13c355a7f860bd8dd57"
+      ],
+      "files": [
+        "src/dailies/daily-overview-layout.css",
+        "src/screens/ActivitiesScreen.tsx"
+      ]
+    },
+    {
+      "name": "Invocation",
+      "commitsOldestFirst": [
+        "d48797a142819a403dafc5daf0d0fb67b6f2f36d",
+        "9e22b2aaf38ec1e42aa4c3c2eeba2dcf3229ef95",
+        "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+      ],
+      "revertNewestFirst": [
+        "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc",
+        "9e22b2aaf38ec1e42aa4c3c2eeba2dcf3229ef95",
+        "d48797a142819a403dafc5daf0d0fb67b6f2f36d"
+      ],
+      "files": [
+        "src/components/BannerHero.tsx",
+        "src/gacha/invocation-summary.css"
+      ]
+    },
+    {
+      "name": "Training",
+      "commitsOldestFirst": [
+        "4babc96bce02eea39939b528e1d7817351e4e18d"
+      ],
+      "revertNewestFirst": [
+        "4babc96bce02eea39939b528e1d7817351e4e18d"
+      ],
+      "files": [
+        "src/combat/training-layout.css",
+        "src/screens/DailyCombatScreen.test.tsx",
+        "src/screens/DailyCombatScreen.tsx"
+      ]
+    },
+    {
+      "name": "Header",
+      "commitsOldestFirst": [
+        "d15d567e37a9d34ab9bf8cb4045c7cf806bba48c",
+        "5122e95325845f2036ab48f90a6d810eb3beae1d",
+        "dce7dc3fba6bd29de19d9bb224e4af2ca8ce7125",
+        "4eba4c0b184abd798a6f788d3c3a73a07ef145dd"
+      ],
+      "revertNewestFirst": [
+        "4eba4c0b184abd798a6f788d3c3a73a07ef145dd",
+        "dce7dc3fba6bd29de19d9bb224e4af2ca8ce7125",
+        "5122e95325845f2036ab48f90a6d810eb3beae1d",
+        "d15d567e37a9d34ab9bf8cb4045c7cf806bba48c"
+      ],
+      "files": [
+        "src/event/EventScreenHeader.tsx",
+        "src/event/event-header.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ]
+    },
+    {
+      "name": "GeneralShop",
+      "commitsOldestFirst": [
+        "9b7d738df83812c329c712844a0285d7d9bd8084",
+        "9af5adf2e444ef0fcf33fdd9be86dd0e0eff5575",
+        "d017908986612d863f34e93d052fc44d2ca9ce5f",
+        "fa5a0baf9b74871f21e076e46b435ce5c2aad01f"
+      ],
+      "revertNewestFirst": [
+        "fa5a0baf9b74871f21e076e46b435ce5c2aad01f",
+        "d017908986612d863f34e93d052fc44d2ca9ce5f",
+        "9af5adf2e444ef0fcf33fdd9be86dd0e0eff5575",
+        "9b7d738df83812c329c712844a0285d7d9bd8084"
+      ],
+      "files": [
+        "src/event/event-general-shop.css",
+        "src/screens/EventCalendar.test.tsx",
+        "src/screens/EventCalendar.tsx",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx",
+        "src/screens/EventShopSection.tsx"
+      ]
+    },
+    {
+      "name": "Ranking",
+      "commitsOldestFirst": [
+        "ed723718c602551826def9eef47bff7c3ac13111"
+      ],
+      "revertNewestFirst": [
+        "ed723718c602551826def9eef47bff7c3ac13111"
+      ],
+      "files": [
+        "server/src/api/routes/event.ts",
+        "server/src/application/event/event-ranking-page.ts",
+        "server/src/application/event/event-service.ts",
+        "server/tests-db/event-ranking.integration.test.ts",
+        "server/tests/event-routes.test.ts",
+        "src/AppBootstrap.tsx",
+        "src/api/game-api.ts",
+        "src/api/types.ts",
+        "src/components/GameShell.tsx",
+        "src/event/event-ranking-layout.css",
+        "src/screens/ActivitiesScreen.tsx",
+        "src/screens/EventRankingSection.test.tsx",
+        "src/screens/EventRankingSection.tsx",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ]
+    },
+    {
+      "name": "Games",
+      "commitsOldestFirst": [
+        "60e64163c7d67b01b276581753fa25fa89e9968e",
+        "6b06a1c9cf30a22d95910bffea4f5bd00222c7e9"
+      ],
+      "revertNewestFirst": [
+        "6b06a1c9cf30a22d95910bffea4f5bd00222c7e9",
+        "60e64163c7d67b01b276581753fa25fa89e9968e"
+      ],
+      "files": [
+        "src/event/EventMessageInbox.test.tsx",
+        "src/event/EventMessageInbox.tsx",
+        "src/event/event-games-layout.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ]
+    },
+    {
+      "name": "Inventory",
+      "commitsOldestFirst": [
+        "8dac784c153eb278bdaf255b35c41fc9bc6d1cdc"
+      ],
+      "revertNewestFirst": [
+        "8dac784c153eb278bdaf255b35c41fc9bc6d1cdc"
+      ],
+      "files": [
+        "src/components/InventoryObjectCard.tsx",
+        "src/inventory/inventory-layout.css",
+        "src/screens/InventoryScreen.tsx"
+      ]
+    },
+    {
+      "name": "Shop",
+      "commitsOldestFirst": [
+        "328471e338fbb17787260525eb614c02cc7971b7"
+      ],
+      "revertNewestFirst": [
+        "328471e338fbb17787260525eb614c02cc7971b7"
+      ],
+      "files": [
+        "src/screens/ShopScreen.tsx",
+        "src/shop/shop-layout.css"
+      ]
+    },
+    {
+      "name": "Config",
+      "commitsOldestFirst": [
+        "6969619bd86b1c11caf9339d1654e846eb2d1668"
+      ],
+      "revertNewestFirst": [
+        "6969619bd86b1c11caf9339d1654e846eb2d1668"
+      ],
+      "files": [
+        "src/screens/AccountSettingsPanel.tsx",
+        "src/screens/PrivacySettingsPanel.tsx"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "file": "ranking-db.log",
+      "sha256": "96c88804dd1e17c97903880dc4f1f858a0e1a0f44fafe7a4ce43c87084c2f2a0",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "ranking-client.log",
+      "sha256": "8ba279e7568a9d2e9015bd027ae21061aae1e653ac8e0146fce4941043ee8c86",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "ranking-routes.log",
+      "sha256": "238ce4895ffd69d24b0c575d5df209b7099e42bdb425e43bb544c619b1928b3c",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "independent-prepublication-review.json",
+      "sha256": "debc9ff214788c91055afaf098715ad2e8486a2a6673febdbeef58f9e5fae953",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "independent-rollback.json",
+      "sha256": "9d73b8bf4b58130df0051f34553a9fd722b6e076d9f1a3b99a8e667ce54741ce",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "independent-rollback-resolved.json",
+      "sha256": "6727cb69391ea21cb3a41188c6986dffa48f860854bb5e0ccd53ae775b12ee93",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "christmas.json",
+      "sha256": "034bd3c7e587edaab38ecf84ad97a42797d2c0b6ec29cd3d2dbcadd3bec41f33",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "current-measures.json",
+      "sha256": "da8852e121711051bd6b1519265d92f83933b05b361599cf8a36123b8964d874",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "variants.json",
+      "sha256": "dd9dae416c96fcfb0d062bba6317cca62b8562ff6b6c2e44625fdda19cbb1856",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "extended.json",
+      "sha256": "f03d399fe23f2e178eeda23da3277aad4e22b450c64aad8aa64f720ddbe8dc0a",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "c-feedback.json",
+      "sha256": "aaf66b0fdeead88a2e941a5470b1949035605c6202c6c369ba96342db76a9365",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "sort-newlines.json",
+      "sha256": "9842fbcf61287761b71a9adeb66e0913e6912aa3f653ebdb3fbee7f7c768bbf8",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "invocation-fix.json",
+      "sha256": "cf9e5b4590917b7403783a1e3ba5df8258aa08a1edc0927c689456c26b8ff64a",
+      "visibility": "private synthetic QA; not a production player record"
+    },
+    {
+      "file": "final-qualified-full.log",
+      "sha256": "ab961c76928905cfd297889e1663223a55d4688ffa8f403b2f265b5bc4286d6f",
+      "visibility": "private qualification evidence"
+    },
+    {
+      "file": "invocation-nonregression.json",
+      "sha256": "c56dea2b0c1505944504741f60035bf566b13c6f18024c1382f5b152a8c7ab79",
+      "visibility": "private qualification evidence"
+    },
+    {
+      "file": "independent-rollback-final.json",
+      "sha256": "656398fbaa1d949c856b49f1a1b2d2dd298e194ff82e251fdedad9962f034bab",
+      "visibility": "private qualification evidence"
+    }
+  ],
+  "qualification": {
+    "full": {
+      "gates": "8/8 PASS",
+      "frontendTests": 1624,
+      "backendNonDbTests": 2510
+    },
+    "database": "8 isolated PostgreSQL ranking cases passed; no schema migration or public gameplay mutation",
+    "visual": "Compiled GameShell and production CSS; synthetic states; no authenticated public player recipe claimed",
+    "css": {
+      "file": "index-p5FgGXaB.css",
+      "sha256": "b9da6a6d7bd72ac2237cc288eeeb516478dc0a194775606dbf1e23b26ba6a294"
+    }
+  },
+  "rollback": {
+    "policy": "Each lot separately from the complete candidate; retain neutral foundations. Context resolutions for Header/GeneralShop/Games must use the tested explicit recipes. Tests and normal review/promotion required for any future rollback.",
+    "status": "14/14 qualified individually; explicit context-resolution recipes for Header, GeneralShop, Games",
+    "manifest": "r1085-rollback/independent-rollback-final.json",
+    "instructions": "r1085-rollback/README.md",
+    "limits": [
+      "No database/network mutations or visual rollback screenshots",
+      "Build and targeted tests reused only where later deltas do not intersect lot files; final-base typecheck and patch application executed for all 14 lots",
+      "Resolution patches are full single-lot withdrawal, apply instead of git revert; never apply both",
+      "Final delta 51a64734 affects only Invocation CSS: Invocation rebuilt/retested; all 14 patches checked against final base, prior 13 typechecks retained from 9e22b2aa."
+    ]
+  },
+  "limits": [
+    "Owner aesthetic acceptance remains future.",
+    "Existing mobile scrolling and declared list/configuration/modal exceptions remain.",
+    "Invocation at short heights has pre-existing clipping; readability mandate does not claim a full reorganization.",
+    "No public reward, purchase, pull or message was created for QA."
+  ],
+  "documentationReviewedUnchanged": [
+    "docs/roadmap/implementation-order-v1.md",
+    "docs/process/conversation-handoff.md",
+    "docs/specifications/v1-data-model.md",
+    "docs/architecture/backend-architecture-v1.md",
+    "docs/architecture/postgresql-schema-v1.md",
+    "docs/commands/command-reference.md"
+  ]
+}

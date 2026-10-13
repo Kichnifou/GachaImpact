@@ -1,0 +1,375 @@
+{
+  "base": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc",
+  "results": [
+    {
+      "name": "Missions",
+      "commits": [
+        "01855aa9"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/missions/MissionPages.tsx",
+        "src/missions/mission-pages.css",
+        "src/screens/MissionsScreen.test.tsx",
+        "src/screens/MissionsScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "14a3b586892c877e3871a7a7cf99d4f3c7bad1000d01694f855fa17b2ff108b5",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Home",
+      "commits": [
+        "242c5d52"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/home/home-shortcuts.css",
+        "src/screens/HomeScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "bfec1790e340ae1ef20c891c543eb6fd4ed4c7bf0d6697cad13411e47336fe39",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Filters",
+      "commits": [
+        "62793974"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "docs/legacy/07-box-possession-obtention-audit.md",
+        "src/box/box-filter-bar.css",
+        "src/box/box-presentation.ts",
+        "src/components/CollectionFilterChips.tsx",
+        "src/components/CollectionFilters.tsx",
+        "src/components/collection-filter-chips.css",
+        "src/screens/BoxScreen.test.tsx",
+        "src/screens/BoxScreen.tsx",
+        "src/screens/CharactersScreen.test.tsx",
+        "src/screens/CharactersScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "d4090b56f932090ff2c6fd615bbba78972dbf59de97adc4bb5982dd2ce35a8fc",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Sidebar",
+      "commits": [
+        "f46fb4d7"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/dailies/DailyTrackerCard.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/sidebar-completion.css"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "abaa5f65ce39874973ae757cdb1e49d15f0fc994cff5110bf8576af0278cab61",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Daily",
+      "commits": [
+        "9350bbe7"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/dailies/daily-overview-layout.css",
+        "src/screens/ActivitiesScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "f60e6d3c10270bd56be4591ce7dc3d3abf13540df1b5a9bf0852967ed9516102",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Invocation",
+      "commits": [
+        "d48797a1",
+        "9e22b2aa",
+        "51a64734"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/components/BannerHero.tsx",
+        "src/gacha/invocation-summary.css"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc",
+      "resolution": [],
+      "patchSha256": "2ba990716d480fc2433ada29236274fb7c94978d1bdb4795b1ca96ba7bb37392",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Training",
+      "commits": [
+        "4babc96b"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/combat/training-layout.css",
+        "src/screens/DailyCombatScreen.test.tsx",
+        "src/screens/DailyCombatScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "02dd4cd33685710f5ebcae0d39008d8fde5a92c082f0d19c7c7548c95eb128e2",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Header",
+      "commits": [
+        "d15d567e",
+        "5122e953",
+        "dce7dc3f",
+        "4eba4c0b"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/event/EventScreenHeader.tsx",
+        "src/event/event-header.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "fa5a0baf9b74871f21e076e46b435ce5c2aad01f",
+      "resolution": [
+        {
+          "commit": "d15d567e",
+          "left": "const discoveryMessage = (game: EventDto['gameB']) => `Combinaison découverte par ${game.discoveredBy?.displayName ?? 'un participant'} ! Tous les participants gagnent 1 point et 1 monnaie du Festival.`\r\n",
+          "right": "const milestonePreferenceKey = (playerId: string) => `gachaimpact:event:milestones-collapsed:${playerId}`\r\nconst readMilestonePreference = (playerId: string) => {\r\n  try { return window.localStorage.getItem(milestonePreferenceKey(playerId)) === 'true' } catch { return false }\r\n}\r\nconst saveMilestonePreference = (playerId: string, collapsed: boolean) => {\r\n  try { window.localStorage.setItem(milestonePreferenceKey(playerId), String(collapsed)) } catch { /* Keep the choice for this mounted screen. */ }\r\n}\r\n"
+        },
+        {
+          "commit": "d15d567e",
+          "left": "  return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} className=\"screen-content activity-shell event-screen long-screen-layout\">\r\n    <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />\r\n",
+          "right": "  return <div data-business-pending={pending || shopPending} className=\"screen-content activity-shell event-screen long-screen-layout\">\r\n    <ScreenHeader eyebrow=\"Activités · Événement\" title={value.festival.title} description={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />\r\n"
+        }
+      ],
+      "patchSha256": "bab7428b4f8c68dc03f75c816420f316978b581513359bdca8aca10b575ae094",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "GeneralShop",
+      "commits": [
+        "9b7d738d",
+        "9af5adf2",
+        "d0179089",
+        "fa5a0baf"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/event/event-general-shop.css",
+        "src/screens/EventCalendar.test.tsx",
+        "src/screens/EventCalendar.tsx",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "fa5a0baf9b74871f21e076e46b435ce5c2aad01f",
+      "resolution": [
+        {
+          "commit": "9af5adf2",
+          "left": "  const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane\r\n  const compactGeneral = useShortDesktop(820)\r\n  const [normalGeneralPane, setGeneralPane] = useState<'overview' | 'calendar' | 'gift'>('overview')\r\n  const generalPane = presentationMode.active && presentationMode.step?.anchor === 'event-calendar' ? 'calendar' : normalGeneralPane\r\n  const showCalendarOnly = compactGeneral && Boolean(value.calendar) && generalPane === 'calendar'\r\n  const showGiftOnly = compactGeneral && Boolean(value.giftCode?.available) && generalPane === 'gift'\r\n",
+          "right": ""
+        }
+      ],
+      "patchSha256": "9e3a755fb14bf3bbbf848480be73861e94ca1a4122a27b03b76fd575490d4ded",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Ranking",
+      "commits": [
+        "ed723718"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "server/src/api/routes/event.ts",
+        "server/src/application/event/event-ranking-page.ts",
+        "server/src/application/event/event-service.ts",
+        "server/tests-db/event-ranking.integration.test.ts",
+        "server/tests/event-routes.test.ts",
+        "src/AppBootstrap.tsx",
+        "src/api/game-api.ts",
+        "src/api/types.ts",
+        "src/components/GameShell.tsx",
+        "src/event/event-ranking-layout.css",
+        "src/screens/ActivitiesScreen.tsx",
+        "src/screens/EventRankingSection.test.tsx",
+        "src/screens/EventRankingSection.tsx",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "serverTypecheck": 0,
+        "serverRoutes": 0
+      },
+      "priorGatesBase": "fa5a0baf9b74871f21e076e46b435ce5c2aad01f",
+      "resolution": [],
+      "patchSha256": "4b071811313a78d202430f9cd3c6c8552f7a64e4e5c2d75d699c59658d6d4f3c",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Games",
+      "commits": [
+        "60e64163",
+        "6b06a1c9"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/event/EventMessageInbox.test.tsx",
+        "src/event/EventMessageInbox.tsx",
+        "src/event/event-games-layout.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "fa5a0baf9b74871f21e076e46b435ce5c2aad01f",
+      "resolution": [
+        {
+          "commit": "6b06a1c9",
+          "left": "  const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane\r\n",
+          "right": "  const compactGeneral = useShortDesktop(820)\r\n"
+        }
+      ],
+      "patchSha256": "4ccd4e8f1febcb29d294ef5e2a99e4a4c0ef64ceffbe55625150601943236fa0",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Inventory",
+      "commits": [
+        "8dac784c"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/components/InventoryObjectCard.tsx",
+        "src/inventory/inventory-layout.css",
+        "src/screens/InventoryScreen.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "f7c0d24e8a4bac7d71b4e7b647316621afc86d12a927b9c64a91e17a6c164daa",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Shop",
+      "commits": [
+        "328471e3"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/screens/ShopScreen.tsx",
+        "src/shop/shop-layout.css"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "846ae839d8f9c7938ded380acba28e8850e2e255875f90d259fc77b80f8808a9",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    },
+    {
+      "name": "Config",
+      "commits": [
+        "6969619b"
+      ],
+      "finalBaseTypecheck": 0,
+      "changedFiles": [
+        "src/screens/AccountSettingsPanel.tsx",
+        "src/screens/PrivacySettingsPanel.tsx"
+      ],
+      "gates": {
+        "typecheck": 0,
+        "build": 0,
+        "tests": 0
+      },
+      "priorGatesBase": "d017908986612d863f34e93d052fc44d2ca9ce5f",
+      "resolution": [],
+      "patchSha256": "201a0ef1bb3d1aacef3e34c9ad9f03689f3c2aa265a4506bff9e902f3a4d99ff",
+      "patchApplyCheck": 0,
+      "patchCheckedBase": "51a6473498fcb2fa81a763bfc1a857f7ba2f69cc"
+    }
+  ],
+  "limits": [
+    "No database/network mutations or visual rollback screenshots",
+    "Build and targeted tests reused only where later deltas do not intersect lot files; final-base typecheck and patch application executed for all 14 lots",
+    "Resolution patches are full single-lot withdrawal, apply instead of git revert; never apply both",
+    "Final delta 51a64734 affects only Invocation CSS: Invocation rebuilt/retested; all 14 patches checked against final base, prior 13 typechecks retained from 9e22b2aa."
+  ],
+  "typecheckMatrixBase": "9e22b2aaf38ec1e42aa4c3c2eeba2dcf3229ef95"
+}

@@ -1,5 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Mission en cours — R1085, continuité post-recette R1084
+
+Mandat propriétaire confirmé : implémentation, tests visuels, réversibilité, publication review, revues indépendantes, promotion main et déploiements dans la même mission. Base réelle vérifiée après fetch : main/review/origin/main/origin/review `7c7859498d750ecbc41ead95d02593f72b295b3a`, arbre initial propre. Les SHA historiques R1084 ci-dessous ne remplacent pas cette vérification.
+
+Décisions [R1085](../specifications/decisions-log.md#r1085--continuité-post-recette-r1084-13102026) et [contrat UI](../specifications/ui-layout-contract-v1.md) : quatorze lots indépendants ; adaptation largeur/hauteur avant scroll, six Missions 3×2, filtres multiéléments, finitions Accueil/Sidebar/Quotidiennes/Invocation/Entraînement/Event/Sac/Boutique/Configuration, classement serveur borné cinq avec top10 Twitch conservé. Arbitrage en cours de recette : carte blanche sur la présentation, aucune mécanique changée et **aucun scroll ajouté** ; Jeux C paginés et descriptions Collection accessibles dans leurs fiches.
+
+**Candidat local qualifié, non livré à ce stade.** Runtime `51a64734` : full **8/8 PASS, 1624 tests frontend et 2510 backend non-DB** ; huit tests PostgreSQL privés du classement PASS, aucune migration. Les premiers full 7/8 (timeout Expédition puis attente Codes devenue obsolète) sont supersédés par ce full réussi, sans masquer leur historique. Registre [qualification et frontières des quatorze lots](../architecture/evidence/post-r1084-qualification-20261013.json). Quatorze retraits indépendants qualifiés, dont trois recettes explicites de résolution de contexte Event ; bases et contrôles exacts dans le registre. Reviews du SHA GitHub final, déploiements et postflight restent à accomplir.
+
+QA privée dans le GameShell compilé : 1920×1080, 2560×1440, 1366×768, 1366×520, formats intermédiaires et mobile, chat ouvert/replié ; états complets, erreurs, pages partielles, six messages de 500 caractères, Noël et 25 jours accessibles. Aucune recette publique authentifiée revendiquée. Limites conservées : scroll mobile et exceptions documentées ; Invocation, dont le mandat est la lisibilité, reste partiellement coupée à 1366×768/520 comme avant, avec débordement réduit de 65 px. À 1536×864 et 1920×1080 elle est entière. Le corps Event à 520 peut mesurer 15–21 px de plus en raison d'une réserve vide de feedback : contenu et actions contrôlés visibles, aucun déplacement scroll effectif. Recette esthétique propriétaire future.
+
+R1084 ci-dessous est conservé comme historique.
+
 ## Passe graphique desktop — R1084
 
 **Livré techniquement au checkpoint b62215a8afa53bb9fdec5a36f527e8d6e6597109 ; recette esthétique propriétaire future.** Base exacte e2eef5131abfab2d7fe214831dcda65a06bad0bd, runtime 5c95cc5f2541a7ece57a8c22b3c2c66c9f79f65f. FF/push/fetch : main = review = origin/main = origin/review au checkpoint, divergence 0/0, arbre propre. Cette clôture documentaire conserve le runtime ; son SHA final suit review/FF/déploiements/postflight, sans commit pour recopier son propre hash.

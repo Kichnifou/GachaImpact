@@ -1,0 +1,26 @@
+diff --git a/src/screens/AccountSettingsPanel.tsx b/src/screens/AccountSettingsPanel.tsx
+index 05dbaeec..305b607a 100644
+--- a/src/screens/AccountSettingsPanel.tsx
++++ b/src/screens/AccountSettingsPanel.tsx
+@@ -253,7 +253,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
+     {!commandArmed && <label><input type="checkbox" checked={streamerbotAcknowledged} disabled={pending || applying} onChange={event => setStreamerbotAcknowledged(event.target.checked)} /> J’ai désactivé les chemins Streamer.bot concernés.</label>}
+     <AppButton disabled={pending || applying || !commandArmed && (account.authorityUnavailable || !streamerbotAcknowledged || runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : account.resumeAuthority === 'GLOBAL' ? 'Réactiver le pilote commandes (GLOBAL)' : 'Activer le pilote commandes'}</AppButton>
+   </div>
+-  return <ScrollableScreenPanel className="configuration-frame" bodyClassName="scroll-content-frame menu-scroll-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
++  return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
+     <div data-business-pending={pending} className="account-settings">
+       {!presentationMode && <AccountSecurityPanel />}
+       {error && <p className="configuration-error" role="alert">{error}</p>}
+diff --git a/src/screens/PrivacySettingsPanel.tsx b/src/screens/PrivacySettingsPanel.tsx
+index 2a8b807f..8276d5c8 100644
+--- a/src/screens/PrivacySettingsPanel.tsx
++++ b/src/screens/PrivacySettingsPanel.tsx
+@@ -14,7 +14,7 @@ export default function PrivacySettingsPanel({ actions }: { actions: SocialActio
+     catch (reason) { if (alive.current) setError(apiErrorMessage(reason)) }
+     finally { mutation.current = false; if (alive.current) setPending(false) }
+   }
+-  return <ScrollableScreenPanel className="configuration-frame" bodyClassName="scroll-content-frame menu-scroll-frame" fixed={<div><h2>Confidentialité</h2><p>Votre pseudo, avatar, niveau et élément restent visibles.</p><div data-business-pending={pending} className="privacy-feedback" role="status">{pending ? 'Enregistrement…' : saved ? 'Préférences enregistrées.' : ''}</div>{error && <p role="alert">{error}</p>}</div>}>
++  return <ScrollableScreenPanel className="configuration-frame" fixed={<div><h2>Confidentialité</h2><p>Votre pseudo, avatar, niveau et élément restent visibles.</p><div data-business-pending={pending} className="privacy-feedback" role="status">{pending ? 'Enregistrement…' : saved ? 'Préférences enregistrées.' : ''}</div>{error && <p role="alert">{error}</p>}</div>}>
+     {!value && !error ? <p data-tutorial-state="loading">Chargement…</p> : <div className="privacy-settings">{value?.settings.map(setting => <label key={setting.categoryKey}><span>{privacyLabels[setting.categoryKey]}</span><select aria-label={privacyLabels[setting.categoryKey]} value={setting.level} disabled={pending} onChange={e => void save(setting.categoryKey, e.target.value as PrivacyLevel)}><option value="PUBLIC">Public</option><option value="FRIENDS">Amis uniquement</option><option value="PRIVATE">Privé</option></select></label>)}</div>}
+   </ScrollableScreenPanel>
+ }

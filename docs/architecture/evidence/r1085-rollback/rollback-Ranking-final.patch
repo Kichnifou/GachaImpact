@@ -1,0 +1,516 @@
+diff --git a/server/src/api/routes/event.ts b/server/src/api/routes/event.ts
+index c18d3b67..27eb73f8 100644
+--- a/server/src/api/routes/event.ts
++++ b/server/src/api/routes/event.ts
+@@ -7,7 +7,6 @@ import { AppError } from '../errors.js';
+ 
+ type Options = Readonly<{ authenticate: preHandlerHookHandler; service: EventService }>;
+ const joinSchema = z.object({ idempotencyKey: z.uuid() }).strict();
+-const rankingPageSchema = z.object({ editionId: z.uuid(), page: z.coerce.number().int().min(1).max(100_000).default(1) }).strict();
+ const gameBAttemptSchema = z.object({ code: z.string().regex(/^[01]{5}$/), idempotencyKey: z.uuid() }).strict();
+ const gameCSearchSchema = z.object({ q: z.string().trim().max(100).default(''), elementKey: z.enum(['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']).optional(), sort: z.enum(['name', 'level']).default('name'), direction: z.enum(['asc', 'desc']).default('asc'), page: z.coerce.number().int().min(1).max(50).default(1) }).strict();
+ const gameCSendSchema = z.object({ recipientPlayerId: z.uuid(), message: z.string().trim().min(1).max(500), idempotencyKey: z.uuid() }).strict();
+@@ -18,11 +17,6 @@ export const registerEventRoutes: FastifyPluginAsync<Options> = async (app, opti
+     options.service.getCurrent(requireAuthenticatedIdentity(request)));
+   app.get('/api/v1/me/event/ranking', { preHandler: options.authenticate }, (request) =>
+     options.service.getRanking(requireAuthenticatedIdentity(request)));
+-  app.get('/api/v1/me/event/ranking/page', { preHandler: options.authenticate }, (request) => {
+-    const parsed = rankingPageSchema.safeParse(request.query);
+-    if (!parsed.success) throw new AppError('La page de classement est invalide.', 400, 'VALIDATION_ERROR');
+-    return options.service.getRankingPage(requireAuthenticatedIdentity(request), parsed.data.editionId, parsed.data.page);
+-  });
+   app.post('/api/v1/me/event/join', { preHandler: options.authenticate }, (request) => {
+     const parsed = joinSchema.safeParse(request.body);
+     if (!parsed.success) throw new AppError('La demande d’inscription Event est invalide.', 400, 'VALIDATION_ERROR');
+diff --git a/server/src/application/event/event-ranking-page.ts b/server/src/application/event/event-ranking-page.ts
+deleted file mode 100644
+index f1f302c7..00000000
+--- a/server/src/application/event/event-ranking-page.ts
++++ /dev/null
+@@ -1,27 +0,0 @@
+-import type { Prisma } from '../../../generated/prisma/client.js';
+-
+-export const EVENT_RANKING_PAGE_SIZE = 5;
+-
+-/** Caller owns the repeatable-read transaction; no participation is materialized. */
+-export async function readEventRankingPage(database: Prisma.TransactionClient, editionId: string, viewerId: string, requestedPage: number) {
+-  const where = { eventEditionId: editionId, player: { status: { not: 'ARCHIVED' as const } } };
+-  const total = await database.eventParticipant.count({ where });
+-  const pageCount = Math.max(1, Math.ceil(total / EVENT_RANKING_PAGE_SIZE));
+-  const page = Math.min(Math.max(1, Math.trunc(requestedPage)), pageCount);
+-  const skip = (page - 1) * EVENT_RANKING_PAGE_SIZE;
+-  const participants = await database.eventParticipant.findMany({
+-    where, orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
+-    skip, take: EVENT_RANKING_PAGE_SIZE,
+-    select: { playerId: true, points: true, player: { select: { displayName: true } } },
+-  });
+-  const own = await database.eventParticipant.findFirst({ where: { ...where, playerId: viewerId }, select: { points: true, joinedAt: true } });
+-  const before = own ? await database.eventParticipant.count({ where: { ...where, OR: [
+-    { points: { gt: own.points } },
+-    ...(own.joinedAt ? [{ points: own.points, joinedAt: { lt: own.joinedAt } }] : [{ points: own.points, joinedAt: { not: null } }]),
+-    { points: own.points, joinedAt: own.joinedAt, playerId: { lt: viewerId } },
+-  ] } }) : null;
+-  return { editionId, page, pageSize: EVENT_RANKING_PAGE_SIZE, pageCount, total,
+-    self: own ? { rank: before! + 1, points: own.points } : null,
+-    entries: participants.map(({ playerId, player, points }, index) => ({ rank: skip + index + 1, playerId, displayName: player.displayName, points })),
+-  };
+-}
+diff --git a/server/src/application/event/event-service.ts b/server/src/application/event/event-service.ts
+index 17cac3f6..f3a6fbd9 100644
+--- a/server/src/application/event/event-service.ts
++++ b/server/src/application/event/event-service.ts
+@@ -24,7 +24,6 @@ import { calendarReward, projectCalendar } from '../../domain/event/calendar.js'
+ import type { GiftCodeService } from '../gift-code/gift-code-service.js';
+ import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
+ import { reconcileConfirmedEventMessages } from './event-message-delivery.js';
+-import { readEventRankingPage } from './event-ranking-page.js';
+ 
+ type Database = PrismaClient | Prisma.TransactionClient;
+ 
+@@ -130,16 +129,6 @@ export class EventService {
+     throw new Error('Current Event state could not be loaded.');
+   }
+ 
+-  public async getRankingPage(identity: PlayerExecutionActor, editionId: string, page: number) {
+-    const viewer = await this.readyPlayer(identity);
+-    const period = resolveCurrentEventPeriod(commandNow(this.clock));
+-    return this.database.$transaction(async (tx) => {
+-      const edition = await tx.eventEdition.findFirst({ where: { id: editionId, year: period.year, definition: { calendarMonth: period.month, isActive: true } }, select: { id: true } });
+-      if (!edition) throw new BusinessError('EVENT_EDITION_CLOSED', 'Le Festival a changé. Actualisez l’événement.');
+-      return readEventRankingPage(tx, edition.id, viewer.id, page);
+-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+-  }
+-
+   public async getRanking(identity: PlayerExecutionActor) {
+     const viewer = await this.readyPlayer(identity);
+     const context = await this.resolveCurrentEdition(this.database, commandNow(this.clock));
+diff --git a/server/tests-db/event-ranking.integration.test.ts b/server/tests-db/event-ranking.integration.test.ts
+index 8bf486f5..c7f2e7a0 100644
+--- a/server/tests-db/event-ranking.integration.test.ts
++++ b/server/tests-db/event-ranking.integration.test.ts
+@@ -25,39 +25,6 @@ afterEach(async () => {
+ afterAll(async () => database.$disconnect());
+ 
+ describe('active Event ranking', () => {
+-  it.each([0, 1, 5, 6, 10, 11, 26])('paginates %i participants with bounded reads, stable ties and clamped pages', async (size) => {
+-    const now = new Date('2627-09-15T12:00:00.000Z');
+-    const viewerId = randomUUID();
+-    const service = new EventService({ execute: async () => ({ id: viewerId }) } as never, database, { now: () => now }, { nextInt: () => 0 });
+-    const { edition } = await service.resolveCurrentEdition(database, now);
+-    editions.push(edition.id);
+-    const participants = Array.from({ length: size }, () => randomUUID()).sort();
+-    const archived = randomUUID();
+-    ids.push(viewerId, archived, ...participants);
+-    await database.player.createMany({ data: ids.map(id => ({ id, displayName: 'Ranking fixture', status: id === archived ? 'ARCHIVED' : 'ACTIVE' })) });
+-    await database.eventParticipant.createMany({ data: [...participants, archived].map(playerId => ({ eventEditionId: edition.id, playerId, points: playerId === archived ? 100 : 20, joinedAt: new Date('2627-09-02T12:00:00Z') })) });
+-    const seen: string[] = [];
+-    const pageCount = Math.max(1, Math.ceil(size / 5));
+-    for (let page = 1; page <= pageCount; page++) {
+-      const result = await service.getRankingPage({ subject: 'ranking-page-fixture' }, edition.id, page);
+-      expect(result).toMatchObject({ editionId: edition.id, page, pageSize: 5, pageCount, total: size, self: null });
+-      expect(result.entries.length).toBeLessThanOrEqual(5);
+-      expect(result.entries.map(row => row.rank)).toEqual(Array.from({ length: result.entries.length }, (_, index) => (page - 1) * 5 + index + 1));
+-      seen.push(...result.entries.map(row => row.playerId));
+-    }
+-    expect(seen).toEqual(participants);
+-    expect((await service.getRankingPage({ subject: 'ranking-page-fixture' }, edition.id, 999)).page).toBe(pageCount);
+-    if (size) {
+-      const ownService = new EventService({ execute: async () => ({ id: participants[size - 1] }) } as never, database, { now: () => now }, { nextInt: () => 0 });
+-      expect((await ownService.getRankingPage({ subject: 'ranking-page-self' }, edition.id, 1)).self).toEqual({ rank: size, points: 20 });
+-    }
+-    await expect(service.getRankingPage({ subject: 'ranking-page-fixture' }, randomUUID(), 1)).rejects.toMatchObject({ code: 'EVENT_EDITION_CLOSED' });
+-    const nextMonth = new EventService({ execute: async () => ({ id: viewerId }) } as never, database, { now: () => new Date('2627-10-01T12:00:00Z') }, { nextInt: () => 0 });
+-    await expect(nextMonth.getRankingPage({ subject: 'ranking-page-fixture' }, edition.id, 1)).rejects.toMatchObject({ code: 'EVENT_EDITION_CLOSED' });
+-    expect(await database.businessOperation.count({ where: { playerId: { in: ids } } })).toBe(0);
+-    expect(await database.resourceMovement.count({ where: { playerId: { in: ids } } })).toBe(0);
+-  }, 90_000);
+-
+   it('returns a public top ten ordered by points, join time and player ID without payouts', async () => {
+     const now = new Date('2626-09-15T12:00:00.000Z');
+     const contextService = new EventService({ execute: async () => ({ id: ids[11] }) } as never, database, { now: () => now }, { nextInt: () => 0 });
+@@ -81,10 +48,6 @@ describe('active Event ranking', () => {
+     await database.eventParticipant.create({ data: { eventEditionId: context.edition.id, playerId: ids[11]!, points: 11, joinedAt: null, legacyProvenance: { fixture: 'unknown legacy join date' } } });
+     const legacyRanking = await contextService.getRanking({ subject: 'ranking-legacy' });
+     expect(legacyRanking.self).toEqual({ rank: 11, points: 11 });
+-    const lastPage = await contextService.getRankingPage({ subject: 'ranking-legacy' }, context.edition.id, 3);
+-    expect(lastPage.self).toEqual({ rank: 11, points: 11 });
+-    expect(lastPage.entries[0]).toEqual({ playerId: ids[11], displayName: 'Ranking 11', points: 11, rank: 11 });
+-    expect(lastPage.entries[1]).toMatchObject({ playerId: participantIds[10], points: 10, rank: 12 });
+     expect(legacyRanking.entries.map(entry => entry.playerId)).toEqual(result.entries.map(entry => entry.playerId));
+     expect(await database.businessOperation.count({ where: { playerId: { in: ids } } })).toBe(0);
+     expect(await database.resourceMovement.count({ where: { playerId: { in: ids } } })).toBe(0);
+diff --git a/server/tests/event-routes.test.ts b/server/tests/event-routes.test.ts
+index 67067d93..e700a413 100644
+--- a/server/tests/event-routes.test.ts
++++ b/server/tests/event-routes.test.ts
+@@ -16,7 +16,7 @@ describe('Event HTTP contracts', () => {
+       gameA: { available: false, theme: { key: 'recolte', label: 'Récolte' }, completedToday: false, attemptsToday: 0, windows: [], activeWindowIndex: null, canAttempt: false, cooldownRemainingMs: 0 },
+       gameB: { available: false, theme: { key: 'harvest', label: 'Grenier' }, solvedToday: false, discoveredBy: null, attemptsUsed: 0, attemptsRemaining: 0, testedCodes: [], remainingCodes: Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')), canAttempt: false },
+     };
+-    const service = { claimCalendar: vi.fn(async () => ({ ...snapshot, calendarClaim: { day: 1, reward: 3 } })), getCurrent: vi.fn(async () => snapshot), getRankingPage: vi.fn(async () => ({ editionId: snapshot.edition.id, page: 1, pageSize: 5, pageCount: 1, total: 0, self: null, entries: [] })), getRanking: vi.fn(async () => ({ editionId: snapshot.edition.id, entries: [] })), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
++    const service = { claimCalendar: vi.fn(async () => ({ ...snapshot, calendarClaim: { day: 1, reward: 3 } })), getCurrent: vi.fn(async () => snapshot), getRanking: vi.fn(async () => ({ editionId: snapshot.edition.id, entries: [] })), join: vi.fn(async () => ({ ...snapshot, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, operation: { id: randomUUID(), alreadyProcessed: false } })), claimDailyBonus: vi.fn(async () => ({ ...snapshot, dailyBonus: { claimedToday: true, canClaim: false }, operation: { id: randomUUID(), alreadyProcessed: false } })), convertShop: vi.fn(async () => snapshot), purchaseCollection: vi.fn(async () => snapshot), attemptGameA: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { succeeded: false } })), attemptGameB: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false }, attempt: { kind: 'INCORRECT' } })), searchGameCRecipients: vi.fn(async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })), sendGameC: vi.fn(async () => ({ ...snapshot, operation: { id: randomUUID(), alreadyProcessed: false } })), consultGameCMessages: vi.fn(async () => snapshot) } as unknown as EventService;
+     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, { authIdentityVerifier: { verify: async () => ({ subject: 'event-subject' }) }, getOrProvisionCurrentPlayer: { execute: vi.fn() } as never, eventService: service });
+     apps.push(app);
+     return { app, service };
+@@ -70,23 +70,6 @@ describe('Event HTTP contracts', () => {
+     expect(service.getCurrent).not.toHaveBeenCalled();
+   });
+ 
+-  it('authenticates paged rankings and rejects invalid or unbounded requests', async () => {
+-    const { app, service } = await setup();
+-    const editionId = randomUUID();
+-    const url = `/api/v1/me/event/ranking/page?editionId=${editionId}`;
+-    const headers = { authorization: 'Bearer token' };
+-    expect((await app.inject({ url })).statusCode).toBe(401);
+-    expect((await app.inject({ url: `${url}&page=2`, headers })).statusCode).toBe(200);
+-    expect(service.getRankingPage).toHaveBeenCalledWith(expect.objectContaining({ subject: 'event-subject' }), editionId, 2);
+-    for (const page of ['0', '-1', '1.5', 'NaN', '100001', 'Infinity']) {
+-      expect((await app.inject({ url: `${url}&page=${page}`, headers })).statusCode).toBe(400);
+-    }
+-    expect((await app.inject({ url: `${url}&take=100`, headers })).statusCode).toBe(400);
+-    expect((await app.inject({ url: '/api/v1/me/event/ranking/page?editionId=invalid', headers })).statusCode).toBe(400);
+-    expect(service.getRanking).not.toHaveBeenCalled();
+-    expect(service.getCurrent).not.toHaveBeenCalled();
+-  });
+-
+   it('validates Event Shop conversion and Collection contracts', async () => {
+     const { app, service } = await setup(); const key = randomUUID(); const headers = { authorization: 'Bearer token' };
+     expect((await app.inject({ method: 'POST', url: '/api/v1/me/event/shop/convert', payload: { target: 'PRIMOGEMS', quantity: 1, idempotencyKey: key } })).statusCode).toBe(401);
+diff --git a/src/AppBootstrap.tsx b/src/AppBootstrap.tsx
+index afdade16..1ea299d3 100644
+--- a/src/AppBootstrap.tsx
++++ b/src/AppBootstrap.tsx
+@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
+ 
+ import { ApiError, getGameApiClient } from './api/game-api'
+ import type { ArcadeMutation } from './api/arcade-types'
+-import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingPageDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
++import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
+ import { useAuth } from './auth/auth-context'
+ import { resolveBootstrapStage } from './auth/bootstrap-state'
+ import AuthScreen from './components/AuthScreen'
+@@ -67,7 +67,7 @@ function AppBootstrap() {
+   const [contest, setContest] = useState<ContestDto | null>(null)
+   const [contestAvailability, setContestAvailability] = useState<ContestAvailability>({ phase: 'loading', pending: false })
+   const [event, setEvent] = useState<EventDto | null>(null)
+-  const rankingFlightRef = useRef<{ userId: string | undefined; page: number; editionId: string; promise: Promise<EventRankingPageDto> } | null>(null)
++  const rankingFlightRef = useRef<{ userId: string | undefined; promise: Promise<EventRankingDto> } | null>(null)
+   const [expedition, setExpedition] = useState<ExpeditionClientSnapshot | null>(null)
+   const [expeditionMonotonicNow, setExpeditionMonotonicNow] = useState(0)
+   const [notifications, setNotifications] = useState<NotificationsDto | null>(null)
+@@ -153,11 +153,11 @@ function AppBootstrap() {
+   const loadContestHistory = useCallback((page: number) => getGameApiClient().getContestHistory(page), [])
+   const loadContestHistoryDetail = useCallback((contestId: string) => getGameApiClient().getContestHistoryDetail(contestId), [])
+   const loadEvent = useCallback(() => readDaily('event', () => eventRequests.read(() => getGameApiClient().getEvent()), () => undefined), [eventRequests, readDaily])
+-  const loadEventRanking = useCallback((page: number, editionId: string) => {
++  const loadEventRanking = useCallback(() => {
+     const current = rankingFlightRef.current
+-    if (current && current.userId === sessionUserId && current.page === page && current.editionId === editionId) return current.promise
+-    const promise = getGameApiClient().getEventRankingPage(page, editionId)
+-    rankingFlightRef.current = { userId: sessionUserId, page, editionId, promise }
++    if (current && current.userId === sessionUserId) return current.promise
++    const promise = getGameApiClient().getEventRanking()
++    rankingFlightRef.current = { userId: sessionUserId, promise }
+     const clear = () => { if (rankingFlightRef.current?.promise === promise) rankingFlightRef.current = null }
+     void promise.then(clear, clear)
+     return promise
+diff --git a/src/api/game-api.ts b/src/api/game-api.ts
+index 304d8e4c..5e0d7d3f 100644
+--- a/src/api/game-api.ts
++++ b/src/api/game-api.ts
+@@ -81,7 +81,6 @@ import type {
+   EventDailyBonusClaimDto, EventCalendarClaimDto,
+   EventShopMutationDto,
+   EventRankingDto,
+-  EventRankingPageDto,
+   EventGameAAttemptDto,
+   EventGameBAttemptDto,
+   EventGameCRecipientQuery,
+@@ -380,7 +379,6 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
+     getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
+     getEvent: () => request<EventDto>('/api/v1/me/event'),
+     getEventRanking: () => request<EventRankingDto>('/api/v1/me/event/ranking'),
+-    getEventRankingPage: (page: number, editionId: string) => request<EventRankingPageDto>(`/api/v1/me/event/ranking/page?page=${page}&editionId=${encodeURIComponent(editionId)}`),
+     joinEvent: (idempotencyKey: string) => request<EventJoinDto>('/api/v1/me/event/join', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+     claimEventCalendar: (idempotencyKey: string) => request<EventCalendarClaimDto>('/api/v1/me/event/calendar/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+     claimEventDailyBonus: (idempotencyKey: string) => request<EventDailyBonusClaimDto>('/api/v1/me/event/daily-bonus/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+diff --git a/src/api/types.ts b/src/api/types.ts
+index cdff6889..63666c8e 100644
+--- a/src/api/types.ts
++++ b/src/api/types.ts
+@@ -707,7 +707,6 @@ export type EventDailyBonusClaimDto = EventDto & Readonly<{ operation: Readonly<
+ export type EventCalendarClaimDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; calendarClaim: Readonly<{ day: number; reward: number }> }>
+ export type EventShopMutationDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }> }>
+ export type EventRankingDto = Readonly<{ editionId: string; entries: readonly Readonly<{ rank: number; playerId: string; displayName: string; points: number }>[] }>
+-export type EventRankingPageDto = EventRankingDto & Readonly<{ page: number; pageSize: number; pageCount: number; total: number; self: Readonly<{ rank: number; points: number }> | null }>
+ export type EventGameAAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ succeeded: boolean }> }>
+ export type EventGameBAttemptDto = EventDto & Readonly<{ operation: Readonly<{ id: string; alreadyProcessed: boolean }>; attempt: Readonly<{ kind: 'ALREADY_TESTED' | 'INCORRECT' | 'CORRECT' }> }>
+ export type EventGameCRecipientQuery = Readonly<{ query: string; elementKey: ElementKey | null; sort: 'name' | 'level'; direction: 'asc' | 'desc'; page: number }>
+diff --git a/src/components/GameShell.tsx b/src/components/GameShell.tsx
+index 2b8b336c..1109bf4a 100644
+--- a/src/components/GameShell.tsx
++++ b/src/components/GameShell.tsx
+@@ -31,7 +31,7 @@ import HistoryScreen, { type HistoryCategory } from '../screens/HistoryScreen'
+ import type { RankingPageDto, BannerHistoryDto, EventHistoryDto } from '../api/types'
+ import type { BannerVoteActions } from '../characters/use-banner-votes'
+ 
+-import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, EventDto, EventRankingPageDto, EventGameAAttemptDto, EventJoinDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, GiftCodeClaimDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerGiftCodesDto, PlayerInventoryDto, PlayerMissionsDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
++import type { BankHistoryDto, BankTransferDto, BoxCharacterDto, BoxSortPreferenceDto, ContestDto, ContestHistoryDto, ContestSnapshotDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, GachaCharacterDto, GachaHistoryDto, GachaPullDto, GiftCodeClaimDto, InventoryItemDetailDto, ModerationPermissionsDto, ModerationPlayerListQuery, ModerationPlayerPageDto, ModerationStateDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, NavigationMenuPreferenceDto, NotificationsDto, PlayerBankDto, PlayerBoxDto, PlayerDto, PlayerGiftCodesDto, PlayerInventoryDto, PlayerMissionsDto, PlayerProgressionDto, PlayerResourcesDto, PlayerShopDto, PlayerTeamsDto, ShopHistoryDto, ShopPurchaseDto, StellaUseDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+ import type { ScreenId } from '../types'
+ import type { ArcadeMutation } from '../api/arcade-types'
+ import type { EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto } from '../api/types'
+@@ -137,7 +137,7 @@ type GameShellProps = {
+   onJoinEvent: (key: string) => Promise<EventJoinDto>
+   onClaimEventCalendar?: (key: string) => Promise<EventCalendarClaimDto>
+   onClaimEventDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>
+-  onLoadEventRanking?: (page: number, editionId: string) => Promise<EventRankingPageDto>
++  onLoadEventRanking?: () => Promise<EventRankingDto>
+   onConvertEventShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
+   onPurchaseEventCollection?: (key: string) => Promise<EventDto>
+   onAttemptEventGameA: (key: string) => Promise<EventGameAAttemptDto>
+diff --git a/src/event/event-ranking-layout.css b/src/event/event-ranking-layout.css
+deleted file mode 100644
+index d9fade11..00000000
+--- a/src/event/event-ranking-layout.css
++++ /dev/null
+@@ -1,19 +0,0 @@
+-.event-ranking .event-ranking-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: auto; }
+-.event-ranking-pagination > span:first-child { margin-right: auto; color: var(--muted); font-size: 13px; }
+-.event-ranking .event-ranking-list { gap: 6px; margin: 0; }
+-.event-ranking .event-ranking-list li { box-sizing: border-box; padding: 6px 12px; min-height: 38px; font-size: 14px; }
+-.event-ranking .event-ranking-list strong { overflow-wrap: anywhere; }
+-@media (min-width: 901px) {
+-  .event-screen .scrollable-screen-panel-body:has(> .event-ranking) { overflow: visible; }
+-  .event-screen .event-ranking { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+-  .event-ranking .event-ranking-list { flex: 1; grid-template-rows: repeat(5, minmax(min-content, 1fr)); }
+-  .event-ranking header h2 { font-size: 22px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .event-screen .event-ranking { padding: 8px; gap: 5px; }
+-  .event-ranking header h2 { font-size: 18px; }
+-  .event-ranking .event-ranking-honor { font-size: 10px; padding: 5px; }
+-  .event-ranking .event-ranking-list { gap: 4px; }
+-  .event-ranking .event-ranking-list li { min-height: 30px; padding: 4px 8px; font-size: 13px; }
+-  .event-ranking-pagination .app-button { min-height: 28px; padding: 3px 10px; }
+-}
+diff --git a/src/screens/ActivitiesScreen.tsx b/src/screens/ActivitiesScreen.tsx
+index 701a22ea..76e79852 100644
+--- a/src/screens/ActivitiesScreen.tsx
++++ b/src/screens/ActivitiesScreen.tsx
+@@ -5,7 +5,7 @@ import type { FavorDto } from '../api/types'
+ import { projectDailies, type DailyItem } from '../dailies/daily-summary'
+ import type { DailyClaimController } from '../dailies/use-daily-claim'
+ import { useState, type ReactNode } from 'react'
+-import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingPageDto, EventGameAAttemptDto, EventJoinDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerMissionsDto, WheelSpinDto, WheelTodayDto } from '../api/types'
++import type { ContestDto, ContestHistoryDto, ContestSnapshotDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyCombatFightDto, DailyRewardClaimDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingDto, EventGameAAttemptDto, EventJoinDto, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto, PlayerMissionsDto, WheelSpinDto, WheelTodayDto } from '../api/types'
+ import { isAmbiguousMutationError } from '../api/mutation-errors'
+ import { formatResourceAmount } from '../utils/formatters'
+ import WheelCard from '../components/WheelCard'
+@@ -57,7 +57,7 @@ type ActivitiesScreenProps = {
+   onJoinEvent?: (key: string) => Promise<EventJoinDto>
+   onClaimEventCalendar?: (key: string) => Promise<EventCalendarClaimDto>
+   onClaimEventDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>
+-  onLoadEventRanking?: (page: number, editionId: string) => Promise<EventRankingPageDto>
++  onLoadEventRanking?: () => Promise<EventRankingDto>
+   onConvertEventShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>
+   onPurchaseEventCollection?: (key: string) => Promise<EventDto>
+   onAttemptEventGameA?: (key: string) => Promise<EventGameAAttemptDto>
+diff --git a/src/screens/EventRankingSection.test.tsx b/src/screens/EventRankingSection.test.tsx
+index 40f9acc2..03e966bd 100644
+--- a/src/screens/EventRankingSection.test.tsx
++++ b/src/screens/EventRankingSection.test.tsx
+@@ -3,7 +3,7 @@ import { act } from 'react'
+ import { createRoot } from 'react-dom/client'
+ import { afterEach, describe, expect, it, vi } from 'vitest'
+ 
+-import type { EventRankingPageDto } from '../api/types'
++import type { EventRankingDto } from '../api/types'
+ import EventRankingSection from './EventRankingSection'
+ 
+ ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+@@ -17,54 +17,15 @@ afterEach(() => {
+   visibility = 'visible'
+ })
+ 
+-function mount(onLoad: (page: number, editionId: string) => Promise<EventRankingPageDto>, editionId = 'edition-one') {
++function mount(onLoad: () => Promise<EventRankingDto>, editionId = 'edition-one') {
+   const container = document.createElement('div'); document.body.append(container)
+   const root = createRoot(container); roots.push({ root, container })
+   act(() => root.render(<EventRankingSection editionId={editionId} onLoad={onLoad} />))
+   return { root, container }
+ }
+-const ranking = (points = 4): EventRankingPageDto => ({ editionId: 'edition-one', page: 1, pageSize: 5, pageCount: 1, total: 1, self: null, entries: [{ rank: 1, playerId: 'player-one', displayName: 'Un pseudo très très long qui doit rester lisible', points }] })
++const ranking = (points = 4): EventRankingDto => ({ editionId: 'edition-one', entries: [{ rank: 1, playerId: 'player-one', displayName: 'Un pseudo très très long qui doit rester lisible', points }] })
+ 
+ describe('Event Ranking visible refresh', () => {
+-  it('ignores a previous page polling response within the same edition', async () => {
+-    vi.useFakeTimers()
+-    let resolveOld!: (value: EventRankingPageDto) => void
+-    const first = { ...ranking(), pageCount: 2, total: 6 }
+-    const onLoad = vi.fn<(page: number, editionId: string) => Promise<EventRankingPageDto>>()
+-      .mockResolvedValueOnce(first)
+-      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }))
+-      .mockResolvedValue({ ...first, page: 2, entries: [{ ...first.entries[0], rank: 6 }] })
+-    const { container } = mount(onLoad)
+-    await act(async () => { await Promise.resolve(); await vi.advanceTimersByTimeAsync(3_000) })
+-    await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Classement suivant"]')!.click())
+-    await act(async () => resolveOld(first))
+-    expect(container.textContent).toContain('#6')
+-    expect(container.textContent).toContain('2 / 2')
+-    expect(container.textContent).not.toContain('#1')
+-  })
+-  it('requests each page from the server and rejects an obsolete edition response', async () => {
+-    let resolveOld!: (value: EventRankingPageDto) => void
+-    const onLoad = vi.fn(async (page: number, editionId: string) => ({ ...ranking(), editionId, page, pageCount: 3, total: 11, entries: [{ ...ranking().entries[0], rank: (page - 1) * 5 + 1 }] }))
+-    const { root, container } = mount(onLoad)
+-    await act(async () => { await Promise.resolve() })
+-    await act(async () => { (container.querySelector('[aria-label="Classement suivant"]') as HTMLButtonElement).click(); await Promise.resolve() })
+-    expect(onLoad).toHaveBeenLastCalledWith(2, 'edition-one')
+-    expect(container.textContent).toContain('#6')
+-    const old = new Promise<EventRankingPageDto>(resolve => { resolveOld = resolve })
+-    act(() => root.render(<EventRankingSection editionId="edition-two" onLoad={() => old} />))
+-    await act(async () => { resolveOld({ ...ranking(), page: 2 }); await Promise.resolve() })
+-    expect(container.querySelector('.event-ranking-list')).toBeNull()
+-    expect(container.textContent).not.toContain('#6')
+-  })
+-
+-  it('accepts a server clamp after participants disappear', async () => {
+-    const onLoad = vi.fn(async (page: number) => ({ ...ranking(), pageCount: page === 1 ? 2 : 1, total: page === 1 ? 6 : 1 }))
+-    const { container } = mount(onLoad)
+-    await act(async () => { await Promise.resolve() })
+-    await act(async () => { (container.querySelector('[aria-label="Classement suivant"]') as HTMLButtonElement).click(); await Promise.resolve() })
+-    expect(container.textContent).toContain('1 / 2')
+-    expect(onLoad.mock.calls.map(call => call[0])).toEqual([1, 2, 1])
+-  })
+   it('shows the active edition publicly with rank, name, points and no reward', async () => {
+     const { container } = mount(vi.fn(async () => ranking()))
+     await act(async () => { await Promise.resolve() })
+@@ -72,7 +33,7 @@ describe('Event Ranking visible refresh', () => {
+     expect(container.textContent).toContain('#1')
+     expect(container.textContent).toContain('Un pseudo très très long')
+     expect(container.textContent).toContain('4 points')
+-    expect(container.textContent).toContain('Classement honorifique')
++    expect(container.textContent).toContain('Aucune récompense')
+   })
+ 
+   it('polls every three seconds only while visible and refreshes on focus', async () => {
+@@ -97,8 +58,8 @@ describe('Event Ranking visible refresh', () => {
+ 
+   it('does not overlap requests or publish a stale edition after unmount', async () => {
+     vi.useFakeTimers()
+-    let resolveFirst!: (value: EventRankingPageDto) => void
+-    const first = new Promise<EventRankingPageDto>((resolve) => { resolveFirst = resolve })
++    let resolveFirst!: (value: EventRankingDto) => void
++    const first = new Promise<EventRankingDto>((resolve) => { resolveFirst = resolve })
+     const onLoad = vi.fn(() => first)
+     const { root, container } = mount(onLoad)
+     await act(async () => { await vi.advanceTimersByTimeAsync(12_000); window.dispatchEvent(new Event('focus')) })
+diff --git a/src/screens/EventRankingSection.tsx b/src/screens/EventRankingSection.tsx
+index 7041beb3..acf209fc 100644
+--- a/src/screens/EventRankingSection.tsx
++++ b/src/screens/EventRankingSection.tsx
+@@ -1,18 +1,14 @@
+ import { useEffect, useState } from 'react'
+ 
+-import type { EventRankingPageDto } from '../api/types'
++import type { EventRankingDto } from '../api/types'
+ import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
+ import { useLatestRef } from '../hooks/use-latest-ref'
+-import AppButton from '../components/AppButton'
+-import '../event/event-ranking-layout.css'
+ 
+-type Props = Readonly<{ editionId: string; onLoad?: (page: number, editionId: string) => Promise<EventRankingPageDto> }>
++type Props = Readonly<{ editionId: string; onLoad?: () => Promise<EventRankingDto> }>
+ 
+ export default function EventRankingSection({ editionId, onLoad }: Props) {
+-  const [ranking, setRanking] = useState<EventRankingPageDto | null>(null)
++  const [ranking, setRanking] = useState<EventRankingDto | null>(null)
+   const [error, setError] = useState('')
+-  const [selection, setSelection] = useState({ editionId, page: 1 })
+-  const page = selection.editionId === editionId ? selection.page : 1
+   const loadRef = useLatestRef(onLoad)
+   const loadAvailable = Boolean(onLoad)
+ 
+@@ -25,11 +21,8 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
+       if (!active || document.visibilityState !== 'visible' || inFlight) return
+       inFlight = true
+       try {
+-        const next = await loadRef.current!(page, editionId)
+-        if (active && next.editionId === editionId) {
+-          setRanking(next); setError('')
+-          if (next.page !== page) setSelection({ editionId, page: next.page })
+-        }
++        const next = await loadRef.current!()
++        if (active && next.editionId === editionId) { setRanking(next); setError('') }
+       } catch (reason) {
+         if (active) setError(apiErrorMessage(reason))
+       } finally {
+@@ -45,21 +38,16 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
+     window.addEventListener('focus', wake)
+     document.addEventListener('visibilitychange', wake)
+     return () => { active = false; window.clearTimeout(timer); window.removeEventListener('focus', wake); document.removeEventListener('visibilitychange', wake) }
+-  }, [editionId, page, loadAvailable, loadRef])
++  }, [editionId, loadAvailable, loadRef])
+ 
+-  const current = ranking?.editionId === editionId && ranking.page === page ? ranking : null
++  const current = ranking?.editionId === editionId ? ranking : null
+ 
+   return <section data-tutorial-anchor="event-ranking" data-tutorial-state={!current && !error && loadAvailable ? "loading" : undefined} className="panel event-ranking" aria-label="Classement du Festival">
+     <header><div><span className="eyebrow">Édition en cours</span><h2>Classement du Festival</h2></div><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
++    <p>Les dix premiers participants, classés selon leurs points. Aucune récompense n’est associée au rang.</p>
+     {error && <p role="alert">{error}</p>}
+     {!current && !error && <p>Chargement du classement…</p>}
+     {current?.entries.length === 0 && <p>Aucun participant inscrit pour cette édition.</p>}
+     {current && current.entries.length > 0 && <ol className="event-ranking-list">{current.entries.map((entry) => <li key={entry.playerId}><span className="event-ranking-rank">#{entry.rank}</span><strong>{entry.displayName}</strong><span>{formatResourceAmount(String(entry.points))} point{entry.points > 1 ? 's' : ''}</span></li>)}</ol>}
+-    <footer className="event-ranking-pagination">
+-      <span>{current?.self ? `Votre rang : #${current.self.rank}` : ''}</span>
+-      <AppButton aria-label="Classement précédent" disabled={!current || page <= 1} onClick={() => setSelection({ editionId, page: page - 1 })}>‹</AppButton>
+-      <span aria-live="polite">{page} / {current?.pageCount ?? '…'}</span>
+-      <AppButton aria-label="Classement suivant" disabled={!current || page >= current.pageCount} onClick={() => setSelection({ editionId, page: page + 1 })}>›</AppButton>
+-    </footer>
+   </section>
+ }
+diff --git a/src/screens/EventScreen.test.tsx b/src/screens/EventScreen.test.tsx
+index 62600cea..62d10e23 100644
+--- a/src/screens/EventScreen.test.tsx
++++ b/src/screens/EventScreen.test.tsx
+@@ -31,7 +31,7 @@ const joinedGameA = { available: true, theme: { key: 'recolte', label: 'Récolte
+ ], activeWindowIndex: 1, canAttempt: true, cooldownRemainingMs: 0 }
+ const afterJoin: EventJoinDto = { ...beforeJoin, participation: { joined: true, joinedAt: '2026-09-15T12:00:00.000Z', points: 0 }, currency: { amount: '1' }, canJoin: false, dailyBonus: { claimedToday: false, canClaim: true }, gameA: joinedGameA, gameB: { ...beforeJoin.gameB, available: true, attemptsRemaining: 3, canAttempt: true }, gameC: { ...beforeJoin.gameC, available: true, canSend: true }, operation: { id: 'operation-1', alreadyProcessed: false } }
+ 
+-function mount(options: { tutorialStep?: 'event-game-c'; sessionUserId?: string; value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<import("../api/types").EventRankingPageDto>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>; onPurchaseCollection?: (key: string) => Promise<EventDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number; openShopToken?: number; dailyIntent?: EventDailyOpenIntent; onDailyIntentConsumed?: (token: string) => void } = {}) {
++function mount(options: { tutorialStep?: 'event-game-c'; sessionUserId?: string; value?: EventDto; onLoad?: () => Promise<EventDto>; onLoadRanking?: () => Promise<{ editionId: string; entries: { rank: number; playerId: string; displayName: string; points: number }[] }>; onJoin?: (key: string) => Promise<EventJoinDto>; onClaimDailyBonus?: (key: string) => Promise<EventDailyBonusClaimDto>; onConvertShop?: (target: 'PRIMOGEMS' | 'MORAS', quantity: number, key: string) => Promise<EventDto>; onPurchaseCollection?: (key: string) => Promise<EventDto>; onAttempt?: (key: string) => Promise<EventGameAAttemptDto>; onAttemptB?: (code: string, key: string) => Promise<EventGameBAttemptDto>; onSearchRecipients?: (query: EventGameCRecipientQuery) => Promise<EventGameCRecipientsDto>; onSendGameC?: (recipientId: string, message: string, key: string) => Promise<EventGameCSendDto>; onConsultMessages?: () => Promise<EventDto>; openMessagesToken?: number; openShopToken?: number; dailyIntent?: EventDailyOpenIntent; onDailyIntentConsumed?: (token: string) => void } = {}) {
+   const container = document.createElement('div'); document.body.append(container)
+   const root = createRoot(container); roots.push(root)
+   const props = { sessionUserId: options.sessionUserId ?? 'player-1', value: options.value ?? beforeJoin, onLoad: options.onLoad ?? vi.fn(async () => beforeJoin), onLoadRanking: options.onLoadRanking, onJoin: options.onJoin ?? vi.fn(async () => afterJoin), onClaimDailyBonus: options.onClaimDailyBonus, onConvertShop: options.onConvertShop, onPurchaseCollection: options.onPurchaseCollection, onAttempt: options.onAttempt ?? vi.fn(async () => ({ ...afterJoin, attempt: { succeeded: false } })), onAttemptB: options.onAttemptB ?? vi.fn(async () => ({ ...afterJoin, attempt: { kind: 'INCORRECT' as const } })), onSearchRecipients: options.onSearchRecipients, onSendGameC: options.onSendGameC, onConsultMessages: options.onConsultMessages, openMessagesToken: options.openMessagesToken, openShopToken: options.openShopToken, dailyIntent: options.dailyIntent, onDailyIntentConsumed: options.onDailyIntentConsumed }
+@@ -210,7 +210,7 @@ describe('EventScreen presentation', () => {
+ 
+   it('opens Shop and Classement publicly without joining or refreshing the full Event for ranking', async () => {
+     const onLoad = vi.fn(async () => beforeJoin)
+-    const onLoadRanking = vi.fn(async () => ({ editionId: beforeJoin.edition.id, page: 1, pageSize: 5, pageCount: 1, total: 1, self: null, entries: [{ rank: 1, playerId: 'another-player', displayName: 'Festivaliste', points: 12 }] }))
++    const onLoadRanking = vi.fn(async () => ({ editionId: beforeJoin.edition.id, entries: [{ rank: 1, playerId: 'another-player', displayName: 'Festivaliste', points: 12 }] }))
+     const mounted = mount({ onLoad, onLoadRanking })
+     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+     act(() => tabs[2].click())
+diff --git a/src/screens/EventScreen.tsx b/src/screens/EventScreen.tsx
+index 53018d58..0087a495 100644
+--- a/src/screens/EventScreen.tsx
++++ b/src/screens/EventScreen.tsx
+@@ -3,7 +3,7 @@ import { useDestinationTab } from '../navigation/destination-context'
+ import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
+ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+ 
+-import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingPageDto } from '../api/types'
++import type { EventDto, EventDailyBonusClaimDto, EventCalendarClaimDto, EventGameAAttemptDto, EventGameBAttemptDto, EventGameCRecipientQuery, EventGameCRecipientsDto, EventGameCSendDto, EventJoinDto, EventRankingDto } from '../api/types'
+ import { isAmbiguousMutationError } from '../api/mutation-errors'
+ import EventScreenHeader from '../event/EventScreenHeader'
+ import AppButton from '../components/AppButton'
+@@ -24,7 +24,7 @@ type Props = Readonly<{
+   sessionUserId: string
+   value: EventDto
+   onLoad: () => Promise<EventDto>
+-  onLoadRanking?: (page: number, editionId: string) => Promise<EventRankingPageDto>
++  onLoadRanking?: () => Promise<EventRankingDto>
+   onJoin: (idempotencyKey: string) => Promise<EventJoinDto>
+   onClaimCalendar?: (key: string) => Promise<EventCalendarClaimDto>
+   onClaimDailyBonus?: (idempotencyKey: string) => Promise<EventDailyBonusClaimDto>

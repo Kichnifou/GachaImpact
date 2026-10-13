@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Présentation adaptative — R1085
+
+Les écrans concernés activent explicitement la compaction de la coque aux faibles hauteurs : navigation et titres conservent leurs destinations, texte et accès clavier, avec espaces réduits. Aucune modification des mécaniques de navigation ou des préférences de chat. Accueil garde bannière, six raccourcis et Quotidiennes. Sac utilise quatre onglets horizontaux ; Configuration Confidentialité/Compte adopte le même corps `scroll-content-frame menu-scroll-frame` que Menu. Les détails et historiques conservent leur comportement. [Norme et arbitrage](ui-layout-contract-v1.md), état livré au Master.
+
 ## Passe graphique desktop — R1084
 
 Cette décision supersède l’ancienne présentation d’Accueil sans raccourcis décrite historiquement plus bas ; les actions et données Quotidiennes restent celles de leur propriétaire.

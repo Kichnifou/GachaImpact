@@ -1,0 +1,324 @@
+diff --git a/src/event/event-general-shop.css b/src/event/event-general-shop.css
+deleted file mode 100644
+index bbd47a86..00000000
+--- a/src/event/event-general-shop.css
++++ /dev/null
+@@ -1,93 +0,0 @@
+-@media (min-width: 1121px) {
+-  .event-frame .scrollable-screen-panel-body:has(> .event-hero),
+-  .event-frame .scrollable-screen-panel-body:has(> .event-shop) { overflow: visible; container-type: size; align-content: start; grid-auto-rows: max-content; gap: 8px; }
+-  .event-frame .event-hero { min-height: 0; padding: 10px 14px; gap: 10px; }
+-  .event-frame .event-hero-symbol { width: 44px; height: 44px; font-size: 28px; }
+-  .event-frame .event-hero-copy h2 { font-size: 20px; margin-block: 3px; }
+-  .event-frame .event-hero-copy p { font-size: 13px; margin: 0; }
+-  .event-frame .event-stat { padding: 10px 14px; min-height: 0; }
+-  .event-frame .event-stat strong { font-size: 18px; }
+-  .event-frame .event-daily-bonus,
+-  .event-frame .event-foundation-card { min-height: 0; padding: 10px 14px; gap: 8px; }
+-  .event-frame .event-daily-bonus h2,
+-  .event-frame .event-foundation-card h2 { font-size: 18px; margin-block: 4px; }
+-  .event-frame .event-daily-bonus p,
+-  .event-frame .event-foundation-card p { font-size: 13px; margin: 0; }
+-  .event-frame .event-shop { gap: 10px; }
+-  .event-frame .event-shop-balance { padding: 10px 14px; min-height: 0; }
+-  .event-frame .event-shop-balance h2 { font-size: 20px; margin-block: 4px; }
+-  .event-frame .event-shop-balance p { font-size: 13px; margin: 0; }
+-  .event-frame .event-shop-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+-  .event-frame .event-shop-card { min-height: 0; padding: 12px; gap: 8px; }
+-  .event-frame .event-shop-card h2 { font-size: 20px; }
+-  .event-frame .event-shop-card p { min-height: 0; font-size: 13px; line-height: 1.35; margin: 0; }
+-  .event-frame .event-shop-quantity { flex-wrap: wrap; }
+-  .event-frame .event-shop-quantity input { min-width: 36px; }
+-  .event-frame .event-shop-quantity button { min-width: 28px; padding-inline: 6px; }
+-  .event-frame .event-shop-quantity .event-shop-max { min-width: 0; padding-inline: 6px; }
+-  .event-frame .event-shop-icon { width: 32px; height: 32px; font-size: 22px; }
+-  .event-frame .event-shop-feedback { margin: 0; min-height: 18px; }
+-  .event-frame .event-calendar { padding: 10px; gap: 6px; }
+-  .event-frame .event-calendar-grid { grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; }
+-  .event-frame .event-calendar-cell { min-height: 0; padding: 4px; gap: 2px; }
+-  .event-frame .event-calendar h2 { font-size: 18px; }
+-  .event-frame .event-calendar > p { font-size: 12px; margin: 0; }
+-}
+-@media (min-width: 1121px) and (max-height: 820px) {
+-  .event-frame .event-shop { gap: 6px; }
+-  .event-frame .event-shop-balance { padding: 6px 10px; }
+-  .event-frame .event-shop-balance h2 { font-size: 18px; }
+-  .event-frame .event-shop-card { display: grid; grid-template-columns: 24px minmax(0, 1fr); align-content: start; padding: 8px; gap: 5px; }
+-  .event-frame .event-shop-card > .eyebrow { display: none; }
+-  .event-frame .event-shop-card h2 { grid-column: 2; font-size: 16px; }
+-  .event-frame .event-shop-icon { width: 24px; height: 24px; font-size: 18px; }
+-  .event-frame .event-shop-card > p,
+-  .event-frame .event-shop-card > label,
+-  .event-frame .event-shop-card > button,
+-  .event-frame .event-shop-quantity { grid-column: 1 / -1; }
+-  .event-frame .event-shop-card > .small-primary-button { margin: 0; min-height: 30px; padding: 5px; }
+-  .event-frame .event-shop-quantity > * { min-height: 30px; }
+-  .event-frame .event-shop-card p { font-size: 12px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .event-frame .event-hero { padding: 6px 8px; gap: 4px 8px; overflow: visible; }
+-  .event-frame .event-hero-symbol { width: 30px; height: 30px; font-size: 22px; }
+-  .event-frame .event-hero-copy h2 { font-size: 16px; }
+-  .event-frame .event-hero-copy p { font-size: 12px; line-height: 1.25; }
+-  .event-frame .event-stat { padding: 6px; gap: 4px; }
+-  .event-frame .event-stat > span { font-size: 10px; letter-spacing: 0; }
+-  .event-frame .event-stat strong { font-size: 15px; }
+-  .event-frame .event-daily-bonus, .event-frame .event-foundation-card { padding: 6px 8px; }
+-  .event-frame .event-daily-bonus h2, .event-frame .event-foundation-card h2 { font-size: 16px; }
+-  .event-frame .event-daily-bonus p, .event-frame .event-foundation-card p { font-size: 12px; }
+-  .event-shop-offers { display: flex; gap: 5px; }
+-  .event-shop-offers .app-button { min-height: 28px; padding: 3px 8px; font-size: 12px; }
+-  .event-shop-offers .app-button[aria-pressed="true"] { border-color: #69d3ff; background: #173456; }
+-  .event-frame .event-shop-grid { grid-template-columns: minmax(0, 1fr); }
+-  .event-frame .event-shop-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 12px; }
+-  .event-frame .event-shop-icon { display: none; }
+-  .event-frame .event-shop-card h2 { grid-column: 1; grid-row: 1; }
+-  .event-frame .event-shop-card > p { grid-column: 1; grid-row: 2; }
+-  .event-frame .event-shop-card > label { grid-column: 2; grid-row: 1; }
+-  .event-frame .event-shop-quantity { grid-column: 2; grid-row: 2; }
+-  .event-frame .event-shop-card > .event-shop-preview-total, .event-frame .event-shop-card > .event-shop-collection-state { grid-column: 1; grid-row: 3; }
+-  .event-frame .event-shop-card > .small-primary-button { grid-column: 2; grid-row: 3; }
+-}
+-@media (min-width: 1121px) {
+-  .event-frame .event-calendar-cell small { min-height: 0; }
+-  .event-frame .event-calendar-feedback { min-height: 20px; }
+-  .event-frame .event-calendar-feedback p { margin: 0; }
+-}
+-@media (min-width: 1121px) and (max-height: 820px) {
+-  .event-calendar-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 12px; }
+-  .event-calendar-pagination .app-button { min-height: 26px; padding: 2px 8px; }
+-  .event-frame .event-calendar { padding: 6px; gap: 4px; }
+-  .event-frame .event-calendar-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+-  .event-frame .event-calendar-cell { padding: 4px; gap: 2px; }
+-  .event-frame .event-calendar-cell strong { font-size: 14px; }
+-  .event-frame .event-calendar-cell span { font-size: 11px; }
+-  .event-frame .event-calendar-cell small { font-size: 10px; }
+-}
+-@media (min-width: 1121px) {
+-  .event-frame .app-button.event-calendar-cell { min-height: 0; padding: 4px; gap: 2px; }
+-}
+diff --git a/src/screens/EventCalendar.test.tsx b/src/screens/EventCalendar.test.tsx
+index 0f9bdff3..8e0a68d9 100644
+--- a/src/screens/EventCalendar.test.tsx
++++ b/src/screens/EventCalendar.test.tsx
+@@ -38,21 +38,6 @@ async function mount(current = value, onClaim: (key: string) => Promise<EventCal
+ }
+ 
+ describe('Christmas calendar UI', () => {
+-  it('opens the current day page on short desktops and exposes all 25 days without a claim', async () => {
+-    const media = vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true, addEventListener() {}, removeEventListener() {} } as unknown as MediaQueryList)
+-    try {
+-      const { container, onClaim } = await mount()
+-      expect(container.querySelector('[aria-label="Ouvrir la case du 14 décembre"]')).not.toBeNull()
+-      await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Jours précédents"]')!.click())
+-      const seen: number[] = []
+-      for (let index = 0; index < 3; index++) {
+-        seen.push(...Array.from(container.querySelectorAll('.event-calendar-cell strong'), node => Number(node.textContent)))
+-        if (index < 2) await act(async () => container.querySelector<HTMLButtonElement>('[aria-label="Jours suivants"]')!.click())
+-      }
+-      expect(seen).toEqual(Array.from({ length: 25 }, (_, index) => index + 1))
+-      expect(onClaim).not.toHaveBeenCalled()
+-    } finally { media.mockRestore() }
+-  })
+   it('shows 25 readable cells, one action, a hidden future random amount and the Christmas reward', async () => {
+     const { container } = await mount()
+     expect(container.querySelectorAll('.event-calendar-cell')).toHaveLength(25)
+diff --git a/src/screens/EventCalendar.tsx b/src/screens/EventCalendar.tsx
+index 3cafa3a4..54ff38f1 100644
+--- a/src/screens/EventCalendar.tsx
++++ b/src/screens/EventCalendar.tsx
+@@ -1,6 +1,4 @@
+ import type { EventDto } from '../api/types'
+-import { useState } from 'react'
+-import { useShortDesktop } from '../hooks/use-short-desktop'
+ import AppButton from '../components/AppButton'
+ import { eventCurrencyLabel } from '../event/event-presentation'
+ import type { useCalendarClaim } from '../event/use-calendar-claim'
+@@ -10,17 +8,12 @@ const states = { OPENED: 'Ouverte', AVAILABLE: 'Disponible', MISSED: 'Manquée',
+ 
+ export default function EventCalendar({ value, action, enabled }: Readonly<{ value: EventDto; action: ReturnType<typeof useCalendarClaim>; enabled: boolean }>) {
+   const calendar = value.calendar
+-  const shortDesktop = useShortDesktop(820)
+-  const [selectedPage, setPage] = useState<number | null>(null)
+-  const pages = Math.max(1, Math.ceil((calendar?.days.length ?? 0) / 10))
+-  const page = Math.min(pages - 1, selectedPage ?? Math.floor(((calendar?.currentDay ?? 1) - 1) / 10))
+   if (!calendar) return null
+   return <section className="panel event-calendar" aria-labelledby="event-calendar-title">
+     <h2 id="event-calendar-title">Calendrier de Noël</h2>
+     <p>{calendar.recap ? 'Votre calendrier du mois : les cases manquées ne peuvent plus être ouvertes.' : 'Une case chaque jour du 1er au 25 décembre. Aucun rattrapage des jours manqués.'}</p>
+     {!value.participation.joined && !calendar.recap && <p>Rejoignez le Festival pour ouvrir la case du jour.</p>}
+-    {shortDesktop && <nav className="event-calendar-pagination" aria-label="Pages du calendrier"><AppButton aria-label="Jours précédents" disabled={page === 0} onClick={() => setPage(page - 1)}>‹</AppButton><span>{page + 1} / {pages}</span><AppButton aria-label="Jours suivants" disabled={page === pages - 1} onClick={() => setPage(page + 1)}>›</AppButton></nav>}
+-    <div data-tutorial-anchor="event-calendar" className="event-calendar-grid">{(shortDesktop ? calendar.days.slice(page * 10, page * 10 + 10) : calendar.days).map((cell) => {
++    <div data-tutorial-anchor="event-calendar" className="event-calendar-grid">{calendar.days.map((cell) => {
+       const content = <><strong>{cell.day}</strong><span>{states[cell.state]}</span><small>{cell.reward !== null ? `${cell.reward} ${eventCurrencyLabel(cell.reward, value.festival.currency)}` : '—'}</small></>
+       const className = `event-calendar-cell${calendar.currentDay === cell.day ? ' current' : ''} ${cell.state.toLowerCase()}`
+       return cell.state === 'AVAILABLE' && calendar.canClaimToday
+diff --git a/src/screens/EventScreen.test.tsx b/src/screens/EventScreen.test.tsx
+index 62600cea..8bcb8f15 100644
+--- a/src/screens/EventScreen.test.tsx
++++ b/src/screens/EventScreen.test.tsx
+@@ -88,7 +88,6 @@ describe('EventScreen presentation', () => {
+     const mounted = mount({ value: { ...afterJoin, giftCode: { available: true } } })
+     const onOpenCodes = vi.fn()
+     act(() => mounted.root.render(<EventScreen {...mounted.props} value={{ ...afterJoin, giftCode: { available: true } }} onOpenCodes={onOpenCodes} />))
+-    act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-general-tabs button')).find(button => button.textContent === 'Code cadeau')!.click())
+     const link = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Voir les Codes')!
+     act(() => link.click())
+     expect(onOpenCodes).toHaveBeenCalledOnce()
+@@ -96,19 +95,14 @@ describe('EventScreen presentation', () => {
+     expect(mounted.container.querySelector('.event-shop')).not.toBeNull()
+     expect(mounted.container.textContent).not.toContain('Voir les Codes')
+   })
+-  it('opens the actionable calendar from a daily intent without claiming it', () => {
+-    const value = { ...afterJoin, calendar: { startsOn: '2026-12-01', endsOn: '2026-12-25', currentDay: 14, recap: false, canClaimToday: true, days: [{ day: 14, state: 'AVAILABLE' as const, reward: null }] } }
+-    const { container } = mount({ value, dailyIntent: { token: 'calendar-intent', section: 'registration' } })
+-    expect(container.querySelector('.event-calendar')).not.toBeNull()
+-    expect(container.querySelector('.event-hero')).toBeNull()
+-  })
+   it('claims the daily bonus once and shows the next-day reset without a fake claim action', async () => {
+     const claimed: EventDailyBonusClaimDto = { ...afterJoin, dailyBonus: { claimedToday: true, canClaim: false }, currency: { amount: '2' }, operation: { id: 'bonus-operation', alreadyProcessed: false } }
+     const onClaimDailyBonus = vi.fn(async () => claimed)
+     const mounted = mount({ value: afterJoin, onClaimDailyBonus })
+     expect(mounted.container.textContent).toContain('+1 Jeton de Récolte')
+-    expect(mounted.container.querySelector('.event-daily-bonus')).not.toBeNull()
+-    expect(mounted.container.querySelector('.event-foundation-card')).toBeNull()
++    const bonus = mounted.container.querySelector('.event-daily-bonus')!
++    const participation = mounted.container.querySelector('.event-foundation-card')!
++    expect(bonus.compareDocumentPosition(participation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+     await act(async () => { Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-daily-bonus button')).find((button) => button.textContent === 'Réclamer')!.click(); await Promise.resolve() })
+     expect(onClaimDailyBonus).toHaveBeenCalledWith(expect.any(String))
+     act(() => mounted.root.render(<EventScreen {...mounted.props} value={claimed} />))
+@@ -203,8 +197,7 @@ describe('EventScreen presentation', () => {
+     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
+     expect(tabs.map(({ disabled }) => disabled)).toEqual([false, false, false, false])
+     expect(mounted.container.querySelector('.event-tabs .active')?.textContent).toBe('Général')
+-    expect(mounted.container.querySelector('.event-membership')?.textContent).toBe('Inscrit')
+-    expect(mounted.container.querySelector('.event-foundation-card')).toBeNull()
++    expect(mounted.container.textContent).toContain('Événement rejoint')
+     expect(mounted.container.querySelector('.event-game-a')).toBeNull()
+   })
+ 
+@@ -358,8 +351,7 @@ describe('EventScreen presentation', () => {
+ 
+   it('separates the registration summary from the themed game tabs', () => {
+     const { container } = mount({ value: afterJoin })
+-    expect(container.querySelector('.event-membership')?.textContent).toBe('Inscrit')
+-    expect(container.querySelector('.event-foundation-card')).toBeNull()
++    expect(container.textContent).toContain('Événement rejoint')
+     expect(container.querySelector('.event-game-a')).toBeNull()
+     selectGames(container)
+     expect(container.querySelector('.event-stat-grid')).toBeNull()
+diff --git a/src/screens/EventScreen.tsx b/src/screens/EventScreen.tsx
+index 53018d58..96c79c8a 100644
+--- a/src/screens/EventScreen.tsx
++++ b/src/screens/EventScreen.tsx
+@@ -11,7 +11,6 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+ import PlayerQuickSearch from '../components/PlayerQuickSearch'
+ import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
+ import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
+-import '../event/event-general-shop.css'
+ import EventCalendar from './EventCalendar'
+ import { useCalendarClaim } from '../event/use-calendar-claim'
+ import EventRankingSection from './EventRankingSection'
+@@ -79,10 +78,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+   const presentationMode = useTutorialPresentation()
+   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
+   const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane
+-  const [normalGeneralPane, setGeneralPane] = useState<'overview' | 'calendar' | 'gift'>('overview')
+-  const generalPane = presentationMode.active && presentationMode.step?.anchor === 'event-calendar' ? 'calendar' : normalGeneralPane
+-  const showCalendarOnly = Boolean(value.calendar) && generalPane === 'calendar'
+-  const showGiftOnly = Boolean(value.giftCode?.available) && generalPane === 'gift'
+   const calendarAction = useCalendarClaim(`${sessionUserId}:${value.edition.id}:${value.businessDate}`, onClaimCalendar)
+   const [normalSection, setSection] = useDestinationTab('event',openShopToken > 0 ? 'shop' : openMessagesToken > 0 ? 'games' : dailyIntent?.section ?? 'registration')
+   const consumedShopToken = useRef<string | null>(null)
+@@ -107,10 +102,9 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       // oxlint-disable-next-line react/set-state-in-effect -- Explicit one-shot navigation intent.
+       setSection(dailyIntent.section)
+       setGameTab(dailyIntent.section === 'games' ? dailyIntent.game : 0)
+-      if (dailyIntent.section === 'registration') setGeneralPane(!value.canJoin && value.calendar?.canClaimToday ? 'calendar' : 'overview')
+     }
+     onDailyIntentConsumed?.(dailyIntent.token)
+-  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken, presentationMode.active, value.canJoin, value.calendar?.canClaimToday])
++  }, [dailyIntent, onDailyIntentConsumed, openMessagesToken, openShopToken, presentationMode.active])
+   const [selectedCode, setSelectedCode] = useState<string | null>(null)
+   const [gameBIntent, setGameBIntent] = useState<Readonly<{ code: string; key: string }> | null>(null)
+   const [gameBFeedback, setGameBFeedback] = useState<string | null>(null)
+@@ -373,7 +367,6 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       <button type="button" className={section === 'shop' ? 'active' : ''} aria-current={section === 'shop' ? 'page' : undefined} onClick={() => setSection('shop')}>Shop</button>
+       <button type="button" className={section === 'ranking' ? 'active' : ''} aria-current={section === 'ranking' ? 'page' : undefined} onClick={() => setSection('ranking')}>Classement</button>
+     </nav>
+-    {section === 'registration' && (value.calendar || value.giftCode?.available) && <nav className="activity-inner-tabs event-general-tabs" aria-label="Vue générale du Festival"><button type="button" className={!showCalendarOnly && !showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('overview')}>Résumé</button>{value.calendar && <button type="button" className={showCalendarOnly ? 'active' : ''} onClick={() => setGeneralPane('calendar')}>Calendrier</button>}{value.giftCode?.available && <button type="button" className={showGiftOnly ? 'active' : ''} onClick={() => setGeneralPane('gift')}>Code cadeau</button>}</nav>}
+     {section === 'games' && <nav data-tutorial-anchor={guidedView?.startsWith("games-") && ((gameTab < 2 && !value.participation.joined) || (gameTab === 2 && !value.gameC.available)) ? `event-game-${["a", "b", "c"][gameTab]}` : undefined} data-tutorial-fallback="true" className="activity-inner-tabs event-game-tabs" aria-label="Jeux du Festival">
+       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
+     </nav>}
+@@ -384,7 +377,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+   return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} data-fit-screen className="screen-content activity-shell event-screen long-screen-layout">
+     <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
+     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
+-      {section === 'registration' && <>{!showCalendarOnly && !showGiftOnly && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
++      {section === 'registration' && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
+         <div className="event-hero-symbol" aria-hidden="true">{value.festival.emoji}</div>
+         <div className="event-hero-copy">
+           <span className="eyebrow">Festival du mois</span>
+@@ -402,13 +395,14 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       </div>
+ 
+       {value.participation.joined && <section data-tutorial-anchor="event-daily-bonus" className="panel event-daily-bonus"><div><span className="eyebrow">Bonus quotidien</span><h2>+1 {value.festival.currency.unit}</h2><p>Une fois par jour pendant le Festival.</p></div>{value.dailyBonus.claimedToday ? <strong>Réclamé aujourd’hui</strong> : <button type="button" className="small-primary-button" disabled={!value.dailyBonus.canClaim || pending || !onClaimDailyBonus} onClick={() => void claimDailyBonus()}>{pending ? 'Réclamation…' : 'Réclamer'}</button>}</section>}
+-      {!value.participation.joined && <section className="panel event-foundation-card">
+-        <div><span className="eyebrow">Participation volontaire</span><h2>Recevez 1 {value.festival.currency.unit}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
+-        <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>
+-      </section>}
+-      </>}
+-      {showCalendarOnly && <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />}
+-      {value.giftCode?.available && showGiftOnly && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
++      <section className="panel event-foundation-card">
++        <div><span className="eyebrow">Participation volontaire</span><h2>{value.participation.joined ? 'Votre inscription est enregistrée' : `Recevez 1 ${value.festival.currency.unit}`}</h2><p>Votre solde restera associé à ce Festival entre les années.</p></div>
++        {value.participation.joined
++          ? <span className="event-joined-status">Événement rejoint</span>
++          : <button type="button" className="small-primary-button" disabled={!value.canJoin || pending} onClick={() => void join()}>{pending ? 'Inscription…' : 'Rejoindre l’événement'}</button>}
++      </section>
++      <EventCalendar value={value} action={calendarAction} enabled={Boolean(onClaimCalendar)} />
++      {value.giftCode?.available && <div className="panel"><p>Un code cadeau du Festival est disponible.</p><AppButton onClick={onOpenCodes} disabled={!onOpenCodes}>Voir les Codes</AppButton></div>}
+       </>}
+       {section === 'shop' && <EventShopSection value={value} intent={shopIntent} pending={shopPending} feedback={shopFeedback} error={shopError} canConvert={Boolean(onConvertShop)} canPurchaseCollection={Boolean(onPurchaseCollection)} onTransact={(target, quantity) => void transactShop(target, quantity)} />}
+       {section === 'ranking' && <EventRankingSection editionId={value.edition.id} onLoad={onLoadRanking} />}
+diff --git a/src/screens/EventShopSection.tsx b/src/screens/EventShopSection.tsx
+index 55007175..2e12dc22 100644
+--- a/src/screens/EventShopSection.tsx
++++ b/src/screens/EventShopSection.tsx
+@@ -1,6 +1,4 @@
+ import { useState } from 'react'
+-import { useShortDesktop } from '../hooks/use-short-desktop'
+-import AppButton from '../components/AppButton'
+ 
+ import type { EventDto } from '../api/types'
+ import { eventCurrencyLabel } from '../event/event-presentation'
+@@ -25,8 +23,6 @@ const cards = [
+ ] as const
+ 
+ export default function EventShopSection({ value, intent, pending, feedback, error, canConvert, canPurchaseCollection, onTransact }: Props) {
+-  const shortDesktop = useShortDesktop()
+-  const [offer, setOffer] = useState<EventShopTarget>('PRIMOGEMS')
+   const [quantities, setQuantities] = useState<Record<'PRIMOGEMS' | 'MORAS', string>>({ PRIMOGEMS: '1', MORAS: '1' })
+   const balance = BigInt(value.shop.balance)
+   const max = balance > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(balance)
+@@ -34,9 +30,8 @@ export default function EventShopSection({ value, intent, pending, feedback, err
+   return <section data-tutorial-anchor="event-shop" className="event-shop" aria-label="Boutique du Festival">
+     <div className="panel event-shop-balance"><div><span className="eyebrow">Votre solde du Festival</span><h2>{formatResourceAmount(value.shop.balance)} {eventCurrencyLabel(value.shop.balance, value.festival.currency)}</h2><p>Vos monnaies de ce Festival restent disponibles d’une année à l’autre.</p></div><span aria-hidden="true">{value.festival.currency.emoji}</span></div>
+     {!value.shop.available && <p className="event-shop-preview">La boutique est consultable librement. Rejoignez le Festival pour effectuer un échange.</p>}
+-    {shortDesktop && <nav className="event-shop-offers" aria-label="Articles du Festival">{(['PRIMOGEMS', 'MORAS', 'COLLECTION'] as const).map(target => <AppButton key={target} aria-pressed={offer === target} onClick={() => setOffer(target)}>{target === 'PRIMOGEMS' ? 'Primogemmes' : target === 'MORAS' ? 'Moras' : 'Collection'}</AppButton>)}</nav>}
+     <div className="event-shop-grid">
+-      {cards.filter(card => !shortDesktop || card.target === offer).map(({ target, title, icon, rate }) => {
++      {cards.map(({ target, title, icon, rate }) => {
+         const displayedQuantity = intent?.target === target ? String(intent.quantity) : quantities[target]
+         const quantity = /^\d+$/.test(displayedQuantity) ? Number(displayedQuantity) : NaN
+         const valid = Number.isSafeInteger(quantity) && quantity > 0 && BigInt(quantity) <= balance
+@@ -49,7 +44,7 @@ export default function EventShopSection({ value, intent, pending, feedback, err
+           <button type="button" className="small-primary-button" disabled={!value.shop.available || !canConvert || pending || (!valid && intent?.target !== target) || Boolean(intent && intent.target !== target)} onClick={() => onTransact(target, quantity)}>{pending && intent?.target === target ? 'Échange…' : intent?.target === target ? 'Réessayer' : 'Convertir'}</button>
+         </article>
+       })}
+-      {(!shortDesktop || offer === 'COLLECTION') && <article className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>}
++      <article className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>
+     </div>
+     <p className={`event-shop-feedback${feedback && !error ? ' success' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
+   </section>

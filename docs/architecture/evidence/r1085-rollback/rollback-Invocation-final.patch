@@ -1,0 +1,30 @@
+diff --git a/src/components/BannerHero.tsx b/src/components/BannerHero.tsx
+index dadc7de5..70b26f04 100644
+--- a/src/components/BannerHero.tsx
++++ b/src/components/BannerHero.tsx
+@@ -142,4 +142,3 @@ function Progress({ className = '', label, value, maximum }: { className?: strin
+ function WishButton({ count, cost, disabled, pending, onClick }: { count: 1 | 10; cost: string; disabled: boolean; pending: boolean; onClick: () => void }) { return <button type="button" className={`wish-button ${count === 10 ? 'primary' : 'secondary'}`} disabled={disabled} onClick={onClick}><span>{pending ? 'Invocation…' : `Invocation x${count}`}</span><small><GameAssetIcon className="inline-currency-icon" src={currencyAssetPaths.primogem} fallback="✦" /> × {cost}</small></button> }
+ function FeaturedFourStars({ characters }: { characters: readonly GachaCharacterDto[] }) { return <div data-tutorial-anchor="invocation-characters" className="featured-four-stars" aria-label="Personnages quatre étoiles de la semaine"><div>{characters.map((character) => <CharacterShowcaseCard variant="featured" name={character.name} rarity={4} element={character.elementKey} tone={character.elementKey} assetPaths={[character.iconPath, character.fullbodyPath, character.wishPath, character.splashPath]} style={{ '--character-element': elementThemes[character.elementKey].color, '--character-color': elementThemes[character.elementKey].color } as CSSProperties} key={character.id} />)}</div></div> }
+ export default BannerHero
+-import '../gacha/invocation-summary.css'
+diff --git a/src/gacha/invocation-summary.css b/src/gacha/invocation-summary.css
+deleted file mode 100644
+index b889515c..00000000
+--- a/src/gacha/invocation-summary.css
++++ /dev/null
+@@ -1,15 +0,0 @@
+-.invocation-screen .gacha-state-summary { gap: 12px; }
+-.invocation-screen .primary-pity .pity-row { font-size: 14px; }
+-.invocation-screen .gacha-state-secondary { gap: 12px; }
+-.invocation-screen .gacha-state-secondary .pity-row,
+-.invocation-screen .gacha-state-secondary .banner-status,
+-.invocation-screen .gacha-state-secondary .banner-status span { font-size: 12px; }
+-.invocation-screen .gacha-state-secondary .banner-status strong { font-size: 14px; }
+-@media (min-width: 1121px) and (max-height: 900px) {
+-  .invocation-screen .banner-copy-column .banner-content {
+-    padding-block: clamp(8px, calc((100vh - 768px) / 4), 24px);
+-  }
+-}
+-@media (max-width: 700px) {
+-  .invocation-screen .gacha-state-secondary { gap: 8px; }
+-}

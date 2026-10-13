@@ -1,0 +1,274 @@
+diff --git a/docs/legacy/07-box-possession-obtention-audit.md b/docs/legacy/07-box-possession-obtention-audit.md
+index 40f9e390..73cec849 100644
+--- a/docs/legacy/07-box-possession-obtention-audit.md
++++ b/docs/legacy/07-box-possession-obtention-audit.md
+@@ -1,9 +1,5 @@
+ # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
+ 
+-## Présentation standalone — R1085
+-
+-Box/Catalogue : boutons rareté et éléments de mêmes dimensions, séparation visuelle, sélection simultanée de plusieurs éléments (union), combinée par intersection à la recherche/rareté/constellation. Réinitialisation restitue tous les éléments. Constellation est libellée explicitement dans Box seulement et « Toutes » reste lisible. Profil garde le filtre élément simple historique ; aucune possession, préférence serveur, action Stella ou priorité favoris modifiée. Qualification et livraison au Master.
+-
+ ## Passe graphique desktop — R1084
+ 
+ La seule barre Box est harmonisée avec Catalogue : recherche, étoiles 5/4 toggle, sept éléments toggle, constellation, tri et direction. Aucun filtre actif signifie tous ; autres catégories conservées à chaque changement. Une ligne à 1920/2560, regroupement responsive propre plus étroit. Préférences Player, priorité favoris, possessions, Stella, Expédition, détail et ancres inchangés. Primitive opt-in neutre commune, adaptation Box réversible séparément de Catalogue. [Registre](../architecture/evidence/desktop-v1-qualification-20261013.json).
+@@ -1060,4 +1056,4 @@ Dépendances reportées :
+ - granularité finale confidentialité → domaine Paramètres / Social ;
+ - SQL exact → Phase 2.
+ 
+-**Domaine Box / Possessions / Obtention : CLÔTURÉ.**
++**Domaine Box / Possessions / Obtention : CLÔTURÉ.**
+\ No newline at end of file
+diff --git a/src/box/box-filter-bar.css b/src/box/box-filter-bar.css
+index da113658..302ac6ad 100644
+--- a/src/box/box-filter-bar.css
++++ b/src/box/box-filter-bar.css
+@@ -2,8 +2,7 @@
+ .box-screen .box-filter-bar .search-field { flex: 1 1 120px; }
+ .box-screen .box-filter-bar .sort-select { gap: 5px; }
+ .box-screen .box-filter-bar .sort-select select { max-width: 135px; }
+-.box-screen .box-filter-bar .box-constellation-filter { flex: 0 0 auto; }
+-.box-screen .box-filter-bar .box-constellation-filter select { width: auto; min-width: 88px; padding-inline: 10px 24px; flex-shrink: 0; }
++.box-screen .box-filter-bar .box-constellation-filter select { width: 78px; }
+ .box-screen .box-filter-bar .filter-group, .box-screen .box-filter-bar .element-filters { flex-wrap: nowrap; }
+ @media (min-width: 1800px) {
+   .box-screen .box-filter-bar { flex-wrap: nowrap; }
+diff --git a/src/box/box-presentation.ts b/src/box/box-presentation.ts
+index 6efe7153..cf4e80bd 100644
+--- a/src/box/box-presentation.ts
++++ b/src/box/box-presentation.ts
+@@ -1,7 +1,7 @@
+ import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey } from '../api/types'
+ 
+ export type BoxRarityTab = 'all' | 5 | 4
+-export type BoxElementFilter = readonly ElementKey[]
++export type BoxElementFilter = 'all' | ElementKey
+ export type BoxConstellationFilter = 'all' | 0 | 1 | 2 | 3 | 4 | 5 | 6
+ export type BoxSortKey = 'alphabetical' | 'obtainedAt' | 'constellation' | 'element'
+ export type SortDirection = 'asc' | 'desc'
+@@ -16,7 +16,7 @@ export type BoxFilters = Readonly<{
+ }>
+ 
+ export const initialBoxFilters: BoxFilters = {
+-  tab: 'all', search: '', element: [], constellation: 'all', sort: 'alphabetical', direction: 'asc',
++  tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc',
+ }
+ 
+ export function initialBoxFiltersWithPreference(preference?: BoxSortPreferenceDto): BoxFilters {
+@@ -29,7 +29,7 @@ export function presentBoxCharacters(characters: readonly BoxCharacterDto[], fil
+   const search = normalizeSearch(filters.search)
+   return characters
+     .filter((character) => filters.tab === 'all' || character.rarity === filters.tab)
+-    .filter((character) => filters.element.length === 0 || filters.element.includes(character.elementKey))
++    .filter((character) => filters.element === 'all' || character.elementKey === filters.element)
+     .filter((character) => filters.constellation === 'all' || character.constellation === filters.constellation)
+     .filter((character) => !search || normalizeSearch(character.name).includes(search))
+     .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareCharacters(left, right, filters))
+diff --git a/src/components/CollectionFilterChips.tsx b/src/components/CollectionFilterChips.tsx
+index 3a4438fa..59e5a4f0 100644
+--- a/src/components/CollectionFilterChips.tsx
++++ b/src/components/CollectionFilterChips.tsx
+@@ -5,27 +5,19 @@ import './collection-filter-chips.css'
+ 
+ const labels: Record<ElementKey, string> = { pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' }
+ 
+-export type ElementSelection =
+-  | { element: ElementKey | null; onElement: (value: ElementKey | null) => void; elements?: never; onElements?: never }
+-  | { elements: readonly ElementKey[]; onElements: (value: readonly ElementKey[]) => void; element?: never; onElement?: never }
+-
+ /** Opt-in controls: no caller state or persistence is owned here. */
+-export default function CollectionFilterChips({ rarity, onRarity, ...selection }: {
++export default function CollectionFilterChips({ rarity, element, onRarity, onElement }: {
+   rarity: 4 | 5 | null
++  element: ElementKey | null
+   onRarity: (value: 4 | 5 | null) => void
+-} & ElementSelection) {
+-  const selected = (value: ElementKey) => selection.elements ? selection.elements.includes(value) : selection.element === value
+-  const toggle = (value: ElementKey) => {
+-    if (selection.elements) selection.onElements(selected(value) ? selection.elements.filter(item => item !== value) : [...selection.elements, value])
+-    else selection.onElement(selected(value) ? null : value)
+-  }
++  onElement: (value: ElementKey | null) => void
++}) {
+   return <>
+     <div className="filter-group collection-rarity-chips" aria-label="Filtrer par rareté">
+       {([5, 4] as const).map(value => <button type="button" key={value} className={`filter-chip rarity-${value}${rarity === value ? ' active' : ''}`} aria-label={`Filtrer les personnages ${value} étoiles`} aria-pressed={rarity === value} onClick={() => onRarity(rarity === value ? null : value)}><span aria-hidden="true">★</span></button>)}
+     </div>
+-    <span className="collection-filter-separator" aria-hidden="true" />
+     <div className="element-filters collection-element-chips" aria-label="Filtrer par élément">
+-      {elementKeys.map(value => <button type="button" key={value} className={selected(value) ? 'active' : ''} aria-label={labels[value]} aria-pressed={selected(value)} onClick={() => toggle(value)}><GameAssetIcon className="filter-element-icon" src={getElementAssetPath(value)} fallback="◆" /></button>)}
++      {elementKeys.map(value => <button type="button" key={value} className={element === value ? 'active' : ''} aria-label={labels[value]} aria-pressed={element === value} onClick={() => onElement(element === value ? null : value)}><GameAssetIcon className="filter-element-icon" src={getElementAssetPath(value)} fallback="◆" /></button>)}
+     </div>
+   </>
+ }
+diff --git a/src/components/CollectionFilters.tsx b/src/components/CollectionFilters.tsx
+index f92a974d..69b71c73 100644
+--- a/src/components/CollectionFilters.tsx
++++ b/src/components/CollectionFilters.tsx
+@@ -23,7 +23,6 @@ type CollectionFiltersProps = {
+   onElementChange: (value: ElementKey | null) => void
+   onSortKeyChange: (value: CharacterSortKey) => void
+   onDirectionChange: () => void
+-  elementSelection?: { elements: readonly ElementKey[]; onChange: (value: readonly ElementKey[]) => void }
+ }
+ 
+ const elementLabels: Record<ElementKey, string> = {
+@@ -39,7 +38,7 @@ function CollectionFilters(props: CollectionFiltersProps) {
+   const { placeholder, query, rarity, element, sortKey, direction, onQueryChange, onRarityChange, onElementChange, onSortKeyChange, onDirectionChange } = props
+   return <div data-tutorial-anchor={props.tutorialAnchor} className="collection-filters panel">
+     <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={placeholder} /></label>
+-    {props.compactToggles ? <CollectionFilterChips rarity={rarity === 'all' ? null : rarity} onRarity={value => onRarityChange(value ?? 'all')} {...(props.elementSelection ? { elements: props.elementSelection.elements, onElements: props.elementSelection.onChange } : { element, onElement: onElementChange })} /> : <>
++    {props.compactToggles ? <CollectionFilterChips rarity={rarity === 'all' ? null : rarity} element={element} onRarity={value => onRarityChange(value ?? 'all')} onElement={onElementChange} /> : <>
+     <div className="filter-group" aria-label="Filtrer par rareté">
+       {([['all', 'Toutes raretés'], [5, '5★'], [4, '4★']] as const).map(([value, label]) => <button type="button" className={`filter-chip${rarity === value ? ' active' : ''}`} aria-pressed={rarity === value} onClick={() => onRarityChange(value)} key={value}>{label}</button>)}
+     </div>
+diff --git a/src/components/collection-filter-chips.css b/src/components/collection-filter-chips.css
+index 61f7cc65..ff7b758f 100644
+--- a/src/components/collection-filter-chips.css
++++ b/src/components/collection-filter-chips.css
+@@ -1,12 +1,8 @@
+-.collection-filters .collection-rarity-chips > button,
+-.collection-filters .collection-element-chips > button { box-sizing: border-box; flex: 0 0 34px; width: 34px; height: 36px; min-width: 34px; min-height: 36px; padding: 4px; display: grid; place-items: center; border: 1px solid rgba(118, 152, 210, .17); border-radius: 8px; }
+-.collection-filters .collection-rarity-chips > button { font-size: 19px; }
+-.collection-filters .collection-rarity-chips > button.active,
+-.collection-filters .collection-element-chips > button.active { border-color: rgba(79, 177, 248, .42); background: rgba(32, 86, 143, .38); }
+-.collection-filter-separator { flex: 0 0 1px; height: 24px; background: rgba(118, 152, 210, .25); }
++.collection-rarity-chips .filter-chip { width: 34px; min-height: 36px; padding: 6px; font-size: 19px; }
+ .collection-rarity-chips .rarity-5 { color: #f4c867; }
+ .collection-rarity-chips .rarity-4 { color: #b78aff; }
+ .collection-rarity-chips .rarity-5 > span { color: #f4c867; }
+ .collection-rarity-chips .rarity-4 > span { color: #b78aff; }
+ .collection-element-chips { display: flex; gap: 5px; }
++.collection-element-chips button { flex: 0 0 34px; width: 34px; min-height: 36px; }
+ .collection-rarity-chips button:focus-visible, .collection-element-chips button:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; }
+diff --git a/src/screens/BoxScreen.test.tsx b/src/screens/BoxScreen.test.tsx
+index 2a99d95d..8ee9f4e6 100644
+--- a/src/screens/BoxScreen.test.tsx
++++ b/src/screens/BoxScreen.test.tsx
+@@ -62,9 +62,8 @@ describe('real personal Box', () => {
+     expect(presentBoxCharacters(records, { ...initialBoxFilters, tab: 4 }).map(({ id }) => id)).toEqual(['four-favorite', 'four-normal'])
+   })
+   it('combines accent-insensitive search, rarity, element and constellation filters', () => {
+-    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', tab: 5, element: ['dendro'], constellation: 6 }).map(({ id }) => id)).toEqual(['five-normal'])
+-    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', element: ['hydro'] })).toEqual([])
+-    expect(presentBoxCharacters(records, { ...initialBoxFilters, element: ['hydro', 'dendro'] })).toEqual(presentBoxCharacters(records, initialBoxFilters).filter(row => ['hydro', 'dendro'].includes(row.elementKey)))
++    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', tab: 5, element: 'dendro', constellation: 6 }).map(({ id }) => id)).toEqual(['five-normal'])
++    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', element: 'hydro' })).toEqual([])
+   })
+   it('supports all four sorts in both directions', () => {
+     const unfavorited = records.map((item) => ({ ...item, favorite: false }))
+@@ -142,11 +141,11 @@ describe('real personal Box', () => {
+     expect(renderView(initialBoxFilters, { error: 'Actualisation impossible' })).toContain('box-inline-error')
+   })
+   it('starts every fresh Box on Tous with alphabetical ascending sort', () => {
+-    expect(initialBoxFilters).toEqual({ tab: 'all', search: '', element: [], constellation: 'all', sort: 'alphabetical', direction: 'asc' })
++    expect(initialBoxFilters).toEqual({ tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc' })
+   })
+   it('restores only the server sort while resetting tabs, search and filters', () => {
+     expect(initialBoxFiltersWithPreference({ sortKey: 'obtainedAt', direction: 'desc' })).toEqual({
+-      tab: 'all', search: '', element: [], constellation: 'all', sort: 'obtainedAt', direction: 'desc',
++      tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'obtainedAt', direction: 'desc',
+     })
+     expect(boxScreenSource).toContain('await onSetSortPreference(preference)')
+     expect(boxScreenSource).toContain('Tri appliqué, mais non sauvegardé')
+@@ -210,7 +209,7 @@ describe('real personal Box', () => {
+     const all = renderView(initialBoxFilters, { expedition: expeditionSnapshot(ready) })
+     expect(all.indexOf('Bennett')).toBeLessThan(all.indexOf('Furina'))
+     expect(all).toContain('✅ À récupérer')
+-    const hydroOnly = renderView({ ...initialBoxFilters, element: ['hydro'] }, { expedition: expeditionSnapshot(ready) })
++    const hydroOnly = renderView({ ...initialBoxFilters, element: 'hydro' }, { expedition: expeditionSnapshot(ready) })
+     expect(hydroOnly).toContain('Furina')
+     expect(hydroOnly).not.toContain('Bennett')
+   })
+diff --git a/src/screens/BoxScreen.tsx b/src/screens/BoxScreen.tsx
+index a9c4f585..b683d2ed 100644
+--- a/src/screens/BoxScreen.tsx
++++ b/src/screens/BoxScreen.tsx
+@@ -154,8 +154,8 @@ function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (
+   const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
+   return <div data-tutorial-anchor="box-filters" className="collection-filters box-filter-bar panel">
+     <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={event => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
+-    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} elements={filters.element} onRarity={value => update('tab', value ?? 'all')} onElements={value => update('element', value)} />
+-    <label className="sort-select box-constellation-filter"><span>Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
++    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} element={filters.element === 'all' ? null : filters.element} onRarity={value => update('tab', value ?? 'all')} onElement={value => update('element', value ?? 'all')} />
++    <label className="box-constellation-filter"><span className="sr-only">Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
+     <label className="sort-select"><span>Trier</span><select aria-label="Critère de tri" value={filters.sort} onChange={event => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
+     <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
+   </div>
+diff --git a/src/screens/CharactersScreen.test.tsx b/src/screens/CharactersScreen.test.tsx
+index b5fe256c..59661557 100644
+--- a/src/screens/CharactersScreen.test.tsx
++++ b/src/screens/CharactersScreen.test.tsx
+@@ -18,22 +18,6 @@ function input(element: HTMLInputElement, value: string) { act(() => { Object.ge
+ function namesInGrid(container: HTMLElement) { return Array.from(container.querySelectorAll('.character-card h3')).map((node) => node.textContent) }
+ 
+ describe('CharactersScreen real catalog controls', () => {
+-  it('unions selected elements, intersects rarity and search, and toggles each independently', () => {
+-    const container = mount()
+-    const click = (name: string) => act(() => container.querySelector<HTMLButtonElement>(`[aria-label="${name}"]`)!.click())
+-    click('Hydro'); click('Cryo')
+-    expect(namesInGrid(container)).toEqual(['Furina', 'Kaeya'])
+-    click('Filtrer les personnages 5 étoiles')
+-    expect(namesInGrid(container)).toEqual(['Kaeya'])
+-    click('Filtrer les personnages 5 étoiles')
+-    input(container.querySelector('input[type="search"]')!, 'fur')
+-    expect(namesInGrid(container)).toEqual(['Furina'])
+-    input(container.querySelector('input[type="search"]')!, '')
+-    click('Hydro')
+-    expect(namesInGrid(container)).toEqual(['Kaeya'])
+-    click('Cryo')
+-    expect(namesInGrid(container)).toHaveLength(7)
+-  })
+   it('renders shared catalog cards and starts with Nom ascending without Niveau', () => {
+     const container = mount()
+     expect(container.querySelector('.collection-results-body.scroll-content-frame .character-grid')).not.toBeNull()
+diff --git a/src/screens/CharactersScreen.tsx b/src/screens/CharactersScreen.tsx
+index 02cd1b24..12bd3436 100644
+--- a/src/screens/CharactersScreen.tsx
++++ b/src/screens/CharactersScreen.tsx
+@@ -15,8 +15,7 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
+   const votes = useBannerVotes(voteActions, voteCache, refreshToken)
+   const [query, setQuery] = useState('')
+   const [rarity, setRarity] = useState<CharacterRarityFilter>('all')
+-  const [elements, setElements] = useState<readonly ElementKey[]>([])
+-  const matchesElement = (element: string | null) => elements.length === 0 || elements.some(selected => selected === element)
++  const [element, setElement] = useState<ElementKey | null>(null)
+   const [sortKey, setSortKey] = useState<CharacterSortKey>('name')
+   const [direction, setDirection] = useState<CharacterSortDirection>('asc')
+   const counts = useMemo(() => new Map(votes.value?.candidates.map(c => [c.characterId, c.voteCount])), [votes.value])
+@@ -24,7 +23,7 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
+     const needle = normalizeCharacterSearch(query)
+     const sign = direction === 'asc' ? 1 : -1
+     return characters
+-      .filter((character) => (!needle || normalizeCharacterSearch(character.name).includes(needle)) && (rarity === 'all' || character.rarity === rarity) && matchesElement(character.elementKey))
++      .filter((character) => (!needle || normalizeCharacterSearch(character.name).includes(needle)) && (rarity === 'all' || character.rarity === rarity) && (!element || character.elementKey === element))
+       .slice().sort((left, right) => {
+         if (sortKey === 'releaseDate') return compareReleaseDates(left,right,direction)
+         if (sortKey !== 'votes') return sign * compareCharacters(left, right, sortKey)
+@@ -32,9 +31,9 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
+         if (a === undefined || b === undefined) return a === b ? compareCharacters(left, right, 'name') : a === undefined ? 1 : -1
+         return sign * (a - b) || compareCharacters(left, right, 'name')
+       })
+-  }, [characters, counts, direction, elements, query, rarity, sortKey])
+-  const filtering = normalizeCharacterSearch(query).length > 0 || rarity !== 'all' || elements.length > 0
+-  const preparing=preparations.filter(row=>(!query||normalizeCharacterSearch(row.name).includes(normalizeCharacterSearch(query)))&&(rarity==='all'||row.rarity===rarity)&&matchesElement(row.elementKey)).slice().sort((a,b)=>{
++  }, [characters, counts, direction, element, query, rarity, sortKey])
++  const filtering = normalizeCharacterSearch(query).length > 0 || rarity !== 'all' || element !== null
++  const preparing=preparations.filter(row=>(!query||normalizeCharacterSearch(row.name).includes(normalizeCharacterSearch(query)))&&(rarity==='all'||row.rarity===rarity)&&(!element||row.elementKey===element)).slice().sort((a,b)=>{
+     const stable=()=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})||a.candidateId.localeCompare(b.candidateId)
+     const left=sortKey==='rarity'?a.rarity:sortKey==='element'?a.elementKey:sortKey==='releaseDate'?a.releaseDate:a.name
+     const right=sortKey==='rarity'?b.rarity:sortKey==='element'?b.elementKey:sortKey==='releaseDate'?b.releaseDate:b.name
+@@ -42,11 +41,11 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
+     const compared=sortKey==='rarity'?Number(left)-Number(right):sortKey==='element'?elementKeys.indexOf(String(left) as ElementKey)-elementKeys.indexOf(String(right) as ElementKey):String(left).localeCompare(String(right),'fr',{sensitivity:'base'})
+     return (direction==='asc'?1:-1)*compared||stable()
+   })
+-  const reset = () => { setQuery(''); setRarity('all'); setElements([]); setSortKey('name'); setDirection('asc') }
++  const reset = () => { setQuery(''); setRarity('all'); setElement(null); setSortKey('name'); setDirection('asc') }
+ 
+   return <div data-business-pending={votes.pending} className="screen-content collection-screen catalog-screen long-screen-layout">
+     <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}{preparing.length?` · ${preparing.length} en préparation`:''}</span></div>} fixed={<>
+-      <CollectionFilters compactToggles tutorialAnchor="catalog-filters" allowVotes allowReleaseDate placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={null} elementSelection={{ elements, onChange: setElements }} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={value => setElements(value ? [value] : [])} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes' || key === 'releaseDate') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
++      <CollectionFilters compactToggles tutorialAnchor="catalog-filters" allowVotes allowReleaseDate placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes' || key === 'releaseDate') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+     </>}>
+     {votes.error && <div className="catalog-vote-feedback" role="alert">{votes.error}</div>}
+     {preparing.length>0&&<section className="catalog-preparation-section" aria-label="Personnages en préparation"><h2>En préparation</h2><p>Ces fiches se complètent. Elles ne participent pas encore aux Invocations.</p><div className="character-grid">{preparing.map(row=><article className="character-card catalog-preparation-card" key={row.candidateId}>

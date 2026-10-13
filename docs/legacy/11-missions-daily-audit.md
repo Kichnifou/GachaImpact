@@ -1,5 +1,9 @@
 # 11 — Audit legacy Missions / Daily
 
+## Présentation standalone — R1085
+
+Supersède la capacité cible R1084 : six Missions en 3×2 à 1920×1080 et 2560×1440, cartes compactes de même dimension sur page partielle, capacité adaptée à la région utile, aucun défilement ajouté. Ordre canonique avant partition, progression/récompenses, rangs B/A/S/Z et Profil inchangés. L'Aperçu Quotidiennes préserve les neuf activités, actions, erreurs et gains complets. Sidebar terminée : état centré et compact, aucun compte à rebours affiché ; le reset serveur et la revalidation continuent, masquer une carte ne termine aucune activité. Norme UI et état de qualification au Master.
+
 ## Passe graphique desktop — R1084
 
 Activités > Missions reçoit une variante de présentation paginée ; Profil > Missions garde la grille existante. Neuf cartes 3×3 au desktop 1920 suffisamment haut, capacité inférieure selon largeur/hauteur/textes longs, navigation horizontale native accessible et reduced-motion. Toutes données/récompenses/états restent visibles, partition après orderMissionCards(), reset au rang ou nombre de missions, aucune mutation serveur nouvelle. La description d’en-tête disparaît et les onglets B/A/S/Z sont légèrement compacts. [Qualification/rollback indépendant](../architecture/evidence/desktop-v1-qualification-20261013.json).

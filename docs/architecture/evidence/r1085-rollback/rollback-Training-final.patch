@@ -1,0 +1,112 @@
+diff --git a/src/combat/training-layout.css b/src/combat/training-layout.css
+deleted file mode 100644
+index 619fdb96..00000000
+--- a/src/combat/training-layout.css
++++ /dev/null
+@@ -1,31 +0,0 @@
+-.combat-short-views { display: none; }
+-@media (min-width: 1121px) {
+-  .combat-shell .combat-frame:has(.combat-training-body) { grid-template-rows: minmax(0, 1fr); }
+-  .combat-frame:has(.combat-training-body) > .scrollable-screen-panel-content { height: 100%; }
+-  .combat-frame .combat-training-body { container-type: size; overflow: visible; grid-template-rows: minmax(min-content, 1fr) auto minmax(min-content, 1fr); align-content: stretch; gap: 8px; padding: 8px; }
+-  .combat-training-body .combat-enemies,
+-  .combat-training-body .combat-loadout-section { min-height: 0; grid-template-rows: auto minmax(0, 1fr); gap: 5px; }
+-  .combat-training-body .combat-card-grid { min-height: 0; align-items: center; }
+-  .combat-training-body .combat-character-card { height: clamp(96px, 26cqh, 150px); min-height: 0; }
+-  .combat-training-body .combat-card-name strong { white-space: normal; overflow: visible; font-size: 11px; }
+-  .combat-training-body .combat-card-info { gap: 3px; padding: 6px; }
+-  .combat-training-body .combat-command-bar { min-height: min-content; grid-template-rows: auto auto; gap: 5px 12px; padding: 8px 12px; }
+-  .combat-training-body .combat-command-chance > strong { font-size: 26px; }
+-  .combat-training-body .combat-feedback-slot { height: auto; min-height: 28px; overflow: visible; font-size: 11px; }
+-  .combat-training-body .combat-feedback-slot > span { display: block; overflow: visible; -webkit-line-clamp: unset; }
+-  .combat-training-body .combat-section-heading { min-height: 28px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .combat-short-views { display: inline-flex; gap: 4px; margin-left: auto; }
+-  .combat-short-views button[aria-pressed="true"] { background: #18314e; border-color: #5ccdea; color: #eaf6ff; }
+-  .combat-frame .combat-training-body { grid-template-rows: minmax(min-content, 1fr) max-content; gap: 4px; padding: 4px; }
+-  .combat-shell[data-training-pane="enemies"] .combat-loadout-section,
+-  .combat-shell[data-training-pane="formation"] .combat-enemies { display: none; }
+-  .combat-training-body .combat-command-bar { order: 3; }
+-  .combat-training-body .combat-character-card { height: clamp(80px, 42cqh, 110px); }
+-  .combat-training-body .combat-card-info { padding: 4px; gap: 2px; }
+-  .combat-training-body .combat-section-heading { min-height: 24px; }
+-  .combat-training-body .combat-command-bar { padding: 4px 8px; gap: 3px; }
+-  .combat-training-body .combat-command-chance { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 3px 6px; }
+-  .combat-training-body .combat-command-chance > strong { font-size: 20px; }
+-}
+diff --git a/src/screens/DailyCombatScreen.test.tsx b/src/screens/DailyCombatScreen.test.tsx
+index d1bdd7ad..a442335c 100644
+--- a/src/screens/DailyCombatScreen.test.tsx
++++ b/src/screens/DailyCombatScreen.test.tsx
+@@ -5,8 +5,6 @@ import { createRoot, type Root } from 'react-dom/client'
+ import { afterEach, describe, expect, it, vi } from 'vitest'
+ import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, PlayerBoxDto, StellaUseDto } from '../api/types'
+ import DailyCombatScreen from './DailyCombatScreen'
+-import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+-import { getTutorialStep } from '../tutorial/tutorial-catalog'
+ 
+ ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
+ const roots: Root[] = []
+@@ -47,20 +45,10 @@ function mount(value: DailyCombatDto, overrides: Partial<React.ComponentProps<ty
+   const container = document.createElement('div'); document.body.append(container)
+   const root = createRoot(container); roots.push(root)
+   act(() => root.render(<DailyCombatScreen {...props} />))
+-  return { container, props, root }
++  return { container, props }
+ }
+ 
+ describe('Daily Combat screen', () => {
+-  it('shows the guided short formation without overwriting the normal pane', () => {
+-    const { container, props, root } = mount(combat())
+-    const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('combat-formation') }}><DailyCombatScreen {...props} /></TutorialPresentationContext.Provider>
+-    act(() => root.render(render(false)))
+-    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('enemies')
+-    act(() => root.render(render(true)))
+-    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('formation')
+-    act(() => root.render(render(false)))
+-    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('enemies')
+-  })
+   it('renders the global encounter and an empty persistent loadout, then opens the real picker', async () => {
+     const { container, props } = mount(combat())
+     expect(container.querySelectorAll('.combat-enemy-card')).toHaveLength(4)
+diff --git a/src/screens/DailyCombatScreen.tsx b/src/screens/DailyCombatScreen.tsx
+index 55893d71..d311e312 100644
+--- a/src/screens/DailyCombatScreen.tsx
++++ b/src/screens/DailyCombatScreen.tsx
+@@ -1,4 +1,4 @@
+-import { useTutorialView, useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
++import { useTutorialView, useTutorialPanel } from '../tutorial/tutorial-presentation'
+ import { useEffect, useMemo, useState, type ReactNode } from 'react'
+ import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto } from '../api/types'
+ import { isAmbiguousMutationError } from '../api/mutation-errors'
+@@ -44,9 +44,6 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
+   const [pickerPosition, setPickerPosition] = useState<number | null>(null)
+   const [detailId, setDetailId] = useState<string | null>(null)
+   const [calculationOpen, setCalculationOpen] = useState(false)
+-  const [normalTrainingPane, setTrainingPane] = useState<'enemies' | 'formation'>('enemies')
+-  const tutorial = useTutorialPresentation()
+-  const trainingPane = tutorial.active && tutorial.step?.anchor === 'combat-formation' ? 'formation' : tutorial.active && tutorial.step?.anchor === 'combat-enemies' ? 'enemies' : normalTrainingPane
+   const [pending, setPending] = useState<string | null>(null)
+   const [error, setError] = useState<string | null>(null)
+   const [fightIntent, setFightIntent] = useState<string | null>(null)
+@@ -69,11 +66,11 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
+     finally { setPending(null) }
+   }
+ 
+-  const tabs = <nav className="activity-inner-tabs combat-tabs" aria-label="Sections Combat"><button type="button" className={tab === 'training' ? 'active' : ''} onClick={() => setTab('training')}>Entraînement</button><button type="button" className={tab === 'boss' ? 'active' : ''} onClick={() => setTab('boss')}>Boss</button>{tab === 'training' && <span className="combat-short-views"><button type="button" aria-pressed={trainingPane === 'enemies'} onClick={() => setTrainingPane('enemies')}>Ennemis</button><button type="button" aria-pressed={trainingPane === 'formation'} onClick={() => setTrainingPane('formation')}>Formation</button></span>}</nav>
++  const tabs = <nav className="activity-inner-tabs combat-tabs" aria-label="Sections Combat"><button type="button" className={tab === 'training' ? 'active' : ''} onClick={() => setTab('training')}>Entraînement</button><button type="button" className={tab === 'boss' ? 'active' : ''} onClick={() => setTab('boss')}>Boss</button></nav>
+   const feedback = combatFeedback(value, lastResult, error)
+-  return <div data-training-pane={trainingPane} data-business-pending={Boolean(pending)} data-fit-screen={tab === 'training' ? true : undefined} className="screen-content activity-shell combat-shell long-screen-layout">
++  return <div data-business-pending={Boolean(pending)} className="screen-content activity-shell combat-shell long-screen-layout">
+     <ScreenHeader eyebrow="Activités" title="Combat" />
+-    <ScrollableScreenPanel className="combat-frame" bodyClassName={`combat-scroll-body${tab === 'training' ? ' combat-training-body' : ''}`} fixed={tabs}>
++    <ScrollableScreenPanel className="combat-frame" bodyClassName="combat-scroll-body" fixed={tabs}>
+       {tab === 'boss' ? <MonthlyBossScreen value={monthlyBoss} dailyCombat={value} box={box} onSetSlot={onSetBossSlot} onRemoveSlot={onRemoveBossSlot} onCopyActive={onCopyActiveToBoss} onClear={onClearBoss} onAttack={onAttackBoss} onLoadHistory={onLoadBossHistory} /> : <>
+         <section data-tutorial-anchor="combat-enemies" className="combat-enemies" aria-labelledby="combat-enemies-title"><header className="combat-section-heading combat-enemy-heading"><h2 id="combat-enemies-title">Ennemis</h2></header><div className="combat-card-grid">{value.encounter.enemies.map((enemy) => <EnemyCombatCard enemy={enemy} key={enemy.position} />)}</div></section>
+ 
+@@ -147,4 +144,3 @@ function combatFeedback(value: DailyCombatDto, result: DailyCombatFightDto['resu
+   return 'Formation prête.'
+ }
+ import { useDestinationTab } from '../navigation/destination-context'
+-import '../combat/training-layout.css'

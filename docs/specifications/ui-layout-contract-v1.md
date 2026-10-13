@@ -8,7 +8,9 @@ Périmètre sans scroll de cette mission : Accueil, Aperçu des Quotidiennes, En
 
 Exceptions conservées : Sac Tout, listes Box/Catalogue, Configuration Menu/Confidentialité/Compte avec scroll intérieur encadré, modales et historiques hors mandat. Profil conserve ses filtres et sa présentation Missions. Les replis R1084 contraires à ce mandat sont supersédés ; ses captures et résultats restent des preuves historiques, sans valoir validation de R1085.
 
-Les barres de navigation peuvent se réorganiser horizontalement et les titres/espacements se compacter aux faibles hauteurs, uniquement lorsque l'écran concerné active cette adaptation. Les contrôles restent présents. La qualification utilise le GameShell compilé et les styles de production, relève les dimensions CSS réelles et inspecte aussi les chevauchements, pas seulement les scrollbars. État d'implémentation, limites et livraison au Master.
+Les barres de navigation et les titres/espacements se compactent aux faibles hauteurs, uniquement lorsque l'écran concerné active cette adaptation. Les contrôles restent présents. La qualification utilise le GameShell compilé et les styles de production, relève les dimensions CSS réelles et inspecte aussi les chevauchements, pas seulement les scrollbars. État d'implémentation, limites et livraison au Master.
+
+L'arbitrage complémentaire du propriétaire autorise des vues et paginations **explicites**, sans changer les mécaniques : Aperçu en pages de trois cartes, Entraînement Ennemis/Formation et Shop Event par offre à hauteur desktop ≤650 px ; messages Jeu C complets un par page, vues Envoyer/Reçus aux faibles hauteurs. Général Event présente Résumé/Calendrier/Code cadeau lorsque ces contenus existent ; calendrier dix jours par page à hauteur ≤820 px, vingt-cinq au-delà, ouverture sur le jour courant. Les tutoriels et intentions Quotidiennes ouvrent la vue concernée. Collection conserve les douze objets et leurs fiches complètes. Aucun de ces replis ne réintroduit du scroll ; les exceptions existantes ci-dessus restent distinctes.
 
 ## Passe graphique desktop — R1084
 
