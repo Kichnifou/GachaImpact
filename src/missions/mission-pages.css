@@ -1,3 +1,5 @@
+.missions-screen .missions-frame > .scrollable-screen-panel-content { grid-template-rows: minmax(0, 1fr); }
+.missions-screen.activity-shell > .screen-header { height: auto; min-height: 0; padding-block: 10px; }
 .missions-screen .missions-paged { min-height: 0; height: 100%; display: flex; flex-direction: column; }
 .missions-screen .missions-paged > .missions-rank-tabs { position: static; flex: 0 0 auto; margin: 0 0 8px; padding-block: 3px; }
 .missions-screen .missions-paged > .missions-rank-tabs button { min-width: 48px; min-height: 30px; padding: 5px 12px; font-size: 12px; }
