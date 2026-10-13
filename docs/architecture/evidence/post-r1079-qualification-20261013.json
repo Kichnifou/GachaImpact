@@ -68,7 +68,19 @@
   "review": {
     "technical": "PENDING independent published SHA",
     "visual": "PENDING independent published SHA",
-    "documentary": "PENDING independent published SHA"
+    "documentary": "PENDING independent published SHA",
+    "initialTechnical": {
+      "sha": "67d0ecef9ee6cf6580605ffd4ad48ff01c89c9db",
+      "verdict": "APPROVED",
+      "reportSha256": "956c45096456ff08533b1e3503423b83f7bbee2b898c53089897f7c3ddfa4165",
+      "fullException": "10 preexisting failures explicitly accepted; full remains FAIL; broad DB suites not requalified"
+    },
+    "delta": {
+      "runtime": "0bc7157e6cf6e53c18b7f6b52441664eb8aeb12e",
+      "reason": "Activity collection label is partial only when actual day status is PARTIAL",
+      "regression": "Reproduced FAIL before correction; HistoryScreen 13/13 PASS after correction",
+      "independentReview": "PENDING corrected published SHA"
+    }
   },
   "production": {
     "migration080Applied": false,
@@ -79,6 +91,7 @@
     "Expanded Gacha and GlobalChat DB suites not globally qualified",
     "Header overflow at 430px reproduced identically on baseline and candidate",
     "No authenticated production flow or human public recipe inferred",
-    "pg client.query concurrency deprecation warning observed in private tests"
+    "pg client.query concurrency deprecation warning observed in private tests",
+    "Preexisting R1079 disposable-web whitelist omits equippedBadgeCosmeticId; fails closed; documented outside current implementation scope"
   ]
 }
