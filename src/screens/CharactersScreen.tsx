@@ -15,7 +15,8 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
   const votes = useBannerVotes(voteActions, voteCache, refreshToken)
   const [query, setQuery] = useState('')
   const [rarity, setRarity] = useState<CharacterRarityFilter>('all')
-  const [element, setElement] = useState<ElementKey | null>(null)
+  const [elements, setElements] = useState<readonly ElementKey[]>([])
+  const matchesElement = (element: string | null) => elements.length === 0 || elements.some(selected => selected === element)
   const [sortKey, setSortKey] = useState<CharacterSortKey>('name')
   const [direction, setDirection] = useState<CharacterSortDirection>('asc')
   const counts = useMemo(() => new Map(votes.value?.candidates.map(c => [c.characterId, c.voteCount])), [votes.value])
@@ -23,7 +24,7 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
     const needle = normalizeCharacterSearch(query)
     const sign = direction === 'asc' ? 1 : -1
     return characters
-      .filter((character) => (!needle || normalizeCharacterSearch(character.name).includes(needle)) && (rarity === 'all' || character.rarity === rarity) && (!element || character.elementKey === element))
+      .filter((character) => (!needle || normalizeCharacterSearch(character.name).includes(needle)) && (rarity === 'all' || character.rarity === rarity) && matchesElement(character.elementKey))
       .slice().sort((left, right) => {
         if (sortKey === 'releaseDate') return compareReleaseDates(left,right,direction)
         if (sortKey !== 'votes') return sign * compareCharacters(left, right, sortKey)
@@ -31,9 +32,9 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
         if (a === undefined || b === undefined) return a === b ? compareCharacters(left, right, 'name') : a === undefined ? 1 : -1
         return sign * (a - b) || compareCharacters(left, right, 'name')
       })
-  }, [characters, counts, direction, element, query, rarity, sortKey])
-  const filtering = normalizeCharacterSearch(query).length > 0 || rarity !== 'all' || element !== null
-  const preparing=preparations.filter(row=>(!query||normalizeCharacterSearch(row.name).includes(normalizeCharacterSearch(query)))&&(rarity==='all'||row.rarity===rarity)&&(!element||row.elementKey===element)).slice().sort((a,b)=>{
+  }, [characters, counts, direction, elements, query, rarity, sortKey])
+  const filtering = normalizeCharacterSearch(query).length > 0 || rarity !== 'all' || elements.length > 0
+  const preparing=preparations.filter(row=>(!query||normalizeCharacterSearch(row.name).includes(normalizeCharacterSearch(query)))&&(rarity==='all'||row.rarity===rarity)&&matchesElement(row.elementKey)).slice().sort((a,b)=>{
     const stable=()=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'})||a.candidateId.localeCompare(b.candidateId)
     const left=sortKey==='rarity'?a.rarity:sortKey==='element'?a.elementKey:sortKey==='releaseDate'?a.releaseDate:a.name
     const right=sortKey==='rarity'?b.rarity:sortKey==='element'?b.elementKey:sortKey==='releaseDate'?b.releaseDate:b.name
@@ -41,11 +42,11 @@ function CharactersScreen({ characters, preparations = [], voteCache, refreshTok
     const compared=sortKey==='rarity'?Number(left)-Number(right):sortKey==='element'?elementKeys.indexOf(String(left) as ElementKey)-elementKeys.indexOf(String(right) as ElementKey):String(left).localeCompare(String(right),'fr',{sensitivity:'base'})
     return (direction==='asc'?1:-1)*compared||stable()
   })
-  const reset = () => { setQuery(''); setRarity('all'); setElement(null); setSortKey('name'); setDirection('asc') }
+  const reset = () => { setQuery(''); setRarity('all'); setElements([]); setSortKey('name'); setDirection('asc') }
 
   return <div data-business-pending={votes.pending} className="screen-content collection-screen catalog-screen long-screen-layout">
     <ScrollableScreenPanel className="collection-screen-panel" bodyClassName="collection-results-body scroll-content-frame" footer={<div className="collection-summary"><span>{filtering ? `${filtered.length} / ${characters.length} personnages` : `${characters.length} personnages actifs`}{preparing.length?` · ${preparing.length} en préparation`:''}</span></div>} fixed={<>
-      <CollectionFilters compactToggles tutorialAnchor="catalog-filters" allowVotes allowReleaseDate placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes' || key === 'releaseDate') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
+      <CollectionFilters compactToggles tutorialAnchor="catalog-filters" allowVotes allowReleaseDate placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={null} elementSelection={{ elements, onChange: setElements }} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={value => setElements(value ? [value] : [])} onSortKeyChange={(key) => { setSortKey(key); if (key === 'votes' || key === 'releaseDate') setDirection('desc') }} onDirectionChange={() => setDirection((value) => value === 'asc' ? 'desc' : 'asc')} />
     </>}>
     {votes.error && <div className="catalog-vote-feedback" role="alert">{votes.error}</div>}
     {preparing.length>0&&<section className="catalog-preparation-section" aria-label="Personnages en préparation"><h2>En préparation</h2><p>Ces fiches se complètent. Elles ne participent pas encore aux Invocations.</p><div className="character-grid">{preparing.map(row=><article className="character-card catalog-preparation-card" key={row.candidateId}>

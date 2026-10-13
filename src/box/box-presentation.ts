@@ -1,7 +1,7 @@
 import type { BoxCharacterDto, BoxSortPreferenceDto, ElementKey } from '../api/types'
 
 export type BoxRarityTab = 'all' | 5 | 4
-export type BoxElementFilter = 'all' | ElementKey
+export type BoxElementFilter = readonly ElementKey[]
 export type BoxConstellationFilter = 'all' | 0 | 1 | 2 | 3 | 4 | 5 | 6
 export type BoxSortKey = 'alphabetical' | 'obtainedAt' | 'constellation' | 'element'
 export type SortDirection = 'asc' | 'desc'
@@ -16,7 +16,7 @@ export type BoxFilters = Readonly<{
 }>
 
 export const initialBoxFilters: BoxFilters = {
-  tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc',
+  tab: 'all', search: '', element: [], constellation: 'all', sort: 'alphabetical', direction: 'asc',
 }
 
 export function initialBoxFiltersWithPreference(preference?: BoxSortPreferenceDto): BoxFilters {
@@ -29,7 +29,7 @@ export function presentBoxCharacters(characters: readonly BoxCharacterDto[], fil
   const search = normalizeSearch(filters.search)
   return characters
     .filter((character) => filters.tab === 'all' || character.rarity === filters.tab)
-    .filter((character) => filters.element === 'all' || character.elementKey === filters.element)
+    .filter((character) => filters.element.length === 0 || filters.element.includes(character.elementKey))
     .filter((character) => filters.constellation === 'all' || character.constellation === filters.constellation)
     .filter((character) => !search || normalizeSearch(character.name).includes(search))
     .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareCharacters(left, right, filters))

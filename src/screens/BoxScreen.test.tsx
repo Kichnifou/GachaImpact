@@ -62,8 +62,9 @@ describe('real personal Box', () => {
     expect(presentBoxCharacters(records, { ...initialBoxFilters, tab: 4 }).map(({ id }) => id)).toEqual(['four-favorite', 'four-normal'])
   })
   it('combines accent-insensitive search, rarity, element and constellation filters', () => {
-    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', tab: 5, element: 'dendro', constellation: 6 }).map(({ id }) => id)).toEqual(['five-normal'])
-    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', element: 'hydro' })).toEqual([])
+    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', tab: 5, element: ['dendro'], constellation: 6 }).map(({ id }) => id)).toEqual(['five-normal'])
+    expect(presentBoxCharacters(records, { ...initialBoxFilters, search: 'emilie', element: ['hydro'] })).toEqual([])
+    expect(presentBoxCharacters(records, { ...initialBoxFilters, element: ['hydro', 'dendro'] })).toEqual(presentBoxCharacters(records, initialBoxFilters).filter(row => ['hydro', 'dendro'].includes(row.elementKey)))
   })
   it('supports all four sorts in both directions', () => {
     const unfavorited = records.map((item) => ({ ...item, favorite: false }))
@@ -141,11 +142,11 @@ describe('real personal Box', () => {
     expect(renderView(initialBoxFilters, { error: 'Actualisation impossible' })).toContain('box-inline-error')
   })
   it('starts every fresh Box on Tous with alphabetical ascending sort', () => {
-    expect(initialBoxFilters).toEqual({ tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'alphabetical', direction: 'asc' })
+    expect(initialBoxFilters).toEqual({ tab: 'all', search: '', element: [], constellation: 'all', sort: 'alphabetical', direction: 'asc' })
   })
   it('restores only the server sort while resetting tabs, search and filters', () => {
     expect(initialBoxFiltersWithPreference({ sortKey: 'obtainedAt', direction: 'desc' })).toEqual({
-      tab: 'all', search: '', element: 'all', constellation: 'all', sort: 'obtainedAt', direction: 'desc',
+      tab: 'all', search: '', element: [], constellation: 'all', sort: 'obtainedAt', direction: 'desc',
     })
     expect(boxScreenSource).toContain('await onSetSortPreference(preference)')
     expect(boxScreenSource).toContain('Tri appliqué, mais non sauvegardé')
@@ -209,7 +210,7 @@ describe('real personal Box', () => {
     const all = renderView(initialBoxFilters, { expedition: expeditionSnapshot(ready) })
     expect(all.indexOf('Bennett')).toBeLessThan(all.indexOf('Furina'))
     expect(all).toContain('✅ À récupérer')
-    const hydroOnly = renderView({ ...initialBoxFilters, element: 'hydro' }, { expedition: expeditionSnapshot(ready) })
+    const hydroOnly = renderView({ ...initialBoxFilters, element: ['hydro'] }, { expedition: expeditionSnapshot(ready) })
     expect(hydroOnly).toContain('Furina')
     expect(hydroOnly).not.toContain('Bennett')
   })

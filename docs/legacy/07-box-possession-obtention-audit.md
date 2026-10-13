@@ -1,5 +1,9 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
+## Présentation standalone — R1085
+
+Box/Catalogue : boutons rareté et éléments de mêmes dimensions, séparation visuelle, sélection simultanée de plusieurs éléments (union), combinée par intersection à la recherche/rareté/constellation. Réinitialisation restitue tous les éléments. Constellation est libellée explicitement dans Box seulement et « Toutes » reste lisible. Profil garde le filtre élément simple historique ; aucune possession, préférence serveur, action Stella ou priorité favoris modifiée. Qualification et livraison au Master.
+
 ## Passe graphique desktop — R1084
 
 La seule barre Box est harmonisée avec Catalogue : recherche, étoiles 5/4 toggle, sept éléments toggle, constellation, tri et direction. Aucun filtre actif signifie tous ; autres catégories conservées à chaque changement. Une ligne à 1920/2560, regroupement responsive propre plus étroit. Préférences Player, priorité favoris, possessions, Stella, Expédition, détail et ancres inchangés. Primitive opt-in neutre commune, adaptation Box réversible séparément de Catalogue. [Registre](../architecture/evidence/desktop-v1-qualification-20261013.json).

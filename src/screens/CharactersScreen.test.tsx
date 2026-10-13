@@ -18,6 +18,22 @@ function input(element: HTMLInputElement, value: string) { act(() => { Object.ge
 function namesInGrid(container: HTMLElement) { return Array.from(container.querySelectorAll('.character-card h3')).map((node) => node.textContent) }
 
 describe('CharactersScreen real catalog controls', () => {
+  it('unions selected elements, intersects rarity and search, and toggles each independently', () => {
+    const container = mount()
+    const click = (name: string) => act(() => container.querySelector<HTMLButtonElement>(`[aria-label="${name}"]`)!.click())
+    click('Hydro'); click('Cryo')
+    expect(namesInGrid(container)).toEqual(['Furina', 'Kaeya'])
+    click('Filtrer les personnages 5 étoiles')
+    expect(namesInGrid(container)).toEqual(['Kaeya'])
+    click('Filtrer les personnages 5 étoiles')
+    input(container.querySelector('input[type="search"]')!, 'fur')
+    expect(namesInGrid(container)).toEqual(['Furina'])
+    input(container.querySelector('input[type="search"]')!, '')
+    click('Hydro')
+    expect(namesInGrid(container)).toEqual(['Kaeya'])
+    click('Cryo')
+    expect(namesInGrid(container)).toHaveLength(7)
+  })
   it('renders shared catalog cards and starts with Nom ascending without Niveau', () => {
     const container = mount()
     expect(container.querySelector('.collection-results-body.scroll-content-frame .character-grid')).not.toBeNull()

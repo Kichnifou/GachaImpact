@@ -23,6 +23,7 @@ type CollectionFiltersProps = {
   onElementChange: (value: ElementKey | null) => void
   onSortKeyChange: (value: CharacterSortKey) => void
   onDirectionChange: () => void
+  elementSelection?: { elements: readonly ElementKey[]; onChange: (value: readonly ElementKey[]) => void }
 }
 
 const elementLabels: Record<ElementKey, string> = {
@@ -38,7 +39,7 @@ function CollectionFilters(props: CollectionFiltersProps) {
   const { placeholder, query, rarity, element, sortKey, direction, onQueryChange, onRarityChange, onElementChange, onSortKeyChange, onDirectionChange } = props
   return <div data-tutorial-anchor={props.tutorialAnchor} className="collection-filters panel">
     <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={query} onChange={(event) => onQueryChange(event.target.value)} placeholder={placeholder} /></label>
-    {props.compactToggles ? <CollectionFilterChips rarity={rarity === 'all' ? null : rarity} element={element} onRarity={value => onRarityChange(value ?? 'all')} onElement={onElementChange} /> : <>
+    {props.compactToggles ? <CollectionFilterChips rarity={rarity === 'all' ? null : rarity} onRarity={value => onRarityChange(value ?? 'all')} {...(props.elementSelection ? { elements: props.elementSelection.elements, onElements: props.elementSelection.onChange } : { element, onElement: onElementChange })} /> : <>
     <div className="filter-group" aria-label="Filtrer par rareté">
       {([['all', 'Toutes raretés'], [5, '5★'], [4, '4★']] as const).map(([value, label]) => <button type="button" className={`filter-chip${rarity === value ? ' active' : ''}`} aria-pressed={rarity === value} onClick={() => onRarityChange(value)} key={value}>{label}</button>)}
     </div>
