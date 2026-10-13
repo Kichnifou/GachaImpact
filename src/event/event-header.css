@@ -38,3 +38,11 @@
   .event-screen-header .event-milestone-progress { padding: 5px; gap: 4px; }
   .event-screen-header .event-milestone-summary { gap: 6px; }
 }
+@media (min-width: 1121px) and (max-height: 650px) {
+  .event-screen.screen-content { grid-template-columns: 200px minmax(0, 1fr); }
+  .event-screen > .screen-header.event-screen-header { padding: 6px; gap: 6px; }
+  .event-screen-header .event-title h1 { font-size: 18px; }
+  .event-screen-header .event-title p { line-height: 1.2; }
+  .event-screen-header .event-milestone-track { gap: 2px; }
+  .event-screen-header .event-milestone-summary { gap: 3px; }
+}
