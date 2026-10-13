@@ -4,8 +4,9 @@
   .game-shell:has([data-fit-screen]) .game-header { min-height: 44px; }
   .game-shell:has([data-fit-screen]) .brand-mark { width: 38px; height: 38px; font-size: 24px; }
   .game-shell:has([data-fit-screen]) .main-panel { gap: 6px; }
-  .game-shell:has([data-fit-screen]) .navigation-tile { min-height: 42px; flex-direction: row; gap: 7px; padding: 5px; }
-  .game-shell:has([data-fit-screen]) .navigation-tile span { font-size: 20px; }
+  .game-shell:has([data-fit-screen]) .navigation-tile { min-height: 42px; flex-direction: column; gap: 3px; padding: 4px; }
+  .game-shell:has([data-fit-screen]) .navigation-tile span { font-size: 16px; }
+  .game-shell:has([data-fit-screen]) .navigation-tile strong { font-size: 10px; line-height: 1.2; overflow: visible; white-space: normal; }
   .game-shell:has([data-fit-screen]) .secondary-navigation { padding: 3px; gap: 3px; }
   .game-shell:has([data-fit-screen]) .secondary-navigation button { min-height: 30px; padding: 4px 8px; font-size: 13px; }
   [data-fit-screen].screen-content { gap: 6px; }
