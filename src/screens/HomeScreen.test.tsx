@@ -13,7 +13,7 @@ describe('HomeScreen Invocation preview', () => {
   it('opens exactly six typed destinations including the owner personalization subview', () => {
     const onNavigate = vi.fn()
     const tree = HomeScreen({ onNavigate, ownerPlayerId: 'owner', gacha, onSetGachaTarget: vi.fn() })
-    const nav = (tree.props.children as ReactElement[])[1]!
+    const nav = (tree.props.children as ReactElement<{ children: ReactElement<{ onClick: () => void }>[] }>[])[1]!
     const buttons = nav.props.children as ReactElement<{ onClick: () => void }>[]
     expect(buttons).toHaveLength(6)
     buttons.forEach(button => button.props.onClick())
