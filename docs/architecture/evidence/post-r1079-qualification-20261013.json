@@ -58,7 +58,11 @@
       "compiledCss": "index-DO6pXzKL.css",
       "cssSha256": "6f541d23da752ed35f04acd98d03c2177a0b13763a2b733efc28527e5f56f0cf",
       "synthetic": true,
-      "publicRecipe": false
+      "publicRecipe": false,
+      "activityStates": 35,
+      "activityFormats": 7,
+      "dragAndDropNativeReplayed": false,
+      "keyboardAlternativesPassed": true
     }
   },
   "themes": {
@@ -66,9 +70,24 @@
     "reason": "Centralization condition not met; direct colors, separate CSS and body portals require broad migration"
   },
   "review": {
-    "technical": "PENDING independent published SHA",
-    "visual": "PENDING independent published SHA",
-    "documentary": "PENDING independent published SHA",
+    "technical": {
+      "sha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "verdict": "APPROVED",
+      "report": "review-technical-addendum-d7d40ff.md",
+      "reportSha256": "e6368eca4be649097b69348d611290b4842b376da63699f73011dfca896339fe"
+    },
+    "visual": {
+      "sha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "verdict": "PASS VISUEL",
+      "report": "review-visual-final.md",
+      "reportSha256": "f5229c95e44fc070eaccc56030007c24b665f25cd80982c15a121c12baef10e3"
+    },
+    "documentary": {
+      "sha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "verdict": "APPROVED",
+      "report": "review-documentary-final.md",
+      "reportSha256": "10ba1733e0b65f9deef1254acf5a1b9d39d49b5f838ba059c0b9c02f593cdf32"
+    },
     "initialTechnical": {
       "sha": "67d0ecef9ee6cf6580605ffd4ad48ff01c89c9db",
       "verdict": "APPROVED",
@@ -79,12 +98,108 @@
       "runtime": "0bc7157e6cf6e53c18b7f6b52441664eb8aeb12e",
       "reason": "Activity collection label is partial only when actual day status is PARTIAL",
       "regression": "Reproduced FAIL before correction; HistoryScreen 13/13 PASS after correction",
-      "independentReview": "PENDING corrected published SHA"
+      "independentReview": "APPROVED technical/documentary and PASS VISUEL at d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206"
     }
   },
   "production": {
-    "migration080Applied": false,
-    "delivery": "NOT YET PROMOTED; public postflight pending"
+    "migration080Applied": true,
+    "delivery": "DELIVERED at first approved release; final documentation-only SHA/deployments verified in delivery report",
+    "firstReleaseSha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+    "refs": {
+      "main": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "review": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "originMain": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "originReview": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "divergence": "0/0",
+      "clean": true
+    },
+    "railway": {
+      "sha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "deploymentId": "6bac332b-e1cb-42d1-bef6-a73c031623d6",
+      "status": "SUCCESS",
+      "applicationReadyAt": "2026-10-13T07:21:56.617625184Z",
+      "online": true,
+      "runningReplicas": 1,
+      "pendingWork": 0
+    },
+    "cloudflare": {
+      "sha": "d7d40ff7d7cc314e21a2b3d92e10c65dd0b5e206",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/698a7520-3476-4bb3-b4e3-e3e7116c4cfe",
+      "startedAt": "2026-10-13T07:21:28Z",
+      "completedAt": "2026-10-13T07:21:28Z",
+      "preview": "https://698a7520.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-DO6pXzKL.css",
+          "http": 200,
+          "sha256": "6f541d23da752ed35f04acd98d03c2177a0b13763a2b733efc28527e5f56f0cf"
+        },
+        {
+          "path": "/assets/index-DxGk5dMS.js",
+          "http": 200,
+          "sha256": "677f187f26efbb611214a095e4c603d8b45926dc080a48249a822d8c98795283"
+        }
+      ]
+    },
+    "postflightAt": "2026-10-13T07:22:19.527Z",
+    "health": 200,
+    "bothDomainsIdentical": true,
+    "assets": [
+      {
+        "path": "/assets/index-DO6pXzKL.css",
+        "sha256": "6f541d23da752ed35f04acd98d03c2177a0b13763a2b733efc28527e5f56f0cf"
+      },
+      {
+        "path": "/assets/index-DxGk5dMS.js",
+        "sha256": "677f187f26efbb611214a095e4c603d8b45926dc080a48249a822d8c98795283"
+      }
+    ],
+    "migrations": {
+      "finished": 80,
+      "unresolved": 0,
+      "allChecksumsMatch": true,
+      "last": "20261013080000_080_daily_player_activity",
+      "appliedAt": "2026-10-13T07:21:41.545Z",
+      "rolledBackHistoryPreserved": [
+        {
+          "name": "20261012190000_076_cosmetic_consultation",
+          "rolledBackAt": "2026-10-12T18:51:02.496Z"
+        }
+      ]
+    },
+    "protections": [
+      {
+        "relname": "activity_coverage",
+        "relrowsecurity": true,
+        "anon": false,
+        "authenticated": false
+      },
+      {
+        "relname": "player_daily_activity",
+        "relrowsecurity": true,
+        "anon": false,
+        "authenticated": false
+      }
+    ],
+    "coverageStartedAt": "2026-10-13T07:21:41.282Z",
+    "coverageTimeZone": "Europe/Paris",
+    "firstBusinessDate": "2026-10-13",
+    "firstDay": "PARTIAL",
+    "prismaStatus": "Database schema is up to date",
+    "anonymousGuards": {
+      "checks": 8,
+      "all401": true,
+      "exactCors": true,
+      "historyNoStore": true
+    },
+    "authenticatedBrowserAvailable": false,
+    "authenticatedBrowserProof": "CUA getBrowser for gachaimpact.fr returned No browser is available; no session invented",
+    "humanPublicRecipe": "PENDING owner feedback"
   },
   "limits": [
     "10 preexisting full assertions remain",
