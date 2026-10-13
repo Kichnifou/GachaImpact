@@ -60,7 +60,7 @@
     "additionalOptimization": "NONE_JUSTIFIED",
     "authorizedTextException": "Only !top help token lose5050→loose5050;new alias explicitly authorized on both channels",
     "immutable119Baseline": "4b637c0",
-    "parity": "PENDING exact published SHA;119 unchanged plus separate top supplement"
+    "parity": "PASS119/119 strict against immutable baseline;separate top supplement accepts only authorized help token and new alias,old aliases/internal metric unchanged"
   },
   "performance": {
     "source": "One bounded read of expurgated Railway timing summaries",
@@ -107,13 +107,42 @@
     "expectedFinished": 81
   },
   "reviews": {
-    "status": "PENDING published SHA",
-    "historicalClassification": "Independent completed;22b7d198...;exact hash in archive"
+    "publishedCandidate": "bec5d84d2563b3fb2573ae6bd73f3eac0a0137b8",
+    "status": "APPROVED;MP/non-lus/debt,Pull/Twitch,visual/documentation",
+    "openRuntimeFindings": 0,
+    "archiveP3": "Historical qualification fields explicitly named;data retained;published delta review required",
+    "reports": [
+      {
+        "scope": "MP/non-lus/historical-debt",
+        "sha256": "463a87ac40e18806a443b285950f03a943c5f8e3ef0352e58a28d220fe708115"
+      },
+      {
+        "scope": "Pull/Twitch-parity/transactions",
+        "sha256": "955b153fac16044e1de1a4707b1dec29cf340389353d05d529da5c700e397622"
+      },
+      {
+        "scope": "visual/documentation",
+        "sha256": "5217e55753aec3b5a8eeaa28e0413eaed2515b9424852b1b773facbff8c33bce"
+      }
+    ],
+    "independentMpTests": "167/167 PASS;overlap with author not summed"
   },
   "delivery": {
-    "status": "PENDING reviews/FF/deployments",
+    "status": "APPROVED candidate;documentation delta review/FF/deployment/postflight pending",
     "publicAuthenticatedRecipeExecuted": false,
     "publicEconomicQaExecuted": false,
     "realMpSent": false
+  },
+  "visual": {
+    "status": "PASS local compiled GameShell and exact published source equivalence",
+    "css": "index-Dv7HsVA2.css",
+    "cssSha256": "9c22ad93cf935a58ca483884dd7b25fcc23b50b1f17c8591004880fb296349c9",
+    "scope": "61 candidate observations+9 title states,then targeted reward-wrap correction",
+    "limits": [
+      "Native visible title tested;hidden simulated by visibility API in browser",
+      "No authenticated public recipe",
+      "Existing320px header5px overflow remains separate",
+      "Widths/minima/grid columns preserved;content-stretched row contracts on small formats,not all heights identical"
+    ]
   }
 }
