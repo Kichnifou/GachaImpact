@@ -8,8 +8,9 @@
 .missions-paged .mission-pages { height: 100%; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 6px; }
 .missions-paged .mission-page-window { min-height: 0; overflow-x: clip; overflow-y: auto; }
 .missions-paged .mission-page-grid { height: 100%; min-height: 185px; grid-template-columns: repeat(var(--mission-columns), minmax(0, 1fr)); grid-template-rows: repeat(var(--mission-rows), minmax(185px, 1fr)); align-content: start; gap: 8px; }
+.missions-paged .mission-page-grid[data-mission-rows="1"] { grid-template-rows: minmax(max-content, 1fr); }
 .missions-paged .mission-card { min-height: 0; grid-template-rows: auto minmax(min-content, 1fr) auto auto auto; gap: 6px; padding: 10px 12px; }
-.missions-paged .mission-card-copy { min-height: 0; }
+.missions-paged .mission-card-copy { min-height: 0; overflow-wrap: anywhere; }
 .missions-paged .mission-card-copy p { margin-top: 4px; font-size: 11px; line-height: 1.35; }
 .missions-paged .mission-card > footer { padding-top: 6px; flex-direction: row; align-items: center; }
 .missions-paged .mission-progress-copy { flex-direction: row; align-items: end; }

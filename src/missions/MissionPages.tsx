@@ -37,7 +37,7 @@ export default function MissionPages({ missions, renderCard }: { missions: reado
   const move = (delta: -1 | 1) => { setDirection(delta); setPage(Math.max(0, Math.min(pages - 1, current + delta))) }
   return <div ref={viewport} className="mission-pages" style={{ '--mission-columns': geometry.columns, '--mission-rows': geometry.rows } as CSSProperties}>
     <div className="mission-page-window">
-      <div key={`${current}:${capacity}`} className={`mission-grid mission-page-grid ${direction > 0 ? 'mission-slide-next' : 'mission-slide-previous'}`} data-mission-page={current + 1}>{missions.slice(current * capacity, (current + 1) * capacity).map(renderCard)}</div>
+      <div key={`${current}:${capacity}`} className={`mission-grid mission-page-grid ${direction > 0 ? 'mission-slide-next' : 'mission-slide-previous'}`} data-mission-rows={geometry.rows} data-mission-page={current + 1}>{missions.slice(current * capacity, (current + 1) * capacity).map(renderCard)}</div>
     </div>
     {pages > 1 && <nav className="mission-pagination" aria-label="Pages des Missions"><AppButton variant="icon" aria-label="Missions précédentes" disabled={current === 0} onClick={() => move(-1)}>‹</AppButton><span role="status">{current + 1} / {pages}</span><AppButton variant="icon" aria-label="Missions suivantes" disabled={current === pages - 1} onClick={() => move(1)}>›</AppButton></nav>}
   </div>
