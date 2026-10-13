@@ -4,13 +4,34 @@
 .home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
 .home-shortcut-arrow { color: #8babc7; font-size: 22px; }
 @media (min-width: 1121px) {
-  .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(300px, 1fr) max-content max-content; height: 100%; overflow-y: auto; }
-  .screen-content.home-screen:has(> .home-shortcuts) .home-banner { min-height: 300px; height: 100%; }
+  .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; container-type: size; gap: clamp(6px, 1.3cqh, 14px); overflow: visible; }
+  .screen-content.home-screen:has(> .home-shortcuts) .home-banner { min-height: 0; height: 100%; }
   .screen-content.home-screen:has(> .home-shortcuts) .home-daily-summary { max-height: none; overflow: visible; align-self: stretch; }
-}
-@media (min-width: 1501px) {
-  .screen-content.home-screen:has(> .home-shortcuts) { grid-template-rows: minmax(380px, 1fr) max-content max-content; overflow-y: auto; }
-  .screen-content.home-screen:has(> .home-shortcuts) .home-banner { min-height: 380px; }
+  .home-screen .home-shortcuts { gap: clamp(5px, 1cqh, 10px); }
+  .home-screen .home-shortcut { min-height: 44px; padding: clamp(5px, 1cqh, 12px) 12px; gap: 8px; }
+  .home-screen .home-shortcut-icon { width: 30px; height: 30px; font-size: 20px; }
+  .home-screen .home-daily-summary { padding: clamp(8px, 1.5cqh, 16px); gap: clamp(6px, 1cqh, 12px); }
+  .home-screen .home-daily-summary h2 { font-size: clamp(16px, 2.6cqh, 20px); }
+  .home-screen .home-daily-suggestions { gap: 8px; }
+  .home-screen .home-daily-suggestion { padding: 8px 10px; grid-template-columns: 26px minmax(0, 1fr); grid-template-rows: auto auto; gap: 4px 8px; }
+  .home-screen .home-daily-copy { gap: 4px; }
+  .home-screen .home-daily-action-label { grid-column: 2; }
+  .home-screen .home-daily-empty { margin: 0; }
+  .home-screen .home-banner .banner-content h1 { font-size: clamp(26px, 6cqh, 64px); }
+  .home-screen .home-banner .banner-content p { margin-block: clamp(4px, 1cqh, 12px); line-height: 1.4; }
+  .home-screen .home-banner .banner-content { padding-block: 10px; }
 }
 @media (max-width: 1000px) { .home-screen .home-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) { .home-screen .home-shortcuts { grid-template-columns: 1fr; } }
+@media (min-width: 1121px) and (max-height: 650px) {
+  .home-screen .home-banner .banner-content { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-content: center; gap: 4px 8px; padding: 8px 14px; width: 70%; }
+  .home-screen .home-banner .banner-title-lockup { grid-column: 1; }
+  .home-screen .home-banner .banner-description { grid-column: 1 / -1; }
+  .home-screen .home-banner .banner-meta-actions { grid-column: 2; grid-row: 1; margin: 0; }
+  .home-screen .home-banner .banner-period, .home-screen .home-banner .banner-end-date { padding: 5px 8px; font-size: 11px; }
+  .home-screen .home-banner .banner-content p { font-size: 12px; margin-block: 2px; }
+  .home-screen .home-shortcut { min-height: 34px; padding: 4px 8px; grid-template-columns: 22px minmax(0, 1fr) auto; }
+  .home-screen .home-shortcut-icon { width: 22px; height: 22px; font-size: 16px; }
+  .home-screen .home-daily-summary { padding: 6px 10px; gap: 5px; }
+  .home-screen .home-daily-suggestion { padding: 5px; }
+}
