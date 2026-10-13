@@ -253,7 +253,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     {!commandArmed && <label><input type="checkbox" checked={streamerbotAcknowledged} disabled={pending || applying} onChange={event => setStreamerbotAcknowledged(event.target.checked)} /> J’ai désactivé les chemins Streamer.bot concernés.</label>}
     <AppButton disabled={pending || applying || !commandArmed && (account.authorityUnavailable || !streamerbotAcknowledged || runtimeChecking || !account.commandPilotAvailable || !account.runtimeChatActive)} aria-busy={pending} onClick={() => controlCommandPilot(commandArmed)}>{commandArmed ? 'Désactiver le pilote commandes' : account.resumeAuthority === 'GLOBAL' ? 'Réactiver le pilote commandes (GLOBAL)' : 'Activer le pilote commandes'}</AppButton>
   </div>
-  return <ScrollableScreenPanel className="configuration-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
+  return <ScrollableScreenPanel className="configuration-frame" bodyClassName="scroll-content-frame menu-scroll-frame" fixed={<header className="menu-configuration-heading"><h2>Compte</h2></header>}>
     <div data-business-pending={pending} className="account-settings">
       {!presentationMode && <AccountSecurityPanel />}
       {error && <p className="configuration-error" role="alert">{error}</p>}
