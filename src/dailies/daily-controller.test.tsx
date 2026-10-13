@@ -109,35 +109,37 @@ describe('tracker card hit target and compact Home footer', () => {
 })
 
 describe('Shared daily consultation and claim', () => {
-  it('retains completion and its Paris countdown across F5 with known nonapplicable owners', async () => {
+  it('retains compact completion across F5 with known nonapplicable owners', async () => {
     vi.setSystemTime(new Date('2026-10-02T21:30:00Z'))
     const source = dailySources()
     const projected = projectDailies({ ...source, favor: { ...source.favor!, active: false, claimStatus: 'UNAVAILABLE' }, friendship: { ...source.friendship!, activeFriends: 0, available: 0, alreadySent: 0 } })
     const items = projected.map(row => row.id === 'favor' || row.id === 'friendship' ? row : { ...row, state: 'completed' as const, actionable: false })
     await render({ items })
     expect(control.message).toBe('Terminé ✅')
-    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+    expect(container.querySelector('.daily-tracker-status')).toBeNull()
+    expect(container.querySelector('.daily-tracker')?.getAttribute('data-completed')).toBe('true')
     await act(async () => root.unmount()); root = createRoot(container)
     await render({ items })
     expect(control.message).toBe('Terminé ✅')
-    expect(container.querySelector('.daily-tracker-status')?.textContent).toBe('Réinitialisation dans 30 min')
+    expect(container.querySelector('.daily-tracker-status')).toBeNull()
   })
-  it('shows the Paris reset instead of a completed Expedition deadline and waits for the next server date', async () => {
+  it('keeps completion compact across Paris midnight and restores activity from the next server date', async () => {
     vi.setSystemTime(new Date('2026-10-03T21:33:00Z'))
     const items = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false, deadline: item.id === 'expedition' ? '2026-10-04T10:33:00Z' : undefined }))
     await render({ items, date: '2026-10-03' })
     const status = () => container.querySelector('.daily-tracker-status')?.textContent
-    expect(status()).toBe('Réinitialisation dans 27 min')
+    expect(status()).toBeUndefined()
     expect(container.querySelector('.daily-tracker')?.textContent).not.toContain('Prochaine échéance')
     await act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
-    expect(status()).toBe('Réinitialisation dans 26 min')
+    expect(status()).toBeUndefined()
     await act(async () => { await vi.advanceTimersByTimeAsync(26 * 60_000) })
-    expect(status()).toBe('Réinitialisation dans 0 min')
+    expect(status()).toBeUndefined()
     expect(control.message).toBe('Terminé ✅')
     await render({ items, date: '2026-10-04' })
-    expect(status()).toBe('Réinitialisation dans 24 h 0 min')
+    expect(status()).toBeUndefined()
     await render({ items: items.map(item => item.id === 'expedition' ? { ...item, state: 'in_progress', detail: 'Skirk · 12:33:00', deadline: '2026-10-04T10:33:00Z' } : item), date: '2026-10-04' })
     expect(status()).toBe('Skirk · 12:33:00')
+    expect(container.querySelector('.daily-tracker')?.getAttribute('data-completed')).toBe('false')
   })
   it('retains a pertinent selection across rereads, rotates manually and ignores hidden items', async () => {
     await render()

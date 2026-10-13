@@ -1,0 +1,17 @@
+@media (min-width: 1121px) {
+  .player-secondary:has(> .daily-tracker[data-completed="true"]) {
+    grid-template-rows: minmax(min-content, 1fr) minmax(min-content, 1fr) minmax(min-content, 1fr) auto;
+  }
+  .player-sidebar .daily-card.daily-tracker[data-completed="true"] {
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto auto auto;
+    gap: 6px;
+    padding-block: 10px;
+  }
+  .daily-tracker[data-completed="true"] .daily-tracker-heading { grid-template-rows: 24px; }
+  .daily-tracker[data-completed="true"] .daily-tracker-heading > div:first-child { grid-row: 1; }
+  .daily-tracker[data-completed="true"] .daily-tracker-content { justify-content: center; padding-block: 4px; }
+  .daily-tracker[data-completed="true"] .daily-tracker-summary { margin: 0; text-align: center; }
+  .player-sidebar .objective-guarantee, .player-sidebar .objective-brilliance { font-size: 12px; line-height: 1.4; }
+}
