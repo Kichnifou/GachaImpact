@@ -856,6 +856,7 @@ Politique version 3 : ligne PrivacySetting FAVOR absente → PUBLIC ; choix expl
 
 ---
 
+<a id="r671--pas-décran-faveur-dédié--validé-a-enrichi"></a>
 ## R671 — Pas d'écran Faveur dédié — ✅ VALIDÉ A ENRICHI
 
 La Faveur ne possède pas de grand écran métier indépendant dans la V1.
@@ -895,6 +896,7 @@ Ouverture dans un nouvel onglet, noopener/noreferrer. Le lien ne lance aucun pai
 
 ---
 
+<a id="r672--animation-quotidienne-et-état-persistant--validé-personnalisé"></a>
 ## R672 — Animation quotidienne et état persistant — ✅ VALIDÉ PERSONNALISÉ
 
 La restitution principale de la Faveur dans le standalone concerne la récompense quotidienne.

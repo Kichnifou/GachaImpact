@@ -1,12 +1,19 @@
 # Contrat de layout UI V1
 
+## Corrections Chat/Équipe — R1080
+
+Chat : aperçu de réponse au-dessus du flux inline complet, sans séparateurs globaux. Agrandir/Réduire est une demande explicite de retour au bas, après layout ; brouillon, conversation et jeu monté conservés, aucun acquittement caché. Cette règle supersède le point de lecture R1079 seulement pour ces clics.
+
+Équipe : min-width:0 sur propriétaire/enfants, colonnes minmax(0,1fr), aucune largeur issue du ratio de la grille vide. À desktop, lignes intrinsèques et scroll de team-screen permettent d'atteindre les quatre slots/passifs/actions à faible hauteur. Variante portrait Équipe carrée, image contain non déformée au contact direct du nom, hauteur de carte intrinsèque ; Sidebar/Invocation restent indépendantes. Les bandes sous image et débordements ne sont pas cachés par clipping. Formats, mesures et limites de la qualification restent au Master.
+
+
 ## Chat standalone et Communauté agrandie — R1079
 
 Les flèches de destination conservent X,32×32px, gap, cadres et comportements ; seul align-self:end descend le groupe dans sa cellule du header, juste au-dessus d'Accueil. Aucun changement de hauteur/header/logo/actions.
 
 Chat global : Heure / Badge courant / Pseudo : Message sur un flux inline compact, sans avatars répétés ; retours naturels et actions en overlays existants. Résultats en petites cartes à lignes flexibles, portraits officiels, rareté/constellation/Nouveau et faits bornés. Aucun scroll horizontal ; gains et missions restent dans le texte complet. Styles internes des MP séparés et inchangés.
 
-À largeur>=1000px, Agrandir masque visuellement la colonne centrale/navigation et étend toute la Communauté ; sidebar/header et instances du jeu/Chat/MP conservés. Réduire restaure le jeu sans action. Préférence par Player, neutralisation sous1000px et pendant tutoriel. Scroll propriétaire message-list ou dm-message-list ; pas de bas forcé ni d'acquittement lors de la bascule depuis une lecture historique. Labels et focus accessibles. Qualification vrai GameShell/CSS compilée en390×844,844×390,1366×768,1920×1080,2560×1440 ; preuves et limites au Master. [Contrat détaillé](global-chat-v1.md#présentation-standalone--r1079).
+À largeur>=1000px, Agrandir masque visuellement la colonne centrale/navigation et étend toute la Communauté ; sidebar/header et instances du jeu/Chat/MP conservés. Réduire restaure le jeu sans action. Préférence par Player, neutralisation sous1000px et pendant tutoriel. Scroll propriétaire message-list ou dm-message-list ; retour au bas lors du clic Agrandir/Réduire selon R1080, sans acquittement d'un fil caché. Le maintien historique du point de lecture R1079 est supersédé pour ces seuls clics. Labels et focus accessibles. Qualification vrai GameShell/CSS compilée en390×844,844×390,1366×768,1920×1080,2560×1440 ; preuves et limites au Master. [Contrat détaillé](global-chat-v1.md#présentation-standalone--r1079).
 
 ## Complément borné R1052/R1078 — 12/10/2026
 

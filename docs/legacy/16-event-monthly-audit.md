@@ -1,5 +1,10 @@
 # 16 — Audit Event / monthly
 
+## Qualification des compléments de pré-release — 13/10/2026
+
+Les blocs « complément futur/non implémenté R1057 » et les formulations de passation du08/10 conservent leur statut **historique**. Le moteur enrichi est depuis implémenté/déployé et sa recette CADEAU_PHASE1 rapportée : [propriétaire R1057](../architecture/gift-code-enriched-r1057.md). L'import usedCodes est physique, sans nouveau paiement historique. Le tirage mensuel R1053 est implémenté ; son premier tirage naturel01/11/2026 à00:00 Europe/Paris reste une observation future distincte, jamais simulée. L'audit legacy clos et ses décisions ne sont pas réécrits rétroactivement.
+
+
 ## Complément 31B — restitution communautaire candidate, sans réimport personnel
 
 Le ZIP récent et les 17 JSON vérifiés remplacent les seules copies Git d'août comme référence d'analyse. Pour Céotryd B ACTIVE/NATIVE identifié par Twitch/R1055, source 14 points/21 monnaies/palier 10 déjà payé ; rapprochement des reçus natifs post-import et dédoublonnage du join : cible candidate 15/23, delta+14/+20, **non appliqué publiquement**. Aucune fusion avec Céo A, aucun MAX/somme aveugle, paiement de palier répété ou remise à zéro des daily/dépenses. Les cas sans baseline/reçus/preuves suffisants, GameB partagé avec appartenance incertaine, ancienne édition ou nouveau palier non prouvé échouent explicitement. [Matrice, bornes et compensation privée](../architecture/community-complements-20261008.md#event-rapprochement). Code approuvé et déployé le 09/10 au SHA 15a16a192b0f2a5a3ceb93b8090e7b4429c35041, Prisma 64 ; état Event strictement identique avant/après, aucune attribution. La proposition 15/23 exige une réévaluation fraîche et une autorisation distincte avant application. [Preuves de promotion](../architecture/community-complements-20261008.md#promotion-code-20261009). Ce mécanisme borné ne démontre pas une restauration Event générale des 43 joueurs.
@@ -10,6 +15,7 @@ Le ZIP récent et les 17 JSON vérifiés remplacent les seules copies Git d'aoû
 
 <a id="tirage-de-cloture-r1053"></a>
 
+<a id="tirage-de-clôture-mensuelle-event--r1053-à-implémenter"></a>
 ## Tirage de clôture mensuelle Event — R1053
 
 Le mandat du 10/10/2026 réalise le contrat ci-dessous par une activation durable sans arriérés, un résultat unique par édition, des poids/graine/position figés et l'attribution Stella/notifications atomique ; scheduler indépendant des joueurs et reprise idempotente. [Architecture réellement construite, migration 069, liens de preuves et limites](../architecture/event-monthly-draw-r1053.md). Publication, tests acquis, activation et premier tirage naturel sont distingués uniquement au [Master](../master/PROJECT_MASTER_PLAN.md).

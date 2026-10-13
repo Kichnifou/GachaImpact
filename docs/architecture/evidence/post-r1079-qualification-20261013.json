@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-13 Europe/Paris",
+  "baseline": "c4a444c89e8b86cd152b00284e8bed61b133987e",
+  "runtimeQualified": "eb223045ba1adecbd108848eaeb8d3640727fd4a",
+  "bootstrap": {
+    "refsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "qualification": {
+    "quick": "PASS 5/5",
+    "full": "FAIL 6/8",
+    "baselineCounts": [
+      "Tests  4 failed | 1589 passed (1593)",
+      "Tests  6 failed | 2446 passed (2452)"
+    ],
+    "candidateCounts": [
+      "Tests  4 failed | 1593 passed (1597)",
+      "Tests  6 failed | 2454 passed (2460)"
+    ],
+    "sameTenFailures": true,
+    "historicalAssertionFilesUnchanged": [
+      "server/tests/chat-owner-recipe.test.ts",
+      "server/tests/chat-remaining-commands.test.ts",
+      "server/tests/command-fixes-20261010.test.ts",
+      "server/tests/post-recipe-polish-20261010.test.ts",
+      "src/components/PlayerSidebar.test.ts",
+      "src/components/PullResults.test.tsx",
+      "src/screens/BoxScreen.test.tsx"
+    ],
+    "historicalFailures": [
+      "src/components/PlayerSidebar.test.ts > Player sidebar progression > shows only the objective portrait while preserving its text, watermark and navigation",
+      "src/components/PullResults.test.tsx > PullResults > renders all ten persisted results in server order with a visible five-star",
+      "src/components/PullResults.test.tsx > PullResults > uses a clean full-stage reveal with only Nouveau or capped Cx progression",
+      "src/screens/BoxScreen.test.tsx > real personal Box > prioritizes the icon in detail, falls back to an existing asset and renders no element badge",
+      "tests/chat-owner-recipe.test.ts > Final owner recipe, step 29 > renders safe eligibility reason NOT_FOUND",
+      "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > converts via conv using the same owner, bigint amount, key and authoritative total",
+      "tests/chat-remaining-commands.test.ts > Remaining command aliases and simple presentation > keeps ga gated on standalone and does not call a business service",
+      "tests/command-fixes-20261010.test.ts > Legends exact resolution and privacy > does not use partial character matches and refuses private third-party details",
+      "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on INTERNAL_CHAT",
+      "tests/post-recipe-polish-20261010.test.ts > Shared banner alias > uses one definition and one result on TWITCH"
+    ],
+    "postgres": {
+      "status": "PASS",
+      "tests": 10,
+      "migrations": 80,
+      "scope": "Private schema only; normal Prisma deploy/status; cleanup completed",
+      "globalGachaAndGlobalChatQualified": false
+    },
+    "consent": {
+      "status": "PASS",
+      "tests": 9,
+      "scope": "Explicit private config; source test outside default server include"
+    },
+    "visual": {
+      "states": 66,
+      "formats": 11,
+      "compiledCss": "index-DO6pXzKL.css",
+      "cssSha256": "6f541d23da752ed35f04acd98d03c2177a0b13763a2b733efc28527e5f56f0cf",
+      "synthetic": true,
+      "publicRecipe": false
+    }
+  },
+  "themes": {
+    "implemented": false,
+    "reason": "Centralization condition not met; direct colors, separate CSS and body portals require broad migration"
+  },
+  "review": {
+    "technical": "PENDING independent published SHA",
+    "visual": "PENDING independent published SHA",
+    "documentary": "PENDING independent published SHA"
+  },
+  "production": {
+    "migration080Applied": false,
+    "delivery": "NOT YET PROMOTED; public postflight pending"
+  },
+  "limits": [
+    "10 preexisting full assertions remain",
+    "Expanded Gacha and GlobalChat DB suites not globally qualified",
+    "Header overflow at 430px reproduced identically on baseline and candidate",
+    "No authenticated production flow or human public recipe inferred",
+    "pg client.query concurrency deprecation warning observed in private tests"
+  ]
+}

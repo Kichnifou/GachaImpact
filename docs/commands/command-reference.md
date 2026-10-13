@@ -1,5 +1,10 @@
 # Registre des commandes GachaImpact
 
+## !actif — R1080
+
+Commande canonique !actif sans arguments, alias !act/!active/!actifs/!actives et casse normalisée. Consultation des noms visibles actifs depuis minuit Europe/Paris ; liste vide honnête, tri stable, Unicode et découpage entre noms entiers par transport. Même service PlayerActivityService pour Historique et resolver partagé Chat/Twitch ; pas d'XP ni récompense spécifique, replay par reçus existants. Aucune mention notifiante. Réponse publique : LAST_ACTIVITY PUBLIC seulement et blocs bilatéraux, aucun override propriétaire/FRIENDS ; Twitch exige un témoin TWITCH et ne divulgue pas l'usage privé standalone. Compteurs agrégés tous canaux distincts. [Contrat et couverture](../specifications/player-activity-v1.md).
+
+
 ## Résultats graphiques standalone — R1079
 
 Huit commandes ajoutent une projection optionnelle au texte complet : pull x1/x10 (ordre, portraits, rareté, constellations, nouveauté, gains/coûts/pity/garantie/Capture), team (composition/passifs à la commande), banniere (5★ portraits,4★ texte, période/règles/cible), expedition (état/départ/durée/retour/récompense), legende ciblée autorisée (C6/statistiques), obtention personnelle (statut/rareté/constellation), vote identifié (personnage/tally autorisé), stella (avant/après et résultat).
@@ -462,6 +467,7 @@ Trois de ces scripts ne correspondent pas à une commande player-facing canoniqu
 
 **Amendement Chat R1038 :** Aliases légende/legendes/légendes/leg. Liste personnelle ou tierce entière des C6 5★ actifs ; détail canonique moi/me personnage ou joueur personnage, nom exact. Cinq stats avec thèmes et titres français. Permissions Box pour liste, Box et Statistiques générales pour détail.
 
+<a id="correction-décidée-le-10102026--cible-à-implémenter-défaut-encore-ouvert"></a>
 ### Correction du 10/10/2026 — contrat implémenté
 
 Retour propriétaire : `!legende skirk` renvoie « Joueur introuvable », tandis que `!legende @Kichnifou skirk` et `!legende kichnifou skirk` fonctionnent. Le resolver considère désormais le nom complet exact normalisé du catalogue actif pour le détail personnel, tout en recherchant la cible joueur exacte. L’audit Concours reste acquis.
@@ -678,7 +684,7 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - **Modification :** récompenses/token/type verrouillés après le premier claim
 - **Atomicité :** claim + récompenses dans une seule opération serveur idempotente
 - **Migration :** conserver les douze définitions Event et tous les `usedCodes` sans repayer les anciens claims
-- **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne livrés par R1037 réutilisent ce service. Twitch et l’import legacy `usedCodes` restent non implémentés.
+- **État physique :** écran `#codes`, service de claim, notifications et administration ADMIN implémentés ; consultation et claim Chat interne livrés par R1037 réutilisent ce service. Le resolver partagé dessert aussi Twitch sous autorité NATIVE/GLOBAL ; legacy-code-apply restaure les usedCodes démontrés sans repayer les claims. Le complément enrichi R1057 reste propriétaire des récompenses actuelles.
 
 ### Contrat Chat Codes — étape 29, R1037
 
@@ -919,6 +925,7 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 
 **Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
 
+<a id="correction-ticket-décidée-le-10102026--cible-à-implémenter-défaut-encore-ouvert"></a>
 ### Présentation Ticket post-recette du 10/10/2026 — contrat courant
 
 `✅ réaction P utilise 🎟️ Ticket et remporte... récompense | Reste 💰 solde Moras`. Exemple dynamique : `✅ 🔮 P utilise 🎟️ Ticket et remporte... +800 particules 💧 Hydro (total persisté) | Reste 💰 3 988 521 Moras`. Pour Moras : `💰 remboursement +50 000 Moras`, montant réel. Réactions : Moras 🪙, autres particules 🔮, particules principales 🔥, pity ✨, Primogemmes 💥, fallback 🎉. Prix catalogue conservé (150 000), sans répétition dans ce résultat ; autres achats inchangés.
@@ -941,7 +948,7 @@ Correction de présentation seulement : probabilités, prix, RNG, gains, économ
 - **Résumé des objectifs :** `!mission resume` (résumé/resumé/récap/recap compatibles) affiche toutes les permanentes accessibles non terminées, même non commencées, avec rang/nom/progression. Z verrouillé reste secret ; rien à poursuivre si toutes les accessibles sont terminées. `!mission` affiche seulement les comptes réels par rang et les deux aides. Aucun Défi quotidien consulté.
 - **Bouton UI équivalent :** `Activités > Missions` avec rangs B / A / S / Z ; l’ancienne quotidienne payante est le `Défi` de Quotidiennes
 - **Disponible chat GachaImpact :** oui
-- **Disponible Twitch :** cible oui ; intégration physique non implémentée
+- **Disponible Twitch :** oui via le resolver partagé sous autorité NATIVE/GLOBAL ; les règles de canal restent celles du registre.
 - **Consultation d'un autre joueur :** non via commande ; la visibilité publique passe par le profil standalone
 - **Activation :** aucune ; les missions permanentes progressent automatiquement dès le provisionnement du joueur
 - **Abandon :** supprimé du fonctionnement cible

@@ -1,5 +1,10 @@
 # Étape 29 — couverture des 37 sources de commandes
 
+## Extension postérieure — !actif R1080
+
+La matrice37sources est une preuve historique close de l'étape29. !actif est une extension moderne autorisée le13/10, pas une38e source legacy ni une réouverture de29. Registre partagé/Help, aliases et classification générique Twitch raccordés ; [contrat Activité](../specifications/player-activity-v1.md). Les recettes historiques n'incluent pas cette commande ; nouvelle recette publique au Master.
+
+
 ## Correction de review et exploitation silencieuse
 
 [R1049/R1050](../specifications/decisions-log.md) : un profil migré/récupéré n'a aucun gate de niveau/élément pour exister ; les commandes nécessitant un élément gardent leurs owners. Ni remappage de nom ni reset du profil ; NULL réel accepté, typo bloquée. R1048/provisioning/receipts/outbound partagés conservés ; unlink opérateur exige OFF explicite avant toute suppression.

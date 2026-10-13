@@ -1,5 +1,12 @@
 # GachaImpact — Architecture backend V1
 
+## Propriétaire Activité — R1080
+
+PlayerActivityRecorder écrit dernières dates et témoin quotidien dans la transaction existante. PlayerActivityService possède les lectures Historique/commandes communes ; HistoryService expose la catégorie activity via la route authentifiée existante. Tables privées RLS/grants, snapshot nominatif RepeatableRead, filtrage public LAST_ACTIVITY et provenance Twitch distincte ; [contrat et limites](../specifications/player-activity-v1.md). Inventaires FK/claim/consentement classifiés sans lancer de migration historique.
+
+Les chapitres de pilotes, micro-polish R1047, états OFF/Streamer.bot et recettes encore futures décrivent leurs checkpoints datés. Ils ne remplacent pas [GLOBAL R1064](twitch-global-r1064.md) ni le [Master](../master/PROJECT_MASTER_PLAN.md) actuel ; aucune réactivation/replay implicite de ces anciennes prochaines actions.
+
+
 ## Présentation standalone et Badges — R1079
 
 AppearanceService équipe BADGE sous verrou Player ACTIVE et validation type/activité/externalKey/symbole. Dix définitions disponibles universellement en lecture sans possessions/notifications nouvelles. PATCH /api/v1/me/appearance accepte BADGE, ACK consulted reste AVATAR/TITLE. CurrentPlayer expose badgeSymbol ; Chat joint le badge courant dans sa lecture de liste, sans requête par message ni réécriture historique. [Contrat](../specifications/profile-appearance-v1.md).
@@ -122,6 +129,7 @@ PrismaTwitchPlayerStore sérialise le nouvel ID par advisory lock et verrou part
 La CLI ciblée partage le mapper et applyLegacyPersonalState ; compareLegacyPersonalState vérifie les états persistés avant DATA_IMPORTED. Sauvegarde et restauration des lignes ciblées utilisent les FK PostgreSQL et les valeurs JSON textuelles pour conserver BigInt/timestamps. Les référentiels et faits partagés ne sont pas purgés par le canary. Aucun endpoint HTTP d'application canary. Migration 061 présente, non appliquée publiquement dans ce lot.
 
 
+<a id="bridge-twitch-natif-complet-r1047--promu-techniquement-sur-main"></a>
 ## Bridge Twitch natif complet R1047 — noyau partagé promu, ancien gate supplanté par R1048
 
 Le dispatcher Chat conserve sa responsabilité de transport (message joueur, modération, résultats et refresh). Son switch Player est extrait dans `application/chat/player-command-resolver.ts` ; il utilise `PlayerCommandContext` pour la mémoire d’intention, les mêmes helpers/services/presentations et `parseChatCommand`. Twitch appelle ce résolveur directement, sans façade GlobalChat ni faux subject ; `PlayerExecutionActor` opaque est créé uniquement après résolution/autorisation du Player par User ID immuable.
@@ -194,6 +202,7 @@ R995–R998 : `AdminAuditQueryService` calcule pagination dix ; `admin-audit-pre
 
 Les routes `/api/v1/moderation/**` ajoutent des services spécialisés `RoleAdminService`, `CharacterAdminService`, `PossessionAdminService`, `BannerAdminService`, `EventAdminService`, `GlobalChatModerationService` et `AdminAuditQueryService`. `AdminOperation` centralise l'identité serveur, la revalidation du rôle dans la transaction sérialisable, l'idempotence `BusinessOperation` et `AdminAuditEntry`. Les rôles prennent un verrou advisory global pour garantir qu'un ADMIN actif subsiste sous concurrence ; la correction de bannière prend le verrou du scheduler/vote `70422401`. Aucune nouvelle table ou migration n'est nécessaire. Les DTO du Journal masquent les champs de secrets côté serveur avant transport. Les mutateurs restent sous authentification et autorisation réelle, jamais sous confiance du frontend. La [spécification Administration V1](../specifications/administration-moderation-v1.md) précise les opérations et limites ; les anciennes descriptions de la seule gestion TESTER sont supersédées par R959–R969.
 
+<a id="giveaway--wish-natif--pilote-r947-valide-publiquement"></a>
 ## Giveaway / Wish natif — pilote R947 validé publiquement
 
 `GiveawayService` est le core commun aux routes privées Modération et au consumer Twitch spécialisé. Une transaction PostgreSQL `SERIALIZABLE`, verrou advisory global, reçus de commandes et contraintes uniques portent ouverture, `!wish`, comptage et fermeture. La fermeture choisit un gagnant éligible, calcule les rangs de compétition, crée les opérations et crédits économiques, statistiques, preuves de récompense et notifications agrégées, puis fige la session et prépare deux annonces distinctes. Un échec avant commit annule l'ensemble. Les replays ne créditent pas une seconde fois. Le reroll natif est absent.

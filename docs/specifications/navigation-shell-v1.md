@@ -1,5 +1,12 @@
 # Navigation et shell V1
 
+## Historique > Activité et taille Communauté — R1080
+
+Historique ajoute la catégorie typée activity aux cinq catégories existantes, au sérialiseur/allowlist navigateur et à HistoryScreen. Même destination principale, pile des dix destinations et règles F5 ; aucun UUID/fil/action restauré. Les cinq vues du Tutoriel existant ne changent pas de chapitre ; la vue activité est reconnue par l'écran réel sans étape ajoutée. Contrat [Activité](player-activity-v1.md).
+
+Agrandir/Réduire demande maintenant le bas du fil Chat/MP affiché, sans navigation, remount du jeu ou changement de conversation. Ce clic supersède la conservation du point de lecture R1079 ; largeur navigateur sous1000px et neutralisation Tutoriel conservent leur contrat.
+
+
 ## Complément Chat/Badges — R1079
 
 Les flèches existantes sont seulement descendues verticalement ; géométrie horizontale, droits et historique inchangés. Personnalisation ajoute BADGE à AVATAR/TITLE dans la même pile typée, propriétaire seul.
@@ -18,7 +25,7 @@ Inventaire des chemins réels :
 - Profil : Aperçu / Team active / Box / Collection / Statistiques / Missions / Personnalisation ; Missions B/A/S/Z ; Personnalisation Avatars/Titres/Badges, propriétaire seul.
 - Configuration : Menu / Confidentialité / Compte ; Social : Amis / Demandes / Joueurs.
 - Modération : Système / Personnages / Codes / Bannières / Événements / Communauté / Giveaway / Audit, selon capacités ; Personnages : Catalogue / Possessions / Imports et candidats ; Communauté : Chat / MP.
-- Sac : Tout / Ressources / Objets / Collection ; Historique : Invocations / Bannières / Événement / Banque / Boutique ; Échanges : Partenaires / Reçues / Envoyées / Historique.
+- Sac : Tout / Ressources / Objets / Collection ; Historique : Invocations / Bannières / Événement / Banque / Boutique / Activité ; Échanges : Partenaires / Reçues / Envoyées / Historique.
 - Classements : Progression / Gacha / Ressources / Collection / Activité (métrique et page exclues).
 - Panneau Communauté persistant : Chat / MP ; MP : Conversations / Archives. Un fil, nouveau message, historique de fil, recherche et menu ne sont jamais des destinations.
 

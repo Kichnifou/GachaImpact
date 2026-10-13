@@ -1,5 +1,12 @@
 # Politique de rétention V1
 
+## Activité quotidienne — R1080
+
+PlayerDailyActivity/ActivityCoverage entrent dans les inventaires personnels/techniques. Aucune purge d'ancienneté décidée pour ce domaine, conformément à la règle des domaines non cités ; aucune purge, backfill ou réimport lancé. Quatre témoins booléens par Player/jour, pas d'horaires individuels ni texte. Archives conservées/protégées et noms archivés exclus des sorties ; toute future suppression exige de préserver couverture/indisponible et statistiques honnêtes. [Contrat Activité](player-activity-v1.md).
+
+Les sections Twitch pilote ci-dessous conservent les preuves de leurs lots. « Sans activation » et « future passe finale » se rapportent à ces checkpoints historiques ; l'autorité GLOBAL actuelle et ses producteurs sont décrits dans [R1064](../architecture/twitch-global-r1064.md) et le Master.
+
+
 Statut : **décisions propriétaire validées R943–R945**. Source canonique des durées de conservation/purge et de leurs exemptions. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l'état vivant ; les autres documents renvoient ici sans recopier la matrice.
 
 ## Durées décidées

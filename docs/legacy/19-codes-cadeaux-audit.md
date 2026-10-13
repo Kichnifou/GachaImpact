@@ -1,5 +1,10 @@
 # 19 — Audit Codes cadeaux
 
+## Qualification des compléments de pré-release — 13/10/2026
+
+Les blocs « complément futur/non implémenté R1057 » et les formulations de passation du08/10 conservent leur statut **historique**. Le moteur enrichi est depuis implémenté/déployé et sa recette CADEAU_PHASE1 rapportée : [propriétaire R1057](../architecture/gift-code-enriched-r1057.md). L'import usedCodes est physique, sans nouveau paiement historique. Le tirage mensuel R1053 est implémenté ; son premier tirage naturel01/11/2026 à00:00 Europe/Paris reste une observation future distincte, jamais simulée. L'audit legacy clos et ses décisions ne sont pas réécrits rétroactivement.
+
+
 <a id="extension-codes-r1057"></a>
 
 **Extension future R1057, confirmée à la passation du 08/10/2026 — non implémentée :** immédiatement après stabilisation silencieuse, étendre Modération > Codes avec quantités configurables de Masterless Stella Fortuna, Points Event et monnaie de l'édition courante. Édition active ET inscription existante requises pour points, monnaie et paliers Event ; sinon seuls les autres gains indépendants du code sont crédités. Aucune inscription automatique. Tous les paliers nouvellement franchis sont crédités sans présentation supplémentaire. [R1057](../specifications/decisions-log.md#codes-enrichis-r1057) possède les règles d'économie, transactions, concurrence, claims et idempotence : atomicité/anti-double-attribution, extension du moteur existant. Ce complément précise les nouveaux types autorisés pour le futur lot seulement, sans décrire une capacité physique actuelle. [Ordre de livraison](../roadmap/implementation-order-v1.md#complements-prerelease-20261008).

@@ -1,5 +1,10 @@
 # Catalogue Character et assets — R1051
 
+## Lecture des états datés — audit du13/10/2026
+
+Les anciens états « publicationOFF/suiviOFF à la clôture » et « implémentation future » ci-dessous décrivent les lots initiaux. La mise en service du11/10 et la politique progressive livrée R1066–R1077 les supersèdent, sans réouvrir les120 historiques protégés. Mitya/Valeriy ne sont pas présumés convergés/publiés : seul le Master porte la dernière observation réelle. Les gates sources/identité/rareté/élément/fenêtre demeurent obligatoires ; aucun nouveau Character ni collecte forcée dans R1080.
+
+
 ## Complément de finition — audit du 12/10/2026
 
 L'audit du chemin collect→qualification→progressiveEligibility→publication normale confirme que PROVISIONAL_CONSENSUS autorise déjà rareté/élément sous les autres gates ; arme non bloquante, disponibilité officielle J-7 ou jouable attestée toujours requise. Tests PostgreSQL privés d'activation normale et suivi après publication conservés. Aucun nouveau raccourci économique, aucune réouverture des 120 historiques. Après activation, collecte des éléments ouverts maintenue ; confirmation officielle concordante remplace la preuve, contradiction rareté/élément comparée au Character actif, preuves conservées/notification ADMIN, sans réécriture rétroactive.

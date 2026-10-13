@@ -1,10 +1,15 @@
 # Migration legacy V1 — contrat canonique
 
+## Statut des preuves et nouveau domaine Activité
+
+Les états OFF/autorité Streamer.bot et prochaines gates des checkpoints datés ci-dessous sont historiques. [R1064 GLOBAL](twitch-global-r1064.md) porte le contrat courant ; Master/runbook portent seuls les opérations déjà appliquées. Ne pas rejouer31A/31B. R1080 classe player_daily_activity dans les propriétaires personnels et activity_coverage dans les tables préservées, avec exception APPLICATION-only exacte pour consentement/disposable ; aucun import/purge/fusion n'est lancé. [Contrat](../specifications/player-activity-v1.md).
+
+
 <a id="reprise-ciblee-readiness-20261009"></a>
 
 ## Reprise ciblée des joueurs historiques — contrat du 09/10/2026
 
-Ce contrat encadre la remise en service de la population historique exacte de 43 identités approuvées, avec Kichni_Test conservé séparément. Le manifeste historique fixe les membres par Twitch User ID vérifié ; un changement d'élément, de pseudo ou du snapshot récent ne recalcule jamais cette population. Les quatre profils déjà NATIVE sont relus et préservés, sans comparaison de leur progression actuelle au JSON ancien ni nouvel import. GLOBAL reste désactivé. La reprise a été appliquée le 09/10 au SHA approuvé `c60873af`, avec restrictions secondaires maintenues ; l'état d'application réel appartient au [Master](../master/PROJECT_MASTER_PLAN.md) et l'exécution au [runbook](../process/legacy-cutover-runbook.md). Les checkpoints datés ci-dessous conservent leur valeur historique et n'autorisent aucun réimport des profils maintenant NATIVE.
+Ce contrat encadre la remise en service de la population historique exacte de 43 identités approuvées, avec Kichni_Test conservé séparément. Le manifeste historique fixe les membres par Twitch User ID vérifié ; un changement d'élément, de pseudo ou du snapshot récent ne recalcule jamais cette population. Les quatre profils déjà NATIVE sont relus et préservés, sans comparaison de leur progression actuelle au JSON ancien ni nouvel import. Au checkpoint de reprise du09/10, GLOBAL restait désactivé. Ce constat historique est supersédé par [GLOBAL R1064](twitch-global-r1064.md), sans autoriser de réimport. La reprise a été appliquée le 09/10 au SHA approuvé `c60873af`, avec restrictions secondaires maintenues ; l'état d'application réel appartient au [Master](../master/PROJECT_MASTER_PLAN.md) et l'exécution au [runbook](../process/legacy-cutover-runbook.md). Les checkpoints datés ci-dessous conservent leur valeur historique et n'autorisent aucun réimport des profils maintenant NATIVE.
 
 `legacy-recovery.ts` valide population, preuves historiques et rapport Twitch frais, puis compose le propriétaire canary existant pour chaque profil absent. Un profil incohérent est bloqué individuellement ; il ne justifie ni purge globale, ni remplacement d'un Player existant. L'import personnel, les faits complémentaires, `TwitchCanaryImport` et le marqueur de reprise sont atomiques. Un retour perdu se reprend depuis ces preuves et la sauvegarde durable, sans rejouer l'import.
 

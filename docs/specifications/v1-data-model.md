@@ -1,5 +1,10 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Activité quotidienne — R1080
+
+PlayerDailyActivity est un fait minimal durable unique Player/jour Europe/Paris : quatre témoins APPLICATION/GAMEPLAY/INTERNAL_CHAT/TWITCH, sans horaire individuel. ActivityCoverage porte le début réel de collecte. PlayerActivityState reste propriétaire des dernières dates. Aucun backfill ni source économique concurrente ; agrégats historiques et liste nominative publique filtrée sont distincts. Archives, confidentialité et consentement suivent le [contrat spécialisé](player-activity-v1.md) ; migration additive080, application publique non déduite du schéma.
+
+
 ## Badges et reçus graphiques standalone — R1079
 
 CosmeticType ajoute BADGE ; dix définitions externalKey/symbole fixes sans Character source/asset. Player.equippedBadgeCosmeticId nullable et indépendant d'Avatar/Titre. Disponibilité universelle dérivée sans PlayerCosmetic/regrant/notification/date inventée. Identité personnelle et Chat projettent badgeSymbol courant validé, sans copie dans les messages anciens. [Contrat Apparence](profile-appearance-v1.md).
@@ -77,7 +82,7 @@ comparedState version 1 sépare presentation (résumés affichés), fingerprints
 
 PlannedPlayer.elementKey / faits personnels = ElementKey | null, comme Player déjà nullable ; niveau/XP ne conditionnent pas import/claim. ABSENT_ELEMENT et INVALID_ELEMENT sont distincts, avec erreur explicite pour l'invalide. Même Player/WebIdentity/ressources/progression après récupération, puis choix normal si null. [R1049](decisions-log.md) et [guide](../process/twitch-native-foundations.md).
 
-Besoins futurs [R1052/R1053](decisions-log.md) : projeter PlayerCosmetic.unlockedAt dans le DTO Personnalisation pour date/tri/nouveautés, sans nouvelle table si possible ; persister le résultat unique du tirage mensuel par EventEdition avec preuve/récompense/notifications transactionnelles. Ces évolutions DTO/schéma ne sont pas implémentées dans cette correction. Le Player NATIVE Twitch-only est le compte réel pendant l'exploitation silencieuse R1050 ; WebIdentity demeure facultative jusqu'au rattachement.
+Le cadrage initial R1049 reportait [R1052/R1053](decisions-log.md). Depuis : AppearanceService projette unlockedAt fiable/null et la consultation durable de PlayerCosmetic (migration076), avec date/tri/recherche/nouveautés ; EventMonthlyDraw persiste le résultat unique par édition avec preuve/récompense/notifications transactionnelles (migration069). Le premier tirage naturel prévu au01/11/2026 à00:00 Paris reste à observer ; présence du code ne constitue pas cette observation. Le Player NATIVE Twitch-only est le compte réel pendant l'exploitation silencieuse R1050 ; WebIdentity demeure facultative jusqu'au rattachement.
 
 ## Fondations Twitch pré-cutover — R1048
 

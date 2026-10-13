@@ -1,5 +1,16 @@
 # Journal des décisions validées
 
+## R1080 — corrections post-recette R1079, Activité et audit global (13/10/2026)
+
+**VALIDÉ PAR LE PROPRIÉTAIRE dans le mandat du 13/10.** Chat standalone : contexte de réponse avant le flux heure/badge/pseudo/texte, essai sans séparateurs, clic volontaire Agrandir ET Réduire au vrai bas du fil affiché, brouillon et conversation conservés. Cette dernière règle supersède le maintien du point de lecture R1079 pour ces clics seulement ; polls, rerenders et resize navigateur ne sont pas des demandes de retour au bas. MP interne inchangé hors ce comportement. Tombstones et texte masqué restent protégés.
+
+Équipe : contraindre la grille dans la colonne du GameShell, quatre slots et pagination des dix Teams conservés ; portrait carré utile au contact du nom, sans cover/zoom/rognage ni changement des assets ou variantes Sidebar/Invocation. Le propriétaire de scroll permet d'atteindre les lignes et actions à faible hauteur.
+
+Activité : [contrat canonique](player-activity-v1.md), recorder existant, une ligne Player/jour Paris, couverture durable à partir de migration080 sans passé inventé, Historique > Activité et !actif/!act/!active/!actifs/!actives. Agrégats tous canaux distincts des listes publiques filtrées LAST_ACTIVITY/blocs ; Twitch exige un témoin TWITCH et ne divulgue pas l'usage privé web. Aucun bonus XP, économie ou import nouveau.
+
+Thèmes autorisés uniquement si centralisation raisonnable démontrée. Audit borné :1356 lignes de couleurs directes dans App.css, douze autres feuilles, décoration/sémantique mêlées et portails body. Condition non remplie ; **thèmes volontairement non implémentés**, aucun bouton ni demi-thème. Palette actuelle conservée. Grand audit documentaire daté, cycle review indépendante → main FF strict → déploiements/postflight déjà autorisé ; aucun GO générique supplémentaire. La validation humaine après livraison reste distincte. [Matrice de la passe](../architecture/evidence/documentation-audit-20261013.md).
+
+
 ## R1079 — Chat standalone compact, Communauté agrandie, Badges et huit résultats graphiques (12/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE**, mandat ouvert depuis72724a3 : A déplace uniquement verticalement les flèches existantes ; B remplace les avatars répétés du Chat global par Heure / Badge décoratif / Pseudo cliquable / Message, avec couleurs élémentaires et actions préservées ; C agrandit toute la Communauté, Chat et MP, en conservant header/sidebar et les instances du jeu. Le contenu interne des MP conserve son rendu.

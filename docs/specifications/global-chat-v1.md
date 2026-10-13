@@ -1,10 +1,17 @@
 # Chat global V1 — contrat produit
 
+## Amendement post-recette — R1080
+
+Le contexte secondaire « En réponse à @Pseudo : extrait » précède l'ensemble heure/badge/pseudo/message, pour PLAYER comme GAME_RESULT/SYSTEM. Projection publique minimale replyAuthor, jamais extraite du texte ; cible supprimée : identité null et Message supprimé. Le texte d'un auteur masqué n'est pas révélé via l'aperçu d'un autre message. Essai autorisé sans traits entre lignes globales ; limites du panneau, onglets, saisie, cartes graphiques et MP conservées.
+
+Le clic volontaire Agrandir ET Réduire rejoint le vrai bas après application de la géométrie, sans recharger un historique déjà disponible. Même conversation/brouillon et jeu monté ; une page ancienne en vol ne rétablit pas son ancre après ce clic. Une image retardée peut achever le placement tant que le lecteur n'interagit pas. Pas de scroll forcé au poll, rerender, resize navigateur ou changement de préférence ordinaire. MP applique la même demande explicite au fil ouvert sans changer son rendu ni acquitter un fil caché. **Supersède uniquement la conservation de lecture R1079 lors de ces deux clics.** Les preuves R1079 demeurent historiques. [Activité/commande](player-activity-v1.md).
+
+
 ## Présentation standalone — R1079
 
 Le flux global utilise des lignes compactes Heure / Badge courant / Pseudo : Message. Aucun portrait répété ; couleurs élémentaires, clic Profil, URL, mentions, réponse/aperçu, copie, signalement, masquage, suppression, historique, non-lus, rythme d'envoi et confirmation optimiste sont préservés. Le système utilise un symbole astral discret et GachaImpact vert. Les résultats, mentions et suppressions restent visuellement distincts. Aucun changement de présentation interne des MP.
 
-Le bouton accessible Agrandir/Réduire représente deux flèches diagonales, immédiatement avant Replier. À largeur>=1000px, toute la Communauté occupe l'espace du jeu avec sidebar/header conservés. Le jeu reste monté, masqué, sans changement de destination ni action au retour. Préférence locale par Player, F5/reconnexion/repli conservés ; sur écran étroit, le choix reste stocké mais l'agrandissement est neutralisé. La navigation explicite vers un écran ou profil révèle le jeu. Les instances Chat/MP, brouillons, réponse, conversation, caches et défilement sont conservés.
+Le bouton accessible Agrandir/Réduire représente deux flèches diagonales, immédiatement avant Replier. À largeur>=1000px, toute la Communauté occupe l'espace du jeu avec sidebar/header conservés. Le jeu reste monté, masqué, sans changement de destination ni action au retour. Préférence locale par Player, F5/reconnexion/repli conservés ; sur écran étroit, le choix reste stocké mais l'agrandissement est neutralisé. La navigation explicite vers un écran ou profil révèle le jeu. Les instances Chat/MP, brouillons, réponse, conversation et caches sont conservés. Le défilement suit désormais R1080 lors du clic Agrandir/Réduire ; la conservation antérieure du point de lecture est historique.
 
 `GAME_RESULT.resultPresentation` est facultatif, version1, avec commande et provenance INTERNAL_CHAT/commandMessageId/operationId éventuel. Clés fermées à tous les niveaux ; au plus10 personnages et24 faits bornés, IDs/noms/portraits officiels/rareté/constellations/état nouveau seulement. Aucun Player DTO, instruction d'exécution, token ou donnée privée. La projection n'est renvoyée que sur un résultat actif lié à sa commande ; suppression masque aussi le JSON. Données inconnues/anciennes : texte existant sans carte.
 

@@ -124,6 +124,8 @@ Les services métier restent indépendants du canal qui les appelle.
 
 ## Phase G — Intégration Twitch
 
+La trajectoire R942 ci-dessous est historique : le transport, les commandes et l’autorité GLOBAL ont depuis été livrés dans leur périmètre sous [R1064](../architecture/twitch-global-r1064.md). Ne pas replacer leur implémentation parmi les travaux obligatoires. Stabilisation/recettes et révélation restent distinctes au Master.
+
 Twitch devient un canal optionnel supplémentaire vers les mêmes services métier que l'UI et le chat GachaImpact.
 
 Selon R939–R942, les chats peuvent rester deux flux distincts sans mirroring obligatoire. La cible reçoit tous les messages Twitch en mémoire pour classification légère et XP/cooldown global partagé, puis parser/services seulement si nécessaires. Après validation du transport pilote 2B-2, mettre en pause l'intégration avancée et poursuivre les domaines V1 suivants, dont Faveur. La passe finale Twitch intervient après les domaines prioritaires, selon [la séquence V1](implementation-order-v1.md).

@@ -1,5 +1,10 @@
 # Personnalisation du profil V1
 
+## Étude des thèmes — 13/10/2026
+
+Le mandat conditionnait les thèmes à une centralisation raisonnable démontrée. L'audit CSS/portails conclut que les tokens actuels ne suffisent pas sans migration générale dispersée :1356 lignes de couleurs directes App.css et douze autres feuilles, états métier mêlés à décoration. Aucune implémentation de thème ni préférence supplémentaire ; palette actuelle et apparence métier conservées. Le constat est une limite de ce périmètre, pas une interdiction définitive. Preuve datée au [grand audit](../architecture/evidence/documentation-audit-20261013.md).
+
+
 Le propriétaire unique est AppearanceService. Profil > Personnalisation est réservé au propriétaire et propose Avatars / Titres / Badges. Les règles antérieures d'avatars possédés, de titres de niveaux et de consultation R1052 restent celles du [modèle](v1-data-model.md) et de [l'architecture](../architecture/backend-architecture-v1.md).
 
 ## Badges décoratifs — R1079

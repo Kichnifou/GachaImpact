@@ -187,6 +187,7 @@ Après approbation, mission suivante : refs/ancestry/worktree et protections pub
 
 Seulement après préflight entièrement PASS : TWITCH_ONLY vers B distinct, A significatif intact, rehearsal/backup/comparaison/rollback exacts, puis import B DATA_IMPORTED/LEGACY/non-canary et vérification complète. La demande humaine Configuration > Compte > Lier Twitch attend toujours B vérifié ; aucun OAuth anticipé ni choix automatique. OFF11/flag false/trois NATIVE/backups/imports/réparations restent acquis au dernier contrôle public, sans action nouvelle dans ce lot. Streamer.bot OFF, aucun batch/GLOBAL/replay/recovery. Dette Supabase après migration inchangée.
 
+<a id="point-courant--r1055-déployé--ceo-stop-aux-références"></a>
 ## Historique — R1055 déployé ; Ceo STOP aux références
 
 [Résultats et reprise exacte](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008). Code fccd0d6 approuvé indépendamment, promu dans 92d6389 par fast-forward ; refs 0/0/worktree propre et vrais diff/blobs GitHub contrôlés. Railway 9cc159c7 et Cloudflare cc6b91c9 SUCCESS sur ce SHA exact, health 200/Prisma 62, OFF11/flag false et trois canaries/imports/backups/cosmétiques/deux réparations exacts. Les contrôles du checkpoint documentaire qui porte ces résultats sont distincts, sans nouveau code produit ni redéploiement manuel.
@@ -195,6 +196,7 @@ Préflight réel unique READ ONLY après déploiement stable : 17 sources/Helix 
 
 Fermeture finale READ ONLY 08:02 UTC PASS : zéro connexion Ceo/verrou/transaction longue/idle, 62 migrations/zéro incomplète, OFF11/flag false, trois imports/identités/deux réparations exacts, A Web-only intact et B/TwitchIdentity/target/import/OAuth absents. Échecs intermédiaires de fermeture conservés au Master ; aucune écriture. Reprise : diagnostic privé ciblé du coût des evidenceQueries à 55 tables, conservation du contrat R1055, review indépendante de toute nouvelle modification sensible ; ensuite seulement préflight complet et chemin B séparé ci-dessous. Aucune liaison humaine maintenant. Streamer.bot OFF ; GLOBAL/batch/replay interdits. Dette Supabase après migration inchangée.
 
+<a id="point-courant--candidat-r1055--ceo-stop-pour-review-indépendante"></a>
 ## Historique — candidat R1055 ; gate de review indépendante
 
 **Mise à jour d’autorité :** review indépendante fccd0d6aa1814fe1c6e645c7aa6266f21f23ae5b APPROUVÉE, aucun finding bloquant. [Promotion et gates courantes](../master/PROJECT_MASTER_PLAN.md#r1055-promotion-ceo-20261008). La gate de review décrite ci-dessous est acquise ; promotion/déploiements exacts et un nouveau préflight Ceo instrumenté sont autorisés. Import B seulement après préflight complet + rehearsal/backup/comparaison/rollback exact. Tout 57014/OPERATOR_REQUIRED/instabilité impose STOP ; aucune liaison humaine avant B vérifié. Aucun test complet distant répété ni configuration modifiée.
@@ -304,6 +306,7 @@ Backup v2 : préimage complet, plan de rétention explicite/hashé, durable avan
 
 **Kichni_Test COMPLET** : migration/NATIVE, commandes Twitch et récupération automatique Web neuf/F5/reconnexion validées par le propriétaire. Ne plus toucher gameplay/import/identités. Double-clic OAuth promu/déployé à `62eee0f`, gates exacts acquis. Contrôle public frais READ ONLY Mynonyme : même Player standalone ACTIVE/PYRO/WebIdentity/Auth, une TwitchIdentity unique, XP 52/messages 78, gameplay et relations strictement conservés ; seules identité Twitch/session/activité technique changent, aucun target/import/comparaison. Kichni_Test conservé exactement, seule NATIVE/canary ; contrôle CANARY révision 4. [Preuves et prochaine étape au Master](../master/PROJECT_MASTER_PLAN.md). Streamer.bot OFF, GLOBAL interdit.
 
+<a id="gate-1--liaison-mynonyme-après-déploiement"></a>
 ### Mynonyme et Kichnifou — import sur le Player déjà lié
 
 Après déploiement du petit texte UI : capture fraîche des 17 JSON figés, dossier ignoré/manifest/hashes/coverage 17/17/unknown=0. Une seule capture peut servir aux trois comptes si les mêmes sources restent figées et Streamer.bot OFF pendant cette fenêtre ; jamais automatiquement snapshot GLOBAL. Résolution Helix fraîche ciblée, preuve finale User ID immuable cohérente avec la TwitchIdentity OAuth, expectedPlayer exact. Aucun nouvel OAuth Kichnifou si cette identité est vérifiable ; jamais rapprochement final par pseudo. Plan obligatoirement EXISTING_VERIFIED_TWITCH, TWITCH_ONLY → STOP.
@@ -430,6 +433,7 @@ npm.cmd run migration:legacy:rehearse -- ../local-data/streamerbot-snapshots/202
 
 Le scan ignore les fichiers découverts invalides ; un rapport antérieur explicitement fourni et invalide fait échouer la commande. Ne pas retoucher la date, ajouter un marqueur ou compléter manuellement une ligne pour rendre un fichier admissible. Un rapport historique n'est pas directement une entrée fraîche d'import. Aucune recherche personnelle approximative ; les détails opérateur restent uniquement dans les fichiers ignorés, et les sorties de résolution partagées sont limitées aux quatre compteurs.
 
+<a id="continuation-après-review-indépendante--05102026"></a>
 ### Historique — continuation après review de eeca318 — 05/10/2026
 
 Baseline review eeca318, main 32bf76d, divergence 1/0 et propre. Credentials vérifiés présents/non vides seulement ; server/.env ignoré, aucun secret lu dans les sorties ou copié. Même capture/hash du 04/10 contrôlé par le loader : 17 sources/0 inconnu et 45 profils éligibles.
@@ -502,6 +506,7 @@ La recette future doit aussi distinguer le viewer métier de la chaîne/receiver
 
 **Deux !pull identiques :** les preuves locales baseline/R1047 passent pour deux vrais IDs distincts, puis replay sans doublon. La cause live n’est pas prouvée ; regarder les IDs Twitch et EventSub/HMAC/observer si l’observation revient, sans fabriquer un message manquant ou ajouter un espace côté serveur. Non bloquant ; workaround utilisateur actuel accepté. Les nouvelles clés incluent broadcaster/message ID ; les anciennes réponses restent reprenables, un ancien receipt non engagé sans intent appelle un contrôle opérateur.
 
+<a id="recette-propriétaire-après-déploiements-vérifiés"></a>
 ### Recettes propriétaire à prévoir
 
 - **R1044 :** laisser GachaImpact ouvert, muter via Twitch, revenir sur l’onglet et vérifier ressources/Gacha/Box/progression sans F5 ; aucun double feedback.
@@ -510,6 +515,7 @@ La recette future doit aussi distinguer le viewer métier de la chaîne/receiver
 - **R1046 :** scénario privé Player Twitch-only + WebIdentity neuve → claim réussi et état complet retrouvé ; scénario Player web non vide → blocage sans fusion.
 - **31A :** Ceo conserve son Player standalone existant et joue via les deux canaux sur ce même état ; mêmes syntaxes/résultats, aucun doublon, rollback et autorité unique après les canaries précédents.
 
+<a id="gate-distinct--futur-pilote-réel-kichnifou-only-r1040-non-exécuté"></a>
 ## Historique — gate pilote Kichnifou-only R1040/R1042 (désormais exécuté)
 
 Séquence historique **30 clôturée R1041 → pilote transport/commandes Kichnifou-only → 31A Ceo → 31B batch → 32**, désormais complétée par R1050/R1054 en tête du runbook. R1042 préparait le **CANDIDAT TECHNIQUE À REVIEW, NON ACTIVÉ** sur review seulement. Les étapes ci-dessous conservent la procédure de cette mission passée ; elles ne sont pas la reprise courante. Streamer.bot demeure autoritatif hors périmètres explicitement transférés.

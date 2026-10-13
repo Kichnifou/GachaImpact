@@ -8,7 +8,7 @@ Menu > Aide ouvre un portal sur document.body avec le pattern floating-panel et 
 
 Header, recherche, navigation et footer sont fixes. .help-guide-body possède le seul overflow-y:auto ; desktop au plus 1080×800, borné au viewport, navigation horizontale compacte sur mobile. AppButton et ModalCloseButton communs conservent leurs états focus/disabled et leur apparence sombre.
 
-Démarrage présente élément, Accueil, Quotidiennes, Invocation, Box/Équipe, Sac/Banque/Boutique, Social, Événements et Tutoriel. Systèmes contient huit cartes fonctionnelles avec leurs points d’entrée réels. Commandes reprend seulement les 32 racines PLAYER/READY du Chat interne dans chat-command-metadata.ts ; Twitch sépare !wish et !giveaway stats, Faveur/subscriptions et Gift Suprême/récompense de chaîne. Aucun Admin, !xp, !gift, !subscription ou !mp joueur inventé.
+Démarrage présente élément, Accueil, Quotidiennes, Invocation, Box/Équipe, Sac/Banque/Boutique, Social, Événements et Tutoriel. Systèmes contient huit cartes fonctionnelles avec leurs points d’entrée réels. Commandes reprend seulement les 33 racines PLAYER/READY du Chat interne dans chat-command-metadata.ts ; Twitch sépare !wish et !giveaway stats, Faveur/subscriptions et Gift Suprême/récompense de chaîne. Aucun Admin, !xp, !gift, !subscription ou !mp joueur inventé.
 
 La recherche locale normalise casse et accents et parcourt titres, descriptions, accès, catégories, racines et syntaxes ; elle couvre toutes les rubriques, avec un état vide honnête. Aucune API Help, copie de logique métier, prix/taux/formule ou donnée secrète. Le registre de présentation pur est compilé côté serveur et Vite ; le dispatcher et le Help texte consomment la même autorité de canaux/syntaxes/résumés.
 

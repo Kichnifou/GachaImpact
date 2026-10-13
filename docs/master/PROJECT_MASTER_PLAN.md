@@ -1,6 +1,32 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-## Point courant — refonte Chat standalone R1079 du12/10/2026
+## Point courant — R1080, corrections Chat/Équipe et Activité, 13/10/2026
+
+Mandat post-recette : A réponses Chat/contexte au-dessus, sans séparateurs, retour au bas aux clics Agrandir ET Réduire ; B contraintes Équipe et portraits au contact du nom ; C historique quotidien fiable + !actif/aliases ; D thèmes strictement conditionnels ; E audit documentaire global ; F cycle complet review indépendante → mainFF strict → Railway/Pages → postflight déjà autorisé. [R1080](../specifications/decisions-log.md#r1080--corrections-post-recette-r1079-activité-et-audit-global-13102026), [Activité](../specifications/player-activity-v1.md), [matrice globale](../architecture/evidence/documentation-audit-20261013.md).
+
+Baseline exacte **c4a444c89e8b86cd152b00284e8bed61b133987e**, main/review/origins identiques0/0, arbre propre après fetch au bootstrap. Code qualifié localement **eb223045ba1adecbd108848eaeb8d3640727fd4a**, sur review locale ; main et les deux branches distantes restent au baseline à ce relevé. Aucun travail AssistantIA/Story/ancien checkout écrasé. Phase : pré-release silencieuse, autorité Twitch NATIVE/GLOBAL conservée, aucun mirroring/texte Twitch existant/économie/import nouveau. Le propriétaire rapporte R1079 « presque parfait » et fournit les six captures : satisfaction générale et retours ciblés acquis, aucune recette exhaustive déduite.
+
+A/B/C implémentés et qualifiés localement. Retour au bas explicite supersède précisément R1079 sur agrandir/réduire ; polls/resize ordinaires exclus, mêmes brouillons/conversations/jeu. Équipe sans ratio de largeur intrinsèque, portraits carrés sans cover/zoom, scroll propre à faible hauteur, quatre slots/dix positions/actions conservés. Activité : recorder actuel, unicité Player/jourParis, couverture durable, première journée partielle et jours inconnus distincts du zéro. !actif, !act, !active, !actifs, !actives et casse partagés Chat/Twitch ; agrégats tous canaux, noms publics LAST_ACTIVITY/blocs et témoinTWITCH obligatoire sur Twitch. **Migration080 présente et répétée en privé, non appliquée en production à ce checkpoint.** Date de couverture publique à relever après predeploy normal ; aucun passé reconstruit.
+
+Thèmes **volontairement écartés** : condition de centralisation non remplie (1356lignes de couleurs directesApp.css/douze autres feuilles/portails et sémantique mêlée). Aucun bouton ou demi-thème ; palette actuelle conservée. Catalogue : contratsR1051/progressif conservés,120historiques protégés au dernier contrôle historique ; Mitya/Valeriy ne sont pas présumés publiés, aucune nouvelle observation fraîche revendiquée.
+
+Qualification : **quickPASS5/5 ; fullFAIL6/8**, frontend1593PASS/4FAIL, backend2454PASS/6FAIL. Checkout immuablebaseline exécuté fraîchement :1589/4 et2446/6. Les dix noms d'assertions sont identiques, sept fichiers d'assertions inchangés et vérifiés par existence/blob/diff ; aucune nouvelle régression full après actualisation légitime32→33commandes disponibles. PostgreSQL privé **10/10PASS**,80migrations Prisma normales/status, unicité/concurrence/rollback/calendrierDST/couverture/privacy/200pagination/archives/projectionréponse ; cleanup acquis. Testconsent horsincludepar défaut lancé explicitement9PASS. Suites ciblées et recouvrements non sommés. Avertissementpg client.query concurrent nonfatal conservé. Les suitesGacha15/16 etGlobalChat37/12 du checkpointR1079 restent **non qualifiées globalement**, pas de nouveauPASS implicite.
+
+Visuel compilé synthétique :66états/11formats, Team vide/partielle/pleine, ouvert/replié, portrait→nom et actions/passifs accessiblesfaiblehauteur ; Chatcourt/long/système/suppression et huitrésultatsinspectés, MP/basexact/brouillons/DOM conservés1000/1366/1920. CSS index-DO6pXzKL.css SHA2566f541d23da752ed35f04acd98d03c2177a0b13763a2b733efc28527e5f56f0cf. Findings intermédiaires (deuxrangées/slotsvides/tablette/accents) corrigés avant ce relevé. Overflowheader430px, body468px, reproduit identique sur CSSbaseline : dette horsA/B. Aucune recette humaine locale/public déduite.
+
+Auditglobal :88Markdown initiaux/15JSON/deuxexportsStory,21findings et25référencesd'ancres réparées, sources correctes laissées intactes dans la matrice. Cadragescourants/historiques/futurs et prochainesactions réconciliés ; pas de secondtracker. AGENTS/Guide/workflow/handoff examinés inchangés, règles permanentes conservées. Story et exports conservés ; checkblobsLF153blocs/7vuesPASS, fauxpositifCRLF identifié. [Preuve de qualification et dixnoms exacts](../architecture/evidence/post-r1079-qualification-20261013.json).
+
+**Gates restantes de cette mission :** publication/vérification GitHub du candidat documentaire+code, reviews indépendantes technique/visuelle/documentaire du vraiSHA, correction/re-review si nécessaire, FFmain et déploiements/postflightexacts avec migration080. StatutRailway initial observéonline sanspending ; aucun déploiement nouveau revendiqué. **Prochaine action opérationnelle :** achever les contrôles de cohérence/liens, publierreview et obtenir les trois avis indépendants avantpromotion. Ne pas demander de nouveauGOgénérique.
+
+Après livraison : Àtester enpublic les seulsdeltasChat/Équipe/Activité, sans achat ni actionéconomiquefixture. RestantV1 distinct : passegraphique/mobile, bêtamultijoueur, troisparcoursnouveauxcomptes/onboarding/récupération-liaisonR1064différés, observationsnaturelles dont tirageEvent01/11/2026à00:00Paris, qualificationsfull/DBélargies, suiviCatalogue sans réouverturehistoriques, gatefinaleR1054, sweep/backlog puis décisionpropriétaire derévélation/ouverture. Purges/PWA horsmandat ; aucune recette humaine déclarée terminée.
+
+## Lecture des archives du Master
+
+Les checkpoints et anciens résumés ci-dessous sont conservés avec leurs preuves et limites d'époque. Leurs anciennes prochaines actions/flagsOFF/projets non physiques ne sont pas l'état vivant ; la tête ci-dessus et les propriétaires spécialisés font autorité. Aucune réexécution implicite des31A/31B ni reconstruction d'un domaine livré.
+
+
+<a id="point-courant--refonte-chat-standalone-r1079-du12102026"></a>
+## Historique — refonte Chat standalone R1079 du12/10/2026
 
 Mandat propriétaire autorisé A flèches verticales seules, B Chat compact, C Communauté agrandie, D dix Badges gratuits, E huit résultats graphiques standalone. Base réelle72724a30be37d650d471681a366b7d1fad7f4635, quatre refs identiques/divergence0/0 et arbre propre au bootstrap. Développement sur review ; aucun changement de Twitch, MP interne, économie, calendrier ou droits. [Décision R1079](../specifications/decisions-log.md#r1079--chat-standalone-compact-communauté-agrandie-badges-et-huit-résultats-graphiques-12102026), [Chat](../specifications/global-chat-v1.md#présentation-standalone--r1079), [Apparence](../specifications/profile-appearance-v1.md).
 
@@ -96,6 +122,7 @@ Revue documentaire : seuls shared-invocations-v1, ui-layout-contract-v1, decisio
 
 **Prochaine action exacte :** recette publique des seules retouches Invocation : cible sélectionnée/choix de cible, Diffuser puis arrêter/redémarrer sans modale ni fantôme, spectateurs réels/aperçu/profils, Voir puis Arrêter ; au prochain tirage normal, Passer/résumé et réactions. Aucun nouveau tirage ou dépense rare à créer pour cette validation. **À tester en public.**
 
+<a id="point-courant--finition-autorisée-du-12102026"></a>
 ## Historique — finition autorisée du 12/10/2026
 
 **Livré techniquement au checkpoint 6766657a18eadff25830f843ade7738c04382f3c.** Base initiale79832fc72c94233a61d0d3cd13cf41c4ed63de57 ; cinq commits normaux publiés sur review, revue documentaire approuvée puis FF strict main. Quatre refs locales/distantes identiques, divergence0/0 et arbre propre à ce checkpoint. La clôture documentaire conserve exactement le code approuvé ; son SHA, ses déploiements et le dernier postflight sont contrôlés dans le bilan final, sans commit auto-référentiel. La première recette publique générale A/B/C/D reste acquise ; elle ne valide pas les retouches présentes.
@@ -183,6 +210,7 @@ Qualification finale root sur `9ade5e36523b78f915e0c9a9c417356d5c5ea320` : **ver
 
 Revue indépendante du vrai SHA GitHub `874243ab9c89c6925d74d706c844ce65e43f4fee` : **APPROVED**, aucun P1/P2 identifié ; rapport SHA256 `c12d20cc9c8cc8220af09bf23ded7e0d2990975a5c1c3ada5f556418171438cd`. Trente-sept tests frontend,31 backend et cinq compléments indépendants PASS (serializer réel→100rolls/secteurs, fallback4100ms, onglet caché, retry et changement de journée pendant attente), six PNG finaux inspectés ; moteur/store/Prisma inchangés confirmés par diff/blobs. Rootquick5/5 sur874243a PASS. Le fullFAIL et les timeouts Vite restent explicitement qualifiés. **Prochaine action courante :** revue de ce checkpoint documentaire, FF strict D, Railway/Pages au SHA exact et postflight74/9RLS/24 requêtes privées401-CORS (incluant Roue lecture/spin sans authentification), protections120 historiques et flags en lecture seule. Ensuite clôture documentaire consolidée et correction de trois anciens reports/gates dans Catalogue/ADMIN ; aucune nouvelle mutation métier ni migration.
 
+<a id="point-courant--complément-r1051-et-mise-en-service-11102026"></a>
 ## Historique — complément R1051 et mise en service, 11/10/2026
 
 Mandat livré : [owner R1051](../architecture/character-catalog-assets-r1051.md#recette-et-mise-en-service--mandat-du-11102026), [preuves datées](../architecture/evidence/r1051-service-20261011.json). Base initiale main/review/GitHub afeadbb40d5347ff4d5409eee5a43615a1a54ca1 propre. Candidat c0a5380 : review indépendante CHANGES_REQUIRED, P1 de reprise quotidienne traversant minuit. Correctif séparé 38de0598861e466aa24a6de0d930152cc6047351 : APPROVED, aucun P1/P2 restant ; rapport SHA256 50275a5d47ff4b73e42eb90796f3b1f06c934d26904fb648e739af83c170efb3. Publication review vérifiée, FF strict main, puis déploiements au SHA exact : Railway 0d441282-9680-4963-8260-8f77ad4e5c74 SUCCESS/Application ready, Pages ebf00728-b552-44a4-9e0e-cfcf11580020 SUCCESS, assets preview/public/fr identiques. Le checkpoint documentaire suivant est contrôlé dans le bilan final, sans auto-référence.
@@ -290,6 +318,7 @@ Contrôles : PostgreSQL privé indépendant **31/31 PASS sans skip**, backend in
 
 **Validation précédente conservée :** le propriétaire a confirmé « Tout est ok » sur R1058 public (Auth, identité/progression/Twitch et restitution Historique). Parcours recovery humain local réel sur adresse de l'équipe Supabase ; SMTP général hors équipe toujours non résolu, exception de livraison R1058 conservée. Aucun nouvel e-mail, mot de passe, tirage ou claim artificiel pour ce lot.
 
+<a id="point-courant--r1058-codesmissions-et-restitution-du-tirage-event"></a>
 ## Historique acquis — R1058, Codes/Missions et restitution du tirage Event
 
 Base réelle vérifiée par fetch et connecteur GitHub : `main = review = fab14c3ba83987befe08f1dc7fb94d812f51e572`, divergence 0/0, worktree initial propre. Mandat consolidé du 10/10 autorisant le cycle complet sous gates ; aucun commit concurrent trouvé. Eclipsia/Story, économie, RNG et identités hors modification.
@@ -920,6 +949,7 @@ Tentative unique de OFF normal par owner/révision 10 : échec P2039/EAUTHQUERY 
 
 <a id="point-courant--recovery-kichnifou-terminal--smoke-en-attente-07102026"></a>
 
+<a id="point-courant--kichnifou-complete--gate-identité-web-ceo-07102026"></a>
 ## Historique — Kichnifou COMPLETE ; ancien gate identité Web Ceo, 07/10/2026
 
 **Kichnifou COMPLETE, recovery terminal :** review indépendante de `cf43ddf52e061314c2e8330e9390f39a048b1016` approuvée, promotion par fast-forward strict et déploiements Railway/Cloudflare du SHA exact SUCCESS ; une replica Online, aucun warning/critical/pending, health 200, Prisma 62 à jour. Autorité **CANARY révision 8**, exactement **Kichni_Test, Mynonyme, Kichnifou NATIVE/canary** ; imports, accès et trois backups préservés. Streamer.bot OFF, GLOBAL et batch interdits.
@@ -2191,6 +2221,7 @@ Le candidat ajoute `missions / PERMANENT_MISSION_COMPLETED` et `OPEN_MISSIONS` :
 
 ---
 
+<a id="checkpoint-changement-de-conversation--2026-09-30"></a>
 ## Historique — checkpoint changement de conversation — 2026-09-30
 
 Le checkpoint documentaire `d351d70` et son correctif PostgreSQL `2a8fce3` ont été approuvés en review indépendante ChatGPT et promus sur `main` par fast-forward strict avec ce statut final. Vérifier les HEAD distants au début de la prochaine conversation ; le dépôt est la mémoire externe officielle. Lire [AGENTS.md](../../AGENTS.md), le [guide ChatGPT](../../.chatgpt/CHATGPT_GUIDE.md), ce Master, la [roadmap](../roadmap/implementation-order-v1.md), le [workflow](../process/implementation-workflow.md), la [passation des conversations](../process/conversation-handoff.md), puis les documents propriétaires du domaine choisi. Le domaine Faveur / Gift / Twitch pilote est clôturé pour l'instant : Gift Suprême est validé publiquement mais son bridge GachaImpact est désactivé ; Streamer.bot demeure autoritatif jusqu'au cutover. Ne pas réactiver Gift ni Twitch avancé par défaut. La nouvelle conversation ChatGPT choisit le prochain domaine depuis roadmap/Pilotage ; la nouvelle conversation Codex démarre en BOOTSTRAP pour ce nouveau domaine.
@@ -2203,6 +2234,7 @@ Le checkpoint documentaire `d351d70` et son correctif PostgreSQL `2a8fce3` ont �
 
 **Cutover Gift futur, mission distincte :** désactiver l'ancienne Reward manuelle et arrêter le chemin Gift Streamer.bot ; vérifier TwitchIdentity ; autoriser/activer Gift GachaImpact, retrouver/réactiver ou recréer proprement la Reward app-owned selon le contrat, puis confirmer EventSub exact `enabled`. Effectuer un smoke test Gift et vérifier crédit unique, FULFILLED, notification et annonce avant de considérer Gift natif autoritatif. Aucun de ces gestes n'est effectué dans ce checkpoint. Le prochain domaine de développement n'est pas choisi ici.
 
+<a id="reprise-rapide--état-vivant"></a>
 ## Historique — reprise rapide Twitch/Faveur/Gift (septembre 2026)
 
 **Gate Git historique de la promotion Lots 5–8 vérifié le 2026-09-29 :** `origin/main = 57f06504cc29172ef90b60fd41eba34f114287c2`, `origin/review = 54e649197d604fc03830ed8cd83651990f8da015`, review ahead 4 / behind 0, branche locale `review`, worktree propre. Les commits existants sont conservés. La Phase 2B-2 reste **VALIDÉE PUBLIQUEMENT pour le transport observation-only**, selon les vérifications indépendantes ChatGPT fournies par le propriétaire le 2026-09-28. Streamer.bot reste autoritatif, sans cutover.
@@ -2988,6 +3020,9 @@ Décisions :
 
 ## 3.5 Chat global
 
+> Historique de ce checkpoint, conservé comme preuve d'époque. Les fonctions physiques et la prochaine action actuelles sont dans la tête du Master et leurs propriétaires spécialisés ; ce résumé n'est pas une consigne de replay ni un état runtime frais.
+
+
 Le [contrat Chat global V1](../specifications/global-chat-v1.md) porte les décisions validées R872–R887. Le panneau desktop repliable accueille le Chat global réel ; l’onglet MP reste non physique. Les fondations serveur/DB, les commandes et leurs réponses publiques, puis le `ChatPanel` connecté et son transport HTTP incrémental sont implémentés. Le cycle Chat global est **validé publiquement et clôturé** sur le HEAD `68b8adc3bece298fe3f1e4be10a358860c563eba` : Cloudflare Pages et Railway sont `SUCCESS`, `Application ready` est confirmé et `/health` répond HTTP 200. Twitch et son pont optionnel restent reportés ; Realtime est absent.
 
 Présence joueurs :
@@ -3000,6 +3035,9 @@ Présence joueurs :
 ---
 
 ## 3.6 Notifications
+
+> Historique de ce checkpoint, conservé comme preuve d'époque. Les fonctions physiques et la prochaine action actuelles sont dans la tête du Master et leurs propriétaires spécialisés ; ce résumé n'est pas une consigne de replay ni un état runtime frais.
+
 
 Décision :
 - cloche en haut ;
@@ -5974,6 +6012,8 @@ Obtenir un projet où :
 ---
 
 # 41. RÉSUMÉ ULTRA COURT POUR REPRISE RAPIDE
+
+> Résumé historique du cadrage initial ; ses annonces de domaines futurs ne remplacent pas les livraisons physiques et la prochaine action en tête du Master.
 
 Projet :
 GachaImpact = migration d'un jeu Twitch/Streamer.bot vers un jeu web standalone React avec backend autoritaire déjà déployé.

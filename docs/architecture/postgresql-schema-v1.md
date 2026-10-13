@@ -1,5 +1,10 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Activité quotidienne — migration080 / R1080
+
+Migration additive20261013080000_080_daily_player_activity : activity_coverage(id='daily-v1',started_at timestamptz) singleton initialisé à l'application normale Prisma ; player_daily_activity(business_date DATE,player_id UUID,application,gameplay,internal_chat,twitch BOOLEAN) PK(date,Player), index Player, FK cascade et CHECK au moins un témoin. Trigger archived_player_write_guard commun ; RLS sur les deux tables et REVOKE PUBLIC/anon/authenticated, aucune policy navigateur. Pas de backfill ni timestamp individuel. Les booléens OR s'enregistrent par ON CONFLICT dans la transaction du recorder. [Contrat](../specifications/player-activity-v1.md). Présence SQL/versionnée, répétition privée et application publique sont des preuves distinctes au Master.
+
+
 ## Badges et résultats Chat — migrations additives077–079
 
 077 ajoute BADGE à cosmetic_type séparément pour committer l'enum avant utilisation. 078 ajoute players.equipped_badge_cosmetic_id UUID nullable, FK RESTRICT/CASCADE et index ; insère uniquement dix définitions canoniques, CHECK externalKey/symbole exact, sans asset/Character source, visibilité VISIBLE. Aucun UPDATE Player, backfill PlayerCosmetic, acquisition historique, notification ou changement des équipements existants. Archives intactes.

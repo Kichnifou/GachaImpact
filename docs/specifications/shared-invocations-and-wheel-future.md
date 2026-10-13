@@ -1,5 +1,10 @@
 # Invocations partagées et Roue animée — demandes du 11/10/2026
 
+## Statut du cadrage initial
+
+C/D ont depuis été livrés techniquement dans R1066–R1077, puis affinés dans les mandats du12/10. Les anciens états « locaux » ci-dessous décrivent la préparation historique. Les propriétaires courants sont [Invocations partagées V1](../architecture/shared-invocations-v1.md) et [Roue graphique](wheel-graphic-v1.md), avec preuves et recettes humaines réellement rapportées au Master. Ce document conserve le besoin d'origine, sans imposer une reconstruction.
+
+
 Le lot C Invocations partagées est implémenté localement dans le mandat consolidé R1067–R1075 ; sa livraison reste distincte et suit A/B. Le [contrat V1](../architecture/shared-invocations-v1.md) décrit les décisions validées, le transport, la projection, les gardes transactionnelles, la reprise et les limites. Le lot D Roue est lui aussi implémenté et vérifié localement dans sa mission distincte ; son [contrat spécialisé](wheel-graphic-v1.md) supersède la proposition initiale ci-dessous. Ce document ne déclare aucun déploiement ni recette humaine de D.
 
 ## Invocations partagées
