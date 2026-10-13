@@ -46,11 +46,17 @@ describe('CharactersScreen real catalog controls', () => {
 
   it('combines rarity and all seven ElementKey filters including Dendro', () => {
     const container = mount()
-    for (const element of elementKeys) expect(container.querySelector(`[aria-label="${element === 'electro' ? 'Electro' : element[0]!.toUpperCase() + element.slice(1)}"]`)).not.toBeNull()
-    act(() => Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '5★')!.click())
+    for (const element of elementKeys) expect(container.querySelector(`[aria-label="${({electro:'Électro',anemo:'Anémo',geo:'Géo'} as Record<string,string>)[element] ?? element[0]!.toUpperCase() + element.slice(1)}"]`)).not.toBeNull()
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Filtrer les personnages 5 étoiles"]')!.click())
     act(() => container.querySelector<HTMLButtonElement>('[aria-label="Dendro"]')!.click())
     expect(namesInGrid(container)).toEqual(['Nahida'])
     expect(container.querySelector('[aria-label="Dendro"]')?.getAttribute('aria-pressed')).toBe('true')
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Dendro"]')!.click())
+    expect(namesInGrid(container)).toHaveLength(4)
+    act(() => container.querySelector<HTMLButtonElement>('[aria-label="Filtrer les personnages 5 étoiles"]')!.click())
+    expect(namesInGrid(container)).toHaveLength(7)
+    expect(container.querySelector('.catalog-vote-feedback')).toBeNull()
+    expect(container.textContent).not.toContain('Toutes raretés')
   })
 
   it('implements name, rarity and canonical element ordering in both directions with alphabetic tie-breaks', () => {
