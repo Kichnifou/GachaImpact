@@ -424,7 +424,7 @@ describe('EventScreen presentation', () => {
     const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: discovererId, displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
     const { container, root, props } = mount({ value }); selectGames(container)
     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
-    expect(container.querySelector('.event-game-b')?.textContent).toContain('Découvert par Kyo')
+    expect(container.querySelector('.event-game-b-feedback')?.textContent).toContain('Combinaison découverte par Kyo !')
     const winningCode = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).find(({ textContent }) => textContent?.includes('11111'))
     expect(winningCode?.textContent).toBe('✓ 11111')
     expect(winningCode?.classList.contains('resolved')).toBe(true)

@@ -15,6 +15,7 @@ import EventCalendar from './EventCalendar'
 import { useCalendarClaim } from '../event/use-calendar-claim'
 import EventRankingSection from './EventRankingSection'
 import { eventCurrencyLabel, eventGameAExpiredToday, eventPresentation, type EventDailyOpenIntent } from '../event/event-presentation'
+import '../event/event-games-layout.css'
 import { apiErrorMessage, formatResourceAmount } from '../utils/formatters'
 
 type Props = Readonly<{
@@ -50,6 +51,7 @@ const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
 const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
 const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
+const discoveryMessage = (game: EventDto['gameB']) => `Combinaison découverte par ${game.discoveredBy?.displayName ?? 'un participant'} ! Tous les participants gagnent 1 point et 1 monnaie du Festival.`
 
 function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
   const [remainingSeconds, setRemainingSeconds] = useState(() => Math.max(1, Math.ceil(durationMs / 1000)))
@@ -279,7 +281,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       if (sameBoundary()) {
         setGameBIntent(null)
         setSelectedCode(null)
-        setGameBFeedback(result.attempt.kind === 'CORRECT' ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
+        setGameBFeedback(result.attempt.kind === 'CORRECT' ? discoveryMessage(result.gameB) : result.attempt.kind === 'ALREADY_TESTED' ? 'Code déjà testé : aucun essai consommé.' : 'Code incorrect : un essai consommé.')
       }
     } catch (reason) {
       if (sameBoundary()) {
@@ -411,7 +413,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       </section>}
       {section === 'games' && gameTab === 1 && value.participation.joined && <section data-tutorial-anchor="event-game-b" className="panel event-game-b">
         <div className="event-game-b-heading"><span className="eyebrow">Énigme collective du Festival</span><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
-        <p>{value.gameB.solvedToday ? `Découvert par ${value.gameB.discoveredBy?.displayName ?? 'un participant'}.` : 'Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.'}</p>
+        {!value.gameB.solvedToday && <p>Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.</p>}
         {value.gameB.solvedToday === false && <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>}
         <div className="event-game-b-legend"><span>Disponible</span><span>Déjà testée</span></div>
         <div className="event-game-b-codes" aria-label="Combinaisons du Grenier">{Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')).map((code) => {
@@ -420,7 +422,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
           return <button type="button" className={`event-game-b-code${resolved ? ' resolved' : tested ? ' tested' : ''}${selectedCode === code ? ' selected' : ''}`} disabled={resolved || tested || !value.gameB.canAttempt || pending || Boolean(gameBIntent)} aria-pressed={selectedCode === code && !tested && !resolved} onClick={() => setSelectedCode(code)} key={code}>{resolved ? `✓ ${code}` : code}</button>
         })}</div>
         {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
-        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{gameBFeedback ?? (value.gameB.solvedToday ? 'Combinaison découverte ! Tous les participants inscrits gagnent 1 point et 1 monnaie du Festival.' : '')}</p>
+        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{value.gameB.solvedToday ? discoveryMessage(value.gameB) : gameBFeedback ?? ''}</p>
       </section>}
       {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" className="panel event-game-c">
         <header><span className="eyebrow">Message du Festival</span></header>

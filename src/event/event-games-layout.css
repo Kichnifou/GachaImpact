@@ -1,0 +1,21 @@
+.event-screen .event-game-tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 8px 14px; }
+.event-screen .event-game-tabs button.active { color: #ccecff; border-bottom-color: #50c7ff; background: transparent; }
+.event-screen .event-game-tabs button:focus-visible { outline: 2px solid #70dcff; outline-offset: -2px; }
+@media (min-width: 1121px) {
+  .event-frame .scrollable-screen-panel-body:has(> [data-tutorial-anchor^="event-game-"]) { overflow: visible; container-type: size; }
+  .event-frame .event-game-a,
+  .event-frame .event-game-b,
+  .event-frame .event-game-c { padding: 12px; gap: 8px; }
+  .event-frame .event-game-a-window { padding: 10px; gap: 4px; }
+  .event-frame .event-game-b > p { font-size: 13px; line-height: 1.35; }
+  .event-frame .event-game-b-codes { gap: 5px; }
+  .event-frame .event-game-b-code { min-height: 30px; }
+  .event-frame .event-game-b-action { min-height: 32px; }
+  .event-frame .event-game-c { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; }
+  .event-frame .event-game-c > .eyebrow { grid-column: 1 / -1; }
+  .event-frame .event-game-c-send { grid-column: 1; gap: 6px; }
+  .event-frame .event-game-c-feedback { grid-column: 1; }
+  .event-frame .event-game-c-inbox { grid-column: 2; grid-row: 2 / span 3; gap: 6px; }
+  .event-frame .event-game-c-inbox article { padding: 8px; }
+  .event-frame .event-game-c-inbox article p { font-size: 13px; line-height: 1.35; white-space: pre-wrap; overflow-wrap: anywhere; }
+}
