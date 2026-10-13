@@ -1,6 +1,8 @@
 .collection-rarity-chips .filter-chip { width: 34px; min-height: 36px; padding: 6px; font-size: 19px; }
 .collection-rarity-chips .rarity-5 { color: #f4c867; }
 .collection-rarity-chips .rarity-4 { color: #b78aff; }
+.collection-rarity-chips .rarity-5 > span { color: #f4c867; }
+.collection-rarity-chips .rarity-4 > span { color: #b78aff; }
 .collection-element-chips { display: flex; gap: 5px; }
 .collection-element-chips button { flex: 0 0 34px; width: 34px; min-height: 36px; }
 .collection-rarity-chips button:focus-visible, .collection-element-chips button:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; }
