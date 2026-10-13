@@ -22,5 +22,5 @@
 .missions-paged .mission-slide-previous { animation: mission-previous 180ms ease-out; }
 @keyframes mission-next { from { transform: translateX(12px); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
 @keyframes mission-previous { from { transform: translateX(-12px); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
-@media (max-width: 1500px) { .missions-screen .missions-paged { height: min(740px, max(300px, calc(100dvh - 230px))); } }
+@media (max-width: 1120px) { .missions-screen .missions-paged { height: min(740px, max(300px, calc(100dvh - 230px))); } }
 @media (prefers-reduced-motion: reduce) { .missions-paged .mission-page-grid { animation: none; } }
