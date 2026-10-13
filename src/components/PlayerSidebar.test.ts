@@ -19,7 +19,7 @@ const resources = {
   particles: { pyro: '0', hydro: '0', cryo: '0', electro: '0', anemo: '0', geo: '0', dendro: '0' },
 } as const
 
-const target = { id: 'target', externalKey: 'legacy:target', name: 'Mavuika', rarity: 5, elementKey: 'pyro', weaponType: null, region: null, classKey: null, iconPath: '/mavuika.png', splashPath: null, wishPath: null, fullbodyPath: null } as const
+const target = { id: 'target', externalKey: 'legacy:target', name: 'Mavuika', rarity: 5, elementKey: 'pyro', weaponType: null, region: null, classKey: null, iconPath: '/assets/genshin/characters/icons/10000106.png', splashPath: null, wishPath: null, fullbodyPath: null } as const
 const gacha = {
   banner: { id: 'banner', startsAt: '2026-09-01T00:00:00.000Z', endsAt: '2026-09-08T00:00:00.000Z', featuredFiveStars: [target], featuredFourStars: [] },
   playerState: { pity5: 12, pity4: 3, guaranteedFeatured5: true, captureProgress: 2, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: target.id, totalPulls: '0', totalFiveStars: '0', totalFourStars: '0', fiftyFiftyWon: '0', fiftyFiftyLost: '0', capturesTriggered: '0' },
@@ -78,7 +78,7 @@ describe('Player sidebar progression', () => {
     const objective = container.querySelector<HTMLElement>('.objective-card')!
     const art = objective.querySelector<HTMLElement>('.objective-art')!
     const portrait = art.querySelector<HTMLImageElement>('.objective-asset-image')!
-    expect(portrait.getAttribute('src')).toBe('/mavuika.png')
+    expect(portrait.getAttribute('src')).toBe('/assets/genshin/characters/icons/10000106.png')
     expect(art.textContent).toBe('')
     expect(objective.querySelector('.objective-name-line h3')?.textContent).toBe('Mavuika')
     expect(objective.querySelector('.objective-element-watermark')).not.toBeNull()

@@ -19,6 +19,8 @@ describe('catalogue image origins', () => {
     const path = '/storage/v1/object/public/character-catalog/characters/00000000-0000-4000-8000-000000000001/icon/' + 'a'.repeat(64) + '.png'
     try {
       expect(isCharacterAssetPath('/assets/characters/keqing-icon.png')).toBe(true)
+      for (const obsoleteFixture of ['/mavuika.png', '/icon/furina.png', '/splash/furina.png', '/furina-icon.png'])
+        expect(isCharacterAssetPath(obsoleteFixture)).toBe(false)
       expect(isCharacterAssetPath('https://fixture.supabase.co' + path)).toBe(true)
       for (const value of ['//evil.example/a.png', '/\\evil.example/a.png', 'https://evil.example' + path,
         'https://fixture.supabase.co' + path + '?token=fixture', 'https://fixture.supabase.co/storage/v1/object/public/other/a.png', 'data:image/png;base64,AA'])

@@ -4,7 +4,7 @@ import type { GachaPullDto } from '../api/types'
 import PullResults, { PullResultCard } from './PullResults'
 
 const state = { pity5: 0, pity4: 0, guaranteedFeatured5: false, captureProgress: 0, fiftyFiftyLostStreak: 0, selectedBannerCharacterId: 'target', totalPulls: '10', totalFiveStars: '1', totalFourStars: '1', fiftyFiftyWon: '1', fiftyFiftyLost: '0', capturesTriggered: '0' }
-const character = { id: 'c1', externalKey: 'c1', name: 'Furina', rarity: 5 as const, elementKey: 'hydro' as const, weaponType: null, region: null, classKey: null, iconPath: '/icon/furina.png', splashPath: '/splash/furina.png', wishPath: '/wish/furina.png', fullbodyPath: '/fullbody/furina.png' }
+const character = { id: 'c1', externalKey: 'c1', name: 'Furina', rarity: 5 as const, elementKey: 'hydro' as const, weaponType: null, region: null, classKey: null, iconPath: '/assets/genshin/characters/icons/10000089.png', splashPath: '/assets/genshin/characters/splash/10000089.png', wishPath: '/assets/genshin/characters/wish/10000089.png', fullbodyPath: '/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Furina.png' }
 const characterResult = { index: 4, resultType: 'character' as const, character, rarity: 5 as const, resourceKey: null, resourceAmount: null, wasNewCharacter: false, constellationAfter: 6, copiesAfter: 8, wasFiftyFifty: true, wonFiftyFifty: true, guaranteeConsumed: false, captureTriggered: false, bonusRewards: [{ resourceKey: 'primogems', amount: '80', causeKey: 'gacha.c6-duplicate-refund' }], c6Progression: { type: 'stat' as const, stat: 'beauty' as const, valueAfter: 8 } }
 
 describe('PullResults', () => {
@@ -28,8 +28,8 @@ describe('PullResults', () => {
     expect(html).toContain('+80 Primos')
     expect(html).toContain('Beauté +1')
     expect(html).toContain('/assets/genshin/currencies/mora.png')
-    expect(html).toContain('src="/icon/furina.png"')
-    expect(html).not.toContain('src="/splash/furina.png"')
+    expect(html).toContain('src="/assets/genshin/characters/icons/10000089.png"')
+    expect(html).not.toContain('src="/assets/genshin/characters/splash/10000089.png"')
     expect(html).toContain('★★★')
   })
 
@@ -37,11 +37,11 @@ describe('PullResults', () => {
     const newCharacter = { ...characterResult, wasNewCharacter: true, constellationAfter: 0, copiesAfter: 1, bonusRewards: [], c6Progression: null }
     const reveal = renderToStaticMarkup(<PullResultCard result={newCharacter} />)
     expect(reveal).toContain('character-result')
-    expect(reveal).toContain('src="/splash/furina.png"')
+    expect(reveal).toContain('src="/assets/genshin/characters/splash/10000089.png"')
     expect(reveal).not.toContain('>F<')
     expect(reveal).not.toContain('pull-result-backdrop-image')
-    expect((reveal.match(/src="\/splash\/furina.png"/g) ?? [])).toHaveLength(1)
-    expect(reveal).not.toContain('src="/icon/furina.png"')
+    expect(reveal.split(`src="${character.splashPath}"`).length - 1).toBe(1)
+    expect(reveal).not.toContain('src="/assets/genshin/characters/icons/10000089.png"')
     expect(reveal).toContain('pull-result-progression">Nouveau')
     expect(reveal).not.toContain('Copie')
     expect(reveal).not.toContain('pull-event')

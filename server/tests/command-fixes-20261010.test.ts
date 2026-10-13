@@ -62,7 +62,7 @@ describe('Legends exact resolution and privacy', () => {
     await h.run('!legende @Skirk'); expect(h.services.socialService.legends).toHaveBeenLastCalledWith(actor, 'other', false);
   });
   it('does not use partial character matches and refuses private third-party details', async () => {
-    const h = legendSetup('Yae Miko'); expect(await h.run('!legende Yae')).toBe('Joueur introuvable.');
+    const h = legendSetup('Yae Miko'); expect(await h.run('!legende Yae')).toBe('⚠️ Joueur introuvable.');
     h.services.socialService.legends = vi.fn(async () => ({ access: 'PRIVATE' })) as never;
     const text = joined(await h.run('!legende @Autre Yae Miko')); expect(text).toContain('privées'); expect(text).not.toMatch(/Force|Concours|Titre/u);
     expect(await h.run('!concours go')).toBe('🏆 Concours : prochainement disponible.');

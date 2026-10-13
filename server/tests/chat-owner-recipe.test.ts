@@ -121,7 +121,7 @@ describe('Final owner recipe, step 29', () => {
     ['ACTOR_EMPTY', 'particles_pyro', '⚠️ Échange impossible avec Mynonyme : tu n’as aucune particule 🔥 Pyro disponible à échanger.'],
     ['SAME_ELEMENT', undefined, '⚠️ Échange impossible avec Mynonyme : vous avez le même élément.'],
     ['PENDING', undefined, '⚠️ Un échange est déjà en attente avec Mynonyme.'],
-    ['NOT_FOUND', undefined, 'Joueur introuvable.'],
+    ['NOT_FOUND', undefined, '⚠️ Joueur introuvable.'],
     ['UNAVAILABLE', undefined, '⚠️ Ce joueur n’est pas disponible pour un échange.'],
   ])('renders safe eligibility reason %s', async (reason, resourceKey, expected) => {
     const h = harness(); h.services.tradeService.eligibility.mockResolvedValue({ reason, player: ['NOT_FOUND', 'UNAVAILABLE'].includes(reason!) ? null : { id: 'partner', displayName: 'Mynonyme' }, maximum: '0', eligible: false, resourceKey } as never);

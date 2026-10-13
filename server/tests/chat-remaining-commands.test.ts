@@ -49,14 +49,14 @@ describe('Remaining command aliases and simple presentation', () => {
   });
   it('keeps ga gated on standalone and does not call a business service', async () => {
     const h = remainingHarness(); const result = await h.send('!GA open');
-    expect(result.result?.content).toBe('Cette commande est réservée à Twitch.');
+    expect(result.result?.content).toBe('⚠️ Cette commande est réservée à Twitch.');
     expect(h.services.socialService.actor).not.toHaveBeenCalled();
   });
   it('converts via conv using the same owner, bigint amount, key and authoritative total', async () => {
     const h = remainingHarness(); const result = await h.send('!CONV 100');
     expect(h.services.convertPersonalParticlesChat.execute).toHaveBeenCalledWith(identity, 100n, commandId);
     expect(result.result?.content).toBe('✅ Axel convertit 100 particules ☄️ Geo en 💠100 Primogemmes (12 345 678 901 234 567 890).');
-    expect((await h.send('!conv 2m')).result?.content).toBe('Syntaxe : !convertir <montant>.');
+    expect((await h.send('!conv 2m')).result?.content).toBe('⚠️ Syntaxe : !convertir <montant>.');
   });
   it('shows modern Capture rather than legacy loss streak', async () => {
     const h = remainingHarness(); const result = await h.send('!pity');

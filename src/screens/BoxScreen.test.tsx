@@ -15,7 +15,7 @@ const appCssSource = readFileSync('src/App.css', 'utf8')
 
 const character = (overrides: Partial<BoxCharacterDto>): BoxCharacterDto => ({
   id: 'furina', externalKey: 'legacy:20', name: 'Furina', rarity: 5, elementKey: 'hydro', weaponType: 'sword', region: 'fontaine',
-  iconPath: '/furina-icon.png', splashPath: '/furina-splash.png', wishPath: '/furina-wish.png', fullbodyPath: '/furina-fullbody.png',
+  iconPath: '/assets/genshin/characters/icons/10000089.png', splashPath: '/assets/genshin/characters/splash/10000089.png', wishPath: '/assets/genshin/characters/wish/10000089.png', fullbodyPath: '/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Furina.png',
   constellation: 1, copies: 2, firstObtainedAt: '2026-08-15T10:30:00.000Z', favorite: false, c6CompetitionStats: null, ...overrides,
 })
 const records = [
@@ -117,10 +117,10 @@ describe('real personal Box', () => {
   })
   it('prioritizes the icon in detail, falls back to an existing asset and renders no element badge', () => {
     const withIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={records[0]!} {...modalProps} />)
-    expect(withIcon).toContain('src="/furina-icon.png"')
+    expect(withIcon).toContain('src="/assets/genshin/characters/icons/10000089.png"')
     expect(withIcon).not.toContain('character-portrait-badge')
     const withoutIcon = renderToStaticMarkup(<BoxCharacterDetailModal character={{ ...records[0]!, iconPath: null }} {...modalProps} />)
-    expect(withoutIcon).toContain('src="/furina-fullbody.png"')
+    expect(withoutIcon).toContain('src="/assets/genshin/characters/fullbody/UI_Gacha_AvatarImg_Furina.png"')
     expect(withoutIcon).not.toContain('character-portrait-badge')
   })
   it('applies an immediate immutable favorite update and reorders the Box', () => {

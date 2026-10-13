@@ -28,7 +28,7 @@ describe('Shared banner alias', () => {
     for (const root of ['banniere', 'bannière', 'ban', 'banner']) {
       expect(findChatCommand(root)).toBe(findChatCommand('banniere'));
       results.push(await h.run('!' + root));
-      expect(await h.run('!' + root + ' extra')).toBe('Syntaxe : !banniere.');
+      expect(await h.run('!' + root + ' extra')).toBe('⚠️ Syntaxe : !banniere.');
     }
     expect(results.every(value => JSON.stringify(value) === JSON.stringify(results[0]))).toBe(true);
     const roots = chatCommandRegistry.flatMap(c => [c.name, ...c.aliases]).map(root => root.normalize('NFD').replace(/[\u0300-\u036f]/gu, '').toLowerCase());
