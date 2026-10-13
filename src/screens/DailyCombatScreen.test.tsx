@@ -5,6 +5,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, PlayerBoxDto, StellaUseDto } from '../api/types'
 import DailyCombatScreen from './DailyCombatScreen'
+import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+import { getTutorialStep } from '../tutorial/tutorial-catalog'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: Root[] = []
@@ -45,10 +47,20 @@ function mount(value: DailyCombatDto, overrides: Partial<React.ComponentProps<ty
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); roots.push(root)
   act(() => root.render(<DailyCombatScreen {...props} />))
-  return { container, props }
+  return { container, props, root }
 }
 
 describe('Daily Combat screen', () => {
+  it('shows the guided short formation without overwriting the normal pane', () => {
+    const { container, props, root } = mount(combat())
+    const render = (active: boolean) => <TutorialPresentationContext.Provider value={{ active, step: getTutorialStep('combat-formation') }}><DailyCombatScreen {...props} /></TutorialPresentationContext.Provider>
+    act(() => root.render(render(false)))
+    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('enemies')
+    act(() => root.render(render(true)))
+    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('formation')
+    act(() => root.render(render(false)))
+    expect(container.querySelector('[data-training-pane]')?.getAttribute('data-training-pane')).toBe('enemies')
+  })
   it('renders the global encounter and an empty persistent loadout, then opens the real picker', async () => {
     const { container, props } = mount(combat())
     expect(container.querySelectorAll('.combat-enemy-card')).toHaveLength(4)
