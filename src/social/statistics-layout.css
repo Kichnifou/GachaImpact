@@ -1,7 +1,9 @@
 @media (min-width: 1121px) {
   .profile-screen[data-profile-view="Statistiques"] .scrollable-screen-panel-body { overflow: visible; container-type: size; }
   .profile-screen .profile-statistics { height: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: clamp(6px, 2cqh, 18px); align-items: start; }
-  .profile-screen .profile-statistics-group { box-sizing: border-box; padding: clamp(7px, 2cqh, 18px); }
+  .profile-screen .profile-statistics-group { box-sizing: border-box; padding: clamp(7px, 2cqh, 18px); align-self: stretch; min-height: 0; display: flex; flex-direction: column; }
+  .profile-screen .profile-statistics-group dl { flex: 1; grid-auto-rows: minmax(min-content, 1fr); }
+  .profile-screen .profile-statistics-group dl > div { align-content: center; align-items: center; }
   .profile-screen .profile-statistics-group:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
   .profile-screen .profile-statistics-group:nth-child(3) { grid-column: 1; grid-row: 2; }
   .profile-screen .profile-statistics-group:nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
