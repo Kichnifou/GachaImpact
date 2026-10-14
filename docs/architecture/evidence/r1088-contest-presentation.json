@@ -117,7 +117,22 @@
         "Database gameplay qualified separately"
       ]
     },
-    "reviews": "Published-SHA reviews pending",
+    "reviews": {
+      "candidate": "0f1c0ed11ba720cd6a5ae9e2d2a0a416bdfe457e",
+      "backend": "APPROVED",
+      "frontend": "APPROVED",
+      "findingsOpen": 0,
+      "reports": [
+        {
+          "path": "local-data/r1088/independent-backend-published-review.json",
+          "sha256": "78ebac26805194d90619b44d9c5b9376e942a89b945067f2bd0f16784fe03605"
+        },
+        {
+          "path": "local-data/r1088/independent-frontend-published-review.json",
+          "sha256": "1b8b0dc8e8eb9be029b2a9568b2a5b882cfaaaba9343a68158e5fd416dde7aa2"
+        }
+      ]
+    },
     "reviewCorrections": [
       "Risk button disabled matches BASIC and guarded handler",
       "Open confirmations remain mounted and disabled through known outage"
@@ -132,9 +147,11 @@
     "dependencies": "Later presentation/recovery refinements depend on af8b25f2 and 932f6d86. Remove follow-ups before their base commits. CSS710adca0 is isolated. Final tests/documentation come off first for full rollback.",
     "baselinePreserved": "All R1087 and R1086 commits retained; no migration rollback needed.",
     "rehearsal": {
-      "candidate": "dee5ae32bbf119eb696f443749dc745c242c97ca",
+      "candidate": "0f1c0ed11ba720cd6a5ae9e2d2a0a416bdfe457e",
       "baseline": "0251f830e6c3ff97fcf1b03b0e1b29e8e16fd4fe",
       "commits": [
+        "0f1c0ed11ba720cd6a5ae9e2d2a0a416bdfe457e",
+        "aec2cb7514aa7869c7e1dcf9763a7b9d0b3d7ac1",
         "dee5ae32bbf119eb696f443749dc745c242c97ca",
         "0c6b6329c32902a26c318eb56f682b5dff486827",
         "1f9c6914a5fc0aded08a2d8a4cf2d07feb35e8d7",
@@ -180,7 +197,114 @@
     "Human acceptance remains pending",
     "Only eight recent events arrive from server; no missing historical event invented"
   ],
-  "delivery": "Pending exact GitHub review, main fast-forward, exact Railway/Cloudflare deployments and read-only postflight",
+  "delivery": {
+    "checkpoint": "0f1c0ed11ba720cd6a5ae9e2d2a0a416bdfe457e",
+    "git": {
+      "fourRefsEqual": true,
+      "divergence": "0/0",
+      "clean": true
+    },
+    "railway": {
+      "id": "462d959d-fadd-4fd1-868a-a0de189cb298",
+      "status": "SUCCESS",
+      "applicationReady": "2026-10-14T09:39:53.725342209Z",
+      "pendingMigrations": 0,
+      "replicas": 1,
+      "issues": 0,
+      "pendingWork": 0
+    },
+    "cloudflare": {
+      "sha": "0f1c0ed11ba720cd6a5ae9e2d2a0a416bdfe457e",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/95121335-8152-482c-9415-d2e78eecbf69",
+      "startedAt": "2026-10-14T09:39:47Z",
+      "completedAt": "2026-10-14T09:39:47Z",
+      "preview": "https://95121335.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-BC7rrOfG.js",
+          "http": 200,
+          "sha256": "17bc83c3e9ce62f47360d0d38a703d009c92ab03f73189a924159e3c30278f2b"
+        },
+        {
+          "path": "/assets/index-Bt418f-t.css",
+          "http": 200,
+          "sha256": "ba4f789c552fd4e3b91a423e4a383986a11af661f6207605a94abef2d4e44dad"
+        }
+      ]
+    },
+    "customDomainAssetsMatch": true,
+    "postflight": {
+      "at": "2026-10-14T09:40:53.586Z",
+      "readOnly": true,
+      "health": [
+        {
+          "url": "https://gachaimpact-production.up.railway.app/health",
+          "status": 200
+        },
+        {
+          "url": "https://gachaimpact.fr/",
+          "status": 200
+        },
+        {
+          "url": "https://gachaimpact.pages.dev/",
+          "status": 200
+        }
+      ],
+      "guards": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "path": "/api/v1/contest",
+          "status": 401,
+          "exactCors": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "path": "/api/v1/me/contest/legends",
+          "status": 401,
+          "exactCors": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "path": "/api/v1/me/resources",
+          "status": 401,
+          "exactCors": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "path": "/api/v1/contest",
+          "status": 401,
+          "exactCors": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "path": "/api/v1/me/contest/legends",
+          "status": 401,
+          "exactCors": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "path": "/api/v1/me/resources",
+          "status": 401,
+          "exactCors": true
+        }
+      ]
+    },
+    "passiveObservation": {
+      "from": "2026-10-14T09:39:53.725Z",
+      "to": "2026-10-14T09:41:25.763Z",
+      "anonymousQa401": 2,
+      "naturalContestReadsObserved": 0,
+      "contestStageDiagnostics": 0,
+      "limit": "No natural authenticated Contest reads in this short window; no public gameplay or recovery proof inferred."
+    },
+    "humanAcceptance": "NOT_EXECUTED",
+    "closure": "This documentation checkpoint preserves qualified runtime aec2cb75; its own SHA follows review, strict fast-forward and exact deployments/postflight in delivery report without a self-referential commit loop."
+  },
   "runtime": "aec2cb7514aa7869c7e1dcf9763a7b9d0b3d7ac1",
   "testsCommit": "dee5ae32bbf119eb696f443749dc745c242c97ca"
 }
