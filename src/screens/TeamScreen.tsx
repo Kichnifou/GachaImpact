@@ -1,3 +1,4 @@
+import '../teams/team-layout.css'
 import { useTutorialPanel } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, DailyCombatDto, PlayerBoxDto, PlayerTeamDto, PlayerTeamsDto, StellaUseDto, TeamCharacterDto } from '../api/types'
@@ -167,7 +168,7 @@ function TeamScreen(props: TeamScreenProps) {
   const pagePositions = Array.from({ length: teamsPerPage }, (_, index) => pageStart + index)
   const nextPosition = displayedTeams.length + 1
 
-  return <div data-business-pending={pending} className="screen-content team-screen">
+  return <div data-fit-screen data-business-pending={pending} className="screen-content team-screen">
     <nav data-tutorial-anchor="team-selection" className="team-switcher panel" aria-label={`Teams ${pageStart} à ${pageStart + 9}`}>
       {page > 0 ? <button type="button" className={`team-page-chevron${autoPageDirection === -1 ? ' drag-awaiting' : ''}`} aria-label="Teams précédentes" onClick={() => setPage((current) => current - 1)} onDragOver={(event) => { if (!mutationPending.current) event.preventDefault() }} onDragEnter={() => scheduleAutoPage(-1)} onDragLeave={() => { if (!mutationPending.current) clearAutoPageTimer() }}>‹</button> : <span className="team-page-chevron-spacer" aria-hidden="true" />}
       <div className="team-page-track team-page-track-spaced">{pagePositions.map((position, index) => {
