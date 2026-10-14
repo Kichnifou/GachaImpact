@@ -7,7 +7,8 @@
   .event-frame .event-shop-grid { flex: 1 1 0; min-height: 0; }
   .event-frame .event-shop-card { box-sizing: border-box; padding: clamp(7px, 2cqh, 16px); gap: clamp(4px, 1.4cqh, 12px); justify-content: space-between; }
   .event-frame .event-shop-card h2 { font-size: 17px; line-height: 1.2; margin: 0; }
-  .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 12px; }
+  .event-frame .event-shop-card > .eyebrow { font-size: 9px; }
+  .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 11px; line-height: 1.35; }
   .event-frame .event-shop-quantity { flex-wrap: nowrap; }
   .event-frame .event-shop-quantity > * { height: 30px; min-height: 30px; }
   .event-frame .event-shop-card > .small-primary-button { min-height: 30px; margin-top: 0; padding: 4px 8px; }
