@@ -3,6 +3,7 @@ import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-p
 import { useEffect, useState, type ReactNode } from 'react'
 import '../social/statistics-layout.css'
 import '../social/profile-missions-layout.css'
+import '../social/profile-collection-layout.css'
 import '../missions/mission-pages.css'
 import ProfileFavorCard from '../components/ProfileFavorCard'
 import AppButton from '../components/AppButton'
@@ -90,7 +91,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     {playerId !== ownerPlayerId && value && onTrade && <AppButton onClick={() => onTrade({ id: playerId, displayName: value.player.displayName })}>Échanger</AppButton>}
     {relation.state === 'FRIEND' && <AppButton variant="danger" disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REMOVE', undefined, feedbackScope)}>Retirer</AppButton>}
   </div>
-  return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' || tab === 'Missions' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
+  return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' || tab === 'Missions' || tab === 'Collection' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
     <ScrollableScreenPanel bodyClassName={tab === 'Box' && value?.box.access === 'ALLOWED' ? 'collection-results-body scroll-content-frame' : ''} bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <BoxFiltersBar placeholder="Rechercher un personnage…" filters={boxFilters} onChange={setBoxFilters} />}</>}>
       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
@@ -110,7 +111,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
             })}</section>}</Section>}
           </>
         }}</Section>}
-        {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
+        {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid profile-collection-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
         {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <Statistics stats={stats} />}</Section>}
         {tab === 'Missions' && (currentMissionsError
           ? <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{currentMissionsError}</p><button type="button" className="small-primary-button" onClick={() => { setMissionsTarget(''); setMissionsRequest(current => current + 1) }}>Réessayer</button></div>
