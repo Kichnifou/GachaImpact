@@ -28,7 +28,7 @@ const player: PlayerDto = { id: 'player', displayName: 'Fixture', status: 'ACTIV
 const resources = { primogems: '1000', moras: '50', particles: {} }
 const event = { businessDate: '2026-10-05', edition: { id: 'edition', startsAt: '2026-10-01' }, gameB: { solvedToday: false }, gameA: { completedToday: false }, participation: { joined: false } }
 beforeEach(() => {
-  mocks.status = 'signedIn'; mocks.userId = 'web-owner'; mocks.shell = null; mocks.signOut.mockClear()
+  mocks.status = 'signedIn'; mocks.userId = 'web-owner'; mocks.shell = null; mocks.signOut.mockReset().mockResolvedValue(undefined)
   Object.values(mocks.api).forEach(fn => fn.mockReset().mockResolvedValue({}))
   Object.values(mocks.presence).forEach(fn => fn.mockReset().mockResolvedValue({}))
   mocks.api.getCurrentPlayer.mockResolvedValue(player)
@@ -329,3 +329,56 @@ it('does not ask a recovered level-1 Player with an element to choose it again',
   expect(container.textContent).not.toContain('Choisis ton élément');
   expect(mocks.api.chooseElement).not.toHaveBeenCalled();
 });
+
+it('preserves the last authoritative Contest after a transient 503 and a slow read', async () => {
+  vi.useFakeTimers()
+  const { ApiError } = await import('./api/game-api')
+  const value = { active: { id: 'running-contest' }, legends: [] }
+  mocks.api.getContest.mockResolvedValue(value)
+  await mount()
+  mocks.api.getContest.mockRejectedValueOnce(new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503))
+  await act(async () => { await mocks.shell!.onRefreshContest!().catch(() => undefined) })
+  expect(mocks.shell!.contest).toEqual(value)
+  let resolve!: (value: object) => void
+  mocks.api.getContest.mockImplementationOnce(() => new Promise<object>(done => { resolve = done }))
+  await act(async () => { void mocks.shell!.onRefreshContest!() })
+  await act(async () => { await vi.advanceTimersByTimeAsync(CONTEST_SLOW_READ_MS) })
+  expect(mocks.shell!.contest).toEqual(value)
+  expect(mocks.shell!.contestAvailability).toEqual({ phase: 'unavailable', pending: true })
+  await act(async () => { resolve(value) })
+  expect(mocks.shell!.contestAvailability).toEqual({ phase: 'ready', pending: false })
+})
+
+it('clears the private Contest and handles an authentication failure instead of retrying forever', async () => {
+  const { ApiError } = await import('./api/game-api')
+  await mount()
+  mocks.api.getContest.mockRejectedValueOnce(new ApiError('SESSION_REQUIRED', 'Expired', 401))
+  await act(async () => { await mocks.shell!.onRefreshContest!().catch(() => undefined) })
+  expect(mocks.shell!.contest).toBeNull()
+  expect(mocks.signOut).toHaveBeenCalledOnce()
+})
+
+it('ignores an old account authentication failure after reconnection', async () => {
+  const { ApiError } = await import('./api/game-api')
+  let reject!: (error: Error) => void
+  mocks.api.getContest.mockImplementationOnce(() => new Promise((_, fail) => { reject = fail }))
+  await mount()
+  mocks.status = 'signedOut'; await mount()
+  mocks.status = 'signedIn'; mocks.userId = 'other-owner'; await mount()
+  await act(async () => { reject(new ApiError('SESSION_REQUIRED', 'Old session', 401)) })
+  expect(mocks.signOut).not.toHaveBeenCalled()
+})
+
+it('drops the previous Player projection before reloading the same authenticated account', async () => {
+  const previous = { active: { id: 'private-old' } }
+  mocks.api.getContest.mockResolvedValue(previous)
+  await mount()
+  let release!: (value: object) => void
+  mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'replacement-player' })
+  mocks.api.getContest.mockImplementationOnce(() => new Promise(done => { release = done }))
+  await act(async () => { await mocks.shell!.onRefreshPlayerState!() })
+  expect(mocks.shell!.player.id).toBe('replacement-player')
+  expect(mocks.shell!.contest).toBeNull()
+  await act(async () => { release({ active: null, legends: [] }) })
+  expect(mocks.shell!.contest).toEqual({ active: null, legends: [] })
+})

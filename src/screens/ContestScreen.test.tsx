@@ -64,6 +64,28 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
 }
 
 describe('ContestScreen', () => {
+  it('retains the running screen and open Legend modal through 503, slow recovery and fresh DTO', async () => {
+    vi.useFakeTimers()
+    const value: ContestDto = { ...base, active: { ...lobby, status: 'RUNNING', phase: 'TURNS', currentRound: 1 }, permissions: { ...permissions, canPlay: true } }
+    const onRefresh = vi.fn(async () => value)
+    const { container, root, props } = mount(value, { onRefresh })
+    await act(async () => { await Promise.resolve() })
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(b => b.textContent === 'Mes Légendes')!.click() })
+    const screen = container.querySelector('.contest-screen'), modal = container.querySelector('.contest-legends-modal')
+    onRefresh.mockRejectedValueOnce(new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503))
+    await act(async () => { window.dispatchEvent(new Event('focus')) })
+    await act(async () => root.render(<ContestScreen {...props} availability={{ phase: 'unavailable', pending: false }} />))
+    expect(container.querySelector('.contest-screen')).toBe(screen)
+    expect(container.querySelector('.contest-legends-modal')).toBe(modal)
+    expect(container.querySelector('.contest-sync-feedback')?.getAttribute('title')).toContain('Nouvel essai automatique')
+    await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
+    expect(onRefresh).toHaveBeenCalledTimes(3)
+    await act(async () => root.render(<ContestScreen {...props} value={{ ...value, dailyUsed: true }} availability={{ phase: 'ready', pending: false }} />))
+    expect(container.querySelector('.contest-screen')).toBe(screen)
+    expect(container.querySelector('.contest-legends-modal')).toBe(modal)
+    expect(container.querySelector('.contest-sync-feedback')).toBeNull()
+    expect(props.onPlay).not.toHaveBeenCalled()
+  })
   it('shows a newly unlocked C6 Legend in the open modal from a refreshed prop without a mutation', async () => {
     const before: ContestDto = { ...base, legends: [], permissions: { ...permissions, canOpen: false } }
     const onOpen = vi.fn(async () => before), onJoin = vi.fn(async () => before)
@@ -585,7 +607,7 @@ describe('ContestScreen', () => {
     const onRefresh = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(value)
     const { container } = mount(value, { onRefresh })
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
-    expect(container.querySelector('.contest-sync-feedback')?.textContent).toContain('Synchronisation temporairement indisponible')
+    expect(container.querySelector('.contest-sync-feedback')?.getAttribute('title')).toContain('Synchronisation temporairement indisponible')
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.contest-sync-feedback')).toBeNull()
   })

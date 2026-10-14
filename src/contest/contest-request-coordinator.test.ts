@@ -10,6 +10,55 @@ function deferred<T>() {
 }
 
 describe('contest request coordinator', () => {
+  it('drains a failed read before the queued refresh and never overlaps SQL work', async () => {
+    vi.useFakeTimers()
+    let reject!: (reason: Error) => void
+    const publish = vi.fn(), errors = vi.fn(), status = vi.fn()
+    const coordinator = createContestRequestCoordinator(publish, status, errors)
+    const original = coordinator.read(() => new Promise<number>((_, fail) => { reject = fail }))
+    const caught = original.catch(() => undefined)
+    const fresh = vi.fn(async () => 8)
+    const queued = coordinator.refresh(fresh)
+    for (let i = 0; i < 10; i++) expect(coordinator.refresh(fresh)).toBe(queued)
+    await vi.advanceTimersByTimeAsync(CONTEST_SLOW_READ_MS)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'unavailable', pending: true })
+    await vi.advanceTimersByTimeAsync(60_000)
+    expect(fresh).not.toHaveBeenCalled()
+    reject(new Error('503'))
+    await caught
+    await expect(queued).resolves.toBe(8)
+    expect(fresh).toHaveBeenCalledOnce()
+    expect(publish).toHaveBeenCalledExactlyOnceWith(8)
+    expect(errors).not.toHaveBeenCalled()
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('does not launch a queued refresh after a session reset', async () => {
+    const pending = deferred<number>(), fresh = vi.fn(async () => 8), publish = vi.fn()
+    const coordinator = createContestRequestCoordinator(publish)
+    const original = coordinator.read(() => pending.promise)
+    const queued = coordinator.refresh(fresh)
+    const rejected = expect(queued).rejects.toThrow('session changed')
+    coordinator.reset()
+    await coordinator.read(async () => 9)
+    pending.resolve(1)
+    await original
+    await rejected
+    expect(fresh).not.toHaveBeenCalled()
+    expect(publish).toHaveBeenCalledExactlyOnceWith(9)
+  })
+
+  it('keeps degraded status until an authoritative recovery and scopes auth errors to the owner', async () => {
+    const status = vi.fn(), errors = vi.fn(), pending = deferred<number>()
+    const coordinator = createContestRequestCoordinator(vi.fn(), status, errors)
+    await coordinator.read(async () => { throw new Error('503') }).catch(() => undefined)
+    const recovery = coordinator.read(() => pending.promise)
+    expect(status).toHaveBeenLastCalledWith({ phase: 'unavailable', pending: true })
+    pending.resolve(1)
+    await recovery
+    expect(status).toHaveBeenLastCalledWith({ phase: 'ready', pending: false })
+    expect(errors).toHaveBeenCalledOnce()
+  })
   it('marks a slow read unavailable while keeping the one owned request and accepts its recovery', async () => {
     vi.useFakeTimers()
     const pending = deferred<number>(), publish = vi.fn(), status = vi.fn()
@@ -87,12 +136,12 @@ describe('contest request coordinator', () => {
 
     const stale = coordinator.read(() => staleRead.promise)
     const refreshes = [coordinator.refresh(loadFresh), coordinator.refresh(loadFresh), coordinator.read(loadFresh)]
-    expect(loadFresh).toHaveBeenCalledOnce()
-
-    refreshed.resolve(6)
-    await expect(Promise.all(refreshes)).resolves.toEqual([6, 6, 6])
+    expect(loadFresh).not.toHaveBeenCalled()
     staleRead.resolve(0)
     await expect(stale).resolves.toBe(0)
+    expect(loadFresh).toHaveBeenCalledOnce()
+    refreshed.resolve(6)
+    await expect(Promise.all(refreshes)).resolves.toEqual([6, 6, 6])
     expect(publish.mock.calls).toEqual([[6]])
   })
 
