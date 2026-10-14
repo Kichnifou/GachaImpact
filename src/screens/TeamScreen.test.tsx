@@ -187,6 +187,25 @@ function enterDrag(element: HTMLElement) {
 }
 
 describe('real Team screen', () => {
+  it.each([1, 2, 3, 4])('reserves the four-effect footprint from the real reference without exposing extra active effects (%i)', count => {
+    const snapshot = teams(4)
+    const references = snapshot.passiveReference.map(passive => passive.elementKey === 'dendro'
+      ? { ...passive, levelOne: '1 chance sur 25 : 40 Primos, 1 000 Moras et 5 particules de chaque élément', levelTwo: '1 chance sur 15 : 40 Primos, 1 000 Moras et 5 particules de chaque élément' }
+      : passive)
+    const formation = { ...snapshot.teams[0]!, passives: references.slice(0, count).map(passive => ({ ...passive, stacks: 1 as const, description: passive.levelOne })) }
+    const container = mountTeamScreen({ ...snapshot, passiveReference: references, teams: [formation, ...snapshot.teams.slice(1)] })
+    const sizing = container.querySelectorAll('.team-passive-layout-size')
+    expect(sizing).toHaveLength(4)
+    const reserve = container.querySelector('.team-passive-reserve')!
+    expect(reserve.getAttribute('aria-hidden')).toBe('true')
+    expect(reserve.hasAttribute('inert')).toBe(true)
+    for (const reference of sizing) {
+      expect(reference.querySelector('button')).toBeNull()
+    }
+    expect(sizing[3]!.textContent).toContain('Dendro I — 1 chance sur 25 : 40 Primos, 1 000 Moras')
+    expect(container.querySelectorAll('.bonus-grid article')).toHaveLength(count)
+  })
+
   it('opens the selected possession from a native surface without nested buttons', () => {
     const container = mountTeamScreen(teams(4), { onLoadBox: () => new Promise(() => undefined) })
     const surface = buttonByLabel(container, 'Ouvrir la fiche de Émilie')
