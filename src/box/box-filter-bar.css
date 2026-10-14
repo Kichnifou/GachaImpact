@@ -1,14 +1,14 @@
-.box-filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
-.box-filter-bar .search-field { flex: 1 1 120px; }
-.box-filter-bar .sort-select { gap: 5px; }
-.box-filter-bar .sort-select select { max-width: 135px; }
-.box-filter-bar .box-constellation-filter { flex: 0 0 auto; }
-.box-filter-bar .box-constellation-filter select { width: auto; min-width: 88px; padding-inline: 10px 24px; flex-shrink: 0; }
-.box-filter-bar .filter-group, .box-filter-bar .element-filters { flex-wrap: nowrap; }
+.collection-filters.box-filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
+.collection-filters.box-filter-bar .search-field { flex: 1 1 120px; }
+.collection-filters.box-filter-bar .sort-select { gap: 5px; }
+.collection-filters.box-filter-bar .sort-select select { max-width: 135px; }
+.collection-filters.box-filter-bar .box-constellation-filter { flex: 0 0 auto; }
+.collection-filters.box-filter-bar .box-constellation-filter select { width: auto; min-width: 88px; padding-inline: 10px 24px; flex-shrink: 0; }
+.collection-filters.box-filter-bar .filter-group, .collection-filters.box-filter-bar .element-filters { flex-wrap: nowrap; }
 @media (min-width: 1800px) {
-  .box-filter-bar { flex-wrap: nowrap; }
+  .collection-filters.box-filter-bar { flex-wrap: nowrap; }
 }
 @media (max-width: 760px) {
-  .box-filter-bar .search-field { flex-basis: 100%; }
-  .box-filter-bar .element-filters { flex-wrap: wrap; }
+  .collection-filters.box-filter-bar .search-field { flex-basis: 100%; }
+  .collection-filters.box-filter-bar .element-filters { flex-wrap: wrap; }
 }
