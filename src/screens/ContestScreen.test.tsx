@@ -64,6 +64,14 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
 }
 
 describe('ContestScreen', () => {
+  it('clears an old polling warning immediately when an external read or mutation publishes READY', async () => {
+    const onRefresh = vi.fn(async (): Promise<ContestDto> => { throw new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503) })
+    const { container, root, props } = mount(base, { onRefresh })
+    await act(async () => { await Promise.resolve() })
+    expect(container.querySelector('.contest-sync-feedback')).not.toBeNull()
+    await act(async () => root.render(<ContestScreen {...props} availability={{ phase: 'ready', pending: false }} />))
+    expect(container.querySelector('.contest-sync-feedback')).toBeNull()
+  })
   it('retains the running screen and open Legend modal through 503, slow recovery and fresh DTO', async () => {
     vi.useFakeTimers()
     const value: ContestDto = { ...base, active: { ...lobby, status: 'RUNNING', phase: 'TURNS', currentRound: 1 }, permissions: { ...permissions, canPlay: true } }

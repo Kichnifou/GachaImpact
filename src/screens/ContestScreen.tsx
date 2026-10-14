@@ -59,7 +59,7 @@ export default function ContestScreen(props: Props) {
   const scoreFeedback = useLatestScoreFeedback(props.value.active)
 
   const pollingError = useContestRefresh(refresh, activeContestId)
-  const syncError = pollingError ?? (props.availability?.phase === 'unavailable'
+  const syncError = props.availability?.phase === 'ready' ? null : pollingError ?? (props.availability?.phase === 'unavailable'
     ? (props.availability.pending ? 'Synchronisation…' : 'Synchronisation temporairement indisponible. Nouvel essai automatique.')
     : null)
 
