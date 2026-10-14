@@ -28,6 +28,23 @@ function click(button: HTMLButtonElement) { act(() => button.click()) }
 function buttons(container: HTMLElement) { return Array.from(container.querySelectorAll<HTMLButtonElement>('button')) }
 
 describe('Event Shop', () => {
+  it('keeps Shop feedback honest when feedback appears and clears', () => {
+    const value = view(true, '71'), { container, root, onTransact } = mount(value)
+    const render = (feedback: string, error: string) => act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback={feedback} error={error} canConvert canPurchaseCollection onTransact={onTransact} />))
+    const feedback = () => container.querySelector('.event-shop-feedback')!
+    expect(feedback().textContent).toBe('')
+    render('Échange réalisé : 160 Primogemmes.', '')
+    expect(feedback().textContent).toBe('Échange réalisé : 160 Primogemmes.')
+    expect(feedback().getAttribute('role')).toBe('status')
+    render('', 'Échange impossible pour le moment. Réessayez.')
+    expect(feedback().getAttribute('role')).toBe('alert')
+    expect(feedback().textContent).toContain('Réessayez')
+    render('', '')
+    expect(feedback().textContent).toBe('')
+    expect(container.querySelector('.event-shop-balance h2')?.textContent).toContain('71')
+    expect(onTransact).not.toHaveBeenCalled()
+  })
+
   it('anchors the full Shop including conversion and Collection without transacting', () => {
     const { container, onTransact } = mount()
     const target = container.querySelector('[data-tutorial-anchor="event-shop"]')!
