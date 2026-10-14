@@ -75,7 +75,7 @@ function EventCooldownButton({ durationMs }: Readonly<{ durationMs: number }>) {
 
 export default function EventScreen({ sessionUserId, value, onLoad, onLoadRanking, onJoin, onClaimCalendar, onClaimDailyBonus, onConvertShop, onPurchaseCollection, onAttempt, onAttemptB, onSearchRecipients = unavailableRecipientSearch, onSendGameC = unavailableGameCSend, onConsultMessages, openMessagesToken = 0, openShopToken = 0, dailyIntent, onDailyIntentConsumed, onOpenCodes, onOpenHistory }: Props) {
   const [normalGameCPane, setGameCPane] = useState<'send' | 'messages'>('send')
-  const shortDesktop = useShortDesktop()
+  const shortDesktop = useShortDesktop(820)
   const presentationMode = useTutorialPresentation()
   const guidedView = presentationMode.active ? presentationMode.step?.view : undefined
   const gameCPane = !value.gameC.canSend ? 'messages' : guidedView === 'games-c' ? 'send' : normalGameCPane
