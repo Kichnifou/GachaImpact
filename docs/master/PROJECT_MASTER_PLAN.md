@@ -1,5 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1093 — Tutoriel V1 actualisé, affichage et nouveautés (14/10/2026)
+
+Mandat propriétaire complet : mise à jour du Tutoriel sans refonte, capture réelle fournie, compatibilité des progressions et cycle review → reviews indépendantes → main FF → déploiements/postflight. Base fraîche **88542e0287668d2c072f67be2afa875b4113c050**, quatre refs égales, divergence 0/0, arbre propre. R1092 livrée et conservée ; aucune passe mobile générale, bêta ou application exe engagée.
+
+Code implémenté : **121 étapes / 24 chapitres / 21 écrans**, cinq ajouts (display-settings, home-shortcuts, invocation-shared, profile-badges, history-activity), treize textes actualisés. [Spécification et matrice canoniques](../specifications/tutorial-v1.md). Vraie capture Downloads 2528×1250 intégrée en WebP 234330 octets, pseudo/message communautaire neutralisés, composition/proportions conservées. Nouvelle première fenêtre plus large, instructions desktop/mobile, zoom natif libre, quatre commandes habituelles. Aucun nouveau contenu fictif dans le jeu ni action économique/cosmétique/communautaire déclenchée.
+
+Compatibilité : tutorial_v1/version 1 et les 116 anciens IDs/deux aliases conservés. IN_PROGRESS repris sans reset, COMPLETED jamais relancé automatiquement, même sans ancien marqueur. Claim transactionnel unique conservé. Négociation additive catalog=r1093 : ancien client reçoit une projection lisible sans réparation de stockage ; nouveau client face à ancien serveur garde les 116 étapes et profile au départ. Nouveau serveur : whitelist exacte 121 IDs, première étape display-settings. Présentations Badges/Activité dérivées sans changer les sélections normales ; transports/actions partagés suspendus pendant la visite. Aucune migration ni changement de schéma public.
+
+Qualification acquise : ciblés frontend 109/109, backend 148/148, PostgreSQL privé 7/7 avec claims concurrents et cleanup ; quick 5/5, full 8/8 (1697 frontend,2521 backend non-DB), types/builds/lint PASS. Zoom natif privé 67/80/100/125/150 % PASS, clavier non intercepté ; les raccourcis CDP headless ne changent pas eux-mêmes le zoom et ne valent pas une recette humaine. GameShell compilé : 121 étapes aux quatre formats demandés (484 présentations), zéro erreur JS/mutation ; sept compléments reprise/retry/focus/ancien catalogue PASS. Les gates de publication/reviews/déploiements restent à acquérir ; [registre de preuves](../architecture/evidence/r1093-qualification.json). Aucune validation esthétique propriétaire revendiquée.
+
+Master protégé : ajout borné avant R1092, suffixe historique complet et dernières sections identiques à la baseline ; [garde](../architecture/evidence/r1093-master-guard.mjs) avant/après. AGENTS, Guide, workflow et roadmap examinés inchangés ; aucun arbitrage durable supplémentaire hors contrat Tutoriel.
+
+**Prochaine action :** terminer les gates techniques R1093 puis recette propriétaire du Tutoriel actualisé. STOP après livraison.
+
 ## R1092 — trois micro-finitions desktop en continuité R1091 (14/10/2026)
 
 Mandat propriétaire complet après essai public de R1091 : boutons du voile Équipe trop petits dans la présentation étroite, gabarit des passifs à stabiliser sur la référence à quatre effets, montant Shop légèrement plus présent et cartes étendues jusqu'au bas utile. Les trois captures sont visibles en conversation ; leurs pixels physiques ne prouvent pas un viewport CSS. R1091 et toutes ses autres surfaces sont conservés. Base réellement vérifiée après fetch : **42ffecc0a219e8bd9d374b073c92ac873fe91bec**, quatre refs égales, divergence 0/0, arbre propre ; R1092 disponible. Aucun retour à un ancien SHA.

@@ -1,5 +1,10 @@
 # Journal des décisions validées
 
+## R1093 — actualisation additive du Tutoriel V1 (14/10/2026)
+
+Mandat validé : nouvelle première étape Affichage avec capture propriétaire réelle, raccourcis Accueil, Invocations partagées, Badges, Historique Activité et textes devenus incomplets. 121 étapes/24 chapitres ; moteur V1 conservé. Progressions existantes et aliases protégés, aucune relance automatique de COMPLETED, négociation compatible ancien/nouveau catalogue sans migration. Code implémenté ; gates techniques, publication, reviews indépendantes, déploiements et recette propriétaire distingués au Master. Aucun outil opérateur ni mutation métier de démonstration.
+
+
 ## R1092 — dernières finitions après retour public R1091 (14/10/2026)
 
 Trois demandes propriétaire validées : commandes hover Équipe aux proportions de la référence large sans toucher aux cartes ; gabarit Passifs stable entre 1–4 effets, référence physique à quatre effets conservée ; solde Shop un peu agrandi et trois cartes occupant le bas utile, feedbacks vrais et centrage des quantités R1091 conservés. Les interactions, données, règles métier, Tutoriel et autres surfaces R1091 restent inchangés. Code implémenté, qualifié, double review indépendante approuvée, promu main FF et déployé avec postflight PASS ; preuves et SHA au Master. Recette esthétique propriétaire encore attendue. Pas de nouvelle décision d'architecture ni de passe mobile.

@@ -1,0 +1,144 @@
+{
+  "mission": "R1093",
+  "baseline": "88542e0287668d2c072f67be2afa875b4113c050",
+  "status": "Locally qualified candidate; published-SHA reviews and deployments pending",
+  "steps": 121,
+  "chapters": 24,
+  "screens": 21,
+  "newSteps": [
+    "display-settings",
+    "home-shortcuts",
+    "invocation-shared",
+    "profile-badges",
+    "history-activity"
+  ],
+  "updatedTexts": 13,
+  "image": {
+    "sourceDimensions": [
+      2528,
+      1250
+    ],
+    "sourceBytes": 2162606,
+    "optimizedBytes": 234330,
+    "sha256": "62e3bdb2ea1eaae7357bf767d59175f48115d1fc22f34bbb739a61297393d7ca",
+    "redactions": [
+      "owner display name",
+      "community message including author and time"
+    ],
+    "compositionPreserved": true
+  },
+  "tests": {
+    "frontendTargeted": 109,
+    "backendTargeted": 148,
+    "privatePostgres": 7,
+    "quick": "5/5",
+    "full": "8/8",
+    "frontend": 1697,
+    "backendNonDb": 2521
+  },
+  "zoom": {
+    "proof": {
+      "path": "local-data/r1093/zoom-native.json",
+      "sha256": "7882a4ff3c083d9f0366b4d393db9cdc241d3e21eb8575ad4fb7a9726f737aaf"
+    },
+    "nativeZooms": [
+      0.67,
+      0.8,
+      1,
+      1.25,
+      1.5
+    ],
+    "shortcuts": "Uncancelled; CDP headless keyboard does not itself trigger browser UI accelerators"
+  },
+  "limits": [
+    "Private compiled fixtures are not public player state or owner acceptance",
+    "No public preference mutation or gameplay performed",
+    "Private PostgreSQL schema fixtures created then cleaned; no public migration",
+    "Initial helper assertions and fixture gaps corrected; failed logs retained",
+    "Existing bundle size and localhost harness noise retained"
+  ],
+  "masterHistory": {
+    "baseline": "88542e0287668d2c072f67be2afa875b4113c050",
+    "anchor": "## R1092 — trois micro-finitions desktop en continuité R1091 (14/10/2026)",
+    "historySha256": "d83b5f76c49da2eec4fcb48834d5350826580d7369d24ce9d124e5406946b2ef"
+  },
+  "reviews": {
+    "status": "Pending actual published SHA"
+  },
+  "deployment": {
+    "status": "Pending promotion"
+  },
+  "ownerAcceptance": "Still required",
+  "browser": {
+    "states": 484,
+    "viewports": [
+      [
+        1920,
+        1080
+      ],
+      [
+        2560,
+        1440
+      ],
+      [
+        1366,
+        768
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "fullWalks": 4,
+    "jsErrors": 0,
+    "mutations": 0,
+    "proof": {
+      "path": "local-data/r1093/qualification.json",
+      "sha256": "1630fb05bfbf3b7b2b2d7ea10d19b16859238ed96b7756130cdc4d0554c9f5b3"
+    },
+    "supplement": {
+      "checks": 7,
+      "proof": {
+        "path": "local-data/r1093/supplement.json",
+        "sha256": "4012c90672ef114b771a332b2b77d41ae982d05a9c157ab54f7e7f1497bf0490"
+      }
+    },
+    "preReview": {
+      "path": "local-data/r1093/pre-review-visual.json",
+      "sha256": "0fcc6040b780fe3def93e7389b467f8c79a181865d1915c611498b3ba66b683e"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "index-BofMTeCJ.css",
+      "sha256": "ac7a67dfc418a75aef1647993bf1da5e8bb4cf0f582fa54d46664ef0932b31e2"
+    },
+    {
+      "name": "index-DC2Zwcp8.js",
+      "sha256": "47af5647ccfadd6ca6d4b61b7920a6de40a536b1e733614353c44c410c1c39c5"
+    }
+  ],
+  "rollout": "After independent approval deploy backend-only ancestor first, wait exact Railway readiness and no pending, then strict FF main to final candidate; old frontend consumes projected legacy responses in between",
+  "testLogs": [
+    {
+      "path": "local-data/r1093/targets-final.log",
+      "sha256": "68685f8ac058842c2158599c3c31c9e686eb85071cefe11f749b6bb92a9a33da"
+    },
+    {
+      "path": "local-data/r1093/backend-targeted.log",
+      "sha256": "1a3e7d2c0cb4594b5108cbb429bfa965cb731ea1a49307ba0c08d11b41b954d7"
+    },
+    {
+      "path": "local-data/r1093/db-tests.log",
+      "sha256": "1311fe2deac61320d3d606aee5852b5b6f99e5f2d83b088d8bb74190320709d9"
+    },
+    {
+      "path": "local-data/r1093/quick-second.log",
+      "sha256": "7bdc645442ce5761a2f2937c57608358c90e7b39175014822309bf33a9fcf266"
+    },
+    {
+      "path": "local-data/r1093/full.log",
+      "sha256": "1d1f24476436d347a879fd254f0ac5230b766e15d5837f38ca87cdebc0101387"
+    }
+  ]
+}
