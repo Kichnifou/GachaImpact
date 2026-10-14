@@ -1,0 +1,27 @@
+@media (min-width: 1121px) {
+  .profile-screen[data-profile-view="Statistiques"] .scrollable-screen-panel-body { overflow: visible; container-type: size; }
+  .profile-screen .profile-statistics { height: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: clamp(6px, 2cqh, 18px); align-items: start; }
+  .profile-screen .profile-statistics-group { box-sizing: border-box; padding: clamp(7px, 2cqh, 18px); }
+  .profile-screen .profile-statistics-group:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
+  .profile-screen .profile-statistics-group:nth-child(3) { grid-column: 1; grid-row: 2; }
+  .profile-screen .profile-statistics-group:nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
+  .profile-screen .profile-statistics-group h2 { font-size: 17px; margin-bottom: 6px; }
+  .profile-screen .profile-statistics-group dl > div { padding: clamp(4px, 1.6cqh, 14px) 0; gap: 8px; font-size: 13px; line-height: 1.3; }
+  .profile-screen .profile-statistics-group dd { flex-shrink: 0; max-width: 58%; }
+}
+@media (min-width: 1121px) and (max-height: 650px) {
+  .profile-screen .profile-statistics { gap: 5px; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 1fr; }
+  .profile-screen .profile-statistics-group:nth-child(n) { grid-column: auto; grid-row: auto; }
+  .profile-screen .profile-statistics-group { padding: 6px; }
+  .profile-screen .profile-statistics-group dl > div { display: grid; gap: 0; padding-block: 1px; font-size: 11px; line-height: 1.15; }
+  .profile-screen .profile-statistics-group dd { max-width: 100%; text-align: left; }
+  .profile-screen .profile-statistics-group h2 { font-size: 14px; margin-bottom: 3px; }
+  .profile-screen[data-fit-screen] .profile-navigation .app-button { min-height: 28px; padding: 3px 8px; font-size: 12px; }
+  .profile-screen[data-fit-screen] .profile-navigation { padding: 0; }
+  .profile-screen[data-fit-screen] .scrollable-screen-panel-controls { gap: 3px; padding: 0; }
+  .profile-screen[data-fit-screen] .secondary-navigation { margin: 0; gap: 2px; }
+  .profile-screen[data-fit-screen] .secondary-navigation .app-button { min-height: 26px; padding: 3px 5px; font-size: 11px; }
+  .profile-screen[data-fit-screen] > .screen-header { padding: 3px 10px; }
+  .profile-screen[data-fit-screen] > .screen-header h1 { font-size: 20px; margin: 0; }
+  .profile-screen[data-fit-screen] > .screen-header > div { display: flex; align-items: center; gap: 12px; }
+}
