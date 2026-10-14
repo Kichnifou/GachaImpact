@@ -1,9 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ApiError } from '../api/game-api'
 
 // Mounted only by the visible Contest surface (loaded or initial recovery).
-export function useContestRefresh(refresh: (() => Promise<unknown>) | undefined, activeContestId?: string) {
+export function useContestRefresh(refresh: (() => Promise<unknown>) | undefined, activeContestId?: string, projection?: unknown) {
   const [syncError, setSyncError] = useState<string | null>(null)
+  const currentProjection = useRef(projection)
+  currentProjection.current = projection
+  useEffect(() => { setSyncError(null) }, [projection])
   useEffect(() => {
     if (!refresh) return
     let mounted = true
@@ -19,12 +22,13 @@ export function useContestRefresh(refresh: (() => Promise<unknown>) | undefined,
     const revalidate = () => {
       if (!mounted || authenticationFailed || document.visibilityState === 'hidden') return Promise.resolve()
       if (inFlight) return inFlight
+      const requestedProjection = currentProjection.current
       const request = refresh().then(() => {
         if (!mounted) return
         failures = 0
         setSyncError(null)
       }).catch((reason: unknown) => {
-        if (!mounted) return
+        if (!mounted || currentProjection.current !== requestedProjection) return
         if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
           authenticationFailed = true
           setSyncError(reason.status === 401 ? 'Session expirée. Reconnectez-vous.' : 'Accès au Concours refusé.')

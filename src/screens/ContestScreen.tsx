@@ -61,7 +61,7 @@ export default function ContestScreen(props: Props) {
   const selectedLegendId = authoritativeLegendId ?? (props.value.legends.some((legend) => legend.character.id === legendDraftId) ? legendDraftId : '')
   const scoreFeedback = useContestPresentation(props.value.active, now)
 
-  const pollingError = useContestRefresh(refresh, activeContestId)
+  const pollingError = useContestRefresh(refresh, activeContestId, props.value)
   const syncError = props.availability?.phase === 'ready' ? null : pollingError
   const unreliable = props.availability?.phase === 'unavailable' || Boolean(syncError)
 
