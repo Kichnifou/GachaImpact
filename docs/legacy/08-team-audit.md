@@ -1,5 +1,9 @@
 # 08 — Audit legacy Team
 
+## Présentation physique R1091
+
+Cette précision supersède seulement l'espacement et les cinq commandes R1090 ci-dessous : passifs intrinsèques plus compacts, lien de référence supérieur droit, quatre portraits répartis dans la largeur utile avec ratio carré/contain conservé. Fiche devient une surface native sœur des commandes, Changer/Retirer puis flèches, hover/focus individuels et geste drag protégé. Les règles Team, mutations autoritaires, navigation des équipes, pending/preview/rollback et Tutoriel restent inchangés. Qualification et état de livraison au Master.
+
 ## Espacement et actions compactes — R1090
 
 La largeur des portraits reste bornée par la hauteur utile R1089. Leur groupe utilise désormais un centrage et un gap réel de 11 px, supprimant les espaces résiduels des quatre anciennes colonnes lorsque les cartes sont plafonnées. Le conteneur de carte choisit le repli trois rangées sous 260 px : Fiche/Changer, Retirer distinct, flèches. La colonne Changer reçoit plus de largeur pour contenir son texte même à faible hauteur. Voile sombre, focus-within, handlers, ordre, portraits carrés/cadrage et alignement inférieur des passifs sont conservés. Contrôles compilés des rectangles entiers et textes, vrais Tab clavier, équipes vides/partielles et zéro à quatre passifs ; recette esthétique propriétaire future.

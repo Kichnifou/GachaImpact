@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Interactions desktop R1091
+
+Équipe : portrait, nom, pied et espaces libres ouvrent la fiche via une surface native ; Changer, Retirer et flèches sont des contrôles séparés et ne déclenchent pas la fiche. Drag ne produit pas de clic de navigation. Le lien textuel des passifs ouvre la même référence et conserve l'ancre Tutoriel. Event garde ses destinations ; les sous-onglets thématiques des jeux ont leur rangée sous Général/Jeux/Shop/Classement. Aucun nouveau ScreenId ni changement du coordinateur Box.
+
 ## Cadres de contenu — R1090
 
 Les validations propriétaire R1089 sont conservées. Box Profil fait défiler uniquement ses résultats dans le corps déjà existant ; commandes, filtres multiples, permissions Box et Légendes restent indépendants. Collection Profil et trois catégories Sac hors Tout restent sans défilement. Tout Sac garde un unique cadre scrollable sous titre/recherche fixes. Les cinq actions Équipe restent accessibles par hover ou focus clavier sans changer leur ordre ni leurs handlers. Aucun changement de navigation, destination, confidentialité ou Concours.

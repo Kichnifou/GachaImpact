@@ -1,8 +1,9 @@
 # Journal des décisions validées
 
-## Finitions desktop finales après R1090 — décision propriétaire du 14/10/2026, non livrées
+<a id="finitions-desktop-finales-après-r1090--décision-propriétaire-du-14102026-non-livrées"></a>
+## R1091 — finitions desktop finales après R1090 (14/10/2026)
 
-Après la recette publique de R1090, le propriétaire demande **quatre ajustements ciblés**, sans rouvrir les autres surfaces : (1) Équipe selon les cinq captures (cartes aussi présentes qu'en référence, bloc passifs réduit, « Voir les passifs → » en haut à droite, carte cliquable pour Fiche, voile Changer/Retirer puis flèches, effets hover, aucune barre de défilement) ; (2) contrôles de quantité Event Shop centrés verticalement à grande résolution, rendu 1920 validé ; (3) croix de masquage Quotidiennes absente seulement quand le tracker est réellement totalement terminé ; (4) sous-onglets Fantôme/Crypte/Sort sous les onglets principaux, période d'édition courte à partir des vraies dates et libellé « Activités · Événement » supprimé, compaction Crypte si nécessaire sans scroll. Fonctionnalités, droits, transactions, économie, Twitch et Concours R1088 inchangés. **Ces décisions sont validées comme demandes ; aucune implémentation, publication ou recette du nouveau lot n'est encore prouvée.** État et prochaine action au Master ; règles fines au contrat UI. Future passe mobile seulement après ces finitions ; ne pas la lancer par cette passation.
+Les quatre demandes propriétaire déjà validées sont implémentées dans le candidat R1091 : cartes Équipe exploitant largeur/hauteur, passifs compacts et lien supérieur droit, surface de fiche native indépendante des quatre commandes, hover/focus ; quantités Shop centrées aux grandes hauteurs avec 1920 conservé ; croix Quotidiennes absente uniquement dans le véritable état terminé ; deux rangées Event, période dynamique courte et retrait du petit contexte. Crypte conserve les 32 codes, intentions et règles. Aucune nouvelle décision métier ni refonte ; R1090 et R1088 restent protégés. Publication/reviews/promotion/déploiements et recette esthétique sont des gates distinctes dont l'état réel appartient au Master. Mobile non commencé.
 
 ## R1090 — sept finitions desktop après recette R1089 (14/10/2026)
 

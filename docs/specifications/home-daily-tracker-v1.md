@@ -1,5 +1,9 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
+## Croix de masquage R1091
+
+La croix est retirée du DOM dans le statut réellement terminé déjà produit par le tracker : aucune sélection et message Terminé ✅. Ce changement de présentation ne modifie ni projection/applicabilité/complétion ni localStorage. Une activité masquée, attente, lecture unknown/error ou indisponibilité ne devient pas une complétion. Les autres états gardent leur contrôle de masquage ; restauration, navigation, Tout voir, cellule réservée et changement de journée restent identiques. Les tests couvrent aussi le retour de terminé vers disponible et la date suivante.
+
 ## Ligne secondaire Accueil — R1090
 
 Supprimer uniquement Event de homeDailySecondaryItems avant la limite de deux lignes. L’action Event disponible, les données Festival et les autres écrans restent inchangés ; Expédition conserve sa présentation secondaire. La ligne retirée ne figure plus dans le DOM. Son budget de hauteur déjà alloué est réservé lorsque nécessaire afin de conserver exactement le résumé Quotidiennes et l’échelle de la bannière ; aucun texte masqué par CSS. Six raccourcis, sélection, actions et masques existants conservés. La suppression de l’attente Event Sidebar de R1089 est validée par le propriétaire et ne fait pas l’objet d’une nouvelle retouche.

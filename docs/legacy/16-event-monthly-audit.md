@@ -1,5 +1,9 @@
 # 16 — Audit Event / monthly
 
+## Présentation physique R1091
+
+Deux rangées distinctes séparent navigation Event et noms dynamiques des jeux. Petit contexte retiré ; période DTO courte en J/M/AAAA, Paris, fin exclusive affichée comme dernier jour inclus. Huit paliers, 32 codes et confirmation Crypte, Fantôme et Sort conservés. Shop conserve 1920×1080 ; au-delà, quantités centrées dans la région disponible, footer inférieur. Header et Collection se réorganisent au desktop compact. Aucun changement des récompenses, taux, intentions, retries, règles et commandes ; preuves de qualification et gates au Master.
+
 ## En-têtes Shop — R1090
 
 Cette clause supersède la seule réduction des catégories Shop R1089 : Conversion et Objet Collection sont maintenant retirés du JSX, donc absents à toute résolution. Chaque produit possède un header interne avec icône et titre dans deux colonnes séparées, gap régulier, sans position absolue. Le bandeau de solde est légèrement réduit ; monnaie Festival maintenue à droite. Formulaires, quantités, MAX, gains, confirmation/retry, coût, disponibilité et édition courante inchangés. Classement R1089 validé par le propriétaire et conservé ; aucune action de jeu publique de QA. Preuves au Master.

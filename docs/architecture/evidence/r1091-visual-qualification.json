@@ -1,0 +1,240 @@
+{
+  "mission": "R1091",
+  "date": "2026-10-14",
+  "baseline": "dffec5a63af14a5a3424022180a037813a93911d",
+  "runtime": "22cb7b250f6616c487d95405ddfa1118122e9844",
+  "status": "Local qualified candidate; independent published-SHA reviews, promotion and deployments pending",
+  "scope": {
+    "frontendOnly": true,
+    "mobilePass": false,
+    "publicGameplayQa": false,
+    "migrations": false
+  },
+  "commits": {
+    "Team": "d8b1f613",
+    "EventShop": "0d92f6e2",
+    "DailyTracker": "e94c99f0",
+    "EventGames": "22cb7b25"
+  },
+  "tests": {
+    "targeted": {
+      "files": 4,
+      "tests": 179,
+      "exit": 0,
+      "log": "r1091-targets-final.log"
+    },
+    "quick": {
+      "result": "5/5 PASS",
+      "log": "gachaimpact-verify-quick-ERHhV8"
+    },
+    "full": {
+      "result": "8/8 PASS",
+      "frontend": 1680,
+      "backendNonDb": 2510,
+      "log": "gachaimpact-verify-full-PpuoLj"
+    },
+    "history": [
+      "First targeted attempt: JSX conditional closing brace error and obsolete Team assertions; fixed. Second: date format zero padding and two old long-date assertions; fixed, 179/179 PASS.",
+      "Initial quick frontend unused CSS source variable; corrected (removal initially missed CRLF), final quick 5/5 PASS.",
+      "First full 7/8: Expedition deep-link exceeded 5000 ms while visual QA also ran. Same test isolated 1/1 PASS; full final 8/8 without modifying Expedition test. No proven root cause beyond that observed timeout.",
+      "Targeted harness logs contain asynchronous ECONNREFUSED localhost:3000; final targeted exit 0. Vite bundle-size warning retained."
+    ],
+    "db": "Not run: frontend presentation only, server/Prisma unchanged"
+  },
+  "visual": {
+    "browser": "Chromium msedge headless",
+    "fixtures": "Private controlled compiled GameShell with actual product CSS and public assets",
+    "viewports": [
+      [
+        1920,
+        1080
+      ],
+      [
+        2560,
+        1440
+      ],
+      [
+        1536,
+        864
+      ],
+      [
+        1366,
+        768
+      ],
+      [
+        1920,
+        920
+      ]
+    ],
+    "dpr": 1,
+    "zoom": 1,
+    "chat": "open and collapsed",
+    "qualificationStates": 82,
+    "geometryStates": 30,
+    "interactions": 10,
+    "additionalTeamChecks": 6,
+    "issues": 0,
+    "pageErrors": [],
+    "css": {
+      "file": "index-DcdNUpvf.css",
+      "sha256": "3e5c765ad521f8ace9723425157b6b5314dde0c28fbdbb6d4ffe9c4d8acfb5cf"
+    },
+    "evidence": [
+      {
+        "file": "local-data/r1091/qualification.json",
+        "sha256": "01086ee78281a7801f27f47d3de3d4ad14284fd576a2bdf8e9b1d4e2c0e58458"
+      },
+      {
+        "file": "local-data/r1091/geometry.json",
+        "sha256": "400881c3197ac59a7296675bec8690a7cbe6ae5461e88a303f64275263122ceb"
+      },
+      {
+        "file": "local-data/r1091/team-interactions.json",
+        "sha256": "53a54061539b99b780379faafde2b69d4719e0664f9b6a0d1a6b29e3e9ba20d3"
+      },
+      {
+        "file": "local-data/r1091/rollback.json",
+        "sha256": "ef165f6a53ec99e743e8044e08451c4e0b5ecbf3b045bd2d74eaf558318d8613"
+      },
+      {
+        "file": "local-data/r1091/team-1920.png",
+        "sha256": "f8f8187640d1ad5300de571341ce22991eefd13b33969c1009591360dad6f5aa"
+      },
+      {
+        "file": "local-data/r1091/shop-2560.png",
+        "sha256": "97d69284f37f3c99c619fef3ff8bfdf1dc2b0e70bef73d332a63c9d0b6ae7d06"
+      },
+      {
+        "file": "local-data/r1091/crypte-1920.png",
+        "sha256": "ff95d5119aede03d131f3357e5495bc4cccbb1374458bd00a92c261247675963"
+      },
+      {
+        "file": "local-data/r1091/daily-complete.png",
+        "sha256": "dfc4b43da20206cc399d51960ce50982fa7f39e5cb81308a52817a9871c5673c"
+      }
+    ],
+    "coverage": [
+      "Team empty/partial/full; 0-4 passives; hover hit tests, native surface keyboard, portrait/footer click, selector-only, native drag/drop and keyboard after drag, reference keyboard.",
+      "Three games including long multiline received Game C messages; 32 Crypte codes, selection and enabled confirmation; two separate tab rectangles.",
+      "Shop normal, 9-digit MAX, owned, insufficient, pending and failed/retry fixtures at three viewports; no public transaction.",
+      "Dailies completed with no hide DOM control, noncompleted with hide, local masking/restoration; date/unknown/error/waiting covered in automated tests."
+    ],
+    "limits": [
+      "No new mobile qualification or authenticated public acceptance. Owner five screenshots inspected in conversation; no claimed physical-pixel equivalence.",
+      "Team preserves square contain portraits and shared GameShell maximum width; cards fill available width and stay bounded by useful height rather than stretching illustrations.",
+      "No new Crypte dimensions needed for the required viewports. No global ScrollableScreenPanel or shell sizing change.",
+      "Tutorial anchors preserved and existing automated tutorial suites pass; no claim of manual replay of all 116 steps.",
+      "Rollback visual matrices not rerun; four local build/typecheck/targeted gates and exact file preservation checks recorded."
+    ]
+  },
+  "rollback": {
+    "base": "22cb7b250f6616c487d95405ddfa1118122e9844",
+    "rows": [
+      {
+        "name": "Team",
+        "sha": "d8b1f613",
+        "base": "22cb7b250f6616c487d95405ddfa1118122e9844",
+        "changed": [
+          "src/screens/TeamScreen.test.tsx",
+          "src/screens/TeamScreen.tsx",
+          "src/teams/team-layout.css"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      },
+      {
+        "name": "EventShop",
+        "sha": "0d92f6e2",
+        "base": "22cb7b250f6616c487d95405ddfa1118122e9844",
+        "changed": [
+          "src/event/event-shop-layout.css"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      },
+      {
+        "name": "DailyTracker",
+        "sha": "e94c99f0",
+        "base": "22cb7b250f6616c487d95405ddfa1118122e9844",
+        "changed": [
+          "src/dailies/DailyTrackerCard.tsx",
+          "src/dailies/daily-controller.test.tsx"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      },
+      {
+        "name": "EventGames",
+        "sha": "22cb7b25",
+        "base": "22cb7b250f6616c487d95405ddfa1118122e9844",
+        "changed": [
+          "src/event/EventScreenHeader.tsx",
+          "src/event/event-games-layout.css",
+          "src/screens/EventScreen.test.tsx",
+          "src/screens/EventScreen.tsx"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      }
+    ]
+  },
+  "reviews": {
+    "status": "Pending true published SHA"
+  },
+  "deployment": {
+    "status": "Pending main promotion"
+  },
+  "ownerAestheticAcceptance": "Still required after technical delivery"
+}
