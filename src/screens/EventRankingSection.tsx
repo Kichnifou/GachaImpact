@@ -50,11 +50,13 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
   const current = ranking?.editionId === editionId && ranking.page === page ? ranking : null
 
   return <section data-tutorial-anchor="event-ranking" data-tutorial-state={!current && !error && loadAvailable ? "loading" : undefined} className="panel event-ranking" aria-label="Classement du Festival">
-    <header><div><span className="eyebrow">Édition en cours</span><h2>Classement du Festival</h2></div><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
+    <header><h2>Classement du Festival</h2><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
+    <div className="event-ranking-results">
     {error && <p role="alert">{error}</p>}
     {!current && !error && <p>Chargement du classement…</p>}
     {current?.entries.length === 0 && <p>Aucun participant inscrit pour cette édition.</p>}
     {current && current.entries.length > 0 && <ol className="event-ranking-list">{current.entries.map((entry) => <li key={entry.playerId}><span className="event-ranking-rank">#{entry.rank}</span><strong>{entry.displayName}</strong><span>{formatResourceAmount(String(entry.points))} point{entry.points > 1 ? 's' : ''}</span></li>)}</ol>}
+    </div>
     <footer className="event-ranking-pagination">
       <span>{current?.self ? `Votre rang : #${current.self.rank}` : ''}</span>
       <AppButton aria-label="Classement précédent" disabled={!current || page <= 1} onClick={() => setSelection({ editionId, page: page - 1 })}>‹</AppButton>
