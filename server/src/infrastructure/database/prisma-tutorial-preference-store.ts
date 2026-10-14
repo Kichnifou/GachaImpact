@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js'
-import { autostartPreference, tutorialAutostartKey, tutorialPreferenceKey, type TutorialPreferenceDto, type TutorialPreferenceStore, type TutorialAutostartDto } from '../../application/tutorial/tutorial-preferences.js'
+import { normalizeTutorialPreference, autostartPreference, tutorialAutostartKey, tutorialPreferenceKey, type TutorialPreferenceDto, type TutorialPreferenceStore, type TutorialAutostartDto } from '../../application/tutorial/tutorial-preferences.js'
 
 export class PrismaTutorialPreferenceStore implements TutorialPreferenceStore {
   constructor(private readonly database: PrismaClient) {}
@@ -9,6 +9,8 @@ export class PrismaTutorialPreferenceStore implements TutorialPreferenceStore {
       const inserted = await tx.playerPreference.createMany({ data: [{ playerId, preferenceKey: tutorialAutostartKey, value: { version: 1, claimed: true } }], skipDuplicates: true })
       if (!inserted.count) return { shouldLaunch: false }
       const saved = await tx.playerPreference.findUnique({ where: { playerId_preferenceKey: { playerId, preferenceKey: tutorialPreferenceKey } }, select: { value: true } })
+      // A completed tutorial is never restarted by an automatic claim.
+      if (normalizeTutorialPreference(saved?.value)?.status === 'COMPLETED') return { shouldLaunch: false }
       const preference = autostartPreference(saved?.value)
       const value = preference as unknown as Prisma.InputJsonValue
       await tx.playerPreference.upsert({ where: { playerId_preferenceKey: { playerId, preferenceKey: tutorialPreferenceKey } }, create: { playerId, preferenceKey: tutorialPreferenceKey, value }, update: { value } })

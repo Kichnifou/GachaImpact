@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js'
-import { autostartPreference, defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
+import { autostartPreference, defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, tutorialLegacyProjection, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
 
 const players = ['first', 'second'].map(name => ({ id: crypto.randomUUID(), displayName: name, elementKey: 'hydro' as const, status: 'ACTIVE' as const }))
 const headers = { authorization: 'Bearer first' }
@@ -19,6 +19,21 @@ async function harness() {
   return { app, values, store }
 }
 describe('dedicated authenticated tutorial preference', () => {
+  it.each(Object.entries(tutorialLegacyProjection))('projects %s only for an old client, preserving the saved step', async (stepId, legacyId) => {
+    const { app, values, store } = await harness()
+    const saved = { version: 1, status: 'IN_PROGRESS', stepId }
+    values.set(players[0]!.id, saved)
+    expect((await app.inject({ url: '/api/v1/me/tutorial', headers })).json()).toEqual({ ...saved, stepId: legacyId })
+    expect((await app.inject({ url: '/api/v1/me/tutorial?catalog=r1093', headers })).json()).toEqual({ catalog: 'r1093', preference: saved })
+    expect(store.write).not.toHaveBeenCalled(); expect(values.get(players[0]!.id)).toEqual(saved)
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial?catalog=r1093', headers, payload: { ...saved, catalog: 'r1093' } })).statusCode).toBe(400)
+  })
+  it('starts a capable automatic client at display-settings and keeps the one-time claim', async () => {
+    const { app } = await harness()
+    const url = '/api/v1/me/tutorial/autostart?catalog=r1093'
+    expect((await app.inject({ method: 'POST', url, headers })).json()).toEqual({ catalog: 'r1093', shouldLaunch: true, preference: { version: 1, status: 'IN_PROGRESS', stepId: 'display-settings' } })
+    expect((await app.inject({ method: 'POST', url, headers })).json()).toEqual({ catalog: 'r1093', shouldLaunch: false })
+  })
   it.each(Object.entries(tutorialStepAliases))('projects and canonicalizes retired %s to %s without GET repair', async (legacy, canonical) => {
     const { app, values, store } = await harness()
     const saved = { version: 1, status: 'IN_PROGRESS', stepId: legacy }
@@ -55,10 +70,10 @@ describe('dedicated authenticated tutorial preference', () => {
   })
   it.each(tutorialStepIds)('persists known step %s and resolves Player from token', async stepId => {
     const { app, store } = await harness(), value = { version: 1, status: 'IN_PROGRESS', stepId }
-    const put = () => app.inject({ method: 'PUT', url: '/api/v1/me/tutorial', headers, payload: value })
+    const put = () => app.inject({ method: 'PUT', url: '/api/v1/me/tutorial?catalog=r1093', headers, payload: value })
     expect((await put()).json()).toEqual(value); expect((await put()).json()).toEqual(value)
     expect(store.write).toHaveBeenCalledWith(players[0]!.id, value)
-    expect((await app.inject({ url: '/api/v1/me/tutorial', headers })).json()).toEqual(value)
+    expect((await app.inject({ url: '/api/v1/me/tutorial?catalog=r1093', headers })).json()).toEqual({ catalog: 'r1093', preference: value })
     expect((await app.inject({ url: '/api/v1/me/tutorial', headers: { authorization: 'Bearer second' } })).json()).toEqual(defaultTutorialPreference)
   })
   it.each(['NOT_STARTED', 'COMPLETED'])('accepts canonical %s/null', async status => {

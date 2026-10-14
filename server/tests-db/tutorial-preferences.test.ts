@@ -16,8 +16,11 @@ it.each([
   if (saved) await database.playerPreference.create({ data: { playerId: player.id, preferenceKey: 'tutorial_v1', value: saved } })
   const store = new PrismaTutorialPreferenceStore(database)
   const results = await Promise.all([store.claimAutostart(player.id), store.claimAutostart(player.id)])
+  if (saved?.status === 'COMPLETED') {
+    expect(results).toEqual([{ shouldLaunch: false }, { shouldLaunch: false }]); expect(await store.read(player.id)).toEqual(saved); return
+  }
   expect(results.filter(result => result.shouldLaunch)).toHaveLength(1)
-  const preference = { version: 1, status: 'IN_PROGRESS', stepId: saved?.status === 'IN_PROGRESS' ? 'arcade-memory' : 'profile' }
+  const preference = { version: 1, status: 'IN_PROGRESS', stepId: saved?.status === 'IN_PROGRESS' ? 'arcade-memory' : 'display-settings' }
   expect(results.find(result => result.shouldLaunch)).toEqual({ shouldLaunch: true, preference })
   expect(await store.read(player.id)).toEqual(preference)
   expect((await database.playerPreference.findUniqueOrThrow({ where: { playerId_preferenceKey: { playerId: player.id, preferenceKey: 'tutorial_v1_autostart' } } })).value).toEqual({ version: 1, claimed: true })
