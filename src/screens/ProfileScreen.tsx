@@ -3,6 +3,7 @@ import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-p
 import { useEffect, useState, type ReactNode } from 'react'
 import '../social/statistics-layout.css'
 import '../social/profile-missions-layout.css'
+import '../missions/mission-pages.css'
 import ProfileFavorCard from '../components/ProfileFavorCard'
 import AppButton from '../components/AppButton'
 import CharacterCard from '../components/CharacterCard'
