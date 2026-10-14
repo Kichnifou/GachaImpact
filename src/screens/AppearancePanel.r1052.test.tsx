@@ -14,20 +14,20 @@ async function setup(){
  const equipAppearance=vi.fn(async()=>value);const actions={appearance:vi.fn(async()=>value),consultAppearance,equipAppearance} as unknown as SocialActions;
  const host=document.createElement('div');document.body.append(host);root=createRoot(host);
  const render=async(key='owner')=>act(async()=>root!.render(<AppearancePanel key={key} actions={actions} displayName="Owner" elementKey="pyro" onChanged={async()=>{}}/>));
- await render();return {host,actions,consultAppearance,equipAppearance,render,acquire:(entry:AppearanceDto['catalog'][number])=>{value={...value,catalog:[...value.catalog,entry]}}};
+ await render();await click(host,'Choisir');return {host,actions,consultAppearance,equipAppearance,render,acquire:(entry:AppearanceDto['catalog'][number])=>{value={...value,catalog:[...value.catalog,entry]}}};
 }
-const click=async(host:HTMLElement,label:string)=>act(async()=>[...host.querySelectorAll('button')].find(button=>button.textContent===label)!.click());
-const names=(host:HTMLElement)=>[...host.querySelectorAll('.appearance-character-card strong')].map(node=>node.textContent);
-async function search(host:HTMLElement,value:string){await act(async()=>{const input=host.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}))})}
-async function select(host:HTMLElement,label:string,value:string){await act(async()=>{const node=host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;node.value=value;node.dispatchEvent(new Event('change',{bubbles:true}))})}
+const click=async(_host:HTMLElement,label:string)=>{await act(async()=>[...document.body.querySelectorAll('button')].find(button=>button.textContent===label)!.click());if(label==='Titres'||label==='Avatars')await act(async()=>document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())};
+const names=(_host:HTMLElement)=>[...document.body.querySelectorAll('.appearance-character-card strong')].map(node=>node.textContent);
+async function search(_host:HTMLElement,value:string){await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}))})}
+async function select(_host:HTMLElement,label:string,value:string){await act(async()=>{const node=document.body.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;node.value=value;node.dispatchEvent(new Event('change',{bubbles:true}))})}
 it('marks only the visited type, retains first-visit priority until departure and persists across reloads',async()=>{
  const {host,consultAppearance,equipAppearance,render,acquire}=await setup();
- expect(names(host)).toEqual(['Étoile','Alpha','Beta']);expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('AVATAR',['z']);
- await click(host,'Titres');expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('TITLE',['n']);
- await click(host,'Avatars');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
+ expect(names(host)).toEqual(['Étoile','Alpha','Beta']);expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('AVATAR',['z']);
+ await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('TITLE',['n']);
+ await click(host,'Avatars');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
  await select(host,'Tri des cosmétiques','name');await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Beta','Étoile']);
- await render('reload');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
- acquire(cosmetic('late','Zeta','AVATAR','2026-10-13T00:00:00Z',true));await render('later');expect(names(host)[0]).toBe('Zeta');expect(consultAppearance).toHaveBeenLastCalledWith('AVATAR',['late']);
+ await render('reload');await click(host,'Choisir');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
+ acquire(cosmetic('late','Zeta','AVATAR','2026-10-13T00:00:00Z',true));await render('later');await click(host,'Choisir');expect(names(host)[0]).toBe('Zeta');expect(consultAppearance).toHaveBeenLastCalledWith('AVATAR',['late']);
  expect(equipAppearance).not.toHaveBeenCalled();
 });
 it('combines both sort directions and accent-insensitive character search without consuming titles',async()=>{
@@ -35,12 +35,12 @@ it('combines both sort directions and accent-insensitive character search withou
  await select(host,'Tri des cosmétiques','name');await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Beta','Étoile']);
  await select(host,'Ordre des cosmétiques','desc');expect(names(host)).toEqual(['Étoile','Beta','Alpha']);
  await select(host,'Tri des cosmétiques','date');expect(names(host)).toEqual(['Étoile','Alpha','Beta']);await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Étoile','Beta']);
- await act(async()=>{const input=host.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
+ await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
  expect(names(host)).toEqual(['Étoile']);expect(consultAppearance).toHaveBeenCalledTimes(2);
 });
 it('does not consume new titles hidden by a retained search, including an empty result',async()=>{
  const {host,consultAppearance}=await setup();await search(host,'ETOILE');await click(host,'Titres');
- expect(host.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
- await search(host,'titre');expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
- await click(host,'Avatars');await click(host,'Titres');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
+ expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
+ await search(host,'titre');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+ await click(host,'Avatars');await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
 });

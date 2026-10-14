@@ -15,26 +15,28 @@ const initial: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, t
 
 describe('AppearancePanel', () => {
   it('groups level titles by derived thresholds descending, keeps future families separate and preserves equipment', async () => {
-    const container = document.createElement('div'), root = createRoot(container)
+    const container = document.createElement('div'), root = createRoot(container); document.body.append(container)
     const catalog: AppearanceDto['catalog'] = [10, 50, 25, 100, 75].map(level => ({ id: 'level-' + level, type: 'TITLE', displayName: 'Titre ' + level, levelRequirement: level, assetPath: null, condition: 'Atteindre le niveau ' + level, visibility: 'VISIBLE', owned: level <= 50, isActive: true }))
     const appearance = { ...initial, equippedTitleCosmeticId: 'level-50', catalog: [...catalog, { id: 'future', type: 'TITLE' as const, displayName: 'Une autre famille', levelRequirement: null, assetPath: null, condition: null, visibility: 'VISIBLE' as const, owned: false, isActive: true }] }
     const equipAppearance = vi.fn(async () => appearance)
     try {
       await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => appearance, equipAppearance } as unknown as SocialActions} displayName="Axel" elementKey="hydro" onChanged={async () => {}} />); await Promise.resolve() })
-      await act(async () => [...container.querySelectorAll('nav button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })))
-      const section = container.querySelector('.appearance-level-section')!
+      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+      await act(async () => [...document.body.querySelectorAll('nav button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })))
+      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+      const section = document.body.querySelector('.appearance-level-section')!
       expect(section.querySelector('h3')?.textContent).toBe('Titres de niveaux')
       expect([...section.querySelectorAll('.appearance-card strong')].map(node => node.textContent)).toEqual(['Titre 100', 'Titre 75', 'Titre 50', 'Titre 25', 'Titre 10'])
       for (const level of [10,25,50,75,100]) expect(section.querySelector('.title-tier-' + level)).toBeTruthy()
       expect(section.textContent).not.toContain('Une autre famille')
       expect(section.querySelectorAll('.is-locked')).toHaveLength(2)
       expect(section.querySelector('.is-equipped')?.textContent).toContain('Équipé')
-      expect(container.querySelector('.appearance-tabs')).toBeTruthy()
+      expect(document.body.querySelector('.appearance-tabs')).toBeTruthy()
       expect(equipAppearance).not.toHaveBeenCalled()
-    } finally { act(() => root.unmount()) }
+    } finally { act(() => root.unmount()); container.remove() }
   })
   it('shows owned character portraits alphabetically and falls back to the simple element icon', async () => {
-    const container = document.createElement('div'); const root = createRoot(container)
+    const container = document.createElement('div'); const root = createRoot(container); document.body.append(container)
     const catalog: AppearanceDto['catalog'] = [
       { id: 'z', sourceCharacterId: 'character-z', type: 'AVATAR', displayName: 'Zeta', assetPath: null, condition: null, visibility: 'SECRET', owned: true, isActive: true },
       { id: 'a', sourceCharacterId: 'character-a', type: 'AVATAR', displayName: 'Alpha', assetPath: '/assets/genshin/characters/alpha.png', condition: null, visibility: 'SECRET', owned: true, isActive: true },
@@ -43,35 +45,38 @@ describe('AppearancePanel', () => {
     const equipAppearance = vi.fn(async (_type: 'AVATAR' | 'TITLE', _id: string | null) => ({ ...initial, catalog }))
     try {
       await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => ({ ...initial, catalog }), equipAppearance } as unknown as SocialActions} displayName="Élodie" elementKey="pyro" onChanged={async () => undefined} />); await Promise.resolve() })
-      const cards = [...container.querySelectorAll('.appearance-character-card')]
+      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+      const cards = [...document.body.querySelectorAll('.appearance-character-card')]
       expect(cards).toHaveLength(2)
       expect(cards.map(card => card.querySelector('strong')?.textContent)).toEqual(['Alpha', 'Zeta'])
       expect(cards[0]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/characters/alpha.png')
       expect(cards[1]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/elements/pyro.png')
-      expect(container.textContent).not.toContain('Unowned')
+      expect(document.body.textContent).not.toContain('Unowned')
       await act(async () => { cards[0]?.querySelector<HTMLButtonElement>('button')?.click(); await Promise.resolve() })
       expect(equipAppearance).toHaveBeenCalledWith('AVATAR', 'a')
-    } finally { act(() => root.unmount()) }
+    } finally { act(() => root.unmount()); container.remove() }
   })
   it('shows the elemental fallback, visibility levels, equips owned items and supports no title', async () => {
-    const container = document.createElement('div'); const root = createRoot(container)
+    const container = document.createElement('div'); const root = createRoot(container); document.body.append(container)
     const appearance = vi.fn(async () => initial)
     const equipAppearance = vi.fn(async (type: 'AVATAR' | 'TITLE', id: string | null): Promise<AppearanceDto> => ({ ...initial, equippedAvatarCosmeticId: type === 'AVATAR' ? id : null }))
     const onChanged = vi.fn(async () => undefined)
     try {
       await act(async () => { root.render(<AppearancePanel actions={{ appearance, equipAppearance } as unknown as SocialActions} displayName="Élodie" elementKey="pyro" onChanged={onChanged} />); await Promise.resolve() })
-      expect(container.querySelector('nav.activity-inner-tabs[role="tablist"]')).not.toBeNull()
-      expect(container.textContent).toContain('Avatar élémentaire permanent')
-      expect(container.textContent).toContain('Condition vérifiée')
-      expect(container.textContent).toContain('Cosmétique mystérieux')
-      expect(container.textContent).not.toContain('Fixture secret')
-      expect(container.querySelectorAll('.appearance-catalog .app-button')).toHaveLength(1)
-      await act(async () => { container.querySelector<HTMLButtonElement>('.appearance-catalog .app-button')!.click(); await Promise.resolve() })
+      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+      expect(document.body.querySelector('nav.activity-inner-tabs[role="tablist"]')).not.toBeNull()
+      expect(document.body.textContent).toContain('Avatar élémentaire permanent')
+      expect(document.body.textContent).toContain('Condition vérifiée')
+      expect(document.body.textContent).toContain('Cosmétique mystérieux')
+      expect(document.body.textContent).not.toContain('Fixture secret')
+      expect(document.body.querySelectorAll('.appearance-catalog .app-button')).toHaveLength(1)
+      await act(async () => { document.body.querySelector<HTMLButtonElement>('.appearance-catalog .app-button')!.click(); await Promise.resolve() })
       expect(equipAppearance).toHaveBeenCalledWith('AVATAR', 'owned')
       expect(onChanged).toHaveBeenCalledTimes(1)
-      await act(async () => { [...container.querySelectorAll('nav.activity-inner-tabs button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
-      expect(container.textContent).toContain('Aucun titre débloqué.')
-      expect(container.textContent).toContain('Aucun titre')
-    } finally { act(() => root.unmount()) }
+      await act(async () => { [...document.body.querySelectorAll('nav.activity-inner-tabs button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
+      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+      expect(document.body.textContent).toContain('Aucun titre débloqué.')
+      expect(document.body.textContent).toContain('Aucun titre')
+    } finally { act(() => root.unmount()); container.remove() }
   })
 })

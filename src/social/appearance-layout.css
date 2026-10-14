@@ -1,0 +1,32 @@
+.appearance-choose { margin-left: auto; }
+.appearance-chooser-layer { z-index: 100; }
+.appearance-chooser { box-sizing: border-box; width: min(1040px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 0; }
+.appearance-chooser > header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; gap: 12px; }
+.appearance-chooser > header h2 { margin: 0; font-size: 22px; }
+.appearance-chooser-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.appearance-chooser-body > * { flex: 0 0 auto; }
+.appearance-chooser .appearance-controls { position: sticky; top: 0; z-index: 2; order: -1; background: #101c30; padding: 10px 0; margin: 0; }
+.appearance-chooser .appearance-card strong { overflow-wrap: anywhere; }
+@media (min-width: 1121px) {
+  .profile-screen:has(.appearance-panel) .scrollable-screen-panel-body { overflow: visible; container-type: size; }
+  .profile-screen .appearance-panel { gap: clamp(6px, 2cqh, 16px); }
+  .profile-screen .appearance-preview { padding: clamp(8px, 2cqh, 16px); }
+  .profile-screen .appearance-preview-avatar,
+  .profile-screen .appearance-preview-avatar img { width: 48px; height: 48px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-catalog { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card { box-sizing: border-box; flex-wrap: wrap; padding: 8px; gap: 6px; font-size: 12px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card .app-button { min-height: 30px; padding: 4px 8px; font-size: 12px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-badge-symbol { font-size: 22px; }
+}
+@media (min-width: 1121px) and (max-height: 650px) {
+  .profile-screen .appearance-panel { gap: 5px; }
+  .profile-screen .appearance-preview { padding: 4px 8px; }
+  .profile-screen .appearance-preview-avatar,
+  .profile-screen .appearance-preview-avatar img { width: 32px; height: 32px; }
+  .profile-screen .appearance-panel .activity-inner-tabs { padding: 0; gap: 3px; }
+  .profile-screen .appearance-panel .activity-inner-tabs button { padding: 4px 8px; min-height: 28px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-catalog { gap: 5px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card { padding: 4px; gap: 3px; font-size: 11px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card .app-button { min-height: 24px; padding: 2px 5px; font-size: 11px; }
+  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-badge-symbol { font-size: 18px; }
+}
