@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Cadres de contenu — R1090
+
+Les validations propriétaire R1089 sont conservées. Box Profil fait défiler uniquement ses résultats dans le corps déjà existant ; commandes, filtres multiples, permissions Box et Légendes restent indépendants. Collection Profil et trois catégories Sac hors Tout restent sans défilement. Tout Sac garde un unique cadre scrollable sous titre/recherche fixes. Les cinq actions Équipe restent accessibles par hover ou focus clavier sans changer leur ordre ni leurs handlers. Aucun changement de navigation, destination, confidentialité ou Concours.
+
 ## Profil et fenêtres — R1089
 
 Missions Profil active la compaction de hauteur et ses pages partagées. Ses rangs restent indépendants de Missions Activités, destinations et historique inchangés. Box Profil utilise les contrôles de présentation communs, avec tri/filtres locaux et aucune sauvegarde de préférence lors d’une visite. Choisir réinitialise les contrôles et ferme seulement son ouverture après confirmation Avatar/Titre ; focus, Échap, Badges et Tutoriel conservés. Les mécanismes et fichiers Concours R1088 sont préservés intégralement.

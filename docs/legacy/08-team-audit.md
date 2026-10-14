@@ -1,5 +1,9 @@
 # 08 — Audit legacy Team
 
+## Espacement et actions compactes — R1090
+
+La largeur des portraits reste bornée par la hauteur utile R1089. Leur groupe utilise désormais un centrage et un gap réel de 11 px, supprimant les espaces résiduels des quatre anciennes colonnes lorsque les cartes sont plafonnées. Le conteneur de carte choisit le repli trois rangées sous 260 px : Fiche/Changer, Retirer distinct, flèches. La colonne Changer reçoit plus de largeur pour contenir son texte même à faible hauteur. Voile sombre, focus-within, handlers, ordre, portraits carrés/cadrage et alignement inférieur des passifs sont conservés. Contrôles compilés des rectangles entiers et textes, vrais Tab clavier, équipes vides/partielles et zéro à quatre passifs ; recette esthétique propriétaire future.
+
 ## Composition sans scroll — R1089
 
 La présentation Équipe réserve navigation, gestion, cartes et passifs dans la hauteur centrale. Les portraits restent carrés et leur largeur est bornée par la hauteur disponible, y compris lorsque le chat replié élargit le centre. Passifs entiers et Voir les passifs restent au bord inférieur, pour zéro à quatre passifs et une équipe vide. Renommage, actions au survol, sélection et drag restent les interactions existantes. Géométrie des parents, rectangles des derniers éléments et contrôles sont qualifiés dans le GameShell compilé ; aucune scrollbar cachée ne vaut correction. État au Master.

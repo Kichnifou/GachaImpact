@@ -1,5 +1,9 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
+## Cadre commun aux catégories Sac — R1090
+
+Le conteneur inventory-scroll-body existant reçoit bordure douce, fond et coins arrondis, sous onglets et titre/recherche fixes. Les quatre catégories partagent ce cadre ; Tout conserve seul le scroll pour ses 22 entrées. Ressources neuf, Objets et Collection douze tiennent sans scroll ni pagination. Réorganisation locale des cartes Ressources sous 820 px de hauteur, monnaie en deux colonnes et particules en quatre sous 650 px, espaces Collection réduits pour conserver le bord inférieur du cadre. Montants, actions Banque/Boutique/Échanger/Convertir, recherche et fiches restent inchangés ; aucun nouveau wrapper scrollable. La vérification inclut les dernières cartes et descendants, pas seulement un parent sans scrollbar. Preuves/retraits au Master.
+
 ## Présentation standalone — R1085
 
 Sac : onglets horizontaux Tout/Ressources/Objets/Collection. Tout conserve son défilement ; les trois autres catégories se réorganisent sans scroll. Les douze objets Collection, même non possédés, restent visibles ; après carte blanche propriétaire du13/10, les cartes compactes donnent accès à la description complète par la fiche existante. Boutique : textes agrandis, offres et dernière transaction réparties selon hauteur/largeur, présentation en rangées aux faibles hauteurs. Catalogue, quantités, MAX, coût, probabilités, reçus et autorité serveur inchangés. Qualification et livraison au Master.

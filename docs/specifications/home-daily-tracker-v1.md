@@ -1,5 +1,9 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
+## Ligne secondaire Accueil — R1090
+
+Supprimer uniquement Event de homeDailySecondaryItems avant la limite de deux lignes. L’action Event disponible, les données Festival et les autres écrans restent inchangés ; Expédition conserve sa présentation secondaire. La ligne retirée ne figure plus dans le DOM. Son budget de hauteur déjà alloué est réservé lorsque nécessaire afin de conserver exactement le résumé Quotidiennes et l’échelle de la bannière ; aucun texte masqué par CSS. Six raccourcis, sélection, actions et masques existants conservés. La suppression de l’attente Event Sidebar de R1089 est validée par le propriétaire et ne fait pas l’objet d’une nouvelle retouche.
+
 ## Corrections ciblées — R1089
 
 La Sidebar compacte validée est conservée. Restauration précède la croix afin que celle-ci occupe le vrai coin droit. La carte Événement n’affiche plus la mention En attente du Jeu A ; sélection, état projeté, échéance, erreurs et reset restent intacts. Aucun autre support de présentation Event n’est modifié par cette suppression.

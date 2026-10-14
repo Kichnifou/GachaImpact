@@ -1,0 +1,262 @@
+{
+  "mission": "R1090",
+  "date": "2026-10-14",
+  "baseline": "0ae5e4d0959b413bc1b922c4baaf460def7c9651",
+  "runtime": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "status": "Local tests, compiled visual qualification and seven independent withdrawals passed; published reviews and delivery pending",
+  "ownerAcceptanceR1089": [
+    "Event Ranking",
+    "Profile Box filters",
+    "Sidebar Dailies",
+    "Profile Missions",
+    "Profile Statistics",
+    "Appearance modal mechanisms",
+    "Daily Overview"
+  ],
+  "scope": {
+    "lots": 7,
+    "serverUnchanged": true,
+    "contestR1088Unchanged": true,
+    "publicGameplayQa": false,
+    "migration": false,
+    "mobilePass": false
+  },
+  "tests": {
+    "targeted": {
+      "files": 8,
+      "assertions": 216,
+      "exit": 0,
+      "log": "r1090-targets-first.log"
+    },
+    "homeRegression": {
+      "assertions": 59,
+      "exit": 0,
+      "log": "r1090-home-regression.log"
+    },
+    "quick": "5/5 PASS",
+    "quickRuntime": "31870498",
+    "quickLog": "gachaimpact-verify-quick-aY1cGD",
+    "full": "8/8 PASS",
+    "frontend": 1672,
+    "backendNonDb": 2510,
+    "history": [
+      "Initial full 6519d6df 8/8 PASS (gaPCTJ), then 31870498 8/8 PASS (sn2OVj); later Inventory selector correction qualified separately and final full required.",
+      "Targeted and rollback harnesses can print ECONNREFUSED localhost:3000; actual process exits are recorded, full suite gates are separate."
+    ],
+    "fullRuntime": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+    "fullLog": "gachaimpact-verify-full-x7UMH1"
+  },
+  "visual": {
+    "finalCssSha256": "8c102ac7f6ec6368c0598281f05cf30514c93cdf5905a4456f56f0f8253c8c59",
+    "baselinePrivateReport": {
+      "file": "local-data/post-r1090-review/baseline-review.json",
+      "sha256": "c9d073fd307e07354325ceed90b66805c95759e78d588044091937f5b9c68197",
+      "states": 129
+    },
+    "candidatePrivateReport": {
+      "file": "local-data/post-r1090-review/candidate-visual-review.json",
+      "sha256": "b45effba95e98c4ad27f074e998e0c07774e6ed71d729c73c8b2f6d534b4d9c5"
+    },
+    "report": {
+      "reviewer": "independent frontend/visual reviewer",
+      "scope": "R1090 local compiled GameShell candidate; synthetic fixtures, actual product CSS, no public gameplay",
+      "baseline": "0ae5e4d0959b413bc1b922c4baaf460def7c9651",
+      "candidate": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "css": {
+        "file": "index-BCeGaWTc.css",
+        "sha256": "8c102ac7f6ec6368c0598281f05cf30514c93cdf5905a4456f56f0f8253c8c59"
+      },
+      "verdict": "PASS local candidate within documented scope; published SHA review pending",
+      "evidence": [
+        {
+          "file": "candidate-team-rounded-hit.json",
+          "sha256": "7f529f28dd5736adcac5538e871a251711ca2ad41ac0b3d265904969113c8b4f",
+          "states": 40,
+          "keyboard": 0,
+          "css": "index-3TTyNMHl.css"
+        },
+        {
+          "file": "candidate-team-variants.json",
+          "sha256": "b45d6cd104dc6c4ec3c57595ea1d5764865aa71ec0b913f5d259d6547ae3b494",
+          "states": 70,
+          "keyboard": 90,
+          "css": "index-C5U0UJ7L.css"
+        },
+        {
+          "file": "candidate-home-states.json",
+          "sha256": "8776983129ed0c4f4d81dcd7df50fb41e2290228b9ccc93efa3ac89764a41226",
+          "states": 20,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "candidate-appearance-functional.json",
+          "sha256": "ba175ee208aa3f1665ea2b44acd0a47e69fd956918cfcdbb92b3fedd222c9da5",
+          "states": 14,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "appearance-tabs.json",
+          "sha256": "ba31f7453ba847a6d36249922870b6e302a15836f28c24321e87e014a94d0b7a",
+          "states": 15,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "collection-text-bounds.json",
+          "sha256": "fb8443e8e45ebf313df337a120000ad3a614ceefbb9decaeaad5ddc565ca51c3",
+          "states": 10,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "event-supplement.json",
+          "sha256": "6e57459a3c7c3e5a80d256aea58d976ee0f4486df540db13a12463f28a43d71e",
+          "states": 27,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "shop-input-fixed.json",
+          "sha256": "df5d57dbe47d1ad42732d5bd2c8156b3abbf0881bce4aa2bae274f78355278ba",
+          "states": 14,
+          "keyboard": 0,
+          "css": "index-BD0ABlnf.css"
+        },
+        {
+          "file": "frames-final.json",
+          "sha256": "766d74bf4af3d51ca88d889c84fdd81701a4686430827a3ec9093ea2c8812355",
+          "states": 50,
+          "keyboard": 0,
+          "css": "index-BCeGaWTc.css"
+        },
+        {
+          "file": "home-event-action.json",
+          "sha256": "e41e25de2b719024e4e225fd848c0b0733caab9cd539d8a53a9d5f51573f17be",
+          "states": 5,
+          "keyboard": 0,
+          "css": "index-C5U0UJ7L.css"
+        },
+        {
+          "file": "resize-action.json",
+          "sha256": "8b9c60a534c01fb5463e9247f51e7855f177ef54e42a5a8a11bccfe77f7e3ee5",
+          "states": 18,
+          "keyboard": 0,
+          "css": "index-C5U0UJ7L.css"
+        }
+      ],
+      "screenshots": [
+        {
+          "file": "frames-collection-1366x520.png",
+          "sha256": "5c8d7245fcfbe21e56903d68866e35300c0549dcf598c6bcb44a7cd50e4eac38",
+          "inspected": true
+        },
+        {
+          "file": "frames-resources-1366x520.png",
+          "sha256": "5a50ceefeeadbd054bbf8f98a6b9f350c6a3a99fd140b2e96b6462336618adbb",
+          "inspected": true
+        },
+        {
+          "file": "frames-box-1366x520.png",
+          "sha256": "6d6e5feeaa18cb268ff0673fff42eec5d6d9aceb8955dad4e517d455bed337e3",
+          "inspected": true
+        },
+        {
+          "file": "candidate-team-rounded-1366x520-open.png",
+          "sha256": "a4635c4819a04ad71600839c8b895daef9b40bf7c30ddba5b6c2748bc1e585e2",
+          "inspected": true
+        },
+        {
+          "file": "appearance-Badges-1920x1080.png",
+          "sha256": "8480e658f133c77615293f1898dc32b15d6a639d01c1c0317e76238d01c276d0",
+          "inspected": true
+        },
+        {
+          "file": "candidate-shop-1920x1080.png",
+          "sha256": "858a0b3d3c2ce9167d01deafc844f1602107c51fc01ece41663c045a07f34a55",
+          "inspected": true
+        }
+      ],
+      "findingsResolved": [
+        "Team action text/corners compact layout",
+        "Inventory Resources content minima",
+        "ProfileBox low-height header budget",
+        "Inventory Collection final minimum-height specificity"
+      ],
+      "qualifications": [
+        "Home 20 state comparisons: exact Summary height delta 0; Expedition retained. Event primary action 5 sizes opens activities/event.",
+        "Team 40 hover states: full rectangles and visible rounded corners at 5px inset. 3px points on radius9 transparent corner excluded only when no visual shape exists there. 70 variants 0-4 passives/empty/partial open and collapsed chat; 90 actual keyboard Tabs. One transition opacity0.998884 at170ms, hit correct.",
+        "Profile Collection 12 cards with full textRange bounds in10 states. Appearance15 tab states,14 synthetic dialog functional states. Preview enlarged normal desktop; compact520 remains32px avatar and48px block, no enlargement claimed there.",
+        "Inventory 50 frame states: Tout22 and ProfileBox35 scroll only results frame; resources9/object1/collection12 remain within frame. Last Box card may be taller than short viewport; all portions reachable by scrolling, simultaneous full-card fit not claimed.",
+        "Shop27 error/pending/owned/insufficient and ranking supplementary states;14 quantity1/MAX text measurements across7 formats. No purchase executed against production.",
+        "18 actual resize transitions preserve active surfaces, Collection12, no parent scrolling. sr-only accessibility node and intentional portrait clipping excluded from generic overflow warnings."
+      ],
+      "limits": [
+        "No owner aesthetic acceptance or public authenticated rendering claimed.",
+        "Desktop CSS viewport dimensions, browser headless Edge at device scale1; not physical monitor pixels or browser zoom acceptance.",
+        "No mobile qualification; explicitly later scope.",
+        "Earlier evidence retained for byte-unchanged surfaces; later changes only Team action sizing, ProfileBox fit marker, Inventory layout. Initial failed reports retained, superseded only by targeted corrected evidence.",
+        "No real private player data or public writes. Privacy permissions and full runtime suite are parent technical review scope.",
+        "Final independent published GitHub SHA review remains required after publication."
+      ]
+    },
+    "findingsResolved": [
+      "Entire Team action and text rectangles on narrow cards; Changer gets wider column",
+      "Profile Box low-height fixed controls fit before its sole scrolling results region",
+      "Inventory Resources compact rows and columns fit frame at768/520",
+      "Inventory Collection520 last row has4px inset after category minimum specificity correction"
+    ],
+    "limitations": [
+      "Synthetic private fixtures and actual compiled product CSS; no authenticated public aesthetic acceptance",
+      "Intermediate proofs retain their own CSS identity; later changes limited to Team/Box/Inventory and these were requalified",
+      "Appearance at520 keeps32px avatar; mobile future pass not started",
+      "Rounded button corner outside painted shape distinguished from genuine clipped control; transition opacity0.998884 at170ms still actual focus and hit",
+      "No real purchase/reward/invocation/message or artificial public gameplay"
+    ]
+  },
+  "rollback": {
+    "manifest": "r1090-rollback/manifest.json",
+    "sha256": "8c8ee77a4e6a4b7d2c95085a53ebeb61c4d9ad4225a38d4037c7abece426d5f5",
+    "status": "7 independent withdrawals PASS;4 recompiled after final corrections,3 patches unchanged;7 portable applications PASS",
+    "assertions": 179,
+    "privateReport": {
+      "file": "local-data/post-r1090-review/INDEPENDENT-FINAL-ROLLBACK-a98168ad.json",
+      "sha256": "b5bd142f879c947b06de0f134b41f3b7fd0a8e82b660e4c68276f7c6f775bc0d"
+    }
+  },
+  "independentReviews": {
+    "status": "Published SHA reviews pending"
+  },
+  "deployment": {
+    "status": "Pending main promotion"
+  },
+  "documentation": {
+    "updated": [
+      "Master",
+      "decisions",
+      "UI layout",
+      "navigation",
+      "profile appearance",
+      "home daily tracker",
+      "legacy Box/Team/Inventory/Event",
+      "qualification",
+      "rollback"
+    ],
+    "examinedUnchanged": [
+      "AGENTS",
+      "CHATGPT_GUIDE",
+      "workflow",
+      "procedural handoff",
+      "roadmap",
+      "server model/schema/architecture",
+      "deployment guidance"
+    ]
+  },
+  "nextAction": "Complete published SHA reviews, strict FF, exact deployments and read-only postflight; then owner aesthetic recipe on seven areas and STOP"
+}

@@ -1,5 +1,15 @@
 # Contrat de layout UI V1
 
+## Finitions desktop — R1090, 14/10/2026
+
+Équipe : groupe centré avec vrais gaps entre cartes dont la largeur reste bornée par la hauteur ; cinq commandes entièrement contenues au hover et focus clavier, repli compact Fiche/Changer puis Retirer puis flèches. Portraits carrés et passifs au bord inférieur conservés.
+
+Profil : Box utilise le corps existant avec le cadre partagé de la Box principale, filtres/navigation fixes et dernière carte accessible. La compaction de faible hauteur inclut cette rubrique. Collection répartit ses douze cartes en quatre colonnes, descriptions complètes et quantités simultanées, sans pagination ni scroll. Personnalisation agrandit portrait, pseudo, titre, statut et Choisir proportionnellement ; petit viewport conserve son budget compact, modales et Badges inchangés.
+
+Shop : en-tête interne icône/titre à colonnes distinctes ; Conversion/Objet Collection retirés du rendu à toutes les résolutions. Solde plus compact, monnaie à droite, contrôles et intentions conservés. Accueil : Event exclu explicitement des lignes secondaires avant limite, avec réserve exacte de la ligne déjà allouée pour conserver la hauteur ; aucune chaîne Event cachée par CSS. Actions Event et Expédition restent disponibles.
+
+Sac : cadre sur le seul inventory-scroll-body existant dans Tout/Ressources/Objets/Collection. Tout conserve seul son défilement ; les autres catégories réorganisent cartes et espacements pour tenir entièrement. Ressources se compacte aux faibles hauteurs (monnaies en deux colonnes, particules en quatre à hauteur ≤650), sans altérer montants ni destinations. Un cadre n’implique pas une scrollbar. Qualification des descendants et des textes, pas seulement du rectangle parent ; preuves et limites au Master.
+
 ## Retouches ciblées — R1089
 
 Classement Event : en-tête sans Édition en cours, liste de cinq lignes et footer dans trois régions distinctes ; le feedback du panneau parent entre aussi dans le budget. Vérifier les rectangles des cinq li, pas seulement celui de la liste, et les hit-tests du footer. Équipe : budget nav/gestion/cartes/passifs, portraits carrés bornés par la hauteur restante, passifs au bord bas ; mesurer les parents et tester le chat replié qui élargit les cartes. Ni scroll masqué ni description coupée.

@@ -1,0 +1,102 @@
+diff --git a/src/dailies/HomeDailySummary.tsx b/src/dailies/HomeDailySummary.tsx
+index 7eb20d40..924dbfb4 100644
+--- a/src/dailies/HomeDailySummary.tsx
++++ b/src/dailies/HomeDailySummary.tsx
+@@ -1,5 +1,5 @@
+ import { useState } from 'react'
+-import { dailyActionableSuggestions, dailyOngoingItems, type DailyItem } from './daily-summary'
++import { dailyActionableSuggestions, type DailyItem } from './daily-summary'
+ import { homeDailySecondaryItems, homeDailySecondaryText } from './home-daily-presentation'
+ import type { DailyCompactProps } from './DailyTrackerCard'
+ import './dailies.css'
+@@ -11,8 +11,6 @@ export default function HomeDailySummary({ items, tracker, claim, onOpen, onOver
+   if (!claim.locked && (confirmed.length !== suggestions.length || confirmed.some((item, index) => item !== suggestions[index]))) setConfirmed(suggestions)
+   const shown = claim.locked ? confirmed : suggestions
+   const ongoing = homeDailySecondaryItems(items, tracker.hidden, shown.map(item => item.id))
+-  // Keep the already allocated secondary-row height when its Event text is removed.
+-  const reserveEventRow = ongoing.length < 2 && dailyOngoingItems(items, tracker.hidden, shown.map(item => item.id)).some(item => item.id === 'event')
+   return <section className="panel home-daily-summary" aria-label="Quotidiennes" aria-busy={claim.pending || refreshing}>
+     <header><div><h2>Quotidiennes</h2></div><button type="button" className="daily-tracker-all home-daily-overview" onClick={onOverview}>Voir l’Aperçu →</button></header>
+     {shown.length > 0 && <div className="home-daily-actions"><div className="home-daily-suggestions">{shown.map(item => <button type="button" className="home-daily-suggestion" key={item.id} data-daily-id={item.id}
+@@ -24,8 +22,8 @@ export default function HomeDailySummary({ items, tracker, claim, onOpen, onOver
+       <span className="home-daily-icon" aria-hidden="true">{item.icon}</span><span className="home-daily-copy"><strong>{item.title}</strong><span>{item.status}</span>{item.detail && <small>{item.detail}</small>}</span>
+       <span className="home-daily-action-label">{item.id === 'reward' && item.actionable ? claim.pending ? 'Récupération…' : 'Récupérer →' : 'Accéder →'}</span>
+     </button>)}</div></div>}
+-    {(ongoing.length > 0 || reserveEventRow) && <div className="home-daily-ongoing" data-reserve-event-row={reserveEventRow || undefined}><ul>{ongoing.map(item => <li key={item.id} data-daily-id={item.id}>{homeDailySecondaryText(item)}</li>)}</ul></div>}
+-    {!shown.length && <p className="home-daily-empty">{tracker.message}{!ongoing.length && !reserveEventRow && '. L’Aperçu reste disponible pour consulter les détails.'}</p>}
++    {ongoing.length > 0 && <div className="home-daily-ongoing"><ul>{ongoing.map(item => <li key={item.id} data-daily-id={item.id}>{homeDailySecondaryText(item)}</li>)}</ul></div>}
++    {!shown.length && <p className="home-daily-empty">{tracker.message}{!ongoing.length && '. L’Aperçu reste disponible pour consulter les détails.'}</p>}
+     {(claim.error || claim.feedback || tracker.hidden.length > 0) && <footer>
+       {(claim.error || claim.feedback) && <p className={claim.error ? 'error' : ''} role="status">{claim.error || claim.feedback}</p>}
+       {tracker.hidden.length > 0 && <button type="button" className="daily-tracker-all" disabled={claim.locked} onClick={tracker.restoreAll}>Réafficher les activités masquées</button>}</footer>}
+diff --git a/src/dailies/daily-controller.test.tsx b/src/dailies/daily-controller.test.tsx
+index c4131414..58b30d70 100644
+--- a/src/dailies/daily-controller.test.tsx
++++ b/src/dailies/daily-controller.test.tsx
+@@ -78,22 +78,6 @@ describe('daily navigation titles A/B', () => {
+ })
+ 
+ describe('tracker card hit target and compact Home footer', () => {
+-  it('omits only secondary Event text while retaining Expedition and actionable Event access', async () => {
+-    const source = projectDailies(dailySources())
+-    const event = source.find(item => item.id === 'event')!
+-    const expedition = source.find(item => item.id === 'expedition')!
+-    await render({ items: [
+-      { ...event, state: 'waiting', actionable: false, status: 'En attente du Jeu A.', detail: 'Festival des Ombres · 70 Bonbons Maudits' },
+-      { ...expedition, state: 'completed', actionable: false, status: 'Terminé', detail: 'Skirk · 13:57:21' },
+-    ] })
+-    const home = container.querySelector('.home-daily-summary')!
+-    expect(home.querySelector('.home-daily-ongoing [data-daily-id="event"]')).toBeNull()
+-    expect(home.textContent).not.toContain('En attente du Jeu A.')
+-    expect(home.querySelector('.home-daily-ongoing [data-daily-id="expedition"]')?.textContent).toContain('Skirk · 13:57:21')
+-    await render({ items: [{ ...event, state: 'available', actionable: true }] })
+-    await click('.home-daily-suggestion[data-daily-id="event"]')
+-    expect(opening).toHaveBeenCalledWith(expect.objectContaining({ id: 'event' }))
+-  })
+   it('opens the selected destination through one accessible sibling button without visible action text', async () => {
+     await render(); await click('[aria-label="Activité suivante"]')
+     const target = container.querySelector<HTMLButtonElement>('.daily-tracker-hit-target')!
+@@ -309,7 +293,7 @@ describe('Home daily actions and ongoing information', () => {
+   it('shows WAITING Event only in En cours, and keeps unknown/error out of action cards', async () => {
+     const items = homeItems([], { event: 'waiting' }).map(item => item.id === 'reward' ? { ...item, state: 'unknown' as const } : item.id === 'wheel' ? { ...item, state: 'error' as const } : item)
+     await render({ items })
+-    expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
++    expect(cards()).toEqual([]); expect(ongoing()).toEqual(['event'])
+     expect(home().textContent).toContain('État du jour incomplet')
+   })
+   it('prioritizes READY Expedition as an action after reward, without an ongoing duplicate', async () => {
+@@ -326,7 +310,7 @@ describe('Home daily actions and ongoing information', () => {
+     const items = homeItems(['challenge'], { favor: 'waiting', challenge: 'in_progress', expedition: 'in_progress', event: 'waiting' })
+     await render({ items })
+     expect(cards()).toEqual(['challenge']); expect(ongoing()).toEqual(['expedition', 'favor'])
+-    await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition'])
++    await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition', 'event'])
+     for (const id of ['expedition', 'event', 'challenge'] as const) await act(async () => control.hide(id))
+     expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
+     expect(home().textContent).toContain('Aucune activité affichée')
+diff --git a/src/dailies/home-daily-presentation.ts b/src/dailies/home-daily-presentation.ts
+index f9673bf7..d89de8b6 100644
+--- a/src/dailies/home-daily-presentation.ts
++++ b/src/dailies/home-daily-presentation.ts
+@@ -3,7 +3,7 @@ import { compactExpeditionDetail } from './daily-compact-presentation'
+ 
+ /** Home-only presentation: prioritize the non-actionable Expedition, including a confirmed completion. */
+ export function homeDailySecondaryItems(items: readonly DailyItem[], hidden: readonly DailyId[], actionIds: readonly DailyId[]) {
+-  const ongoing = dailyOngoingItems(items, hidden, actionIds).filter(item => item.id !== 'event')
++  const ongoing = dailyOngoingItems(items, hidden, actionIds)
+   const expedition = items.find(item => item.id === 'expedition' && !item.actionable && !hidden.includes(item.id) && !actionIds.includes(item.id)
+     && (item.state === 'in_progress' || item.state === 'waiting' || item.state === 'completed'))
+   return (expedition ? [expedition, ...ongoing.filter(item => item.id !== 'expedition')] : ongoing.filter(item => item.id !== 'expedition')).slice(0, 2)
+diff --git a/src/home/home-shortcuts.css b/src/home/home-shortcuts.css
+index 117c370b..4db19654 100644
+--- a/src/home/home-shortcuts.css
++++ b/src/home/home-shortcuts.css
+@@ -3,8 +3,6 @@
+ .home-shortcut strong { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
+ .home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
+ .home-shortcut-arrow { color: #8babc7; font-size: 22px; }
+-.home-screen .home-daily-ongoing[data-reserve-event-row] { font-size: 11px; line-height: 1.45; padding-bottom: 1lh; }
+-.home-screen .home-daily-ongoing[data-reserve-event-row]:has(li) { padding-bottom: calc(1lh + 5px); }
+ @media (min-width: 1121px) {
+   .home-screen { --home-preview-crop: 24px; }
+   .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; container-type: size; gap: clamp(6px, 1.3cqh, 14px); overflow: visible; }

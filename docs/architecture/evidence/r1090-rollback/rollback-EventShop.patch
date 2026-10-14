@@ -1,0 +1,86 @@
+diff --git a/src/event/event-shop-layout.css b/src/event/event-shop-layout.css
+index 4f073575..8fd6e85c 100644
+--- a/src/event/event-shop-layout.css
++++ b/src/event/event-shop-layout.css
+@@ -1,16 +1,13 @@
+ .event-shop .event-shop-card[hidden] { display: none; }
+-.event-shop .event-shop-product-heading { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
+-.event-shop .event-shop-product-heading h2 { min-width: 0; margin: 0; }
+ @media (min-width: 1121px) {
+   .event-screen .event-frame .scrollable-screen-panel-body:has(> .event-shop) { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
+   .event-frame .event-shop { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: clamp(5px, 1.6cqh, 14px); }
+-  .event-screen .event-frame .event-shop-balance { flex: 0 0 auto; padding: 6px 10px; }
+-  .event-screen .event-frame .event-shop-balance .eyebrow { font-size: 9px; }
+-  .event-screen .event-frame .event-shop-balance h2 { font-size: 16px; margin: 2px 0; }
+-  .event-screen .event-frame .event-shop-balance > span { font-size: 40px; }
++  .event-frame .event-shop-balance { flex: 0 0 auto; padding: 8px 12px; }
++  .event-frame .event-shop-balance h2 { font-size: 18px; margin: 3px 0; }
+   .event-frame .event-shop-grid { flex: 1 1 0; min-height: 0; }
+   .event-frame .event-shop-card { box-sizing: border-box; padding: clamp(7px, 2cqh, 16px); gap: clamp(4px, 1.4cqh, 12px); justify-content: space-between; }
+   .event-frame .event-shop-card h2 { font-size: 17px; line-height: 1.2; margin: 0; }
++  .event-frame .event-shop-card > .eyebrow { font-size: 9px; }
+   .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 11px; line-height: 1.35; }
+   .event-frame .event-shop-card .event-shop-quantity { flex-wrap: nowrap; gap: 4px; }
+   .event-frame .event-shop-quantity input { flex: 1 1 80px; width: 0; min-width: 0; max-width: none; font-size: 12px; font-variant-numeric: tabular-nums; }
+@@ -24,7 +21,8 @@
+ }
+ @container (max-height: 400px) {
+   .event-frame .event-shop-card { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-content: space-between; gap: 5px; }
+-  .event-frame .event-shop-card > .event-shop-product-heading { grid-column: 1 / -1; }
++  .event-frame .event-shop-card > .eyebrow { display: none; }
++  .event-frame .event-shop-card h2 { grid-column: 2; }
+   .event-frame .event-shop-card > p,
+   .event-frame .event-shop-card > label,
+   .event-frame .event-shop-card > button,
+@@ -32,7 +30,7 @@
+ }
+ @media (min-width: 1121px) and (max-height: 650px) {
+   .event-frame .event-shop-card { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: space-evenly; }
+-  .event-frame .event-shop-card > .event-shop-product-heading { grid-column: 1; grid-row: 1; }
++  .event-frame .event-shop-card h2 { grid-column: 1; grid-row: 1; }
+   .event-frame .event-shop-card > p { grid-column: 1; grid-row: 2; }
+   .event-frame .event-shop-card > label { grid-column: 2; grid-row: 1; }
+   .event-frame .event-shop-quantity { grid-column: 2; grid-row: 2; }
+diff --git a/src/screens/EventScreen.test.tsx b/src/screens/EventScreen.test.tsx
+index 63f6d219..0b8679e7 100644
+--- a/src/screens/EventScreen.test.tsx
++++ b/src/screens/EventScreen.test.tsx
+@@ -222,17 +222,6 @@ describe('EventScreen presentation', () => {
+     expect(onLoad).toHaveBeenCalledTimes(1)
+   })
+ 
+-  it('renders product headings without residual category labels', () => {
+-    const { container } = mount({ value: afterJoin })
+-    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find(button => button.textContent === 'Shop')!.click())
+-    const cards = [...container.querySelectorAll('.event-shop-card')]
+-    expect(cards).toHaveLength(3)
+-    for (const card of cards) {
+-      expect(card.querySelector('.eyebrow')).toBeNull()
+-      expect(card.querySelector('.event-shop-product-heading > .event-shop-icon')).toBeTruthy()
+-      expect(card.querySelector('.event-shop-product-heading > h2')?.textContent).toBeTruthy()
+-    }
+-  })
+   it('keeps one Shop request in flight across tabs and issues a new key after confirmed success', async () => {
+     let completeFirst!: (value: EventDto) => void
+     const first = new Promise<EventDto>((resolve) => { completeFirst = resolve })
+diff --git a/src/screens/EventShopSection.tsx b/src/screens/EventShopSection.tsx
+index a7d78b52..0c41b5a4 100644
+--- a/src/screens/EventShopSection.tsx
++++ b/src/screens/EventShopSection.tsx
+@@ -42,14 +42,14 @@ export default function EventShopSection({ value, intent, pending, feedback, err
+         const quantity = /^\d+$/.test(displayedQuantity) ? Number(displayedQuantity) : NaN
+         const valid = Number.isSafeInteger(quantity) && quantity > 0 && BigInt(quantity) <= balance
+         return <article hidden={shortDesktop && target !== offer} className="panel event-shop-card" key={target}>
+-          <header className="event-shop-product-heading"><span className="event-shop-icon" aria-hidden="true">{icon}</span><h2>{title}</h2></header>
++          <span className="event-shop-icon" aria-hidden="true">{icon}</span><span className="eyebrow">Conversion</span><h2>{title}</h2>
+           <p>1 {value.festival.currency.unit} → {formatResourceAmount(value.shop.rates[rate])} {title}</p>
+           <div className="event-shop-quantity"><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.max(1, Number(current[target]) - 1 || 1)) }))} disabled={pending || Boolean(intent)} aria-label={`Diminuer la quantité de ${title}`}>−</button><input aria-label={`Quantité de ${title} à échanger`} id={`event-shop-${target}`} type="number" min="1" step="1" inputMode="numeric" value={displayedQuantity} disabled={pending || Boolean(intent)} onChange={(event) => setQuantities((current) => ({ ...current, [target]: event.target.value }))} /><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.min(max, (Number(current[target]) || 0) + 1)) }))} disabled={pending || Boolean(intent) || max === 0} aria-label={`Augmenter la quantité de ${title}`}>+</button><button type="button" className="event-shop-max" onClick={() => setQuantities((current) => ({ ...current, [target]: String(max) }))} disabled={pending || Boolean(intent) || max === 0}>MAX</button></div>
+           <p className="event-shop-preview-total">Vous recevez <strong>{valid ? formatResourceAmount((BigInt(quantity) * BigInt(value.shop.rates[rate])).toString()) : '0'} {title}</strong></p>
+           <button type="button" className="small-primary-button" disabled={!value.shop.available || !canConvert || pending || (!valid && intent?.target !== target) || Boolean(intent && intent.target !== target)} onClick={() => onTransact(target, quantity)}>{pending && intent?.target === target ? 'Échange…' : intent?.target === target ? 'Réessayer' : 'Convertir'}</button>
+         </article>
+       })}
+-      {<article hidden={shortDesktop && offer !== 'COLLECTION'} className="panel event-shop-card event-shop-collection"><header className="event-shop-product-heading"><span className="event-shop-icon" aria-hidden="true">✧</span><h2>{value.shop.collection.label}</h2></header><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>}
++      {<article hidden={shortDesktop && offer !== 'COLLECTION'} className="panel event-shop-card event-shop-collection"><span className="event-shop-icon" aria-hidden="true">✧</span><span className="eyebrow">Objet Collection</span><h2>{value.shop.collection.label}</h2><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>}
+     </div>
+     <p className={`event-shop-feedback${feedback && !error ? ' success' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
+   </section>

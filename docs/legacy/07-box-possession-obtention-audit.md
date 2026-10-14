@@ -1,5 +1,9 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
+## Cadre Box et Collection Profil — R1090
+
+Filtres Box Profil R1089 validés par le propriétaire, conservés intégralement. Le corps ScrollableScreenPanel reçoit les mêmes classes de cadre de résultats que la Box principale : un seul défilement, dernière carte et Légendes accessibles, navigation/filtres fixes. À faible hauteur, la compaction du Profil inclut Box. Aucun changement de la Box principale ou de ses primitives. Collection Profil possède une variante locale dense quatre colonnes pour douze objets, descriptions complètes et quantités visibles sans scroll, avec droits existants ; elle ne modifie pas les cartes Sac ni n’ajoute de mutation. Retraits Box/Collection indépendants malgré ProfileScreen commun ; preuves au Master.
+
 ## Box Profil harmonisée — R1089
 
 Le Profil réutilise désormais BoxFiltersBar et les primitives de filtres de la Box principale : recherche, étoiles toggle, sept éléments multiples (union), constellation C0–C6, tri alphabétique/constellation/élément/date d’obtention et direction. Intersection entre catégories. Les dates sont celles de la projection autorisée ; aucun favori inventé, aucune action de mutation ajoutée. Filtres et tri du Profil restent locaux et ne sauvegardent pas la préférence du propriétaire lorsqu’il visite autrui. Contrôles uniquement si Box ALLOWED ; confidentialité des Légendes C6 conservée indépendamment. Cette clause supersède le filtre élément simple du Profil mentionné dans R1085 ci-dessous.

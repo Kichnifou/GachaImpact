@@ -1,5 +1,9 @@
 # Personnalisation du profil V1
 
+## Aperçu équipé — R1090
+
+L’aperçu desktop donne plus de présence au portrait équipé, pseudo, titre, statut et bouton Choisir : avatar proportionnel de 72 à 144 px selon hauteur utile, espacements et textes adaptés. Faible hauteur ≤650 conserve un avatar 32 px et une composition compacte. Les trois onglets utilisent le même aperçu ; dix Badges restent consultables simultanément. Mécanismes Choisir/confirmation/fermeture/reset de R1089 validés par le propriétaire et conservés, avec nouveautés, tutoriel et autorité serveur. Aucun grand fond vide ajouté pour simuler l’agrandissement. Qualification technique au Master ; appréciation esthétique R1090 future.
+
 ## Confirmation et réouverture — R1089
 
 Chaque clic Choisir remet recherche vide, tri date d’obtention et ordre plus récents. Il ne réinitialise pas les consultations et priorités de nouveautés R1052. Après confirmation serveur d’un Avatar/Titre, y compris avatar élémentaire et aucun titre, rafraîchir le Profil/Sidebar puis fermer l’ouverture ayant lancé l’action. Une réponse tardive ne ferme pas une nouvelle ouverture ou un autre onglet ; le verrou de requête empêche deux équipements concurrents. Une erreur garde la fenêtre ouverte avec son message et permet le réessai. Fermeture manuelle, focus, Échap et Tutoriel conservés ; Badges reste dans son onglet.

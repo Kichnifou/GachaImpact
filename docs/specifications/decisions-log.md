@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1090 — sept finitions desktop après recette R1089 (14/10/2026)
+
+Mandat propriétaire validé pour sept lots et leur cycle complet review indépendante → main FF → déploiements/postflight, depuis R1089 0ae5e4d0959b413bc1b922c4baaf460def7c9651. Recette propriétaire R1089 acquise : Classement Event, filtres Box Profil, Sidebar Quotidiennes, Missions Profil, Statistiques Profil, mécanismes des modales Personnalisation et Aperçu Quotidiennes. Ces acquis restent protégés.
+
+Retouches autorisées : rapprocher les cartes Équipe et contenir les cinq actions hover/focus ; encadrer le seul corps scrollable de Box Profil ; douze objets Collection Profil simultanés ; aperçu équipé nettement agrandi hors faible hauteur ; en-tête icône/titre Shop, catégories retirées du JSX et solde réduit ; exclure uniquement Event secondaire de l’Accueil tout en conservant sa hauteur et Expédition ; même cadre pour les quatre catégories du Sac, Tout seul scrollable. Réorganisation réelle selon largeur/hauteur, aucune scrollbar masquée ni nouvelle pagination. Sept retraits indépendants, aucun changement serveur, métier, droits ou Concours R1088. Recette esthétique R1090 future, preuves au Master.
+
 ## R1089 — neuf finitions ciblées après R1088 (14/10/2026)
 
 Mandat propriétaire validé jusqu’aux revues indépendantes, main FF, déploiements et postflight. Base réelle après clôture Concours R1088 : `0b5527243af070cb5333426d64246a2474d1d62f`, quatre refs alignées et arbre propre. Neuf lots retirables : Shop Event, Classement Event, Sidebar, Équipe, Personnalisation, Missions Profil, Statistiques Profil, Box Profil et gains de l’Aperçu Quotidiennes.

@@ -1,5 +1,9 @@
 # 16 — Audit Event / monthly
 
+## En-têtes Shop — R1090
+
+Cette clause supersède la seule réduction des catégories Shop R1089 : Conversion et Objet Collection sont maintenant retirés du JSX, donc absents à toute résolution. Chaque produit possède un header interne avec icône et titre dans deux colonnes séparées, gap régulier, sans position absolue. Le bandeau de solde est légèrement réduit ; monnaie Festival maintenue à droite. Formulaires, quantités, MAX, gains, confirmation/retry, coût, disponibilité et édition courante inchangés. Classement R1089 validé par le propriétaire et conservé ; aucune action de jeu publique de QA. Preuves au Master.
+
 ## Shop et classement — R1089
 
 Shop : retirer le libellé visible de quantité, garder un aria-label par ressource, réduire légèrement Conversion/Objet Collection et descriptions. Valeurs, MAX, intentions, erreurs et formulaires conservés. Classement : retirer Édition en cours, titre et cinq lignes plus compacts, régions en-tête/liste/footer explicitement distinctes avec budget du feedback parent. Cinq joueurs par page et parcours complet restent autoritaires, tri et rang inchangés. Dernière ligne et pagination se vérifient par rectangles/hit-tests, après resize et changement de page. Preuves au Master.

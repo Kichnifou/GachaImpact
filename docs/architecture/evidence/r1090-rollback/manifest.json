@@ -1,0 +1,288 @@
+{
+  "base": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+  "baseline": "0ae5e4d0959b413bc1b922c4baaf460def7c9651",
+  "protectedR1088": {
+    "src/App.css": "a1bcd64900ab38412f12033f328801fe5b68270a",
+    "src/contest/ContestConnectionStatus.tsx": "26cc1b9926521bb707fca8ec0204665fc1fb1ee7",
+    "src/contest/ContestUnavailable.test.tsx": "330950d6d89403040d94ff5f6c11bbd7e8e0d318",
+    "src/contest/ContestUnavailable.tsx": "33bc31e1bddac9e8ea44ba455da9388bc6a54dd2",
+    "src/contest/use-contest-presentation.test.tsx": "c8dee04307c37a245667c4061fba772775b640ca",
+    "src/contest/use-contest-presentation.ts": "eabcac077c91a4533329e8d731180d41f0c5f43f",
+    "src/contest/use-contest-refresh.ts": "a7abd97827c1da4227e86269742346a191c4273d",
+    "src/screens/ContestScreen.test.tsx": "a94c40e68c08aa0dcfc86090ad65d5d40b852ab7",
+    "src/screens/ContestScreen.tsx": "277c8a8248cd131624e54e570812884eac316033"
+  },
+  "results": [
+    {
+      "name": "ProfileBox",
+      "commits": [
+        "74166873ccc743c3e9b959ebb5b0c08aa10493e2",
+        "c5254374e9d9d65e9a11aa8ff88f49bfa6476ec9"
+      ],
+      "expectedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "tests": [
+        "src/social/social.test.tsx",
+        "src/social/social-ui.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "patch": "rollback-ProfileBox.patch",
+      "patchSha256": "7fce6dcdbd5634ace951edce764de39b9a8ca07872f85ee0f897705e5f88a472",
+      "initialQualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "qualificationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 31,
+      "testLogSha256": "c1af9dead6875630a886e20a421dd3216ba8b51c43efb3a8bedf40076ed5be3a",
+      "harnessNote": "Assertions and exit0 PASS; asynchronous localhost3000 ECONNREFUSED also printed, previously observed R1089 harness limitation"
+    },
+    {
+      "name": "ProfileCollection",
+      "commits": [
+        "c851a8e4aded99fda5b487d45fb7dd0d70e4aa39"
+      ],
+      "expectedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/profile-collection-layout.css"
+      ],
+      "tests": [
+        "src/social/social-ui.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [
+        "Shared data-fit expression context: remove Collection only; preserve final Box data-fit and bodyClassName. Import and grid class removed with own CSS."
+      ],
+      "originalConflict": "Auto-merging src/screens/ProfileScreen.tsx\nCONFLICT (content): Merge conflict in src/screens/ProfileScreen.tsx\nerror: could not revert c851a8e4... fix(ui): R1090 fit Profile Collection in a compact local grid\nhint: after resolving the conflicts, mark the corrected paths\nhint: with 'git add <paths>' or 'git rm <paths>'\nhint: Disable this message with \"git config set advice.mergeConflict false\"\n",
+      "changedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/profile-collection-layout.css"
+      ],
+      "patch": "rollback-ProfileCollection.patch",
+      "patchSha256": "b9cafa2aa4d06f3f3f21476b76ef9077a65fa8809efdb39e1cc542600a92f728",
+      "initialQualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "qualificationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 20,
+      "testLogSha256": "ed7c6964f593817dc2c478dd34b16f82be7ae8f4e9a0abcf28be8077f1281241"
+    },
+    {
+      "name": "Appearance",
+      "commits": [
+        "9f269e8f14530aa1e7e3bcf0ee6e7c11c343180a"
+      ],
+      "expectedFiles": [
+        "src/social/appearance-layout.css"
+      ],
+      "tests": [
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/social/appearance-layout.css"
+      ],
+      "patch": "rollback-Appearance.patch",
+      "patchSha256": "570dcce201e3637fc1e471bdcdc8adffe21ef6cc1e0a6615322de8d20e31d50a",
+      "qualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "finalApplicationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 10,
+      "testLogSha256": "921be2bfd0b000586da7539948efea5fabae0956a7965c4690f14eb8fb65f2ce"
+    },
+    {
+      "name": "Home",
+      "commits": [
+        "089c1181c7a59e6a52c56815668169b0d38dd600",
+        "f6749acb055d7201dbf000979e90e765b4185619"
+      ],
+      "expectedFiles": [
+        "src/dailies/HomeDailySummary.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/home-daily-presentation.ts",
+        "src/home/home-shortcuts.css"
+      ],
+      "tests": [
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/daily-navigation.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/dailies/HomeDailySummary.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/home-daily-presentation.ts",
+        "src/home/home-shortcuts.css"
+      ],
+      "patch": "rollback-Home.patch",
+      "patchSha256": "37ee29d85e91bff161381e9c7f3ba579747b5ce1091004f09916fff789cb0b9b",
+      "qualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "finalApplicationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 63,
+      "testLogSha256": "9167a12934c8f5346d337def699052e940ce2baaa1518020d154e8660f851d3a"
+    },
+    {
+      "name": "Team",
+      "commits": [
+        "188b59aa267e4018b1913fc1ab4c07b3796e44bb",
+        "6519d6dfc6873130c0d95b5dc50899de7587d199"
+      ],
+      "expectedFiles": [
+        "src/teams/team-layout.css"
+      ],
+      "tests": [
+        "src/screens/TeamScreen.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/teams/team-layout.css"
+      ],
+      "patch": "rollback-Team.patch",
+      "patchSha256": "91e0caa8a2ad26411cb92ab0d170930f0787d25dbf99b72434fe6e5fa2f90551",
+      "initialQualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "qualificationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 38,
+      "testLogSha256": "294c8af6fa6c4d21f9eff5f9db8a04a57d43990085386a15b33270fb696c6cef",
+      "harnessNote": "Assertions and exit0 PASS; asynchronous localhost3000 ECONNREFUSED also printed, previously observed R1089 harness limitation"
+    },
+    {
+      "name": "EventShop",
+      "commits": [
+        "78e73fcbd62e3937b07c6ad1aec84f08491d8fa3",
+        "b1afe545975de3e2526a8201877ec3ba6d68257c"
+      ],
+      "expectedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventShopSection.tsx",
+        "src/screens/EventScreen.test.tsx"
+      ],
+      "tests": [
+        "src/screens/EventShopSection.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "patch": "rollback-EventShop.patch",
+      "patchSha256": "1f1f14e54818a53af02c52374b5e2d4c0cd8651273d99e685eecac3caa292308",
+      "qualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "finalApplicationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 6,
+      "testLogSha256": "0c1f707a36cf18517c5f9b8805c1a452b9bd30c91d7d5a85ff4c75ab2f45cd50"
+    },
+    {
+      "name": "Inventory",
+      "commits": [
+        "e3f083ae008fac423dfab27526250c2f59ee8e04",
+        "38db04e6e607fac71a3e5690f345eee4308d8623",
+        "318704984e0de5ae92c81e1319c3175e1b6d3703",
+        "a98168add627e5b20ef4b0a83a29b8047a6fef4b"
+      ],
+      "expectedFiles": [
+        "src/inventory/inventory-layout.css"
+      ],
+      "tests": [
+        "src/screens/InventoryScreen.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/inventory/inventory-layout.css"
+      ],
+      "patch": "rollback-Inventory.patch",
+      "patchSha256": "21170a69d3c08a38345a16a0e64489e1a5567180dea1596bf46b33bae9d778ec",
+      "initialQualificationBase": "f6749acb055d7201dbf000979e90e765b4185619",
+      "qualificationBase": "a98168add627e5b20ef4b0a83a29b8047a6fef4b",
+      "testCount": 11,
+      "testLogSha256": "692f52a7c6d32e61080b162d1eb84fb203373f7e0ff5f34c53705b84ebdb6a03",
+      "harnessNote": "Assertions and exit0 PASS; asynchronous localhost3000 ECONNREFUSED also printed, previously observed R1089 harness limitation"
+    }
+  ],
+  "limits": [
+    "Independent single-lot withdrawals only; combinations require requalification.",
+    "No public/database mutation or rollback visual screenshots. Runtime may still evolve after this provisional base."
+  ],
+  "protectedR1089UnchangedFiles": {
+    "src/box/BoxFiltersBar.tsx": "78dd1217f9b5c75d83bfd376105504bfb8aa55e5",
+    "src/box/box-filter-bar.css": "a422c0918773d7dbca9c20a736157bdcb4727745",
+    "src/box/box-presentation.ts": "611e6e7054b73b762c5e3ed1aff197943142eca7",
+    "src/dailies/DailyTrackerCard.tsx": "866087b210ec983bb144273cf41b95f995fbec03",
+    "src/dailies/daily-overview-layout.css": "075d866d83db30ed238cf488dc280a972adf2077",
+    "src/dailies/sidebar-completion.css": "5637c720adfec6716dcb48446e9113917cf9f02d",
+    "src/event/event-ranking-layout.css": "780356ff6ef0edeb7f9e9e435a115221b1cf4ad9",
+    "src/screens/AppearancePanel.badges.test.tsx": "2912b761eb3f3505b5270afb8a5bc9bbb50fe9c8",
+    "src/screens/AppearancePanel.dialog.test.tsx": "a57ed7556a3a60514c63b34aba537339d3e35fc2",
+    "src/screens/AppearancePanel.r1052.test.tsx": "51a65fd4b1c181d91df35d069a26d5145d4f57bc",
+    "src/screens/AppearancePanel.tsx": "248dea39e114157a4f823822da92bd7d45a9604c",
+    "src/screens/BoxScreen.tsx": "df77bcb6b41ad32efad67aecb299782039232d52",
+    "src/screens/EventRankingSection.tsx": "88a4cfce152c9cf1e57c127d9f73b7b8f4b29c0b",
+    "src/social/profile-missions-layout.css": "2a47efd6cfe1aab1fc02aa49fcb8b35984b4cce1",
+    "src/social/social-ui.test.tsx": "fe5aeb3c72f3714c953b15dfbb3eb676134de926",
+    "src/social/statistics-layout.css": "4234ce40853c653350ddb0465b30913e20773274"
+  }
+}
