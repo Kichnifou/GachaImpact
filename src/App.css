@@ -8676,9 +8676,10 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .contest-card-actions {
   position: absolute;
   z-index: 5;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  right: 1px;
+  bottom: 1px;
+  left: 1px;
+  border-radius: 0 0 13px 13px;
   display: flex;
   justify-content: center;
   gap: 5px;
