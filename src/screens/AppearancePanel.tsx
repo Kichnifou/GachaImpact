@@ -17,6 +17,8 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
   const presentation = useTutorialPresentation()
   const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
   const [chooserTab, setChooserTab] = useState<string | null>(null)
+  const chooserRevision = useRef(0)
+  const closeChooser = () => { chooserRevision.current += 1; setChooserTab(null) }
   const chooserVisible = tab !== 'BADGE' && (chooserTab === tab || presentation.active && Boolean(presentation.step?.view?.startsWith('Personnalisation:')))
   const pendingRef = useRef(false)
   const [query, setQuery] = useState('')
@@ -43,12 +45,14 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
   const equip = async (type: 'AVATAR' | 'TITLE' | 'BADGE', id: string | null) => {
     if (pendingRef.current || presentation.active) return
     pendingRef.current = true
+    const opening = chooserRevision.current
     setPending(true); setError('')
     try {
       const confirmed = await actions.equipAppearance(type, id)
       if (!mounted.current) return
       setValue(confirmed)
       await onChanged().catch(() => undefined)
+      if (mounted.current && type !== 'BADGE' && opening === chooserRevision.current) closeChooser()
     } catch (reason) { if (mounted.current) setError(apiErrorMessage(reason)) }
     finally { pendingRef.current = false; if (mounted.current) setPending(false) }
   }
@@ -82,11 +86,11 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
       {!!entries.length && !visible.length && <p>Aucun cosmétique trouvé.</p>}
   </>
   return <section ref={panelRef} data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} data-appearance-tab={tab} className="appearance-panel" aria-label="Personnalisation du profil">
-    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('BADGE') }}>Badges</button></nav>
+    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { closeChooser(); setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { closeChooser(); setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => { closeChooser(); setTab('BADGE') }}>Badges</button></nav>
     {error && !chooserVisible && <p role="alert">{error}</p>}
     {!value ? <p role="status">Chargement de la personnalisation…</p> : <>
-      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div>{tab !== 'BADGE' && <AppButton variant="primary" className="appearance-choose" onClick={() => setChooserTab(tab)}>Choisir</AppButton>}</div>
-      {tab === 'BADGE' ? catalogue : chooserVisible && <AppearanceChooser background={panelRef.current?.closest<HTMLElement>('.scrollable-screen-panel-body')} title={tab === 'AVATAR' ? 'Choisir un avatar' : 'Choisir un titre'} onClose={() => setChooserTab(null)}>{error && <p role="alert">{error}</p>}{catalogue}</AppearanceChooser>}
+      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div>{tab !== 'BADGE' && <AppButton variant="primary" className="appearance-choose" onClick={() => { chooserRevision.current += 1; setQuery(''); setSort('date'); setDirection('desc'); setError(''); setChooserTab(tab) }}>Choisir</AppButton>}</div>
+      {tab === 'BADGE' ? catalogue : chooserVisible && <AppearanceChooser background={panelRef.current?.closest<HTMLElement>('.scrollable-screen-panel-body')} title={tab === 'AVATAR' ? 'Choisir un avatar' : 'Choisir un titre'} onClose={closeChooser}>{error && <p role="alert">{error}</p>}{catalogue}</AppearanceChooser>}
     </>}
   </section>
 }

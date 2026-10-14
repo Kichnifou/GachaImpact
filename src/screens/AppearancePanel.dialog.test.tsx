@@ -11,9 +11,9 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | undefined
 afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.replaceChildren() })
 const value: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [{ id: 'a', displayName: 'Avatar possédé', type: 'AVATAR', owned: true, isActive: true, visibility: 'VISIBLE', assetPath: null, condition: null, isNew: true }] }
-async function setup(equip = vi.fn(async () => value), tutorial = false) {
+async function setup(equip = vi.fn(async () => value), tutorial = false, initial = value) {
   const consult = vi.fn(async () => ({ consulted: ['a'] })), changed = vi.fn(async () => undefined)
-  const actions = { appearance: async () => value, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions
+  const actions = { appearance: async () => initial, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions
   const host = document.createElement('div'); document.body.append(host); root = createRoot(host)
   await act(async () => root!.render(<TutorialPresentationContext value={{ active: tutorial, step: tutorialSteps.find(step => step.id === 'profile-avatars') ?? null }}><AppearancePanel actions={actions} displayName="Fixture" elementKey="pyro" onChanged={changed} /></TutorialPresentationContext>))
   return { host, consult, changed, equip }
@@ -29,6 +29,40 @@ it('only consults the opened catalogue and restores focus when Escape closes it'
   expect(document.body.querySelector('[role="dialog"]')).toBeNull(); expect(document.activeElement).toBe(trigger)
   expect(document.body.style.overflow).toBe('')
   await act(async () => trigger.click()); expect(consult).toHaveBeenCalledOnce()
+})
+it.each([['AVATAR', 'a'], ['AVATAR', null], ['TITLE', 't'], ['TITLE', null]] as const)('closes %s only after confirmed equipment %s and refresh', async (type, id) => {
+  let confirm!: (next: AppearanceDto) => void
+  const equip = vi.fn(() => new Promise<AppearanceDto>(resolve => { confirm = resolve }))
+  const initial = { ...value, equippedAvatarCosmeticId: id === null ? 'old-avatar' : null, equippedTitleCosmeticId: id === null ? 'old-title' : null, catalog: [...value.catalog, { ...value.catalog[0], id: 't', type: 'TITLE' as const, displayName: 'Titre possédé' }] }
+  const { changed } = await setup(equip, false, initial)
+  if (type === 'TITLE') await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(b => b.textContent === 'Titres')!.click())
+  await act(async () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+  const selector = id === null ? '.appearance-chooser-body > .appearance-card button' : '.appearance-catalog button'
+  act(() => document.querySelector<HTMLButtonElement>(selector)!.click())
+  expect(equip).toHaveBeenCalledExactlyOnceWith(type, id)
+  expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+  await act(async () => confirm(value))
+  expect(changed).toHaveBeenCalledOnce()
+  expect(document.querySelector('[role="dialog"]')).toBeNull()
+})
+it('resets controls on every opening and does not close a newer opening after a delayed confirmation', async () => {
+  let confirm!: (next: AppearanceDto) => void
+  const equip = vi.fn(() => new Promise<AppearanceDto>(resolve => { confirm = resolve }))
+  await setup(equip)
+  const open = () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click()
+  await act(async () => open())
+  const input = document.querySelector<HTMLInputElement>('.appearance-search input')!
+  act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'possédé'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+  const sort = document.querySelector<HTMLSelectElement>('[aria-label="Tri des cosmétiques"]')!
+  act(() => { sort.value = 'name'; sort.dispatchEvent(new Event('change', { bubbles: true })) })
+  act(() => document.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  await act(async () => open())
+  expect(document.querySelector<HTMLInputElement>('.appearance-search input')!.value).toBe('')
+  expect(document.querySelector<HTMLSelectElement>('[aria-label="Tri des cosmétiques"]')!.value).toBe('date')
+  expect(document.querySelector<HTMLSelectElement>('[aria-label="Ordre des cosmétiques"]')!.value).toBe('desc')
+  await act(async () => confirm(value))
+  expect(document.querySelector('[role="dialog"]')).toBeTruthy()
 })
 it('keeps an equipment failure in the open dialogue without confirming a preview', async () => {
   const equip = vi.fn(async (): Promise<AppearanceDto> => { throw new Error('Connexion interrompue') })
