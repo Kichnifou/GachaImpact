@@ -29,6 +29,6 @@ it('shows all ten free badges despite an avatar filter and equips only the badge
     expect(equipAppearance).toHaveBeenLastCalledWith('BADGE', null)
     await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Avatars')!.click())
     await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
-    expect(document.body.querySelector<HTMLInputElement>('input')?.value).toBe('Ayaka')
+    expect(document.body.querySelector<HTMLInputElement>('input')?.value).toBe('')
   } finally { act(() => root.unmount()); host.remove() }
 })

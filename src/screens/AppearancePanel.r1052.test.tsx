@@ -38,9 +38,10 @@ it('combines both sort directions and accent-insensitive character search withou
  await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
  expect(names(host)).toEqual(['Étoile']);expect(consultAppearance).toHaveBeenCalledTimes(2);
 });
-it('does not consume new titles hidden by a retained search, including an empty result',async()=>{
+it('opens titles with a reset search and does not consult again when filtering an empty result',async()=>{
  const {host,consultAppearance}=await setup();await search(host,'ETOILE');await click(host,'Titres');
- expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
- await search(host,'titre');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+ expect(document.body.querySelector<HTMLInputElement>('.appearance-search input')!.value).toBe('');expect(consultAppearance).toHaveBeenCalledTimes(2);
+ expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+ await search(host,'absent');expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(2);
  await click(host,'Avatars');await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
 });
