@@ -68,7 +68,7 @@
   .inventory-screen .inventory-resources .inventory-card-action,
   .inventory-screen .inventory-resources .item-amount { font-size: 10px; }
   .inventory-screen .inventory-collection .inventory-item-main { padding: 4px; }
-  .inventory-screen .inventory-collection .inventory-item { min-height: 58px; }
+  .inventory-screen .inventory-content.inventory-collection .inventory-item { min-height: 58px; }
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-groups { gap: 6px; padding-top: 4px; }
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-group { gap: 3px; }
 }
