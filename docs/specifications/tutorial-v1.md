@@ -4,6 +4,10 @@ Statut du 03/10/2026 : **Tutoriel 25B de 116 étapes / 24 chapitres / 21 écrans
 
 Le propriétaire confirme la recette publique finale du correctif 25A sur **a23a42304da7396da2ceeaa5a1e245a79310cec1** : Précédent, ordre des contrôles et Suivant stable ; carte sidebar entière cliquable avec ses contrôles indépendants ; titre Home simple, hauteur Quotidiennes/BannerHero et splash recentré. Les validations publiques Pause/reprise/persistance, Terminer/replay, responsive et Invocation normale acquises sur 9aef02c sont conservées. **25A est clôturée dans son périmètre réel de prototype**. Cette preuve propriétaire est transmise par la mission, sans nouvelle vérification de déploiement Railway/Cloudflare ni mutation publique ici.
 
+## Adaptation Personnalisation — R1087
+
+Les vues existantes Avatars/Titres présentent automatiquement la fenêtre Choisir et ciblent son ancre `appearance-chooser`. Catalogue, recherche et tri sont ceux du produit ; la présentation guidée ne consulte ni n’équipe de cosmétique. IDs, ordre, progression et nombre d’étapes restent inchangés.
+
 ## Autostart unique rétroactif — R1033, approuvé et promu sur main
 
 POST /api/v1/me/tutorial/autostart authentifié et sans paramètres client résout le Player. PrismaTutorialPreferenceStore insère le marqueur tutorial_v1_autostart avec INSERT ON CONFLICT DO NOTHING via createMany(skipDuplicates) : un seul onglet concurrent reçoit shouldLaunch:true. Dans la même transaction, il canonicalise tutorial_v1 ; IN_PROGRESS garde son étape, NOT_STARTED/COMPLETED/invalide deviennent IN_PROGRESS/profile, même pour un ancien Player ayant fini le parcours. Réponse true avec préférence confirmée ; marqueur déjà présent : false, aucun reset/PUT. Une erreur transactionnelle ne consomme pas le marqueur. Aucune nouvelle table/colonne/migration, tutorial_v1/version 1/116 étapes et deux aliases conservés.

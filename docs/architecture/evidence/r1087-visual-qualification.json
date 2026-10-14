@@ -1,0 +1,153 @@
+{
+  "mission": "R1087",
+  "date": "2026-10-14",
+  "baseline": "64173794eb7438a724fab439464283c0435f3a22",
+  "initialGit": {
+    "mainEqualsReview": true,
+    "localEqualsRemote": true,
+    "clean": true
+  },
+  "runtime": "25a98ccf95facbb18592a8e90aaf875bf110b061",
+  "status": "qualified candidate; published reviews and deployment pending",
+  "scope": {
+    "frontendOnly": true,
+    "serverUnchanged": true,
+    "migration081Unchanged": true,
+    "publicGameplayQa": false
+  },
+  "tests": {
+    "quick": "5/5 PASS",
+    "full": "8/8 PASS",
+    "frontend": 1642,
+    "backendNonDb": 2510,
+    "fullRuntime": "25a98ccf95facbb18592a8e90aaf875bf110b061",
+    "logs": [
+      "gachaimpact-verify-quick-kyBjao",
+      "gachaimpact-verify-full-5Ju9TF"
+    ],
+    "finalQuick": "5/5 PASS at 25a98ccf95facbb18592a8e90aaf875bf110b061",
+    "finalQuickLog": "gachaimpact-verify-quick-kyBjao"
+  },
+  "visual": {
+    "fixtureOnly": true,
+    "productionCssAndAssets": true,
+    "browser": "Microsoft Edge / Playwright",
+    "cssViewports": [
+      [
+        2560,
+        1440
+      ],
+      [
+        1920,
+        1080
+      ],
+      [
+        1900,
+        920
+      ],
+      [
+        1536,
+        864
+      ],
+      [
+        1366,
+        768
+      ],
+      [
+        1366,
+        520
+      ],
+      [
+        1280,
+        720
+      ],
+      [
+        390,
+        844
+      ]
+    ],
+    "dpr": 1,
+    "visualViewportScale": 1,
+    "homeComparisons": 26,
+    "homeSummaryHeightDeltaPx": 0,
+    "homeImageScaleDelta": 0,
+    "eventStates": 202,
+    "eventNewlineMessageCharacters": 500,
+    "eventNewlinesPerMessage": 72,
+    "shopResizeQuantities": [
+      17,
+      23
+    ],
+    "shopInputsIdentityPreserved": true,
+    "teamFinalStates": 18,
+    "teamBottomAlignmentPx": 0,
+    "statisticsMetrics": 23,
+    "statisticsDigitsStress": 18,
+    "collectionObjects": 12,
+    "badges": 10,
+    "lobbyControlsVisible": true,
+    "limits": [
+      "Synthetic fixtures are not observed player volumes.",
+      "Mobile keeps natural scrolling and existing R1085 exceptions.",
+      "Large desktop Team frame retains generous spacing with few or no passives.",
+      "Public aesthetic acceptance and R1086 multiplayer recipe remain open."
+    ],
+    "sidebarFinalStates": 20,
+    "sidebarFinalCssSha256": "8ee4f33da7ca8e6ae79c593f2aba1dfe75043632176f402172edc94117885261",
+    "evidenceStages": "Home, Event and Team reports predate the last Sidebar-only CSS adjustment. Final Sidebar proof covers that scoped delta; earlier surface proofs remain applicable."
+  },
+  "privateEvidence": [
+    {
+      "file": "baseline-review.json",
+      "sha256": "3d1f9ceb7337f6eb067cc93e66eacb92278c24b09a38501a1f9b98702372ac98"
+    },
+    {
+      "file": "baseline-home.json",
+      "sha256": "e4c773ef028a4d80c28528e9b1007154222080404cc5ea11a44a9d1078c58893"
+    },
+    {
+      "file": "candidate-home.json",
+      "sha256": "73db7299b73ea5a849a4ac354ba55c3206dc841784538ae65e7946e4d438fc3f"
+    },
+    {
+      "file": "candidate-targets.json",
+      "sha256": "d09878f92f84ce99ef719ab627b1a2b6ee880af7516dcd61478b82f2cdd91742"
+    },
+    {
+      "file": "candidate-team.json",
+      "sha256": "3743f01cae62d84f37ad995e80f0b66471ad0713ff6ead2e01f8a705e91734e7"
+    },
+    {
+      "file": "root-small.json",
+      "sha256": "651fb4674b6f57404fd2bbc359d8aa7ad521aeefdf6dc2ea70f3bcdfc46bdf6a"
+    },
+    {
+      "file": "independent-event-final.json",
+      "sha256": "de2e1524730250819d97d501191af17afecb09d326b4a0af9e53a4dd5c5d7499"
+    },
+    {
+      "file": "independent-event-newlines.json",
+      "sha256": "e5fbf8c1b9c0627a037ed5c002e2dca18b56c3b8b64d4a58f1a7d433fe2b011c"
+    },
+    {
+      "file": "sidebar-final-review.json",
+      "sha256": "e87a956da5ebb34954a009e0f41c24e68ad7208e14eea6571e708c39b5886446"
+    },
+    {
+      "file": "visual-prepublication-25a98ccf.json",
+      "sha256": "bbca490effe8ec1cfbd4640325888b3cdcfbda2f0d1d6057f5527fb9ea6c4540"
+    },
+    {
+      "file": "rollback-r1087-script-checks.json",
+      "sha256": "5b550e8a7728f7c77bc6de67900ca52b0acdc7e7abbf7258fe64ef229970f774"
+    }
+  ],
+  "rollback": {
+    "manifest": "r1087-rollback/manifest.json",
+    "lots": 12,
+    "status": "12/12 PASS; initial full withdrawal gates plus final Sidebar rebuild and 11 scoped requalifications",
+    "manifestSha256": "161c0109dd264bee7ba105deac55f9e6ecda3d723dd987acfc912408ce94b181"
+  },
+  "reviews": [],
+  "deployment": null
+}

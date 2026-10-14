@@ -1,0 +1,431 @@
+diff --git a/src/screens/AppearanceChooser.tsx b/src/screens/AppearanceChooser.tsx
+deleted file mode 100644
+index 95ae9d9f..00000000
+--- a/src/screens/AppearanceChooser.tsx
++++ /dev/null
+@@ -1,21 +0,0 @@
+-import { useEffect, useId, type ReactNode } from 'react'
+-import { createPortal } from 'react-dom'
+-import { useModalDialog } from '../components/useModalDialog'
+-import ModalCloseButton from '../components/ModalCloseButton'
+-
+-export default function AppearanceChooser({ title, onClose, children, background }: { title: string; onClose: () => void; children: ReactNode; background?: HTMLElement | null }) {
+-  const id = useId()
+-  const ref = useModalDialog<HTMLElement>(onClose)
+-  useEffect(() => {
+-    const surfaces = [document.body, background].filter((node): node is HTMLElement => Boolean(node))
+-    const previous = surfaces.map(node => node.style.overflow)
+-    surfaces.forEach(node => { node.style.overflow = 'hidden' })
+-    return () => { surfaces.forEach((node, index) => { node.style.overflow = previous[index]! }) }
+-  }, [background])
+-  return createPortal(<div className="modal-layer appearance-chooser-layer" onMouseDown={onClose}>
+-    <section ref={ref} className="panel appearance-chooser" role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} data-tutorial-anchor="appearance-chooser" onMouseDown={event => event.stopPropagation()}>
+-      <header><h2 id={id}>{title}</h2><ModalCloseButton onClose={onClose} /></header>
+-      <div className="appearance-chooser-body">{children}</div>
+-    </section>
+-  </div>, document.body)
+-}
+diff --git a/src/screens/AppearancePanel.badges.test.tsx b/src/screens/AppearancePanel.badges.test.tsx
+index d5181bbb..bb3a4cdc 100644
+--- a/src/screens/AppearancePanel.badges.test.tsx
++++ b/src/screens/AppearancePanel.badges.test.tsx
+@@ -11,24 +11,21 @@ it('shows all ten free badges despite an avatar filter and equips only the badge
+   let value: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, title: 'Titre conservé', equippedAvatarCosmeticId: 'avatar', equippedTitleCosmeticId: 'title', equippedBadgeCosmeticId: null, badgeSymbol: null, catalog: Object.values(badgeSymbols).map((displayName, i) => ({ id: 'badge-' + i, type: 'BADGE', displayName, owned: true, isActive: true, isNew: false, visibility: 'VISIBLE', assetPath: null, condition: null })) }
+   const equipAppearance = vi.fn(async (_type: string, id: string | null) => { value = { ...value, equippedBadgeCosmeticId: id, badgeSymbol: value.catalog.find(c => c.id === id)?.displayName ?? null }; return value })
+   const consultAppearance = vi.fn(), host = document.createElement('div'), root = createRoot(host)
+-  document.body.append(host)
+   const actions = { appearance: async () => value, equipAppearance, consultAppearance } as unknown as SocialActions
+   try {
+     await act(async () => root.render(<AppearancePanel actions={actions} displayName="Owner" elementKey="hydro" onChanged={async () => {}} />))
+-    await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-    await act(async () => { const input = document.body.querySelector<HTMLInputElement>('input')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ayaka'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+-    await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Badges')!.click())
+-    expect(document.body.querySelectorAll('.appearance-badge-symbol')).toHaveLength(10)
+-    expect(document.body.querySelector('.appearance-controls')?.hasAttribute('hidden')).toBe(true)
++    await act(async () => { const input = host.querySelector<HTMLInputElement>('input')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Ayaka'); input.dispatchEvent(new Event('input', { bubbles: true })) })
++    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Badges')!.click())
++    expect(host.querySelectorAll('.appearance-badge-symbol')).toHaveLength(10)
++    expect(host.querySelector('.appearance-controls')?.hasAttribute('hidden')).toBe(true)
+     expect(host.textContent).toContain('Aucun badge')
+     expect(consultAppearance).not.toHaveBeenCalled()
+-    await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
++    await act(async () => host.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+     expect(equipAppearance.mock.calls[0]?.[0]).toBe('BADGE')
+     expect(value.equippedAvatarCosmeticId).toBe('avatar'); expect(value.equippedTitleCosmeticId).toBe('title')
+-    await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === 'Déséquiper')!.click())
++    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('button')].find(b => b.textContent === 'Déséquiper')!.click())
+     expect(equipAppearance).toHaveBeenLastCalledWith('BADGE', null)
+-    await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Avatars')!.click())
+-    await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-    expect(document.body.querySelector<HTMLInputElement>('input')?.value).toBe('Ayaka')
+-  } finally { act(() => root.unmount()); host.remove() }
++    await act(async () => [...host.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Avatars')!.click())
++    expect(host.querySelector<HTMLInputElement>('input')?.value).toBe('Ayaka')
++  } finally { act(() => root.unmount()) }
+ })
+diff --git a/src/screens/AppearancePanel.dialog.test.tsx b/src/screens/AppearancePanel.dialog.test.tsx
+deleted file mode 100644
+index 74b213d7..00000000
+--- a/src/screens/AppearancePanel.dialog.test.tsx
++++ /dev/null
+@@ -1,56 +0,0 @@
+-// @vitest-environment happy-dom
+-import { act } from 'react'
+-import { createRoot, type Root } from 'react-dom/client'
+-import { afterEach, expect, it, vi } from 'vitest'
+-import AppearancePanel from './AppearancePanel'
+-import type { AppearanceDto } from '../api/types'
+-import type { SocialActions } from '../social/types'
+-import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
+-import { tutorialSteps } from '../tutorial/tutorial-catalog'
+-Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+-let root: Root | undefined
+-afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.replaceChildren() })
+-const value: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [{ id: 'a', displayName: 'Avatar possédé', type: 'AVATAR', owned: true, isActive: true, visibility: 'VISIBLE', assetPath: null, condition: null, isNew: true }] }
+-async function setup(equip = vi.fn(async () => value), tutorial = false) {
+-  const consult = vi.fn(async () => ({ consulted: ['a'] })), changed = vi.fn(async () => undefined)
+-  const actions = { appearance: async () => value, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions
+-  const host = document.createElement('div'); document.body.append(host); root = createRoot(host)
+-  await act(async () => root!.render(<TutorialPresentationContext value={{ active: tutorial, step: tutorialSteps.find(step => step.id === 'profile-avatars') ?? null }}><AppearancePanel actions={actions} displayName="Fixture" elementKey="pyro" onChanged={changed} /></TutorialPresentationContext>))
+-  return { host, consult, changed, equip }
+-}
+-it('only consults the opened catalogue and restores focus when Escape closes it', async () => {
+-  const { consult, equip } = await setup()
+-  expect(consult).not.toHaveBeenCalled(); expect(document.body.querySelector('.appearance-catalog')).toBeNull()
+-  const trigger = document.body.querySelector<HTMLButtonElement>('.appearance-choose')!; trigger.focus()
+-  await act(async () => trigger.click())
+-  expect(document.body.querySelector('[role="dialog"]')?.getAttribute('aria-labelledby')).toBeTruthy()
+-  expect(consult).toHaveBeenCalledOnce(); expect(equip).not.toHaveBeenCalled()
+-  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+-  expect(document.body.querySelector('[role="dialog"]')).toBeNull(); expect(document.activeElement).toBe(trigger)
+-  expect(document.body.style.overflow).toBe('')
+-  await act(async () => trigger.click()); expect(consult).toHaveBeenCalledOnce()
+-})
+-it('keeps an equipment failure in the open dialogue without confirming a preview', async () => {
+-  const equip = vi.fn(async (): Promise<AppearanceDto> => { throw new Error('Connexion interrompue') })
+-  const { changed } = await setup(equip)
+-  await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-  await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+-  expect(document.body.querySelector('[role="dialog"] [role="alert"]')).toBeTruthy(); expect(changed).not.toHaveBeenCalled()
+-  expect(document.body.querySelector('.appearance-preview')?.textContent).toContain('Avatar élémentaire')
+-})
+-it('does not refresh a departed account after delayed equipment and prevents double submission', async () => {
+-  let resolve!: (next: AppearanceDto) => void
+-  const equip = vi.fn(() => new Promise<AppearanceDto>(done => { resolve = done }))
+-  const { changed } = await setup(equip)
+-  await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-  act(() => { const button = document.body.querySelector<HTMLButtonElement>('.appearance-catalog button')!; button.click(); button.click() })
+-  expect(equip).toHaveBeenCalledOnce()
+-  act(() => root!.unmount()); root = undefined
+-  await act(async () => resolve(value)); expect(changed).not.toHaveBeenCalled()
+-})
+-it('presents the tutorial catalogue without consulting or equipping it', async () => {
+-  const { consult, equip } = await setup(undefined, true)
+-  expect(document.body.querySelector('[data-tutorial-anchor="appearance-chooser"]')).toBeTruthy()
+-  await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+-  expect(consult).not.toHaveBeenCalled(); expect(equip).not.toHaveBeenCalled()
+-})
+diff --git a/src/screens/AppearancePanel.r1052.test.tsx b/src/screens/AppearancePanel.r1052.test.tsx
+index 2453e36d..a0f5a10a 100644
+--- a/src/screens/AppearancePanel.r1052.test.tsx
++++ b/src/screens/AppearancePanel.r1052.test.tsx
+@@ -14,20 +14,20 @@ async function setup(){
+  const equipAppearance=vi.fn(async()=>value);const actions={appearance:vi.fn(async()=>value),consultAppearance,equipAppearance} as unknown as SocialActions;
+  const host=document.createElement('div');document.body.append(host);root=createRoot(host);
+  const render=async(key='owner')=>act(async()=>root!.render(<AppearancePanel key={key} actions={actions} displayName="Owner" elementKey="pyro" onChanged={async()=>{}}/>));
+- await render();await click(host,'Choisir');return {host,actions,consultAppearance,equipAppearance,render,acquire:(entry:AppearanceDto['catalog'][number])=>{value={...value,catalog:[...value.catalog,entry]}}};
++ await render();return {host,actions,consultAppearance,equipAppearance,render,acquire:(entry:AppearanceDto['catalog'][number])=>{value={...value,catalog:[...value.catalog,entry]}}};
+ }
+-const click=async(_host:HTMLElement,label:string)=>{await act(async()=>[...document.body.querySelectorAll('button')].find(button=>button.textContent===label)!.click());if(label==='Titres'||label==='Avatars')await act(async()=>document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())};
+-const names=(_host:HTMLElement)=>[...document.body.querySelectorAll('.appearance-character-card strong')].map(node=>node.textContent);
+-async function search(_host:HTMLElement,value:string){await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}))})}
+-async function select(_host:HTMLElement,label:string,value:string){await act(async()=>{const node=document.body.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;node.value=value;node.dispatchEvent(new Event('change',{bubbles:true}))})}
++const click=async(host:HTMLElement,label:string)=>act(async()=>[...host.querySelectorAll('button')].find(button=>button.textContent===label)!.click());
++const names=(host:HTMLElement)=>[...host.querySelectorAll('.appearance-character-card strong')].map(node=>node.textContent);
++async function search(host:HTMLElement,value:string){await act(async()=>{const input=host.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,value);input.dispatchEvent(new Event('input',{bubbles:true}))})}
++async function select(host:HTMLElement,label:string,value:string){await act(async()=>{const node=host.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;node.value=value;node.dispatchEvent(new Event('change',{bubbles:true}))})}
+ it('marks only the visited type, retains first-visit priority until departure and persists across reloads',async()=>{
+  const {host,consultAppearance,equipAppearance,render,acquire}=await setup();
+- expect(names(host)).toEqual(['Étoile','Alpha','Beta']);expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('AVATAR',['z']);
+- await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('TITLE',['n']);
+- await click(host,'Avatars');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
++ expect(names(host)).toEqual(['Étoile','Alpha','Beta']);expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('AVATAR',['z']);
++ await click(host,'Titres');expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenCalledWith('TITLE',['n']);
++ await click(host,'Avatars');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
+  await select(host,'Tri des cosmétiques','name');await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Beta','Étoile']);
+- await render('reload');await click(host,'Choisir');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
+- acquire(cosmetic('late','Zeta','AVATAR','2026-10-13T00:00:00Z',true));await render('later');await click(host,'Choisir');expect(names(host)[0]).toBe('Zeta');expect(consultAppearance).toHaveBeenLastCalledWith('AVATAR',['late']);
++ await render('reload');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
++ acquire(cosmetic('late','Zeta','AVATAR','2026-10-13T00:00:00Z',true));await render('later');expect(names(host)[0]).toBe('Zeta');expect(consultAppearance).toHaveBeenLastCalledWith('AVATAR',['late']);
+  expect(equipAppearance).not.toHaveBeenCalled();
+ });
+ it('combines both sort directions and accent-insensitive character search without consuming titles',async()=>{
+@@ -35,12 +35,12 @@ it('combines both sort directions and accent-insensitive character search withou
+  await select(host,'Tri des cosmétiques','name');await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Beta','Étoile']);
+  await select(host,'Ordre des cosmétiques','desc');expect(names(host)).toEqual(['Étoile','Beta','Alpha']);
+  await select(host,'Tri des cosmétiques','date');expect(names(host)).toEqual(['Étoile','Alpha','Beta']);await select(host,'Ordre des cosmétiques','asc');expect(names(host)).toEqual(['Alpha','Étoile','Beta']);
+- await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
++ await act(async()=>{const input=host.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
+  expect(names(host)).toEqual(['Étoile']);expect(consultAppearance).toHaveBeenCalledTimes(2);
+ });
+ it('does not consume new titles hidden by a retained search, including an empty result',async()=>{
+  const {host,consultAppearance}=await setup();await search(host,'ETOILE');await click(host,'Titres');
+- expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
+- await search(host,'titre');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+- await click(host,'Avatars');await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
++ expect(host.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
++ await search(host,'titre');expect(host.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
++ await click(host,'Avatars');await click(host,'Titres');expect(host.querySelectorAll('.appearance-new')).toHaveLength(0);
+ });
+diff --git a/src/screens/AppearancePanel.test.tsx b/src/screens/AppearancePanel.test.tsx
+index 0a121649..75a13b10 100644
+--- a/src/screens/AppearancePanel.test.tsx
++++ b/src/screens/AppearancePanel.test.tsx
+@@ -15,28 +15,26 @@ const initial: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, t
+ 
+ describe('AppearancePanel', () => {
+   it('groups level titles by derived thresholds descending, keeps future families separate and preserves equipment', async () => {
+-    const container = document.createElement('div'), root = createRoot(container); document.body.append(container)
++    const container = document.createElement('div'), root = createRoot(container)
+     const catalog: AppearanceDto['catalog'] = [10, 50, 25, 100, 75].map(level => ({ id: 'level-' + level, type: 'TITLE', displayName: 'Titre ' + level, levelRequirement: level, assetPath: null, condition: 'Atteindre le niveau ' + level, visibility: 'VISIBLE', owned: level <= 50, isActive: true }))
+     const appearance = { ...initial, equippedTitleCosmeticId: 'level-50', catalog: [...catalog, { id: 'future', type: 'TITLE' as const, displayName: 'Une autre famille', levelRequirement: null, assetPath: null, condition: null, visibility: 'VISIBLE' as const, owned: false, isActive: true }] }
+     const equipAppearance = vi.fn(async () => appearance)
+     try {
+       await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => appearance, equipAppearance } as unknown as SocialActions} displayName="Axel" elementKey="hydro" onChanged={async () => {}} />); await Promise.resolve() })
+-      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-      await act(async () => [...document.body.querySelectorAll('nav button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })))
+-      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-      const section = document.body.querySelector('.appearance-level-section')!
++      await act(async () => [...container.querySelectorAll('nav button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })))
++      const section = container.querySelector('.appearance-level-section')!
+       expect(section.querySelector('h3')?.textContent).toBe('Titres de niveaux')
+       expect([...section.querySelectorAll('.appearance-card strong')].map(node => node.textContent)).toEqual(['Titre 100', 'Titre 75', 'Titre 50', 'Titre 25', 'Titre 10'])
+       for (const level of [10,25,50,75,100]) expect(section.querySelector('.title-tier-' + level)).toBeTruthy()
+       expect(section.textContent).not.toContain('Une autre famille')
+       expect(section.querySelectorAll('.is-locked')).toHaveLength(2)
+       expect(section.querySelector('.is-equipped')?.textContent).toContain('Équipé')
+-      expect(document.body.querySelector('.appearance-tabs')).toBeTruthy()
++      expect(container.querySelector('.appearance-tabs')).toBeTruthy()
+       expect(equipAppearance).not.toHaveBeenCalled()
+-    } finally { act(() => root.unmount()); container.remove() }
++    } finally { act(() => root.unmount()) }
+   })
+   it('shows owned character portraits alphabetically and falls back to the simple element icon', async () => {
+-    const container = document.createElement('div'); const root = createRoot(container); document.body.append(container)
++    const container = document.createElement('div'); const root = createRoot(container)
+     const catalog: AppearanceDto['catalog'] = [
+       { id: 'z', sourceCharacterId: 'character-z', type: 'AVATAR', displayName: 'Zeta', assetPath: null, condition: null, visibility: 'SECRET', owned: true, isActive: true },
+       { id: 'a', sourceCharacterId: 'character-a', type: 'AVATAR', displayName: 'Alpha', assetPath: '/assets/genshin/characters/alpha.png', condition: null, visibility: 'SECRET', owned: true, isActive: true },
+@@ -45,38 +43,35 @@ describe('AppearancePanel', () => {
+     const equipAppearance = vi.fn(async (_type: 'AVATAR' | 'TITLE', _id: string | null) => ({ ...initial, catalog }))
+     try {
+       await act(async () => { root.render(<AppearancePanel actions={{ appearance: async () => ({ ...initial, catalog }), equipAppearance } as unknown as SocialActions} displayName="Élodie" elementKey="pyro" onChanged={async () => undefined} />); await Promise.resolve() })
+-      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-      const cards = [...document.body.querySelectorAll('.appearance-character-card')]
++      const cards = [...container.querySelectorAll('.appearance-character-card')]
+       expect(cards).toHaveLength(2)
+       expect(cards.map(card => card.querySelector('strong')?.textContent)).toEqual(['Alpha', 'Zeta'])
+       expect(cards[0]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/characters/alpha.png')
+       expect(cards[1]?.querySelector('img')?.getAttribute('src')).toBe('/assets/genshin/elements/pyro.png')
+-      expect(document.body.textContent).not.toContain('Unowned')
++      expect(container.textContent).not.toContain('Unowned')
+       await act(async () => { cards[0]?.querySelector<HTMLButtonElement>('button')?.click(); await Promise.resolve() })
+       expect(equipAppearance).toHaveBeenCalledWith('AVATAR', 'a')
+-    } finally { act(() => root.unmount()); container.remove() }
++    } finally { act(() => root.unmount()) }
+   })
+   it('shows the elemental fallback, visibility levels, equips owned items and supports no title', async () => {
+-    const container = document.createElement('div'); const root = createRoot(container); document.body.append(container)
++    const container = document.createElement('div'); const root = createRoot(container)
+     const appearance = vi.fn(async () => initial)
+     const equipAppearance = vi.fn(async (type: 'AVATAR' | 'TITLE', id: string | null): Promise<AppearanceDto> => ({ ...initial, equippedAvatarCosmeticId: type === 'AVATAR' ? id : null }))
+     const onChanged = vi.fn(async () => undefined)
+     try {
+       await act(async () => { root.render(<AppearancePanel actions={{ appearance, equipAppearance } as unknown as SocialActions} displayName="Élodie" elementKey="pyro" onChanged={onChanged} />); await Promise.resolve() })
+-      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-      expect(document.body.querySelector('nav.activity-inner-tabs[role="tablist"]')).not.toBeNull()
+-      expect(document.body.textContent).toContain('Avatar élémentaire permanent')
+-      expect(document.body.textContent).toContain('Condition vérifiée')
+-      expect(document.body.textContent).toContain('Cosmétique mystérieux')
+-      expect(document.body.textContent).not.toContain('Fixture secret')
+-      expect(document.body.querySelectorAll('.appearance-catalog .app-button')).toHaveLength(1)
+-      await act(async () => { document.body.querySelector<HTMLButtonElement>('.appearance-catalog .app-button')!.click(); await Promise.resolve() })
++      expect(container.querySelector('nav.activity-inner-tabs[role="tablist"]')).not.toBeNull()
++      expect(container.textContent).toContain('Avatar élémentaire permanent')
++      expect(container.textContent).toContain('Condition vérifiée')
++      expect(container.textContent).toContain('Cosmétique mystérieux')
++      expect(container.textContent).not.toContain('Fixture secret')
++      expect(container.querySelectorAll('.appearance-catalog .app-button')).toHaveLength(1)
++      await act(async () => { container.querySelector<HTMLButtonElement>('.appearance-catalog .app-button')!.click(); await Promise.resolve() })
+       expect(equipAppearance).toHaveBeenCalledWith('AVATAR', 'owned')
+       expect(onChanged).toHaveBeenCalledTimes(1)
+-      await act(async () => { [...document.body.querySelectorAll('nav.activity-inner-tabs button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
+-      await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-      expect(document.body.textContent).toContain('Aucun titre débloqué.')
+-      expect(document.body.textContent).toContain('Aucun titre')
+-    } finally { act(() => root.unmount()); container.remove() }
++      await act(async () => { [...container.querySelectorAll('nav.activity-inner-tabs button')].find(button => button.textContent === 'Titres')!.dispatchEvent(new Event('click', { bubbles: true })); await Promise.resolve() })
++      expect(container.textContent).toContain('Aucun titre débloqué.')
++      expect(container.textContent).toContain('Aucun titre')
++    } finally { act(() => root.unmount()) }
+   })
+ })
+diff --git a/src/screens/AppearancePanel.tsx b/src/screens/AppearancePanel.tsx
+index 783e1004..d3a2774d 100644
+--- a/src/screens/AppearancePanel.tsx
++++ b/src/screens/AppearancePanel.tsx
+@@ -2,8 +2,6 @@ import { useDestinationTab } from '../navigation/destination-context'
+ import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
+ import { useEffect, useRef, useState } from 'react'
+ import type { AppearanceDto } from '../api/types'
+-import AppearanceChooser from './AppearanceChooser'
+-import '../social/appearance-layout.css'
+ import AppButton from '../components/AppButton'
+ import PlayerAvatar from '../components/PlayerAvatar'
+ import type { SocialActions } from '../social/types'
+@@ -11,14 +9,10 @@ import { apiErrorMessage } from '../utils/formatters'
+ import { normalizeCharacterSearch } from '../characters/character-catalog'
+ 
+ export default function AppearancePanel({ actions, displayName, elementKey, onChanged }: { actions: SocialActions; displayName: string; elementKey: string | null; onChanged: () => Promise<void> }) {
+-  const panelRef = useRef<HTMLElement>(null)
+   const [value, setValue] = useState<AppearanceDto | null>(null)
+   const [normalTab, setTab] = useDestinationTab('appearance','AVATAR')
+   const presentation = useTutorialPresentation()
+   const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
+-  const [chooserTab, setChooserTab] = useState<string | null>(null)
+-  const chooserVisible = tab !== 'BADGE' && (chooserTab === tab || presentation.active && Boolean(presentation.step?.view?.startsWith('Personnalisation:')))
+-  const pendingRef = useRef(false)
+   const [query, setQuery] = useState('')
+   const [sort,setSort]=useState<'name'|'date'>('date')
+   const [direction,setDirection]=useState<'asc'|'desc'>('desc')
+@@ -30,7 +24,7 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+   const [error, setError] = useState('')
+   useEffect(() => { let active = true; void actions.appearance().then(next => { if (active) setValue(next) }).catch(reason => { if (active) setError(apiErrorMessage(reason)) }); return () => { active = false } }, [actions])
+   useEffect(()=>{
+-    if(!value||presentation.active||tab !== 'BADGE' && !chooserVisible)return;
++    if(!value||presentation.active)return;
+     const ids=value.catalog.filter(item=>item.type===tab&&item.owned&&item.isNew&&!consultation.current.has(item.id)&&normalizeCharacterSearch(item.displayName).includes(normalizeCharacterSearch(query.trim()))).map(item=>item.id);
+     setVisit(previous=>({tab,ids:previous.tab===tab?[...new Set([...previous.ids,...ids])]:ids}));
+     const fresh=ids.filter(id=>!consultation.current.has(id));
+@@ -39,18 +33,15 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+ 
+     void actions.consultAppearance(tab,fresh).then(()=>{if(mounted.current)setValue(current=>current?{...current,catalog:current.catalog.map(item=>fresh.includes(item.id)?{...item,isNew:false}:item)}:current)}).catch(reason=>{fresh.forEach(id=>consultation.current.delete(id));if(mounted.current)setError(apiErrorMessage(reason))});
+ 
+-  },[value,tab,actions,presentation.active,query,chooserVisible]);
++  },[value,tab,actions,presentation.active,query]);
+   const equip = async (type: 'AVATAR' | 'TITLE' | 'BADGE', id: string | null) => {
+-    if (pendingRef.current || presentation.active) return
+-    pendingRef.current = true
+     setPending(true); setError('')
+     try {
+       const confirmed = await actions.equipAppearance(type, id)
+-      if (!mounted.current) return
+       setValue(confirmed)
+       await onChanged().catch(() => undefined)
+-    } catch (reason) { if (mounted.current) setError(apiErrorMessage(reason)) }
+-    finally { pendingRef.current = false; if (mounted.current) setPending(false) }
++    } catch (reason) { setError(apiErrorMessage(reason)) }
++    finally { setPending(false) }
+   }
+   const entries = value?.catalog.filter(item => item.type === tab) ?? []
+   const newIds=new Set(visit.tab===tab?visit.ids:entries.filter(item=>item.owned&&item.isNew).map(item=>item.id))
+@@ -72,7 +63,12 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+     const equipped = (item.type === 'AVATAR' ? value?.equippedAvatarCosmeticId : item.type === 'TITLE' ? value?.equippedTitleCosmeticId : value?.equippedBadgeCosmeticId) === item.id
+     return <article className={`appearance-card${item.type === 'TITLE' && item.levelRequirement != null ? ` appearance-level-title title-tier-${item.levelRequirement}${!item.owned ? ' is-locked' : ''}${equipped ? ' is-equipped' : ''}` : ''}${item.sourceCharacterId ? ' appearance-character-card' : ''}`} key={item.id}>{newIds.has(item.id)&&<mark className="appearance-new">Nouveau</mark>}{item.type === 'AVATAR' && (item.visibility === 'MYSTERY' && !item.owned ? <span className="appearance-mystery" aria-hidden="true">?</span> : <PlayerAvatar displayName={item.displayName} elementKey={item.sourceCharacterId ? elementKey : null} avatarAssetPath={item.assetPath} />)}<div><strong className={item.type === 'BADGE' ? 'appearance-badge-symbol' : undefined}>{item.displayName}</strong>{!item.owned && item.condition && <small>{item.condition}</small>}</div><span>{equipped ? 'Équipé' : !item.isActive ? 'Indisponible' : item.owned ? 'Possédé' : 'Verrouillé'}</span>{item.owned && item.isActive && !equipped && <AppButton disabled={pending} onClick={() => void equip(item.type, item.id)}>Équiper</AppButton>}</article>
+   }
+-  const catalogue = value && <>      {tab === 'AVATAR' && <div className="appearance-card"><PlayerAvatar displayName={displayName} elementKey={elementKey} className="mini-avatar" /><span>Avatar élémentaire permanent</span><strong>{value.equippedAvatarCosmeticId === null ? 'Équipé' : 'Disponible'}</strong>{value.equippedAvatarCosmeticId !== null && <AppButton disabled={pending} onClick={() => void equip('AVATAR', null)}>Équiper</AppButton>}</div>}
++  return <section data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} className="appearance-panel" aria-label="Personnalisation du profil">
++    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => setTab('BADGE')}>Badges</button></nav>
++    {error && <p role="alert">{error}</p>}
++    {!value ? <p role="status">Chargement de la personnalisation…</p> : <>
++      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div></div>
++      {tab === 'AVATAR' && <div className="appearance-card"><PlayerAvatar displayName={displayName} elementKey={elementKey} className="mini-avatar" /><span>Avatar élémentaire permanent</span><strong>{value.equippedAvatarCosmeticId === null ? 'Équipé' : 'Disponible'}</strong>{value.equippedAvatarCosmeticId !== null && <AppButton disabled={pending} onClick={() => void equip('AVATAR', null)}>Équiper</AppButton>}</div>}
+       {tab === 'TITLE' && <div className="appearance-card"><span>Aucun titre</span><strong>{value.equippedTitleCosmeticId === null ? 'Équipé' : 'Disponible'}</strong>{value.equippedTitleCosmeticId !== null && <AppButton disabled={pending} onClick={() => void equip('TITLE', null)}>Déséquiper</AppButton>}</div>}
+       {tab === 'BADGE' && <div className="appearance-card"><span>Aucun badge</span><strong>{!value.equippedBadgeCosmeticId ? 'Équipé' : 'Disponible'}</strong>{value.equippedBadgeCosmeticId && <AppButton disabled={pending} onClick={() => void equip('BADGE', null)}>Déséquiper</AppButton>}</div>}<div className="appearance-controls" hidden={tab === 'BADGE'}><label className="appearance-search">Rechercher <input value={query} onChange={event => setQuery(event.target.value)} /></label><label>Trier par <select aria-label="Tri des cosmétiques" value={sort} onChange={event=>setSort(event.target.value as typeof sort)}><option value="name">Nom</option><option value="date">Date d’obtention</option></select></label><select aria-label="Ordre des cosmétiques" value={direction} onChange={event=>setDirection(event.target.value as typeof direction)}><option value="asc">{sort==='name'?'A → Z':'Plus anciens'}</option><option value="desc">{sort==='name'?'Z → A':'Plus récents'}</option></select></div>
+       {characterEntries.length > 0 && <section className="appearance-character-section" aria-label="Avatars de vos personnages"><h3>Avatars de vos personnages</h3><div className="appearance-catalog appearance-character-grid">{characterEntries.map(renderCard)}</div></section>}
+@@ -80,13 +76,6 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+       {otherEntries.length > 0 && <div className="appearance-catalog">{otherEntries.map(renderCard)}</div>}
+       {!entries.length && <p>{tab === 'AVATAR' ? 'Aucun autre avatar disponible.' : 'Aucun titre débloqué.'}</p>}
+       {!!entries.length && !visible.length && <p>Aucun cosmétique trouvé.</p>}
+-  </>
+-  return <section ref={panelRef} data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} data-appearance-tab={tab} className="appearance-panel" aria-label="Personnalisation du profil">
+-    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('BADGE') }}>Badges</button></nav>
+-    {error && !chooserVisible && <p role="alert">{error}</p>}
+-    {!value ? <p role="status">Chargement de la personnalisation…</p> : <>
+-      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div>{tab !== 'BADGE' && <AppButton variant="primary" className="appearance-choose" onClick={() => setChooserTab(tab)}>Choisir</AppButton>}</div>
+-      {tab === 'BADGE' ? catalogue : chooserVisible && <AppearanceChooser background={panelRef.current?.closest<HTMLElement>('.scrollable-screen-panel-body')} title={tab === 'AVATAR' ? 'Choisir un avatar' : 'Choisir un titre'} onClose={() => setChooserTab(null)}>{error && <p role="alert">{error}</p>}{catalogue}</AppearanceChooser>}
+     </>}
+   </section>
+ }
+diff --git a/src/social/appearance-layout.css b/src/social/appearance-layout.css
+deleted file mode 100644
+index 3b0e4e22..00000000
+--- a/src/social/appearance-layout.css
++++ /dev/null
+@@ -1,32 +0,0 @@
+-.appearance-choose { margin-left: auto; }
+-.appearance-chooser-layer { z-index: 100; }
+-.appearance-chooser { box-sizing: border-box; width: min(1040px, calc(100vw - 32px)); height: min(760px, calc(100dvh - 32px)); display: grid; grid-template-rows: auto minmax(0, 1fr); padding: 0; }
+-.appearance-chooser > header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; gap: 12px; }
+-.appearance-chooser > header h2 { margin: 0; font-size: 22px; }
+-.appearance-chooser-body { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+-.appearance-chooser-body > * { flex: 0 0 auto; }
+-.appearance-chooser .appearance-controls { position: sticky; top: 0; z-index: 2; order: -1; background: #101c30; padding: 10px 0; margin: 0; }
+-.appearance-chooser .appearance-card strong { overflow-wrap: anywhere; }
+-@media (min-width: 1121px) {
+-  .profile-screen:has(.appearance-panel) .scrollable-screen-panel-body { overflow: visible; container-type: size; }
+-  .profile-screen .appearance-panel { gap: clamp(6px, 2cqh, 16px); }
+-  .profile-screen .appearance-preview { padding: clamp(8px, 2cqh, 16px); }
+-  .profile-screen .appearance-preview-avatar,
+-  .profile-screen .appearance-preview-avatar img { width: 48px; height: 48px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-catalog { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card { box-sizing: border-box; flex-wrap: wrap; padding: 8px; gap: 6px; font-size: 12px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card .app-button { min-height: 30px; padding: 4px 8px; font-size: 12px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-badge-symbol { font-size: 22px; }
+-}
+-@media (min-width: 1121px) and (max-height: 650px) {
+-  .profile-screen .appearance-panel { gap: 5px; }
+-  .profile-screen .appearance-preview { padding: 4px 8px; }
+-  .profile-screen .appearance-preview-avatar,
+-  .profile-screen .appearance-preview-avatar img { width: 32px; height: 32px; }
+-  .profile-screen .appearance-panel .activity-inner-tabs { padding: 0; gap: 3px; }
+-  .profile-screen .appearance-panel .activity-inner-tabs button { padding: 4px 8px; min-height: 28px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-catalog { gap: 5px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card { padding: 4px; gap: 3px; font-size: 11px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-card .app-button { min-height: 24px; padding: 2px 5px; font-size: 11px; }
+-  .profile-screen .appearance-panel[data-appearance-tab="BADGE"] .appearance-badge-symbol { font-size: 18px; }
+-}
+diff --git a/src/social/social.test.tsx b/src/social/social.test.tsx
+index 8775d78c..31ceda37 100644
+--- a/src/social/social.test.tsx
++++ b/src/social/social.test.tsx
+@@ -51,12 +51,9 @@ describe('Social UI', () => {
+     const owner = await mount(<ProfileSurface api={api} />)
+     await act(async () => { Array.from(owner.querySelectorAll('button')).find(button => button.textContent === 'Personnalisation')!.click(); await Promise.resolve() })
+     expect(owner.querySelector('nav.activity-inner-tabs[aria-label="Cosmétiques"]')).not.toBeNull()
+-    await click(owner, 'Choisir')
+-    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Avatar élémentaire permanent')
+-    await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
++    expect(owner.textContent).toContain('Avatar élémentaire permanent')
+     await click(owner, 'Titres')
+-    await click(owner, 'Choisir')
+-    expect(document.body.querySelector('[role="dialog"]')?.textContent).toContain('Aucun titre débloqué.')
++    expect(owner.textContent).toContain('Aucun titre débloqué.')
+     expect(owner.textContent).toContain('Aucun titre')
+     act(() => root?.unmount()); root = undefined; document.body.replaceChildren()
+     api.profile = vi.fn(async () => ({ ...profile, player: { ...player, title: 'Fixture title' } }))
+diff --git a/src/tutorial/tutorial-catalog.ts b/src/tutorial/tutorial-catalog.ts
+index 6b725218..7dfe1666 100644
+--- a/src/tutorial/tutorial-catalog.ts
++++ b/src/tutorial/tutorial-catalog.ts
+@@ -102,8 +102,8 @@ export const tutorialSteps = [
+   step('profile-collection', 'Profil et Personnalisation', 'profile', 'profile-content', 'Collection dans le Profil', 'Cette rubrique présente votre Collection selon les droits de consultation. Une rubrique privée conserve son état privé.', 'Collection'),
+   step('profile-statistics', 'Profil et Personnalisation', 'profile', 'profile-content', 'Statistiques', 'Vos statistiques regroupent les activités enregistrées. L’accès aux classements respecte la confidentialité des catégories.', 'Statistiques'),
+   step('profile-missions', 'Profil et Personnalisation', 'profile', 'profile-content', 'Missions dans le Profil', 'Cette rubrique présente votre progression permanente autorisée. Les conditions secrètes des Missions verrouillées ne sont pas révélées.', 'Missions'),
+-  step('profile-avatars', 'Profil et Personnalisation', 'profile', 'appearance-chooser', 'Avatars', 'La Personnalisation distingue avatars possédés et verrouillés, avec l’aperçu équipé et l’avatar élémentaire.', 'Personnalisation:avatars'),
+-  step('profile-titles', 'Profil et Personnalisation', 'profile', 'appearance-chooser', 'Titres', 'Choisissez un titre possédé ou l’absence de titre.', 'Personnalisation:titles'),
++  step('profile-avatars', 'Profil et Personnalisation', 'profile', 'appearance-content', 'Avatars', 'La Personnalisation distingue avatars possédés et verrouillés, avec l’aperçu équipé et l’avatar élémentaire.', 'Personnalisation:avatars'),
++  step('profile-titles', 'Profil et Personnalisation', 'profile', 'appearance-content', 'Titres', 'Choisissez un titre possédé ou l’absence de titre.', 'Personnalisation:titles'),
+   step('rankings-categories', 'Classements', 'rankings', 'rankings-controls', 'Catégories et métriques', 'Consultation des classements entre joueurs. Choisissez une catégorie puis une métrique.'),
+   step('rankings-list', 'Classements', 'rankings', 'rankings-list', 'Liste et rang personnel', 'Parcourez la liste et ses pages pour retrouver votre rang. Une donnée privée ou une absence de rang reste indiquée sans changer vos préférences.'),
+   step('history-invocations', 'Historique', 'history', 'history-content', 'Historique des Invocations', 'Retrouvez les Invocations réellement enregistrées et parcourez leurs pages.', 'invocations'),

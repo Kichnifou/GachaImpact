@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1087 — finitions visuelles sur la continuité R1086 (14/10/2026)
+
+**Décision propriétaire validée.** Reprendre impérativement depuis le dernier main/review R1086 réel, relevé à `64173794eb7438a724fab439464283c0435f3a22`, et conserver ses corrections. Mandat de livraison complet review indépendante → main FF → déploiements/postflight. Les captures désignent des problèmes visuels ; elles ne constituent pas une nouvelle règle métier.
+
+Tracker toujours compact ; raccourcis Home plus hauts pris sur l’aperçu avec résumé et échelle d’illustration conservés ; gains quotidiens complets ; passifs Équipe répartis jusqu’au bord bas ; Général/Jeux/Classement Event occupent leur cadre ; Shop plus compact, formulaires conservés au resize ; Crypte simplifiée avec état au-dessus des 32 codes, confirmation et erreurs/réessai conservés ; cartes Sac alignées et douze objets Collection simultanés ; Choisir Avatars/Titres en fenêtre, dix Badges dans l’onglet ; 23 statistiques simultanées.
+
+La demande actuelle ajoute explicitement le lobby Concours : déplacer Quitter/Annuler ou compacter pour supprimer son scroll. Cet ajout visuel supersède seulement l’exclusion du Concours dans le texte joint. Aucune modification de son cycle, polling, revalidation, identité ou protection P0. Ni migration, économie, API, nouvelle infrastructure, thème ou mécanique. Les replis R1085 expressément autorisés restent valides ; aucun nouveau scroll desktop. Les règles détaillées sont dans les contrats UI, navigation, Quotidiennes, Personnalisation et Tutoriel ; implémentation, contrôles, réversibilité et livraison au Master.
+
 ## R1086 — continuité du Concours pendant une indisponibilité transitoire (14/10/2026)
 
 Mandat propriétaire validé : conserver le dernier DTO autoritaire de la session pendant un 503, une erreur réseau/serveur ou une lecture lente ; préserver le composant, les modales, choix et intentions. Reprise automatique aussi au premier chargement, aucun faux état ni rejeu automatique de mutation. Le serveur garde les validations métier et la protection P0 de réconciliation partagée.

@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Finitions locales — R1087, 14/10/2026
+
+Équipe, Profil Statistiques/Personnalisation et Concours activent la compaction existante aux faibles hauteurs. Les destinations, historique et préférence de chat ne changent pas. Dans le lobby compact, Quitter/Annuler sont réunis près de son en-tête ; sélection, prêt/lancement et spectateurs restent accessibles. Ce changement de présentation préserve intégralement la continuité Concours R1086, son poller unique, DTO conservé, revalidation et refus d’authentification.
+
+Avatars/Titres ouvrent désormais Choisir dans une fenêtre dédiée selon le [contrat Personnalisation](profile-appearance-v1.md). Les ancres des deux vues Tutoriel ciblent cette fenêtre ; aucune nouvelle étape ni mutation de progression. Statistiques montre les 23 métriques des quatre groupes ensemble, sans nouvelle destination, pagination ou accordéon. Confidentialité et null distinct de zéro restent inchangés.
+
 ## Présentation adaptative — R1085
 
 Les écrans concernés activent explicitement la compaction de la coque aux faibles hauteurs : navigation et titres conservent leurs destinations, texte et accès clavier, avec espaces réduits. Aucune modification des mécaniques de navigation ou des préférences de chat. Accueil garde bannière, six raccourcis et Quotidiennes. Sac utilise quatre onglets horizontaux ; Configuration Confidentialité/Compte adopte le même corps `scroll-content-frame menu-scroll-frame` que Menu. Les détails et historiques conservent leur comportement. [Norme et arbitrage](ui-layout-contract-v1.md), état livré au Master.

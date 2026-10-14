@@ -1,5 +1,18 @@
 # Contrat de layout UI V1
 
+## Finitions sur baseline R1086 — R1087
+
+Les retouches restent propres à chaque écran. Les règles R1085 non supersédées et la continuité R1086 ci-dessous restent acquises. Les cas desktop bas se réorganisent selon la place utile ; aucune scrollbar cachée ou suppression d’action pour faire tenir.
+
+- Sidebar : tracker compact dans tous les états, hauteur redistribuée entre les cinq autres sections, sept éléments présents. Home : six raccourcis plus hauts, résumé de hauteur inchangée à état/viewport identiques, échelle du splash conservée ; seul le cadre d’aperçu est recadré en bas. Invocation normale inchangée.
+- Quotidiennes : gains jaunes légèrement réduits, texte et montants complets avec retour à la ligne. Équipe : passifs alignés au bord inférieur, 0–4 passifs et commandes conservés ; portraits proportionnels sans nouveau recadrage. Les faibles hauteurs compactent les cartes et leurs commandes.
+- Event : Général/Jeux occupent la région utile, Classement réserve réellement la pagination/rang/feedback. Les cinq lignes et la lecture complète du classement serveur restent inchangées. Shop conserve ses trois offres en desktop normal et le repli R1085 aux faibles hauteurs ; ses formulaires restent montés et leurs quantités/intention/erreurs survivent au resize. La phrase sur la conservation annuelle de monnaie disparaît de l’écran, pas de la règle métier.
+- Crypte : une ligne au-dessus des codes donne les essais/combinaisons ou la victoire et son vrai découvreur. Instruction longue, légende et retour ordinaire redondants ne prennent plus de place. Les 32 codes, sélection puis confirmation, état désactivé, erreurs visibles et réessai d’intention ambiguë sont conservés ; annonces accessibles maintenues. Jeu C conserve ses messages entiers et la consultation des seuls messages présentés ; les vues Envoyer/Reçus s’appliquent désormais à hauteur desktop ≤820 px pour garder les longs messages lisibles.
+- Sac : contenu aligné et contenu dans les cartes ; Collection garde les douze objets, sans pagination ni scroll. Tout conserve son défilement autorisé ; fiches détaillées et mécanique des objets inchangées.
+- Profil : Choisir Avatars/Titres selon le contrat dédié, Badges simultanés ; Statistiques affiche quatre groupes et 23 mesures, y compris grands montants et null distinct de zéro. Les autres onglets gardent leur contrat. Lobby : Quitter/Annuler remontent près de l’en-tête aux faibles hauteurs, participants/spectateurs/sélection/prêt/lancement restent dans le cadre.
+
+Les tests utilisent le GameShell compilé et ses vrais styles/assets, avec dimensions CSS, DPR et zoom relevés ; les fixtures extrêmes ne décrivent pas le volume des vrais joueurs. Une qualification technique ne vaut pas validation esthétique propriétaire. Lots retirables et preuves exactes au Master.
+
 ## Continuité du Concours — R1086
 
 Une erreur de synchronisation conserve le dernier état autoritaire de la session et le même composant Concours, ses modales, filtres, sélections et intentions. La toolbar fixe remplace temporairement son petit libellé de thème par « Synchronisation… » ; le thème reste affiché, le détail est disponible dans title et le nom accessible. Un refus d'accès affiche « Session invalide ». Aucun overlay ni écran d'erreur ne masque une partie déjà chargée ; aucun résultat ou état métier n'est extrapolé côté client.

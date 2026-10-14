@@ -1,5 +1,11 @@
 # Personnalisation du profil V1
 
+## Présentation — R1087, 14/10/2026
+
+Avatars et Titres montrent l’équipement confirmé et un bouton bleu **Choisir**. Le catalogue correspondant s’ouvre dans une fenêtre dédiée, avec recherche, tri, options élémentaire/sans titre, états et actions existants. Aucun catalogue doublé derrière. Fermeture par Échap, croix ou fond, focus rendu au déclencheur et défilement du fond suspendu. Une fermeture ne confirme pas un équipement ; erreur et attente restent rattachées à l’action.
+
+La consultation R1052 commence seulement à l’ouverture réelle de la liste, selon son filtre ; priorité des nouveautés conservée pour la visite. Le Tutoriel présente la fenêtre sans consultation ni équipement. Un équipement en vol reste unique et sa réponse après démontage n’actualise pas un autre profil. Badges conserve ses dix choix simultanés dans l’onglet, sans fenêtre ni pagination ; Aucun badge et toutes les actions restent visibles en desktop compact. Identité, droits, catalogue et gratuité inchangés. Preuves et état de livraison au Master.
+
 ## Étude des thèmes — 13/10/2026
 
 R1081 : le propriétaire accepte l'abandon des thèmes après cet audit. Aucun chantier de thèmes, bouton Soleil ou refonte CSS générale n'est prévu dans le mandat de finitions ni à réintroduire automatiquement dans la pré-release.

@@ -1,0 +1,90 @@
+diff --git a/src/event/event-crypte-layout.css b/src/event/event-crypte-layout.css
+deleted file mode 100644
+index 68e0b680..00000000
+--- a/src/event/event-crypte-layout.css
++++ /dev/null
+@@ -1,7 +0,0 @@
+-.event-game-b-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+-@media (min-width: 1121px) {
+-  .event-frame .event-game-b { box-sizing: border-box; grid-template-rows: auto auto minmax(min-content, 1fr) auto; align-content: stretch; gap: clamp(6px, 2cqh, 18px); }
+-  .event-frame .event-game-b-codes { align-content: space-evenly; }
+-  .event-frame .event-game-b-code { max-height: 48px; }
+-  .event-frame .event-game-b-attempts { margin: 0; }
+-}
+diff --git a/src/screens/EventScreen.test.tsx b/src/screens/EventScreen.test.tsx
+index 0b8679e7..62600cea 100644
+--- a/src/screens/EventScreen.test.tsx
++++ b/src/screens/EventScreen.test.tsx
+@@ -424,21 +424,21 @@ describe('EventScreen presentation', () => {
+     act(() => codes[1].click())
+     await act(async () => { container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+     expect(onAttemptB).toHaveBeenCalledWith('00001', expect.any(String))
+-    expect(container.querySelector('.event-game-b-announcement')?.textContent).toBe('Code incorrect : un essai consommé.')
++    expect(container.querySelector('.event-game-b-feedback')?.textContent).toBe('Code incorrect : un essai consommé.')
+   })
+ 
+   it.each(['player-1', 'discoverer'])('hides attempts after resolution by %s and restores them on the next unresolved day', (discovererId) => {
+     const value: EventDto = { ...afterJoin, gameB: { ...afterJoin.gameB, solvedToday: true, resolvedCode: '11111', discoveredBy: { id: discovererId, displayName: 'Kyo' }, testedCodes: ['11111'], remainingCodes: afterJoin.gameB.remainingCodes.filter((code) => code !== '11111'), canAttempt: false } }
+     const { container, root, props } = mount({ value }); selectGames(container)
+     act(() => container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+-    expect(container.querySelector('.event-game-b-attempts')?.textContent).toContain('Combinaison découverte par Kyo !')
++    expect(container.querySelector('.event-game-b-feedback')?.textContent).toContain('Combinaison découverte par Kyo !')
+     const winningCode = Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).find(({ textContent }) => textContent?.includes('11111'))
+     expect(winningCode?.textContent).toBe('✓ 11111')
+     expect(winningCode?.classList.contains('resolved')).toBe(true)
+     expect(winningCode?.classList.contains('tested')).toBe(false)
+-    expect(container.querySelector('.event-game-b-attempts.success')?.textContent).toContain('Combinaison découverte')
++    expect(container.querySelector('.event-game-b-feedback.success')?.textContent).toContain('Combinaison découverte')
+     expect(container.querySelector('.event-game-b-action button')).toBeNull()
+-    expect(container.querySelector('.event-game-b-attempts')?.textContent).not.toContain('essais personnels')
++    expect(container.querySelector('.event-game-b-attempts')).toBeNull()
+     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')).every(({ disabled }) => disabled)).toBe(true)
+     act(() => root.render(<EventScreen {...props} value={{ ...afterJoin, businessDate: '2026-09-16' }} />))
+     expect(container.querySelector('.event-game-b-attempts')?.textContent).toContain('3 essais personnels restants')
+@@ -476,7 +476,7 @@ describe('EventScreen presentation', () => {
+     expect(mounted.container.querySelector('.event-game-tabs .active')?.textContent).toBe('Grenier')
+     expect(mounted.container.querySelector('.event-game-b-action')?.textContent).toContain('Choisissez une combinaison')
+     expect(mounted.container.querySelectorAll('.event-game-b-code.selected')).toHaveLength(0)
+-    expect(mounted.container.querySelector('.event-game-b-announcement')?.textContent).toBe('')
++    expect(mounted.container.querySelector('.event-game-b-feedback')?.textContent).toBe('')
+     expect(mounted.container.querySelector('.event-feedback')?.textContent).toBe('')
+     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[1].click())
+     await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+@@ -502,7 +502,7 @@ describe('EventScreen presentation', () => {
+     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-tabs button')[1].click())
+     expect(mounted.container.querySelector('.event-game-b-action')?.textContent).toContain('Choisissez une combinaison')
+     expect(mounted.container.querySelectorAll('.event-game-b-code.selected')).toHaveLength(0)
+-    expect(mounted.container.querySelector('.event-game-b-announcement')?.textContent).toBe('')
++    expect(mounted.container.querySelector('.event-game-b-feedback')?.textContent).toBe('')
+     act(() => mounted.container.querySelectorAll<HTMLButtonElement>('.event-game-b-code')[1].click())
+     await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-game-b-action button')!.click(); await Promise.resolve() })
+     expect(onAttemptB.mock.calls[1][1]).not.toBe(oldKey)
+diff --git a/src/screens/EventScreen.tsx b/src/screens/EventScreen.tsx
+index bef0759f..0be4942a 100644
+--- a/src/screens/EventScreen.tsx
++++ b/src/screens/EventScreen.tsx
+@@ -1,4 +1,3 @@
+-import '../event/event-crypte-layout.css'
+ import { useShortDesktop } from '../hooks/use-short-desktop'
+ import { useDestinationTab } from '../navigation/destination-context'
+ import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
+@@ -427,14 +426,16 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
+       </section>}
+       {section === 'games' && gameTab === 1 && value.participation.joined && <section data-tutorial-anchor="event-game-b" className="panel event-game-b">
+         <div className="event-game-b-heading"><span className="eyebrow">Énigme collective du Festival</span><strong>{value.gameB.solvedToday ? 'Découvert aujourd’hui' : 'Encore à découvrir'}</strong></div>
+-        {value.gameB.solvedToday ? <p className="event-game-b-attempts success" role="status">{discoveryMessage(value.gameB)}</p> : <p className="event-game-b-attempts" role="status">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>}
++        {!value.gameB.solvedToday && <p>Une seule combinaison de cinq chiffres 0 ou 1 est correcte pour tous les participants aujourd’hui.</p>}
++        {value.gameB.solvedToday === false && <p className="event-game-b-attempts">{value.gameB.attemptsRemaining} essai{value.gameB.attemptsRemaining > 1 ? 's' : ''} personnel{value.gameB.attemptsRemaining > 1 ? 's' : ''} restant{value.gameB.attemptsRemaining > 1 ? 's' : ''} · {value.gameB.remainingCodes.length} combinaison{value.gameB.remainingCodes.length > 1 ? 's' : ''} disponible{value.gameB.remainingCodes.length > 1 ? 's' : ''}</p>}
++        <div className="event-game-b-legend"><span>Disponible</span><span>Déjà testée</span></div>
+         <div className="event-game-b-codes" aria-label="Combinaisons du Grenier">{Array.from({ length: 32 }, (_, index) => index.toString(2).padStart(5, '0')).map((code) => {
+           const resolved = value.gameB.resolvedCode === code
+           const tested = !resolved && value.gameB.testedCodes.includes(code)
+           return <button type="button" className={`event-game-b-code${resolved ? ' resolved' : tested ? ' tested' : ''}${selectedCode === code ? ' selected' : ''}`} disabled={resolved || tested || !value.gameB.canAttempt || pending || Boolean(gameBIntent)} aria-pressed={selectedCode === code && !tested && !resolved} onClick={() => setSelectedCode(code)} key={code}>{resolved ? `✓ ${code}` : code}</button>
+         })}</div>
+-        {!value.gameB.solvedToday && <div className="event-game-b-action"><button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!value.gameB.canAttempt || !selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button></div>}
+-        {!value.gameB.solvedToday && <span className="event-game-b-announcement" role="status" aria-live="polite">{gameBFeedback ?? ''}</span>}
++        {!value.gameB.solvedToday && <div className="event-game-b-action">{gameBIntent || value.gameB.canAttempt ? <button type="button" className="small-primary-button" disabled={pending || (!gameBIntent && (!selectedCode || !value.gameB.remainingCodes.includes(selectedCode)))} onClick={() => void attemptGameB()}>{pending ? 'Tentative…' : gameBIntent ? `Réessayer ${gameBIntent.code}` : selectedCode ? `Tester ${selectedCode}` : 'Choisissez une combinaison'}</button> : <strong>{value.gameB.attemptsRemaining === 0 ? 'Vos trois essais sont utilisés pour aujourd’hui.' : 'Toutes les combinaisons ont été testées.'}</strong>}</div>}
++        <p className={`event-game-b-feedback${value.gameB.solvedToday || gameBFeedback?.startsWith('Combinaison découverte') ? ' success' : ''}`} role="status" aria-live="polite">{value.gameB.solvedToday ? discoveryMessage(value.gameB) : gameBFeedback ?? ''}</p>
+       </section>}
+       {section === 'games' && gameTab === 2 && value.gameC.available && <section data-tutorial-anchor="event-game-c" data-pane={value.gameC.canSend ? gameCPane : 'messages'} className="panel event-game-c">
+         <header><span className="eyebrow">Message du Festival</span><nav className="event-game-c-views" aria-label="Vue des messages du Festival"><button type="button" aria-current={gameCPane === 'send' ? 'page' : undefined} onClick={() => setGameCPane('send')} disabled={!value.gameC.canSend}>Envoyer</button><button type="button" aria-current={gameCPane === 'messages' || !value.gameC.canSend ? 'page' : undefined} onClick={() => setGameCPane('messages')}>Reçus ({value.gameC.receivedMessages.length})</button></nav></header>

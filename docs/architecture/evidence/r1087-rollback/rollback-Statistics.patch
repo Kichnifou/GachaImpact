@@ -1,0 +1,49 @@
+diff --git a/src/screens/ProfileScreen.tsx b/src/screens/ProfileScreen.tsx
+index 7cb59bd6..16cf5c32 100644
+--- a/src/screens/ProfileScreen.tsx
++++ b/src/screens/ProfileScreen.tsx
+@@ -1,7 +1,7 @@
++import '../social/statistics-layout.css'
+ import { useDestinationTab } from '../navigation/destination-context'
+ import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
+ import { useEffect, useState, type ReactNode } from 'react'
+-import '../social/statistics-layout.css'
+ import ProfileFavorCard from '../components/ProfileFavorCard'
+ import AppButton from '../components/AppButton'
+ import CharacterCard from '../components/CharacterCard'
+@@ -88,7 +88,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
+     {playerId !== ownerPlayerId && value && onTrade && <AppButton onClick={() => onTrade({ id: playerId, displayName: value.player.displayName })}>Échanger</AppButton>}
+     {relation.state === 'FRIEND' && <AppButton variant="danger" disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REMOVE', undefined, feedbackScope)}>Retirer</AppButton>}
+   </div>
+-  return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
++  return <div data-profile-view={tab} data-fit-screen={tab === 'Personnalisation' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
+     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
+     <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
+       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
+diff --git a/src/social/statistics-layout.css b/src/social/statistics-layout.css
+index d1ac0f83..0161e6c9 100644
+--- a/src/social/statistics-layout.css
++++ b/src/social/statistics-layout.css
+@@ -1,21 +1,5 @@
+-@media (min-width: 1121px) {
+-  .profile-screen[data-profile-view="Statistiques"] .scrollable-screen-panel-body { overflow: visible; container-type: size; }
+-  .profile-screen .profile-statistics { height: 100%; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto 1fr; gap: clamp(6px, 2cqh, 18px); align-items: start; }
+-  .profile-screen .profile-statistics-group { box-sizing: border-box; padding: clamp(7px, 2cqh, 18px); }
+-  .profile-screen .profile-statistics-group:nth-child(2) { grid-column: 2; grid-row: 1 / span 2; }
+-  .profile-screen .profile-statistics-group:nth-child(3) { grid-column: 1; grid-row: 2; }
+-  .profile-screen .profile-statistics-group:nth-child(4) { grid-column: 3; grid-row: 1 / span 2; }
+-  .profile-screen .profile-statistics-group h2 { font-size: 17px; margin-bottom: 6px; }
+-  .profile-screen .profile-statistics-group dl > div { padding: clamp(4px, 1.6cqh, 14px) 0; gap: 8px; font-size: 13px; line-height: 1.3; }
+-  .profile-screen .profile-statistics-group dd { flex-shrink: 0; max-width: 58%; }
+-}
++/* Shared compact profile navigation retained for Appearance rollback independence. */
+ @media (min-width: 1121px) and (max-height: 650px) {
+-  .profile-screen .profile-statistics { gap: 5px; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 1fr; }
+-  .profile-screen .profile-statistics-group:nth-child(n) { grid-column: auto; grid-row: auto; }
+-  .profile-screen .profile-statistics-group { padding: 6px; }
+-  .profile-screen .profile-statistics-group dl > div { display: grid; gap: 0; padding-block: 1px; font-size: 11px; line-height: 1.15; }
+-  .profile-screen .profile-statistics-group dd { max-width: 100%; text-align: left; }
+-  .profile-screen .profile-statistics-group h2 { font-size: 14px; margin-bottom: 3px; }
+   .profile-screen[data-fit-screen] .profile-navigation .app-button { min-height: 28px; padding: 3px 8px; font-size: 12px; }
+   .profile-screen[data-fit-screen] .profile-navigation { padding: 0; }
+   .profile-screen[data-fit-screen] .scrollable-screen-panel-controls { gap: 3px; padding: 0; }

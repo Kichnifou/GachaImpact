@@ -1,0 +1,18 @@
+diff --git a/src/event/event-ranking-layout.css b/src/event/event-ranking-layout.css
+index 2afbf341..d9fade11 100644
+--- a/src/event/event-ranking-layout.css
++++ b/src/event/event-ranking-layout.css
+@@ -4,10 +4,9 @@
+ .event-ranking .event-ranking-list li { box-sizing: border-box; padding: 6px 12px; min-height: 38px; font-size: 14px; }
+ .event-ranking .event-ranking-list strong { overflow-wrap: anywhere; }
+ @media (min-width: 901px) {
+-  .event-screen .scrollable-screen-panel-body:has(> .event-ranking) { overflow: visible; grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
+-  .event-screen .event-ranking { box-sizing: border-box; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+-  .event-ranking > header, .event-ranking .event-ranking-pagination { flex: 0 0 auto; }
+-  .event-ranking .event-ranking-list { flex: 1 1 0; min-height: 0; grid-template-rows: repeat(5, minmax(min-content, 1fr)); }
++  .event-screen .scrollable-screen-panel-body:has(> .event-ranking) { overflow: visible; }
++  .event-screen .event-ranking { height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
++  .event-ranking .event-ranking-list { flex: 1; grid-template-rows: repeat(5, minmax(min-content, 1fr)); }
+   .event-ranking header h2 { font-size: 22px; }
+ }
+ @media (min-width: 1121px) and (max-height: 650px) {

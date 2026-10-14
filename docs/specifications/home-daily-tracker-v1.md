@@ -1,5 +1,11 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
+## Finitions de présentation — R1087, 14/10/2026
+
+Le tracker Sidebar est compact dans tous ses états, indépendamment du nombre d’activités terminées. Les mentions ordinaires de disponibilité sont retirées ; nom, Terminé ✅, erreurs, attente/en cours et contrôles de masquage, restauration, navigation et Tout voir restent. Les cinq autres régions se partagent la hauteur libérée ; les sept particules restent présentes. Aucun changement de sélection, action quotidienne ou calcul de complétion.
+
+Les six raccourcis Home restent en 3×2 desktop et gagnent en hauteur. Le résumé Quotidiennes garde sa hauteur à viewport/état identiques ; seul l’aperçu de bannière cède la place. Son illustration conserve son échelle, avec recadrage inférieur du cadre, et ses textes/date/nom/étoiles restent visibles. Invocation normale est inchangée. Dans l’Aperçu Quotidiennes, les gains jaunes sont légèrement plus petits et reviennent à la ligne, sans ellipse ni perte des noms et montants. Qualification et limites au Master.
+
 ## R1065 — Applicabilité et complétion
 
 La synthèse distingue les activités non applicables (Faveur inactive, aucun ami actif) des indisponibilités réellement bloquantes. Après contrôle des lectures inconnues/en erreur, actions restantes, états en cours/attente et masques, toutes les activités applicables terminées donnent « Terminé ✅ » et le compte à rebours Paris existant. Aucun remplacement global de texte ni changement des récompenses. Tests sur DTO réels, F5, minuit/DST/journée suivante/masques ; rendu desktop/mobile contrôlé synthétiquement. Validation publique au Master.

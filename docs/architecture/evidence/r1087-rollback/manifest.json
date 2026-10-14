@@ -1,0 +1,712 @@
+{
+  "base": "25a98ccf95facbb18592a8e90aaf875bf110b061",
+  "baseline": "64173794eb7438a724fab439464283c0435f3a22",
+  "results": [
+    {
+      "name": "Daily",
+      "commits": [
+        "1f33e7aab560cabee6e7e416c82f17108cc4e7ec"
+      ],
+      "tests": [
+        "src/dailies/daily-navigation.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/dailies/daily-overview-layout.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/dailies/daily-overview-layout.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Daily.patch",
+      "patchSha256": "9dad515f0bfaa6552405e4aa71dafc858fd64917a348972baebcc770be60b4d6",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 5
+    },
+    {
+      "name": "Sidebar",
+      "commits": [
+        "5be7c473f357e5803ce9f3056cb1c65c47777252",
+        "25a98ccf95facbb18592a8e90aaf875bf110b061"
+      ],
+      "tests": [
+        "src/dailies/daily-controller.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/dailies/DailyTrackerCard.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/sidebar-completion.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/dailies/DailyTrackerCard.tsx",
+        "src/dailies/daily-controller.test.tsx",
+        "src/dailies/sidebar-completion.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Sidebar.patch",
+      "patchSha256": "d66e8a6bfa271380fc9af5fffc0d3fafc253aa35a4782a833ee73baed6fbe5f9",
+      "priorGatesBase": "25a98ccf95facbb18592a8e90aaf875bf110b061",
+      "testCount": 57
+    },
+    {
+      "name": "Home",
+      "commits": [
+        "7ca70da4796fac54dca75d764c084d5f50887011"
+      ],
+      "tests": [
+        "src/screens/HomeScreen.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/home/home-shortcuts.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/home/home-shortcuts.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Home.patch",
+      "patchSha256": "72ed5ba4e9e44878261adbacb204aaf4f93eb75be774dcdeabed92e6f9379cc8",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 2
+    },
+    {
+      "name": "Team",
+      "commits": [
+        "e0c2211c238488770d373fc2707ec368ddf09275"
+      ],
+      "tests": [
+        "src/screens/TeamScreen.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/screens/TeamScreen.tsx",
+        "src/teams/team-layout.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/screens/TeamScreen.tsx",
+        "src/teams/team-layout.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Team.patch",
+      "patchSha256": "867517a66ead1594d42154985c55e076b9dfe781437c7946ae1f753e417555b3",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 38
+    },
+    {
+      "name": "EventGeneralGames",
+      "commits": [
+        "e831a51997d64638089bb39cbd4c1c1b012c5c49"
+      ],
+      "tests": [
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventCalendar.test.tsx",
+        "src/event/EventMessageInbox.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/event/event-games-layout.css",
+        "src/event/event-general-shop.css",
+        "src/screens/EventScreen.tsx"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/event/event-games-layout.css",
+        "src/event/event-general-shop.css",
+        "src/screens/EventScreen.tsx"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-EventGeneralGames.patch",
+      "patchSha256": "f9555e92e3a34350326ffb8b5fca9d41fa41076807d305a524057b7423aa3634",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 72
+    },
+    {
+      "name": "EventRanking",
+      "commits": [
+        "89ef807f0d4b056358a1d6c3dec953f6642c89c6",
+        "579f0c58c658b4768114424d2fb00ec4791a2891"
+      ],
+      "tests": [
+        "src/screens/EventRankingSection.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/event/event-ranking-layout.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/event/event-ranking-layout.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-EventRanking.patch",
+      "patchSha256": "3e384ea87efe6087ac4465945d9b763aca7c15ba02052119d1aa749d24c12737",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 7
+    },
+    {
+      "name": "EventShop",
+      "commits": [
+        "d5370161e4cf6d58dd380617cd744792c21a2a9c"
+      ],
+      "tests": [
+        "src/screens/EventShopSection.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-EventShop.patch",
+      "patchSha256": "9aa520d56426b337923979b69ed723d622adfed8da43f9e274eaad5a1096c558",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 6
+    },
+    {
+      "name": "Crypte",
+      "commits": [
+        "56fb771484c51fe8d1d27269e7d68749405c73fe"
+      ],
+      "tests": [
+        "src/screens/EventScreen.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/event/event-crypte-layout.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/event/event-crypte-layout.css",
+        "src/screens/EventScreen.test.tsx",
+        "src/screens/EventScreen.tsx"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Crypte.patch",
+      "patchSha256": "3b76dc50f1de00ffc92d93b0bfb9e6e1fb67a142f04002ec9280c6f57576de06",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 67
+    },
+    {
+      "name": "Inventory",
+      "commits": [
+        "dce76ff8bf36218898dee6874cf325e06860f48f",
+        "ccebed3592e402e18bf204563bf75dd1a5400715"
+      ],
+      "tests": [
+        "src/screens/InventoryScreen.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/inventory/inventory-layout.css"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/inventory/inventory-layout.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Inventory.patch",
+      "patchSha256": "3e6f18baf6ecd426f588d85bde3213eae85383aa7081f65ccf70d13b6042a158",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 11
+    },
+    {
+      "name": "Statistics",
+      "commits": [
+        "a09d02a8e4b2fb2d7609cb9106899a75d05d0532"
+      ],
+      "tests": [
+        "src/social/social.test.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/statistics-layout.css"
+      ],
+      "resolutions": [
+        "Preserve data-profile-view and data-fit-screen for Appearance only, plus the eight shared compact profile navigation CSS rules; remove every statistics-specific rule."
+      ],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/statistics-layout.css"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Statistics.patch",
+      "patchSha256": "f933d7fa859c7a1eab191f9e09e0c1af8227f1b64edf0f1536d437c50c302437",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 9
+    },
+    {
+      "name": "Appearance",
+      "commits": [
+        "59ec342e36d619584e8b6a1343966f2563ed0e5a"
+      ],
+      "tests": [
+        "src/screens/AppearancePanel.test.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/screens/AppearanceChooser.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx",
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "src/screens/AppearancePanel.test.tsx",
+        "src/screens/AppearancePanel.tsx",
+        "src/social/appearance-layout.css",
+        "src/social/social.test.tsx",
+        "src/tutorial/tutorial-catalog.ts"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/screens/AppearanceChooser.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx",
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "src/screens/AppearancePanel.test.tsx",
+        "src/screens/AppearancePanel.tsx",
+        "src/social/appearance-layout.css",
+        "src/social/social.test.tsx",
+        "src/tutorial/tutorial-catalog.ts"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Appearance.patch",
+      "patchSha256": "3b2325783dab3b538b5b51a3e506728f4f7e6d8f897c3015b5fddf76e1e2faf1",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 15
+    },
+    {
+      "name": "Lobby",
+      "commits": [
+        "09cd274bc12442220380a3842ef190097a4dc77c"
+      ],
+      "tests": [
+        "src/screens/ContestScreen.test.tsx",
+        "src/contest/contest-request-coordinator.test.ts",
+        "src/AppBootstrap.revalidation.test.tsx"
+      ],
+      "expectedFiles": [
+        "src/contest/contest-lobby-layout.css",
+        "src/screens/ContestScreen.tsx"
+      ],
+      "resolutions": [],
+      "gates": {
+        "scope": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalBaseTypecheck": 0,
+        "finalSidebarPreserved": 0,
+        "finalPathsPreserved": 0
+      },
+      "changedFiles": [
+        "src/contest/contest-lobby-layout.css",
+        "src/screens/ContestScreen.tsx"
+      ],
+      "unexpectedFiles": [],
+      "protectedR1086": [
+        {
+          "file": "src/AppBootstrap.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/screens/ActivitiesScreen.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/contest-request-coordinator.ts",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/ContestUnavailable.tsx",
+          "unchanged": true
+        },
+        {
+          "file": "src/contest/use-contest-refresh.ts",
+          "unchanged": true
+        }
+      ],
+      "patch": "rollback-Lobby.patch",
+      "patchSha256": "707a008f2af45447c28feb5ec2774ed7f8c573c92d7e9dacce6e2b559f3f46c6",
+      "priorGatesBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+      "testCount": 72
+    }
+  ],
+  "limits": [
+    "No database or public mutation; no rollback screenshots. Each recipe withdraws one lot independently from the full runtime candidate. Do not combine patches without requalification."
+  ],
+  "initialGateBase": "09cd274bc12442220380a3842ef190097a4dc77c",
+  "r1086ProtectedFiles": {
+    "src/AppBootstrap.tsx": "e7af64100fe9dd8d98821c5929e8ed4ad4a1a1dc",
+    "src/screens/ActivitiesScreen.tsx": "0b526d260eba1e6de07f86bc6cde1605043c7f95",
+    "src/contest/contest-request-coordinator.ts": "5e9c6d7eaefec7191256d45e8a5ec957f34300bf",
+    "src/contest/ContestUnavailable.tsx": "ebf2665725841067207beb504f3be268bb540bec",
+    "src/contest/use-contest-refresh.ts": "fd650b7775913cf737a72ac0a03564c5100f6390"
+  }
+}
