@@ -1,3 +1,4 @@
+import ContestConnectionStatus from '../contest/ContestConnectionStatus'
 import { useContestRefresh } from '../contest/use-contest-refresh'
 import type { ContestAvailability } from '../contest/contest-request-coordinator'
 import { useTutorialPresentation, useTutorialPanel } from '../tutorial/tutorial-presentation'
@@ -60,9 +61,9 @@ export default function ContestScreen(props: Props) {
   const scoreFeedback = useLatestScoreFeedback(props.value.active)
 
   const pollingError = useContestRefresh(refresh, activeContestId)
-  const syncError = props.availability?.phase === 'ready' ? null : pollingError ?? (props.availability?.phase === 'unavailable'
-    ? (props.availability.pending ? 'Synchronisation…' : 'Synchronisation temporairement indisponible. Nouvel essai automatique.')
-    : null)
+  const syncError = props.availability?.phase === 'ready' ? null : pollingError
+  const unreliable = props.availability?.phase === 'unavailable' || Boolean(syncError)
+
 
   useEffect(() => {
     if (!activeContestId) return
@@ -71,7 +72,7 @@ export default function ContestScreen(props: Props) {
   }, [activeContestId])
 
   const run: Runner = async (signature, request) => {
-    if (pendingRef.current) return null
+    if (pendingRef.current || unreliable) return null
     if (intentRef.current && intentRef.current.signature !== signature) {
       setError('Réessayez d’abord l’action précédente afin de vérifier son résultat serveur.')
       return null
@@ -108,18 +109,19 @@ export default function ContestScreen(props: Props) {
   }
   useEffect(() => { if (!guidedHistory) return; let active = true; void loadGuidedHistory(1).then(value => { if (active) setHistory(value) }).catch(reason => { if (active) setHistoryError(apiErrorMessage(reason)) }); return () => { active = false } }, [guidedHistory, loadGuidedHistory])
   const toolbarTheme = props.value.active?.theme ?? props.value.theme
-  const fixed = <div className="contest-toolbar"><div><span className={syncError ? "contest-sync-feedback error" : "eyebrow"} role={syncError ? "status" : undefined} title={syncError ?? undefined} aria-label={syncError ?? undefined}>{syncError ? (syncError.includes("Reconnectez-vous") ? "Session invalide" : "Synchronisation\u2026") : props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><AppButton onClick={() => setLegendsOpen(true)}>Mes Légendes</AppButton><AppButton onClick={() => void openHistory()}>Historique</AppButton></div></div>
+  const fixed = <div className="contest-toolbar"><div><span className="eyebrow">{props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><AppButton onClick={() => setLegendsOpen(true)}>Mes Légendes</AppButton><AppButton onClick={() => void openHistory()}>Historique</AppButton></div></div>
 
   return <div data-fit-screen={props.value.active?.status === 'LOBBY' ? '' : undefined} data-business-pending={Boolean(pending)} className="screen-content contest-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Concours" />
     <ScrollableScreenPanel className="contest-frame" bodyClassName="contest-scroll-body" fixed={fixed}>
-      <div data-tutorial-anchor={props.value.active?.status === "RUNNING" ? "contest-play" : "contest-lobby"} className="contest-body">
+      <fieldset disabled={unreliable} className="contest-controls-boundary"><div data-tutorial-anchor={props.value.active?.status === "RUNNING" ? "contest-play" : "contest-lobby"} className="contest-body">
         {!props.value.active && !props.value.lastResult && <ContestEmpty value={props.value} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         {props.value.active?.status === 'LOBBY' && <ContestLobby {...props} contest={props.value.active} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} run={run} now={now} />}
         {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} scoreFeedback={scoreFeedback} />}
         {!props.value.active && props.value.lastResult && <ContestResult contest={props.value.lastResult} legends={props.value.legends} theme={props.value.theme} canOpen={props.value.permissions.canOpen} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         {error && <div className="contest-feedback-region"><p className="contest-feedback error" role="alert">{error}</p></div>}
-      </div>
+      </div></fieldset>
+      <ContestConnectionStatus waiting={unreliable} error={syncError} pending={props.availability?.pending} retry={refresh} />
     </ScrollableScreenPanel>
     {(legendsOpen || guidedLegends) && <LegendsModal legends={props.value.legends} theme={toolbarTheme} onClose={() => setLegendsOpen(false)} />}
     {(historyOpen || guidedHistory) && <HistoryModal history={history} error={historyError} onPage={openHistory} onLoadDetail={props.onLoadHistoryDetail} onClose={() => setHistoryOpen(false)} />}

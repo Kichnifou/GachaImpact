@@ -6929,6 +6929,9 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
 .contest-countdown span { color: var(--muted); font-size: 9px; text-transform: uppercase; }
 .contest-countdown strong { color: #f6d981; font-size: 21px; font-variant-numeric: tabular-nums; }
 .contest-participant-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.contest-controls-boundary { display: contents; border: 0; margin: 0; padding: 0; min-width: 0; }
+.contest-neutral { min-height: 210px; }
+.contest-connection-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; padding: 8px 0; }
 .contest-participant { position: relative; min-width: 0; display: grid; justify-items: center; gap: 5px; padding: 14px; overflow: hidden; text-align: center; }
 .contest-participant.active-turn { border-color: rgba(244, 205, 104, .85); box-shadow: 0 0 0 2px rgba(244, 205, 104, .13), 0 15px 35px rgba(0, 0, 0, .25); }
 .contest-participant.winner { background: linear-gradient(160deg, rgba(116, 84, 18, .58), rgba(15, 30, 55, .94)); }

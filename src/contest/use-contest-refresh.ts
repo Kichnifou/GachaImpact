@@ -27,11 +27,11 @@ export function useContestRefresh(refresh: (() => Promise<unknown>) | undefined,
         if (!mounted) return
         if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
           authenticationFailed = true
-          setSyncError('Session ou accès au Concours invalide. Reconnectez-vous.')
+          setSyncError(reason.status === 401 ? 'Session expirée. Reconnectez-vous.' : 'Accès au Concours refusé.')
           return
         }
         failures = Math.min(failures + 1, 4)
-        setSyncError('Synchronisation temporairement indisponible. Nouvel essai automatique.')
+        setSyncError(reason instanceof ApiError && reason.status !== null ? 'Le serveur du Concours ne répond pas correctement. Reprise automatique.' : 'La connexion au Concours est interrompue. Reprise automatique.')
       }).finally(() => {
         if (inFlight === request) inFlight = null
         if (mounted && !authenticationFailed) schedule(Math.min(15_000, (activeContestId ? 2_000 : 3_000) * 2 ** failures))
@@ -45,12 +45,14 @@ export function useContestRefresh(refresh: (() => Promise<unknown>) | undefined,
       else void revalidate()
     }
     window.addEventListener('focus', onFocus)
+    window.addEventListener('online', onFocus)
     document.addEventListener('visibilitychange', onVisibilityChange)
     void revalidate()
     return () => {
       mounted = false
       clearPoll()
       window.removeEventListener('focus', onFocus)
+      window.removeEventListener('online', onFocus)
       document.removeEventListener('visibilitychange', onVisibilityChange)
     }
   }, [activeContestId, refresh])
