@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1086 — continuité du Concours pendant une indisponibilité transitoire (14/10/2026)
+
+Mandat propriétaire validé : conserver le dernier DTO autoritaire de la session pendant un 503, une erreur réseau/serveur ou une lecture lente ; préserver le composant, les modales, choix et intentions. Reprise automatique aussi au premier chargement, aucun faux état ni rejeu automatique de mutation. Le serveur garde les validations métier et la protection P0 de réconciliation partagée.
+
+Cette décision **supersède uniquement le comportement frontend P0 du 7 octobre** qui supprimait la projection et présentait un écran indisponible nécessitant Réessayer : [checkpoint historique](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007), architecture « Résilience de la lecture Concours ». Le bootstrap essentiel indépendant, la borne UI de huit secondes sans annulation SQL, la coalescence serveur et l'isolation des sessions restent obligatoires. L'historique n'est pas réécrit.
+
+Un seul poller de la surface visible couvre état chargé ou récupération initiale, pause cachée, reprise focus/visible, délais progressifs plafonnés à quinze secondes. Le coordinateur draine toute lecture possédée avant une revalidation externe, invalide ses données obsolètes et conserve son signal de lenteur. Authentification refusée : arrêt du retry automatique et traitement de session ; changement de Player ou de session : effacement de l'ancienne projection. Le statut compact de synchronisation reste visible dans la toolbar fixe, sans masquer le thème ni le jeu. Aucun changement de mécanique, d'économie, de schéma ou des quatorze lots graphiques R1085. [Qualification](../architecture/evidence/r1086-contest-continuity.json).
+
 ## R1085 — continuité post-recette R1084 (13/10/2026)
 
 **VALIDÉ PAR LE PROPRIÉTAIRE par le mandat joint et sa confirmation de livraison complète.** Adaptation dynamique avant scroll selon le contrat UI ; Missions 3×2 sur grands desktops, Accueil trois régions complètes, filtres Box/Catalogue multiéléments en union et intersection avec les autres critères, Quotidiennes complètes, Sidebar terminé compacte sans compte à rebours affiché, lisibilité Invocation, Entraînement complet, paliers Event permanents dans le titre, Général/Shop/Jeux compacts, classement intégral paginé serveur par cinq sans changer le top10 Twitch, Sac horizontal et Collection intégrale, Boutique lisible, Configuration encadrée. Aucun changement économique, aucune migration de schéma. Les mécanismes quotidiens, permissions, ordres canoniques et autorités métier sont conservés.

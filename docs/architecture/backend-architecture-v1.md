@@ -107,6 +107,8 @@ Code approuvé8928f7b déployé Railway/Cloudflare SUCCESS du SHA exact, health2
 
 ## Résilience de la lecture Concours — correctif P0
 
+**Complément R1086 (14/10/2026) : serveur inchangé.** Le refus rapide reste volontaire : aucune attente supplémentaire sur le propriétaire partagé, aucune course qui abandonnerait SQL, aucun changement de pool, scheduler, locks, isolation ou retries. Le correctif porte sur la projection client : dernier DTO conservé, poller unique chargé/récupération initiale, revalidation externe sérialisée après drainage, huit secondes d'information UI seulement, générations/révisions et invalidation au changement de Player. La clause d'affichage P0 est supersédée par [R1086](../specifications/decisions-log.md#r1086--continuité-du-concours-pendant-une-indisponibilité-transitoire-14102026). Les erreurs HTTP 503 de chevauchement ne prouvent pas une panne PostgreSQL. Tests PostgreSQL privés et limites dans la [qualification](evidence/r1086-contest-continuity.json).
+
 GET Concours résout le Player puis refuse une réconciliation déjà possédée par un autre appel/scheduler avec CONTEST_TEMPORARILY_UNAVAILABLE/503. La Promise partagée conserve son propriétaire ; aucune annulation, remise à zéro, duplication ou modification des mutations/retries/transactions. S’il possède lui-même la nouvelle réconciliation, le GET attend son résultat comme auparavant ; pas de fausse garantie de deadline SQL. Instrumentation bornée de chaque étape attendue sans données sensibles. La lecture frontend est indépendante du bootstrap essentiel et son délai d’affichage ne cancel pas SQL. [État physique et limites](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).
 
 

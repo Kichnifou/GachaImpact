@@ -1,0 +1,159 @@
+{
+  "mission": "R1086 — continuité du Concours",
+  "date": "2026-10-14",
+  "baseline": "d416eea9f7589423cc4b8a790b31d3b0ebe4e60b",
+  "initialGit": {
+    "mainEqualsReview": true,
+    "divergence": "0/0",
+    "worktreeClean": true
+  },
+  "cause": {
+    "server": "GET refuses an already owned reconciliation with CONTEST_TEMPORARILY_UNAVAILABLE/503. Intentional P0 protection preserved.",
+    "frontend": "AppBootstrap cleared the authoritative DTO on unavailable, unmounting ContestScreen and its recovery poller.",
+    "reproducedBeforeFix": "AppBootstrap regression test failed: expected running-contest projection, received null.",
+    "railwayReadOnlyVerified": [
+      {
+        "utc": "2026-10-13T21:02:12.830893456Z",
+        "method": "GET",
+        "path": "/api/v1/contest",
+        "status": 503,
+        "durationMs": 106,
+        "stage": "current.reconciliation.shared"
+      },
+      {
+        "utc": "2026-10-13T21:02:35.074202973Z",
+        "method": "GET",
+        "path": "/api/v1/contest",
+        "status": 503,
+        "durationMs": 21,
+        "stage": "current.reconciliation.shared"
+      }
+    ],
+    "attributionLimit": "These logs confirm the documented mechanism and time window, not an identity link between a particular browser screenshot and request. No private request bodies, IPs or identities retained."
+  },
+  "implementation": {
+    "frontend": [
+      "Retain last authoritative DTO on transient error or slow read; no component remount.",
+      "One visible surface poller, including initial recovery; 2s active/3s idle, exponential backoff capped at 15s, hidden pause and focus/visible revalidation.",
+      "External refresh invalidates stale data and queues behind the owned read, preserving the 8s UI diagnostic without abandoning SQL.",
+      "Reset projection and generations on session/Player change; stale auth errors ignored; current 401 follows existing sign-out, 401/403 stop polling.",
+      "Refused action triggers a read only, never automatic mutation replay; mutation revision/idempotency guards unchanged.",
+      "Compact synchronization status in the fixed theme toolbar, full accessible label/title, no CSS or graphical lot change."
+    ],
+    "serverChanged": false,
+    "serverReason": "Reducing overlap 503 without compromising the blocked-reconciliation P0 guard is not demonstrated. Fixing client continuity meets the primary objective without changing locks, transactions, scheduler or pooling.",
+    "schemaChanged": false,
+    "latestMigration": "081"
+  },
+  "validation": {
+    "backendTargeted": {
+      "result": "PASS",
+      "tests": 21,
+      "files": 6,
+      "exitCode": 0
+    },
+    "privatePostgresql": {
+      "result": "PASS",
+      "tests": 26,
+      "file": "server/tests-db/contest.test.ts",
+      "seconds": 212.73,
+      "exitCode": 0,
+      "isolation": "UUID private schema, reference catalogs/metadata public read-only, private DDL and fixtures cleaned by owned helper; no public Contest QA.",
+      "coverage": "Blocked reconciliation, bounded concurrent GET rejection, bootstrap reads, drained recovery, sockets/pool cleanup; lifecycle, concurrent mutations, idempotency, spectators/support, cancellation/refund, turns/timeouts/bots, rewards and rollover.",
+      "warning": "Existing pg concurrent client.query deprecation warning, non-fatal."
+    },
+    "frontendTargeted": {
+      "result": "PASS",
+      "tests": 119,
+      "files": 5,
+      "exitCode": 0
+    },
+    "quick": "5/5 PASS; initial fixture phase TURN type error corrected to TURNS before success.",
+    "full": {
+      "result": "PASS",
+      "steps": "8/8",
+      "frontend": 1636,
+      "backendNonDb": 2510,
+      "exitCode": 0,
+      "log": "local-data/r1086/verify-full-final.log"
+    },
+    "visual": {
+      "result": "PASS",
+      "viewports": [
+        "1366x768",
+        "1920x1080",
+        "2560x1440",
+        "390x844"
+      ],
+      "scenarioCaptures": 72,
+      "baselineComparisonCaptures": 56,
+      "jsErrors": 0,
+      "horizontalOverflow": false,
+      "automaticInitialRecoveryMs": 6014,
+      "modalAndFilterRetained": true,
+      "historyRetained": true,
+      "multipleTabs": {
+        "tabs": 2,
+        "focusEventsPerTab": 20,
+        "refreshEventsPerTab": 20,
+        "maxActiveReadsPerTab": 1,
+        "automaticRecovery": true
+      },
+      "limit": "Synthetic GameShell/coordinator/hook, not authenticated production AppBootstrap; repeated outages, not a long-duration soak; gameplay mutations covered separately by PostgreSQL tests.",
+      "reportSha256": {
+        "visual-report.json": "7d1dae5c7df4aa3fb4c77842645d3b8d0a92c038e3afe55f9b54eb6eefbf55af",
+        "comparison-report.json": "1a631bf4012c33a40208ec2aa025b34178f80a84b1fc75436c960f5f725d96cd",
+        "multitab-report.json": "1f7f3d348d591ca8ae9ebcea6fceb565d0d107d560a3e80028d4623a5a743a9f",
+        "auto-recovery-report.json": "e7d5d5e7dd1610e2307a35e3b230e8b4210828c5dd35a8d58deb1aa274a10703",
+        "independent-frontend-review.json": "5792e0fe9f1f6be84f497446b0ef9ce0fcb6883d48da55ef54a3bd43050e0e53"
+      }
+    },
+    "reviewFindingsResolved": [
+      "Queued external refresh invalidated the original slow-read status timer: separate owned-read status revision added and exact 8s assertion passes.",
+      "Sync feedback below fold at 1366x768: moved to fixed toolbar without changing CSS."
+    ],
+    "independentPublishedReviews": "Pending exact GitHub candidate.",
+    "productionDeployment": "Pending promotion after successful gates.",
+    "humanAcceptance": "NOT_EXECUTED — owner normal multiplayer use after delivery."
+  },
+  "limits": [
+    "503 protection remains intentional; a GET owning new reconciliation may still wait on its SQL. No SQL deadline or cancellation claimed.",
+    "Retained projection may be stale; server exclusively validates turn, deadlines, permissions and rewards.",
+    "Recovery never overlaps an owned read; genuinely blocked initial SQL cannot be recovered by manufacturing a second request.",
+    "Per-tab deduplication only; no cross-tab leader election added.",
+    "Private automated/visual QA does not prove uninterrupted real public multiplayer sessions."
+  ],
+  "documentation": {
+    "updated": [
+      "Master",
+      "decisions-log R1086",
+      "backend architecture P0 complement",
+      "UI layout continuity",
+      "Contest physical contract",
+      "this qualification",
+      "navigation shell P0 amendment"
+    ],
+    "examinedUnchanged": [
+      "AGENTS.md",
+      ".chatgpt/CHATGPT_GUIDE.md",
+      "implementation workflow",
+      "procedural conversation handoff",
+      "implementation roadmap",
+      "V1 data model",
+      "PostgreSQL schema",
+      "deployment procedure",
+      "R1085 rollback evidence"
+    ],
+    "historicalSupersession": "Only frontend clear-on-unavailable/manual-recovery behavior of the 2026-10-07 P0 checkpoint is superseded; historical evidence and server protection remain."
+  },
+  "rollback": {
+    "method": "git revert, never reset/force-push",
+    "order": "Revert R1086 documentation/checkpoint follow-ups, then tests, then frontend correction, from newest to oldest on review; resolve only R1086 context, run checks/review and fast-forward main through normal deployment/postflight.",
+    "scope": "No server, schema or R1085 graphical commits to revert. Restores baseline behavior, including its known continuity defect.",
+    "commits": {
+      "frontend": "54b7d47a8f2401d7175fca0ff4dda57c62cbff98",
+      "tests": "5da602b81d222701ee823d608150c8d675e1dde5",
+      "documentation": "The subsequent R1086 documentation commits in Git history, newest first."
+    }
+  }
+}

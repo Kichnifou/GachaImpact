@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## Continuité du Concours — R1086
+
+Une erreur de synchronisation conserve le dernier état autoritaire de la session et le même composant Concours, ses modales, filtres, sélections et intentions. La toolbar fixe remplace temporairement son petit libellé de thème par « Synchronisation… » ; le thème reste affiché, le détail est disponible dans title et le nom accessible. Un refus d'accès affiche « Session invalide ». Aucun overlay ni écran d'erreur ne masque une partie déjà chargée ; aucun résultat ou état métier n'est extrapolé côté client.
+
+Sans DTO initial, l'écran dédié propose chargement/récupération automatique et Réessayer ; une requête lente reste possédée et le bouton est désactivé pendant son attente. Délais progressifs plafonnés à quinze secondes, suspension cachée et revalidation visible/focus, sans deux pollers ni répétition automatique d'action. Les replis/scrolls Concours existants et les lots R1085 sont conservés. [Qualification et limites](../architecture/evidence/r1086-contest-continuity.json).
+
 ## Adaptation dynamique avant scroll — R1085, décision propriétaire du 13/10/2026
 
 Une demande « sans scroll », « faire tenir » ou d'adaptation d'écran impose une réorganisation selon largeur **et** hauteur utiles : répartition des régions, cartes, espacements, illustrations et contrôles. Conserver les textes et les actions lisibles, sans scale global, clipping, scrollbar cachée ou défilement déplacé. Ne pas étirer une page partielle pour remplir le cadre. Un fallback scroll exige un arbitrage explicite et précis, après mesures et tentative de réorganisation.

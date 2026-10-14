@@ -1,5 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1086 — stabilité et continuité du Concours (14/10/2026)
+
+Mandat propriétaire autorisé jusqu'à review indépendante, promotion FF stricte, déploiements et postflight. Base vérifiée après fetch : **d416eea9f7589423cc4b8a790b31d3b0ebe4e60b**, main/review alignés, divergence 0/0, worktree propre. R1085 et ses quatorze lots graphiques sont conservés ; aucune nouvelle mécanique, économie, migration ou infrastructure.
+
+**Correction frontend implémentée et qualifiée ; publication/review du candidat en cours.** Une erreur 503/réseau/serveur ou une lecture lente garde le dernier DTO autoritaire et le composant, ses modales et intentions. Un seul poller visible assure aussi la reprise initiale, avec backoff plafonné à quinze secondes et pause cachée. Revalidation externe différée après drainage de la lecture, huit secondes de diagnostic UI sans annuler SQL, isolation par session et Player, refus d'authentification hors retry automatique. Statut compact dans la toolbar fixe ; actions refusées revalidées sans être rejouées.
+
+Cause reproduite avant correction (`contest` devenait null). Logs Railway relus READ ONLY : GET Concours 503 le 13/10 à 23:02:12 et 23:02:35 Paris, 106 et 21 ms, stage `current.reconciliation.shared`. **Protection serveur P0 volontairement inchangée**, aucune promesse de zéro 503 ou de borne SQL lorsque GET possède la réconciliation. [Décision R1086](../specifications/decisions-log.md#r1086--continuité-du-concours-pendant-une-indisponibilité-transitoire-14102026), [qualification et rollback](../architecture/evidence/r1086-contest-continuity.json).
+
+Tests acquis : 21 ciblés serveur, 26 PostgreSQL en schéma privé (212,73 s, nettoyage du helper, aucune fixture publique), 119 frontend ciblés ; **quick 5/5 et full final 8/8 PASS, 1 636 frontend / 2 510 backend non-DB**. Revue préparatoire indépendante : timer de lecture lente sous refresh queued corrigé et testé ; statut sous fold déplacé dans la toolbar. QA GameShell compilé aux quatre formats : 72 captures de scénarios et 56 de comparaison à la base, modales/filtres/historique conservés, zéro erreur JS/débordement horizontal ; reprise initiale automatique en 6 014 ms, deux onglets sous rafales chacun au maximum une lecture active. Aucun bootstrap authentifié public ni soak prolongé revendiqué. Reviews du SHA GitHub et promotion restent à confirmer, recette humaine future.
+
+Sources ajustées : Master, décision, architecture P0, contrats UI/navigation, appendice physique Concours et preuve unique. AGENTS/Guide/workflow/handoff procédural/roadmap/modèle/schéma/déploiement examinés sans changement durable correspondant ; aucun audit global. Migration **081 inchangée**.
+
+**Gates techniques de cette mission :** publication des commits ciblés sur review, approbation du vrai SHA, puis FF main/déploiements/postflight. **Prochaine action propriétaire après livraison :** recette en jeu normal à plusieurs (continuité de partie, tours, résultat et retour visible), sans provoquer de panne ni lancer un Concours public de QA. STOP après bilan ; aucune autre mission automatique. Les paragraphes R1085 suivants sont historiques.
+
 ## Livraison technique — R1085, continuité post-recette R1084
 
 Mandat propriétaire confirmé : implémentation, tests visuels, réversibilité, publication review, revues indépendantes, promotion main et déploiements dans la même mission. Base réelle vérifiée après fetch : main/review/origin/main/origin/review `7c7859498d750ecbc41ead95d02593f72b295b3a`, arbre initial propre. Les SHA historiques R1084 ci-dessous ne remplacent pas cette vérification.

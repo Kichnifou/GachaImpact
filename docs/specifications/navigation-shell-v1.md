@@ -83,6 +83,8 @@ Sur desktop, le panneau « Aucun Concours actif » occupe la hauteur disponible 
 
 ## Résilience du bootstrap Concours — correctif P0
 
+**Amendement R1086 (14/10/2026) :** si un DTO de la session est déjà chargé, une indisponibilité conserve cette projection et le composant ; le statut « Synchronisation… » apparaît dans la toolbar fixe. Sans DTO, le panneau initial réessaie automatiquement avec le même poller borné, en plus du secours manuel. La suppression de la projection sur erreur et la reprise uniquement manuelle du comportement P0 ci-dessous sont supersédées ; indépendance du bootstrap, huit secondes UI sans annulation SQL et isolation restent valides. [Contrat courant](ui-layout-contract-v1.md#continuité-du-concours--r1086).
+
 La coque devient prête dès que ses domaines essentiels sont chargés, indépendamment de la projection Concours. Cette destination présente le DTO réel ou un panneau chargement/indisponible avec Réessayer, sans résultat ni permission fictifs. Après huit secondes d’attente, le reste du jeu demeure accessible ; la requête reste suivie, bouton de réessai désactivé jusqu’à règlement pour éviter un doublon. Échec réglé : réessai disponible ; réponse valide : écran Concours normal. Les anciennes sessions ne publient ni DTO, statut ou erreur sur la suivante. [Recette et état physique](../master/PROJECT_MASTER_PLAN.md#p0-bootstrap-contest-candidat-20261007).
 
 
