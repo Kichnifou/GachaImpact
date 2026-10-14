@@ -50,6 +50,8 @@ export default function HistoryScreen({ initialCategory = 'invocations', onInvoc
 
   useEffect(() => {
     let active = true
+    setLoading(true)
+    setError(null)
     const promise = category === 'activity' ? onActivity(page) : category === 'invocations' ? onInvocations(page)
       : category === 'bank' ? onBank(page, bankFilter === 'ALL' ? undefined : bankFilter)
         : category === 'shop' ? onShop(page) : onBannersOrEvent(category, page)

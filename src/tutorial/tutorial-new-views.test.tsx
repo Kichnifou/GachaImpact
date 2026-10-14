@@ -35,7 +35,12 @@ it('presents the true activity category, preserves empty/error states and restor
   try {
     await render(true); expect(onActivity).toHaveBeenCalledWith(1); expect(normal).not.toHaveBeenCalled()
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Activité')
+    normal.mockRejectedValueOnce(new Error('Previous category failed'))
     await render(false); expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe('Invocations')
+    expect(container.querySelector('[role="alert"]')).not.toBeNull()
+    await render(true); expect(container.querySelector('[role="alert"]')).toBeNull()
+    expect(container.textContent).toContain('Liste des joueurs actifs par jour.')
+    await render(false)
     onActivity.mockRejectedValueOnce(new Error('Unavailable')); await render(true); expect(container.querySelector('[role="alert"]')).not.toBeNull()
   } finally { act(() => root.unmount()); container.remove() }
 })

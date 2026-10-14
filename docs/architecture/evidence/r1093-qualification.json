@@ -55,7 +55,8 @@
     "No public preference mutation or gameplay performed",
     "Private PostgreSQL schema fixtures created then cleaned; no public migration",
     "Initial helper assertions and fixture gaps corrected; failed logs retained",
-    "Existing bundle size and localhost harness noise retained"
+    "Existing bundle size and localhost harness noise retained",
+    "484-step walkthrough is on d248dd32; final History correction requalified with 28 focused browser states and full tests; unchanged first-step zoom proof retained"
   ],
   "masterHistory": {
     "baseline": "88542e0287668d2c072f67be2afa875b4113c050",
@@ -63,7 +64,16 @@
     "historySha256": "d83b5f76c49da2eec4fcb48834d5350826580d7369d24ce9d124e5406946b2ef"
   },
   "reviews": {
-    "status": "Pending actual published SHA"
+    "baseCandidate": "d248dd3249dd4f79dd4887c27d08769ade491ae7",
+    "technicalInitial": {
+      "path": "local-data/r1093/review-technical.json",
+      "sha256": "19616c2b174dc95d8593180cfb2cbcc9d82855c5f6ce235d42ce35c927630f9f"
+    },
+    "visualInitial": {
+      "path": "local-data/r1093/review-visual.json",
+      "sha256": "f9e56e4af8eb4f6fc1c084c8f38876840d27857d5c08bbd0e7319133556849b4"
+    },
+    "status": "Correction re-review pending; no promotion before both final approvals"
   },
   "deployment": {
     "status": "Pending promotion"
@@ -106,16 +116,17 @@
     "preReview": {
       "path": "local-data/r1093/pre-review-visual.json",
       "sha256": "0fcc6040b780fe3def93e7389b467f8c79a181865d1915c611498b3ba66b683e"
-    }
+    },
+    "baseCandidate": "d248dd3249dd4f79dd4887c27d08769ade491ae7"
   },
   "artifacts": [
     {
-      "name": "index-BofMTeCJ.css",
-      "sha256": "ac7a67dfc418a75aef1647993bf1da5e8bb4cf0f582fa54d46664ef0932b31e2"
+      "name": "index-2_ww0Etj.js",
+      "sha256": "8a0e1b0b2ce3c564d8dab3d7cfff48ec75c640b7bdd200c37428b716ec3435fb"
     },
     {
-      "name": "index-CcFjIADY.js",
-      "sha256": "12b45830d6cbbce6cb2332beba060c6173a53348135452ed704e58168e546629"
+      "name": "index-BofMTeCJ.css",
+      "sha256": "ac7a67dfc418a75aef1647993bf1da5e8bb4cf0f582fa54d46664ef0932b31e2"
     }
   ],
   "rollout": "After independent approval deploy backend-only ancestor first, wait exact Railway readiness and no pending, then strict FF main to final candidate; old frontend consumes projected legacy responses in between",
@@ -144,5 +155,66 @@
   "commits": {
     "backend": "1ffe3d1afa39fec79a1f8d5f47366dfc4755bebd",
     "frontend": "be907ac37384d347f568060426dfee290793fad0"
+  },
+  "baseArtifacts": [
+    {
+      "name": "index-BofMTeCJ.css",
+      "sha256": "ac7a67dfc418a75aef1647993bf1da5e8bb4cf0f582fa54d46664ef0932b31e2"
+    },
+    {
+      "name": "index-CcFjIADY.js",
+      "sha256": "12b45830d6cbbce6cb2332beba060c6173a53348135452ed704e58168e546629"
+    }
+  ],
+  "historyCorrection": {
+    "finding": "P2 previous History category error masked successfully loaded guided Activity",
+    "baseCandidate": "d248dd3249dd4f79dd4887c27d08769ade491ae7",
+    "approval": "Technical approval suspended until published correction re-review",
+    "findingProof": {
+      "path": "local-data/r1093/review-technical-history-finding.json",
+      "sha256": "eb16dc192fe751a70020c8e75808332dbb73bce00a886e795e72ca2ab066353b"
+    },
+    "reproducedBeforeFix": {
+      "path": "local-data/r1093/history-reproduction.log",
+      "sha256": "061a2ddab009c5b5f404bc14238b600ec4e8b10be9f3317124d454f37c66bd13"
+    },
+    "fix": "Reset error/loading when a new scoped category/page/filter read starts; cancellation preserved",
+    "tests": {
+      "path": "local-data/r1093/targets-history-fixed.log",
+      "sha256": "83c045d2741e60cb6ed211c753cbef6baa3560b21926809710d9c2fce819047b"
+    },
+    "full": {
+      "path": "local-data/r1093/full-history-fixed.log",
+      "sha256": "cda1483f0c8a5d92b9111d5694e158b5598941f538976b699f1e56972440fd42"
+    },
+    "browser": {
+      "states": 28,
+      "viewports": [
+        [
+          1920,
+          1080
+        ],
+        [
+          2560,
+          1440
+        ],
+        [
+          1366,
+          768
+        ],
+        [
+          390,
+          844
+        ]
+      ],
+      "newSteps": 20,
+      "previousErrorToActivitySuccessOrFailure": 8,
+      "jsErrors": 0,
+      "mutations": 0,
+      "proof": {
+        "path": "local-data/r1093/history-delta-qa.json",
+        "sha256": "9bea2a702d49a3a5ed8b80a3d259c23bfc9b3be51b17bfb41adbbb4c9cbfbf32"
+      }
+    }
   }
 }
