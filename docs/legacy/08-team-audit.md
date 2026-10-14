@@ -1,5 +1,9 @@
 # 08 — Audit legacy Team
 
+## R1092 — commandes et gabarit Passifs
+
+Présentation seule : supprimer la réduction excessive des commandes dans la variante de carte ≤260 px, tout en gardant la variante large validée. Le bloc Passifs réserve le gabarit des quatre effets de la capture propriétaire par une région de taille issue des vrais libellés du référentiel DTO, invisible et inaccessible, distincte des effets actifs. 1–4 effets partagent le même cadre et ne déplacent plus les personnages ; aucun texte/effet fictif affiché, aucun changement de stacks, mutations, pending, clic fiche, drag ou modale. Preuves et état réel au Master.
+
 ## Présentation physique R1091
 
 Cette précision supersède seulement l'espacement et les cinq commandes R1090 ci-dessous : passifs intrinsèques plus compacts, lien de référence supérieur droit, quatre portraits répartis dans la largeur utile avec ratio carré/contain conservé. Fiche devient une surface native sœur des commandes, Changer/Retirer puis flèches, hover/focus individuels et geste drag protégé. Les règles Team, mutations autoritaires, navigation des équipes, pending/preview/rollback et Tutoriel restent inchangés. Qualification et état de livraison au Master.

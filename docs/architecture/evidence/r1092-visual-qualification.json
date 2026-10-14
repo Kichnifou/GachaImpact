@@ -1,0 +1,1102 @@
+{
+  "mission": "R1092",
+  "date": "2026-10-14",
+  "baseline": "42ffecc0a219e8bd9d374b073c92ac873fe91bec",
+  "runtime": "d0dbba59483ddbf83b61d9e426e0ba709e8ba108",
+  "commits": {
+    "Team": "f426a409",
+    "EventShop": "d0dbba59"
+  },
+  "status": "Locally qualified candidate; published-SHA independent review and promotion pending",
+  "scope": {
+    "frontendPresentationOnly": true,
+    "otherR1091SurfacesPreserved": true,
+    "backend": false,
+    "migrations": false,
+    "publicGameplayQa": false,
+    "mobilePass": false
+  },
+  "tests": {
+    "targeted": {
+      "files": 3,
+      "tests": 124,
+      "result": "PASS",
+      "log": "r1092-targets-second.log"
+    },
+    "quick": {
+      "result": "5/5 PASS",
+      "log": "gachaimpact-verify-quick-N7ftRT"
+    },
+    "full": {
+      "result": "8/8 PASS",
+      "frontend": 1685,
+      "backendNonDb": 2510,
+      "log": "gachaimpact-verify-full-hTQw3R"
+    },
+    "history": [
+      "First targeted set 119/119 PASS, then 124/124 after new invariant tests. Quick and full passed their first executions.",
+      "Exploratory passive sizing changed three-effect/four-effect track sizes; replaced with separate inert DTO reference footprint, final exact frame/card/interior comparisons PASS.",
+      "First extended matrix found 16 compact Shop footer alignment failures at 1366x768. Corrected the compact offer track distribution; final 160-state rerun has zero findings.",
+      "A local editing helper stopped on a checked anchor before writing; it did not modify the Master. A shell wrapper reported exit 1 although both Vite logs said built; explicit Node spawnSync recorded both build exits 0.",
+      "Existing Vite bundle-size warning and asynchronous ECONNREFUSED localhost:3000 in targeted harness logs retained; targeted exit 0."
+    ],
+    "db": "Not run: server, persistence and authoritative transactions unchanged"
+  },
+  "visual": {
+    "browser": "Chromium msedge headless",
+    "compiledGameShell": true,
+    "actualProductCss": true,
+    "css": {
+      "file": "index-DdyNb4IS.css",
+      "sha256": "4f4112fb357a5d04acf779198398346f754a7a0d69ed0218b9f802774e955eb2"
+    },
+    "states": 160,
+    "baselineStates": 12,
+    "candidateStates": 148,
+    "supplementStates": 26,
+    "nativeTeamChecks": 6,
+    "errors": [],
+    "findings": [],
+    "team": [
+      {
+        "w": 1920,
+        "h": 1080,
+        "chat": "open",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          940,
+          940,
+          940,
+          940
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 275.25,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 1920,
+        "h": 1080,
+        "chat": "collapsed",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          940,
+          940,
+          940,
+          940
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 345.75,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 2560,
+        "h": 1440,
+        "chat": "open",
+        "passiveHeights": [
+          112,
+          112,
+          112,
+          112
+        ],
+        "passiveTops": [
+          1310,
+          1310,
+          1310,
+          1310
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 275.25,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 2560,
+        "h": 1440,
+        "chat": "collapsed",
+        "passiveHeights": [
+          112,
+          112,
+          112,
+          112
+        ],
+        "passiveTops": [
+          1310,
+          1310,
+          1310,
+          1310
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 345.75,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 1536,
+        "h": 864,
+        "chat": "open",
+        "passiveHeights": [
+          123.59375,
+          123.59375,
+          123.59375,
+          123.59375
+        ],
+        "passiveTops": [
+          722.40625,
+          722.40625,
+          722.40625,
+          722.40625
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 200.25,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 50.671875,
+            "height": 22,
+            "font": "12.015px"
+          },
+          {
+            "text": "Retirer",
+            "width": 40.734375,
+            "height": 22,
+            "font": "12.015px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 22,
+            "font": "12.015px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 22,
+            "font": "12.015px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 62.0625,
+            "height": 30,
+            "font": "11.6145px"
+          },
+          {
+            "text": "Retirer",
+            "width": 62.0625,
+            "height": 30,
+            "font": "11.6145px"
+          },
+          {
+            "text": "←",
+            "width": 30.03125,
+            "height": 30,
+            "font": "11.6145px"
+          },
+          {
+            "text": "→",
+            "width": 30.03125,
+            "height": 30,
+            "font": "11.6145px"
+          }
+        ]
+      },
+      {
+        "w": 1536,
+        "h": 864,
+        "chat": "collapsed",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          724,
+          724,
+          724,
+          724
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 264,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 1366,
+        "h": 768,
+        "chat": "open",
+        "passiveHeights": [
+          117.59375,
+          117.59375,
+          117.59375,
+          117.59375
+        ],
+        "passiveTops": [
+          640.40625,
+          640.40625,
+          640.40625,
+          640.40625
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 157.75,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 41.1875,
+            "height": 22,
+            "font": "9.465px"
+          },
+          {
+            "text": "Retirer",
+            "width": 33.359375,
+            "height": 22,
+            "font": "9.465px"
+          },
+          {
+            "text": "←",
+            "width": 34.703125,
+            "height": 22,
+            "font": "9.465px"
+          },
+          {
+            "text": "→",
+            "width": 34.703125,
+            "height": 22,
+            "font": "9.465px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 54,
+            "height": 28,
+            "font": "10px"
+          },
+          {
+            "text": "Retirer",
+            "width": 54,
+            "height": 28,
+            "font": "10px"
+          },
+          {
+            "text": "←",
+            "width": 28,
+            "height": 28,
+            "font": "10px"
+          },
+          {
+            "text": "→",
+            "width": 28,
+            "height": 28,
+            "font": "10px"
+          }
+        ]
+      },
+      {
+        "w": 1366,
+        "h": 768,
+        "chat": "collapsed",
+        "passiveHeights": [
+          117.59375,
+          117.59375,
+          117.59375,
+          117.59375
+        ],
+        "passiveTops": [
+          640.40625,
+          640.40625,
+          640.40625,
+          640.40625
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 228.25,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 54.359375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "Retirer",
+            "width": 43.59375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 70.75,
+            "height": 33.09375,
+            "font": "13.2385px"
+          },
+          {
+            "text": "Retirer",
+            "width": 70.75,
+            "height": 33.09375,
+            "font": "13.2385px"
+          },
+          {
+            "text": "←",
+            "width": 34.234375,
+            "height": 33.09375,
+            "font": "13.2385px"
+          },
+          {
+            "text": "→",
+            "width": 34.234375,
+            "height": 33.09375,
+            "font": "13.2385px"
+          }
+        ]
+      },
+      {
+        "w": 1920,
+        "h": 920,
+        "chat": "open",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          780,
+          780,
+          780,
+          780
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 275.25,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 1920,
+        "h": 920,
+        "chat": "collapsed",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          780,
+          780,
+          780,
+          780
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 320,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 87.515625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "Retirer",
+            "width": 74.265625,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 41,
+            "font": "16px"
+          }
+        ]
+      },
+      {
+        "w": 1728,
+        "h": 832,
+        "chat": "open",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          692,
+          692,
+          692,
+          692
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 232,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 54.359375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "Retirer",
+            "width": 43.59375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 71.90625,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "Retirer",
+            "width": 71.90625,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "←",
+            "width": 34.796875,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "→",
+            "width": 34.796875,
+            "height": 33.90625,
+            "font": "13.456px"
+          }
+        ]
+      },
+      {
+        "w": 1728,
+        "h": 832,
+        "chat": "collapsed",
+        "passiveHeights": [
+          122,
+          122,
+          122,
+          122
+        ],
+        "passiveTops": [
+          692,
+          692,
+          692,
+          692
+        ],
+        "cardsStableVsFourEffectBaseline": true,
+        "fourEffectsUnchanged": true,
+        "cardWidth": 232,
+        "beforeButtons": [
+          {
+            "text": "Changer",
+            "width": 54.359375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "Retirer",
+            "width": 43.59375,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "←",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          },
+          {
+            "text": "→",
+            "width": 42,
+            "height": 23,
+            "font": "13px"
+          }
+        ],
+        "afterButtons": [
+          {
+            "text": "Changer",
+            "width": 71.90625,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "Retirer",
+            "width": 71.90625,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "←",
+            "width": 34.796875,
+            "height": 33.90625,
+            "font": "13.456px"
+          },
+          {
+            "text": "→",
+            "width": 34.796875,
+            "height": 33.90625,
+            "font": "13.456px"
+          }
+        ]
+      }
+    ],
+    "shop": [
+      {
+        "w": 1920,
+        "h": 1080,
+        "beforeExcessBodyGap": 33,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 13,
+        "afterDistanceToPanel": 13,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      },
+      {
+        "w": 2560,
+        "h": 1440,
+        "beforeExcessBodyGap": 33,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 13,
+        "afterDistanceToPanel": 13,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      },
+      {
+        "w": 1536,
+        "h": 864,
+        "beforeExcessBodyGap": 33,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 13,
+        "afterDistanceToPanel": 13,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      },
+      {
+        "w": 1366,
+        "h": 768,
+        "beforeExcessBodyGap": 29,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 8,
+        "afterDistanceToPanel": 8,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      },
+      {
+        "w": 1920,
+        "h": 920,
+        "beforeExcessBodyGap": 33,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 13,
+        "afterDistanceToPanel": 13,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      },
+      {
+        "w": 1366,
+        "h": 600,
+        "beforeExcessBodyGap": null,
+        "afterExcessBodyGap": 0,
+        "normalPanelPadding": 8,
+        "afterDistanceToPanel": 8,
+        "balanceFont": "18px",
+        "threeActionsAligned": true
+      }
+    ],
+    "evidence": [
+      {
+        "file": "local-data/r1092/qualification.json",
+        "sha256": "84e1008cf33311a47be67fe8ad1d15dcf61298d13bb7ac891fb267f91d218415"
+      },
+      {
+        "file": "local-data/r1092/r1091-probe.json",
+        "sha256": "fa6e1194e75b5619941ceba79cb7716163674089d054448e7d558575a2a45591"
+      },
+      {
+        "file": "local-data/r1092/supplement.json",
+        "sha256": "af50d82d3913a6dd7529ff1aba573398c50ab956bbc2390e5e475a730e77d6bf"
+      },
+      {
+        "file": "local-data/r1092/team-interactions.json",
+        "sha256": "955f05a6745119468a8dc6487e794e3ae3f737ace8b3500b6096eb772b3b1e3a"
+      },
+      {
+        "file": "local-data/r1092/rollback.json",
+        "sha256": "07fa5b322700ce544e7f795abf905e7556d35c259ec93b4edec18c87f33ea37a"
+      },
+      {
+        "file": "local-data/r1092/master-qualified.json",
+        "sha256": "46b7380aafed9774fb1c4625fc8b113e8390fedecf2be7dcd8116726d622052e"
+      },
+      {
+        "file": "local-data/r1092/team-1728x832.png",
+        "sha256": "e761279dfcc6c58ec4c02bc31a324bf04b06d49be573fb23c95b9eac0cdbf8bf"
+      },
+      {
+        "file": "local-data/r1092/shop-1920x920.png",
+        "sha256": "d05d626a60e3e2a0feb73a5dfad9e9222d7a20ac65e0e2f5108ab039f7eb6818"
+      }
+    ],
+    "limits": [
+      "Owner screenshot physical dimensions do not establish CSS viewport/zoom. 1920x920 and 1728x832 reproduce reduced useful regions; no exact physical-pixel equivalence is claimed.",
+      "At 1920x1080 CSS and 2560x1440 CSS, card width 275.25px already used the approved 41px-high commands and remains identical. On the 232px-wide card at 1728x832, primary buttons become 71.906x33.906px (31.0% / 14.6% of card width), close to the approved large-card proportions.",
+      "Sizing reference uses the owner four-effect arrangement and actual DTO definitions, never active effects or invented descriptions. Visible active effects and empty state remain separate.",
+      "One 390x844 reserve-visibility smoke and DPR1.25 smoke are regression checks only, not a mobile campaign or owner acceptance.",
+      "No authenticated public aesthetic acceptance, public resource transaction or rollback deployment was performed."
+    ]
+  },
+  "masterProtection": {
+    "baseline": "42ffecc0a219e8bd9d374b073c92ac873fe91bec",
+    "beforeBytes": 1183377,
+    "afterBytes": 1186484,
+    "beforeLines": 7007,
+    "afterLines": 7019,
+    "historyBytes": 1183313,
+    "historySha256": "74560956017f8233df2337de3ee6fd2fb407b8439d92851feb6060687a5a7a0e",
+    "finalSectionsIdentical": true,
+    "pass": true
+  },
+  "rollback": {
+    "base": "d0dbba59483ddbf83b61d9e426e0ba709e8ba108",
+    "rows": [
+      {
+        "name": "Team",
+        "sha": "f426a409",
+        "base": "d0dbba59483ddbf83b61d9e426e0ba709e8ba108",
+        "changed": [
+          "src/screens/TeamScreen.test.tsx",
+          "src/screens/TeamScreen.tsx",
+          "src/teams/team-layout.css"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      },
+      {
+        "name": "EventShop",
+        "sha": "d0dbba59",
+        "base": "d0dbba59483ddbf83b61d9e426e0ba709e8ba108",
+        "changed": [
+          "src/event/event-shop-layout.css",
+          "src/screens/EventShopSection.test.tsx"
+        ],
+        "onlyOwnFiles": true,
+        "steps": [
+          {
+            "tool": "typescript",
+            "exit": 0
+          },
+          {
+            "tool": "vite",
+            "exit": 0
+          },
+          {
+            "tool": "vitest",
+            "exit": 0
+          }
+        ]
+      }
+    ]
+  },
+  "reviews": {
+    "status": "Pending actual published SHA"
+  },
+  "deployment": {
+    "status": "Pending main promotion"
+  },
+  "ownerAestheticAcceptance": "Still required after technical delivery"
+}

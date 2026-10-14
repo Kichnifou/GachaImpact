@@ -1,5 +1,9 @@
 # 16 — Audit Event / monthly
 
+## R1092 — solde et bas du Shop
+
+Montant/devise légèrement agrandis, DTO et formatage inchangés. Les deux régions de feedback vides ne prennent plus de hauteur/gap dans Shop ; les vrais messages restent présents et lisibles. Les trois offres remplissent le bas utile du corps, avec le padding normal du panneau ; boutons inférieurs alignés même au desktop compact. Répartition flexible, sans transform ni marge négative ; centrage des quantités en grande hauteur et repli à une offre conservés. Aucun coût, conversion, MAX, intention, confirmation ou retry modifié. Preuves au Master.
+
 ## Présentation physique R1091
 
 Deux rangées distinctes séparent navigation Event et noms dynamiques des jeux. Petit contexte retiré ; période DTO courte en J/M/AAAA, Paris, fin exclusive affichée comme dernier jour inclus. Huit paliers, 32 codes et confirmation Crypte, Fantôme et Sort conservés. Shop conserve 1920×1080 ; au-delà, quantités centrées dans la région disponible, footer inférieur. Header et Collection se réorganisent au desktop compact. Aucun changement des récompenses, taux, intentions, retries, règles et commandes ; preuves de qualification et gates au Master.

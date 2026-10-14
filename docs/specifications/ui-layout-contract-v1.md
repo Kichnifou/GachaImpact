@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## R1092 — proportions hover, gabarit Passifs et Shop
+
+Équipe : seules les commandes des conteneurs ≤260 px gagnent hauteur, largeur intrinsèque et typo selon cqw ; Changer/Retirer puis flèches, hover/focus/disabled/reduced-motion conservés. Les cartes, portraits et régions restent ceux de R1091. La variante large validée est inchangée.
+
+Le panneau Passifs réserve le gabarit naturel des quatre effets de la référence propriétaire, depuis le référentiel DTO réel Pyro/Anémo/Géo/Dendro, sans texte métier figé. Réserve invisible et inert/aria-hidden, sans commande ni faux effet présenté ; active uniquement desktop. La grille des vrais effets occupe cette enveloppe sans agrandir un effet unique. Entre 1, 2, 3 et 4 : cadre, titre/lien et rectangles des personnages restent stables au même viewport, chat ouvert/replié. Quatre effets de référence conservent leur rendu ; aucun effet garde son état vide fonctionnel. Textes complets, aucune dissimulation de débordement.
+
+Shop : montant/devise du bandeau à 18 px desktop, données et formatage communs conservés. Quand les deux feedbacks sont vides, leurs réserves et gaps sont retirés localement ; les cartes atteignent le bord bas du corps de contenu, en conservant le padding normal du grand panneau. Les vrais messages restent entièrement visibles dans leur région et réduisent le groupe de cartes. Trois bords de cartes et trois actions inférieures alignés ; offre unique compacte conservée. Grande hauteur : quantités centrées selon R1091. Vérification par distances au bord intérieur, rectangles et textes, pas par simple absence de scrollbar.
+
 <a id="ajustements-desktop-restants-après-r1090--non-implémentés-14102026"></a>
 ## Finitions desktop finales — R1091
 
