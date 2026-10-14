@@ -39,7 +39,7 @@ describe('Social UI', () => {
     const api = actions()
     const record = (name: string, elementKey: 'pyro' | 'hydro' | 'cryo', rarity: 4 | 5, constellation: number, date: string) => ({ id: name, externalKey: name, name, elementKey, rarity, constellation, firstObtainedAt: date, copies: constellation + 1, weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null })
     const characters = [record('Alpha', 'pyro', 5, 0, '2026-01-03'), record('Beta', 'hydro', 5, 0, '2026-01-01'), record('Gamma', 'cryo', 5, 6, '2026-01-02'), record('Delta', 'hydro', 4, 0, '2026-01-04')]
-    api.profile = vi.fn(async () => ({ ...profile, own, box: { access: 'ALLOWED', data: characters } }))
+    api.profile = vi.fn(async () => ({ ...profile, own, box: { access: 'ALLOWED' as const, data: characters } }))
     const container = await mount(own ? <ProfileSurface api={api} /> : <ProfileVisitorSurface api={api} />)
     await click(container, 'Box')
     const names = () => [...container.querySelectorAll('.character-card h3')].map(node => node.textContent)
@@ -55,7 +55,7 @@ describe('Social UI', () => {
     expect(api.saveFriendSort).not.toHaveBeenCalled()
   })
   it('does not show Box controls or leak cards through a private projection', async () => {
-    const api = actions(); api.profile = vi.fn(async () => ({ ...profile, box: { access: 'PRIVATE' } }))
+    const api = actions(); api.profile = vi.fn(async () => ({ ...profile, box: { access: 'PRIVATE' as const } }))
     const container = await mount(<ProfileVisitorSurface api={api} />)
     await click(container, 'Box')
     expect(container.querySelector('.box-filter-bar')).toBeNull()
