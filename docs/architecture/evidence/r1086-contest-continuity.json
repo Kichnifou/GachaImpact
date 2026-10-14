@@ -64,7 +64,7 @@
     },
     "frontendTargeted": {
       "result": "PASS",
-      "tests": 119,
+      "tests": 120,
       "files": 5,
       "exitCode": 0
     },
@@ -72,10 +72,10 @@
     "full": {
       "result": "PASS",
       "steps": "8/8",
-      "frontend": 1636,
+      "frontend": 1637,
       "backendNonDb": 2510,
       "exitCode": 0,
-      "log": "local-data/r1086/verify-full-final.log"
+      "log": "local-data/r1086/verify-full-ready-final.log"
     },
     "visual": {
       "result": "PASS",
@@ -232,6 +232,29 @@
       },
       "contestStageWarningsOrErrors": 0,
       "limit": "Very short window with four natural successful reads; no authenticated public gameplay or proof of indefinite continuity."
+    },
+    "readyWarningFollowUp": {
+      "commit": "7aeaaba90fe2ac60fc25dfe0d8e88e05373963f8",
+      "cause": "A successful authoritative external read/mutation could leave the old local polling warning visible until the next poll.",
+      "reproduction": "Regression failed before fix and passed after.",
+      "fix": "Authoritative availability READY immediately suppresses the obsolete local warning. No polling, mutation or layout change.",
+      "targeted": "120/120 PASS",
+      "full": "8/8 PASS; 1637 frontend,2510 backend non-DB",
+      "publication": "Exact GitHub commit approved independently by backend and frontend reviewers; final deployment SHA checked in delivery report.",
+      "reviews": [
+        {
+          "reviewer": "backend",
+          "result": "APPROVED",
+          "report": "local-data/r1086/independent-ready-warning-published-review.json",
+          "sha256": "fb2dbe5dcc6d8c5455376b1057a5d38c38c69cafc486015eb1ef335a61d25ca7"
+        },
+        {
+          "reviewer": "frontend",
+          "result": "APPROVED",
+          "report": "local-data/r1086/independent-frontend-review-ready-final.json",
+          "sha256": "b64bf8f6b53d26b079ac428c318c17d48d789026a7f3fadb0292ee1d422e7034"
+        }
+      ]
     }
   },
   "limits": [
@@ -266,12 +289,13 @@
   },
   "rollback": {
     "method": "git revert, never reset/force-push",
-    "order": "Revert R1086 documentation/checkpoint follow-ups, then tests, then frontend correction, from newest to oldest on review; resolve only R1086 context, run checks/review and fast-forward main through normal deployment/postflight.",
+    "order": "Revert subsequent R1086 documentation checkpoints, then 7aeaaba9 warning follow-up, d29be186 closure, 165ad84a documentation, 5da602b8 tests, 54b7d47a frontend, newest first on review; checks/review and strict fast-forward main through normal deployment/postflight.",
     "scope": "No server, schema or R1085 graphical commits to revert. Restores baseline behavior, including its known continuity defect.",
     "commits": {
       "frontend": "54b7d47a8f2401d7175fca0ff4dda57c62cbff98",
       "tests": "5da602b81d222701ee823d608150c8d675e1dde5",
-      "documentation": "The subsequent R1086 documentation commits in Git history, newest first."
+      "documentation": "The subsequent R1086 documentation commits in Git history, newest first.",
+      "readyWarning": "7aeaaba90fe2ac60fc25dfe0d8e88e05373963f8"
     },
     "rehearsal": {
       "candidate": "165ad84a6215a6b2a73aac8d265e9ab8e2b02a40",
@@ -283,5 +307,5 @@
       "cleanup": "Own rehearsal changes restored; clean temporary worktree removed."
     }
   },
-  "checkpoint": "This documentation checkpoint preserves reviewed runtime 54b7d47a. Its own SHA follows review, strict main fast-forward and exact deployment checks; no self-referential commit loop."
+  "checkpoint": "Final runtime combines 54b7d47a and 7aeaaba9. Initial deployment evidence at 165ad84a remains historical; final exact documentation SHA follows independent review, strict main fast-forward and exact deployment/postflight checks in delivery report, without a self-referential commit loop."
 }
