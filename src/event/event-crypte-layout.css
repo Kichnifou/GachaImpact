@@ -1,0 +1,7 @@
+.event-game-b-announcement { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (min-width: 1121px) {
+  .event-frame .event-game-b { box-sizing: border-box; grid-template-rows: auto auto minmax(min-content, 1fr) auto; align-content: stretch; gap: clamp(6px, 2cqh, 18px); }
+  .event-frame .event-game-b-codes { align-content: space-evenly; }
+  .event-frame .event-game-b-code { max-height: 48px; }
+  .event-frame .event-game-b-attempts { margin: 0; }
+}
