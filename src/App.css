@@ -8691,7 +8691,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 }
 .contest-participant-actionable:hover .contest-card-actions,
 .contest-participant-actionable:focus-within .contest-card-actions { opacity: 1; pointer-events: auto; }
-.contest-card-actions .contest-mutation-button { min-width: 0; min-height: 31px; padding: 0 8px; font-size: 8px; }
+.contest-card-actions .contest-mutation-button { min-width: 0; min-height: 31px; padding: 0 8px; font-size: 8px; white-space: normal; }
 .contest-spectators > div > span.removable { grid-template-columns: minmax(0, 1fr) 18px; }
 .contest-spectators .contest-spectator-remove {
   width: 18px;
