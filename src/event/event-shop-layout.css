@@ -10,6 +10,7 @@
   .event-frame .event-shop-card > .eyebrow { font-size: 9px; }
   .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 11px; line-height: 1.35; }
   .event-frame .event-shop-quantity { flex-wrap: nowrap; }
+  .event-frame .event-shop-quantity input { flex: 1 1 80px; width: 0; min-width: 0; max-width: none; font-variant-numeric: tabular-nums; }
   .event-frame .event-shop-quantity > * { height: 30px; min-height: 30px; }
   .event-frame .event-shop-card > .small-primary-button { min-height: 30px; margin-top: 0; padding: 4px 8px; }
   .event-frame .event-shop-icon { width: 26px; height: 26px; font-size: 18px; }
