@@ -9,14 +9,14 @@ type Presentation = {
 }
 
 export function useContestPresentation(contest: ContestSnapshotDto | null, now: number): ScoreFeedback | null {
-  const id = contest?.status === 'RUNNING' ? contest.id : null
+  const id = contest?.id ?? null
   const events = contest?.recentScoreChanges ?? empty
   const [reduced, setReduced] = useState(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false)
   const [hidden, setHidden] = useState(() => document.visibilityState === 'hidden')
   const [state, setState] = useState<Presentation>(() => ({ id, source: events, seen: new Set(events.map(e => e.eventId)), queue: [], startedAt: 0, drainBy: 0, baseline: hidden }))
   const deadline = contest?.phase === 'SUPPORT' ? contest.supportDeadlineAt : contest?.turnDeadlineAt
   const urgent = Boolean(deadline && Date.parse(deadline) - now <= 5_000)
-  const skip = hidden || reduced || urgent || !id
+  const skip = hidden || reduced || urgent || contest?.status !== 'RUNNING'
 
   // Ingest before committing the render: no frame with enabled commands and an
   // unregistered event. Keep IDs for this contest, including outside the last 8.
