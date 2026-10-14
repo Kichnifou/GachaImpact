@@ -8,7 +8,7 @@
     "divergence": "0/0",
     "clean": true
   },
-  "status": "Local tests, compiled visual qualification and seven independent withdrawals passed; published reviews and delivery pending",
+  "status": "Technically delivered at publishedCandidate; final documentary checkpoint follows the same review/FF/deployment checks; owner aesthetic acceptance open",
   "ownerAcceptanceR1089": [
     "Event Ranking",
     "Profile Box filters",
@@ -231,10 +231,253 @@
     }
   },
   "independentReviews": {
-    "status": "Published SHA reviews pending"
+    "publishedCandidate": "1aa876db7f3e92114d7e7f8cf9e06d88a55e2eb7",
+    "visual": {
+      "verdict": "PASS",
+      "checks": 31,
+      "privateReport": "published-visual-review-1aa876db.json",
+      "sha256": "29d1425076f15485a1b69cf365ce1b9173be204153e3fc92461e3dec5c02d960"
+    },
+    "technical": {
+      "verdict": "APPROVED",
+      "targetedAssertions": 68,
+      "portableWithdrawals": 7,
+      "privateReport": "INDEPENDENT-TECHNICAL-REVIEW-1aa876db.json",
+      "sha256": "9c3808f449a05534e7fd3cfed66fc051a78d5ed9f072de1c9cee45ddfe367095"
+    },
+    "remainingFindings": 0
   },
   "deployment": {
-    "status": "Pending main promotion"
+    "candidate": "1aa876db7f3e92114d7e7f8cf9e06d88a55e2eb7",
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true,
+    "railway": {
+      "id": "003ba45c-833f-45c8-a1e8-43a2386acbad",
+      "sha": "1aa876db7f3e92114d7e7f8cf9e06d88a55e2eb7",
+      "status": "SUCCESS",
+      "applicationReady": "2026-10-14T13:09:03.582799259Z",
+      "pending": 0,
+      "servicesWithIssues": 0,
+      "replicas": {
+        "running": 1,
+        "crashed": 0,
+        "total": 1
+      }
+    },
+    "cloudflare": {
+      "sha": "1aa876db7f3e92114d7e7f8cf9e06d88a55e2eb7",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/9111ff02-6f4d-483d-9265-52f8d12b4ed7",
+      "startedAt": "2026-10-14T12:59:28Z",
+      "completedAt": "2026-10-14T12:59:28Z",
+      "preview": "https://9111ff02.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-BCeGaWTc.css",
+          "http": 200,
+          "sha256": "8c102ac7f6ec6368c0598281f05cf30514c93cdf5905a4456f56f0f8253c8c59"
+        },
+        {
+          "path": "/assets/index-DaJRDE_-.js",
+          "http": 200,
+          "sha256": "8416ea9d57ddfc687a0439a5e678aad51c21935560b6decc16538d674365df83"
+        }
+      ]
+    },
+    "postflight": {
+      "at": "2026-10-14T13:16:10.476Z",
+      "phase": "candidate",
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-BCeGaWTc.css",
+              "sha256": "8c102ac7f6ec6368c0598281f05cf30514c93cdf5905a4456f56f0f8253c8c59"
+            },
+            {
+              "path": "/assets/index-DaJRDE_-.js",
+              "sha256": "8416ea9d57ddfc687a0439a5e678aad51c21935560b6decc16538d674365df83"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-BCeGaWTc.css",
+              "sha256": "8c102ac7f6ec6368c0598281f05cf30514c93cdf5905a4456f56f0f8253c8c59"
+            },
+            {
+              "path": "/assets/index-DaJRDE_-.js",
+              "sha256": "8416ea9d57ddfc687a0439a5e678aad51c21935560b6decc16538d674365df83"
+            }
+          ]
+        }
+      ]
+    },
+    "guards": {
+      "at": "2026-10-14T13:16:11.274Z",
+      "phase": "candidate",
+      "anonymous": true,
+      "readOnly": true,
+      "reports": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/event/ranking/page?editionId=00000000-0000-4000-8000-000000000000&page=1",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/history?category=activity&page=1",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/history/activity/players?date=2026-10-13",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/history/activity/statistics?range=all",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/chat/messages",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/combat/boss",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/notifications",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/direct-conversations",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "route": "/api/v1/me/direct-conversations/unread",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/event/ranking/page?editionId=00000000-0000-4000-8000-000000000000&page=1",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/history?category=activity&page=1",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/history/activity/players?date=2026-10-13",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/history/activity/statistics?range=all",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/chat/messages",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/combat/boss",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/notifications",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/direct-conversations",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "route": "/api/v1/me/direct-conversations/unread",
+          "method": "GET",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        }
+      ],
+      "authenticatedBrowserProof": "NOT_EXECUTED; private compiled UI QA and anonymous API guards are separate evidence"
+    }
   },
   "documentation": {
     "updated": [
@@ -258,5 +501,6 @@
       "deployment guidance"
     ]
   },
-  "nextAction": "Complete published SHA reviews, strict FF, exact deployments and read-only postflight; then owner aesthetic recipe on seven areas and STOP"
+  "nextAction": "Owner aesthetic recipe on seven areas; use independent withdrawal if requested; STOP. Final documentary checkpoint runtime identical and exact deployment checked in final response without self-referential hash loop.",
+  "publishedCandidate": "1aa876db7f3e92114d7e7f8cf9e06d88a55e2eb7"
 }
