@@ -1,4 +1,5 @@
 .inventory-screen .inventory-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+.inventory-screen .inventory-scroll-body { box-sizing: border-box; min-height: 0; margin: 8px; border: 1px solid rgba(108, 164, 220, .4); border-radius: 10px; background: rgba(5, 15, 30, .7); }
 .inventory-screen .inventory-categories { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; padding: 6px; }
 .inventory-screen .inventory-categories button { grid-template-columns: auto auto auto; justify-content: center; gap: 9px; min-height: 40px; padding: 5px 10px; }
 .inventory-screen .inventory-categories button strong { font-size: 14px; }
