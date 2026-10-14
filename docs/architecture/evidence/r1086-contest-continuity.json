@@ -112,9 +112,127 @@
       "Queued external refresh invalidated the original slow-read status timer: separate owned-read status revision added and exact 8s assertion passes.",
       "Sync feedback below fold at 1366x768: moved to fixed toolbar without changing CSS."
     ],
-    "independentPublishedReviews": "Pending exact GitHub candidate.",
-    "productionDeployment": "Pending promotion after successful gates.",
-    "humanAcceptance": "NOT_EXECUTED — owner normal multiplayer use after delivery."
+    "independentPublishedReviews": {
+      "candidate": "165ad84a6215a6b2a73aac8d265e9ab8e2b02a40",
+      "technical": "APPROVED",
+      "frontendVisualDocumentation": "APPROVED",
+      "findingsOpen": 0,
+      "githubVerification": "Actual commit, base comparison and exact blobs verified through GitHub API by both independent reviewers.",
+      "reportSha256": {
+        "independent-published-backend-review.json": "d6596521495f5a6de63e201f47a8568ffb40e0eb953ab9af6725e364d441a608",
+        "independent-frontend-review-final.json": "07261dd0c4afc264edbb23c365fec61ecbee612ce0fc419909778cf13363af54"
+      }
+    },
+    "productionDeployment": {
+      "sha": "165ad84a6215a6b2a73aac8d265e9ab8e2b02a40",
+      "railway": {
+        "id": "fefdd585-985b-4eaf-8c33-89619551e8c1",
+        "status": "SUCCESS",
+        "applicationReadyUtc": "2026-10-14T05:54:54.269489649Z",
+        "replicas": 1,
+        "pendingWork": 0,
+        "issues": 0,
+        "migrations": "No pending migrations to apply."
+      },
+      "cloudflare": {
+        "sha": "165ad84a6215a6b2a73aac8d265e9ab8e2b02a40",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/a4d9239d-a11b-4713-b136-acbf4e227666",
+        "startedAt": "2026-10-14T05:54:40Z",
+        "completedAt": "2026-10-14T05:54:40Z",
+        "preview": "https://a4d9239d.gachaimpact.pages.dev",
+        "productionHttp": 200,
+        "previewHttp": 200,
+        "productionAssetsMatchExactDeployment": true,
+        "artifactChecks": [
+          {
+            "path": "/assets/index-aRIJYfMj.js",
+            "http": 200,
+            "sha256": "52275e8f5d83c17e71d2d2a4dcc82820d08ed6025c59280d1cfdbe47f867b1d7"
+          },
+          {
+            "path": "/assets/index-p5FgGXaB.css",
+            "http": 200,
+            "sha256": "b9da6a6d7bd72ac2237cc288eeeb516478dc0a194775606dbf1e23b26ba6a294"
+          }
+        ]
+      },
+      "postflight": {
+        "at": "2026-10-14T05:55:10.415Z",
+        "readOnly": true,
+        "health": [
+          {
+            "url": "https://gachaimpact-production.up.railway.app/health",
+            "status": 200
+          },
+          {
+            "url": "https://gachaimpact.fr/",
+            "status": 200
+          },
+          {
+            "url": "https://gachaimpact.pages.dev/",
+            "status": 200
+          }
+        ],
+        "guards": [
+          {
+            "origin": "https://gachaimpact.fr",
+            "path": "/api/v1/contest",
+            "status": 401,
+            "exactCors": true
+          },
+          {
+            "origin": "https://gachaimpact.fr",
+            "path": "/api/v1/me/contest/legends",
+            "status": 401,
+            "exactCors": true
+          },
+          {
+            "origin": "https://gachaimpact.fr",
+            "path": "/api/v1/me/resources",
+            "status": 401,
+            "exactCors": true
+          },
+          {
+            "origin": "https://gachaimpact.pages.dev",
+            "path": "/api/v1/contest",
+            "status": 401,
+            "exactCors": true
+          },
+          {
+            "origin": "https://gachaimpact.pages.dev",
+            "path": "/api/v1/me/contest/legends",
+            "status": 401,
+            "exactCors": true
+          },
+          {
+            "origin": "https://gachaimpact.pages.dev",
+            "path": "/api/v1/me/resources",
+            "status": 401,
+            "exactCors": true
+          }
+        ]
+      }
+    },
+    "humanAcceptance": "NOT_EXECUTED — owner normal multiplayer use after delivery.",
+    "passiveObservation": {
+      "fromUtc": "2026-10-14T05:54:54.269489649Z",
+      "toUtc": "2026-10-14T05:55:50Z",
+      "contestGet": {
+        "natural200": 4,
+        "durationsMs": [
+          126,
+          103,
+          103,
+          96
+        ],
+        "qaAnonymous401": 2,
+        "observed503": 0
+      },
+      "contestStageWarningsOrErrors": 0,
+      "limit": "Very short window with four natural successful reads; no authenticated public gameplay or proof of indefinite continuity."
+    }
   },
   "limits": [
     "503 protection remains intentional; a GET owning new reconciliation may still wait on its SQL. No SQL deadline or cancellation claimed.",
@@ -154,6 +272,16 @@
       "frontend": "54b7d47a8f2401d7175fca0ff4dda57c62cbff98",
       "tests": "5da602b81d222701ee823d608150c8d675e1dde5",
       "documentation": "The subsequent R1086 documentation commits in Git history, newest first."
+    },
+    "rehearsal": {
+      "candidate": "165ad84a6215a6b2a73aac8d265e9ab8e2b02a40",
+      "baseline": "d416eea9f7589423cc4b8a790b31d3b0ebe4e60b",
+      "method": "git revert --no-commit 165ad84a 5da602b8 54b7d47a in private detached worktree",
+      "result": "PASS",
+      "fullTreeEqual": "3ef82eb740e2af3e2a22862d415addc3fbdbf3b5",
+      "conflicts": 0,
+      "cleanup": "Own rehearsal changes restored; clean temporary worktree removed."
     }
-  }
+  },
+  "checkpoint": "This documentation checkpoint preserves reviewed runtime 54b7d47a. Its own SHA follows review, strict main fast-forward and exact deployment checks; no self-referential commit loop."
 }
