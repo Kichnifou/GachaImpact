@@ -23,7 +23,8 @@
     padding-block: 10px;
   }
   .daily-tracker[data-compact] .daily-tracker-heading { grid-template-columns: minmax(0, 1fr) 24px 24px; grid-template-rows: 24px; }
-  .daily-tracker[data-compact] .daily-tracker-restore { grid-column: 3; grid-row: 1; align-self: center; }
+  .daily-tracker[data-compact] .daily-tracker-restore { grid-column: 2; grid-row: 1; align-self: center; }
+  .daily-tracker[data-compact] .daily-tracker-hide { grid-column: 3; }
   .daily-tracker[data-compact] .daily-tracker-heading > div:first-child { grid-row: 1; }
   .daily-tracker[data-compact] .daily-tracker-content { justify-content: center; padding-block: 4px; }
   .daily-tracker[data-compact] .daily-tracker-summary { margin: 0; text-align: center; }
