@@ -41,9 +41,9 @@
 }
 @container team-card (max-width: 260px) {
   .team-screen .team-card-actions { gap: 4px; }
-  .team-screen .team-card-primary-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .team-screen .team-card-primary-actions { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr); gap: 4px; }
   .team-screen .team-card-primary-actions .danger-action { grid-column: 1 / -1; }
-  .team-screen .team-card-actions button { font-size: clamp(9px, 6cqw, 13px); padding: 3px; min-height: 22px; }
+  .team-screen .team-card-actions button { font-size: clamp(9px, 6cqw, 13px); padding: 2px; min-height: 22px; }
   .team-screen .team-card-move-actions { gap: 4px; }
   .team-screen .team-card-move-actions button { width: clamp(22px, 22cqw, 42px); }
 }
