@@ -11,6 +11,8 @@
 .inventory-screen .inventory-card-action { font-size: 12px; }
 .inventory-screen .inventory-collection-summary { font-size: 12px; }
 .inventory-screen .inventory-collection-summary strong { font-size: 14px; }
+.inventory-screen .inventory-content .inventory-item { height: auto; min-height: 76px; }
+.inventory-screen .inventory-content .inventory-item-main { min-width: 0; box-sizing: border-box; }
 @media (min-width: 901px) {
   .inventory-screen .inventory-content { min-height: 0; }
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-scroll-body { overflow: visible; container-type: size; }
@@ -20,9 +22,9 @@
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 8px 12px; }
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-item { min-height: 76px; height: auto; }
   .inventory-screen .inventory-content.inventory-collection .inventory-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .inventory-screen .inventory-collection .inventory-item-main { grid-template-columns: 30px minmax(0, 1fr); padding: 8px; gap: 5px 7px; }
-  .inventory-screen .inventory-collection .inventory-item-main .item-amount { grid-column: 1; grid-row: 2; font-size: 12px; }
-  .inventory-screen .inventory-collection .inventory-item-main > div { grid-column: 2; grid-row: 1 / span 2; }
+  .inventory-screen .inventory-collection .inventory-item-main { grid-template-columns: 36px minmax(0, 1fr) auto; padding: 10px; gap: 8px; align-items: center; }
+  .inventory-screen .inventory-collection .inventory-item-main .item-amount { grid-column: 3; grid-row: 1; font-size: 12px; }
+  .inventory-screen .inventory-collection .inventory-item-main > div { grid-column: 2; grid-row: 1; }
   .inventory-screen .inventory-collection .item-icon { width: 36px; height: 36px; }
 }
 @media (min-width: 1121px) and (max-height: 650px) {
