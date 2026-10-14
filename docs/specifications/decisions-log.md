@@ -2,7 +2,7 @@
 
 ## R1092 — dernières finitions après retour public R1091 (14/10/2026)
 
-Trois demandes propriétaire validées : commandes hover Équipe aux proportions de la référence large sans toucher aux cartes ; gabarit Passifs stable entre 1–4 effets, référence physique à quatre effets conservée ; solde Shop un peu agrandi et trois cartes occupant le bas utile, feedbacks vrais et centrage des quantités R1091 conservés. Les interactions, données, règles métier, Tutoriel et autres surfaces R1091 restent inchangés. Code local implémenté ; tests, qualification, reviews, promotion, déploiements et recette humaine sont distingués au Master. Pas de nouvelle décision d'architecture ni de passe mobile.
+Trois demandes propriétaire validées : commandes hover Équipe aux proportions de la référence large sans toucher aux cartes ; gabarit Passifs stable entre 1–4 effets, référence physique à quatre effets conservée ; solde Shop un peu agrandi et trois cartes occupant le bas utile, feedbacks vrais et centrage des quantités R1091 conservés. Les interactions, données, règles métier, Tutoriel et autres surfaces R1091 restent inchangés. Code implémenté, qualifié, double review indépendante approuvée, promu main FF et déployé avec postflight PASS ; preuves et SHA au Master. Recette esthétique propriétaire encore attendue. Pas de nouvelle décision d'architecture ni de passe mobile.
 
 <a id="finitions-desktop-finales-après-r1090--décision-propriétaire-du-14102026-non-livrées"></a>
 ## R1091 — finitions desktop finales après R1090 (14/10/2026)
