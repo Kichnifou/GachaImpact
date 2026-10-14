@@ -43,6 +43,7 @@ describe('Social UI', () => {
     const container = await mount(own ? <ProfileSurface api={api} /> : <ProfileVisitorSurface api={api} />)
     await click(container, 'Box')
     const names = () => [...container.querySelectorAll('.character-card h3')].map(node => node.textContent)
+    expect(container.querySelector('.profile-frame .collection-results-body.scroll-content-frame')).toBeTruthy()
     const press = async (label: string) => act(async () => container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click())
     const select = async (label: string, value: string) => act(async () => { const node = container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!; node.value = value; node.dispatchEvent(new Event('change', { bubbles: true })) })
     await press('Pyro'); await press('Hydro'); await press('Filtrer les personnages 5 étoiles')
