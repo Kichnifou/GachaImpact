@@ -1,5 +1,17 @@
 # Contrat de layout UI V1
 
+## Ajustements desktop restants après R1090 — non implémentés, 14/10/2026
+
+**Équipe :** retrouver à 1920×1080/chat ouvert les cartes plus larges de la capture référence et leurs proportions sans scroll ni rognage. Diminuer la hauteur des passifs par réduction coordonnée des icônes/textes/gaps, maintenir leur bas aligné et placer une action textuelle « Voir les passifs → » sur la ligne du titre à droite ; son clic ouvre la modale de référence comme avant. Supprimer le bouton Fiche du voile ; rendre la carte elle-même accessible au clic/clavier pour la fiche, en excluant les autres boutons/gestes (Changer/Retirer sur une ligne, flèches en dessous, drag/drop préservé). Les boutons doivent recevoir un état hover/focus visible et ne jamais être étirés ou tronqués. Équipe vide, partielle, 0–4 passifs et tutoriel inclus dans la qualification.
+
+**Shop Event :** conserver le rendu 1920×1080 déjà approuvé ; dans les grandes hauteurs, centrer verticalement le contrôle de quantité `− / input / + / MAX` au sein des cartes sans décaler les actions ni les sommes. Les montants restent autoritaires.
+
+**Sidebar Quotidiennes :** carte compactée permanente ; masquer la croix seulement dans l'état métier réellement terminé de toutes les activités, sans la masquer dans les autres états ni retirer le retour de navigation, la restauration ou le reset quotidien.
+
+**Événement Jeux :** rangée des onglets de jeux toujours sous celle de Général/Jeux/Shop/Classement en 1920×1080 et grand écran, chat ouvert. Réduire la typo des sous-onglets si utile. Supprimer le libellé « Activités · Événement » uniquement dans ce header ; afficher la période dynamique « Édition du J/M/AAAA au J/M/AAAA ». Garder titre, paliers, édition réelle et tutoriel. Si le budget vertical l'exige, rendre les 32 cases Crypte plus compactes sans cacher confirmation, focus, états/erreurs, ni créer de scroll. Fantôme et Sort doivent rester utilisables. Mesurer le viewport CSS réel et les rectangles du GameShell compilé ; l'absence de scrollbar visible n'est pas une preuve de non-clipping.
+
+**Statut :** demandes du propriétaire en attente de qualification/livraison ; elles superséderont seulement les variantes de présentation R1090 concernées après une livraison vérifiée. Aucun code modifié par ce checkpoint de passation.
+
 ## Finitions desktop — R1090, 14/10/2026
 
 Équipe : groupe centré avec vrais gaps entre cartes dont la largeur reste bornée par la hauteur ; cinq commandes entièrement contenues au hover et focus clavier, repli compact Fiche/Changer puis Retirer puis flèches. Portraits carrés et passifs au bord inférieur conservés.

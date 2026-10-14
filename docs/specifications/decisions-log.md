@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Finitions desktop finales après R1090 — décision propriétaire du 14/10/2026, non livrées
+
+Après la recette publique de R1090, le propriétaire demande **quatre ajustements ciblés**, sans rouvrir les autres surfaces : (1) Équipe selon les cinq captures (cartes aussi présentes qu'en référence, bloc passifs réduit, « Voir les passifs → » en haut à droite, carte cliquable pour Fiche, voile Changer/Retirer puis flèches, effets hover, aucune barre de défilement) ; (2) contrôles de quantité Event Shop centrés verticalement à grande résolution, rendu 1920 validé ; (3) croix de masquage Quotidiennes absente seulement quand le tracker est réellement totalement terminé ; (4) sous-onglets Fantôme/Crypte/Sort sous les onglets principaux, période d'édition courte à partir des vraies dates et libellé « Activités · Événement » supprimé, compaction Crypte si nécessaire sans scroll. Fonctionnalités, droits, transactions, économie, Twitch et Concours R1088 inchangés. **Ces décisions sont validées comme demandes ; aucune implémentation, publication ou recette du nouveau lot n'est encore prouvée.** État et prochaine action au Master ; règles fines au contrat UI. Future passe mobile seulement après ces finitions ; ne pas la lancer par cette passation.
+
 ## R1090 — sept finitions desktop après recette R1089 (14/10/2026)
 
 Mandat propriétaire validé pour sept lots et leur cycle complet review indépendante → main FF → déploiements/postflight, depuis R1089 0ae5e4d0959b413bc1b922c4baaf460def7c9651. Recette propriétaire R1089 acquise : Classement Event, filtres Box Profil, Sidebar Quotidiennes, Missions Profil, Statistiques Profil, mécanismes des modales Personnalisation et Aperçu Quotidiennes. Ces acquis restent protégés.
