@@ -26,13 +26,19 @@ export function initialBoxFiltersWithPreference(preference?: BoxSortPreferenceDt
 export const boxElements: readonly ElementKey[] = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']
 
 export function presentBoxCharacters(characters: readonly BoxCharacterDto[], filters: BoxFilters): BoxCharacterDto[] {
+  return filterBoxCharacters(characters, filters)
+    .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareBoxCharacters(left, right, filters))
+}
+
+type FilterableCharacter = Pick<BoxCharacterDto, 'name' | 'rarity' | 'elementKey' | 'constellation' | 'firstObtainedAt'>
+
+export function filterBoxCharacters<T extends FilterableCharacter>(characters: readonly T[], filters: BoxFilters): T[] {
   const search = normalizeSearch(filters.search)
   return characters
     .filter((character) => filters.tab === 'all' || character.rarity === filters.tab)
     .filter((character) => filters.element.length === 0 || filters.element.includes(character.elementKey))
     .filter((character) => filters.constellation === 'all' || character.constellation === filters.constellation)
     .filter((character) => !search || normalizeSearch(character.name).includes(search))
-    .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareCharacters(left, right, filters))
 }
 
 export function replaceFavorite(characters: readonly BoxCharacterDto[], characterId: string, favorite: boolean) {
@@ -47,7 +53,7 @@ function groupRank(character: BoxCharacterDto, tab: BoxRarityTab) {
   return character.favorite ? 0 : 1
 }
 
-function compareCharacters(left: BoxCharacterDto, right: BoxCharacterDto, filters: BoxFilters) {
+export function compareBoxCharacters(left: FilterableCharacter, right: FilterableCharacter, filters: BoxFilters) {
   let result: number
   switch (filters.sort) {
     case 'obtainedAt': result = Date.parse(left.firstObtainedAt) - Date.parse(right.firstObtainedAt); break

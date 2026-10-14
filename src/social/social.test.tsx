@@ -35,6 +35,33 @@ function ProfileSurface({ api, refreshToken = 0 }: { api: SocialActions; refresh
 function ProfileVisitorSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="other" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
 function PlayersSurface({ api, onProfile, onDirectory, onClose }: { api: SocialActions; onProfile: (id: string) => void; onDirectory: () => void; onClose: () => void }) { const controller = useFriendships(api); const [value, setValue] = useState<Awaited<ReturnType<SocialActions['connected']>> | null>(null); useEffect(() => { void api.connected().then(setValue) }, [api]); return <OnlinePlayersPanel value={value} error={false} ownerPlayerId="owner" controller={controller} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} /> }
 describe('Social UI', () => {
+  it.each([true, false])('uses local multi-element Box filters, real dates and constellation for owner=%s', async own => {
+    const api = actions()
+    const record = (name: string, elementKey: 'pyro' | 'hydro' | 'cryo', rarity: 4 | 5, constellation: number, date: string) => ({ id: name, externalKey: name, name, elementKey, rarity, constellation, firstObtainedAt: date, copies: constellation + 1, weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null })
+    const characters = [record('Alpha', 'pyro', 5, 0, '2026-01-03'), record('Beta', 'hydro', 5, 0, '2026-01-01'), record('Gamma', 'cryo', 5, 6, '2026-01-02'), record('Delta', 'hydro', 4, 0, '2026-01-04')]
+    api.profile = vi.fn(async () => ({ ...profile, own, box: { access: 'ALLOWED', data: characters } }))
+    const container = await mount(own ? <ProfileSurface api={api} /> : <ProfileVisitorSurface api={api} />)
+    await click(container, 'Box')
+    const names = () => [...container.querySelectorAll('.character-card h3')].map(node => node.textContent)
+    const press = async (label: string) => act(async () => container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click())
+    const select = async (label: string, value: string) => act(async () => { const node = container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!; node.value = value; node.dispatchEvent(new Event('change', { bubbles: true })) })
+    await press('Pyro'); await press('Hydro'); await press('Filtrer les personnages 5 étoiles')
+    expect(names()).toEqual(['Alpha', 'Beta'])
+    await select('Critère de tri', 'obtainedAt'); expect(names()).toEqual(['Beta', 'Alpha'])
+    await select('Constellation', '6'); expect(names()).toEqual([])
+    await select('Constellation', 'all'); await press('Hydro'); expect(names()).toEqual(['Alpha'])
+    await press('Pyro'); await press('Filtrer les personnages 5 étoiles'); expect(names()).toEqual(['Beta', 'Gamma', 'Alpha', 'Delta'])
+    expect(container.querySelector('.character-card button')).toBeNull()
+    expect(api.saveFriendSort).not.toHaveBeenCalled()
+  })
+  it('does not show Box controls or leak cards through a private projection', async () => {
+    const api = actions(); api.profile = vi.fn(async () => ({ ...profile, box: { access: 'PRIVATE' } }))
+    const container = await mount(<ProfileVisitorSurface api={api} />)
+    await click(container, 'Box')
+    expect(container.querySelector('.box-filter-bar')).toBeNull()
+    expect(container.querySelector('.character-card')).toBeNull()
+    expect(container.textContent).toContain('Cette rubrique est privée.')
+  })
   it('rereads the profile on external refresh while keeping its selected tab', async () => {
     const api = actions(), container = await mount(<ProfileSurface api={api} />)
     await click(container, 'Box')

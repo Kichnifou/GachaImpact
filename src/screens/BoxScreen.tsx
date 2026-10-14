@@ -1,14 +1,13 @@
 import { useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { BoxCharacterDto, BoxSortPreferenceDto, DailyCombatDto, ElementKey, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, PlayerBoxDto, StellaUseDto } from '../api/types'
-import type { BoxConstellationFilter, BoxFilters, BoxSortKey } from '../box/box-presentation'
+import type { BoxFilters } from '../box/box-presentation'
 import { initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
 import { useBoxCollection } from '../box/use-box-collection'
 import type { StellaResultPresentation } from '../box/stella-result-presentation'
 import BoxCharacterCard from '../components/BoxCharacterCard'
 import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
-import CollectionFilterChips from '../components/CollectionFilterChips'
-import '../box/box-filter-bar.css'
+import BoxFiltersBar from '../box/BoxFiltersBar'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { createExpeditionIdempotencyKey } from '../expedition/expedition-intent'
@@ -150,16 +149,6 @@ function BoxSummary({ summary }: { summary: PlayerBoxDto['summary'] }) {
   return <div className="collection-summary box-summary" aria-label="Résumé de la Box"><span><strong>{summary.totalOwned}</strong> obtenus</span><span><strong>{summary.fiveStars}</strong> 5★</span><span><strong>{summary.fourStars}</strong> 4★</span><span><strong>{summary.c6}</strong> C6</span></div>
 }
 
-function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (filters: BoxFilters) => void }) {
-  const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
-  return <div data-tutorial-anchor="box-filters" className="collection-filters box-filter-bar panel">
-    <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={event => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
-    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} elements={filters.element} onRarity={value => update('tab', value ?? 'all')} onElements={value => update('element', value)} />
-    <label className="sort-select box-constellation-filter"><span>Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
-    <label className="sort-select"><span>Trier</span><select aria-label="Critère de tri" value={filters.sort} onChange={event => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
-    <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
-  </div>
-}
 
 export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 'error' | 'empty'; title: string; detail: string; onRetry?: () => void }) {
   return <section className={`panel box-status ${kind}`} role={kind === 'error' ? 'alert' : 'status'}><span aria-hidden="true">{kind === 'loading' ? '✦' : kind === 'error' ? '!' : '◇'}</span><h2 data-tutorial-anchor="screen-entry" data-tutorial-state={kind === "loading" ? "loading" : undefined}>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>

@@ -6,7 +6,8 @@ import '../social/profile-missions-layout.css'
 import ProfileFavorCard from '../components/ProfileFavorCard'
 import AppButton from '../components/AppButton'
 import CharacterCard from '../components/CharacterCard'
-import CollectionFilters, { type CharacterRarityFilter, type CharacterSortDirection, type CharacterSortKey } from '../components/CollectionFilters'
+import BoxFiltersBar from '../box/BoxFiltersBar'
+import { compareBoxCharacters, filterBoxCharacters, initialBoxFilters, type BoxFilters } from '../box/box-presentation'
 import InventoryObjectCard from '../components/InventoryObjectCard'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import ScreenHeader from '../components/ScreenHeader'
@@ -14,8 +15,7 @@ import GameAssetIcon from '../components/GameAssetIcon'
 import PlayerAvatar from '../components/PlayerAvatar'
 import AppearancePanel from './AppearancePanel'
 import MissionProjectionView from '../missions/MissionProjectionView'
-import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
-import type { DirectMessagePlayerDto, ElementKey, PermanentMissionProjectionDto } from '../api/types'
+import type { DirectMessagePlayerDto, PermanentMissionProjectionDto } from '../api/types'
 import { presenceLabels, type Access, type GeneralStatistics, type Profile, type SocialActions } from '../social/types'
 import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
 import { getElementAssetPath } from '../utils/gameAssets'
@@ -53,7 +53,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
   const tab = presentation.active && presentation.step?.view?.startsWith('Personnalisation') ? 'Personnalisation' : guidedTab
   const [missions, setMissions] = useState<Access<PermanentMissionProjectionDto> | null>(null), [missionsError, setMissionsError] = useState(''), [missionsRequest, setMissionsRequest] = useState(0)
   const [missionsTarget, setMissionsTarget] = useState('')
-  const [query, setQuery] = useState(''), [rarity, setRarity] = useState<CharacterRarityFilter>('all'), [element, setElement] = useState<ElementKey | null>(null), [sortKey, setSortKey] = useState<CharacterSortKey>('name'), [direction, setDirection] = useState<CharacterSortDirection>('asc')
+  const [boxFilters, setBoxFilters] = useState<BoxFilters>(initialBoxFilters)
   const clearFeedback = controller.clearFeedback
   useEffect(() => () => clearFeedback(), [clearFeedback])
   useEffect(() => {
@@ -91,13 +91,13 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
   </div>
   return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' || tab === 'Missions' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
-    <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
+    <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <BoxFiltersBar filters={boxFilters} onChange={setBoxFilters} />}</>}>
       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
         {tab === 'Aperçu' && <div className="profile-overview"><div className="profile-identity"><PlayerAvatar {...value.player} /><div className="profile-identity-copy"><div className="profile-name-line"><h2>{value.player.displayName}</h2><span className="profile-element" role="img" aria-label={value.player.elementKey ? `Élément ${elementLabels[value.player.elementKey]}` : 'Élément non choisi'}>{value.player.elementKey && <GameAssetIcon src={getElementAssetPath(value.player.elementKey)} fallback="✦" />}</span></div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} /></div>}
         {tab === 'Personnalisation' && value.own && <AppearancePanel actions={actions} displayName={value.player.displayName} elementKey={value.player.elementKey} onChanged={refreshAppearance} />}
         {tab === 'Team active' && team}
         {tab === 'Box' && <Section value={value.box}>{characters => {
-          const filtered = characters.map(c => ({ ...c, classKey: null })).filter(c => normalizeCharacterSearch(c.name).includes(normalizeCharacterSearch(query)) && (rarity === 'all' || c.rarity === rarity) && (!element || c.elementKey === element)).sort((a, b) => (direction === 'asc' ? 1 : -1) * compareCharacters(a, b, sortKey))
+          const filtered = filterBoxCharacters(characters, boxFilters).sort((a, b) => compareBoxCharacters(a, b, boxFilters)).map(c => ({ ...c, classKey: null }))
           return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}
             {value.legends && <Section value={value.legends}>{data => data.characters.length > 0 && <section aria-label="Légendes C6"><h2>Légendes C6</h2>{data.characters.map(character => {
               const legend = data.legends.find(item => item.character.id === character.id)
