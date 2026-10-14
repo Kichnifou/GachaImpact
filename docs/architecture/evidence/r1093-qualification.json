@@ -94,7 +94,7 @@
     "mutations": 0,
     "proof": {
       "path": "local-data/r1093/qualification.json",
-      "sha256": "1630fb05bfbf3b7b2b2d7ea10d19b16859238ed96b7756130cdc4d0554c9f5b3"
+      "sha256": "ea84cd0b44f9f64666b49f84a2fef0d9ad18b5d4f171267c878a6261c08e17bc"
     },
     "supplement": {
       "checks": 7,
@@ -114,8 +114,8 @@
       "sha256": "ac7a67dfc418a75aef1647993bf1da5e8bb4cf0f582fa54d46664ef0932b31e2"
     },
     {
-      "name": "index-DC2Zwcp8.js",
-      "sha256": "47af5647ccfadd6ca6d4b61b7920a6de40a536b1e733614353c44c410c1c39c5"
+      "name": "index-CcFjIADY.js",
+      "sha256": "12b45830d6cbbce6cb2332beba060c6173a53348135452ed704e58168e546629"
     }
   ],
   "rollout": "After independent approval deploy backend-only ancestor first, wait exact Railway readiness and no pending, then strict FF main to final candidate; old frontend consumes projected legacy responses in between",
@@ -137,8 +137,12 @@
       "sha256": "7bdc645442ce5761a2f2937c57608358c90e7b39175014822309bf33a9fcf266"
     },
     {
-      "path": "local-data/r1093/full.log",
-      "sha256": "1d1f24476436d347a879fd254f0ac5230b766e15d5837f38ca87cdebc0101387"
+      "path": "local-data/r1093/full-final.log",
+      "sha256": "3708f25d55b9465e7f70adc19389aaf8429192ffd2ced7e908c1cae2ce3b7cca"
     }
-  ]
+  ],
+  "commits": {
+    "backend": "1ffe3d1afa39fec79a1f8d5f47366dfc4755bebd",
+    "frontend": "be907ac37384d347f568060426dfee290793fad0"
+  }
 }
