@@ -78,6 +78,22 @@ describe('daily navigation titles A/B', () => {
 })
 
 describe('tracker card hit target and compact Home footer', () => {
+  it('omits only secondary Event text while retaining Expedition and actionable Event access', async () => {
+    const source = projectDailies(dailySources())
+    const event = source.find(item => item.id === 'event')!
+    const expedition = source.find(item => item.id === 'expedition')!
+    await render({ items: [
+      { ...event, state: 'waiting', actionable: false, status: 'En attente du Jeu A.', detail: 'Festival des Ombres · 70 Bonbons Maudits' },
+      { ...expedition, state: 'completed', actionable: false, status: 'Terminé', detail: 'Skirk · 13:57:21' },
+    ] })
+    const home = container.querySelector('.home-daily-summary')!
+    expect(home.querySelector('.home-daily-ongoing [data-daily-id="event"]')).toBeNull()
+    expect(home.textContent).not.toContain('En attente du Jeu A.')
+    expect(home.querySelector('.home-daily-ongoing [data-daily-id="expedition"]')?.textContent).toContain('Skirk · 13:57:21')
+    await render({ items: [{ ...event, state: 'available', actionable: true }] })
+    await click('.home-daily-suggestion[data-daily-id="event"]')
+    expect(opening).toHaveBeenCalledWith(expect.objectContaining({ id: 'event' }))
+  })
   it('opens the selected destination through one accessible sibling button without visible action text', async () => {
     await render(); await click('[aria-label="Activité suivante"]')
     const target = container.querySelector<HTMLButtonElement>('.daily-tracker-hit-target')!
