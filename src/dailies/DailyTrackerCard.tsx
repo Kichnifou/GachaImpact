@@ -31,7 +31,7 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
   const completed = !selected && tracker.message === 'Terminé ✅'
   useDailyResetCountdown(completed, tracker.businessDate)
   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id) && (item.state === 'waiting' || item.state === 'in_progress' || item.actionable))?.deadline
-  const status = currentMessage || (selected ? ['error', 'unknown', 'waiting', 'in_progress', 'completed'].includes(selected.state) ? dailyTrackerStatus(selected) : '' : completed ? '' : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
+  const status = currentMessage || (selected ? selected.id === 'event' && selected.state === 'waiting' ? '' : ['error', 'unknown', 'waiting', 'in_progress', 'completed'].includes(selected.state) ? dailyTrackerStatus(selected) : '' : completed ? '' : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
   const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
   return <section data-tutorial-anchor="daily-tracker" data-compact data-completed={completed && !currentMessage && !refreshing} className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
     <button type="button" className="daily-tracker-hit-target" disabled={!actionable} aria-label={selected ? `${isClaim ? 'Récupérer' : 'Accéder à'} ${selected.title}` : 'Activité indisponible'} onClick={run} />
