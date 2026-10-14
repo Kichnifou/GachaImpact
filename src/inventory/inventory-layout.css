@@ -34,7 +34,11 @@
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-grid { padding-block: 4px; gap: 5px; }
   .inventory-screen .inventory-content:not(.inventory-all) .inventory-item { min-height: 62px; }
   .inventory-screen .inventory-collection .item-icon { width: 26px; height: 26px; }
-  .inventory-screen .inventory-collection .inventory-item-main { padding: 5px; }
+  .inventory-screen .inventory-collection .inventory-item-main { padding: 5px; grid-template-columns: 26px minmax(0, 1fr); gap: 3px 5px; }
+  .inventory-screen .inventory-collection .inventory-item-main .item-amount { grid-column: 1; grid-row: 2; }
+  .inventory-screen .inventory-collection .inventory-item-main > div { grid-row: 1 / span 2; }
+  .inventory-screen .inventory-collection .inventory-item-main p { font-size: 10px; line-height: 1.2; }
+  .inventory-screen .inventory-collection .inventory-item-main strong { line-height: 1.2; }
   .inventory-screen .inventory-collection .inventory-item-main strong { font-size: 12px; }
   .inventory-screen .inventory-collection-summary { padding-block: 5px; }
 }
