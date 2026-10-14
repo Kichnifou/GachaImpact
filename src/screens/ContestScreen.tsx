@@ -10,6 +10,7 @@ import CharacterAssetImage from '../components/CharacterAssetImage'
 import AppButton, { type AppButtonVariant } from '../components/AppButton'
 import ModalCloseButton from '../components/ModalCloseButton'
 import '../contest/contest-empty-layout.css'
+import '../contest/contest-lobby-layout.css'
 import ScreenHeader from '../components/ScreenHeader'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { useModalDialog } from '../components/useModalDialog'
@@ -109,7 +110,7 @@ export default function ContestScreen(props: Props) {
   const toolbarTheme = props.value.active?.theme ?? props.value.theme
   const fixed = <div className="contest-toolbar"><div><span className={syncError ? "contest-sync-feedback error" : "eyebrow"} role={syncError ? "status" : undefined} title={syncError ?? undefined} aria-label={syncError ?? undefined}>{syncError ? (syncError.includes("Reconnectez-vous") ? "Session invalide" : "Synchronisation\u2026") : props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><AppButton onClick={() => setLegendsOpen(true)}>Mes Légendes</AppButton><AppButton onClick={() => void openHistory()}>Historique</AppButton></div></div>
 
-  return <div data-business-pending={Boolean(pending)} className="screen-content contest-screen long-screen-layout">
+  return <div data-fit-screen={props.value.active?.status === 'LOBBY' ? '' : undefined} data-business-pending={Boolean(pending)} className="screen-content contest-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Concours" />
     <ScrollableScreenPanel className="contest-frame" bodyClassName="contest-scroll-body" fixed={fixed}>
       <div data-tutorial-anchor={props.value.active?.status === "RUNNING" ? "contest-play" : "contest-lobby"} className="contest-body">
@@ -210,7 +211,7 @@ function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLege
     }
   }
   const readySignature = `ready:${!me?.ready}`
-  return <div className="contest-active-layout">
+  return <div className="contest-active-layout contest-lobby-layout">
     <section className="panel contest-state-header"><div><span className="eyebrow">Lobby public</span><h2>En attente des participants</h2></div><Countdown label="Fermeture" deadline={contest.lobbyDeadlineAt} now={props.now} /></section>
     <ParticipantGrid contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove:${playerId}`, (key) => props.onRemoveParticipant(playerId, key))} pending={props.pending} />
     <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => void props.run(`remove-spectator:${playerId}`, (key) => props.onRemoveSpectator(playerId, key))} pending={props.pending} />

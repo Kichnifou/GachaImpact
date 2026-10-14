@@ -1,0 +1,44 @@
+@media (min-width: 1121px) {
+  .contest-screen:has(.contest-lobby-layout) .contest-scroll-body { overflow: visible; container-type: size; }
+  .contest-screen .contest-body:has(.contest-lobby-layout) { height: 100%; min-height: 0; grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
+  .contest-screen .contest-lobby-layout { height: 100%; grid-template-rows: max-content minmax(min-content, 1fr) max-content max-content max-content; gap: clamp(4px, 1.5cqh, 12px); }
+  .contest-lobby-layout .contest-state-header { position: static; min-height: 0; padding: 8px 12px; }
+  .contest-lobby-layout .contest-participant-grid { min-height: 0; grid-auto-rows: minmax(0, 1fr); }
+  .contest-lobby-layout .contest-participant { min-height: 0; padding: 8px; align-content: center; }
+  .contest-lobby-layout .contest-spectators { min-height: 0; }
+  .contest-lobby-layout .contest-action-region { min-height: 0; padding: 8px 12px; }
+  .contest-lobby-layout .contest-footer-actions { min-height: 0; }
+}
+@media (min-width: 1121px) and (max-height: 650px) {
+  .contest-screen:has(.contest-lobby-layout) > .screen-header { display: flex; align-items: center; gap: 10px; padding: 4px 10px; }
+  .contest-screen:has(.contest-lobby-layout) > .screen-header h1 { margin: 0; font-size: 20px; }
+  .contest-screen:has(.contest-lobby-layout) > .screen-header > div { display: flex; align-items: center; gap: 12px; }
+  .contest-screen:has(.contest-lobby-layout) .contest-toolbar { padding: 2px 4px; }
+  .contest-screen:has(.contest-lobby-layout) .contest-toolbar .app-button { min-height: 28px; padding: 3px 8px; font-size: 12px; }
+  .contest-screen .contest-lobby-layout { grid-template-columns: minmax(0, 1fr) auto; grid-template-rows: max-content minmax(min-content, 1fr) max-content max-content; }
+  .contest-lobby-layout .contest-state-header { grid-column: 1; grid-row: 1; }
+  .contest-lobby-layout .contest-footer-actions { grid-column: 2; grid-row: 1; }
+  .contest-lobby-layout .contest-participant-grid { grid-column: 1 / -1; grid-row: 2; }
+  .contest-lobby-layout .contest-spectators { grid-column: 1 / -1; grid-row: 3; }
+  .contest-lobby-layout .contest-action-region { grid-column: 1 / -1; grid-row: 4; }
+  .contest-lobby-layout .contest-legend-select select { min-height: 28px; padding: 3px 6px; }
+  .contest-lobby-layout .contest-lobby-controls { align-items: center; }
+  .contest-lobby-layout .contest-legend-select { gap: 3px; }
+  .contest-lobby-layout .contest-legend-select { display: grid; grid-template-columns: 74px minmax(0, 1fr); align-items: center; }
+  .contest-lobby-layout .contest-state-header > div:first-child { display: grid; gap: 0; }
+  .contest-lobby-layout .contest-state-header .eyebrow { font-size: 8px; }
+  .contest-lobby-layout .contest-state-header h2 { font-size: 11px; line-height: 1.2; margin: 0; }
+  .contest-lobby-layout .contest-countdown strong { font-size: 13px; }
+  .contest-lobby-layout .contest-participant:not(.contest-free-slot) { grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: repeat(4, max-content); column-gap: 5px; }
+  .contest-lobby-layout .contest-participant:not(.contest-free-slot) .contest-avatar { grid-column: 1; grid-row: 1 / span 4; align-self: center; }
+  .contest-lobby-layout .contest-participant:not(.contest-free-slot) > :not(.contest-avatar) { grid-column: 2; }
+  .contest-lobby-layout .contest-participant p { margin: 0; }
+  .contest-lobby-layout .contest-participant { gap: 3px; padding: 5px; }
+  .contest-lobby-layout .contest-participant .contest-avatar { width: 32px; height: 32px; }
+  .contest-lobby-layout .contest-participant h3 { font-size: 13px; margin: 0; }
+  .contest-lobby-layout .contest-state-header { padding: 4px 8px; }
+  .contest-lobby-layout .contest-state-header h2 { font-size: 14px; }
+  .contest-lobby-layout .contest-action-region { padding: 5px; }
+  .contest-lobby-layout .contest-mutation-button { min-width: 0; min-height: 28px; padding: 3px 8px; }
+  .contest-lobby-layout .contest-spectators { padding: 4px; }
+}
