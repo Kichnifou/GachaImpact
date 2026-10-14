@@ -34,6 +34,14 @@ const render = async (props: HarnessProps = {}) => act(async () => { root.render
 const click = async (selector: string) => act(async () => { container.querySelector<HTMLButtonElement>(selector)!.click() })
 
 describe('daily navigation titles A/B', () => {
+  it('keeps the compact presentation independent from completion and retains access', async () => {
+    const wheel = projectDailies(dailySources()).find(item => item.id === 'wheel')!
+    await render({ items: [{ ...wheel, state: 'available', actionable: true, status: 'Une tentative disponible.' }] })
+    expect(container.querySelector('.daily-tracker')?.hasAttribute('data-compact')).toBe(true)
+    expect(container.querySelector('.daily-tracker')?.getAttribute('data-completed')).toBe('false')
+    expect(container.querySelector('.daily-tracker-status')).toBeNull()
+    await click('.daily-tracker-hit-target'); expect(opening).toHaveBeenCalledOnce()
+  })
   const six = () => projectDailies(dailySources()).filter(item => ['reward', 'wheel', 'challenge', 'combat', 'boss', 'event'].includes(item.id))
   const sidebarTitle = () => container.querySelector('.daily-tracker h2')?.textContent
   const homeTitle = () => container.querySelector('.home-daily-summary h2')?.textContent
