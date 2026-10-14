@@ -36,7 +36,7 @@ it.each([401, 403])('stops automatic retry on authentication/access failure %s',
     await act(async () => root.render(<ContestUnavailable availability={{ phase: 'unavailable', pending: false }} onRetry={retry} />))
     await act(async () => { await vi.advanceTimersByTimeAsync(120_000); window.dispatchEvent(new Event('focus')) })
     expect(retry).toHaveBeenCalledOnce()
-    expect(container.textContent).toContain('Reconnectez-vous')
+    expect(container.textContent).toContain(status === 401 ? 'Reconnectez-vous' : 'refusé')
     expect(vi.getTimerCount()).toBe(0)
   } finally { act(() => root.unmount()); vi.useRealTimers() }
 })
@@ -58,20 +58,62 @@ it('bounds prolonged failure retries and pauses hidden tabs', async () => {
   } finally { act(() => root.unmount()); Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' }); vi.useRealTimers() }
 })
 
-it('shows a retry after failure, suppresses duplicate pending requests and displays no invented result', async () => {
+it('keeps initial transient failure neutral and accessible without invented gameplay', async () => {
   const container = document.createElement('div'), root = createRoot(container)
-  const retry = vi.fn(async () => { throw new Error('still unavailable') })
+  const retry = vi.fn(async () => { throw new ApiError('TEMPORARY', 'temporary', 503) })
   try {
     await act(async () => root.render(<ContestUnavailable availability={{ phase: 'unavailable', pending: false }} onRetry={retry} />))
-    expect(container.textContent).toContain('Concours indisponible')
-    const button = container.querySelector('button')!
-    expect(button.className).toContain('app-button')
-    await act(async () => button.click())
-    expect(retry).toHaveBeenCalledTimes(2)
+    expect(container.querySelector('.unavailable-shell')).toBeNull()
+    expect(container.textContent).not.toContain('Concours indisponible')
+    expect(container.querySelector('button')).toBeNull()
+    expect(container.querySelector('[aria-busy="true"]')).not.toBeNull()
+    expect(container.querySelector('.contest-participant')).toBeNull()
+  } finally { act(() => root.unmount()) }
+})
+
+it.each([500, 503, null])('silently retries repeated %s failures then publishes the real result', async status => {
+  vi.useFakeTimers()
+  const container = document.createElement('div'), root = createRoot(container)
+  const load = vi.fn().mockRejectedValueOnce(new ApiError('READ_ERROR', 'read failed', status)).mockRejectedValueOnce(new ApiError('READ_ERROR', 'read failed', status)).mockResolvedValue('real-result')
+  function Surface() {
+    const [result, setResult] = useState<string | null>(null)
+    const [refresh] = useState(() => async () => { const value = await load(); setResult(value); return value })
+    return result ? <output>{result}</output> : <ContestUnavailable availability={{ phase: 'unavailable', pending: false }} onRetry={refresh} />
+  }
+  try {
+    await act(async () => root.render(<Surface />))
+    await act(async () => { await vi.advanceTimersByTimeAsync(6000) })
+    expect(container.querySelector('.contest-connection-status')).toBeNull()
+    expect(container.querySelector('button')).toBeNull()
+    await act(async () => { await vi.advanceTimersByTimeAsync(12000) })
+    expect(container.textContent).toBe('real-result')
+    expect(load).toHaveBeenCalledTimes(3)
+  } finally { act(() => root.unmount()); vi.useRealTimers() }
+})
+
+it('keeps a slow read owned, exposes only a compact persistent notice and recovers', async () => {
+  vi.useFakeTimers()
+  const container = document.createElement('div'), root = createRoot(container)
+  let resolve!: () => void
+  const retry = vi.fn(() => new Promise<void>(done => { resolve = done }))
+  try {
     await act(async () => root.render(<ContestUnavailable availability={{ phase: 'unavailable', pending: true }} onRetry={retry} />))
+    await act(async () => { await vi.advanceTimersByTimeAsync(59000); window.dispatchEvent(new Event('focus')) })
+    expect(container.querySelector('.contest-connection-status')).toBeNull()
+    expect(retry).toHaveBeenCalledOnce()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(container.querySelector('.contest-connection-status')).not.toBeNull()
     expect(container.querySelector('button')?.disabled).toBe(true)
-    expect(container.textContent).toContain('continuer à jouer')
-    expect(container.textContent).not.toContain('Titan')
-    expect(container.textContent).not.toContain('Force')
+    await act(async () => resolve())
+  } finally { act(() => root.unmount()); vi.useRealTimers() }
+})
+
+it('revalidates immediately on reconnect without waiting for the backoff', async () => {
+  const container = document.createElement('div'), root = createRoot(container)
+  const retry = vi.fn().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValue(undefined)
+  try {
+    await act(async () => root.render(<ContestUnavailable availability={{ phase: 'unavailable', pending: false }} onRetry={retry} />))
+    await act(async () => window.dispatchEvent(new Event('online')))
+    expect(retry).toHaveBeenCalledTimes(2)
   } finally { act(() => root.unmount()) }
 })

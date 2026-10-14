@@ -64,11 +64,79 @@ function mount(value: ContestDto, overrides: Partial<React.ComponentProps<typeof
 }
 
 describe('ContestScreen', () => {
+  it('keeps an open confirmation disabled through an outage and usable after recovery', () => {
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', turnDeadlineAt: '2099-01-01T00:00:00Z' }
+    const value = { ...base, active: running, permissions: { ...permissions, canCancel: true } }
+    const onCancel = vi.fn(async () => value)
+    const mounted = mount(value, { onCancel })
+    act(() => Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Annuler le Concours')!.click())
+    const modal = document.querySelector('[role="alertdialog"]')!
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} availability={{ phase: 'unavailable', pending: false }} />))
+    const yes = modal.querySelector<HTMLButtonElement>('[aria-label="Annuler le Concours"]')!
+    expect(yes.disabled).toBe(true)
+    act(() => yes.click())
+    expect(document.querySelector('[role="alertdialog"]')).toBe(modal)
+    expect(onCancel).not.toHaveBeenCalled()
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} availability={{ phase: 'ready', pending: false }} />))
+    expect(yes.disabled).toBe(false)
+  })
+  it('gates spectator support through the same presentation and exact deadline', async () => {
+    vi.useFakeTimers()
+    const deadline = Date.now() + 60_000
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'SUPPORT', supportDeadlineAt: new Date(deadline).toISOString(), viewer: { ...lobby.viewer, participantSlot: null, spectator: true, selectedForSupport: true }, participants: [{ ...lobby.participants[0]!, basePoints: 2 }] }
+    const value = { ...base, active: running, permissions: { ...permissions, canSupport: true } }
+    const onSupport = vi.fn(async () => value)
+    const mounted = mount(value, { onSupport })
+    const fresh = { ...value, active: { ...running, recentScoreChanges: [{ eventId: 'prior-turn', slot: 1, points: 3, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={fresh} />))
+    const button = mounted.container.querySelector<HTMLButtonElement>('.contest-card-actions button')!
+    expect(button.disabled).toBe(true)
+    expect(mounted.container.textContent).not.toContain('À vous de soutenir')
+    await act(async () => { await vi.advanceTimersByTimeAsync(1200) })
+    expect(button.disabled).toBe(false)
+    expect(mounted.container.textContent).toContain('À vous de soutenir')
+    // Expiry between the rendered clock ticks cannot bypass the handler gate.
+    vi.setSystemTime(deadline)
+    act(() => button.click())
+    expect(onSupport).not.toHaveBeenCalled()
+  })
+  it('ignores a failed old poll after a newer authoritative projection and keeps ordinary polling usable', async () => {
+    const first = deferred<ContestDto>()
+    const value = { ...base, active: lobby }
+    const mounted = mount(value, { onRefresh: vi.fn(() => first.promise) })
+    const fresh = { ...value }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={fresh} availability={{ phase: 'ready', pending: false }} />))
+    await act(async () => { first.reject(new ApiError('OLD_READ', 'old', 503)); await Promise.resolve() })
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={fresh} availability={{ phase: 'loading', pending: true }} />))
+    expect(mounted.container.querySelector('fieldset')?.disabled).toBe(false)
+  })
+  it('finishes prior score presentation before announcing and enabling the human turn', async () => {
+    vi.useFakeTimers()
+    const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', turnDeadlineAt: '2099-09-13T12:00:00Z', currentTurnOrder: 1, participants: [{ ...lobby.participants[0]!, basePoints: 2, activeTurn: true }] }
+    const value = { ...base, active: running, permissions: { ...permissions, canPlay: true } }
+    const mounted = mount(value, { onPlay: vi.fn(async () => value) })
+    const next = { ...value, active: { ...running, recentScoreChanges: [{ eventId: 'bot-prior', slot: 1, points: 2, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={next} />))
+    expect(mounted.container.querySelector('.contest-score-change')).not.toBeNull()
+    expect(mounted.container.textContent).not.toContain('À votre tour !')
+    const button = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Action de base')!
+    expect(button.disabled).toBe(true)
+    const risk = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Prendre un risque')!
+    expect(risk.disabled).toBe(true)
+    act(() => risk.click())
+    act(() => button.click())
+    expect(mounted.props.onPlay).not.toHaveBeenCalled()
+    await act(async () => { await vi.advanceTimersByTimeAsync(1_200) })
+    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+    expect(mounted.container.textContent).toContain('À votre tour !')
+    expect(button.disabled).toBe(false)
+    expect(risk.disabled).toBe(false)
+  })
   it('clears an old polling warning immediately when an external read or mutation publishes READY', async () => {
     const onRefresh = vi.fn(async (): Promise<ContestDto> => { throw new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503) })
     const { container, root, props } = mount(base, { onRefresh })
     await act(async () => { await Promise.resolve() })
-    expect(container.querySelector('.contest-sync-feedback')).not.toBeNull()
+    expect(container.querySelector('fieldset')?.disabled).toBe(true)
     await act(async () => root.render(<ContestScreen {...props} availability={{ phase: 'ready', pending: false }} />))
     expect(container.querySelector('.contest-sync-feedback')).toBeNull()
   })
@@ -85,7 +153,8 @@ describe('ContestScreen', () => {
     await act(async () => root.render(<ContestScreen {...props} availability={{ phase: 'unavailable', pending: false }} />))
     expect(container.querySelector('.contest-screen')).toBe(screen)
     expect(container.querySelector('.contest-legends-modal')).toBe(modal)
-    expect(container.querySelector('.contest-sync-feedback')?.getAttribute('title')).toContain('Nouvel essai automatique')
+    expect(container.querySelector('fieldset')?.disabled).toBe(true)
+    expect(container.querySelector('.contest-connection-status')).toBeNull()
     await act(async () => { await vi.advanceTimersByTimeAsync(4_000) })
     expect(onRefresh).toHaveBeenCalledTimes(3)
     await act(async () => root.render(<ContestScreen {...props} value={{ ...value, dailyUsed: true }} availability={{ phase: 'ready', pending: false }} />))
@@ -615,7 +684,8 @@ describe('ContestScreen', () => {
     const onRefresh = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValue(value)
     const { container } = mount(value, { onRefresh })
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
-    expect(container.querySelector('.contest-sync-feedback')?.getAttribute('title')).toContain('Synchronisation temporairement indisponible')
+    expect(container.querySelector('fieldset')?.disabled).toBe(true)
+    expect(container.querySelector('.contest-connection-status')).toBeNull()
     await act(async () => { window.dispatchEvent(new Event('focus')); await Promise.resolve(); await Promise.resolve() })
     expect(container.querySelector('.contest-sync-feedback')).toBeNull()
   })
@@ -719,6 +789,7 @@ describe('ContestScreen', () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
     act(() => document.dispatchEvent(new Event('visibilitychange')))
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    act(() => document.dispatchEvent(new Event('visibilitychange')))
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB] } }} />))
     expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB, eventC] } }} />))
