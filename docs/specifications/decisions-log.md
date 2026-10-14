@@ -2,7 +2,7 @@
 
 ## R1093 — actualisation additive du Tutoriel V1 (14/10/2026)
 
-Mandat validé : nouvelle première étape Affichage avec capture propriétaire réelle, raccourcis Accueil, Invocations partagées, Badges, Historique Activité et textes devenus incomplets. 121 étapes/24 chapitres ; moteur V1 conservé. Progressions existantes et aliases protégés, aucune relance automatique de COMPLETED, négociation compatible ancien/nouveau catalogue sans migration. Code implémenté ; gates techniques, publication, reviews indépendantes, déploiements et recette propriétaire distingués au Master. Aucun outil opérateur ni mutation métier de démonstration.
+Mandat validé : nouvelle première étape Affichage avec capture propriétaire réelle, raccourcis Accueil, Invocations partagées, Badges, Historique Activité et textes devenus incomplets. 121 étapes/24 chapitres ; moteur V1 conservé. Progressions existantes et aliases protégés, aucune relance automatique de COMPLETED, négociation compatible ancien/nouveau catalogue sans migration. Code qualifié, double review indépendante approuvée après correction Historique, backend compatible déployé avant frontend, puis postflight PASS. SHA et preuves au Master ; recette propriétaire encore attendue. Aucun outil opérateur ni mutation métier de démonstration.
 
 
 ## R1092 — dernières finitions après retour public R1091 (14/10/2026)

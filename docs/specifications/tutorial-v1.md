@@ -16,11 +16,11 @@ Le GameShell monté après auth/onboarding/élément/bootstrap utilise le gate d
 
 ## R1093 — contrat courant du parcours joueurs
 
-**121 étapes,24 chapitres et21 écrans joueurs.** Les cinq ajouts sont `display-settings` avant `profile`, `home-shortcuts` après `home`, `invocation-shared` après `invocation-actions`, `profile-badges` après `profile-titles`, `history-activity` après `history-event`. Les 116 IDs actifs de 25B restent présents, dans leur ordre relatif et avec leur signification. Treize textes évoluent : daily-tracker,home,box-filters,team-composition,dailies-wheel,event-ranking,contest-play,codes-available,profile-box,profile-avatars,profile-titles,chat-thread,configuration-account. Les fonctionnalités livrées R1051–R1092 ont été confrontées au Master et aux composants actuels ; outils Modération/ADMIN exclus. Le Chat enrichit son étape réelle, sans créer de faux résultat.
+**121 étapes, 24 chapitres et 21 écrans joueurs.** Les cinq ajouts sont `display-settings` avant `profile`, `home-shortcuts` après `home`, `invocation-shared` après `invocation-actions`, `profile-badges` après `profile-titles`, `history-activity` après `history-event`. Les 116 IDs actifs de 25B restent présents, dans leur ordre relatif et avec leur signification. Treize textes évoluent : daily-tracker,home,box-filters,team-composition,dailies-wheel,event-ranking,contest-play,codes-available,profile-box,profile-avatars,profile-titles,chat-thread,configuration-account. Les fonctionnalités livrées R1051–R1092 ont été confrontées au Master et aux composants actuels ; outils Modération/ADMIN exclus. Le Chat enrichit son étape réelle, sans créer de faux résultat.
 
 ### Présentation et interactions
 
-La première étape présente uniquement la capture propriétaire optimisée `/assets/tutorial/display-reference.webp` (2528×1250,234330 octets), composition préservée, pseudo et ligne communautaire neutralisés. L'original est conservé dans Downloads et n'est pas commité. La fenêtre est plus large, image à sa proportion naturelle, contenu à défilement réel si nécessaire et commandes accessibles. Instructions Ctrl+/Ctrl−/Ctrl0 sur ordinateur (⌘ sur Mac) ; sur mobile, information adaptée sans raccourci imposé. Aucun zoom/résolution/paramètre Windows forcé. Cette capture est une référence esthétique ; les autres étapes gardent leur spotlight sur l'interface réelle.
+La première étape présente uniquement la capture propriétaire optimisée `/assets/tutorial/display-reference.webp` (2528 × 1250, 234 330 octets), composition préservée, pseudo et ligne communautaire neutralisés. L'original est conservé dans Downloads et n'est pas commité. La fenêtre est plus large, image à sa proportion naturelle, contenu à défilement réel si nécessaire et commandes accessibles. Instructions Ctrl+/Ctrl−/Ctrl0 sur ordinateur (⌘ sur Mac) ; sur mobile, information adaptée sans raccourci imposé. Aucun zoom/résolution/paramètre Windows forcé. Cette capture est une référence esthétique ; les autres étapes gardent leur spotlight sur l'interface réelle.
 
 Ordre Précédent/Suivant/Pause/Terminer conservé, Précédent désactivé au début, dernière étape → COMPLETED/null ; Escape/Pause et clic extérieur/Suivant, retry directionnel, doubles clics, pending et génération Player conservés. ResizeObserver/resize/scroll coalescés recalculent le placement ; raccourcis natifs zoom libres, focus et inert/aria-hidden nettoyés. Préparation cancellable de la vraie vue/zone avant affichage, délai 10s ; erreur/absence/privé/verrouillage garde l'entrée réelle et un repli explicite. Une transition confirmée dont la préparation échoue ne réécrit pas le PUT au retry.
 
@@ -32,7 +32,7 @@ PlayerPreference `tutorial_v1` conserve strictement `{version:1,status,stepId}`,
 
 Départ/replay manuel nouveau : display-settings. Ancien IN_PROGRESS : reprise exacte. COMPLETED : aucun autostart, y compris sans marqueur préalable ; claim consomme le marqueur unique dans la même transaction mais conserve la préférence terminée et répond false. Marqueur existant : false sans write de progression. Claim concurrent : au plus une présentation, erreur transactionnelle rollback. Rejouer reste volontaire depuis Menu/Aide.
 
-Les requêtes capables portent `?catalog=r1093`. GET capable renvoie `{catalog:'r1093',preference}`, POST autostart ajoute le marqueur catalog même si shouldLaunch:false ; PUT ne reçoit/persiste que les trois clés historiques et retourne le DTO. Sans opt-in, les réponses projettent seulement les cinq nouveaux IDs vers profile/home/invocation-detail/profile-titles/history-event, sans écrire cette projection en GET. Les anciens clients restent donc utilisables. Un nouveau frontend devant un ancien serveur (DTO brut) conserve le catalogue116, son compteur, ses transitions et profile initial : aucun nouvel ID n'est envoyé. Le catalogue négocié est fixé pour le parcours actif. Les contrôles de déploiement exigent la disponibilité du backend compatible avant la clôture publique ; aucune version2 ni réinitialisation générale. Un retrait frontend peut conserver la projection legacy ; conserver le backend capable tant que de nouveaux IDs sont stockés, sans les effacer pour revenir à un ancien validateur.
+Les requêtes capables portent `?catalog=r1093`. GET capable renvoie `{catalog:'r1093',preference}`, POST autostart ajoute le marqueur catalog même si shouldLaunch:false ; PUT ne reçoit/persiste que les trois clés historiques et retourne le DTO. Sans opt-in, les réponses projettent seulement les cinq nouveaux IDs vers profile/home/invocation-detail/profile-titles/history-event, sans écrire cette projection en GET. Les anciens clients restent donc utilisables. Un nouveau frontend devant un ancien serveur (DTO brut) conserve le catalogue de 116 étapes, son compteur, ses transitions et profile initial : aucun nouvel ID n'est envoyé. Le catalogue négocié est fixé pour le parcours actif. Les contrôles de déploiement exigent la disponibilité du backend compatible avant la clôture publique ; aucune version 2 ni réinitialisation générale. Un retrait frontend peut conserver la projection legacy ; conserver le backend capable tant que de nouveaux IDs sont stockés, sans les effacer pour revenir à un ancien validateur.
 
 ### Couverture actuelle par chapitre
 
@@ -63,9 +63,9 @@ Les requêtes capables portent `?catalog=r1093`. GET capable renvoie `{catalog:'
 | Configuration | 3 | `configuration` |
 | Conclusion | 1 | `home` |
 
-### Matrice active des121 étapes — R1093
+### Matrice active des 121 étapes — R1093
 
-Lectures usuelles uniquement. Chaque ligne prépare l'écran/vue/panneau indiqué ; ancre réelle montée sinon ancre de repli/entrée écran, et texte de repli exact. Les commandes de progression sont les seules écritures autorisées par la visite. Vérifications/état technique réels au Master et registre de preuves ; recette propriétaire R1093 encore nécessaire.
+Lectures usuelles uniquement. Chaque ligne prépare l'écran/vue/panneau indiqué ; ancre réelle montée sinon ancre de repli/entrée écran, et texte de repli exact. Les commandes de progression sont les seules écritures autorisées par la visite. Qualification technique, reviews indépendantes et déploiement progressif/postflight acquis, détaillés au Master et registre de preuves ; recette propriétaire R1093 encore nécessaire.
 
 | Nº/ID | Chapitre/écran | Vue/panneau | Ancre/repli | Titre et texte | Repli conditionnel |
 | --- | --- | --- | --- | --- | --- |
@@ -191,7 +191,7 @@ Lectures usuelles uniquement. Chaque ligne prépare l'écran/vue/panneau indiqu�
 | 120 — `configuration-account` | Configuration / `configuration` | account / — | `account-player` / `screen-entry` | **Compte** : Selon votre compte, retrouvez le changement ou la récupération du mot de passe et la liaison Twitch facultative. Les accès et indisponibilités affichés restent ceux de votre situation réelle. | Cette zone dépend de votre situation actuelle. Son point d’entrée reste disponible ici ; aucune action n’est effectuée pendant la visite. |
 | 121 — `conclusion` | Conclusion / `home` | normale / — | `home` / `screen-entry` | **À vous de jouer** : Vous pouvez reprendre ou rejouer le Tutoriel depuis Menu. « Terminer » ou le dernier clic sur « Suivant » clôt ce parcours. Amusez-vous bien ! | Cette zone dépend de votre situation actuelle. Son point d’entrée reste disponible ici ; aucune action n’est effectuée pendant la visite. |
 
-## Historique — correctif25B et preuves antérieures conservées
+## Historique — correctif 25B et preuves antérieures conservées
 
 ### Révision propriétaire post-promotion
 
