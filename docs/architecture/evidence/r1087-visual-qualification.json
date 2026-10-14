@@ -8,7 +8,7 @@
     "clean": true
   },
   "runtime": "25a98ccf95facbb18592a8e90aaf875bf110b061",
-  "status": "qualified candidate; published reviews and deployment pending",
+  "status": "technically delivered at publishedCandidate; public aesthetic acceptance remains open",
   "scope": {
     "frontendOnly": true,
     "serverUnchanged": true,
@@ -148,6 +148,111 @@
     "status": "12/12 PASS; initial full withdrawal gates plus final Sidebar rebuild and 11 scoped requalifications",
     "manifestSha256": "161c0109dd264bee7ba105deac55f9e6ecda3d723dd987acfc912408ce94b181"
   },
-  "reviews": [],
-  "deployment": null
+  "reviews": [
+    {
+      "role": "independent frontend visual and documentation",
+      "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+      "verdict": "PASS",
+      "checks": 12,
+      "privateEvidenceFingerprints": 11,
+      "report": "visual-published-9a4fcbd6.json",
+      "sha256": "272ce7cec8342bee54c12d4556a0ef097d8f3b677eb53099bc7ed949073f2e1a"
+    },
+    {
+      "role": "independent technical, R1086 and rollback",
+      "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+      "verdict": "APPROVED",
+      "targetedTests": 160,
+      "rollbackApplications": 12,
+      "report": "INDEPENDENT-TECHNICAL-REVIEW-9a4fcbd6.json",
+      "sha256": "7e109d646f1a05512a8dd945c974adaeddccf25a64d05cce3b4b555d57418685"
+    }
+  ],
+  "deployment": {
+    "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+    "cloudflare": {
+      "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/c0bd425d-b96e-4c67-93d7-908ee88dd880",
+      "startedAt": "2026-10-14T08:15:42Z",
+      "completedAt": "2026-10-14T08:15:42Z",
+      "preview": "https://c0bd425d.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-D3vFwTkX.css",
+          "http": 200,
+          "sha256": "8ee4f33da7ca8e6ae79c593f2aba1dfe75043632176f402172edc94117885261"
+        },
+        {
+          "path": "/assets/index-DqyIGDMj.js",
+          "http": 200,
+          "sha256": "efc55992140d5805a72754411c6b295c168d45b5b67ced2f40f00582f67c967a"
+        }
+      ]
+    },
+    "railway": {
+      "id": "ee1f5177-10f9-439c-9582-7066efbb3b97",
+      "status": "SUCCESS",
+      "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+      "applicationReady": "2026-10-14T08:15:50.914732124Z",
+      "replicas": 1,
+      "pending": 0,
+      "issues": 0
+    },
+    "postflight": {
+      "at": "2026-10-14T08:18:00.305Z",
+      "phase": "initial",
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-D3vFwTkX.css",
+              "sha256": "8ee4f33da7ca8e6ae79c593f2aba1dfe75043632176f402172edc94117885261"
+            },
+            {
+              "path": "/assets/index-DqyIGDMj.js",
+              "sha256": "efc55992140d5805a72754411c6b295c168d45b5b67ced2f40f00582f67c967a"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-D3vFwTkX.css",
+              "sha256": "8ee4f33da7ca8e6ae79c593f2aba1dfe75043632176f402172edc94117885261"
+            },
+            {
+              "path": "/assets/index-DqyIGDMj.js",
+              "sha256": "efc55992140d5805a72754411c6b295c168d45b5b67ced2f40f00582f67c967a"
+            }
+          ]
+        }
+      ]
+    },
+    "anonymousGuards": {
+      "checks": 18,
+      "all401": true,
+      "exactCors": true,
+      "historyNoStore": true
+    }
+  },
+  "publishedCandidate": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+  "promotion": {
+    "sha": "9a4fcbd632e94351c12e0b45b49e175b5127e279",
+    "fastForward": true,
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "closure": "This documentary checkpoint preserves the reviewed runtime. Its exact SHA receives published delta reviews, fast-forward promotion and deployment/postflight verification in the final report, without another self-referential documentation commit."
 }
