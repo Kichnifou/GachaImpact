@@ -1,5 +1,9 @@
 # 11 — Audit legacy Missions / Daily
 
+## Missions Profil — R1089
+
+Profil Missions active la présentation paginée partagée, avec une chaîne de hauteur propre au Profil : trois colonnes/deux lignes et six maximum si la région le permet, capacité réduite selon la place. Aucun changement des rangs B/A/S/Z, progressions, récompenses, verrous, confidentialité ou ordre canonique. La dernière page conserve des cartes comparables, sans étirement exagéré. Changement de rang/profil, retry de lecture et Tutoriel conservent leurs règles existantes. État et mesures au Master.
+
 ## Présentation standalone — R1085
 
 Supersède la capacité cible R1084 : six Missions en 3×2 à 1920×1080 et 2560×1440, cartes compactes de même dimension sur page partielle, capacité adaptée à la région utile, aucun défilement ajouté. Ordre canonique avant partition, progression/récompenses, rangs B/A/S/Z et Profil inchangés. L'Aperçu Quotidiennes préserve les neuf activités, actions, erreurs et gains complets. Sidebar terminée : état centré et compact, aucun compte à rebours affiché ; le reset serveur et la revalidation continuent, masquer une carte ne termine aucune activité. Norme UI et état de qualification au Master.

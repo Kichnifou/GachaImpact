@@ -1,5 +1,9 @@
 # Personnalisation du profil V1
 
+## Confirmation et réouverture — R1089
+
+Chaque clic Choisir remet recherche vide, tri date d’obtention et ordre plus récents. Il ne réinitialise pas les consultations et priorités de nouveautés R1052. Après confirmation serveur d’un Avatar/Titre, y compris avatar élémentaire et aucun titre, rafraîchir le Profil/Sidebar puis fermer l’ouverture ayant lancé l’action. Une réponse tardive ne ferme pas une nouvelle ouverture ou un autre onglet ; le verrou de requête empêche deux équipements concurrents. Une erreur garde la fenêtre ouverte avec son message et permet le réessai. Fermeture manuelle, focus, Échap et Tutoriel conservés ; Badges reste dans son onglet.
+
 ## Présentation — R1087, 14/10/2026
 
 Avatars et Titres montrent l’équipement confirmé et un bouton bleu **Choisir**. Le catalogue correspondant s’ouvre dans une fenêtre dédiée, avec recherche, tri, options élémentaire/sans titre, états et actions existants. Aucun catalogue doublé derrière. Fermeture par Échap, croix ou fond, focus rendu au déclencheur et défilement du fond suspendu. Une fermeture ne confirme pas un équipement ; erreur et attente restent rattachées à l’action.

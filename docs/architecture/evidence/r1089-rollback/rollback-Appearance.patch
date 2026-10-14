@@ -1,0 +1,130 @@
+diff --git a/src/screens/AppearancePanel.badges.test.tsx b/src/screens/AppearancePanel.badges.test.tsx
+index 2912b761..d5181bbb 100644
+--- a/src/screens/AppearancePanel.badges.test.tsx
++++ b/src/screens/AppearancePanel.badges.test.tsx
+@@ -29,6 +29,6 @@ it('shows all ten free badges despite an avatar filter and equips only the badge
+     expect(equipAppearance).toHaveBeenLastCalledWith('BADGE', null)
+     await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('nav button')].find(b => b.textContent === 'Avatars')!.click())
+     await act(async () => document.body.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-    expect(document.body.querySelector<HTMLInputElement>('input')?.value).toBe('')
++    expect(document.body.querySelector<HTMLInputElement>('input')?.value).toBe('Ayaka')
+   } finally { act(() => root.unmount()); host.remove() }
+ })
+diff --git a/src/screens/AppearancePanel.dialog.test.tsx b/src/screens/AppearancePanel.dialog.test.tsx
+index a57ed755..74b213d7 100644
+--- a/src/screens/AppearancePanel.dialog.test.tsx
++++ b/src/screens/AppearancePanel.dialog.test.tsx
+@@ -11,9 +11,9 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+ let root: Root | undefined
+ afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.replaceChildren() })
+ const value: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [{ id: 'a', displayName: 'Avatar possédé', type: 'AVATAR', owned: true, isActive: true, visibility: 'VISIBLE', assetPath: null, condition: null, isNew: true }] }
+-async function setup(equip = vi.fn(async () => value), tutorial = false, initial = value) {
++async function setup(equip = vi.fn(async () => value), tutorial = false) {
+   const consult = vi.fn(async () => ({ consulted: ['a'] })), changed = vi.fn(async () => undefined)
+-  const actions = { appearance: async () => initial, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions
++  const actions = { appearance: async () => value, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions
+   const host = document.createElement('div'); document.body.append(host); root = createRoot(host)
+   await act(async () => root!.render(<TutorialPresentationContext value={{ active: tutorial, step: tutorialSteps.find(step => step.id === 'profile-avatars') ?? null }}><AppearancePanel actions={actions} displayName="Fixture" elementKey="pyro" onChanged={changed} /></TutorialPresentationContext>))
+   return { host, consult, changed, equip }
+@@ -30,40 +30,6 @@ it('only consults the opened catalogue and restores focus when Escape closes it'
+   expect(document.body.style.overflow).toBe('')
+   await act(async () => trigger.click()); expect(consult).toHaveBeenCalledOnce()
+ })
+-it.each([['AVATAR', 'a'], ['AVATAR', null], ['TITLE', 't'], ['TITLE', null]] as const)('closes %s only after confirmed equipment %s and refresh', async (type, id) => {
+-  let confirm!: (next: AppearanceDto) => void
+-  const equip = vi.fn(() => new Promise<AppearanceDto>(resolve => { confirm = resolve }))
+-  const initial = { ...value, equippedAvatarCosmeticId: id === null ? 'old-avatar' : null, equippedTitleCosmeticId: id === null ? 'old-title' : null, catalog: [...value.catalog, { ...value.catalog[0], id: 't', type: 'TITLE' as const, displayName: 'Titre possédé' }] }
+-  const { changed } = await setup(equip, false, initial)
+-  if (type === 'TITLE') await act(async () => [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')].find(b => b.textContent === 'Titres')!.click())
+-  await act(async () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+-  const selector = id === null ? '.appearance-chooser-body > .appearance-card button' : '.appearance-catalog button'
+-  act(() => document.querySelector<HTMLButtonElement>(selector)!.click())
+-  expect(equip).toHaveBeenCalledExactlyOnceWith(type, id)
+-  expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+-  await act(async () => confirm(value))
+-  expect(changed).toHaveBeenCalledOnce()
+-  expect(document.querySelector('[role="dialog"]')).toBeNull()
+-})
+-it('resets controls on every opening and does not close a newer opening after a delayed confirmation', async () => {
+-  let confirm!: (next: AppearanceDto) => void
+-  const equip = vi.fn(() => new Promise<AppearanceDto>(resolve => { confirm = resolve }))
+-  await setup(equip)
+-  const open = () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click()
+-  await act(async () => open())
+-  const input = document.querySelector<HTMLInputElement>('.appearance-search input')!
+-  act(() => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'possédé'); input.dispatchEvent(new Event('input', { bubbles: true })) })
+-  const sort = document.querySelector<HTMLSelectElement>('[aria-label="Tri des cosmétiques"]')!
+-  act(() => { sort.value = 'name'; sort.dispatchEvent(new Event('change', { bubbles: true })) })
+-  act(() => document.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+-  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+-  await act(async () => open())
+-  expect(document.querySelector<HTMLInputElement>('.appearance-search input')!.value).toBe('')
+-  expect(document.querySelector<HTMLSelectElement>('[aria-label="Tri des cosmétiques"]')!.value).toBe('date')
+-  expect(document.querySelector<HTMLSelectElement>('[aria-label="Ordre des cosmétiques"]')!.value).toBe('desc')
+-  await act(async () => confirm(value))
+-  expect(document.querySelector('[role="dialog"]')).toBeTruthy()
+-})
+ it('keeps an equipment failure in the open dialogue without confirming a preview', async () => {
+   const equip = vi.fn(async (): Promise<AppearanceDto> => { throw new Error('Connexion interrompue') })
+   const { changed } = await setup(equip)
+diff --git a/src/screens/AppearancePanel.r1052.test.tsx b/src/screens/AppearancePanel.r1052.test.tsx
+index 51a65fd4..2453e36d 100644
+--- a/src/screens/AppearancePanel.r1052.test.tsx
++++ b/src/screens/AppearancePanel.r1052.test.tsx
+@@ -38,10 +38,9 @@ it('combines both sort directions and accent-insensitive character search withou
+  await act(async()=>{const input=document.body.querySelector<HTMLInputElement>('.appearance-search input')!;Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'ETOILE');input.dispatchEvent(new Event('input',{bubbles:true}))});
+  expect(names(host)).toEqual(['Étoile']);expect(consultAppearance).toHaveBeenCalledTimes(2);
+ });
+-it('opens titles with a reset search and does not consult again when filtering an empty result',async()=>{
++it('does not consume new titles hidden by a retained search, including an empty result',async()=>{
+  const {host,consultAppearance}=await setup();await search(host,'ETOILE');await click(host,'Titres');
+- expect(document.body.querySelector<HTMLInputElement>('.appearance-search input')!.value).toBe('');expect(consultAppearance).toHaveBeenCalledTimes(2);
+- expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+- await search(host,'absent');expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(2);
++ expect(document.body.querySelectorAll('article.appearance-card')).toHaveLength(0);expect(consultAppearance).toHaveBeenCalledTimes(1);
++ await search(host,'titre');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(1);expect(consultAppearance).toHaveBeenLastCalledWith('TITLE',['n']);
+  await click(host,'Avatars');await click(host,'Titres');expect(document.body.querySelectorAll('.appearance-new')).toHaveLength(0);
+ });
+diff --git a/src/screens/AppearancePanel.tsx b/src/screens/AppearancePanel.tsx
+index 248dea39..783e1004 100644
+--- a/src/screens/AppearancePanel.tsx
++++ b/src/screens/AppearancePanel.tsx
+@@ -17,8 +17,6 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+   const presentation = useTutorialPresentation()
+   const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
+   const [chooserTab, setChooserTab] = useState<string | null>(null)
+-  const chooserRevision = useRef(0)
+-  const closeChooser = () => { chooserRevision.current += 1; setChooserTab(null) }
+   const chooserVisible = tab !== 'BADGE' && (chooserTab === tab || presentation.active && Boolean(presentation.step?.view?.startsWith('Personnalisation:')))
+   const pendingRef = useRef(false)
+   const [query, setQuery] = useState('')
+@@ -45,14 +43,12 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+   const equip = async (type: 'AVATAR' | 'TITLE' | 'BADGE', id: string | null) => {
+     if (pendingRef.current || presentation.active) return
+     pendingRef.current = true
+-    const opening = chooserRevision.current
+     setPending(true); setError('')
+     try {
+       const confirmed = await actions.equipAppearance(type, id)
+       if (!mounted.current) return
+       setValue(confirmed)
+       await onChanged().catch(() => undefined)
+-      if (mounted.current && type !== 'BADGE' && opening === chooserRevision.current) closeChooser()
+     } catch (reason) { if (mounted.current) setError(apiErrorMessage(reason)) }
+     finally { pendingRef.current = false; if (mounted.current) setPending(false) }
+   }
+@@ -86,11 +82,11 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
+       {!!entries.length && !visible.length && <p>Aucun cosmétique trouvé.</p>}
+   </>
+   return <section ref={panelRef} data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} data-appearance-tab={tab} className="appearance-panel" aria-label="Personnalisation du profil">
+-    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { closeChooser(); setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { closeChooser(); setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => { closeChooser(); setTab('BADGE') }}>Badges</button></nav>
++    <nav className="activity-inner-tabs appearance-tabs" role="tablist" aria-label="Cosmétiques"><button type="button" role="tab" aria-selected={tab === 'AVATAR'} className={tab === 'AVATAR' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('AVATAR') }}>Avatars</button><button type="button" role="tab" aria-selected={tab === 'TITLE'} className={tab === 'TITLE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('TITLE') }}>Titres</button><button type="button" role="tab" aria-selected={tab === 'BADGE'} className={tab === 'BADGE' ? 'active' : ''} onClick={() => { setChooserTab(null); setTab('BADGE') }}>Badges</button></nav>
+     {error && !chooserVisible && <p role="alert">{error}</p>}
+     {!value ? <p role="status">Chargement de la personnalisation…</p> : <>
+-      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div>{tab !== 'BADGE' && <AppButton variant="primary" className="appearance-choose" onClick={() => { chooserRevision.current += 1; setQuery(''); setSort('date'); setDirection('desc'); setError(''); setChooserTab(tab) }}>Choisir</AppButton>}</div>
+-      {tab === 'BADGE' ? catalogue : chooserVisible && <AppearanceChooser background={panelRef.current?.closest<HTMLElement>('.scrollable-screen-panel-body')} title={tab === 'AVATAR' ? 'Choisir un avatar' : 'Choisir un titre'} onClose={closeChooser}>{error && <p role="alert">{error}</p>}{catalogue}</AppearanceChooser>}
++      <div className="appearance-preview"><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={value.avatar.assetPath} className="appearance-preview-avatar" /><div><strong>{value.badgeSymbol && <span aria-hidden="true">{value.badgeSymbol} </span>}{displayName}</strong>{value.title && <span className="profile-equipped-title">{value.title}</span>}<small>{tab === 'BADGE' ? value.badgeSymbol ? 'Badge équipé' : 'Aucun badge' : tab === 'AVATAR' ? value.avatar.kind === 'ELEMENT' ? 'Avatar élémentaire' : value.avatar.kind === 'CUSTOM' ? 'Avatar équipé' : 'Initiale' : value.title ? 'Titre équipé' : 'Aucun titre'}</small></div>{tab !== 'BADGE' && <AppButton variant="primary" className="appearance-choose" onClick={() => setChooserTab(tab)}>Choisir</AppButton>}</div>
++      {tab === 'BADGE' ? catalogue : chooserVisible && <AppearanceChooser background={panelRef.current?.closest<HTMLElement>('.scrollable-screen-panel-body')} title={tab === 'AVATAR' ? 'Choisir un avatar' : 'Choisir un titre'} onClose={() => setChooserTab(null)}>{error && <p role="alert">{error}</p>}{catalogue}</AppearanceChooser>}
+     </>}
+   </section>
+ }

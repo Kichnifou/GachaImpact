@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1089 — neuf finitions ciblées après R1088 (14/10/2026)
+
+Mandat propriétaire validé jusqu’aux revues indépendantes, main FF, déploiements et postflight. Base réelle après clôture Concours R1088 : `0b5527243af070cb5333426d64246a2474d1d62f`, quatre refs alignées et arbre propre. Neuf lots retirables : Shop Event, Classement Event, Sidebar, Équipe, Personnalisation, Missions Profil, Statistiques Profil, Box Profil et gains de l’Aperçu Quotidiennes.
+
+Priorité : régions séparées du classement avec cinq lignes et footer sans recouvrement ; Équipe entière sans scroll, portraits proportionnels, passifs et commandes conservés. Avatar/Titre ferme seulement après confirmation et rafraîchissement, réinitialise recherche/date/plus récents à chaque ouverture et conserve une fenêtre réouverte pendant une réponse tardive. Profil Missions reprend les pages adaptatives de six maximum ; Profil Box reprend les contrôles communs, union des éléments/intersection des catégories, C0–C6 et dates autorisées, sans sauvegarder une préférence personnelle. Statistiques conserve ses 23 valeurs et répartit ses colonnes jusqu’au même bord bas. Textes Shop/Aperçu plus compacts, champs Shop nommés pour l’accessibilité. Croix Sidebar à droite ; ajout propriétaire en cours de mission : retirer uniquement la mention d’attente du jeu Event de cette carte.
+
+La Sidebar compacte est validée, pas de nouvelle refonte. Aucun changement de droits, économie, transactions, gains, commandes ou mécanismes Concours. Tests locaux et recette esthétique publique restent distincts ; état et preuves au Master.
+
 ## R1088 — chargement transparent et présentation des tours du Concours (14/10/2026)
 
 **Mandat propriétaire validé**, après clôture R1087 ; baseline réelle `0251f830e6c3ff97fcf1b03b0e1b29e8e16fd4fe`, quatre références alignées, arbre propre. Le propriétaire signale que le défaut persiste après R1086. Cette décision supersède uniquement sa présentation du chargement : plus de grand panneau indisponible, de texte visible de chargement/synchronisation ni de réessai obligatoire pendant une attente transitoire. Cadre normal neutre sans projection ; dernier DTO et interface conservés après chargement. Indications accessibles maintenues. Incident persistant rendu discrètement après soixante secondes, connexion hors ligne et refus d'accès distingués ; 401 suit le parcours global existant, 401/403 hors retry automatique.

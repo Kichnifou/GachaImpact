@@ -1,5 +1,9 @@
 # 16 — Audit Event / monthly
 
+## Shop et classement — R1089
+
+Shop : retirer le libellé visible de quantité, garder un aria-label par ressource, réduire légèrement Conversion/Objet Collection et descriptions. Valeurs, MAX, intentions, erreurs et formulaires conservés. Classement : retirer Édition en cours, titre et cinq lignes plus compacts, régions en-tête/liste/footer explicitement distinctes avec budget du feedback parent. Cinq joueurs par page et parcours complet restent autoritaires, tri et rang inchangés. Dernière ligne et pagination se vérifient par rectangles/hit-tests, après resize et changement de page. Preuves au Master.
+
 ## Présentation et lecture classement — R1085
 
 Huit paliers permanents dans le titre avec période ; préférence de repli obsolète ignorée. Libellés raccourcis uniquement standalone. Général retire le bloc d'inscription après confirmation serveur ; états Noël/calendrier/cadeau restent conditionnels. Shop et Jeux se compactent ; onglets Jeux soulignés, Jeu B indique le vrai découvreur dans le message final. Carte blanche propriétaire en recette autorise le parcours paginé des messages complets du Jeu C et les vues Envoyer/Reçus à faible hauteur ; aucune limite d'envoi, réception, consultation ni récompense modifiée.

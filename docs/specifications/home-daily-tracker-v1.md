@@ -1,5 +1,11 @@
 # Accueil dynamique et suivi Quotidiennes — étape 24
 
+## Corrections ciblées — R1089
+
+La Sidebar compacte validée est conservée. Restauration précède la croix afin que celle-ci occupe le vrai coin droit. La carte Événement n’affiche plus la mention En attente du Jeu A ; sélection, état projeté, échéance, erreurs et reset restent intacts. Aucun autre support de présentation Event n’est modifié par cette suppression.
+
+Seuls les gains jaunes de l’Aperçu Quotidiennes passent de 11 à 10 px sur desktop, line-height 1,4, texte/ressources/montants complets et retour à la ligne. Le résumé Accueil garde sa typographie.
+
 ## Finitions de présentation — R1087, 14/10/2026
 
 Le tracker Sidebar est compact dans tous ses états, indépendamment du nombre d’activités terminées. Les mentions ordinaires de disponibilité sont retirées ; nom, Terminé ✅, erreurs, attente/en cours et contrôles de masquage, restauration, navigation et Tout voir restent. Les cinq autres régions se partagent la hauteur libérée ; les sept particules restent présentes. Aucun changement de sélection, action quotidienne ou calcul de complétion.

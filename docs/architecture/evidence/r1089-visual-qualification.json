@@ -1,0 +1,142 @@
+{
+  "mission": "R1089",
+  "date": "2026-10-14",
+  "baseline": "0b5527243af070cb5333426d64246a2474d1d62f",
+  "runtime": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "status": "qualified local candidate; published reviews and deployment pending",
+  "scope": {
+    "nineLots": true,
+    "serverUnchanged": true,
+    "contestR1088Unchanged": true,
+    "publicGameplayQa": false
+  },
+  "tests": {
+    "quick": "5/5 PASS",
+    "quickRuntime": "bb27c11fbc4ebaefd68488e32a0a3146b4e9b942",
+    "quickLog": "gachaimpact-verify-quick-P1oiTN",
+    "full": "8/8 PASS",
+    "frontend": 1670,
+    "backendNonDb": 2510,
+    "fullRuntime": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+    "fullLog": "gachaimpact-verify-full-XIDnS8",
+    "history": [
+      "Initial new Box test fixtures TS2322 corrected; final quick passed.",
+      "Two previous retained-search assertions updated to approved reset-on-open behaviour; novelty assertions retained.",
+      "Intermediate full eHwhM3:1669/1670 frontend passed; Expedition deep-link5s timeout. Same test isolated passed, final full passed without test change."
+    ]
+  },
+  "visual": {
+    "scope": "R1089 private visual prequalification; no published verdict",
+    "baseline": "0b5527243af070cb5333426d64246a2474d1d62f",
+    "finalCssSha256": "d717ee982837420ae2982d6efc193d193ede58098418e1c0e05a1a5e8413c06d",
+    "findingsResolved": [
+      "Ranking fifth row overlapping footer1536x864 fixed",
+      "Team ancestor overflow collapsed chat1920x945/1900x920/1536x864 fixed",
+      "Stats intermediate height overflow found then corrected including18digit/null fixture",
+      "Shop MAX9digits text fully visible all7desktop formats after12px input and compactbuttons; error520 no longer overflowscard"
+    ],
+    "checks": {
+      "priority": 28,
+      "deepTeamRanking": 80,
+      "surfaces": 30,
+      "appearance": 14,
+      "box": 13,
+      "finalStats": 28,
+      "profileMissions": 18,
+      "sidebarGains": 10,
+      "eventSupplement": 27,
+      "shopInputs": 14,
+      "chatExpandRestore": 20,
+      "boxBarComparison": 15
+    },
+    "limitations": [
+      "All synthetic fixtures in real GameShell using compiled product CSS; no authenticated public visual validation",
+      "Team/ranking initial matrices CSS73abca7b; subsequent changed scopes Stats/Shop/Box requalified; published blob comparison required",
+      "30surface matrix contains earlier Stats failures; finalStats supersedes Stats results",
+      "Missions adaptive page size6 at1920/2560,3 at1536x864,4 at1366x768,2 at1366x520; Z page without footer gains18px cardheight at1900/1366x768; last card never expands horizontally",
+      "Box page retains scrolling; no zero-scroll guarantee claimed for Box",
+      "Appearance browser tests14 do not substitute all unit race/unmount tests",
+      "No mobile matrix in this prequalification",
+      "No genuine player screenshots metadata available; physical1920 vs CSS1536 hypothesis remains unproven",
+      "Old R1087 ranking QA missed visible overflow descendant; prior PASS not evidence of absence",
+      "Expanded community intentionally hides page stage0x0, restoration10states returns proper stage withscrollTop0; hidden page not counted asfit",
+      "MAX123456789 verified; no claim for every Number.MAX_SAFE_INTEGER length"
+    ],
+    "evidence": [
+      {
+        "file": "baseline-review.json",
+        "sha256": "e7b59156e56f045ff82908c551521cf4e2ec6014d4ab7e51f2bb1b212d02b558"
+      },
+      {
+        "file": "candidate-priority.json",
+        "sha256": "e38919daa0a06c90c702d9690cc6ff2183fa59f17e793f4b544a182eaa767071"
+      },
+      {
+        "file": "candidate-priority-deep.json",
+        "sha256": "402d2f851b785a9ed949ce277260cc6d84fbe5d98a498b2c6eb346d7d0a131fb"
+      },
+      {
+        "file": "candidate-surfaces.json",
+        "sha256": "356a34cb89a1d51ea3d49781af202e33b07688b37c5249538c428e30163947cf"
+      },
+      {
+        "file": "candidate-appearance-functional.json",
+        "sha256": "ba175ee208aa3f1665ea2b44acd0a47e69fd956918cfcdbb92b3fedd222c9da5"
+      },
+      {
+        "file": "box-functional.json",
+        "sha256": "b2cd2223c991c9217a68e52058cf5a859f913f8d0b6f5b8b1da386b3e9fabe4c"
+      },
+      {
+        "file": "stats-fixed.json",
+        "sha256": "055cd2537de4d35376655b02b774773a1cf3c98a14dbf417c4fd38b7b00a8356"
+      },
+      {
+        "file": "missions-pagination.json",
+        "sha256": "6b74ed5fc887048259face53a27ff8100abb7f9a99ac6b7365d1b5574936a738"
+      },
+      {
+        "file": "sidebar-gains.json",
+        "sha256": "823b56967d1dafd68fdb97bdb1a8c28012da08f9363a15cad857bd3b607a59c8"
+      },
+      {
+        "file": "event-supplement.json",
+        "sha256": "1ed51eb2c02e877e85e178a38d40d560d50188ede1c139172fc0c4c465a7b509"
+      },
+      {
+        "file": "shop-input-fixed.json",
+        "sha256": "e40f01263643b50b7c12505619b0dc43a1a153bbc394352d15435c661bdfa3b2"
+      },
+      {
+        "file": "expanded-chat.json",
+        "sha256": "1ab8ba5e580366aa7a0cd09fc2ba44b104ee8cbb752f6efe0415ef42d1903991"
+      },
+      {
+        "file": "box-bar-comparison.json",
+        "sha256": "6217b072a04e0ceadef07e51722ca5fcabe17747f8029c733a10c94b377e12bf"
+      }
+    ],
+    "runtimeHead": "6eb801f0 (full SHA to reconcile at publication)",
+    "verdict": "PASS scoped private prequalification; published SHA review pending",
+    "summarySha256": "7bf43781891a66ddfd2c3bc453f6bbd203abdbb0d3efa207c95dbe655a631e0c"
+  },
+  "rollback": {
+    "manifest": "r1089-rollback/manifest.json",
+    "manifestSha256": "2c8f1ddfd9287195472ba90cfb23eefde0afaeedb6e2e2b220288155d742ac38",
+    "lots": 9,
+    "assertions": 225,
+    "scriptApplications": 9,
+    "status": "PASS; gate bases recorded individually",
+    "scriptReport": {
+      "file": "rollback-script-checks.json",
+      "sha256": "bfd0a0debdcc9bdcbef5b18b0f96ef5b65663a68796bfbac9663d25ebf2b87c4"
+    }
+  },
+  "reviews": [],
+  "deployment": null
+}

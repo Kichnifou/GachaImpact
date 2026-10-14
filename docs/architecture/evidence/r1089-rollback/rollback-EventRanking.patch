@@ -1,0 +1,60 @@
+diff --git a/src/event/event-ranking-layout.css b/src/event/event-ranking-layout.css
+index 780356ff..2afbf341 100644
+--- a/src/event/event-ranking-layout.css
++++ b/src/event/event-ranking-layout.css
+@@ -1,22 +1,20 @@
+-.event-ranking .event-ranking-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0; }
++.event-ranking .event-ranking-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: auto; }
+ .event-ranking-pagination > span:first-child { margin-right: auto; color: var(--muted); font-size: 13px; }
+-.event-ranking .event-ranking-list { gap: 5px; margin: 0; }
+-.event-ranking .event-ranking-list li { box-sizing: border-box; padding: 5px 10px; min-height: 32px; font-size: 13px; }
++.event-ranking .event-ranking-list { gap: 6px; margin: 0; }
++.event-ranking .event-ranking-list li { box-sizing: border-box; padding: 6px 12px; min-height: 38px; font-size: 14px; }
+ .event-ranking .event-ranking-list strong { overflow-wrap: anywhere; }
+-.event-ranking .event-ranking-results > p[role="alert"] { color: #ffb7ab; }
+ @media (min-width: 901px) {
+-  .event-screen .scrollable-screen-panel-body:has(> .event-ranking) { grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
+-  .event-screen .event-ranking { box-sizing: border-box; height: 100%; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; padding: 12px; }
+-  .event-ranking .event-ranking-results { min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+-  .event-ranking .event-ranking-results > .event-ranking-list { grid-row: 2; min-height: 0; grid-template-rows: repeat(5, minmax(0, 1fr)); }
+-  .event-ranking header h2 { font-size: 18px; margin: 0; }
+-  .event-ranking > header { align-items: center; }
++  .event-screen .scrollable-screen-panel-body:has(> .event-ranking) { overflow: visible; grid-template-rows: minmax(0, 1fr) auto; align-content: stretch; }
++  .event-screen .event-ranking { box-sizing: border-box; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 10px; padding: 14px; }
++  .event-ranking > header, .event-ranking .event-ranking-pagination { flex: 0 0 auto; }
++  .event-ranking .event-ranking-list { flex: 1 1 0; min-height: 0; grid-template-rows: repeat(5, minmax(min-content, 1fr)); }
++  .event-ranking header h2 { font-size: 22px; }
+ }
+ @media (min-width: 1121px) and (max-height: 650px) {
+-  .event-screen .event-ranking { padding: 6px; gap: 4px; }
+-  .event-ranking header h2 { font-size: 15px; }
+-  .event-ranking .event-ranking-honor { font-size: 10px; padding: 4px; }
+-  .event-ranking .event-ranking-list { gap: 3px; }
+-  .event-ranking .event-ranking-list li { min-height: 24px; padding: 2px 6px; font-size: 12px; gap: 6px; }
+-  .event-ranking-pagination .app-button { min-height: 26px; padding: 2px 8px; }
++  .event-screen .event-ranking { padding: 8px; gap: 5px; }
++  .event-ranking header h2 { font-size: 18px; }
++  .event-ranking .event-ranking-honor { font-size: 10px; padding: 5px; }
++  .event-ranking .event-ranking-list { gap: 4px; }
++  .event-ranking .event-ranking-list li { min-height: 30px; padding: 4px 8px; font-size: 13px; }
++  .event-ranking-pagination .app-button { min-height: 28px; padding: 3px 10px; }
+ }
+diff --git a/src/screens/EventRankingSection.tsx b/src/screens/EventRankingSection.tsx
+index 88a4cfce..7041beb3 100644
+--- a/src/screens/EventRankingSection.tsx
++++ b/src/screens/EventRankingSection.tsx
+@@ -50,13 +50,11 @@ export default function EventRankingSection({ editionId, onLoad }: Props) {
+   const current = ranking?.editionId === editionId && ranking.page === page ? ranking : null
+ 
+   return <section data-tutorial-anchor="event-ranking" data-tutorial-state={!current && !error && loadAvailable ? "loading" : undefined} className="panel event-ranking" aria-label="Classement du Festival">
+-    <header><h2>Classement du Festival</h2><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
+-    <div className="event-ranking-results">
++    <header><div><span className="eyebrow">Édition en cours</span><h2>Classement du Festival</h2></div><span data-tutorial-anchor="event-ranking" className="event-ranking-honor">Classement honorifique</span></header>
+     {error && <p role="alert">{error}</p>}
+     {!current && !error && <p>Chargement du classement…</p>}
+     {current?.entries.length === 0 && <p>Aucun participant inscrit pour cette édition.</p>}
+     {current && current.entries.length > 0 && <ol className="event-ranking-list">{current.entries.map((entry) => <li key={entry.playerId}><span className="event-ranking-rank">#{entry.rank}</span><strong>{entry.displayName}</strong><span>{formatResourceAmount(String(entry.points))} point{entry.points > 1 ? 's' : ''}</span></li>)}</ol>}
+-    </div>
+     <footer className="event-ranking-pagination">
+       <span>{current?.self ? `Votre rang : #${current.self.rank}` : ''}</span>
+       <AppButton aria-label="Classement précédent" disabled={!current || page <= 1} onClick={() => setSelection({ editionId, page: page - 1 })}>‹</AppButton>

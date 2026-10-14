@@ -1,5 +1,9 @@
 # GachaImpact — Audit legacy Domaine 4 : Box / Possessions / Obtention
 
+## Box Profil harmonisée — R1089
+
+Le Profil réutilise désormais BoxFiltersBar et les primitives de filtres de la Box principale : recherche, étoiles toggle, sept éléments multiples (union), constellation C0–C6, tri alphabétique/constellation/élément/date d’obtention et direction. Intersection entre catégories. Les dates sont celles de la projection autorisée ; aucun favori inventé, aucune action de mutation ajoutée. Filtres et tri du Profil restent locaux et ne sauvegardent pas la préférence du propriétaire lorsqu’il visite autrui. Contrôles uniquement si Box ALLOWED ; confidentialité des Légendes C6 conservée indépendamment. Cette clause supersède le filtre élément simple du Profil mentionné dans R1085 ci-dessous.
+
 ## Présentation standalone — R1085
 
 Box/Catalogue : boutons rareté et éléments de mêmes dimensions, séparation visuelle, sélection simultanée de plusieurs éléments (union), combinée par intersection à la recherche/rareté/constellation. Réinitialisation restitue tous les éléments. Constellation est libellée explicitement dans Box seulement et « Toutes » reste lisible. Profil garde le filtre élément simple historique ; aucune possession, préférence serveur, action Stella ou priorité favoris modifiée. Qualification et livraison au Master.

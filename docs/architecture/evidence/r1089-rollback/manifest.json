@@ -1,0 +1,481 @@
+{
+  "base": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+  "baseline": "0b5527243af070cb5333426d64246a2474d1d62f",
+  "protectedR1088": {
+    "src/App.css": "a1bcd64900ab38412f12033f328801fe5b68270a",
+    "src/contest/ContestConnectionStatus.tsx": "26cc1b9926521bb707fca8ec0204665fc1fb1ee7",
+    "src/contest/ContestUnavailable.test.tsx": "330950d6d89403040d94ff5f6c11bbd7e8e0d318",
+    "src/contest/ContestUnavailable.tsx": "33bc31e1bddac9e8ea44ba455da9388bc6a54dd2",
+    "src/contest/use-contest-presentation.test.tsx": "c8dee04307c37a245667c4061fba772775b640ca",
+    "src/contest/use-contest-presentation.ts": "eabcac077c91a4533329e8d731180d41f0c5f43f",
+    "src/contest/use-contest-refresh.ts": "a7abd97827c1da4227e86269742346a191c4273d",
+    "src/screens/ContestScreen.test.tsx": "a94c40e68c08aa0dcfc86090ad65d5d40b852ab7",
+    "src/screens/ContestScreen.tsx": "277c8a8248cd131624e54e570812884eac316033"
+  },
+  "results": [
+    {
+      "name": "EventShop",
+      "commits": [
+        "eae3ec5590698cf73fc09ed8eecea938cdb815db",
+        "2d0dda17138925ccd71079c5b85bbfda9c2eeda4",
+        "885b05128c091298270321c206ee726fbbf60766",
+        "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f"
+      ],
+      "expectedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "tests": [
+        "src/screens/EventShopSection.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/event/event-shop-layout.css",
+        "src/screens/EventShopSection.tsx"
+      ],
+      "patch": "rollback-EventShop.patch",
+      "patchSha256": "f2147374e4a7210ce3b6ec9b96318ba6ad3734d77ee115751c030a81d10f0388",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+      "testsLog": "rollback-EventShop-final.log",
+      "typecheckBase": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+      "testCount": 6
+    },
+    {
+      "name": "Sidebar",
+      "commits": [
+        "847e6d5ee6353c45137e651923030a0aae1a56a1",
+        "218f8b54c857d5094feb239695f3fdd100fbffc3"
+      ],
+      "expectedFiles": [
+        "src/dailies/sidebar-completion.css",
+        "src/dailies/DailyTrackerCard.tsx"
+      ],
+      "tests": [
+        "src/dailies/daily-controller.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/dailies/DailyTrackerCard.tsx",
+        "src/dailies/sidebar-completion.css"
+      ],
+      "patch": "rollback-Sidebar.patch",
+      "patchSha256": "4ca0983f75da1c010a7ed5905fd5e674741e5d4a4eba32296ff4204e39f5369f",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-Sidebar.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 58
+    },
+    {
+      "name": "Daily",
+      "commits": [
+        "1478d7a0d7c76934d7a2cf4df7b07fb6357a903b"
+      ],
+      "expectedFiles": [
+        "src/dailies/daily-overview-layout.css"
+      ],
+      "tests": [
+        "src/dailies/daily-navigation.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/dailies/daily-overview-layout.css"
+      ],
+      "patch": "rollback-Daily.patch",
+      "patchSha256": "ef6a2068134c49cea31394fb65ec49685d6a58f31057b7c5ee25925e2838ea96",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-Daily.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 5
+    },
+    {
+      "name": "EventRanking",
+      "commits": [
+        "b423139d56403224a1213a51797bed89d38daed2"
+      ],
+      "expectedFiles": [
+        "src/event/event-ranking-layout.css",
+        "src/screens/EventRankingSection.tsx"
+      ],
+      "tests": [
+        "src/screens/EventRankingSection.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/event/event-ranking-layout.css",
+        "src/screens/EventRankingSection.tsx"
+      ],
+      "patch": "rollback-EventRanking.patch",
+      "patchSha256": "d5207c09b63f0a6a85bb8091d7158e0142aa1ba374f966810c821030c55be300",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-EventRanking.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 7
+    },
+    {
+      "name": "Team",
+      "commits": [
+        "647d933f209174e077ae9838840ab2029503accc"
+      ],
+      "expectedFiles": [
+        "src/teams/team-layout.css"
+      ],
+      "tests": [
+        "src/screens/TeamScreen.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/teams/team-layout.css"
+      ],
+      "patch": "rollback-Team.patch",
+      "patchSha256": "9de34ff5f65183305e2788bfb771e4870873eaf5aeac58c10a7aa60108360250",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-Team.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 38
+    },
+    {
+      "name": "Statistics",
+      "commits": [
+        "fa56b779ea8ba77b29982602a77cfe6535f2f5b0",
+        "a897ca0515b4050e31b853b7bd815f924f441084",
+        "bb27c11fbc4ebaefd68488e32a0a3146b4e9b942"
+      ],
+      "expectedFiles": [
+        "src/social/statistics-layout.css"
+      ],
+      "tests": [
+        "src/social/social-ui.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/social/statistics-layout.css"
+      ],
+      "patch": "rollback-Statistics.patch",
+      "patchSha256": "e677dd57bbcc0d83ec7ce28d2081d165af4807b31cc8ca7f37a283cff50c3c3a",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "bb27c11fbc4ebaefd68488e32a0a3146b4e9b942",
+      "testsLog": "rollback-Statistics-final.log",
+      "typecheckBase": "bb27c11fbc4ebaefd68488e32a0a3146b4e9b942",
+      "testCount": 20
+    },
+    {
+      "name": "Appearance",
+      "commits": [
+        "da08990aa7f03ad5d4007e25f1d3ce211722a4bc",
+        "1e89d9a61a198ba6cb69d9a28db751c549b8dfe5"
+      ],
+      "expectedFiles": [
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx"
+      ],
+      "tests": [
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "src/screens/AppearancePanel.badges.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/screens/AppearancePanel.badges.test.tsx",
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "src/screens/AppearancePanel.tsx"
+      ],
+      "patch": "rollback-Appearance.patch",
+      "patchSha256": "942acb76524f5c7e58bd3f25c23bf574f1049d7eda7e603947658a972185f7f4",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-Appearance.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 8
+    },
+    {
+      "name": "ProfileMissions",
+      "commits": [
+        "cf31fede36f56f28d07c1ab65647473f6dac9b6a",
+        "24f67188e5d9d6ef68490c9eb16f1943027b9fbf"
+      ],
+      "expectedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/profile-missions-layout.css",
+        "src/social/social-ui.test.tsx"
+      ],
+      "tests": [
+        "src/social/social-ui.test.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "typecheck": 0,
+        "patchCheck": 0,
+        "finalBoxPreserved": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [
+        "Regenerated reverse-commit patch on final ProfileScreen context to preserve the newer neutral Box placeholder."
+      ],
+      "changedFiles": [
+        "src/screens/ProfileScreen.tsx",
+        "src/social/profile-missions-layout.css",
+        "src/social/social-ui.test.tsx"
+      ],
+      "patch": "rollback-ProfileMissions.patch",
+      "patchSha256": "76e4170ddb634bc6599ca2fc21d37bd4a6a6a908fa7f55613b96db6de19ffe09",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "typecheck": 2,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+      "testsLog": "rollback-ProfileMissions.log",
+      "typecheckBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+      "testCount": 31
+    },
+    {
+      "name": "ProfileBox",
+      "commits": [
+        "e789822ee587bca4086613484bbc96d57f1c06de",
+        "1ca208d9a8d488eb0ea2575fa9d7df2834f4cdc6",
+        "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+        "be1afae0e65ee0bac617cb5e4eb9582b296231f7",
+        "c098eddb99a8fb175a0b97779516c5244627bba2"
+      ],
+      "expectedFiles": [
+        "src/box/BoxFiltersBar.tsx",
+        "src/box/box-filter-bar.css",
+        "src/box/box-presentation.ts",
+        "src/screens/BoxScreen.tsx",
+        "src/screens/ProfileScreen.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "tests": [
+        "src/social/social.test.tsx",
+        "src/social/social-ui.test.tsx",
+        "src/screens/BoxScreen.test.tsx"
+      ],
+      "gates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0,
+        "finalOtherScopedLotsPreserved": 0,
+        "finalPathsPreserved": 0,
+        "finalShopPreserved": 0,
+        "finalShopBoxPreserved": 0
+      },
+      "resolutions": [],
+      "changedFiles": [
+        "src/box/BoxFiltersBar.tsx",
+        "src/box/box-filter-bar.css",
+        "src/box/box-presentation.ts",
+        "src/screens/BoxScreen.tsx",
+        "src/screens/ProfileScreen.tsx",
+        "src/social/social.test.tsx"
+      ],
+      "patch": "rollback-ProfileBox.patch",
+      "patchSha256": "181538148d920cf8eb988ce5d016ef6fb24033b14b67df21fd651fb796601b38",
+      "initialGates": {
+        "scope": 0,
+        "r1088": 0,
+        "otherProfileLot": 0,
+        "typecheck": 0,
+        "nodeTypecheck": 0,
+        "build": 0,
+        "tests": 0,
+        "patchCheck": 0
+      },
+      "initialTypecheckIssue": "TS2322 in Profile Box test fixtures at initial candidate, corrected by 8e2e44e8",
+      "priorBuildTestsBase": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+      "testsLog": "rollback-ProfileBox-final.log",
+      "typecheckBase": "6eb801f0b8111232ea0619e6a5d7fb03ff84c59f",
+      "testCount": 52
+    }
+  ],
+  "limits": [
+    "Independent single-lot withdrawals only; combined withdrawals or later runtime changes require requalification.",
+    "No public/database mutation or rollback visual screenshots.",
+    "Initial test-fixture TS2322 failures are recorded; every final withdrawal passes typecheck after the type-only fixture correction. Initial unaffected build/test results are reused explicitly."
+  ],
+  "initialGateBase": "24f67188e5d9d6ef68490c9eb16f1943027b9fbf",
+  "beforeStatisticsBase": "8e2e44e87d4d0cdfa2e5cae1a8edd1782da1740a",
+  "beforeShopBase": "bb27c11fbc4ebaefd68488e32a0a3146b4e9b942",
+  "beforeFinalShopBoxBase": "2d0dda17138925ccd71079c5b85bbfda9c2eeda4"
+}

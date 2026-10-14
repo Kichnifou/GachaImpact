@@ -1,0 +1,208 @@
+diff --git a/src/box/BoxFiltersBar.tsx b/src/box/BoxFiltersBar.tsx
+deleted file mode 100644
+index 78dd1217..00000000
+--- a/src/box/BoxFiltersBar.tsx
++++ /dev/null
+@@ -1,14 +0,0 @@
+-import type { BoxConstellationFilter, BoxFilters, BoxSortKey } from './box-presentation'
+-import CollectionFilterChips from '../components/CollectionFilterChips'
+-import './box-filter-bar.css'
+-
+-export default function BoxFiltersBar({ filters, onChange, placeholder = 'Rechercher dans votre Box…' }: { filters: BoxFilters; onChange: (filters: BoxFilters) => void; placeholder?: string }) {
+-  const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
+-  return <div data-tutorial-anchor="box-filters" className="collection-filters box-filter-bar panel">
+-    <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={event => update('search', event.target.value)} placeholder={placeholder} /></label>
+-    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} elements={filters.element} onRarity={value => update('tab', value ?? 'all')} onElements={value => update('element', value)} />
+-    <label className="sort-select box-constellation-filter"><span>Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
+-    <label className="sort-select"><span>Trier</span><select aria-label="Critère de tri" value={filters.sort} onChange={event => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
+-    <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
+-  </div>
+-}
+diff --git a/src/box/box-filter-bar.css b/src/box/box-filter-bar.css
+index a422c091..da113658 100644
+--- a/src/box/box-filter-bar.css
++++ b/src/box/box-filter-bar.css
+@@ -1,14 +1,14 @@
+-.collection-filters.box-filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
+-.collection-filters.box-filter-bar .search-field { flex: 1 1 120px; }
+-.collection-filters.box-filter-bar .sort-select { gap: 5px; }
+-.collection-filters.box-filter-bar .sort-select select { max-width: 135px; }
+-.collection-filters.box-filter-bar .box-constellation-filter { flex: 0 0 auto; }
+-.collection-filters.box-filter-bar .box-constellation-filter select { width: auto; min-width: 88px; padding-inline: 10px 24px; flex-shrink: 0; }
+-.collection-filters.box-filter-bar .filter-group, .collection-filters.box-filter-bar .element-filters { flex-wrap: nowrap; }
++.box-screen .box-filter-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px; }
++.box-screen .box-filter-bar .search-field { flex: 1 1 120px; }
++.box-screen .box-filter-bar .sort-select { gap: 5px; }
++.box-screen .box-filter-bar .sort-select select { max-width: 135px; }
++.box-screen .box-filter-bar .box-constellation-filter { flex: 0 0 auto; }
++.box-screen .box-filter-bar .box-constellation-filter select { width: auto; min-width: 88px; padding-inline: 10px 24px; flex-shrink: 0; }
++.box-screen .box-filter-bar .filter-group, .box-screen .box-filter-bar .element-filters { flex-wrap: nowrap; }
+ @media (min-width: 1800px) {
+-  .collection-filters.box-filter-bar { flex-wrap: nowrap; }
++  .box-screen .box-filter-bar { flex-wrap: nowrap; }
+ }
+ @media (max-width: 760px) {
+-  .collection-filters.box-filter-bar .search-field { flex-basis: 100%; }
+-  .collection-filters.box-filter-bar .element-filters { flex-wrap: wrap; }
++  .box-screen .box-filter-bar .search-field { flex-basis: 100%; }
++  .box-screen .box-filter-bar .element-filters { flex-wrap: wrap; }
+ }
+diff --git a/src/box/box-presentation.ts b/src/box/box-presentation.ts
+index 611e6e70..6efe7153 100644
+--- a/src/box/box-presentation.ts
++++ b/src/box/box-presentation.ts
+@@ -26,19 +26,13 @@ export function initialBoxFiltersWithPreference(preference?: BoxSortPreferenceDt
+ export const boxElements: readonly ElementKey[] = ['pyro', 'hydro', 'cryo', 'electro', 'anemo', 'geo', 'dendro']
+ 
+ export function presentBoxCharacters(characters: readonly BoxCharacterDto[], filters: BoxFilters): BoxCharacterDto[] {
+-  return filterBoxCharacters(characters, filters)
+-    .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareBoxCharacters(left, right, filters))
+-}
+-
+-type FilterableCharacter = Pick<BoxCharacterDto, 'name' | 'rarity' | 'elementKey' | 'constellation' | 'firstObtainedAt'>
+-
+-export function filterBoxCharacters<T extends FilterableCharacter>(characters: readonly T[], filters: BoxFilters): T[] {
+   const search = normalizeSearch(filters.search)
+   return characters
+     .filter((character) => filters.tab === 'all' || character.rarity === filters.tab)
+     .filter((character) => filters.element.length === 0 || filters.element.includes(character.elementKey))
+     .filter((character) => filters.constellation === 'all' || character.constellation === filters.constellation)
+     .filter((character) => !search || normalizeSearch(character.name).includes(search))
++    .sort((left, right) => groupRank(left, filters.tab) - groupRank(right, filters.tab) || compareCharacters(left, right, filters))
+ }
+ 
+ export function replaceFavorite(characters: readonly BoxCharacterDto[], characterId: string, favorite: boolean) {
+@@ -53,7 +47,7 @@ function groupRank(character: BoxCharacterDto, tab: BoxRarityTab) {
+   return character.favorite ? 0 : 1
+ }
+ 
+-export function compareBoxCharacters(left: FilterableCharacter, right: FilterableCharacter, filters: BoxFilters) {
++function compareCharacters(left: BoxCharacterDto, right: BoxCharacterDto, filters: BoxFilters) {
+   let result: number
+   switch (filters.sort) {
+     case 'obtainedAt': result = Date.parse(left.firstObtainedAt) - Date.parse(right.firstObtainedAt); break
+diff --git a/src/screens/BoxScreen.tsx b/src/screens/BoxScreen.tsx
+index df77bcb6..a9c4f585 100644
+--- a/src/screens/BoxScreen.tsx
++++ b/src/screens/BoxScreen.tsx
+@@ -1,13 +1,14 @@
+ import { useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
+ import { useEffect, useMemo, useRef, useState } from 'react'
+ import type { BoxCharacterDto, BoxSortPreferenceDto, DailyCombatDto, ElementKey, ExpeditionClaimDto, ExpeditionDto, ExpeditionStartDto, PlayerBoxDto, StellaUseDto } from '../api/types'
+-import type { BoxFilters } from '../box/box-presentation'
++import type { BoxConstellationFilter, BoxFilters, BoxSortKey } from '../box/box-presentation'
+ import { initialBoxFiltersWithPreference, presentBoxCharacters } from '../box/box-presentation'
+ import { useBoxCollection } from '../box/use-box-collection'
+ import type { StellaResultPresentation } from '../box/stella-result-presentation'
+ import BoxCharacterCard from '../components/BoxCharacterCard'
+ import BoxCharacterDetailModal from '../components/BoxCharacterDetailModal'
+-import BoxFiltersBar from '../box/BoxFiltersBar'
++import CollectionFilterChips from '../components/CollectionFilterChips'
++import '../box/box-filter-bar.css'
+ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+ import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
+ import { createExpeditionIdempotencyKey } from '../expedition/expedition-intent'
+@@ -149,6 +150,16 @@ function BoxSummary({ summary }: { summary: PlayerBoxDto['summary'] }) {
+   return <div className="collection-summary box-summary" aria-label="Résumé de la Box"><span><strong>{summary.totalOwned}</strong> obtenus</span><span><strong>{summary.fiveStars}</strong> 5★</span><span><strong>{summary.fourStars}</strong> 4★</span><span><strong>{summary.c6}</strong> C6</span></div>
+ }
+ 
++function BoxFiltersBar({ filters, onChange }: { filters: BoxFilters; onChange: (filters: BoxFilters) => void }) {
++  const update = <Key extends keyof BoxFilters>(key: Key, value: BoxFilters[Key]) => onChange({ ...filters, [key]: value })
++  return <div data-tutorial-anchor="box-filters" className="collection-filters box-filter-bar panel">
++    <label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={filters.search} onChange={event => update('search', event.target.value)} placeholder="Rechercher dans votre Box…" /></label>
++    <CollectionFilterChips rarity={filters.tab === 'all' ? null : filters.tab} elements={filters.element} onRarity={value => update('tab', value ?? 'all')} onElements={value => update('element', value)} />
++    <label className="sort-select box-constellation-filter"><span>Constellation</span><select aria-label="Constellation" value={filters.constellation} onChange={event => update('constellation', event.target.value === 'all' ? 'all' : Number(event.target.value) as BoxConstellationFilter)}><option value="all">Toutes</option>{[0,1,2,3,4,5,6].map(value => <option value={value} key={value}>C{value}</option>)}</select></label>
++    <label className="sort-select"><span>Trier</span><select aria-label="Critère de tri" value={filters.sort} onChange={event => update('sort', event.target.value as BoxSortKey)}><option value="alphabetical">Alphabétique</option><option value="obtainedAt">Date d’obtention</option><option value="constellation">Constellation</option><option value="element">Élément</option></select></label>
++    <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
++  </div>
++}
+ 
+ export function BoxStatus({ kind, title, detail, onRetry }: { kind: 'loading' | 'error' | 'empty'; title: string; detail: string; onRetry?: () => void }) {
+   return <section className={`panel box-status ${kind}`} role={kind === 'error' ? 'alert' : 'status'}><span aria-hidden="true">{kind === 'loading' ? '✦' : kind === 'error' ? '!' : '◇'}</span><h2 data-tutorial-anchor="screen-entry" data-tutorial-state={kind === "loading" ? "loading" : undefined}>{title}</h2><p>{detail}</p>{onRetry && <button type="button" onClick={onRetry}>Réessayer</button>}</section>
+diff --git a/src/screens/ProfileScreen.tsx b/src/screens/ProfileScreen.tsx
+index 69768b61..6cbb7099 100644
+--- a/src/screens/ProfileScreen.tsx
++++ b/src/screens/ProfileScreen.tsx
+@@ -7,8 +7,7 @@ import '../missions/mission-pages.css'
+ import ProfileFavorCard from '../components/ProfileFavorCard'
+ import AppButton from '../components/AppButton'
+ import CharacterCard from '../components/CharacterCard'
+-import BoxFiltersBar from '../box/BoxFiltersBar'
+-import { compareBoxCharacters, filterBoxCharacters, initialBoxFilters, type BoxFilters } from '../box/box-presentation'
++import CollectionFilters, { type CharacterRarityFilter, type CharacterSortDirection, type CharacterSortKey } from '../components/CollectionFilters'
+ import InventoryObjectCard from '../components/InventoryObjectCard'
+ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
+ import ScreenHeader from '../components/ScreenHeader'
+@@ -16,7 +15,8 @@ import GameAssetIcon from '../components/GameAssetIcon'
+ import PlayerAvatar from '../components/PlayerAvatar'
+ import AppearancePanel from './AppearancePanel'
+ import MissionProjectionView from '../missions/MissionProjectionView'
+-import type { DirectMessagePlayerDto, PermanentMissionProjectionDto } from '../api/types'
++import { compareCharacters, normalizeCharacterSearch } from '../characters/character-catalog'
++import type { DirectMessagePlayerDto, ElementKey, PermanentMissionProjectionDto } from '../api/types'
+ import { presenceLabels, type Access, type GeneralStatistics, type Profile, type SocialActions } from '../social/types'
+ import { apiErrorMessage, elementLabels, formatResourceAmount } from '../utils/formatters'
+ import { getElementAssetPath } from '../utils/gameAssets'
+@@ -54,7 +54,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
+   const tab = presentation.active && presentation.step?.view?.startsWith('Personnalisation') ? 'Personnalisation' : guidedTab
+   const [missions, setMissions] = useState<Access<PermanentMissionProjectionDto> | null>(null), [missionsError, setMissionsError] = useState(''), [missionsRequest, setMissionsRequest] = useState(0)
+   const [missionsTarget, setMissionsTarget] = useState('')
+-  const [boxFilters, setBoxFilters] = useState<BoxFilters>(initialBoxFilters)
++  const [query, setQuery] = useState(''), [rarity, setRarity] = useState<CharacterRarityFilter>('all'), [element, setElement] = useState<ElementKey | null>(null), [sortKey, setSortKey] = useState<CharacterSortKey>('name'), [direction, setDirection] = useState<CharacterSortDirection>('asc')
+   const clearFeedback = controller.clearFeedback
+   useEffect(() => () => clearFeedback(), [clearFeedback])
+   useEffect(() => {
+@@ -92,13 +92,13 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
+   </div>
+   return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' || tab === 'Missions' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
+     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
+-    <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <BoxFiltersBar placeholder="Rechercher un personnage…" filters={boxFilters} onChange={setBoxFilters} />}</>}>
++    <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
+       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
+         {tab === 'Aperçu' && <div className="profile-overview"><div className="profile-identity"><PlayerAvatar {...value.player} /><div className="profile-identity-copy"><div className="profile-name-line"><h2>{value.player.displayName}</h2><span className="profile-element" role="img" aria-label={value.player.elementKey ? `Élément ${elementLabels[value.player.elementKey]}` : 'Élément non choisi'}>{value.player.elementKey && <GameAssetIcon src={getElementAssetPath(value.player.elementKey)} fallback="✦" />}</span></div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} /></div>}
+         {tab === 'Personnalisation' && value.own && <AppearancePanel actions={actions} displayName={value.player.displayName} elementKey={value.player.elementKey} onChanged={refreshAppearance} />}
+         {tab === 'Team active' && team}
+         {tab === 'Box' && <Section value={value.box}>{characters => {
+-          const filtered = filterBoxCharacters(characters, boxFilters).sort((a, b) => compareBoxCharacters(a, b, boxFilters)).map(c => ({ ...c, classKey: null }))
++          const filtered = characters.map(c => ({ ...c, classKey: null })).filter(c => normalizeCharacterSearch(c.name).includes(normalizeCharacterSearch(query)) && (rarity === 'all' || c.rarity === rarity) && (!element || c.elementKey === element)).sort((a, b) => (direction === 'asc' ? 1 : -1) * compareCharacters(a, b, sortKey))
+           return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}
+             {value.legends && <Section value={value.legends}>{data => data.characters.length > 0 && <section aria-label="Légendes C6"><h2>Légendes C6</h2>{data.characters.map(character => {
+               const legend = data.legends.find(item => item.character.id === character.id)
+diff --git a/src/social/social.test.tsx b/src/social/social.test.tsx
+index 7cae724c..8775d78c 100644
+--- a/src/social/social.test.tsx
++++ b/src/social/social.test.tsx
+@@ -35,33 +35,6 @@ function ProfileSurface({ api, refreshToken = 0 }: { api: SocialActions; refresh
+ function ProfileVisitorSurface({ api }: { api: SocialActions }) { const controller = useFriendships(api); return <ProfileScreen playerId="owner" ownerPlayerId="other" actions={api} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} /> }
+ function PlayersSurface({ api, onProfile, onDirectory, onClose }: { api: SocialActions; onProfile: (id: string) => void; onDirectory: () => void; onClose: () => void }) { const controller = useFriendships(api); const [value, setValue] = useState<Awaited<ReturnType<SocialActions['connected']>> | null>(null); useEffect(() => { void api.connected().then(setValue) }, [api]); return <OnlinePlayersPanel value={value} error={false} ownerPlayerId="owner" controller={controller} onProfile={onProfile} onDirectory={onDirectory} onClose={onClose} /> }
+ describe('Social UI', () => {
+-  it.each([true, false])('uses local multi-element Box filters, real dates and constellation for owner=%s', async own => {
+-    const api = actions()
+-    const record = (name: string, elementKey: 'pyro' | 'hydro' | 'cryo', rarity: 4 | 5, constellation: number, date: string) => ({ id: name, externalKey: name, name, elementKey, rarity, constellation, firstObtainedAt: date, copies: constellation + 1, weaponType: null, region: null, iconPath: null, splashPath: null, wishPath: null, fullbodyPath: null })
+-    const characters = [record('Alpha', 'pyro', 5, 0, '2026-01-03'), record('Beta', 'hydro', 5, 0, '2026-01-01'), record('Gamma', 'cryo', 5, 6, '2026-01-02'), record('Delta', 'hydro', 4, 0, '2026-01-04')]
+-    api.profile = vi.fn(async () => ({ ...profile, own, box: { access: 'ALLOWED' as const, data: characters } }))
+-    const container = await mount(own ? <ProfileSurface api={api} /> : <ProfileVisitorSurface api={api} />)
+-    await click(container, 'Box')
+-    const names = () => [...container.querySelectorAll('.character-card h3')].map(node => node.textContent)
+-    const press = async (label: string) => act(async () => container.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)!.click())
+-    const select = async (label: string, value: string) => act(async () => { const node = container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!; node.value = value; node.dispatchEvent(new Event('change', { bubbles: true })) })
+-    await press('Pyro'); await press('Hydro'); await press('Filtrer les personnages 5 étoiles')
+-    expect(names()).toEqual(['Alpha', 'Beta'])
+-    await select('Critère de tri', 'obtainedAt'); expect(names()).toEqual(['Beta', 'Alpha'])
+-    await select('Constellation', '6'); expect(names()).toEqual([])
+-    await select('Constellation', 'all'); await press('Hydro'); expect(names()).toEqual(['Alpha'])
+-    await press('Pyro'); await press('Filtrer les personnages 5 étoiles'); expect(names()).toEqual(['Beta', 'Gamma', 'Alpha', 'Delta'])
+-    expect(container.querySelector('.character-card button')).toBeNull()
+-    expect(api.saveFriendSort).not.toHaveBeenCalled()
+-  })
+-  it('does not show Box controls or leak cards through a private projection', async () => {
+-    const api = actions(); api.profile = vi.fn(async () => ({ ...profile, box: { access: 'PRIVATE' as const } }))
+-    const container = await mount(<ProfileVisitorSurface api={api} />)
+-    await click(container, 'Box')
+-    expect(container.querySelector('.box-filter-bar')).toBeNull()
+-    expect(container.querySelector('.character-card')).toBeNull()
+-    expect(container.textContent).toContain('Cette rubrique est privée.')
+-  })
+   it('rereads the profile on external refresh while keeping its selected tab', async () => {
+     const api = actions(), container = await mount(<ProfileSurface api={api} />)
+     await click(container, 'Box')

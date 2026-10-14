@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## Retouches ciblées — R1089
+
+Classement Event : en-tête sans Édition en cours, liste de cinq lignes et footer dans trois régions distinctes ; le feedback du panneau parent entre aussi dans le budget. Vérifier les rectangles des cinq li, pas seulement celui de la liste, et les hit-tests du footer. Équipe : budget nav/gestion/cartes/passifs, portraits carrés bornés par la hauteur restante, passifs au bord bas ; mesurer les parents et tester le chat replié qui élargit les cartes. Ni scroll masqué ni description coupée.
+
+Profil Missions utilise la même pagination adaptative que Missions principales, six cartes maximum sur les grands formats, rangs et pages partielles conservés. Statistiques répartit sa première colonne selon les trois/cinq métriques Progression/Économie, étire Gacha/Activités et répartit leurs lignes ; les trois bords bas concordent sans réserve vide sous le contenu. Les 23 mesures, montants longs et null restent lisibles. La réorganisation en quatre colonnes à très faible hauteur reste le repli R1087.
+
+Shop retire le seul libellé visible de quantité et conserve un nom accessible propre à chaque ressource ; intertitres et descriptions légèrement réduits. Gains jaunes de l’Aperçu seulement à 10 px, ligne 1,4 et retour naturel, aucune ellipse. Croix du tracker dans le dernier emplacement droit, restauration avant elle ; attente Event omise uniquement dans la carte Sidebar. Exceptions de scroll antérieures des listes Box et du mobile conservées. Qualification et limites au Master.
+
 ## Concours transparent et tours présentés — R1088
 
 Ce complément supersède les seuls messages transitoires R1086 ci-dessous. Sans projection, le cadre Concours normal reste neutre, sans score, participant ou action fictifs ; l'attente est annoncée aux technologies d'assistance uniquement. Avec projection, cartes, modales, choix et gains restent montés. Aucun texte de chargement/synchronisation ni grand panneau d'erreur transitoire. Après 60 secondes, un diagnostic compact et une vérification facultative apparaissent ; hors ligne et refus d'accès sont distingués immédiatement. La reprise sûre reste automatique.

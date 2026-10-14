@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Profil et fenêtres — R1089
+
+Missions Profil active la compaction de hauteur et ses pages partagées. Ses rangs restent indépendants de Missions Activités, destinations et historique inchangés. Box Profil utilise les contrôles de présentation communs, avec tri/filtres locaux et aucune sauvegarde de préférence lors d’une visite. Choisir réinitialise les contrôles et ferme seulement son ouverture après confirmation Avatar/Titre ; focus, Échap, Badges et Tutoriel conservés. Les mécanismes et fichiers Concours R1088 sont préservés intégralement.
+
 ## Chargement Concours — R1088, 14/10/2026
 
 Sans DTO, la destination Concours garde son cadre normal neutre et sa reprise automatique accessible ; aucun panneau d'indisponibilité transitoire. Avec DTO, même instance et mêmes modales. Un poll ordinaire conserve les commandes valides ; une erreur connue, mutation ou présentation inachevée les neutralise. Le retour visible attend une projection fraîche sans rejouer les gains historiques. Les refus d'authentification gardent le parcours global existant. R1087, destinations et navigation restent inchangées ; [contrat UI](ui-layout-contract-v1.md#concours-transparent-et-tours-présentés--r1088).

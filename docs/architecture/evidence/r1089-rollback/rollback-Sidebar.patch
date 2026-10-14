@@ -1,0 +1,27 @@
+diff --git a/src/dailies/DailyTrackerCard.tsx b/src/dailies/DailyTrackerCard.tsx
+index 866087b2..c3a2584d 100644
+--- a/src/dailies/DailyTrackerCard.tsx
++++ b/src/dailies/DailyTrackerCard.tsx
+@@ -31,7 +31,7 @@ export default function DailyTrackerCard({ items, tracker, claim, onOpen, onOver
+   const completed = !selected && tracker.message === 'Terminé ✅'
+   useDailyResetCountdown(completed, tracker.businessDate)
+   const nextDeadline = items.find(item => item.deadline && !tracker.hidden.includes(item.id) && (item.state === 'waiting' || item.state === 'in_progress' || item.actionable))?.deadline
+-  const status = currentMessage || (selected ? selected.id === 'event' && selected.state === 'waiting' ? '' : ['error', 'unknown', 'waiting', 'in_progress', 'completed'].includes(selected.state) ? dailyTrackerStatus(selected) : '' : completed ? '' : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
++  const status = currentMessage || (selected ? ['error', 'unknown', 'waiting', 'in_progress', 'completed'].includes(selected.state) ? dailyTrackerStatus(selected) : '' : completed ? '' : nextDeadline ? `Prochaine échéance : ${new Date(nextDeadline).toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })}` : '')
+   const lastHidden = items.find(item => item.id === tracker.hidden.at(-1))
+   return <section data-tutorial-anchor="daily-tracker" data-compact data-completed={completed && !currentMessage && !refreshing} className="panel daily-card daily-tracker" aria-label="Suivi Quotidiennes" aria-busy={claim.pending || refreshing}>
+     <button type="button" className="daily-tracker-hit-target" disabled={!actionable} aria-label={selected ? `${isClaim ? 'Récupérer' : 'Accéder à'} ${selected.title}` : 'Activité indisponible'} onClick={run} />
+diff --git a/src/dailies/sidebar-completion.css b/src/dailies/sidebar-completion.css
+index 5637c720..4d2950ec 100644
+--- a/src/dailies/sidebar-completion.css
++++ b/src/dailies/sidebar-completion.css
+@@ -23,8 +23,7 @@
+     padding-block: 10px;
+   }
+   .daily-tracker[data-compact] .daily-tracker-heading { grid-template-columns: minmax(0, 1fr) 24px 24px; grid-template-rows: 24px; }
+-  .daily-tracker[data-compact] .daily-tracker-restore { grid-column: 2; grid-row: 1; align-self: center; }
+-  .daily-tracker[data-compact] .daily-tracker-hide { grid-column: 3; }
++  .daily-tracker[data-compact] .daily-tracker-restore { grid-column: 3; grid-row: 1; align-self: center; }
+   .daily-tracker[data-compact] .daily-tracker-heading > div:first-child { grid-row: 1; }
+   .daily-tracker[data-compact] .daily-tracker-content { justify-content: center; padding-block: 4px; }
+   .daily-tracker[data-compact] .daily-tracker-summary { margin: 0; text-align: center; }

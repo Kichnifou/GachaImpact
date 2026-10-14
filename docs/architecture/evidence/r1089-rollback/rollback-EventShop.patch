@@ -1,0 +1,33 @@
+diff --git a/src/event/event-shop-layout.css b/src/event/event-shop-layout.css
+index 8fd6e85c..225835dd 100644
+--- a/src/event/event-shop-layout.css
++++ b/src/event/event-shop-layout.css
+@@ -7,12 +7,8 @@
+   .event-frame .event-shop-grid { flex: 1 1 0; min-height: 0; }
+   .event-frame .event-shop-card { box-sizing: border-box; padding: clamp(7px, 2cqh, 16px); gap: clamp(4px, 1.4cqh, 12px); justify-content: space-between; }
+   .event-frame .event-shop-card h2 { font-size: 17px; line-height: 1.2; margin: 0; }
+-  .event-frame .event-shop-card > .eyebrow { font-size: 9px; }
+-  .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 11px; line-height: 1.35; }
+-  .event-frame .event-shop-card .event-shop-quantity { flex-wrap: nowrap; gap: 4px; }
+-  .event-frame .event-shop-quantity input { flex: 1 1 80px; width: 0; min-width: 0; max-width: none; font-size: 12px; font-variant-numeric: tabular-nums; }
+-  .event-frame .event-shop-quantity button { min-width: 26px; padding-inline: 4px; font-size: 12px; }
+-  .event-frame .event-shop-quantity .event-shop-max { padding-inline: 6px; }
++  .event-frame .event-shop-card p { min-height: 0; margin: 0; font-size: 12px; }
++  .event-frame .event-shop-quantity { flex-wrap: nowrap; }
+   .event-frame .event-shop-quantity > * { height: 30px; min-height: 30px; }
+   .event-frame .event-shop-card > .small-primary-button { min-height: 30px; margin-top: 0; padding: 4px 8px; }
+   .event-frame .event-shop-icon { width: 26px; height: 26px; font-size: 18px; }
+diff --git a/src/screens/EventShopSection.tsx b/src/screens/EventShopSection.tsx
+index 0c41b5a4..e15d5ba3 100644
+--- a/src/screens/EventShopSection.tsx
++++ b/src/screens/EventShopSection.tsx
+@@ -44,7 +44,8 @@ export default function EventShopSection({ value, intent, pending, feedback, err
+         return <article hidden={shortDesktop && target !== offer} className="panel event-shop-card" key={target}>
+           <span className="event-shop-icon" aria-hidden="true">{icon}</span><span className="eyebrow">Conversion</span><h2>{title}</h2>
+           <p>1 {value.festival.currency.unit} → {formatResourceAmount(value.shop.rates[rate])} {title}</p>
+-          <div className="event-shop-quantity"><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.max(1, Number(current[target]) - 1 || 1)) }))} disabled={pending || Boolean(intent)} aria-label={`Diminuer la quantité de ${title}`}>−</button><input aria-label={`Quantité de ${title} à échanger`} id={`event-shop-${target}`} type="number" min="1" step="1" inputMode="numeric" value={displayedQuantity} disabled={pending || Boolean(intent)} onChange={(event) => setQuantities((current) => ({ ...current, [target]: event.target.value }))} /><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.min(max, (Number(current[target]) || 0) + 1)) }))} disabled={pending || Boolean(intent) || max === 0} aria-label={`Augmenter la quantité de ${title}`}>+</button><button type="button" className="event-shop-max" onClick={() => setQuantities((current) => ({ ...current, [target]: String(max) }))} disabled={pending || Boolean(intent) || max === 0}>MAX</button></div>
++          <label htmlFor={`event-shop-${target}`}>Quantité à échanger</label>
++          <div className="event-shop-quantity"><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.max(1, Number(current[target]) - 1 || 1)) }))} disabled={pending || Boolean(intent)} aria-label={`Diminuer la quantité de ${title}`}>−</button><input id={`event-shop-${target}`} type="number" min="1" step="1" inputMode="numeric" value={displayedQuantity} disabled={pending || Boolean(intent)} onChange={(event) => setQuantities((current) => ({ ...current, [target]: event.target.value }))} /><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.min(max, (Number(current[target]) || 0) + 1)) }))} disabled={pending || Boolean(intent) || max === 0} aria-label={`Augmenter la quantité de ${title}`}>+</button><button type="button" className="event-shop-max" onClick={() => setQuantities((current) => ({ ...current, [target]: String(max) }))} disabled={pending || Boolean(intent) || max === 0}>MAX</button></div>
+           <p className="event-shop-preview-total">Vous recevez <strong>{valid ? formatResourceAmount((BigInt(quantity) * BigInt(value.shop.rates[rate])).toString()) : '0'} {title}</strong></p>
+           <button type="button" className="small-primary-button" disabled={!value.shop.available || !canConvert || pending || (!valid && intent?.target !== target) || Boolean(intent && intent.target !== target)} onClick={() => onTransact(target, quantity)}>{pending && intent?.target === target ? 'Échange…' : intent?.target === target ? 'Réessayer' : 'Convertir'}</button>
+         </article>
