@@ -222,6 +222,17 @@ describe('EventScreen presentation', () => {
     expect(onLoad).toHaveBeenCalledTimes(1)
   })
 
+  it('renders product headings without residual category labels', () => {
+    const { container } = mount({ value: afterJoin })
+    act(() => Array.from(container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find(button => button.textContent === 'Shop')!.click())
+    const cards = [...container.querySelectorAll('.event-shop-card')]
+    expect(cards).toHaveLength(3)
+    for (const card of cards) {
+      expect(card.querySelector('.eyebrow')).toBeNull()
+      expect(card.querySelector('.event-shop-product-heading > .event-shop-icon')).toBeTruthy()
+      expect(card.querySelector('.event-shop-product-heading > h2')?.textContent).toBeTruthy()
+    }
+  })
   it('keeps one Shop request in flight across tabs and issues a new key after confirmed success', async () => {
     let completeFirst!: (value: EventDto) => void
     const first = new Promise<EventDto>((resolve) => { completeFirst = resolve })
