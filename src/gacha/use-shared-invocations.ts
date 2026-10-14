@@ -7,7 +7,8 @@ const empty: SharedInvocationState = { broadcasting: null, watching: null };
 export function mergeSharedSession(previous: SharedSession | null, next: SharedSession | null) {
     return previous && next && previous.id === next.id && previous.seq > next.seq ? previous : next;
 }
-export function useSharedInvocations(api: SharedInvocationApi | undefined, invocationVisible: boolean, onPersonalRefresh?: () => Promise<void>, ownerKey?: string) {
+export function useSharedInvocations(api: SharedInvocationApi | undefined, invocationVisible: boolean, onPersonalRefresh?: () => Promise<void>, ownerKey?: string, presentation = false) {
+    const presentationRef = useRef(presentation); presentationRef.current = presentation;
     const [state, setState] = useState(empty), [error, setError] = useState(''), [pending, setPending] = useState(false),[personalReady,setPersonalReady]=useState(true);
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
     const personalFlight=useRef<{epoch:number;promise:Promise<void>}|null>(null);
@@ -79,7 +80,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             reading = true;
             const version = revision.current;
             try {
-                if ((document.visibilityState !== 'hidden' || current.current.broadcasting?.authoritative) && !locked.current) {
+                if (!presentationRef.current && (document.visibilityState !== 'hidden' || current.current.broadcasting?.authoritative) && !locked.current) {
                     const own = current.current.broadcasting, now = Date.now();
                     const next = own?.authoritative && now - presenceAt >= 15000
                         ? await api.control(sharedInvocationTabId(), 'presence', screen.current ? 'invocation' : 'other', undefined, own.id)
@@ -130,7 +131,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
     useEffect(() => { reschedulePoll.current?.(); }, [api, ownerKey, invocationVisible, broadcasting, watching]);
     useEffect(()=>{
         const sessionId=state.watching?.id,token=state.watchingToken;
-        if(!api?.viewerPresence||!sessionId||!token)return;
+        if(presentation||!api?.viewerPresence||!sessionId||!token)return;
         let disposed=false,reading=false,changedDuringRead=false,timer:ReturnType<typeof setTimeout>|undefined;
         const send=async()=>{
             if(disposed)return;
@@ -143,10 +144,10 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         const changed=()=>{if(timer)clearTimeout(timer);void send()};
         void send();document.addEventListener('visibilitychange',changed);
         return()=>{disposed=true;if(timer)clearTimeout(timer);document.removeEventListener('visibilitychange',changed)};
-    },[api,state.watching?.id,state.watchingToken,invocationVisible,ownerKey]);
+    },[api,state.watching?.id,state.watchingToken,invocationVisible,ownerKey,presentation]);
     useEffect(() => {
         const own = current.current.broadcasting;
-        if (!api || !own?.authoritative || locked.current)
+        if (presentation || !api || !own?.authoritative || locked.current)
             return;
         const epoch = generation.current, version = ++revision.current;
         void api.control(sharedInvocationTabId(), 'presence', invocationVisible ? 'invocation' : 'other', undefined, own.id).then(next => {
@@ -156,13 +157,13 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             if (epoch === generation.current && version === revision.current)
                 setError(apiErrorMessage(e));
         });
-    }, [api, invocationVisible, apply, ownerKey]);
+    }, [api, invocationVisible, apply, ownerKey, presentation]);
     useEffect(() => {
         if (!api)
             return;
         let lastSent = 0;
         const gesture = (event: Event) => {
-            if (!event.isTrusted || locked.current || !current.current.broadcasting?.authoritative || Date.now() - lastSent < 10000)
+            if (presentationRef.current || !event.isTrusted || locked.current || !current.current.broadcasting?.authoritative || Date.now() - lastSent < 10000)
                 return;
             lastSent = Date.now();
             const epoch = generation.current, version = ++revision.current;
@@ -180,7 +181,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
         };
     }, [api, apply, ownerKey]);
     const mutate = useCallback(async (action: (api: SharedInvocationApi, tabId: string) => Promise<SharedInvocationState>, reaction=false) => {
-        if (!api || locked.current)
+        if (presentationRef.current || !api || locked.current)
             return false;
         locked.current = true;
         let settle!:()=>void;

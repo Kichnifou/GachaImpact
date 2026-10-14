@@ -1,15 +1,15 @@
 import type { TutorialAutostartDto, TutorialPreferenceDto, TutorialStepId } from '../api/types'
-import { tutorialSteps } from './tutorial-catalog'
+import { tutorialStepsForCatalog } from './tutorial-catalog'
 export { tutorialSteps } from './tutorial-catalog'
 export type PreparedTutorialTarget = Readonly<{ anchor?: string; fallback?: boolean }>
 export type PrepareTutorial = (id: TutorialStepId, signal: AbortSignal) => Promise<PreparedTutorialTarget>
-export type TutorialApi = { claimAutostart?: () => Promise<TutorialAutostartDto>; get: () => Promise<TutorialPreferenceDto>; put: (value: TutorialPreferenceDto) => Promise<TutorialPreferenceDto> }
+export type TutorialApi = { legacyCatalog?: () => boolean; claimAutostart?: () => Promise<TutorialAutostartDto>; get: () => Promise<TutorialPreferenceDto>; put: (value: TutorialPreferenceDto) => Promise<TutorialPreferenceDto> }
 export type TutorialAction = 'launch' | 'previous' | 'next' | 'finish'
-type Snapshot = Readonly<{ active: boolean; stepId: TutorialStepId | null; confirmedStepId: TutorialStepId | null; phase: 'idle' | 'writing' | 'preparing'; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction: TutorialAction | null }>
+type Snapshot = Readonly<{ legacyCatalog: boolean; active: boolean; stepId: TutorialStepId | null; confirmedStepId: TutorialStepId | null; phase: 'idle' | 'writing' | 'preparing'; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction: TutorialAction | null }>
 
 // One controller per Player. A failed write retains its exact intention for retry.
 export class TutorialController {
-  private snapshot: Snapshot = { active: false, stepId: null, confirmedStepId: null, phase: 'idle', pending: false, error: '', retryAction: null }
+  private snapshot: Snapshot = { legacyCatalog: false, active: false, stepId: null, confirmedStepId: null, phase: 'idle', pending: false, error: '', retryAction: null }
   private listeners = new Set<() => void>()
   private retry: { action: TutorialAction; execute: () => Promise<void> } | null = null
   private disposed = false
@@ -19,6 +19,7 @@ export class TutorialController {
   private abort: AbortController | null = null
   private readonly prepare: PrepareTutorial
   constructor(api: TutorialApi, prepare: PrepareTutorial = async () => ({})) { this.api = api; this.prepare = prepare }
+  private catalog() { return tutorialStepsForCatalog(this.snapshot.legacyCatalog) }
   getSnapshot = () => this.snapshot
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener) } }
   private update(patch: Partial<Snapshot>) { if (this.disposed) return; this.snapshot = { ...this.snapshot, ...patch }; this.listeners.forEach(listener => listener()) }
@@ -44,7 +45,7 @@ export class TutorialController {
   }
   startConfirmed = (preference: TutorialPreferenceDto & { status: 'IN_PROGRESS' }) => {
     if (this.snapshot.active || this.disposed) return
-    this.update({ active: true, stepId: null })
+    this.update({ active: true, stepId: null, legacyCatalog: this.api.legacyCatalog?.() ?? false })
     return this.run('launch', () => this.present(preference.stepId))
   }
   launch = () => {
@@ -56,8 +57,9 @@ export class TutorialController {
       const generation = this.generation
       if (!saved) saved = await this.api.get()
       if (this.disposed || generation !== this.generation) return
+      this.update({ legacyCatalog: this.api.legacyCatalog?.() ?? false })
       if (saved.status === 'IN_PROGRESS') await this.present(saved.stepId)
-      else { execute ??= this.transition({ version: 1, status: 'IN_PROGRESS', stepId: 'profile' }); await execute() }
+      else { execute ??= this.transition({ version: 1, status: 'IN_PROGRESS', stepId: this.catalog()[0]!.id }); await execute() }
     })
   }
   private async present(id: TutorialStepId) {
@@ -81,17 +83,17 @@ export class TutorialController {
   next = () => {
     if (!this.snapshot.active || this.snapshot.pending) return
     if (this.retry) return this.retry.action === 'next' || this.retry.action === 'launch' ? this.run(this.retry.action, this.retry.execute) : undefined
-    const index = tutorialSteps.findIndex(step => step.id === this.snapshot.stepId)
+    const index = this.catalog().findIndex(step => step.id === this.snapshot.stepId)
     if (index < 0) return
-    const next = tutorialSteps[index + 1]
+    const next = this.catalog()[index + 1]
     return this.run('next', this.transition(next ? { version: 1, status: 'IN_PROGRESS', stepId: next.id } : { version: 1, status: 'COMPLETED', stepId: null }))
   }
   previous = () => {
     if (!this.snapshot.active || this.snapshot.pending) return
     if (this.retry) return this.retry.action === 'previous' ? this.run('previous', this.retry.execute) : undefined
-    const index = tutorialSteps.findIndex(step => step.id === this.snapshot.stepId)
+    const index = this.catalog().findIndex(step => step.id === this.snapshot.stepId)
     if (index <= 0) return
-    return this.run('previous', this.transition({ version: 1, status: 'IN_PROGRESS', stepId: tutorialSteps[index - 1]!.id }))
+    return this.run('previous', this.transition({ version: 1, status: 'IN_PROGRESS', stepId: this.catalog()[index - 1]!.id }))
   }
   finish = () => {
     if (!this.snapshot.active || this.snapshot.pending) return

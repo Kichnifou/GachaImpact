@@ -20,7 +20,7 @@ function HomeScreen({ onNavigate, gacha, onSetGachaTarget, dailySummary, ownerPl
     <div data-tutorial-anchor="home" data-fit-screen className="screen-content home-screen">
       <BannerHero compact gacha={gacha} onSetTarget={onSetGachaTarget} onOpen={() => onNavigate('invocation')} />
 
-      <nav className="home-shortcuts" aria-label="Raccourcis Accueil">
+      <nav data-tutorial-anchor="home-shortcuts" className="home-shortcuts" aria-label="Raccourcis Accueil">
         {([
           { title: 'Équipe', icon: '♟', screen: 'characters-team' },
           { title: 'Événement', icon: '✦', screen: 'activities-event' },

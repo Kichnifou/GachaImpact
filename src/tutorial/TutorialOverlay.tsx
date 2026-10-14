@@ -2,18 +2,20 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import AppButton from '../components/AppButton'
 import type { TutorialStepId } from '../api/types'
-import { tutorialSteps, type TutorialAction } from './tutorial-controller'
-import { getTutorialStep } from './tutorial-catalog'
+import type { TutorialAction } from './tutorial-controller'
+import { getTutorialStep, tutorialStepsForCatalog } from './tutorial-catalog'
 import { visibleTutorialAnchors } from './tutorial-target'
 import { spotlightRect, tutorialBubblePosition, unionTutorialRects, type TutorialRect } from './tutorial-geometry'
 import './tutorial.css'
 
-type Props = { stepId: TutorialStepId | null; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
-export default function TutorialOverlay({ stepId, anchor, fallback = false, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
+type Props = { legacyCatalog?: boolean; stepId: TutorialStepId | null; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
+export default function TutorialOverlay({ legacyCatalog = false, stepId, anchor, fallback = false, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
   const layer = useRef<HTMLDivElement>(null), bubble = useRef<HTMLElement>(null), pause = useRef<HTMLButtonElement>(null)
   const actions = useRef({ onNext, onPause }); actions.current = { onNext, onPause }
   const [geometry, setGeometry] = useState<{ target: TutorialRect | null; left: number; top: number }>({ target: null, left: 12, top: 12 })
-  const index = tutorialSteps.findIndex(step => step.id === stepId), step = stepId ? getTutorialStep(stepId) : null
+  const steps = tutorialStepsForCatalog(legacyCatalog)
+  const index = steps.findIndex(step => step.id === stepId), step = stepId ? getTutorialStep(stepId) : null
+  const displaySettings = stepId === 'display-settings'
   const targetAnchor = anchor ?? step?.anchor
 
   useLayoutEffect(() => {
@@ -30,6 +32,8 @@ export default function TutorialOverlay({ stepId, anchor, fallback = false, pend
     const observer = new MutationObserver(neutralize); observer.observe(document.body, { childList: true })
     pause.current?.focus({ preventScroll: true })
     const keyboard = (event: KeyboardEvent) => {
+      // Preserve native browser zoom even if focus moved during a resize.
+      if ((event.ctrlKey || event.metaKey) && ['+', '-', '=', '0'].includes(event.key)) return
       if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); actions.current.onPause(); return }
       if (!portal.contains(event.target as Node)) { event.preventDefault(); event.stopImmediatePropagation(); pause.current?.focus({ preventScroll: true }); return }
       if (event.key === 'Tab') {
@@ -79,7 +83,7 @@ export default function TutorialOverlay({ stepId, anchor, fallback = false, pend
       }
       const target = rect ? spotlightRect(rect, window.innerWidth, window.innerHeight) : null
       const box = bubble.current!.getBoundingClientRect()
-      const position = tutorialBubblePosition(target, box, { width: window.innerWidth, height: window.innerHeight })
+      const position = tutorialBubblePosition(displaySettings ? null : target, box, { width: window.innerWidth, height: window.innerHeight })
       setGeometry(previous => {
         const next = { target, ...position }; return JSON.stringify(previous) === JSON.stringify(next) ? previous : next
       })
@@ -93,15 +97,22 @@ export default function TutorialOverlay({ stepId, anchor, fallback = false, pend
     window.addEventListener('resize', resized); window.addEventListener('scroll', schedule, true)
     measure()
     return () => { cancelAnimationFrame(frame); resize.disconnect(); mutations.disconnect(); window.removeEventListener('resize', resized); window.removeEventListener('scroll', schedule, true) }
-  }, [stepId, targetAnchor])
+  }, [stepId, targetAnchor, displaySettings])
 
   const target = geometry.target
   return createPortal(<div ref={layer} data-tutorial-step={stepId ?? undefined} data-tutorial-target={targetAnchor} className="tutorial-layer modal-layer" onPointerDown={event => { if (!(event.target instanceof Element) || !event.target.closest('button:not(:disabled)')) event.preventDefault() }} onKeyDown={event => event.stopPropagation()} onKeyUp={event => event.stopPropagation()} onClick={event => { event.stopPropagation(); if (event.detail <= 1 && target) onNext() }}>
-    {target ? <div className="tutorial-spotlight" aria-hidden="true" style={{ left: target.left, top: target.top, width: target.width, height: target.height }} /> : <div className="tutorial-shade" />}
-    <section ref={bubble} className="tutorial-bubble" role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-text" aria-busy={pending} style={{ left: geometry.left, top: geometry.top }} onClick={event => event.stopPropagation()}>
-      <span className="eyebrow">Tutoriel{step ? ` · ${index + 1}/${tutorialSteps.length}` : ''}</span>
+    {target && !displaySettings ? <div className="tutorial-spotlight" aria-hidden="true" style={{ left: target.left, top: target.top, width: target.width, height: target.height }} /> : <div className="tutorial-shade" />}
+    <section ref={bubble} className={`tutorial-bubble${displaySettings ? ' tutorial-display' : ''}`} role="dialog" aria-modal="true" aria-labelledby="tutorial-title" aria-describedby="tutorial-text" aria-busy={pending} style={{ left: geometry.left, top: geometry.top }} onClick={event => event.stopPropagation()}>
+      <span className="eyebrow">Tutoriel{step ? ` · ${index + 1}/${steps.length}` : ''}</span>
       <h2 id="tutorial-title">{step?.title ?? 'Tutoriel'}</h2>
+      <div className={displaySettings ? 'tutorial-display-content' : undefined}>
       <p id="tutorial-text" aria-live="polite">{step ? fallback ? `${step.text} ${step.fallback}` : step.text : pending ? 'Préparation de la vue…' : 'Réessayez avec le contrôle indiqué, ou mettez la visite en pause.'}</p>
+      {displaySettings && <>
+        <p className="tutorial-zoom-desktop">Sur ordinateur : <kbd>Ctrl +</kbd> / <kbd>Ctrl −</kbd> pour ajuster le zoom, <kbd>Ctrl 0</kbd> pour revenir à 100 %. Sur Mac, utilisez ⌘ à la place de Ctrl.</p>
+        <p className="tutorial-zoom-mobile">Sur téléphone ou tablette, choisissez un affichage confortable avec les réglages disponibles dans votre navigateur. Aucune action de zoom n’est nécessaire pour continuer.</p>
+        <figure><img src="/assets/tutorial/display-reference.webp" width="2528" height="1250" alt="Capture de référence de l’Accueil : sidebar complète à gauche, bannière et raccourcis au centre, Communauté à droite." /><figcaption>Capture réelle de référence · les proportions dépendent de votre écran.</figcaption></figure>
+      </>}
+      </div>
       <p className="tutorial-error" role={error ? 'alert' : undefined}>{error}</p>
       <footer>
         <AppButton disabled={pending || (retryAction !== 'previous' && (index <= 0 || !target)) || (retryAction !== null && retryAction !== 'previous')} onClick={event => { event.stopPropagation(); if (event.detail <= 1) onPrevious() }}>Précédent</AppButton>

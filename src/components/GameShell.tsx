@@ -99,7 +99,7 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
   codes: ['giftCodes'],
 }
 
-const defaultTutorialApi: TutorialApi = { claimAutostart: () => getGameApiClient().claimTutorialAutostart(), get: () => getGameApiClient().getTutorial(), put: value => getGameApiClient().putTutorial(value) }
+const defaultTutorialApi: TutorialApi = { legacyCatalog: () => getGameApiClient().tutorialLegacyCatalog(), claimAutostart: () => getGameApiClient().claimTutorialAutostart(), get: () => getGameApiClient().getTutorial(), put: value => getGameApiClient().putTutorial(value) }
 
 type GameShellProps = {
   sharedInvocationApi?: SharedInvocationApi
@@ -263,13 +263,6 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
   const [browserMoving,setBrowserMoving]=useState(false)
   useEffect(()=>()=>{if(browserMoveTimer.current)clearTimeout(browserMoveTimer.current)},[destinationHistory])
   const [activeScreen, setActiveScreen] = useState<ScreenId>(()=>destinationHistory.getSnapshot().current.screen)
-  const sharedInvocations = useSharedInvocations(sharedInvocationApi, activeScreen === 'invocation', onRefreshPlayerState, player.id)
-  const previousSharedMode = useRef({broadcasting:false,watching:false})
-  useEffect(() => {
-    const next={broadcasting:!!sharedInvocations.state.broadcasting,watching:!!sharedInvocations.state.watching}
-    if ((!previousSharedMode.current.watching && next.watching) || (previousSharedMode.current.broadcasting && !next.broadcasting)) onGachaPresentationAbandoned()
-    previousSharedMode.current=next
-  }, [sharedInvocations.state.broadcasting,sharedInvocations.state.watching,onGachaPresentationAbandoned])
   const activeScreenRef = useRef(activeScreen)
   const [isChatCollapsed, setIsChatCollapsed] = useState(false)
   const communityLayout = useCommunityLayout(player.id)
@@ -287,6 +280,14 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
   }, [])
   const tutorial = useMemo(() => new TutorialController(tutorialApi, prepareTutorial), [player.id, tutorialApi, prepareTutorial])
   const tutorialState = useSyncExternalStore(tutorial.subscribe, tutorial.getSnapshot)
+  const sharedInvocations = useSharedInvocations(sharedInvocationApi, activeScreen === 'invocation', onRefreshPlayerState, player.id, tutorialState.active)
+  const previousSharedMode = useRef({broadcasting:false,watching:false})
+  useEffect(() => {
+    const next={broadcasting:!!sharedInvocations.state.broadcasting,watching:!!sharedInvocations.state.watching}
+    if ((!previousSharedMode.current.watching && next.watching) || (previousSharedMode.current.broadcasting && !next.broadcasting)) onGachaPresentationAbandoned()
+    previousSharedMode.current=next
+  }, [sharedInvocations.state.broadcasting,sharedInvocations.state.watching,onGachaPresentationAbandoned])
+
   const tutorialSidebar = tutorialState.active && ['profile', 'resources', 'active-team', 'objective', 'daily-tracker'].includes(presentationStepId ?? '')
   useEffect(() => { tutorial.activate(); return tutorial.dispose }, [tutorial])
   const sidebarBeforeTutorial = useRef(false)
@@ -622,7 +623,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
   const dailyItems = projectDailies(dailySources)
   const dailyTracker = useDailyTracker(dailyItems, player.id, confirmedDailyDate(dailySources), dailyTrackerEnvironment())
   const dailyClaim = useDailyClaim(onClaimDailyReward, player.id)
-  const tutorialBusy = Boolean(pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || isParticleConversionOpen)
+  const tutorialBusy = Boolean(sharedInvocations.pending || pendingGachaPullCount !== null || activeLevelUpFeedback || externalFeedbackPending || profileLevelUpEvent || completedChallengeFeedback || favorPresence.feedbacks.length || dailyClaim.locked || isParticleConversionOpen)
   useTutorialAutostart(player.id, Boolean(player.elementKey), tutorialApi, tutorial, tutorialBusy, beforeTutorialLaunch)
   useDailyRevalidation(player.id, dailyRefresh?.refresh ?? (() => Promise.resolve()), () => friendship.refresh(), onRefreshPlayerState ? { refresh: refreshSharedPlayerState, canRefresh: canRefreshPlayerState } : undefined)
   const openDailies = (tab: 'overview' | 'wheel' | 'challenge') => { setDailiesRequestedTab(tab); setDailiesOverviewRequestToken(value => value + 1); navigate('activities-dailies',{dailies:tab}) }

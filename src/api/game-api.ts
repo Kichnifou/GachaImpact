@@ -116,6 +116,7 @@ export class ApiError extends Error {
 }
 
 export function createGameApiClient(dependencies: ApiClientDependencies) {
+  let legacyTutorialCatalog = true
   const fetchImplementation = dependencies.fetchImplementation ?? fetch
   const baseUrl = dependencies.baseUrl.replace(/\/$/, '')
 
@@ -236,9 +237,18 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       mutate: (id, action, idempotencyKey) => request<TradeResult>(`/api/v1/me/trades/${encodeURIComponent(id)}/${action}`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
       all: (action, idempotencyKey) => request<{ results: TradeResult[] }>(`/api/v1/me/trades/${action}-all`, { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     } satisfies TradeActions,
-    claimTutorialAutostart: () => request<TutorialAutostartDto>('/api/v1/me/tutorial/autostart', { method: 'POST' }),
-    getTutorial: () => request<TutorialPreferenceDto>('/api/v1/me/tutorial'),
-    putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial', { method: 'PUT', body: JSON.stringify(value) }),
+    tutorialLegacyCatalog: () => legacyTutorialCatalog,
+    claimTutorialAutostart: async () => {
+      const result = await request<TutorialAutostartDto & { catalog?: string }>('/api/v1/me/tutorial/autostart?catalog=r1093', { method: 'POST' })
+      legacyTutorialCatalog = result.catalog !== 'r1093'
+      return result
+    },
+    getTutorial: async () => {
+      const result = await request<TutorialPreferenceDto | { catalog: string; preference: TutorialPreferenceDto }>('/api/v1/me/tutorial?catalog=r1093')
+      legacyTutorialCatalog = !('catalog' in result && result.catalog === 'r1093')
+      return 'preference' in result ? result.preference : result
+    },
+    putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial?catalog=r1093', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchLinkResolution: (signal?: AbortSignal) => request<TwitchLinkResolutionDto | null>('/api/v1/me/twitch/resolution', { signal }),
     resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH', decisionRevision: string, operatorPlanId?: string) => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, decisionRevision, ...(operatorPlanId ? { operatorPlanId, operatorConfirmation: 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS' } : {}), confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),

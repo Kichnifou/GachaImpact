@@ -52,13 +52,13 @@ it('launches only via Menu, returns Home, resolves eight anchors and allows repl
   }
   await launch(); expect(window.location.hash).toBe('#home'); expect(container.querySelector('.home-screen')).not.toBeNull()
   expect(container.querySelector('.global-menu')).toBeNull()
-  tutorialSteps.slice(0, 8).forEach(step => expect(container.querySelector(`[data-tutorial-anchor="${step.id}"]`)).not.toBeNull())
+  tutorialSteps.slice(0, 9).forEach(step => expect(container.querySelector(`[data-tutorial-anchor="${step.anchor}"]`)).not.toBeNull())
   expect(container.querySelectorAll('[data-tutorial-anchor="resources"]')).toHaveLength(2)
   await act(async () => { window.location.hash = '#shop'; window.dispatchEvent(new Event('hashchange')) })
   expect(window.location.hash).toBe('#home'); expect(container.querySelector('.home-screen')).not.toBeNull()
   await act(async () => Array.from(document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble button')).find(el => el.textContent === 'Terminer')!.click())
   expect(saved).toEqual({ version: 1, status: 'COMPLETED', stepId: null }); expect(container.hasAttribute('inert')).toBe(false)
-  await launch(); expect(saved).toEqual({ version: 1, status: 'IN_PROGRESS', stepId: 'profile' })
+  await launch(); expect(saved).toEqual({ version: 1, status: 'IN_PROGRESS', stepId: 'display-settings' })
   expect(props.onClaimDailyReward).not.toHaveBeenCalled(); expect(props.onPullGacha).not.toHaveBeenCalled()
 })
 it('keeps the Menu available with a concrete notice when a business operation is pending', async () => {

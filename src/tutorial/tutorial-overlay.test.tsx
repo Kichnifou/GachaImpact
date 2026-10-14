@@ -19,13 +19,22 @@ beforeEach(() => {
   })
 })
 afterEach(() => { act(() => root.unmount()); container.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals() })
-const render = (stepId: TutorialStepId = 'profile') => act(async () => root.render(<><button data-business onClick={business} onKeyDown={business}>Business</button><div data-tutorial-anchor={stepId} /><TutorialOverlay stepId={stepId} pending={false} error="" onPrevious={previous} onNext={next} onPause={pause} onFinish={finish} /></>))
-it('orders controls and disables Previous on profile', async () => {
+const render = (stepId: TutorialStepId = 'display-settings') => act(async () => root.render(<><button data-business onClick={business} onKeyDown={business}>Business</button><div data-tutorial-anchor={stepId === 'display-settings' ? 'home' : stepId} /><TutorialOverlay stepId={stepId} pending={false} error="" onPrevious={previous} onNext={next} onPause={pause} onFinish={finish} /></>))
+it('orders controls and disables Previous on display-settings', async () => {
   await render()
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble button'))
   expect(buttons.map(button => button.textContent)).toEqual(['Précédent', 'Suivant', 'Pause', 'Terminer'])
   expect(buttons[0].disabled).toBe(true)
-  expect(document.querySelector('.tutorial-bubble')?.textContent).toContain('1/116')
+  expect(document.querySelector('.tutorial-bubble')?.textContent).toContain('1/121')
+})
+it('shows the real reference and leaves native zoom shortcuts uncancelled', async () => {
+  await render()
+  expect(document.querySelector<HTMLImageElement>('.tutorial-display img')?.getAttribute('src')).toBe('/assets/tutorial/display-reference.webp')
+  for (const key of ['+', '-', '=', '0']) {
+    const event = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true })
+    document.dispatchEvent(event); expect(event.defaultPrevented).toBe(false)
+  }
+  expect(business).not.toHaveBeenCalled(); expect(next).not.toHaveBeenCalled()
 })
 it('keeps Suivant text stable and protects all mutations while pending', async () => {
   await act(async () => root.render(<><div data-tutorial-anchor="resources" /><TutorialOverlay stepId="resources" pending error="" onPrevious={previous} onNext={next} onPause={pause} onFinish={finish} /></>))

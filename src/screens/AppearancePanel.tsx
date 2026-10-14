@@ -15,7 +15,7 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
   const [value, setValue] = useState<AppearanceDto | null>(null)
   const [normalTab, setTab] = useDestinationTab('appearance','AVATAR')
   const presentation = useTutorialPresentation()
-  const tab = presentation.active ? presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
+  const tab = presentation.active ? presentation.step?.view === 'Personnalisation:badges' ? 'BADGE' : presentation.step?.view === 'Personnalisation:titles' ? 'TITLE' : 'AVATAR' : normalTab
   const [chooserTab, setChooserTab] = useState<string | null>(null)
   const chooserRevision = useRef(0)
   const closeChooser = () => { chooserRevision.current += 1; setChooserTab(null) }
@@ -82,7 +82,7 @@ export default function AppearancePanel({ actions, displayName, elementKey, onCh
       {characterEntries.length > 0 && <section className="appearance-character-section" aria-label="Avatars de vos personnages"><h3>Avatars de vos personnages</h3><div className="appearance-catalog appearance-character-grid">{characterEntries.map(renderCard)}</div></section>}
       {levelEntries.length > 0 && <section className="appearance-level-section" aria-label="Titres de niveaux"><h3>Titres de niveaux</h3><div className="appearance-catalog">{levelEntries.map(renderCard)}</div></section>}
       {otherEntries.length > 0 && <div className="appearance-catalog">{otherEntries.map(renderCard)}</div>}
-      {!entries.length && <p>{tab === 'AVATAR' ? 'Aucun autre avatar disponible.' : 'Aucun titre débloqué.'}</p>}
+      {!entries.length && <p>{tab === 'AVATAR' ? 'Aucun autre avatar disponible.' : tab === 'BADGE' ? 'Aucun badge disponible.' : 'Aucun titre débloqué.'}</p>}
       {!!entries.length && !visible.length && <p>Aucun cosmétique trouvé.</p>}
   </>
   return <section ref={panelRef} data-tutorial-anchor="appearance-content" data-tutorial-state={!value && !error ? "loading" : undefined} data-business-pending={pending} data-appearance-tab={tab} className="appearance-panel" aria-label="Personnalisation du profil">
