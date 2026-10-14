@@ -34,6 +34,27 @@ const render = async (props: HarnessProps = {}) => act(async () => { root.render
 const click = async (selector: string) => act(async () => { container.querySelector<HTMLButtonElement>(selector)!.click() })
 
 describe('daily navigation titles A/B', () => {
+  it('removes the hide control only for true completion and restores it after a new day or incomplete read', async () => {
+    const complete = projectDailies(dailySources()).map(item => ({ ...item, state: 'completed' as const, actionable: false }))
+    await render({ items: complete })
+    expect(container.querySelector('.daily-tracker-hide')).toBeNull()
+    for (const state of ['available', 'waiting', 'unknown', 'error'] as const) {
+      const items = complete.map(item => item.id === 'wheel' ? { ...item, state, actionable: state === 'available' } : item)
+      await render({ items, date: '2026-10-03' })
+      expect(container.querySelector('.daily-tracker-hide')).not.toBeNull()
+    }
+    const available = complete.map(item => item.id === 'wheel' ? { ...item, state: 'available' as const, actionable: true } : item)
+    await render({ items: available })
+    await act(async () => control.hide('wheel'))
+    expect(control.message).toBe('Aucune activité affichée')
+    expect(container.querySelector('.daily-tracker-hide')).not.toBeNull()
+    await act(async () => control.restoreLast())
+    expect(container.querySelector('.daily-tracker-hide')).not.toBeNull()
+    await render({ items: complete })
+    expect(container.querySelector('.daily-tracker-hide')).toBeNull()
+    await render({ items: available, date: '2026-10-04' })
+    expect(container.querySelector('.daily-tracker-hide')).not.toBeNull()
+  })
   it('keeps the compact presentation independent from completion and retains access', async () => {
     const wheel = projectDailies(dailySources()).find(item => item.id === 'wheel')!
     await render({ items: [{ ...wheel, state: 'available', actionable: true, status: 'Une tentative disponible.' }] })
