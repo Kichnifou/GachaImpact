@@ -3,7 +3,7 @@
 <a id="finitions-desktop-finales-après-r1090--décision-propriétaire-du-14102026-non-livrées"></a>
 ## R1091 — finitions desktop finales après R1090 (14/10/2026)
 
-Les quatre demandes propriétaire déjà validées sont implémentées dans le candidat R1091 : cartes Équipe exploitant largeur/hauteur, passifs compacts et lien supérieur droit, surface de fiche native indépendante des quatre commandes, hover/focus ; quantités Shop centrées aux grandes hauteurs avec 1920 conservé ; croix Quotidiennes absente uniquement dans le véritable état terminé ; deux rangées Event, période dynamique courte et retrait du petit contexte. Crypte conserve les 32 codes, intentions et règles. Aucune nouvelle décision métier ni refonte ; R1090 et R1088 restent protégés. Publication/reviews/promotion/déploiements et recette esthétique sont des gates distinctes dont l'état réel appartient au Master. Mobile non commencé.
+Les quatre demandes propriétaire déjà validées sont implémentées, qualifiées, revues indépendamment et livrées techniquement sous R1091 : cartes Équipe exploitant largeur/hauteur, passifs compacts et lien supérieur droit, surface de fiche native indépendante des quatre commandes, hover/focus ; quantités Shop centrées aux grandes hauteurs avec 1920 conservé ; croix Quotidiennes absente uniquement dans le véritable état terminé ; deux rangées Event, période dynamique courte et retrait du petit contexte. Crypte conserve les 32 codes, intentions et règles. Aucune nouvelle décision métier ni refonte ; R1090 et R1088 restent protégés. Publication/reviews/promotion/déploiements et recette esthétique sont des gates distinctes dont l'état réel appartient au Master. Mobile non commencé.
 
 ## R1090 — sept finitions desktop après recette R1089 (14/10/2026)
 

@@ -3,7 +3,7 @@
   "date": "2026-10-14",
   "baseline": "dffec5a63af14a5a3424022180a037813a93911d",
   "runtime": "22cb7b250f6616c487d95405ddfa1118122e9844",
-  "status": "Local qualified candidate; independent published-SHA reviews, promotion and deployments pending",
+  "status": "Technically delivered at publishedCandidate; final documentary checkpoint follows the same independent review/FF/deployment checks without runtime changes; owner aesthetic acceptance open",
   "scope": {
     "frontendOnly": true,
     "mobilePass": false,
@@ -231,10 +231,115 @@
     ]
   },
   "reviews": {
-    "status": "Pending true published SHA"
+    "status": "Two independent APPROVED verdicts on exact publishedCandidate; no findings",
+    "technical": {
+      "candidate": "6f9518d67742d96367478e21f822d3e83599f963",
+      "tests": "223/223 PASS",
+      "browserChecks": 6,
+      "rollback": "4 independent reverts repeated from published candidate, own-file checks, types/tests/builds PASS",
+      "file": "local-data/r1091/review-technical.json",
+      "sha256": "62d64c8f7fbac91ee606e9d06e7b9935a6f8fcf9832ad8dd2b2bcaf5b38ab01c"
+    },
+    "visualDocumentation": {
+      "candidate": "6f9518d67742d96367478e21f822d3e83599f963",
+      "verdict": "APPROVED",
+      "independentBrowserStates": 30,
+      "shop1920": "Card, quantity and footer rectangles identical at 1920x1080 and 1920x920 to compiled R1090",
+      "shop2560": "Quantity y 617.047 -> 934.469, footer unchanged",
+      "file": "local-data/r1091/review-visual-docs.json",
+      "sha256": "068c57824dfd1d085a5d43e098235ea3af7e3542bbddead1f2372d84d4bf4fad"
+    }
   },
   "deployment": {
-    "status": "Pending main promotion"
+    "status": "publishedCandidate promoted FF and deployments verified SUCCESS; documentary closure subsequently follows exact SHA checks",
+    "candidate": "6f9518d67742d96367478e21f822d3e83599f963",
+    "git": {
+      "fourRefsEqual": true,
+      "divergence": "0/0",
+      "clean": true
+    },
+    "railway": {
+      "id": "c0c00329-c580-4484-81fa-96903f46d79a",
+      "sha": "6f9518d67742d96367478e21f822d3e83599f963",
+      "status": "SUCCESS",
+      "applicationReadyAt": "2026-10-14T16:08:19.411345524Z",
+      "replicas": 1,
+      "pendingWork": 0,
+      "warnings": 0,
+      "criticals": 0
+    },
+    "cloudflare": {
+      "sha": "6f9518d67742d96367478e21f822d3e83599f963",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/49f39f0f-e92c-4d26-86b4-1579820b737d",
+      "startedAt": "2026-10-14T16:08:21Z",
+      "completedAt": "2026-10-14T16:08:21Z",
+      "preview": "https://49f39f0f.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-Bga_SiXd.js",
+          "http": 200,
+          "sha256": "1d0cc6715e4b9f34c57c0418283adf9891bbdba7053ddaa64ef1df8e46f6f2d5"
+        },
+        {
+          "path": "/assets/index-DcdNUpvf.css",
+          "http": 200,
+          "sha256": "3e5c765ad521f8ace9723425157b6b5314dde0c28fbdbb6d4ffe9c4d8acfb5cf"
+        }
+      ]
+    },
+    "postflight": {
+      "at": "2026-10-14T16:09:06.317Z",
+      "phase": "candidate",
+      "health": 200,
+      "bothDomainsIdentical": true,
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-Bga_SiXd.js",
+              "sha256": "1d0cc6715e4b9f34c57c0418283adf9891bbdba7053ddaa64ef1df8e46f6f2d5"
+            },
+            {
+              "path": "/assets/index-DcdNUpvf.css",
+              "sha256": "3e5c765ad521f8ace9723425157b6b5314dde0c28fbdbb6d4ffe9c4d8acfb5cf"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-Bga_SiXd.js",
+              "sha256": "1d0cc6715e4b9f34c57c0418283adf9891bbdba7053ddaa64ef1df8e46f6f2d5"
+            },
+            {
+              "path": "/assets/index-DcdNUpvf.css",
+              "sha256": "3e5c765ad521f8ace9723425157b6b5314dde0c28fbdbb6d4ffe9c4d8acfb5cf"
+            }
+          ]
+        }
+      ]
+    },
+    "guards": {
+      "file": "local-data/r1091/route-guards-candidate.json",
+      "sha256": "004ba374f8567340eacb5b62f619f1ade01e3c2de1fcf01b117bce909b91f042",
+      "checks": 18,
+      "all401": true,
+      "exactCors": true,
+      "historyNoStore": true
+    },
+    "history": [
+      "First asset comparison immediately after Cloudflare success failed; subsequent fresh domain/preview observations and full byte/hash comparison matched without any code change. No unverified cache diagnosis claimed."
+    ]
   },
-  "ownerAestheticAcceptance": "Still required after technical delivery"
+  "ownerAestheticAcceptance": "Still required after technical delivery",
+  "publishedCandidate": "6f9518d67742d96367478e21f822d3e83599f963"
 }
