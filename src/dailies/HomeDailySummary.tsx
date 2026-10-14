@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { dailyActionableSuggestions, type DailyItem } from './daily-summary'
+import { dailyActionableSuggestions, dailyOngoingItems, type DailyItem } from './daily-summary'
 import { homeDailySecondaryItems, homeDailySecondaryText } from './home-daily-presentation'
 import type { DailyCompactProps } from './DailyTrackerCard'
 import './dailies.css'
@@ -11,6 +11,8 @@ export default function HomeDailySummary({ items, tracker, claim, onOpen, onOver
   if (!claim.locked && (confirmed.length !== suggestions.length || confirmed.some((item, index) => item !== suggestions[index]))) setConfirmed(suggestions)
   const shown = claim.locked ? confirmed : suggestions
   const ongoing = homeDailySecondaryItems(items, tracker.hidden, shown.map(item => item.id))
+  // Keep the already allocated secondary-row height when its Event text is removed.
+  const reserveEventRow = ongoing.length < 2 && dailyOngoingItems(items, tracker.hidden, shown.map(item => item.id)).some(item => item.id === 'event')
   return <section className="panel home-daily-summary" aria-label="Quotidiennes" aria-busy={claim.pending || refreshing}>
     <header><div><h2>Quotidiennes</h2></div><button type="button" className="daily-tracker-all home-daily-overview" onClick={onOverview}>Voir l’Aperçu →</button></header>
     {shown.length > 0 && <div className="home-daily-actions"><div className="home-daily-suggestions">{shown.map(item => <button type="button" className="home-daily-suggestion" key={item.id} data-daily-id={item.id}
@@ -22,8 +24,8 @@ export default function HomeDailySummary({ items, tracker, claim, onOpen, onOver
       <span className="home-daily-icon" aria-hidden="true">{item.icon}</span><span className="home-daily-copy"><strong>{item.title}</strong><span>{item.status}</span>{item.detail && <small>{item.detail}</small>}</span>
       <span className="home-daily-action-label">{item.id === 'reward' && item.actionable ? claim.pending ? 'Récupération…' : 'Récupérer →' : 'Accéder →'}</span>
     </button>)}</div></div>}
-    {ongoing.length > 0 && <div className="home-daily-ongoing"><ul>{ongoing.map(item => <li key={item.id} data-daily-id={item.id}>{homeDailySecondaryText(item)}</li>)}</ul></div>}
-    {!shown.length && <p className="home-daily-empty">{tracker.message}{!ongoing.length && '. L’Aperçu reste disponible pour consulter les détails.'}</p>}
+    {(ongoing.length > 0 || reserveEventRow) && <div className="home-daily-ongoing" data-reserve-event-row={reserveEventRow || undefined}><ul>{ongoing.map(item => <li key={item.id} data-daily-id={item.id}>{homeDailySecondaryText(item)}</li>)}</ul></div>}
+    {!shown.length && <p className="home-daily-empty">{tracker.message}{!ongoing.length && !reserveEventRow && '. L’Aperçu reste disponible pour consulter les détails.'}</p>}
     {(claim.error || claim.feedback || tracker.hidden.length > 0) && <footer>
       {(claim.error || claim.feedback) && <p className={claim.error ? 'error' : ''} role="status">{claim.error || claim.feedback}</p>}
       {tracker.hidden.length > 0 && <button type="button" className="daily-tracker-all" disabled={claim.locked} onClick={tracker.restoreAll}>Réafficher les activités masquées</button>}</footer>}

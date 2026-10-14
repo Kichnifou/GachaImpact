@@ -293,7 +293,7 @@ describe('Home daily actions and ongoing information', () => {
   it('shows WAITING Event only in En cours, and keeps unknown/error out of action cards', async () => {
     const items = homeItems([], { event: 'waiting' }).map(item => item.id === 'reward' ? { ...item, state: 'unknown' as const } : item.id === 'wheel' ? { ...item, state: 'error' as const } : item)
     await render({ items })
-    expect(cards()).toEqual([]); expect(ongoing()).toEqual(['event'])
+    expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
     expect(home().textContent).toContain('État du jour incomplet')
   })
   it('prioritizes READY Expedition as an action after reward, without an ongoing duplicate', async () => {
@@ -310,7 +310,7 @@ describe('Home daily actions and ongoing information', () => {
     const items = homeItems(['challenge'], { favor: 'waiting', challenge: 'in_progress', expedition: 'in_progress', event: 'waiting' })
     await render({ items })
     expect(cards()).toEqual(['challenge']); expect(ongoing()).toEqual(['expedition', 'favor'])
-    await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition', 'event'])
+    await act(async () => control.hide('favor')); expect(ongoing()).toEqual(['expedition'])
     for (const id of ['expedition', 'event', 'challenge'] as const) await act(async () => control.hide(id))
     expect(cards()).toEqual([]); expect(ongoing()).toEqual([])
     expect(home().textContent).toContain('Aucune activité affichée')

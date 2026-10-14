@@ -3,7 +3,7 @@ import { compactExpeditionDetail } from './daily-compact-presentation'
 
 /** Home-only presentation: prioritize the non-actionable Expedition, including a confirmed completion. */
 export function homeDailySecondaryItems(items: readonly DailyItem[], hidden: readonly DailyId[], actionIds: readonly DailyId[]) {
-  const ongoing = dailyOngoingItems(items, hidden, actionIds)
+  const ongoing = dailyOngoingItems(items, hidden, actionIds).filter(item => item.id !== 'event')
   const expedition = items.find(item => item.id === 'expedition' && !item.actionable && !hidden.includes(item.id) && !actionIds.includes(item.id)
     && (item.state === 'in_progress' || item.state === 'waiting' || item.state === 'completed'))
   return (expedition ? [expedition, ...ongoing.filter(item => item.id !== 'expedition')] : ongoing.filter(item => item.id !== 'expedition')).slice(0, 2)

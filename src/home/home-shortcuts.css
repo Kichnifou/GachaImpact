@@ -3,6 +3,8 @@
 .home-shortcut strong { min-width: 0; font-size: 13px; overflow-wrap: anywhere; }
 .home-shortcut-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: #75dcff; font-size: 22px; background: rgba(79, 154, 223, .13); }
 .home-shortcut-arrow { color: #8babc7; font-size: 22px; }
+.home-screen .home-daily-ongoing[data-reserve-event-row] { font-size: 11px; line-height: 1.45; padding-bottom: 1lh; }
+.home-screen .home-daily-ongoing[data-reserve-event-row]:has(li) { padding-bottom: calc(1lh + 5px); }
 @media (min-width: 1121px) {
   .home-screen { --home-preview-crop: 24px; }
   .screen-content.home-screen:has(> .home-shortcuts) { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; container-type: size; gap: clamp(6px, 1.3cqh, 14px); overflow: visible; }
