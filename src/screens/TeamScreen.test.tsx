@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 
 import { act, useState, type ComponentProps } from 'react'
-import { readFileSync } from 'node:fs'
 import { createRoot, type Root } from 'react-dom/client'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -13,7 +12,6 @@ import teamScreenSource from './TeamScreen.tsx?raw'
 import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
 import { getTutorialStep } from '../tutorial/tutorial-catalog'
 
-const appCssSource = readFileSync('src/App.css', 'utf8');
 
 it('anchors the full passive reference and highlights only the real guided formation', () => {
   const container = document.createElement('div'); document.body.append(container)
@@ -189,6 +187,51 @@ function enterDrag(element: HTMLElement) {
 }
 
 describe('real Team screen', () => {
+  it('opens the selected possession from a native surface without nested buttons', () => {
+    const container = mountTeamScreen(teams(4), { onLoadBox: () => new Promise(() => undefined) })
+    const surface = buttonByLabel(container, 'Ouvrir la fiche de Émilie')
+    expect(surface.tagName).toBe('BUTTON')
+    expect(surface.querySelector('button')).toBeNull()
+    expect(container.querySelectorAll('button button')).toHaveLength(0)
+    act(() => surface.click())
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain('Ouverture de la fiche')
+  })
+
+  it('keeps selection, removal and movement separate from the detail surface', async () => {
+    const remove = vi.fn(async () => teams(3)), move = vi.fn(async () => teams(4))
+    const container = mountTeamScreen(teams(4), { onRemoveSlot: remove, onReorderSlots: move })
+    const actions = container.querySelector('.team-card-actions')!
+    await act(async () => (actions.querySelector('.danger-action') as HTMLButtonElement).click())
+    expect(remove).toHaveBeenCalledExactlyOnceWith(teams(4).teams[0]!.id, 1)
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    await act(async () => buttonByLabel(container, 'Déplacer Furina vers la droite').click())
+    expect(move).toHaveBeenCalledOnce()
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    act(() => (actions.querySelector('.team-card-primary-actions button') as HTMLButtonElement).click())
+    expect(container.querySelector('[role="dialog"]')?.textContent).toContain('Choisir un personnage')
+    expect(container.textContent).not.toContain('Ouverture de la fiche')
+  })
+
+  it('suppresses the click following a drag and permits the next pointer activation', () => {
+    const container = mountTeamScreen(teams(4), { onLoadBox: () => new Promise(() => undefined) })
+    const wrapper = container.querySelector<HTMLElement>('.team-slot-drag-wrapper')!
+    const surface = container.querySelector<HTMLButtonElement>('.team-detail-surface')!
+    act(() => startDrag(wrapper))
+    act(() => wrapper.dispatchEvent(new DragEvent('dragend', { bubbles: true })))
+    act(() => surface.click())
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    act(() => surface.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })))
+    act(() => surface.click())
+    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
+  })
+
+  it('opens the same passive reference from the heading link', () => {
+    const container = mountTeamScreen(teams(4))
+    const link = container.querySelector<HTMLButtonElement>('.section-heading .team-reference-toggle')!
+    expect(link.textContent).toBe('Voir les passifs →')
+    act(() => link.click())
+    expect(container.querySelector('.team-passive-modal h2')?.textContent).toBe('Les sept passifs')
+  })
   it('has no Team mock source and renders the ten authoritative base Teams', () => {
     expect(teamScreenSource).not.toContain("from '../data/mockData'")
     expect(teamScreenSource).not.toContain('Puissance fictive')
@@ -222,7 +265,7 @@ describe('real Team screen', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
     expect((html.match(/team-card-primary-actions/g) ?? [])).toHaveLength(4)
     expect((html.match(/team-card-move-actions/g) ?? [])).toHaveLength(4)
-    expect(html).toMatch(/team-card-primary-actions"><button[^>]*>Fiche<\/button><button[^>]*>Changer<\/button><button[^>]*>Retirer<\/button>/)
+    expect(html).toMatch(/team-card-primary-actions"><button[^>]*>Changer<\/button><button[^>]*>Retirer<\/button>/)
     expect(html).toMatch(/team-card-move-actions"><button[^>]*disabled=""[^>]*>←<\/button><button[^>]*>→<\/button>/)
   })
 
@@ -325,17 +368,11 @@ describe('real Team screen', () => {
     expect(html).toContain(`bonus-grid passive-count-${count}`)
   })
 
-  it('keeps the passive action outside the adaptive grid and reserves only its natural width', () => {
+  it('places the passive reference in the heading, before the adaptive effects grid', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(4)} {...callbacks} />)
-    const contentEnd = html.indexOf('</div><button type="button" class="team-reference-toggle"')
-    expect(html.indexOf('class="team-bonus-content"')).toBeGreaterThanOrEqual(0)
-    expect(html.indexOf('class="bonus-grid')).toBeLessThan(contentEnd)
-    expect(contentEnd).toBeGreaterThanOrEqual(0)
-    expect(appCssSource).toContain('grid-template-columns: minmax(0, 1fr) max-content')
-    expect(appCssSource).toContain('.team-reference-toggle { align-self: center; margin-top: 0; white-space: nowrap; }')
-    expect(appCssSource).not.toContain('.team-reference-toggle { align-self: center; margin-top: 23px;')
-    expect(appCssSource).toContain('.team-bonuses .bonus-grid.passive-count-3 article:nth-child(3)')
-    expect(appCssSource).toContain('justify-self: center')
+    expect(html.indexOf('class="team-reference-toggle"')).toBeGreaterThan(html.indexOf('class="section-heading"'))
+    expect(html.indexOf('class="team-reference-toggle"')).toBeLessThan(html.indexOf('class="bonus-grid'))
+
   })
 
   it('lays out exactly four passives as a desktop 2x2 grid while retaining the mobile column', () => {
@@ -379,7 +416,7 @@ describe('real Team screen', () => {
 
   it('uses the shorter passive-reference wording while preserving the modal title', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
-    expect(html).toContain('>Voir les passifs<')
+    expect(html).toContain('>Voir les passifs \u2192<')
     expect(html).not.toContain('>Voir les sept passifs<')
     expect(renderToStaticMarkup(<TeamPassiveReferenceModal passives={teams(0).passiveReference} onClose={vi.fn()} />)).toContain('Les sept passifs')
   })
