@@ -12,4 +12,3 @@ export default function BoxFiltersBar({ filters, onChange }: { filters: BoxFilte
     <button type="button" className="sort-direction-button box-sort-direction" onClick={() => update('direction', filters.direction === 'asc' ? 'desc' : 'asc')} aria-label={'Tri ' + (filters.direction === 'asc' ? 'ascendant' : 'descendant')}>{filters.direction === 'asc' ? '↑' : '↓'}</button>
   </div>
 }
-
