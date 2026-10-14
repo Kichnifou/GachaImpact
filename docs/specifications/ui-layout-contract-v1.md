@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## Concours transparent et tours présentés — R1088
+
+Ce complément supersède les seuls messages transitoires R1086 ci-dessous. Sans projection, le cadre Concours normal reste neutre, sans score, participant ou action fictifs ; l'attente est annoncée aux technologies d'assistance uniquement. Avec projection, cartes, modales, choix et gains restent montés. Aucun texte de chargement/synchronisation ni grand panneau d'erreur transitoire. Après 60 secondes, un diagnostic compact et une vérification facultative apparaissent ; hors ligne et refus d'accès sont distingués immédiatement. La reprise sûre reste automatique.
+
+Les boutons Basic/Risque/Soutenir, leurs handlers et l'annonce du tour utilisent la même disponibilité effective. L'animation des événements précédents précède l'annonce humaine ; pendant la file, la carte concernée par le gain est mise en évidence. Les événements déjà présentés ne sont pas rejoués. La file accélère si elle s'accumule et rejoint directement l'état autoritaire près de l'échéance, après absence et avec mouvement réduit. Aucune horloge métier ni score extrapolé. Les overlays d'action gardent leurs coins bas arrondis à l'intérieur de la bordure, sans clipping du focus ou des gains. Les dimensions et replis R1087 restent conservés. [Qualification](../architecture/evidence/r1088-contest-presentation.json).
+
 ## Finitions sur baseline R1086 — R1087
 
 Les retouches restent propres à chaque écran. Les règles R1085 non supersédées et la continuité R1086 ci-dessous restent acquises. Les cas desktop bas se réorganisent selon la place utile ; aucune scrollbar cachée ou suppression d’action pour faire tenir.

@@ -1,5 +1,13 @@
 # Journal des décisions validées
 
+## R1088 — chargement transparent et présentation des tours du Concours (14/10/2026)
+
+**Mandat propriétaire validé**, après clôture R1087 ; baseline réelle `0251f830e6c3ff97fcf1b03b0e1b29e8e16fd4fe`, quatre références alignées, arbre propre. Le propriétaire signale que le défaut persiste après R1086. Cette décision supersède uniquement sa présentation du chargement : plus de grand panneau indisponible, de texte visible de chargement/synchronisation ni de réessai obligatoire pendant une attente transitoire. Cadre normal neutre sans projection ; dernier DTO et interface conservés après chargement. Indications accessibles maintenues. Incident persistant rendu discrètement après soixante secondes, connexion hors ligne et refus d'accès distingués ; 401 suit le parcours global existant, 401/403 hors retry automatique.
+
+L'annonce du tour, les commandes et leurs handlers partagent permission serveur, fiabilité, mutation, présentation achevée et échéance réelle. Les lectures ordinaires ne neutralisent pas les commandes. Les événements reçus sont présentés chronologiquement sans doublon ; accumulation bornée à 3,6 secondes, passage direct à l'état courant à cinq secondes de l'échéance, après absence ou avec mouvement réduit. Ces seuils sont uniquement visuels, sans prolongation métier. Après retour visible, une projection fraîche est requise avant mutation. Les coins des overlays d'action sont contenus dans la carte, focus et gains non rognés.
+
+Serveur, P0, transactions SERIALIZABLE, verrous, scheduler, probabilités, scores, délais et récompenses conservés. Aucun rejeu automatique ni seconde lecture abandonnant une requête possédée. Une limite existante du replay simultané de même clé est documentée dans la qualification : un doublon peut être refusé, une seule action est appliquée et le replay séquentiel réussit ; aucune occurrence publique ni causalité avec la capture démontrée. Pas de durcissement serveur spéculatif dans ce lot. Tests privés, revue du SHA publié, promotion FF, déploiements et postflight font partie du mandat ; recette humaine future. [Qualification](../architecture/evidence/r1088-contest-presentation.json).
+
 ## R1087 — finitions visuelles sur la continuité R1086 (14/10/2026)
 
 **Décision propriétaire validée.** Reprendre impérativement depuis le dernier main/review R1086 réel, relevé à `64173794eb7438a724fab439464283c0435f3a22`, et conserver ses corrections. Mandat de livraison complet review indépendante → main FF → déploiements/postflight. Les captures désignent des problèmes visuels ; elles ne constituent pas une nouvelle règle métier.

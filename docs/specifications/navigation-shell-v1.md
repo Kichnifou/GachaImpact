@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Chargement Concours — R1088, 14/10/2026
+
+Sans DTO, la destination Concours garde son cadre normal neutre et sa reprise automatique accessible ; aucun panneau d'indisponibilité transitoire. Avec DTO, même instance et mêmes modales. Un poll ordinaire conserve les commandes valides ; une erreur connue, mutation ou présentation inachevée les neutralise. Le retour visible attend une projection fraîche sans rejouer les gains historiques. Les refus d'authentification gardent le parcours global existant. R1087, destinations et navigation restent inchangées ; [contrat UI](ui-layout-contract-v1.md#concours-transparent-et-tours-présentés--r1088).
+
 ## Finitions locales — R1087, 14/10/2026
 
 Équipe, Profil Statistiques/Personnalisation et Concours activent la compaction existante aux faibles hauteurs. Les destinations, historique et préférence de chat ne changent pas. Dans le lobby compact, Quitter/Annuler sont réunis près de son en-tête ; sélection, prêt/lancement et spectateurs restent accessibles. Ce changement de présentation préserve intégralement la continuité Concours R1086, son poller unique, DTO conservé, revalidation et refus d’authentification.

@@ -1,0 +1,186 @@
+{
+  "mission": "R1088",
+  "date": "2026-10-14",
+  "baseline": "0251f830e6c3ff97fcf1b03b0e1b29e8e16fd4fe",
+  "initialGit": {
+    "fourRefsEqual": true,
+    "divergence": "0/0",
+    "clean": true,
+    "previousVisualMission": "R1087 completed; all visual changes retained"
+  },
+  "causes": [
+    {
+      "finding": "R1086 still renders a large initial-unavailable panel when no DTO exists",
+      "proof": "loading-reproduction.log FAIL before fix; neutral/recovery tests PASS after"
+    },
+    {
+      "finding": "Server canPlay enabled status and buttons before the independent score queue drained",
+      "proof": "animation-reproduction.log FAIL; baseline GameShell screenshot shows prior bot gain with enabled human commands"
+    },
+    {
+      "finding": "An old rejected poll could reintroduce stale error state after an authoritative mutation/revalidation",
+      "proof": "stale-error-reproduction.log FAIL before; dedicated regression PASS after"
+    },
+    {
+      "finding": "Rectangular action overlay covered rounded lower contours",
+      "proof": "Baseline computed overflow visible, overlay radius zero; 32 baseline captures across four viewports"
+    }
+  ],
+  "serverInvestigation": {
+    "changed": false,
+    "observed": "16 GET /api/v1/contest 503 on 2026-10-14, 20-245ms, shared reconciliation diagnostics. No other HTTP500/502/504 observed in queried window.",
+    "attribution": "No evidence linking a specific screenshot to a request, no browser network trace; network failures, cancellation and long-read causes not inferred from absent logs.",
+    "existingReplayLimit": "Simultaneous same-key mutations can return a turn refusal for the duplicate; one event applied and sequential same-key recovery succeeds. Reproduced privately, public occurrence unproven, not a GET-panel cause. No speculative server change.",
+    "preserved": [
+      "shared reconciliation owner",
+      "SERIALIZABLE transactions",
+      "advisory locks",
+      "scheduler",
+      "idempotent effects",
+      "scores/probabilities/deadlines/rewards",
+      "Prisma migration 081"
+    ]
+  },
+  "behavior": {
+    "initial": "Neutral normal frame with accessible busy state, no invented game or business action, automatic recovery.",
+    "loaded": "Same DTO/component/modals/selections retained, no visible transient-loading text, ordinary healthy polls remain actionable.",
+    "persistent": "Compact diagnostic after 60000ms; offline and 401/403 differentiated; no automatic access-failure retry. Read remains owned even when slow.",
+    "presentation": "Chronological distinct event IDs retained per contest; current event not restarted by appended events; queue drains within 3600ms, no invented scores/events.",
+    "skip": "Skip historical first-entry/hidden-resume events, reduced motion, finished contest and deadline within 5000ms. Observed lobby start presents its new bots. Return visible waits for fresh projection.",
+    "actions": "Common effective availability for announcement, highlight, BASIC/RISK/support and handlers: server permission, phase, reliable projection, no pending mutation or presentation, unexpired deadline.",
+    "cards": "Action overlay inset1px and lower radius13px, preserving outer border, focus, images and floating feedback. Compact labels wrap within unchanged 31px buttons; normal/hover/focus/pending text bounds checked."
+  },
+  "validation": {
+    "frontendTargeted": {
+      "result": "PASS",
+      "tests": 97,
+      "files": 5,
+      "log": "local-data/r1088/targeted-final.log"
+    },
+    "backendTargeted": {
+      "result": "PASS",
+      "tests": 21,
+      "files": 6
+    },
+    "postgres": {
+      "result": "PASS",
+      "tests": 26,
+      "seconds": 210.4,
+      "isolation": "Private UUID schema; setup/gameplay writes private; public reference catalogs read-only; cleanup passed"
+    },
+    "multiplayerExtra": {
+      "result": "PASS",
+      "tests": 1,
+      "scenarios": 2,
+      "seconds": 39.56,
+      "coverage": "two service clients for one Player, second human, spectator, reconnect, duplicate/stale actions, support, finish and identical normalized immediate/delayed results",
+      "limit": "Service-client simulation, not authenticated real browsers"
+    },
+    "initialFailure": "Extra multiplayer test first expected two simultaneous successes, FAIL; final asserts the existing documented duplicate refusal, unique effect and successful exact-key sequential recovery. Failure log retained.",
+    "quick": "5/5 PASS",
+    "full": {
+      "result": "PASS",
+      "steps": "8/8",
+      "frontend": 1662,
+      "backendNonDb": 2510,
+      "log": "local-data/r1088/verify-full-final-cards.log"
+    },
+    "visual": {
+      "result": "PASS",
+      "viewports": [
+        "1366x768",
+        "1920x1080",
+        "2560x1440",
+        "390x844"
+      ],
+      "coreScenarios": 60,
+      "additionalScenarios": 33,
+      "cardStates": 16,
+      "cardCaptures": 32,
+      "buttonBounds": 32,
+      "jsErrors": 0,
+      "horizontalOverflow": 0,
+      "initialRecovery": "automatic without click/focus/reload",
+      "lobby": "baseline/candidate matched geometry",
+      "modal": "open confirmation retained and disabled during outage, enabled after fresh state",
+      "limit": "Private compiled GameShell with real CSS, synthetic DTOs and real coordinator; no authenticated public browser or public gameplay claimed",
+      "report": {
+        "path": "local-data/r1088/independent-frontend-qa.json",
+        "sha256": "ebe08fefbd5ef116986a67411498dd36d4aa0b20641a8aa9d0cf32992ace38d8"
+      },
+      "candidatePng": 152,
+      "baselinePng": 33,
+      "limits": [
+        "Synthetic DTOs in compiled GameShell, not authenticated public AppBootstrap",
+        "60-second diagnostic checked with controlled browser clock",
+        "Visibility events simulated, not proof of real OS suspension",
+        "Database gameplay qualified separately"
+      ]
+    },
+    "reviews": "Published-SHA reviews pending",
+    "reviewCorrections": [
+      "Risk button disabled matches BASIC and guarded handler",
+      "Open confirmations remain mounted and disabled through known outage"
+    ],
+    "backendReport": {
+      "path": "local-data/r1088/independent-backend-preliminary.json",
+      "sha256": "bcbacdb483b2ffb17679465641377d0e533dc9ef1ad446e82f654c861f04a3a9"
+    }
+  },
+  "rollback": {
+    "method": "Revert only R1088 commits newest first on review, validate/review and strict fast-forward main; never force-push/reset.",
+    "dependencies": "Later presentation/recovery refinements depend on af8b25f2 and 932f6d86. Remove follow-ups before their base commits. CSS710adca0 is isolated. Final tests/documentation come off first for full rollback.",
+    "baselinePreserved": "All R1087 and R1086 commits retained; no migration rollback needed.",
+    "rehearsal": {
+      "candidate": "dee5ae32bbf119eb696f443749dc745c242c97ca",
+      "baseline": "0251f830e6c3ff97fcf1b03b0e1b29e8e16fd4fe",
+      "commits": [
+        "dee5ae32bbf119eb696f443749dc745c242c97ca",
+        "0c6b6329c32902a26c318eb56f682b5dff486827",
+        "1f9c6914a5fc0aded08a2d8a4cf2d07feb35e8d7",
+        "c9cba1ffec81ce4d8f38f6c03a800a200fe47fd5",
+        "491ed3d335530bed5023fdd138feb62a35cc0c57",
+        "69427fd4784aa29870c9de924cb1d9d3b531830f",
+        "710adca08af757b91f5099256be74fff258669fc",
+        "af8b25f220eaf46205a623f92c218a9f06651f0a",
+        "932f6d8628a7fc1c424e13e0f29881eeae194e40"
+      ],
+      "result": "PASS",
+      "fullTree": "268d325976ae8acb5a66d70bbb5bf6c04f474208",
+      "baselineTree": "268d325976ae8acb5a66d70bbb5bf6c04f474208",
+      "conflicts": 0
+    }
+  },
+  "documentation": {
+    "updated": [
+      "Master",
+      "decisions-log",
+      "UI contract",
+      "navigation",
+      "Contest physical appendix",
+      "backend P0 complement",
+      "this qualification"
+    ],
+    "examinedUnchanged": [
+      "AGENTS",
+      "ChatGPT guide",
+      "workflow",
+      "handoff procedure",
+      "roadmap",
+      "data model",
+      "PostgreSQL schema",
+      "deployment procedure",
+      "R1086/R1087 historical evidence"
+    ]
+  },
+  "limits": [
+    "No guarantee of uninterrupted public sessions",
+    "A GET owning new reconciliation may still await SQL; no abandoned query or artificial deadline",
+    "No authenticated public QA/gameplay and no public economic action",
+    "Human acceptance remains pending",
+    "Only eight recent events arrive from server; no missing historical event invented"
+  ],
+  "delivery": "Pending exact GitHub review, main fast-forward, exact Railway/Cloudflare deployments and read-only postflight",
+  "runtime": "aec2cb7514aa7869c7e1dcf9763a7b9d0b3d7ac1",
+  "testsCommit": "dee5ae32bbf119eb696f443749dc745c242c97ca"
+}
