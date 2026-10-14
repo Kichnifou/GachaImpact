@@ -47,9 +47,14 @@ type Props = Readonly<{
 const periodFormatter = new Intl.DateTimeFormat('fr-FR', {
   timeZone: 'Europe/Paris',
   day: 'numeric',
-  month: 'long',
+  month: 'numeric',
   year: 'numeric',
 })
+
+function formatPeriodDate(date: Date) {
+  const parts = periodFormatter.formatToParts(date)
+  return ['day', 'month', 'year'].map(type => Number(parts.find(part => part.type === type)!.value)).join('/')
+}
 
 const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
 const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
@@ -379,11 +384,11 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       {presentation.games.map((game, index) => <button type="button" className={index === gameTab ? 'active' : ''} aria-current={index === gameTab ? 'page' : undefined} disabled={index < 2 ? !value.participation.joined : !value.gameC.available} onClick={() => { setGameTab(index as 0 | 1 | 2); if (index === 1) void onLoad().catch(() => undefined) }} key={game}>{game}</button>)}
     </nav>}
   </>
-  const startsAt = periodFormatter.format(new Date(value.edition.startsAt))
-  const endsAt = periodFormatter.format(new Date(new Date(value.edition.endsAt).getTime() - 1))
+  const startsAt = formatPeriodDate(new Date(value.edition.startsAt))
+  const endsAt = formatPeriodDate(new Date(new Date(value.edition.endsAt).getTime() - 1))
 
   return <div data-short-desktop={shortDesktop} data-business-pending={pending || shopPending} data-fit-screen className="screen-content activity-shell event-screen long-screen-layout">
-    <EventScreenHeader value={value} period={`Édition ${value.edition.year} · du ${startsAt} au ${endsAt}`} />
+    <EventScreenHeader value={value} period={`Édition du ${startsAt} au ${endsAt}`} />
     <ScrollableScreenPanel className="event-frame" fixed={tabs}>
       {section === 'registration' && <>{!showCalendarOnly && !showGiftOnly && <><section data-tutorial-anchor="event-general" className="event-hero panel" data-event-key={value.festival.key}>
         <div className="event-hero-symbol" aria-hidden="true">{value.festival.emoji}</div>

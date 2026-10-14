@@ -10,7 +10,7 @@ function milestoneLabel(label: string) {
 export default function EventScreenHeader({ value, period }: { value: EventDto; period: string }) {
   const progress = Math.min(87.5, Math.max(0, (value.milestones.currentPoints - 10) / 70 * 87.5))
   return <header data-tutorial-anchor="screen-entry" className="screen-header panel event-screen-header">
-    <div className="event-title"><span className="eyebrow">Activités · Événement</span><h1>{value.festival.title}</h1><p>{period}</p></div>
+    <div className="event-title"><h1>{value.festival.title}</h1><p>{period}</p></div>
     <section data-tutorial-anchor="event-milestones" className="event-milestone-progress" aria-label="Progression du Festival">
       <div className="event-milestone-summary"><strong>{formatResourceAmount(String(value.milestones.currentPoints))} points</strong><span>Votre progression</span></div>
       <div className="event-milestone-track-scroll"><div className="event-milestone-track">

@@ -44,6 +44,16 @@ function selectGames(container: HTMLElement) {
 }
 
 describe('EventScreen presentation', () => {
+  it.each([
+    ['2026-09-30T22:00:00Z', '2026-10-31T23:00:00Z', 'Édition du 1/10/2026 au 31/10/2026'],
+    ['2026-11-30T23:00:00Z', '2026-12-31T23:00:00Z', 'Édition du 1/12/2026 au 31/12/2026'],
+    ['2026-12-31T23:00:00Z', '2027-01-31T23:00:00Z', 'Édition du 1/1/2027 au 31/1/2027'],
+  ])('formats the DTO period in Paris with the inclusive final day: %s', (startsAt, endsAt, expected) => {
+    const value = { ...beforeJoin, edition: { ...beforeJoin.edition, startsAt, endsAt } }
+    const { container } = mount({ value, onLoad: vi.fn(async () => value) })
+    expect(container.querySelector('.event-title p')?.textContent).toBe(expected)
+    expect(container.querySelector('.event-title .eyebrow')).toBeNull()
+  })
   it.each([{ section: 'registration' as const }, { section: 'games' as const, game: 0 as const }, { section: 'games' as const, game: 1 as const }, { section: 'games' as const, game: 2 as const }])('consumes the daily destination once: %j', async destination => {
     const intent = { ...destination, token: 'daily-one' }, consumed = vi.fn()
     const { container, props, root } = mount({ value: afterJoin, onLoad: vi.fn(async () => afterJoin), dailyIntent: intent, onDailyIntentConsumed: consumed })
@@ -185,7 +195,7 @@ describe('EventScreen presentation', () => {
     expect(mounted.container.textContent).toContain('Jetons de Récolte')
     expect(mounted.container.textContent).toContain('Gerbe de Récolte')
     expect(mounted.container.textContent).toContain('Recevez 1 Jeton de Récolte')
-    expect(mounted.container.textContent).toContain('du 1 septembre 2026 au 30 septembre 2026')
+    expect(mounted.container.textContent).toContain('Édition du 1/9/2026 au 30/9/2026')
     expect(mounted.container.textContent).toContain('Non inscrit')
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-foundation-card button')?.disabled).toBe(false)
     const tabs = Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button'))
@@ -363,7 +373,7 @@ describe('EventScreen presentation', () => {
   it('presents the exclusive December boundary as the last included calendar day', () => {
     const december = { ...beforeJoin, businessDate: '2026-12-15', festival: { ...beforeJoin.festival, key: 'christmas', month: 12, title: 'Festival de Noël' }, edition: { ...beforeJoin.edition, startsAt: '2026-11-30T23:00:00.000Z', endsAt: '2026-12-31T23:00:00.000Z' } }
     const { container } = mount({ value: december })
-    expect(container.textContent).toContain('du 1 décembre 2026 au 31 décembre 2026')
+    expect(container.textContent).toContain('Édition du 1/12/2026 au 31/12/2026')
     expect(container.textContent).not.toContain('au 1 janvier 2027')
   })
 
