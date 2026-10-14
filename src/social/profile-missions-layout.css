@@ -1,0 +1,7 @@
+.profile-screen[data-profile-view="Missions"] .scrollable-screen-panel-body { display: flex; flex-direction: column; }
+.profile-screen[data-profile-view="Missions"] .missions-paged { min-height: 0; flex: 1; display: flex; flex-direction: column; }
+.profile-screen[data-profile-view="Missions"] .missions-rank-tabs { position: static; flex: 0 0 auto; margin: 0 0 8px; padding-block: 3px; }
+.profile-screen[data-profile-view="Missions"] .missions-rank-tabs button { min-width: 48px; min-height: 30px; padding: 5px 12px; font-size: 12px; }
+@media (max-width: 1120px) {
+  .profile-screen[data-profile-view="Missions"] .missions-paged { flex: none; height: min(740px, max(300px, calc(100dvh - 230px))); }
+}

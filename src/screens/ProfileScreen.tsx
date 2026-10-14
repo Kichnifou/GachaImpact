@@ -2,6 +2,7 @@ import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState, type ReactNode } from 'react'
 import '../social/statistics-layout.css'
+import '../social/profile-missions-layout.css'
 import ProfileFavorCard from '../components/ProfileFavorCard'
 import AppButton from '../components/AppButton'
 import CharacterCard from '../components/CharacterCard'
@@ -88,7 +89,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     {playerId !== ownerPlayerId && value && onTrade && <AppButton onClick={() => onTrade({ id: playerId, displayName: value.player.displayName })}>Échanger</AppButton>}
     {relation.state === 'FRIEND' && <AppButton variant="danger" disabled={controller.pending} onClick={() => void controller.mutate(playerId, 'REMOVE', undefined, feedbackScope)}>Retirer</AppButton>}
   </div>
-  return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
+  return <div data-profile-view={tab} data-fit-screen={tab === 'Statistiques' || tab === 'Personnalisation' || tab === 'Missions' ? '' : undefined} data-tutorial-state={!value && !error ? "loading" : undefined} className="screen-content profile-screen long-screen-layout">
     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
     <ScrollableScreenPanel bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <CollectionFilters placeholder="Rechercher un personnage…" query={query} rarity={rarity} element={element} sortKey={sortKey} direction={direction} onQueryChange={setQuery} onRarityChange={setRarity} onElementChange={setElement} onSortKeyChange={setSortKey} onDirectionChange={() => setDirection(direction === 'asc' ? 'desc' : 'asc')} />}</>}>
       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
@@ -113,7 +114,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
         {tab === 'Missions' && (currentMissionsError
           ? <div className="missions-state" role="alert"><strong>Missions indisponibles</strong><p>{currentMissionsError}</p><button type="button" className="small-primary-button" onClick={() => { setMissionsTarget(''); setMissionsRequest(current => current + 1) }}>Réessayer</button></div>
           : !currentMissions ? <p data-tutorial-state="loading" role="status">Chargement des Missions…</p>
-          : <Section value={currentMissions}>{projection => <MissionProjectionView key={playerId} value={projection} />}</Section>)}
+          : <Section value={currentMissions}>{projection => <MissionProjectionView key={playerId} value={projection} paginated />}</Section>)}
       </>}
     </ScrollableScreenPanel>
   </div>
