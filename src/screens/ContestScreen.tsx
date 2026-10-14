@@ -1,3 +1,5 @@
+import { useContestRefresh } from '../contest/use-contest-refresh'
+import type { ContestAvailability } from '../contest/contest-request-coordinator'
 import { useTutorialPresentation, useTutorialPanel } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -13,6 +15,7 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import { useModalDialog } from '../components/useModalDialog'
 
 type Props = {
+  availability?: ContestAvailability
   value: ContestDto
   onRefresh: () => Promise<ContestDto>
   onOpen: (characterId: string, key: string) => Promise<ContestDto>
@@ -44,7 +47,6 @@ export default function ContestScreen(props: Props) {
   const pendingRef = useRef<string | null>(null)
   const intentRef = useRef<Intent | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [syncError, setSyncError] = useState<string | null>(null)
   const [legendsOpen, setLegendsOpen] = useState(false)
   const [history, setHistory] = useState<ContestHistoryDto | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -56,49 +58,10 @@ export default function ContestScreen(props: Props) {
   const selectedLegendId = authoritativeLegendId ?? (props.value.legends.some((legend) => legend.character.id === legendDraftId) ? legendDraftId : '')
   const scoreFeedback = useLatestScoreFeedback(props.value.active)
 
-  useEffect(() => {
-    let mounted = true
-    let pollTimer: number | null = null
-    let inFlight: Promise<void> | null = null
-    let failures = 0
-    const clearPoll = () => { if (pollTimer !== null) window.clearTimeout(pollTimer); pollTimer = null }
-    const schedule = (delay: number) => {
-      clearPoll()
-      if (mounted && document.visibilityState !== 'hidden') pollTimer = window.setTimeout(() => { void revalidate() }, delay)
-    }
-    const revalidate = () => {
-      if (!mounted || document.visibilityState === 'hidden') return Promise.resolve()
-      if (inFlight) return inFlight
-      const request = refresh().then(() => {
-        if (!mounted) return
-        failures = 0
-        setSyncError(null)
-      }).catch(() => {
-        if (!mounted) return
-        failures += 1
-        setSyncError('Synchronisation temporairement indisponible. Nouvel essai automatique.')
-      }).finally(() => {
-        if (inFlight === request) inFlight = null
-        if (mounted) schedule(Math.min(15_000, (activeContestId ? 2_000 : 3_000) * 2 ** failures))
-      })
-      inFlight = request
-      return request
-    }
-    const onFocus = () => { void revalidate() }
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') clearPoll()
-      else void revalidate()
-    }
-    window.addEventListener('focus', onFocus)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-    void revalidate()
-    return () => {
-      mounted = false
-      clearPoll()
-      window.removeEventListener('focus', onFocus)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [activeContestId, refresh])
+  const pollingError = useContestRefresh(refresh, activeContestId)
+  const syncError = pollingError ?? (props.availability?.phase === 'unavailable'
+    ? (props.availability.pending ? 'Synchronisation…' : 'Synchronisation temporairement indisponible. Nouvel essai automatique.')
+    : null)
 
   useEffect(() => {
     if (!activeContestId) return
@@ -129,6 +92,8 @@ export default function ContestScreen(props: Props) {
         setIntent(null)
       }
       setError(apiErrorMessage(reason))
+      // Revalidate refused stale actions without replaying mutations.
+      void props.onRefresh().catch(() => undefined)
     } finally {
       pendingRef.current = null
       setPending(null)
@@ -142,7 +107,7 @@ export default function ContestScreen(props: Props) {
   }
   useEffect(() => { if (!guidedHistory) return; let active = true; void loadGuidedHistory(1).then(value => { if (active) setHistory(value) }).catch(reason => { if (active) setHistoryError(apiErrorMessage(reason)) }); return () => { active = false } }, [guidedHistory, loadGuidedHistory])
   const toolbarTheme = props.value.active?.theme ?? props.value.theme
-  const fixed = <div className="contest-toolbar"><div><span className="eyebrow">{props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><AppButton onClick={() => setLegendsOpen(true)}>Mes Légendes</AppButton><AppButton onClick={() => void openHistory()}>Historique</AppButton></div></div>
+  const fixed = <div className="contest-toolbar"><div><span className={syncError ? "contest-sync-feedback error" : "eyebrow"} role={syncError ? "status" : undefined} title={syncError ?? undefined} aria-label={syncError ?? undefined}>{syncError ? (syncError.includes("Reconnectez-vous") ? "Session invalide" : "Synchronisation\u2026") : props.value.active ? 'Thème du Concours' : 'Thème du jour'}</span><strong>{toolbarTheme.label}</strong></div><div className="contest-toolbar-actions"><AppButton onClick={() => setLegendsOpen(true)}>Mes Légendes</AppButton><AppButton onClick={() => void openHistory()}>Historique</AppButton></div></div>
 
   return <div data-business-pending={Boolean(pending)} className="screen-content contest-screen long-screen-layout">
     <ScreenHeader eyebrow="Activités" title="Concours" />
@@ -152,7 +117,7 @@ export default function ContestScreen(props: Props) {
         {props.value.active?.status === 'LOBBY' && <ContestLobby {...props} contest={props.value.active} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} run={run} now={now} />}
         {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} scoreFeedback={scoreFeedback} />}
         {!props.value.active && props.value.lastResult && <ContestResult contest={props.value.lastResult} legends={props.value.legends} theme={props.value.theme} canOpen={props.value.permissions.canOpen} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
-        {(error || syncError) && <div className="contest-feedback-region">{error && <p className="contest-feedback error" role="alert">{error}</p>}{syncError && !error && <p className="contest-sync-feedback error" role="status">{syncError}</p>}</div>}
+        {error && <div className="contest-feedback-region"><p className="contest-feedback error" role="alert">{error}</p></div>}
       </div>
     </ScrollableScreenPanel>
     {(legendsOpen || guidedLegends) && <LegendsModal legends={props.value.legends} theme={toolbarTheme} onClose={() => setLegendsOpen(false)} />}

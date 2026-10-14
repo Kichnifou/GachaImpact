@@ -84,12 +84,31 @@ function AppBootstrap() {
   const progressionRef = useRef<PlayerProgressionDto | null>(null)
   const arcadeAwardIds = useRef(new Set<string>())
   useEffect(() => { arcadeAwardIds.current.clear() }, [sessionUserId])
+  const handleContestReadError = useCallback((error: unknown) => {
+    if (error instanceof ApiError && error.status === 401) {
+      setContest(null)
+      const owner = playerReadOwner.current
+      void signOut().catch(() => {
+        if (owner.active && notificationSessionRef.current) setFatalError({ userId: notificationSessionRef.current, message: 'Session expirée. Reconnectez-vous.' })
+      })
+    }
+  }, [signOut])
   const [contestRequests] = useState<ContestRequestCoordinator<ContestDto>>(
-    () => createContestRequestCoordinator<ContestDto>(setContest, value => {
-      setContestAvailability(value)
-      if (value.phase === 'unavailable') setContest(null)
-    }),
+    () => createContestRequestCoordinator<ContestDto>(setContest, setContestAvailability, handleContestReadError),
   )
+  const contestPlayerId = useRef<string | null>(null)
+  const selectContestPlayer = useCallback((next: PlayerDto) => {
+    if (contestPlayerId.current !== null && contestPlayerId.current !== next.id) {
+      contestRequests.reset()
+      setContest(null)
+      setContestAvailability({ phase: 'loading', pending: false })
+    }
+    contestPlayerId.current = next.id
+  }, [contestRequests])
+  const acceptPlayer = useCallback((next: PlayerDto) => {
+    selectContestPlayer(next)
+    setPlayer(next)
+  }, [selectContestPlayer])
   const [milestoneFeedbacks, setMilestoneFeedbacks] = useState<EventMilestoneFeedback[]>([])
   const [eventRequests] = useState<EventRequestCoordinator>(() => createEventRequestCoordinator((value) => { acceptDaily('event', value, setEvent); if (value.resources) setResources(value.resources) }, values => setMilestoneFeedbacks(current => [...current, ...values.filter(value => !current.some(item => item.id === value.id))])))
   const finishMilestoneFeedback = useCallback((id: string) => setMilestoneFeedbacks(current => current.filter(value => value.id !== id)), [])
@@ -179,6 +198,7 @@ function AppBootstrap() {
   const saveNavigationPreferences = useCallback((value: Parameters<ReturnType<typeof getGameApiClient>['putNavigationPreferences']>[0]) => getGameApiClient().putNavigationPreferences(value), [])
   useLayoutEffect(() => {
     contestRequests.reset()
+    contestPlayerId.current = null
     setContest(null)
     setContestAvailability({ phase: 'loading', pending: false })
     return () => contestRequests.reset()
@@ -312,12 +332,13 @@ function AppBootstrap() {
     const promise = (async () => {
       const nextPlayer = await getGameApiClient().getCurrentPlayer()
       if (!owner.active || owner !== playerReadOwner.current) return
+      selectContestPlayer(nextPlayer)
       if (nextPlayer.elementKey) await Promise.all([loadGameState(), loadFavor().catch(() => undefined)])
-      if (owner.active && owner === playerReadOwner.current) setPlayer(nextPlayer)
+      if (owner.active && owner === playerReadOwner.current) acceptPlayer(nextPlayer)
     })().finally(() => { if (playerRefreshFlight.current?.promise === promise) playerRefreshFlight.current = null })
     playerRefreshFlight.current = { owner, promise }
     return promise
-  }, [loadGameState, loadFavor])
+  }, [acceptPlayer, selectContestPlayer, loadGameState, loadFavor])
 
   const publishProgression = useCallback((next: PlayerProgressionDto, options: { id: string; rewards?: readonly { resourceKey: string; amount: string }[]; emitLevelUpFeedback?: boolean }) => {
     const published = publishProgressionUpdate(progressionRef.current, next, options)
@@ -432,7 +453,7 @@ function AppBootstrap() {
       .then(async (nextPlayer) => {
         if (!active) return
         setMilestoneFeedbacks([])
-        setPlayer(nextPlayer)
+        acceptPlayer(nextPlayer)
         if (nextPlayer.elementKey) await loadGameState()
         if (active) {
           setFatalError(null)
@@ -477,7 +498,7 @@ function AppBootstrap() {
     return () => {
       active = false
     }
-  }, [authStatus, loadGameState, sessionUserId, signOut])
+  }, [acceptPlayer, authStatus, loadGameState, sessionUserId, signOut])
 
   const playerResolved = Boolean(sessionUserId && resolvedUserId === sessionUserId)
   const canRefreshPlayerState = useCallback(() => gachaPresentation.current?.getSnapshot().phase === 'idle', [])
@@ -504,7 +525,7 @@ function AppBootstrap() {
         onSubmit={async (displayName) => {
           try {
             const nextPlayer = await getGameApiClient().onboardPlayer(displayName)
-            setPlayer(nextPlayer)
+            acceptPlayer(nextPlayer)
           } catch (error) {
             throw new Error(apiErrorMessage(error))
           }
@@ -523,7 +544,7 @@ function AppBootstrap() {
           try {
             await getGameApiClient().chooseElement(elementKey)
             const nextPlayer = { ...player, elementKey }
-            setPlayer(nextPlayer)
+            acceptPlayer(nextPlayer)
             await loadGameState()
           } catch (error) {
             throw new Error(apiErrorMessage(error))
@@ -546,7 +567,7 @@ function AppBootstrap() {
       onRefreshPlayerState={refreshPlayerState}
       canRefreshPlayerState={canRefreshPlayerState}
       playerStateReadRevision={playerStateReadRevision}
-      onRefreshPlayer={async () => setPlayer(await getGameApiClient().getCurrentPlayer())}
+      onRefreshPlayer={async () => { const owner = playerReadOwner.current; const next = await getGameApiClient().getCurrentPlayer(); if (owner.active && owner === playerReadOwner.current) acceptPlayer(next) }}
       key={player.id}
       socialActions={socialActions}
       tradeActions={tradeActions}
