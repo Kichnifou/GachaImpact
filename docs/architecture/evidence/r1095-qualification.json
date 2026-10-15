@@ -298,6 +298,11 @@
       "check": "Visual fixture pre-matrix",
       "reason": "Inherited harness filled four characters for nominal 1..3; corrected and occupancy guard plus all 275 states rerun",
       "resolved": true
+    },
+    {
+      "check": "Published independent review of 6ffb4d23",
+      "reason": "Active Tutorial copy also changed shared historical objects; historical text restored and active-only projection added with catalog-aware overlay and regression test",
+      "resolved": true
     }
   ]
 }

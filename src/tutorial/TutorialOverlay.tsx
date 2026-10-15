@@ -15,7 +15,7 @@ export default function TutorialOverlay({ legacyCatalog = false, stepId, anchor,
   const actions = useRef({ onNext, onPause }); actions.current = { onNext, onPause }
   const [geometry, setGeometry] = useState<{ target: TutorialRect | null; left: number; top: number }>({ target: null, left: 12, top: 12 })
   const steps = tutorialStepsForCatalog(legacyCatalog)
-  const index = steps.findIndex(step => step.id === stepId), step = stepId ? getTutorialStep(stepId) : null
+  const index = steps.findIndex(step => step.id === stepId), step = stepId ? getTutorialStep(stepId, legacyCatalog) : null
   const displaySettings = stepId === 'display-settings'
   const targetAnchor = anchor ?? step?.anchor
 

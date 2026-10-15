@@ -88,7 +88,7 @@ export const tutorialHistoricalSteps = [
   step('shop-catalog', 'Boutique', 'shop', 'shop-catalog', 'Catalogue de la Boutique', 'Le catalogue affiche les offres et leur disponibilité. Prix, quantité, MAX et résultat annoncé se consultent avant un achat.'),
   step('shop-tickets', 'Boutique', 'shop', 'shop-tickets', 'Tickets et probabilités', 'Les tickets affichent leurs possibilités et probabilités lorsqu’ils sont proposés.'),
   step('shop-wallet', 'Boutique', 'shop', 'shop-wallet', 'Portefeuille et transactions', 'Retrouvez votre portefeuille, la dernière transaction et l’accès à l’historique.'),
-  step('codes-available', 'Codes cadeaux', 'codes', 'codes-list', 'Codes disponibles', "Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau.", 'available'),
+  step('codes-available', 'Codes cadeaux', 'codes', 'codes-list', 'Codes disponibles', "Les codes publiés indiquent période, récompenses directes et état de récupération. Certains offrent aussi des gains Event selon votre inscription. Vous pouvez réclamer un code sans le saisir.", 'available'),
   step('codes-claimed', 'Codes cadeaux', 'codes', 'codes-list', 'Codes récupérés', 'Cette vue conserve les codes déjà récupérés.', 'claimed'),
   step('social-friends', 'Social', 'social', 'social-list', 'Amis et cœurs', 'Dans l’écran Social, retrouvez vos niveaux d’amitié et cœurs individuels ou groupés.', 'friends'),
   step('social-requests', 'Social', 'social', 'social-list', 'Demandes reçues et envoyées', 'Cette vue permet de visionner, accepter ou annuler des demandes envoyées et reçues.', 'requests'),
@@ -131,9 +131,9 @@ export const tutorialHistoricalSteps = [
 ] as const
 export type TutorialStepId = typeof tutorialHistoricalSteps[number]['id']
 export const tutorialRetiredProjection = {"catalog-filters":"catalog-votes","contest-play":"contest-history","history-bank":"history-activity","history-shop":"history-activity","history-event":"history-activity","configuration-account":"conclusion"} as const satisfies Partial<Record<TutorialStepId, TutorialStepId>>
-export const tutorialSteps = tutorialHistoricalSteps.filter(step => !Object.hasOwn(tutorialRetiredProjection, step.id))
+export const tutorialSteps = tutorialHistoricalSteps.filter(step => !Object.hasOwn(tutorialRetiredProjection, step.id)).map(step => step.id === 'codes-available' ? { ...step, text: "Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau." } : step)
 export const projectTutorialStep = (id: TutorialStepId, legacy = false): TutorialStepId => !legacy && Object.hasOwn(tutorialRetiredProjection, id) ? tutorialRetiredProjection[id as keyof typeof tutorialRetiredProjection] : id
 export const tutorialAddedStepIds = ['display-settings', 'home-shortcuts', 'invocation-shared', 'profile-badges', 'history-activity'] as const
 export const tutorialStepsForCatalog = (legacy = false) => legacy ? tutorialHistoricalSteps.filter(step => !(tutorialAddedStepIds as readonly string[]).includes(step.id)) : tutorialSteps
 export const tutorialStepIds = tutorialSteps.map(step => step.id)
-export function getTutorialStep(id: TutorialStepId): TutorialStepDefinition { return tutorialHistoricalSteps.find(step => step.id === id)! }
+export function getTutorialStep(id: TutorialStepId, legacy = false): TutorialStepDefinition { return tutorialStepsForCatalog(legacy).find(step => step.id === id) ?? tutorialHistoricalSteps.find(step => step.id === id)! }
