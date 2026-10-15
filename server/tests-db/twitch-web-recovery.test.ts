@@ -89,7 +89,18 @@ async function recovered(f: Profiles) {
 it('recovers the existing Twitch Player through Web creation, Account, OAuth start and signed callback', async () => {
   const f = await profiles(), before = await retained(f), attempt = await start(f); await oauth(f, attempt);
   await expect(callback(f, attempt)).resolves.toMatchObject({ linked: true, playerId: f.twitch.id, resolutionRequired: false });
-  await recovered(f); expect(await retained(f)).toEqual(before);
+  await recovered(f); const after = await retained(f);
+  const decode = (value:string) => (JSON.parse(value) as string[]).map(row=>JSON.parse(row));
+  const targets=decode(after.twitch_native_targets!), audits=decode(after.twitch_native_audit!);
+  expect(decode(before.twitch_native_targets!)).toEqual([]); expect(decode(before.twitch_native_audit!)).toEqual([]);
+  expect(targets).toHaveLength(1); expect(targets[0]).toMatchObject({twitch_user_id:f.twitchUserId,player_id:f.twitch.id,data_authority:'NATIVE',canary:false,acknowledgement:'STREAMERBOT_PATH_DISABLED'});
+  expect(targets[0].transferred_at).toBeTruthy();
+  expect(audits).toHaveLength(1); expect(audits[0]).toMatchObject({action:'VERIFIED_NATIVE_ADMISSION',twitch_user_id:f.twitchUserId,actor_player_id:f.twitch.id,acknowledgement:'STREAMERBOT_PATH_DISABLED',mode:null,revision:null});
+  const {twitch_native_targets:_bt,twitch_native_audit:_ba,...beforeGameplay}=before;
+  const {twitch_native_targets:_at,twitch_native_audit:_aa,...afterGameplay}=after;
+  expect(afterGameplay).toEqual(beforeGameplay);
+  const repeat=await start(f); await oauth(f,repeat); await expect(callback(f,repeat)).resolves.toMatchObject({linked:true,playerId:f.twitch.id,resolutionRequired:false});
+  expect(await retained(f)).toEqual(after);
   expect(await db.player.findUnique({ where: { id: f.web.id } })).toBeNull();
 }, 60_000);
 it('accepts the maintenance bank date just after the Europe/Paris reset, before UTC midnight', async () => {
@@ -242,17 +253,20 @@ it('protects a target already owned by another WebIdentity, and links the same P
   expect(await retained(same)).toEqual(before);
 }, 60_000);
 it('rolls back cancellation, archive and identity movement atomically on a final failure', async () => {
-  const f = await profiles(), old = await comparison(f), prior = await start(f), schema = `"${fixture.schema}"`;
+  const f = await profiles(), prior = await start(f), before = await retained(f), schema = `"${fixture.schema}"`;
+  const session = await db.playerSession.create({ data: { playerId: f.web.id, sessionTokenHash: hash(randomUUID()) } });
   await fixture.admin.query(`CREATE FUNCTION ${schema}.fail_recovery() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'private-failure'; END $$`);
-  await fixture.admin.query(`CREATE TRIGGER private_fail_recovery BEFORE UPDATE ON ${schema}.players FOR EACH ROW EXECUTE FUNCTION ${schema}.fail_recovery()`);
+  await fixture.admin.query(`CREATE TRIGGER private_fail_recovery BEFORE UPDATE ON ${schema}.web_identities FOR EACH ROW EXECUTE FUNCTION ${schema}.fail_recovery()`);
   try {
     const attempt = await start(f); await oauth(f, attempt); await expect(callback(f, attempt)).rejects.toThrow();
     expect((await db.webIdentity.findUniqueOrThrow({ where: { id: f.identity.id } })).playerId).toBe(f.web.id);
-    expect(await db.twitchLinkResolution.findUniqueOrThrow({ where: { id: old.id } })).toEqual(old);
+    expect(await db.twitchLinkResolution.count({ where: { webIdentityId: f.identity.id } })).toBe(0);
+    expect(await db.playerSession.findUnique({ where: { id: session.id } })).not.toBeNull();
+    expect(await retained(f)).toEqual(before);
     expect(await db.twitchLinkState.findUnique({ where: { stateHash: hash(prior.state) } })).not.toBeNull();
     expect((await db.player.findUniqueOrThrow({ where: { id: f.web.id } })).status).toBe('ACTIVE');
   } finally {
-    await fixture.admin.query(`DROP TRIGGER private_fail_recovery ON ${schema}.players`); await fixture.admin.query(`DROP FUNCTION ${schema}.fail_recovery()`);
+    await fixture.admin.query(`DROP TRIGGER private_fail_recovery ON ${schema}.web_identities`); await fixture.admin.query(`DROP FUNCTION ${schema}.fail_recovery()`);
   }
   const attempt = await start(f); await oauth(f, attempt); await expect(callback(f, attempt)).resolves.toMatchObject({ linked: true });
 }, 60_000);
