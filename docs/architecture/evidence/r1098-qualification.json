@@ -112,9 +112,30 @@
     "newPaidService": false,
     "b2Authorization": false
   },
-  "reviews": [],
+  "reviews": [
+    {
+      "scope": "A PostgreSQL/scheduler",
+      "sha": "80a49f65baa6b8cc3a828fda8887ced9f426f638",
+      "verdict": "APPROVED",
+      "actualRemoteCompareAndBlobsRead": true,
+      "privateTestsPassed": 18,
+      "fullPrismaMigrations": true,
+      "exitCode": 0,
+      "seconds": 102.03,
+      "cleanupVerified": true
+    },
+    {
+      "scope": "B business/retention",
+      "sha": "80a49f65baa6b8cc3a828fda8887ced9f426f638",
+      "verdict": "APPROVED",
+      "actualRemoteCompareAndBlobsRead": true,
+      "unitTestsPassed": 137,
+      "files": 4,
+      "dbRerun": false
+    }
+  ],
   "delivery": {
-    "state": "candidate; independent published-SHA reviews, public migration/deployment/activation/postflight pending",
+    "state": "Author and two independent reviews acquired; documentation delta review, public migration/deployment/activation/postflight pending",
     "nightExecutionObserved": false,
     "realCleanupActivated": false
   },
@@ -161,5 +182,6 @@
     "capacityMiB": 115.85463237762451,
     "physicalAllocationLimits": "Whole database physical allocation includes historical QA/migrations/reusable space; not a sustainable gameplay growth rate or projected disk saving.",
     "classifiedPopulations": 16
-  }
+  },
+  "editorialDelta": "Fix accents and clarify nonterminal/provenance counter semantics, no qualified code change; this documentation delta awaits published-SHA review"
 }
