@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { tutorialStepIds, tutorialSteps } from './tutorial-catalog'
+import { tutorialHistoricalSteps, tutorialStepIds, tutorialSteps } from './tutorial-catalog'
 
 describe('player tutorial catalog contract', () => {
   it('covers every player ScreenId exactly as a destination set, excluding moderation', () => {
@@ -8,7 +8,7 @@ describe('player tutorial catalog contract', () => {
     const screens = [...source.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(id => id !== 'moderation')
     expect([...new Set(tutorialSteps.map(step => step.screen))].sort()).toEqual(screens.sort())
     expect(new Set(tutorialStepIds).size).toBe(tutorialSteps.length)
-    expect(tutorialSteps).toHaveLength(121)
+    expect(tutorialSteps).toHaveLength(115)
     expect(tutorialStepIds).not.toContain('menu-pagination')
     expect(tutorialStepIds).not.toContain('event-calendar')
     expect(tutorialStepIds.filter(id => !['display-settings', 'home-shortcuts'].includes(id)).slice(0, 8)).toEqual(['profile', 'resources', 'active-team', 'objective', 'daily-tracker', 'main-navigation', 'home', 'community'])
@@ -18,16 +18,16 @@ describe('player tutorial catalog contract', () => {
   it('keeps the separately built backend whitelist identical, including order', () => {
     const source = readFileSync(new URL('../../server/src/application/tutorial/tutorial-preferences.ts', import.meta.url), 'utf8')
     const ids = JSON.parse(source.match(/export const tutorialStepIds = (\[[^\n]+\]) as const/)![1]!)
-    expect(ids).toEqual(tutorialStepIds)
+    expect(ids).toEqual(tutorialHistoricalSteps.map(step => step.id))
   })
   it('covers owned subviews and panels rather than just screen headings', () => {
     const views = (screen: string) => tutorialSteps.filter(step => step.screen === screen).map(step => step.view).filter(Boolean)
     expect(views('activities-dailies')).toEqual(['overview', 'wheel', 'challenge'])
     expect(views('activities-event')).toEqual(['registration', 'registration', 'registration', 'registration', 'games-a', 'games-b', 'games-c', 'shop', 'ranking'])
-    expect(views('history')).toEqual(['invocations', 'banners', 'bank', 'shop', 'event', 'activity'])
+    expect(views('history')).toEqual(['invocations', 'banners', 'activity'])
     expect(views('inventory')).toContain('collection')
     expect(views('profile')).toContain('Personnalisation:titles')
-    expect(views('configuration')).toEqual(['menu', 'privacy', 'account'])
+    expect(views('configuration')).toEqual(['menu', 'privacy'])
     expect(tutorialSteps.filter(step => step.panel).map(step => step.panel)).toEqual(expect.arrayContaining(['menu', 'notifications', 'box-detail', 'conversion', 'players', 'arcade-records', 'boss-history', 'contest-history']))
   })
 })

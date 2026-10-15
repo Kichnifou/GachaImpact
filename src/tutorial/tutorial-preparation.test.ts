@@ -46,7 +46,7 @@ it('ignores a late GET across dispose/reactivation, retaining no stale presentat
   const request = controller.launch(); controller.dispose(); controller.activate(); get.resolve(progress('dm-thread')); await request
   expect(prepare).not.toHaveBeenCalled(); expect(put).not.toHaveBeenCalled()
 })
-it.each(['box-expedition', 'history-event', 'dm-history', 'profile-titles', 'configuration-account'] as const)('resumes %s without rewriting or storing its view/panel', async stepId => {
+it.each(['box-expedition', 'history-activity', 'dm-history', 'profile-titles', 'conclusion'] as const)('resumes %s without rewriting or storing its view/panel', async stepId => {
   const api = { get: async () => progress(stepId), put: vi.fn(async (value: TutorialPreferenceDto) => value) }; const prepare = vi.fn(async () => ({}))
   const controller = new TutorialController(api, prepare); await controller.launch()
   expect(prepare).toHaveBeenCalledWith(stepId, expect.any(AbortSignal)); expect(api.put).not.toHaveBeenCalled()

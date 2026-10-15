@@ -3,7 +3,7 @@ import { tutorialSteps } from './tutorial-catalog'
 
 // Owner-approved copy from the consolidated post-promotion 25B mission.
 const ownerCopy = [
-  {"id":"display-settings","title":"Bien régler votre affichage","text":"Adaptez le zoom de votre navigateur pour obtenir une disposition proche de cette capture. Le réglage dépend de votre écran : choisissez un affichage confortable, puis poursuivez. Cette image est une référence esthétique, pas un rendu imposé."},
+  {"id":"display-settings","title":"Bien régler votre affichage","text":"IMPORTANT : Pour profiter du jeu de manière optimale, adaptez le zoom de votre navigateur pour que l'interface corresponde à l'image ci-dessous.\nFaites Ctrl - / Ctrl + pour changer le zoom."},
   {"id":"profile","title":"Profil","text":"Avatar, pseudo, niveau et élément. Cliquez pour ouvrir les détails de votre Profil."},
   {"id":"resources","title":"Ressources","text":"Vos Primos, Moras et particules, avec des raccourcis contextuels."},
   {"id":"active-team","title":"Équipe active","text":"Voici la Team actuellement utilisée."},
@@ -22,7 +22,7 @@ const ownerCopy = [
   {"id":"invocation-characters","title":"Personnages 4★","text":"Personnages 4★ de la rotation actuelle. Vous pouvez les obtenir en invoquant sur la bannière du personnage 5★."},
   {"id":"invocation-progress","title":"Pity, Garantie et Capture","text":"Ces indicateurs suivent votre progression d’Invocation et sont conservés entre les rotations. Consultez Détail pour les règles disponibles."},
   {"id":"invocation-actions","title":"Invocation x1 ou x10","text":"Chaque bouton indique son coût en Primos. Une Invocation dépense vos ressources."},
-  {"id":"invocation-shared","title":"Invocations partagées","text":"Diffuser partage votre scène, vos résultats, pity, Garantie et Capture avec les joueurs connectés. Voir permet de suivre une autre séance, avec ses spectateurs et réactions. Vous pouvez arrêter votre diffusion ou quitter la séance regardée. La visite ne diffuse, ne rejoint et ne réagit à rien."},
+  {"id":"invocation-shared","title":"Invocations partagées","text":"Diffusez vos invocations et permettez à d'autres joueurs de les visionner en direct"},
   {"id":"invocation-detail","title":"Détail des Invocations","text":"Consultez les probabilités, les passifs et l’historique disponibles dans Détail."},
   {"id":"box-filters","title":"Votre Box","text":"La Box contient vos personnages possédés. Retrouvez-les par recherche, rareté, élément, constellation, dates d’obtention et tri."},
   {"id":"box-possessions","title":"Possessions et états","text":"Les cartes indiquent rareté, constellation et états utiles. Les favoris facilitent votre organisation."},
@@ -33,7 +33,6 @@ const ownerCopy = [
   {"id":"team-management","title":"Vider son équipe","text":"Vous pouvez vider les emplacements d’une équipe pour en façonner une nouvelle."},
   {"id":"team-composition","title":"Quatre emplacements","text":"Cliquez sur le portrait ou le nom d’un personnage pour ouvrir sa fiche. Au survol ou au focus, Changer, Retirer et les flèches permettent de composer et réordonner l’équipe."},
   {"id":"team-passives","title":"Bonus et passifs","text":"Les passifs dépendent de la composition consultée. La référence explique leurs effets et met en évidence ceux de la formation actuelle."},
-  {"id":"catalog-filters","title":"Catalogue des personnages","text":"Ce catalogue présente les personnages du jeu, indépendamment de vos possessions. Utilisez recherche, rareté, élément et tri."},
   {"id":"catalog-votes","title":"Votes de bannière","text":"Vous pouvez voter pour le prochain personnage que vous souhaiteriez voir en bannière. Un vote est définitif pour la semaine."},
   {"id":"dailies-overview","title":"Aperçu quotidien","text":"L’Aperçu rassemble les neuf activités quotidiennes et leurs états réels."},
   {"id":"dailies-wheel","title":"Roue quotidienne","text":"La Roue animée présente les récompenses, sa disponibilité et le résultat de votre tour quotidien."},
@@ -69,7 +68,6 @@ const ownerCopy = [
   {"id":"arcade-records","title":"Records Arcade","text":"Records permet de consulter performances personnelles et classements par jeu et difficulté."},
   {"id":"contest-legends","title":"Thème et Légendes","text":"Lorsqu’un personnage est C6, il obtient des stats et peut participer aux concours."},
   {"id":"contest-lobby","title":"Participation et préparation","text":"L’entrée et le lobby permettent de choisir une Légende pour participer."},
-  {"id":"contest-play","title":"Déroulement et spectateurs","text":"Suivez les tours, scores et actions proposés par le Concours en cours. Participants et spectateurs disposent de leurs propres contrôles ; les résultats restent consultables une fois le Concours terminé."},
   {"id":"contest-history","title":"Historique des Concours","text":"Consultez les résultats des Concours terminés depuis l’historique."},
   {"id":"inventory-all","title":"Tout le Sac","text":"L’onglet « Tout » rassemble l’ensemble de vos ressources du Sac."},
   {"id":"inventory-resources","title":"Ressources et raccourcis","text":"Liste des ressources et raccourcis disponibles via un clic sur certaines ressources."},
@@ -103,16 +101,13 @@ const ownerCopy = [
   {"id":"profile-missions","title":"Missions dans le Profil","text":"Cette rubrique présente votre progression permanente autorisée. Les conditions secrètes des Missions verrouillées ne sont pas révélées."},
   {"id":"profile-avatars","title":"Avatars","text":"Retrouvez avatars possédés et verrouillés, aperçu équipé et avatar élémentaire. Recherche, dates d’obtention, tri et repères Nouveau facilitent votre choix."},
   {"id":"profile-titles","title":"Titres","text":"Choisissez un titre possédé ou Aucun titre. Recherche, dates, tri et nouveautés permettent de retrouver les titres disponibles."},
-  {"id":"profile-badges","title":"Badges","text":"Les badges possédés peuvent être équipés près de votre pseudo. Retrouvez ici les badges disponibles, leur état et le badge équipé ; Aucun badge permet de le retirer."},
+  {"id":"profile-badges","title":"Badges","text":"Sélectionnez le badge que vous souhaitez voir apparaître à coté de votre pseudo sur le tchat"},
   {"id":"rankings-categories","title":"Catégories et métriques","text":"Consultation des classements entre joueurs. Choisissez une catégorie puis une métrique."},
   {"id":"rankings-list","title":"Liste et rang personnel","text":"Parcourez la liste et ses pages pour retrouver votre rang. Une donnée privée ou une absence de rang reste indiquée sans changer vos préférences."},
   {"id":"history-invocations","title":"Historique des Invocations","text":"Retrouvez les Invocations réellement enregistrées et parcourez leurs pages."},
   {"id":"history-banners","title":"Historique des bannières","text":"Les snapshots disponibles retracent les rotations."},
-  {"id":"history-bank","title":"Historique bancaire","text":"Consultez les mouvements bancaires et leurs filtres."},
-  {"id":"history-shop","title":"Historique Boutique","text":"Cette catégorie rassemble vos transactions Boutique disponibles."},
-  {"id":"history-event","title":"Historique Event","text":"Consultez les éditions enregistrées."},
   {"id":"history-activity","title":"Activité des joueurs","text":"Consultez les joueurs actifs par journée et accédez aux statistiques d’activité disponibles. Les journées sans données restent vides."},
-  {"id":"chat-thread","title":"Chat global","text":"Le Chat global présente messages, réponses, mentions et actions disponibles. Les commandes peuvent afficher des résultats graphiques structurés, avec des informations et parfois des cartes de personnages. Aucun exemple n’est envoyé pendant la visite."},
+  {"id":"chat-thread","title":"Chat global","text":"Chat global pour parler en direct avec les autres joueurs. Vous pouvez même continuer à taper des commandes comme sur Twitch"},
   {"id":"chat-composer","title":"Écrire dans le Chat","text":"Saisissez normalement un message ou une commande dans cette zone."},
   {"id":"community-players","title":"Joueurs connectés","text":"Cette liste présente les joueurs connectés et les accès sociaux. Les choix de confidentialité restent respectés."},
   {"id":"dm-conversations","title":"Conversations privées","text":"Les MP regroupent vos conversations privées entre joueurs et leurs non-lus."},
@@ -122,10 +117,9 @@ const ownerCopy = [
   {"id":"dm-history","title":"Historique complet des MP","text":"L’historique complet permet de retrouver les messages disponibles avec ses filtres."},
   {"id":"configuration-menu","title":"Organisation du Menu","text":"Ordre des boutons du Menu. Personnalisez-le comme vous le souhaitez."},
   {"id":"configuration-privacy","title":"Confidentialité","text":"Les catégories utilisent les niveaux Public, Amis ou Privé."},
-  {"id":"configuration-account","title":"Compte","text":"Selon votre compte, retrouvez le changement ou la récupération du mot de passe et la liaison Twitch facultative. Les accès et indisponibilités affichés restent ceux de votre situation réelle."},
   {"id":"conclusion","title":"À vous de jouer","text":"Vous pouvez reprendre ou rejouer le Tutoriel depuis Menu. « Terminer » ou le dernier clic sur « Suivant » clôt ce parcours. Amusez-vous bien !"},
 ]
 
-it('keeps the R1093 copy and all surviving IDs in the owner-directed chapter order', () => {
+it('keeps the R1094 copy and all surviving IDs in the owner-directed chapter order', () => {
   expect(tutorialSteps.map(({ id, title, text }) => ({ id, title, text }))).toEqual(ownerCopy)
 })

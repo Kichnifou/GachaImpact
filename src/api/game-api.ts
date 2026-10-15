@@ -239,16 +239,16 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     } satisfies TradeActions,
     tutorialLegacyCatalog: () => legacyTutorialCatalog,
     claimTutorialAutostart: async () => {
-      const result = await request<TutorialAutostartDto & { catalog?: string }>('/api/v1/me/tutorial/autostart?catalog=r1093', { method: 'POST' })
-      legacyTutorialCatalog = result.catalog !== 'r1093'
+      const result = await request<TutorialAutostartDto & { catalog?: string }>('/api/v1/me/tutorial/autostart?catalog=r1094', { method: 'POST' })
+      legacyTutorialCatalog = result.catalog !== 'r1094'
       return result
     },
     getTutorial: async () => {
-      const result = await request<TutorialPreferenceDto | { catalog: string; preference: TutorialPreferenceDto }>('/api/v1/me/tutorial?catalog=r1093')
-      legacyTutorialCatalog = !('catalog' in result && result.catalog === 'r1093')
+      const result = await request<TutorialPreferenceDto | { catalog: string; preference: TutorialPreferenceDto }>('/api/v1/me/tutorial?catalog=r1094')
+      legacyTutorialCatalog = !('catalog' in result && result.catalog === 'r1094')
       return 'preference' in result ? result.preference : result
     },
-    putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial?catalog=r1093', { method: 'PUT', body: JSON.stringify(value) }),
+    putTutorial: (value: TutorialPreferenceDto) => request<TutorialPreferenceDto>('/api/v1/me/tutorial?catalog=r1094', { method: 'PUT', body: JSON.stringify(value) }),
     getNavigationPreferences: () => request<NavigationMenuPreferenceDto>('/api/v1/me/navigation-preferences'),
     getTwitchLinkResolution: (signal?: AbortSignal) => request<TwitchLinkResolutionDto | null>('/api/v1/me/twitch/resolution', { signal }),
     resolveTwitchLink: (resolutionId: string, choice: 'WEB' | 'TWITCH', decisionRevision: string, operatorPlanId?: string) => request<TwitchLinkResultDto>('/api/v1/me/twitch/resolution', { method: 'POST', body: JSON.stringify({ resolutionId, choice, decisionRevision, ...(operatorPlanId ? { operatorPlanId, operatorConfirmation: 'ABANDON_LOSING_PROGRESSION_AND_RELATIONS' } : {}), confirmation: 'ONE_PROGRESSION_NO_MERGE' }) }),

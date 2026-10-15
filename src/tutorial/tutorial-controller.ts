@@ -1,5 +1,5 @@
 import type { TutorialAutostartDto, TutorialPreferenceDto, TutorialStepId } from '../api/types'
-import { tutorialStepsForCatalog } from './tutorial-catalog'
+import { projectTutorialStep, tutorialStepsForCatalog } from './tutorial-catalog'
 export { tutorialSteps } from './tutorial-catalog'
 export type PreparedTutorialTarget = Readonly<{ anchor?: string; fallback?: boolean }>
 export type PrepareTutorial = (id: TutorialStepId, signal: AbortSignal) => Promise<PreparedTutorialTarget>
@@ -62,7 +62,8 @@ export class TutorialController {
       else { execute ??= this.transition({ version: 1, status: 'IN_PROGRESS', stepId: this.catalog()[0]!.id }); await execute() }
     })
   }
-  private async present(id: TutorialStepId) {
+  private async present(savedId: TutorialStepId) {
+    const id = projectTutorialStep(savedId, this.snapshot.legacyCatalog)
     if (this.disposed || !this.abort || this.abort.signal.aborted) return
     const signal = this.abort.signal
     this.update({ phase: 'preparing', stepId: null, confirmedStepId: id, anchor: undefined, fallback: false })
