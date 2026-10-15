@@ -1,6 +1,6 @@
 # GachaImpact — Documentation de référence
 
-Références du mandat du 11/10 : [Catalogue R1051](architecture/character-catalog-assets-r1051.md), [Invocations partagées](architecture/shared-invocations-v1.md), [Roue graphique](specifications/wheel-graphic-v1.md), [Activité quotidienne](specifications/player-activity-v1.md) et [réconciliation documentaire du 15/10](architecture/evidence/documentation-audit-20261015.md), après l'[audit initial du 13/10](architecture/evidence/documentation-audit-20261013.md). État et prochaine reprise au [Master](master/PROJECT_MASTER_PLAN.md).
+Références du mandat du 11/10 : [Catalogue R1051](architecture/character-catalog-assets-r1051.md), [Invocations partagées](architecture/shared-invocations-v1.md), [Roue graphique](specifications/wheel-graphic-v1.md), [Activité quotidienne](specifications/player-activity-v1.md) et [réconciliation documentaire du 15/10](architecture/evidence/documentation-audit-20261015.md) et [mesure de capacité PostgreSQL du 15/10](architecture/evidence/database-growth-baseline-20261015.md), après l'[audit initial du 13/10](architecture/evidence/documentation-audit-20261013.md). État et prochaine reprise au [Master](master/PROJECT_MASTER_PLAN.md).
 
 Version documentaire : 0.1  
 Statut : ÉVOLUTIF — IMPLÉMENTATION V1 EN COURS
