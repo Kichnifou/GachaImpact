@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buildApp } from '../src/app.js'
 import { GetCurrentPlayer } from '../src/application/player/get-current-player.js'
 import { GetOrProvisionCurrentPlayer } from '../src/application/player/get-or-provision-current-player.js'
-import { autostartPreference, defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, tutorialLegacyProjection, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
+import { autostartPreference, defaultTutorialPreference, TutorialPreferencesService, tutorialStepIds, tutorialStepAliases, tutorialLegacyProjection, tutorialRetiredProjection, type TutorialPreferenceDto } from '../src/application/tutorial/tutorial-preferences.js'
 
 const players = ['first', 'second'].map(name => ({ id: crypto.randomUUID(), displayName: name, elementKey: 'hydro' as const, status: 'ACTIVE' as const }))
 const headers = { authorization: 'Bearer first' }
@@ -19,6 +19,24 @@ async function harness() {
   return { app, values, store }
 }
 describe('dedicated authenticated tutorial preference', () => {
+  it.each(Object.entries(tutorialRetiredProjection))('negotiates all three catalogues for retired %s without repairing storage', async (stepId, currentId) => {
+    const { app, values, store } = await harness()
+    const saved = { version: 1, status: 'IN_PROGRESS', stepId }
+    values.set(players[0]!.id, saved)
+    for (const catalog of [null, 'r1093', 'r1094']) {
+      const url = '/api/v1/me/tutorial' + (catalog ? `?catalog=${catalog}` : '')
+      const value = catalog === 'r1094' ? { ...saved, stepId: currentId } : saved
+      expect((await app.inject({ url, headers })).json()).toEqual(catalog ? { catalog, preference: value } : value)
+      expect(store.write).not.toHaveBeenCalled()
+      expect(values.get(players[0]!.id)).toEqual(saved)
+    }
+    // An R1093 tab can still save this ID; only R1094 responses project it.
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial?catalog=r1093', headers, payload: saved })).json()).toEqual(saved)
+    expect((await app.inject({ method: 'PUT', url: '/api/v1/me/tutorial?catalog=r1094', headers, payload: saved })).json()).toEqual({ ...saved, stepId: currentId })
+    expect(values.get(players[0]!.id)).toEqual(saved)
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/tutorial/autostart?catalog=r1094', headers })).json()).toEqual({ catalog: 'r1094', shouldLaunch: true, preference: { ...saved, stepId: currentId } })
+    expect((await app.inject({ method: 'POST', url: '/api/v1/me/tutorial/autostart?catalog=r1094', headers })).json()).toEqual({ catalog: 'r1094', shouldLaunch: false })
+  })
   it.each(Object.entries(tutorialLegacyProjection))('projects %s only for an old client, preserving the saved step', async (stepId, legacyId) => {
     const { app, values, store } = await harness()
     const saved = { version: 1, status: 'IN_PROGRESS', stepId }

@@ -9,6 +9,10 @@ export const tutorialLegacyProjection = { 'display-settings': 'profile', 'home-s
 export function legacyTutorialPreference(value: TutorialPreferenceDto): TutorialPreferenceDto {
   return value.status === 'IN_PROGRESS' && Object.hasOwn(tutorialLegacyProjection, value.stepId) ? { ...value, stepId: tutorialLegacyProjection[value.stepId as keyof typeof tutorialLegacyProjection] } : value
 }
+export const tutorialRetiredProjection = {"catalog-filters":"catalog-votes","contest-play":"contest-history","history-bank":"history-activity","history-shop":"history-activity","history-event":"history-activity","configuration-account":"conclusion"} as const
+export function currentTutorialPreference(value: TutorialPreferenceDto): TutorialPreferenceDto {
+  return value.status === 'IN_PROGRESS' && Object.hasOwn(tutorialRetiredProjection, value.stepId) ? { ...value, stepId: tutorialRetiredProjection[value.stepId as keyof typeof tutorialRetiredProjection] } : value
+}
 export type TutorialStepId = typeof tutorialStepIds[number]
 // Retired presentation steps remain readable during rolling frontend deployments.
 export const tutorialStepAliases = { 'menu-pagination': 'notifications-entry', 'event-calendar': 'arcade-memory' } as const satisfies Record<string, TutorialStepId>
