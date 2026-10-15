@@ -32,6 +32,8 @@ import { PrismaPlayerProgressionStore } from './database/prisma-player-progressi
 import { PrismaWheelStore } from './database/prisma-wheel-store.js';
 import { NodeRandomSource } from './random/node-random-source.js';
 import { SystemClock } from './time/system-clock.js';
+import { RetentionEngine } from '../application/retention/retention-engine.js';
+import { RetentionScheduler } from '../application/retention/retention-scheduler.js';
 import { GetTodayDailyReward } from '../application/daily-reward/get-today-daily-reward.js';
 import { ClaimDailyReward } from '../application/daily-reward/claim-daily-reward.js';
 import { PrismaDailyRewardStore } from './database/prisma-daily-reward-store.js';
@@ -128,6 +130,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const twitchGiveawayManager = new TwitchGiveawayManager(database, config, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
+  const retentionScheduler = new RetentionScheduler(new RetentionEngine(database, config.retentionMode ?? 'DISABLED', clock), clock);
   const giveawayService = new GiveawayService(database, twitchGiveawayManager, () => clock.now());
   twitchGiveawayManager.attachCore(giveawayService);
   const twitchGiveawayConsumer = new TwitchGiveawayConsumer(database, giveawayService, twitchGiveawayManager);
@@ -274,8 +277,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); },
+    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,

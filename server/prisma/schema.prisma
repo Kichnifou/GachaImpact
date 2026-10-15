@@ -3220,6 +3220,28 @@ model CatalogImportOutbox {
   @@map("catalog_import_outbox")
 }
 
+// Backend-only technical registry. No player FK and no business mutation.
+model RetentionJob {
+  id String @id @db.Text
+  cycleKey String? @map("cycle_key") @db.Text
+  token String? @db.Uuid
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  lastCapacity Json? @map("last_capacity") @db.JsonB
+  alertLevel Int @default(0) @map("alert_level")
+  @@map("retention_job")
+}
+
+model RetentionRun {
+  cycleKey String @id @map("cycle_key") @db.Text
+  status String @db.Text
+  attempts Int @default(1)
+  startedAt DateTime @default(now()) @map("started_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  report Json @default("{}") @db.JsonB
+  @@map("retention_runs")
+}
+
 model SharedInvocationSession {
   presenceRevision BigInt @default(0) @map("presence_revision")
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
