@@ -1,5 +1,19 @@
 # Journal des décisions validées
 
+## Décisions de clôture du propriétaire — 15/10/2026
+
+**Confirmations utilisateur, pas de nouveaux développements.** Considérer **faits et clos** : gameplay, économie, progression, Twitch GLOBAL et fonctionnalités standalone du périmètre V1 ; indicateur rouge devant « Arrêter la diffusion » de R1096 ; **finition mobile générale** (validation/acceptation propriétaire, sans inventer une nouvelle campagne technique). Aucune de ces familles ne constitue désormais un chantier obligatoire à reproposer.
+
+**Abandons explicites :** application Windows `.exe`, PWA installable, thèmes graphiques supplémentaires et système **Objectifs personnels**. Ces possibilités historiques cessent d'être un backlog à réaliser ou à réintroduire automatiquement. Seul un nouveau mandat propriétaire pourrait revenir dessus.
+
+**Gift Suprême :** le propriétaire confirme que la récompense est **active et visible dans ses récompenses Twitch**. Cette preuve humaine clôt la question de sa disponibilité affichée côté Twitch ; elle **ne prouve pas** à elle seule que le traitement backend/EventSub et le crédit ont été récemment exercés de bout en bout. Le moteur/bridge historique est livré ; ne pas réclamer de redemption payante pour une QA artificielle ni activer/désactiver la Reward sans mandat.
+
+**Restants volontaires :** vérifier la récupération Twitch R1096 ultérieurement avec un ami consentant, observer le premier tirage naturel du Festival à la fin octobre (clôture serveur le **01/11/2026 à 00:00 Europe/Paris**), reprendre ultérieurement les vrais essais multijoueur, puis faire la **validation finale et décider de l'ouverture officielle V1**. La bêta initiale existe, mais sa campagne multijoueur complémentaire n'est pas clôturée.
+
+**Rétention historique conditionnelle :** aucune purge préventive post-V1. Rechercher une purge/compaction spécialisée **seulement si le volume de base et des historiques devient préoccupant ET poursuit une croissance réelle** ; vérifier d'abord capacité, séries mesurées et dépendances autoritaires. Une sauvegarde vérifiée et une autorisation de lot spécifique restent nécessaires avant toute suppression. La [mesure du 15/10](../architecture/evidence/database-growth-baseline-20261015.md) constate ~115 Mio occupés sur une borne Free documentée à 500 MB : aucune suppression justifiée à cette date, mais hausse mesurée depuis le 09/10 appelant suivi. Les anciennes durées par domaine de la [politique de rétention](data-retention-v1.md) ne sont pas effacées.
+
+Seul le [Master](../master/PROJECT_MASTER_PLAN.md) possède la prochaine action opérationnelle ; les sections R1096 et antérieures conservent leur chronologie, sans faux statut courant.
+
 ## R1096 — liaison Twitch simplifiée et finition Invocation (15/10/2026)
 
 R1095 validée par le propriétaire, bêta en cours. Point rouge décoratif devant « Arrêter la diffusion », libellé accessible/autorité/pending inchangés, correction indépendante. Écran pré-élément : copie exacte « Tu jouais déjà sur Twitch ? Récupère ta progression en liant ton compte juste ici : », action « Lier mon compte Twitch » centrée puis OU, sept éléments et confirmation permanente conservés ; Déconnexion discret inférieur droit. Retour OAuth réouvre Compte pour comparaison/erreur et conduit à l’Accueil uniquement après lecture authentifiée du Player effectivement conservé avec élément.
