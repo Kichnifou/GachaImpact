@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+const baseline = 'c8b55d3c63ff9ca27159ab227f6aeeb74ff5fdd1';
+const file = 'docs/master/PROJECT_MASTER_PLAN.md';
+const normalize = value => value.replace(/\r\n/g, '\n');
+const before = normalize(execFileSync('git', ['show', `${baseline}:${file}`], { maxBuffer: 4 * 1024 * 1024 }).toString('utf8'));
+const after = normalize(readFileSync(file, 'utf8'));
+const marker = '## Clôtures propriétaire et état vivant V1 — 15/10/2026';
+assert.equal(before.split(marker).length, 2);
+assert.equal(after.split(marker).length, 2);
+const history = before.slice(before.indexOf(marker));
+assert.equal(after.slice(after.indexOf(marker)), history);
+console.log(JSON.stringify({ baseline, preservedHistoryBytes: Buffer.byteLength(history), historySha256: createHash('sha256').update(history).digest('hex'), pass: true }));

@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## R1097 — maintenance autorisée par lots, sans réouverture V1
+
+Le nouveau contrat propriétaire de rétention supersède son ancien déclenchement conditionnel. Lot A : nouvelles écritures compatibles et qualification ; lot B moteur/planification sécurisée seulement après examen du résultat A, traitements des anciennes données ensuite qualifiés par domaine. Aucun scheduler/purge général présumé livré. Durées dans [la source canonique](../specifications/data-retention-v1.md), état et prochaine action uniquement au Master ; clôtures et abandons V1 conservés.
+
 ## Clôtures décidées par le propriétaire — 15/10/2026
 
 **Terminé/accepté :** gameplay, économie, progression, Twitch GLOBAL, fonctionnalités standalone, indicateur rouge Invocation R1096 et **finition mobile générale**. Le propriétaire acte explicitement ces clôtures ; elles ne constituent plus des travaux obligatoires à ouvrir. **Abandonnés :** application `.exe`, PWA, thèmes supplémentaires et Objectifs personnels ; aucun de ces sujets ne doit redevenir une tâche V1 par lecture d'une ancienne section de référence.

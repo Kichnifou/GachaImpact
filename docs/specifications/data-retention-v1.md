@@ -1,6 +1,29 @@
 # Politique de rétention V1
 
-## Déclenchement conditionnel — arbitrage propriétaire du 15/10/2026
+## Contrat propriétaire du 15/10/2026 — R1097
+
+**VALIDÉ PRODUIT — IMPLÉMENTATION ÉCHELONNÉE, SELON LOT.** Cet arbitrage supersède « pas de purge préventive avant croissance préoccupante ». Lot A : nouvelles écritures seulement, anciennes lignes intactes ; aucun scheduler nocturne, Supabase Cron ou nouvelle purge. TTL passif existant inchangé.
+
+| Données | Conservation décidée |
+| --- | --- |
+| Détails Twitch définitivement terminés | 30 jours, puis compactage sécurisé avec preuve minimale durable |
+| Observations Twitch passives | 24 h, TTL existant |
+| Chat global | 1 mois |
+| Banque | 1 mois |
+| Boutique et Échanges | 3 mois |
+| Codes cadeaux, détail joueur | 1 mois |
+| Event, Boss, Combat, Concours | 1 an |
+| Notifications résolues | 1 an |
+| Invocations | Détail 1 an, puis résumé si sûr |
+| Messages privés | Détail 1 an, puis retrait si sûr |
+| Reçus Arcade | Compactage après 1 an si sûr |
+| Journaux Catalogue | Détail 3 mois, preuves conservées |
+
+Détails expirés normalement retirés de l'interface, sauf résumés expressément prévus. Après qualification/livraison des lots suivants : maintenance chaque nuit même avec une petite base, anciennes données également traitées. Alertes validées à **250, 350 et 400 MB** ; aucun seuil n'autorise une suppression hors contrat. États, statistiques, anti-double-claim, idempotences, migrations, modération et preuves indispensables protégés. Aucun achat, nouveau service ou purge forcée implicite. Mois/ans restent calendaires ; bornes et exemptions à qualifier par domaine avant activation.
+
+[Contrat technique A](../architecture/r1097-storage-optimization.md). Prochaine étape : lot B moteur/planification sécurisée après examen A ; aucune purge présumée active.
+
+## Déclenchement conditionnel antérieur — historique supersédé par R1097
 
 Le propriétaire ne veut **aucune campagne de purge préventive** des historiques. Les durées décidées ci-dessous demeurent la **politique de référence** si un futur lot de conservation est autorisé ; elles ne valent ni permission de supprimer maintenant ni obligation de développer un scheduler post-V1.
 
@@ -15,9 +38,11 @@ PlayerDailyActivity/ActivityCoverage entrent dans les inventaires personnels/tec
 Les sections Twitch pilote ci-dessous conservent les preuves de leurs lots. « Sans activation » et « future passe finale » se rapportent à ces checkpoints historiques ; l'autorité GLOBAL actuelle et ses producteurs sont décrits dans [R1064](../architecture/twitch-global-r1064.md) et le Master.
 
 
-Statut : **décisions propriétaire validées R943–R945**. Source canonique des durées de conservation/purge et de leurs exemptions. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l'état vivant ; les autres documents renvoient ici sans recopier la matrice.
+Statut : **décisions propriétaire validées R943–R945, complétées et supersédées pour la politique future par R1097 en tête**. Source canonique des durées de conservation/purge et de leurs exemptions. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l'état vivant ; les autres documents renvoient ici sans recopier la matrice.
 
 ## Durées décidées
+
+La matrice ci-dessous conserve le périmètre historique R943–R945. La matrice complète courante est celle de R1097 en tête, incluant notamment Invocations, messages privés, Arcade, Catalogue et détails Twitch terminés.
 
 Ces durées concernent le **détail historique**, jamais l'état métier nécessaire. « Mois » et « an » conservent les unités de la décision ; leur traduction exacte en bornes calendaires sera précisée dans le lot d'implémentation de chaque domaine.
 
@@ -35,7 +60,7 @@ Ces durées concernent le **détail historique**, jamais l'état métier nécess
 | Notifications | Historique, hors notification active/non résolue | 1 an |
 | TwitchEventReceipt | Observation pure `channel.chat.message` | Cible de 24 heures glissantes |
 
-Pour tout domaine non cité : **aucune purge d'ancienneté décidée**. Les données déjà éphémères ou déjà purgées gardent leur comportement existant ; aucun second mécanisme ne doit être ajouté uniquement pour remplir cette matrice.
+Pour tout domaine non cité dans la matrice courante **R1097 en tête** : aucune purge d'ancienneté décidée. Les données déjà éphémères ou déjà purgées gardent leur comportement existant ; aucun second mécanisme ne doit être ajouté uniquement pour remplir cette matrice.
 
 ## Protections obligatoires — R944
 
@@ -68,7 +93,9 @@ Le rattrapage évite le plafond structurel de 1 000 suppressions/h : sous trafic
 
 Cette purge limite la croissance du stockage ; elle **ne supprime pas le coût d'une écriture Receipt par nouvelle notification** du pilote. La déduplication dans la fenêtre conservée reste inchangée. Après purge d'une observation pure ancienne, son ID n'est plus une preuve d'idempotence : ce TTL n'est jamais autorisé pour un reçu ayant un effet durable.
 
-## État physique et travaux reportés
+## État physique historique et travaux reportés — complété par R1097
+
+L'historique R1034/R945 ci-dessous reste une preuve de ses anciens périmètres. La politique future R1097 en tête fait désormais autorité ; ses traitements nocturnes et anciens historiques ne sont pas encore livrés par le lot A.
 
 **R1034 : 27 CLÔTURÉE PAR DÉCISION DE PÉRIMÈTRE PROPRIÉTAIRE.** La politique reste une référence valide et ses protections anti-perte/anti-double-claim demeurent obligatoires pour toute purge future. Ce qui est déjà implémenté reste actif selon ses gates ; ce qui ne l'est pas relève du backlog maintenance post-V1/besoin réel, sans obligation préalable au cutover ni implémentation présumée. Charge/performance Twitch et autres observations rares sont ACCEPTÉES — observation bêta/situation réelle, non bloquantes ; aucune campagne artificielle supplémentaire imposée. Anomalie observée → correctif borné.
 

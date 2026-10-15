@@ -15,6 +15,7 @@ docs/work/TASK_STATE.md
 local-data/streamerbot-snapshots/
 local-data/identity-resolutions/
 local-data/migration-backups/
+local-data/r1097/
 .env
 .env.*
 !.env.example

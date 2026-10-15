@@ -2,6 +2,10 @@
 
 La [décision R1064](../specifications/decisions-log.md) fait autorité métier ; ce document décrit son mécanisme. Le [Master](../master/PROJECT_MASTER_PLAN.md) porte l'état public réellement exécuté. Baseline : `716ebd5b4c19e1f0827b1f190a165c15804e4a23`, 67 migrations, CANARY 18, 43 historiques + Kichni_Test NATIVE. Aucun nouveau schéma ni nouvel import n'est nécessaire à R1064.
 
+## R1097 — lectures figées réversibles
+
+Les nouvelles intentions peuvent encoder uniquement reads, sans perte, après déploiement de tous les lecteurs compatibles. Ancien format toujours lisible ; enveloppe version 1/statuts/réponses/IDs et requêtes anti-écho/drainage inchangés. Le writer est désactivé par défaut et activé séparément après qualification. [Stockage, corruption fail-closed et rollback](r1097-storage-optimization.md). Aucune fusion message/complete/Event ou suppression avant 30 jours ; aucun job/purge livré dans A.
+
 ## Admission et preuves d'identité
 
 Le webhook vérifie signature, subscription/broadcaster/receiver/callback et Shared Chat avant le propriétaire de commandes. Une enveloppe système ou portant le badge bot n'atteint aucun consumer de gameplay. L'auteur est exclusivement l'ID immuable Twitch ; login et displayName sont des libellés. `covers` lit autorité, target, identité, statut Player et résolution R1055 non terminée dans **un seul snapshot PostgreSQL**. Cela ferme une course réelle entre lecture de l'ancienne target et lecture de l'identité nouvellement créée.

@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1097 — stockage futur non destructif
+
+[Contrat technique](r1097-storage-optimization.md) : codec central uniquement sur les lectures figées Twitch, enveloppe/statuts/réponses/requêtes JSONB identiques, lecteur historique et encodé, writer activable après déploiement compatible. Gacha count > 1 : Team originale unique dans BusinessOperation.resultSummary, références v2 dans PullResult.snapshot ; x1 inline. Lecteurs économiques/DTO fondés sur effets persistés inchangés, reconstruction de preuve centralisée sans Team actuelle. Transactions/verrous/mouvements/RNG inchangés, zéro migration. [Politique validée](../specifications/data-retention-v1.md), purges et automatisation ultérieures non actives.
+
 ## Extension bornée de récupération Twitch — R1096
 
 La liaison vérifiée unique conserve OAuth/state/nonce/expiration/origines et Twitch User ID immuable. verified réutilise isDisposableWebPlayer et moveDisposableWebIdentity sous transaction/verrous existants. Extension Option B : cible Twitch ACTIVE/éligible avec élément et niveau≥2 ; source standalone choisie ou non, XP exactement0 et aucune progression significative. Le choix d’élément est neutre ; toute XP positive reste protégée faute de provenance technique innocente. Ancien chemin strict R1046 maintenu, aucune fusion ni import.

@@ -1,0 +1,177 @@
+{
+  "syntheticOnly": true,
+  "samples": [
+    {
+      "name": "twitch-short",
+      "jsonBefore": 357,
+      "jsonAfter": 357,
+      "storedJsonbBefore": 463,
+      "storedJsonbAfter": 463,
+      "encodeMs": 0.1562999999996464,
+      "decodeMs": 0.1289999999999054,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 140,
+        "brotliQuality4": 112
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "twitch-box-large",
+      "jsonBefore": 40293,
+      "jsonAfter": 2423,
+      "storedJsonbBefore": 3094,
+      "storedJsonbAfter": 2527,
+      "encodeMs": 1.3531000000002678,
+      "decodeMs": 0.7573000000002139,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 2624,
+        "brotliQuality4": 2024
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "twitch-multiple-reads",
+      "jsonBefore": 80324,
+      "jsonAfter": 2451,
+      "storedJsonbBefore": 5634,
+      "storedJsonbAfter": 2555,
+      "encodeMs": 1.2065000000002328,
+      "decodeMs": 1.0543999999990774,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 4768,
+        "brotliQuality4": 2048
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "twitch-mutation",
+      "jsonBefore": 40361,
+      "jsonAfter": 2491,
+      "storedJsonbBefore": 3168,
+      "storedJsonbAfter": 2610,
+      "encodeMs": 1.2287000000014814,
+      "decodeMs": 1.252199999998993,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 2624,
+        "brotliQuality4": 2024
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "twitch-no-extra-response",
+      "jsonBefore": 180,
+      "jsonAfter": 180,
+      "storedJsonbBefore": 241,
+      "storedJsonbAfter": 241,
+      "encodeMs": 0.02540000000044529,
+      "decodeMs": 0.0036000000000058208,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 32,
+        "brotliQuality4": 8
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "twitch-segmented",
+      "jsonBefore": 45601,
+      "jsonAfter": 7731,
+      "storedJsonbBefore": 3729,
+      "storedJsonbAfter": 3357,
+      "encodeMs": 0.8916000000008353,
+      "decodeMs": 0.9225999999998749,
+      "algorithmsRawBase64Bytes": {
+        "gzip": 2624,
+        "brotliQuality4": 2024
+      },
+      "writesBefore": 1,
+      "writesAfter": 1,
+      "rowsBefore": 1,
+      "rowsAfter": 1
+    },
+    {
+      "name": "gacha-x1-team0",
+      "jsonBefore": 455,
+      "jsonAfter": 455,
+      "storedJsonbBefore": 631,
+      "storedJsonbAfter": 631,
+      "writesBefore": 2,
+      "writesAfter": 2,
+      "rowsBefore": 2,
+      "rowsAfter": 2
+    },
+    {
+      "name": "gacha-x10-team0",
+      "jsonBefore": 3869,
+      "jsonAfter": 1773,
+      "storedJsonbBefore": 5456,
+      "storedJsonbAfter": 2680,
+      "writesBefore": 11,
+      "writesAfter": 11,
+      "rowsBefore": 11,
+      "rowsAfter": 11
+    },
+    {
+      "name": "gacha-x1-team1",
+      "jsonBefore": 475,
+      "jsonAfter": 475,
+      "storedJsonbBefore": 655,
+      "storedJsonbAfter": 655,
+      "writesBefore": 2,
+      "writesAfter": 2,
+      "rowsBefore": 2,
+      "rowsAfter": 2
+    },
+    {
+      "name": "gacha-x10-team1",
+      "jsonBefore": 4069,
+      "jsonAfter": 1793,
+      "storedJsonbBefore": 5696,
+      "storedJsonbAfter": 2700,
+      "writesBefore": 11,
+      "writesAfter": 11,
+      "rowsBefore": 11,
+      "rowsAfter": 11
+    },
+    {
+      "name": "gacha-x1-team4",
+      "jsonBefore": 580,
+      "jsonAfter": 580,
+      "storedJsonbBefore": 839,
+      "storedJsonbAfter": 839,
+      "writesBefore": 2,
+      "writesAfter": 2,
+      "rowsBefore": 2,
+      "rowsAfter": 2
+    },
+    {
+      "name": "gacha-x10-team4",
+      "jsonBefore": 5119,
+      "jsonAfter": 1898,
+      "storedJsonbBefore": 7536,
+      "storedJsonbAfter": 2888,
+      "writesBefore": 11,
+      "writesAfter": 11,
+      "rowsBefore": 11,
+      "rowsAfter": 11
+    }
+  ],
+  "physicalTables100Copies": {
+    "before": 4284416,
+    "after": 2662400
+  }
+}

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1097 — formats JSONB sans migration
+
+Aucun DDL ni index modifié : 82 migrations inchangées. Nouvelles preuves multi-pull : `business_operations.result_summary` contient Team unique/version 2 ; `pull_results.snapshot` référence l'opération, x1 et historique inline conservés. `twitch_event_receipts.payload_minimal.commandPilot.intent.reads` peut être réversible Brotli v1 après activation du writer ; tous les chemins JSONB de phase/statuts/réponses/IDs restent identiques. [Contrat et déploiement compatible](r1097-storage-optimization.md). Aucune ligne ancienne convertie, aucun compactage temporel.
+
 ## Pseudo de présentation R1095 — migration additive082
 
 `20261015090000_082_player_presentation_name` ajoute `players.presentation_name TEXT NULL` et `presentation_name_revision INTEGER NOT NULL DEFAULT 0 CHECK (presentation_name_revision >= 0)`, sans nouvel identifiant ni unicité. Aucun backfill de nom. Le compteur indépendant assure le compare-and-set des intentions sous verrou, y compris après une séquence ABA. CHECK : valeur nullable ou trim SQL inchangé, longueur 1..40 caractères PostgreSQL et absence de contrôles POSIX. L’application applique en plus la borne historique de 40 unités UTF-16 et refuse les contrôles directionnels/invisibles définis au [contrat Profil](../specifications/profile-appearance-v1.md#pseudo-de-présentation--r1095). Les permissions/RLS existantes de `players` restent celles du backend ; aucune permission navigateur ajoutée. Mutation authentifiée sur le seul Player courant, verrou de ligne et revalidation ACTIVE. Retrait applicatif sans suppression de colonne ni de valeurs ; aucune migration inverse destructive.

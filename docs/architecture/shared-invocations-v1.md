@@ -1,5 +1,9 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## R1097 — preuve Team mutualisée
+
+Les nouvelles invocations multi-pull conservent une seule Team d'origine dans le résumé métier de l'opération, référencée par chaque résultat v2 ; x1 et anciennes opérations restent inline. Effets/états/bonus et DTO de présentation/replay inchangés, aucun recalcul depuis la Team actuelle. [Contrat de stockage](r1097-storage-optimization.md). Sessions, autorité d'onglet, bannières et spectateurs inchangés ; aucune purge activée.
+
 ## Indicateur rouge du bouton actif — R1096
 
 **Livré techniquement et déclaré terminé par le propriétaire le 15/10/2026.** Devant le bouton d'arrêt du diffuseur, un petit disque rouge visible rétablit l'indication de direct du libellé historique « ● En diffusion ». Le nom accessible reste exactement **« Arrêter la diffusion »**, sans ajouter le symbole à son annonce vocale. Le bouton inactif reste **« Diffuser »** ; stop, attente, autorité de l'onglet, diffusion et spectateurs ne changent pas. Les anciennes références « En diffusion » des sections datées ci-dessous sont historiques, non le texte actif. La validation propriétaire de ce détail est **acquise** ; elle ne vaut pas recette OAuth/Twitch du même lot, encore à observer avec un ami.

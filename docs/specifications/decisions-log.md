@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1097 — rétention et optimisation non destructive, lot A (15/10/2026)
+
+**VALIDÉ PRODUIT — IMPLÉMENTATION ÉCHELONNÉE, SELON LOT.** Nouveau contrat de rétention propriétaire dans [la source canonique](data-retention-v1.md#contrat-propriétaire-du-15102026--r1097), supersédant le déclenchement seulement en cas de croissance préoccupante. Nuit automatique et traitement des anciennes données après qualification des lots suivants, alertes 250/350/400 MB ; aucun achat ou droit de suppression implicite.
+
+Lot A autorisé : seules nouvelles écritures, lectures compatibles et mesures/tests privés. Choix techniques délégués : Team unique pour multi-pull dans le résumé existant, x1 inchangé ; lectures Twitch réversibles Brotli qualité 4, enveloppe JSONB stable, activation writer seulement après déploiement de tous les lecteurs. [Contrats, alternatives et rollback](../architecture/r1097-storage-optimization.md). Aucun RNG, gain, progression, identité, purge, Cron ou scheduler modifié. Contrat terminal futur décrit, aucune conversion livrée. Livraison/reviews/déploiement réellement acquis au Master ; lot B après examen A, pas lancé automatiquement.
+
 ## Décisions de clôture du propriétaire — 15/10/2026
 
 **Confirmations utilisateur, pas de nouveaux développements.** Considérer **faits et clos** : gameplay, économie, progression, Twitch GLOBAL et fonctionnalités standalone du périmètre V1 ; indicateur rouge devant « Arrêter la diffusion » de R1096 ; **finition mobile générale** (validation/acceptation propriétaire, sans inventer une nouvelle campagne technique). Aucune de ces familles ne constitue désormais un chantier obligatoire à reproposer.

@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1097 — formats compatibles des nouvelles preuves
+
+Pour les nouvelles invocations count > 1, BusinessOperation.resultSummary conserve gachaSnapshotVersion=2 et une seule activeTeam originale ; PullResult.snapshot conserve snapshotVersion=2/activeTeamRef=operation, états/effets/bonus persistés inchangés. x1 et anciennes lignes gardent activeTeam inline. Le lecteur de preuve accepte les deux, sans recalcul ou Team courante. Twitch conserve intégralement les intentions avec reads éventuellement encodé sans perte, sans modifier l'enveloppe interrogeable. [Contrat technique](../architecture/r1097-storage-optimization.md). Aucune entité/colonne/migration ou réécriture historique. [Rétention propriétaire R1097](data-retention-v1.md) validée, suppression/planification non activées dans A.
+
 ## Liaison et conservation — R1096
 
 Option B étend la récupération Twitch existante sans nouvelle entité : Twitch vérifié ACTIVE/éligible, élément et niveau≥2 ; standalone sans progression significative, avec ou sans élément si niveau1, et XP0 strict tant qu’une autre provenance innocente n’est pas démontrée. Faible niveau n’implique jamais caractère supprimable. Badge/pseudo personnalisés, gains, références, relations, identités et droits restent protégés. Le Player Twitch retenu conserve UUID, présentation et graphe intégral ; aucune fusion de pseudo Web ou de ressources. Archive et déplacement WebIdentity suivent les propriétaires R1046/R1055 existants. Aucun DDL nouveau.

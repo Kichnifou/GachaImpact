@@ -1,0 +1,37 @@
+{
+  "mission": "R1097 lot A",
+  "date": "2026-10-15",
+  "baseline": "c8b55d3c63ff9ca27159ab227f6aeeb74ff5fdd1",
+  "initialRemoteDivergence": "0/0",
+  "migrations": { "applied": 82, "unfinished": 0, "new": 0, "prismaStatus": "up to date" },
+  "measurements": "r1097-storage-measures.json",
+  "masterHistoryGuard": "r1097-master-guard.mjs",
+  "privatePostgres": {
+    "gacha": { "cases": 37, "coverage": "32 passed in broad run, last five affected by connection/cleanup interruption; those five passed in a clean focused run", "additionalFinalBannerReplayCases": 3, "fullPublishedShaReviewRun": "pending independent review" },
+    "twitchPilot": { "cases": 31, "coverage": "30 passed in broad run; obsolete Syntaxe assertion corrected to the baseline text, full real consultation scenario passed in focused run" },
+    "operatorExecutingRecovery": { "passed": 38 },
+    "eventsubWebhook": { "passed": 9 },
+    "storageMeasurement": { "passed": 1, "fixtures": 12 },
+    "publicQaPlayers": 0,
+    "cleanup": "All mission schemas removed; only pre-existing batch_test_48a470dabadd4583afdb3406545573d0 remains. One abandoned connection exclusively attributed to this mission's private schema was terminated before its schema cleanup."
+  },
+  "preflightReadOnly": {
+    "at": "2026-10-15T15:42:22.369Z",
+    "historicalCutoff": "2026-10-15T14:30:00Z",
+    "cohorts": [
+      { "kind": "pull_results", "rows": 6613, "digest": "f4ffdb80d0c601f4d3dba21b0c154324" },
+      { "kind": "gacha_operations", "rows": 755, "digest": "fdcc3ffe41da5f7c74dd89af5f284767" },
+      { "kind": "terminal_twitch", "rows": 2374, "digest": "049b01433cde319bb8a2c7133369affd" }
+    ],
+    "cohortsUnchanged": true,
+    "authority": { "desiredMode": "GLOBAL", "revision": 19 },
+    "publicEncodedReceipts": 0,
+    "publicGachaV2Operations": 0
+  },
+  "nonDb": { "quick": "5/5 PASS", "full": "8/8 PASS", "frontendTests": 1752, "backendTests": 2573, "backendFiles": 173, "finalEnvironment": "VITEST_MAX_WORKERS=1; test assertions and non-DB deadlines unchanged", "intermediateFailures": "Two frontend tests and one Arcade test exceeded 5s under memory pressure. Isolated reruns passed, then full bounded-worker suite passed." },
+  "qualificationState": "Author qualification acquired; independent published-SHA reviews and deployments pending",
+  "activationOrder": "Compatible readers deployed and old instance gone, then TWITCH_INTENT_COMPRESSION_ENABLED=true on the existing Railway service; verify redeployment at the same SHA",
+  "notDelivered": ["age conversion", "historical purge", "night scheduler", "Supabase Cron", "frontend changes", "public gameplay QA"],
+  "examinedUnchanged": ["AGENTS.md", ".chatgpt/CHATGPT_GUIDE.md", "docs/process/implementation-workflow.md", "docs/process/conversation-handoff.md", "docs/architecture/evidence/database-growth-baseline-20261015.md", "docs/architecture/supabase-stabilization-r1065.md", "docs/legacy/06-gacha-invocation-audit.md", "docs/commands/command-reference.md"],
+  "next": "Owner/ChatGPT examines lot A results before authorizing lot B retention engine and safe scheduling. STOP after delivery."
+}
