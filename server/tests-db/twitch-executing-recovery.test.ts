@@ -19,7 +19,7 @@ import type { ChatCommandServices } from '../src/application/chat/player-command
 
 const isolated = isolatedBatchDatabase(), db = isolated.database;
 const config = { host: 'localhost', port: 3001, supabase: {}, twitch: { pilotPlayerIds: [] as string[], pilotLogin: 'kichnifou' },
-  twitchCommandPilot: { enabled: true }, twitchEventSub: { enabled: true, callbackUrl: 'https://private.example/api/v1/twitch/eventsub' } };
+  twitchCommandPilot: { enabled: true, compressIntentReads: true }, twitchEventSub: { enabled: true, callbackUrl: 'https://private.example/api/v1/twitch/eventsub' } };
 const subscriptions = { activationAvailable: true, inspectPilotChatTransport: async () => ({ subscriptionId: 'private-subscription', broadcasterId: '123', receiverId: '123', callback: config.twitchEventSub.callbackUrl }) };
 const outbound = { send: vi.fn(async () => randomUUID()) };
 let player: Awaited<ReturnType<typeof db.player.findUniqueOrThrow>>;

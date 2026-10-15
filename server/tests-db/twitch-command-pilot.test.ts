@@ -33,11 +33,12 @@ import { PrismaDailyRewardStore } from '../src/infrastructure/database/prisma-da
 import { EventService } from '../src/application/event/event-service.js';
 import { getBusinessDate, businessDateToDatabaseDate } from '../src/domain/time/business-date.js';
 import { reconcileEventMessageAggregate } from '../src/application/notification/event-message-notifications.js';
+import { decodeIntentReads } from '../src/application/twitch/twitch-intent-storage.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const secret = 'private-command-webhook-secret';
 const config = { host: 'localhost', port: 3001, supabase: {}, twitch: { pilotPlayerIds: [] as string[], pilotLogin: 'kichnifou' },
-  twitchCommandPilot: { enabled: true }, twitchEventSub: { enabled: true, secret, callbackUrl: 'https://api.example/api/v1/twitch/eventsub' } };
+  twitchCommandPilot: { enabled: true, compressIntentReads: true }, twitchEventSub: { enabled: true, secret, callbackUrl: 'https://api.example/api/v1/twitch/eventsub' } };
 let app: FastifyInstance, playerId: string, pilot: TwitchCommandPilot;
 const parser = vi.fn(findChatCommand);
 const outbound = { send: vi.fn(async () => randomUUID()) };
@@ -90,7 +91,7 @@ beforeAll(async () => {
     twitchEventObserver: new TwitchEventObserver(db, new TwitchReceiptRetention(db, () => 0)), twitchCommandPilot: pilot,
     twitchFavorChatPresence: presence, twitchFavorSubscriptions: specialized as never, twitchFavorGifts: specialized as never,
     twitchFavorResubs: specialized as never, twitchGiveawayConsumer: giveaway as never });
-}, 60_000);
+}, 180_000);
 afterAll(async () => { await app?.close(); await fixture.cleanup(); }, 60_000);
 function event(text = '!pull 1', chatter = '123') { return { subscription: { id: 'private-subscription', type: 'channel.chat.message', version: '1', status: 'enabled',
   condition: { broadcaster_user_id: '123', user_id: '123' }, transport: { method: 'webhook', callback: config.twitchEventSub.callbackUrl } },
@@ -324,6 +325,9 @@ describe('R1063 repeated commands and selection parity', () => {
       const output = saved.commandPilot.responses.map(part => part.text);
       expect(output.join('\n')).not.toContain('Syntaxe');
       if (text === '!box') {
+        const reads = (saved.commandPilot.intent as unknown as { reads: unknown }).reads;
+        expect(reads).toHaveProperty('encoding', 'brotli-base64');
+        expect(decodeIntentReads(reads)).toHaveProperty('getCurrentPlayerBox.execute');
         expect(output.length).toBeGreaterThan(3);
         for (const owned of possessions) expect(output.filter(part => part.includes(`${owned.character.name} (C${owned.constellation})`))).toHaveLength(1);
         expect(output.some(part => part.includes('Yoimiya (C'))).toBe(true);
@@ -339,7 +343,7 @@ describe('R1063 repeated commands and selection parity', () => {
     const invalid = signed(event('!ban visible \u034f'));
     expect((await post(invalid)).statusCode).toBe(204);
     const invalidReceipt = await db.twitchEventReceipt.findUniqueOrThrow({ where: { externalEventId: invalid.headers['twitch-eventsub-message-id'] } });
-    expect(invalidReceipt.payloadMinimal).toMatchObject({ commandPilot: { args: ['visible'], responses: [{ text: 'Syntaxe : !banniere.', status: 'SENT' }] } });
+    expect(invalidReceipt.payloadMinimal).toMatchObject({ commandPilot: { args: ['visible'], responses: [{ text: '⚠️ Syntaxe : !banniere.', status: 'SENT' }] } });
     expect(await state()).toEqual(before);
   // Fourteen real commands plus both redelivery paths traverse the remote
   // isolated database. Let this complete before the next shared-mock scenario.

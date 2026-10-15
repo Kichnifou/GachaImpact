@@ -7,6 +7,7 @@ import { commandMutations, thawCommandValue } from '../src/application/twitch/tw
 import type { ChatCommandServices } from '../src/application/chat/player-command-resolver.js';
 import { harness } from './helpers/chat-command-harness.js';
 import { commandNow, commandSource } from '../src/application/player/player-command-execution.js';
+import { encodeIntentReads, decodeIntentReads } from '../src/application/twitch/twitch-intent-storage.js';
 
 const player = { id: 'self', displayName: 'Moi', elementKey: 'pyro', status: 'ACTIVE' as const };
 function fixture() {
@@ -50,6 +51,29 @@ describe('R1047 registry ownership', () => {
 });
 
 describe('R1047 shared resolver and frozen effects', () => {
+  it.each(['!box', '!team', '!combat', '!combat auto', '!pull 1', '!quotis', '!banque', '!banque deposer 10', '!shop mission', '!event go'])('returns identical ordered output and effect calls from both storage formats: %s', async text => {
+    const old = fixture(), compact = fixture();
+    for (const f of [old, compact]) {
+      Object.assign(f.services, { purchaseDailyChallenge: { execute: vi.fn(async () => ({ view: { challenge: { displayName: 'Mission', description: 'Faire 50 Pulls', progress: 0n, target: 50n, rewardPrimogems: 811n }, nextSwitchCost: 30000n }, resources: { moras: 12345n }, spentMoras: 10000n })) } });
+      const box = await f.services.getCurrentPlayerBox.execute();
+      f.services.getCurrentPlayerBox.execute.mockResolvedValue({ ...box, characters: Array.from({ length: 150 }, (_, i) => ({ ...box.characters[0]!, id: `fixture-${i}`, name: `Étoile ${i}` })) });
+    }
+    const { definition, args } = parseChatCommand(text);
+    const prepare = (f: ReturnType<typeof fixture>) => f.executor.prepare!(player, definition!.handler!, args, definition!.syntax, 'storage-key', '2026-10-15T00:00:00Z');
+    const original = await prepare(old), candidate = await prepare(compact);
+    const encoded = encodeIntentReads(candidate.reads);
+    if (text === '!box') expect(encoded).toHaveProperty('encoding', 'brotli-base64');
+    candidate.reads = decodeIntentReads(encoded) as typeof candidate.reads;
+    expect(candidate).toEqual(original);
+    const run = (f: ReturnType<typeof fixture>, intent: typeof original) => f.executor.execute(player, definition!.handler!, args, definition!.syntax, 'storage-key', intent);
+    expect(await run(compact, candidate)).toEqual(await run(old, original));
+    // Compare every mocked owner, including mutations, not just the decoder.
+    const counts = (services: object, prefix = ''): Record<string, number> => Object.assign({}, ...Object.entries(services).map(([key, value]) => {
+      const path = prefix ? `${prefix}.${key}` : key;
+      return vi.isMockFunction(value) ? { [path]: value.mock.calls.length } : value && typeof value === 'object' ? counts(value, path) : {};
+    }));
+    expect(counts(compact.services)).toEqual(counts(old.services));
+  });
   it.each(['!combat auto', '!event go', '!expedition A', '!shop mission', '!shop switch'])('executes an old frozen %s intent without requiring a new actor read', async text => {
     const f = fixture();
     const challenge = { execute: vi.fn(async () => ({ view: { challenge: { displayName: 'Mission', description: 'Faire 50 Pulls', progress: 0n, target: 50n, rewardPrimogems: 811n }, nextSwitchCost: 30000n }, resources: { moras: 12345n }, spentMoras: 10000n })) };

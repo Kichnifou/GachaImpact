@@ -6,6 +6,7 @@ import { findChatCommand } from '../src/application/chat/chat-command-registry.j
 import type { PilotChatTransport } from '../src/application/twitch/twitch-eventsub-subscription-manager.js';
 import type { NativeAuthorityStore, NativeAuthorityState } from '../src/application/twitch/twitch-native-authority.js';
 import { loadConfig } from '../src/config/environment.js';
+import { decodeIntentReads } from '../src/application/twitch/twitch-intent-storage.js';
 
 const playerId = '11111111-1111-4111-8111-111111111111';
 export const commandEnvelope = (text = '!pity', chatter = '123') => ({
@@ -14,7 +15,7 @@ export const commandEnvelope = (text = '!pity', chatter = '123') => ({
   event: { broadcaster_user_id: '123', chatter_user_id: chatter, chatter_user_login: 'untrusted', chatter_user_name: 'untrusted', message_id: 'chat-message', message: { text } },
 });
 async function fixture(enabled = true, arm = true, receiverId = '123') {
-  const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled },
+  const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled, compressIntentReads: true },
     twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' }, twitchEventSub: { enabled: true, callbackUrl: 'https://api.example/api/v1/twitch/eventsub' } };
   const receipt = { id: 'receipt', externalEventId: 'network-id', eventType: 'channel.chat.message', twitchUserId: '123', state: 'RECEIVED',
     externalReference: null as string | null, payloadMinimal: {} as Record<string, unknown>, processedAt: null, errorMessage: null };
@@ -63,6 +64,54 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it.each(['SUCCESS', 'FAILED', 'AMBIGUOUS', 'SENDING'] as const)('keeps compressed reply state safety and ordered output: %s', async outcome => {
+    const f = await fixture();
+    Object.assign(f.executor, { prepare: vi.fn(async () => ({ now: '2026-10-15T00:00:00Z', reads: { 'getCurrentPlayerBox.execute': [Array(200).fill({ name: 'Étoile' })] }, memory: {}, mutation: { path: 'performGachaPullChat.execute', args: [] } })) });
+    f.executor.execute.mockResolvedValue(['A', 'B']);
+    if (outcome === 'FAILED') f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('CERTAIN', 'HTTP_429'));
+    if (outcome === 'AMBIGUOUS') f.outbound.send.mockRejectedValueOnce(new TwitchCommandSendError('AMBIGUOUS', 'NETWORK'));
+    if (outcome === 'SENDING') {
+      const update = f.tx.twitchEventReceipt.update.getMockImplementation()!;
+      f.tx.twitchEventReceipt.update.mockImplementation(async input => {
+        const state = (input.data as { payloadMinimal?: { commandPilot?: { responses: { status: string }[] } } }).payloadMinimal?.commandPilot;
+        if (state?.responses.some(row => row.status === 'SENT')) throw new Error('crash-after-http');
+        return update(input);
+      });
+    }
+    const body = commandEnvelope('!pull 1');
+    if (outcome === 'SENDING') await expect(f.pilot.consumeAuthenticated(body, 'receipt')).rejects.toThrow('crash-after-http');
+    else await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(f.receipt.payloadMinimal).toMatchObject({ commandPilot: { intent: { reads: { encoding: 'brotli-base64' } } } });
+    if (outcome === 'AMBIGUOUS' || outcome === 'SENDING') {
+      await f.pilot.consumeAuthenticated(body, 'receipt');
+      await expect(f.pilot.retryResponses(playerId, 'receipt')).rejects.toMatchObject({ code: 'TWITCH_COMMAND_RESPONSE_AMBIGUOUS' });
+      expect(f.outbound.send).toHaveBeenCalledTimes(1);
+    } else {
+      await f.pilot.consumeAuthenticated(body, 'receipt');
+      expect(f.receipt.state).toBe('PROCESSED');
+      expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(outcome === 'FAILED' ? ['A', 'A', 'B'] : ['A', 'B']);
+    }
+    expect(f.executor.execute).toHaveBeenCalledTimes(1);
+  });
+  it.each([false, true])('resumes the frozen %s storage after a crash before execution, with the writer disabled', async compress => {
+    const f = await fixture(); f.config.twitchCommandPilot.compressIntentReads = compress;
+    const reads = { 'getCurrentPlayerBox.execute': [Array.from({ length: 200 }, (_, i) => ({ id: String(i), name: 'Étoile' }))] };
+    const intent = { now: '2026-10-15T00:00:00Z', reads, memory: {}, output: ['Premier', 'Deuxième'] };
+    const prepare = vi.fn(async () => intent); Object.assign(f.executor, { prepare });
+    f.executor.execute.mockRejectedValueOnce(new Error('crash-before-execution'));
+    const body = commandEnvelope();
+    await expect(f.pilot.consumeAuthenticated(body, 'receipt')).rejects.toThrow('crash-before-execution');
+    const raw = (f.receipt.payloadMinimal.commandPilot as { intent: { reads: unknown } }).intent.reads;
+    expect(raw).toEqual(compress ? expect.objectContaining({ encoding: 'brotli-base64' }) : reads);
+    expect(decodeIntentReads(raw)).toEqual(reads);
+    f.config.twitchCommandPilot.compressIntentReads = false;
+    f.executor.execute.mockResolvedValueOnce(['Premier', 'Deuxième']);
+    await f.pilot.consumeAuthenticated(body, 'receipt'); await f.pilot.consumeAuthenticated(body, 'receipt');
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(f.executor.execute.mock.calls[1]![5]).toEqual(intent);
+    expect(f.outbound.send.mock.calls.map(([input]) => input.message)).toEqual(['Premier', 'Deuxième']);
+    expect((f.receipt.payloadMinimal.commandPilot as { intent: { reads: unknown } }).intent.reads).toEqual(raw);
+  });
   it('uses fresh combined admission on hot transport and observes a later hard-off', async () => {
     const f = await fixture();
     const read = f.authority.read.bind(f.authority), covers = f.authority.covers.bind(f.authority);

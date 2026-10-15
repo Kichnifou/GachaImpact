@@ -4,6 +4,7 @@ import { PrismaTwitchPlayerStore } from '../../infrastructure/database/prisma-tw
 import type { TwitchMessageActivity } from './twitch-message-activity.js';
 import { AppError } from '../../api/errors.js';
 import { isDeepStrictEqual } from 'node:util';
+import { decodeIntentReads, encodeIntentReads } from './twitch-intent-storage.js';
 import { executingPityRecoveryRequest, type ExecutingPityRecoveryRequest } from './executing-pity-recovery-contract.js';
 import { assessTwitchOperationsInFlight } from './twitch-operations-in-flight.js';
 import { z } from 'zod';
@@ -37,7 +38,7 @@ const envelope = z.object({ subscription: z.object({ id: z.string().min(1), type
 const response = z.object({ text: z.string(), status: z.enum(['PENDING', 'SENDING', 'SENT', 'FAILED', 'AMBIGUOUS']),
   messageId: z.string().optional(), error: z.string().optional(), fullText: z.string().optional() });
 const responseBodyLimit = z.number().int().min(320).max(450);
-const frozenIntent = z.object({ now: z.iso.datetime(), responseBodyLimit: responseBodyLimit.optional(), reads: z.record(z.string(), z.array(z.json())), memory: z.record(z.string(), z.string()),
+const frozenIntent = z.object({ now: z.iso.datetime(), responseBodyLimit: responseBodyLimit.optional(), reads: z.preprocess(decodeIntentReads, z.record(z.string(), z.array(z.json()))), memory: z.record(z.string(), z.string()),
   mutation: z.object({ path: z.string(), args: z.json() }).optional(), output: z.json().optional(), bannerId: z.string().optional(),
   targets: z.object({ gachaTargetId: z.string().nullable().optional(), eventEditionId: z.string().optional(), bannerId: z.string().optional(),
     activeTeam: z.object({ id: z.string().nullable(), members: z.array(z.object({ position: z.number().int(), characterId: z.string() })) }).optional(),
@@ -558,10 +559,18 @@ export class TwitchCommandPilot {
     return { receipt, minimal: minimal ?? {}, saved };
   }
   private async save(tx: Prisma.TransactionClient, receiptId: string, minimal: Record<string, Prisma.JsonValue>, state: Execution, final = false, error?: string) {
+    // Preserve the exact storage of an already frozen intent, including historical
+    // uncompressed receipts. Only the first reservation may choose a new format.
+    const previous = minimal.commandPilot as { intent?: { reads?: Prisma.JsonValue } } | undefined;
+    const storedReads = previous?.intent?.reads;
+    if (state.intent && storedReads !== undefined && !isDeepStrictEqual(decodeIntentReads(storedReads), state.intent.reads))
+      throw new Error('TWITCH_COMMAND_INTENT_CONFLICT');
+    const stored = state.intent ? { ...state, intent: { ...state.intent, reads: storedReads
+      ?? (this.config.twitchCommandPilot?.compressIntentReads ? encodeIntentReads(state.intent.reads) : state.intent.reads) } } : state;
     await tx.twitchEventReceipt.update({ where: { id: receiptId }, data: {
       externalReference: `command-pilot:${state.commandKey}`, state: final ? 'PROCESSED' : error ? 'FAILED' : 'RECEIVED',
       processedAt: final ? new Date() : null, errorMessage: error ?? null,
-      payloadMinimal: { ...minimal, commandPilot: state } as Prisma.InputJsonValue,
+      payloadMinimal: { ...minimal, commandPilot: stored } as Prisma.InputJsonValue,
     } });
     if (state.eventMessageBindings?.length) await confirmEventMessageDeliveries(tx, state.playerId, state.eventMessageBindings, state.responses, new Date());
   }
