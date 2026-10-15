@@ -152,4 +152,3 @@ it('preserves the normal post-element account destination when linking the same 
   await browserReturn('connected')
   expect(mocks.shell?.player).toEqual(player); expect(location.hash).toBe('#configuration'); expect(location.search).toContain('twitch=connected')
 })
-

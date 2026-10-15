@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Entrée et retour Twitch — R1096
+
+Avant élément, l’action centrale « Lier mon compte Twitch » ouvre directement la modale Compte existante, suivie de OU puis des sept éléments. Texte propriétaire exact dans ElementChoiceScreen ; titre, choix permanent et confirmation conservés. Déconnexion reste une action native clavier, bleue et discrète au bas droit du cadre.
+
+Au retour externe, AppBootstrap attend la session et le Player authentifiés. Le résultat twitch est seulement un indice de destination ; la comparaison GET et les décisions restent serveur. Le contexte est borné à15minutes, subject/Player de départ et onglet, mémorisé avant navigation volontaire avant ou après le choix d’élément ; retour d’une autre session/expiré ou déconnexion effacé. Compte interprète le résultat avant consommation ; fermer ne déclenche pas de réouverture et une réponse tardive de démarrage OAuth après fermeture ne redirige plus. connected avec UUID effectif changé et élément réellement présent conduit à l’Accueil ; une liaison post-élément conservant le même Player garde Compte. Le retour profile-recovered historique reste compatible. Succès affiché seulement après confirmation authentifiée linked. Aucun second OAuth automatique.
+
 ## Intentions et écritures ciblées — R1095
 
 Les notifications cosmétiques rejoignent le propre Profil > Personnalisation, catégorie TITLE ou AVATAR validée par le registre/payload, puis ouvrent Choisir au moyen d’un token éphémère consommé une fois. Une fermeture pendant le chargement ne peut être annulée par sa réponse ; une nouvelle activation crée un nouveau token. Aucune intention cosmétique restaurée au F5 ni consultation lors d’une arrivée simple sur Profil.

@@ -1,5 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1096 — liaison Twitch simplifiée et finition Invocation (15/10/2026)
+
+**Mandat autorisé jusqu’à livraison complète ; candidat en qualification.** Le propriétaire valide R1095 après bêta-tests, sauf le petit indicateur rouge à rétablir devant « Arrêter la diffusion ». La bêta continue. Base fraîche après fetch : **1b26b0167d302c47f7352baba6a6d5a8e1a521d3**, main/review locaux et distants alignés, divergence0/0 et arbre initial propre ; R1096 disponible. Aucun joueur public utilisé pour une récupération de QA.
+
+Deux sous-lots distincts : indicateur rouge décoratif aria-hidden, nom accessible et commandes inchangés ; liaison/onboarding avec texte propriétaire, bouton Twitch centré, séparation OU et lien Déconnexion inférieur droit, retour OAuth après remontage complet. L’URL est un indice de navigation, jamais une preuve autorisant un déplacement d’identité. Le serveur authentifié reste seul propriétaire du Player effectif.
+
+Option B validée : extension minimale de la récupération existante lorsque la cible Twitch ACTIVE/éligible possède un élément et un niveau≥2, et que le standalone sans élément ou encore niveau1 ne possède aucune donnée significative à abandonner. Le niveau faible seul ne suffit pas. Choisir un élément n’accorde aucune XP ; faute de provenance innocente démontrée pour de petites XP, toute XP positive conserve la comparaison. Contrôles exhaustifs de colonnes, domaines et références, rôles, identités, opérations, données personnalisées et tiers maintenus. Les défauts techniques reconnus restent bornés et prouvés ; comparaison/confirmation et OPERATOR_REQUIRED conservés autrement. Ancien contrat R1046 du compte strictement vierge maintenu. Aucun nouveau OAuth, fusion, import, addition de gains ou migration physique présumé.
+
+Preuves et gates réelles dans la [qualification R1096](../architecture/evidence/r1096-qualification.json). Reviews indépendantes des vrais SHA GitHub, tests PostgreSQL privés nettoyés, backend compatible avant frontend, promotions FF strictes et postflight requis. Le suffixe R1095 et antérieur reste intégralement protégé par la [garde R1096](../architecture/evidence/r1096-master-guard.mjs).
+
+**Prochaine action technique : terminer qualification et reviews, promouvoir/déployer/vérifier dans cette mission, puis recette propriétaire R1096 dans la bêta actuelle. STOP après livraison.** Aucun chantier mobile général, exe ou audit global de migration/économie.
+
 ## R1095 — retours des premiers bêta-tests (15/10/2026)
 
 **Livré techniquement ; recette propriétaire R1095 attendue dans la bêta déjà commencée.** Le propriétaire confirme R1094 validée dans son périmètre. Base fraîche après fetch : **91d55486daf89264a471b3db4b8c97cb97448b18**, main/review locaux et distants alignés, divergence 0/0, arbre initial propre ; R1095 libre. AssistantIA n’est pas le dépôt cible. Aucun reset, infrastructure supplémentaire, gel des joueurs ou mutation publique de QA.

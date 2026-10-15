@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## Entrée Twitch et indicateur — R1096
+
+Le bouton de diffusion active garde ses dimensions/styles existants, avec un petit disque rouge aria-hidden devant « Arrêter la diffusion ». Diffuser inactif, hover/focus/disabled et autorité conservés. Retouche indépendante de la liaison.
+
+Écran de choix d’élément : récupération Twitch lisible, bouton centré légèrement agrandi (44px minimum), OU distinct et discret ; sept cartes et confirmation inchangées. Déconnexion dans le footer inférieur droit du cadre, couleur bleue, focus visible, sans gros bouton central. Modale Compte réutilisée avec son propre corps de scroll ; résumés, erreurs et contrôles accessibles aux quatre formats1920×1080/2560×1440/1366×768/390×844. Les preuves mesurées et limites appartiennent à la qualification et au Master ; aucun nouveau contrat mobile général.
+
 ## Retours de bêta — R1095
 
 Historique (six onglets), Échanges (quatre vues) et sélecteurs Avatars/Titres utilisent un cadre intérieur scroll-content-frame autour des résultats. Le conteneur remplit la hauteur utile desktop, y compris vide ; entrées de hauteur naturelle, commandes/filtres/pagination séparés. Le corps ScrollableScreenPanel reste seul propriétaire de scroll ; suppression du second scroll/max-height252 d’Échanges Historique. Les suggestions du formulaire restent hors cadre. Mobile conserve son défilement naturel, sans plafond de liste artificiel.

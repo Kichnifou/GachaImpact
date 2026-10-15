@@ -1,5 +1,11 @@
 # Fondations Twitch pré-cutover — guide opérateur R1048 approuvé
 
+## Liaison simplifiée — R1096
+
+Option B propriétaire : extension du chemin de récupération existant uniquement pour Twitch vérifié ACTIVE/éligible, élément choisi et niveau≥2, face à un standalone sans données significatives. L’élément choisi au niveau1 n’est plus bloquant seul ; XP positive inexpliquée reste à préserver. Classifieur exhaustif de colonnes/domaines/références, données personnalisées et tiers, conflits et opérations conservés. Démontrer les seules structures bootstrap neutres admises, dont badgeNULL et champs de présentation neutres du schéma actuel. Ancienne récupération strictement vierge R1046 et comparaison/opérateur R1055 maintenus.
+
+Retour OAuth : avant élément, restaurer Compte si comparaison/erreur ; récupération effective avec élément vers Accueil après lecture authentifiée. Aucun résultat URL ne déplace une identité, aucun OAuth relancé automatiquement. Auth/state/nonce/Twitch User ID/expiration/origines inchangés. Qualification sur schémas et fixtures privés nettoyés, jamais sur le compte d’un bêta-testeur. Bêta en cours et R1095 validée ; état et gates R1096 au Master, aucune recette humaine R1096 présumée.
+
 ## Extension GLOBAL R1064
 
 Pour les nouvelles admissions, l'identité unique Twitch/Web, les échos et la reprise explicite après OFF, suivre [le contrat R1064](../architecture/twitch-global-r1064.md) et [le runbook GLOBAL](legacy-cutover-runbook.md#r1064-global). Les fondations et imports ci-dessous restent des preuves acquises ; aucun réimport NATIVE. Le [Master](../master/PROJECT_MASTER_PLAN.md) distingue candidat, capacité déployée, autorité réellement activée et recette humaine.

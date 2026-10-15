@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## Extension bornée de récupération Twitch — R1096
+
+La liaison vérifiée unique conserve OAuth/state/nonce/expiration/origines et Twitch User ID immuable. verified réutilise isDisposableWebPlayer et moveDisposableWebIdentity sous transaction/verrous existants. Extension Option B : cible Twitch ACTIVE/éligible avec élément et niveau≥2 ; source standalone choisie ou non, XP exactement0 et aucune progression significative. Le choix d’élément est neutre ; toute XP positive reste protégée faute de provenance technique innocente. Ancien chemin strict R1046 maintenu, aucune fusion ni import.
+
+Classifieur fail-closed sur colonnes Player et FK réelles, y compris champs neutres badgeNULL/presentationNULL/révision0. Références tierces/inconnues, rôles, identités, opérations et personnalisation bloquent la récupération silencieuse. Les seuls défauts bootstrap démontrés sont admis explicitement, jamais par wildcard. Comparaison/consentement/révision/opérateur R1055 restent propriétaires des autres situations. Le frontend ne choisit aucun Player à partir d’une URL. Aucun DTO parallèle ou migration physique.
+
 ## Conclusion de latence Twitch — R1083
 
 Analyse proportionnée unique de12 synthèses expurgées du processus R1082 :4 consultations,2 Pull×1 et6 messages sans HTTP ; zéro échantillon mutation hors Pull/×5/×10. Depuis réception EventSub : premier HTTP médian 1853,79ms/2215,99ms, confirmation Helix 2112,14ms/2453,68ms, dernier SENT durable 2196,09ms/2510,57ms, fin serveur 2265,78ms/2577,10ms (consult/Pull1). Helix 231–274ms, anti-écho variable 72–1590ms ; phases activité/transactions inclusives non additionnables, pas de preuve de plan/verrou/pool justifiant suppression de lecture. Aucun délai saisie→affichage Twitch ni gain causal avant/après déduit. Le frontend React n'est pas dans ce parcours ; services métier partagés ne prouvent pas une cause. **Aucune modification Twitch supplémentaire justifiée.** Admission R1082, SENDING avant HTTP, revalidation après token et AMBIGUOUS conservés. [Mesures/limites](evidence/post-r1082-qualification-20261013.json).

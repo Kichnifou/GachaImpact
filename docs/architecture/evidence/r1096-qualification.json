@@ -1,0 +1,165 @@
+{
+  "mission": "R1096",
+  "baseline": "1b26b0167d302c47f7352baba6a6d5a8e1a521d3",
+  "initialGit": {
+    "mainReviewLocalRemoteEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "ownerFeedback": {
+    "R1095Validated": true,
+    "betaInProgress": true,
+    "R1096Validated": false
+  },
+  "status": "locally-qualified-awaiting-published-sha-reviews",
+  "subLots": {
+    "indicator": "daa21d2d - independent UI correction",
+    "twitch": "classifier and authenticated return/onboarding; no new OAuth or DDL"
+  },
+  "coverage": [
+    {
+      "request": "A indicator",
+      "owner": "SharedInvocationControls.tsx/shared-invocations.css",
+      "change": "Dedicated aria-hidden red disk, unchanged stop label/authority/pending",
+      "test": "SharedInvocationAudience + compiled idle/live/pending/other-tab states",
+      "status": "PASS"
+    },
+    {
+      "request": "B entry",
+      "owner": "ElementChoiceScreen/App.css",
+      "change": "Exact copy, central Twitch action, OU, seven elements, permanent choice and confirmation, footer logout",
+      "test": "ElementChoice/Account tests and four viewport compiled measurements",
+      "status": "PASS"
+    },
+    {
+      "request": "C authenticated OAuth return",
+      "owner": "AppBootstrap/auth/twitch-return/GameShell/Configuration/Account",
+      "change": "Subject/source Player/age/tab-bound navigation hint, server Player authoritative, reopen pre-element comparison/error, recovered UUID Home, same UUID normal Account; no late redirect",
+      "test": "10 AppBootstrap full-remount tests, helper4, compiled full-navigation provider synthetic flows",
+      "status": "PASS"
+    },
+    {
+      "request": "D/E Option B and integrity",
+      "owner": "twitch-profile-claim/twitch-account-link",
+      "change": "Existing strict path retained; low-progress extension only advanced Twitch target and exact-zero source with exhaustive graph, neutral badge/presentation, exact default empty teams",
+      "test": "30 private PostgreSQL +6 units +4 independent private PostgreSQL; legacy suites pending",
+      "status": "PASS-local-legacy-compatibility-review-pending"
+    },
+    {
+      "request": "F/G qualification and delivery",
+      "owner": "verification/review/deployment workflow",
+      "change": "Private fixtures only, actual published blobs reviews, backend before frontend, strict FF, final postflight",
+      "test": "full8/8 quick5/5; published reviews/deployments pending",
+      "status": "partially-complete"
+    }
+  ],
+  "verification": {
+    "frontend": {
+      "files": 163,
+      "tests": 1752
+    },
+    "backendNonDb": {
+      "files": 171,
+      "tests": 2545
+    },
+    "full": "PASS 8/8",
+    "quick": "PASS 5/5 before final UI delta; final repeat required",
+    "targetedUi": "161 initial; final return suite152 after two additional scenarios (overlapping suites, not summed)",
+    "postgres": {
+      "author": 30,
+      "independent": 4,
+      "privateSchemasCleaned": true,
+      "legacyCompatibility": "in progress"
+    },
+    "visual": {
+      "formats": [
+        "1920x1080",
+        "2560x1440",
+        "1366x768",
+        "390x844"
+      ],
+      "initialCases": 40,
+      "oauthRoundtripCases": 7,
+      "postElementAndLateCases": 8,
+      "indicator": "red RGB255/82/109, diameter5.59px; 131x32desktop/131x44mobile; exact accessible name",
+      "reports": [
+        "local-data/r1096-visual/pre-review-summary.json",
+        "local-data/r1096-visual/chosen-oauth-and-late.json"
+      ]
+    }
+  },
+  "reviews": "pending published SHA",
+  "deployment": "pending",
+  "rollback": {
+    "indicator": "separate commit; isolated revert to qualify",
+    "twitch": "Removing UI does not undo a completed identity recovery; no destructive migration or automatic inverse move"
+  },
+  "limitations": [
+    "No public Player recovery QA",
+    "Owner R1096 recipe not performed",
+    "All positive XP remains significant absent proof of innocent origin"
+  ],
+  "documentReview": {
+    "updated": [
+      "Master",
+      "decisions",
+      "navigation",
+      "UI layout",
+      "backend architecture",
+      "data model",
+      "Twitch foundations",
+      "R1096 qualification and Master history guard"
+    ],
+    "examinedUnchanged": [
+      "AGENTS",
+      "Guide",
+      "workflow",
+      "handoff procedure",
+      "PostgreSQL schema (no DDL)",
+      "legacy migration",
+      "R1055 operator resolution"
+    ],
+    "historyGuard": "R1096 preserves entire R1095 and older suffix"
+  },
+  "backendAncestor": "a253570b2dd16cfc1d841c05b090d468b21231a7",
+  "frontendCommit": "5674b83b7879e0b800d0919031c54b7cb6c7efb4",
+  "prepublicationFindings": [
+    {
+      "finding": "Potential future extra Player FK in known optional table or descendant cascade could evade classification",
+      "correction": "Exact FK metadata before row filtering and explicit child-table graph boundaries",
+      "status": "author and independent private PostgreSQL PASS"
+    },
+    {
+      "finding": "Late start response could redirect after the Account dialog was closed",
+      "correction": "Mount request owner guard before navigation/context recording",
+      "status": "unit and compiled pre/post-element PASS"
+    },
+    {
+      "finding": "Post-element automatic recovery returned connected and needed to reach Home",
+      "correction": "Generalize voluntary context through Configuration; compare authenticated UUID with source; ordinary same-Player link preserved",
+      "status": "unit and compiled PASS"
+    },
+    {
+      "finding": "Callback URL alone could display a success message before verification",
+      "correction": "Display success only after authenticated account read confirms linked",
+      "status": "unit and compiled PASS"
+    }
+  ],
+  "intermediateFailures": [
+    {
+      "check": "Private Prisma setup attempt1/2",
+      "reason": "P1017 ECONNRESET then occupied advisory72707369 before tests; owned schemas cleaned, no unknown connection interrupted",
+      "resolution": "No new migration; exact current schema standard private DDL fixture used, functional suites passed"
+    },
+    {
+      "check": "Initial frontend fixtures",
+      "reason": "Old opener-label assertions and unstable mock API reference; corrected expectations and stable mock instance; no product workaround",
+      "resolved": true
+    },
+    {
+      "check": "Index whitespace check",
+      "reason": "One trailing blank line in new remount test removed before publication",
+      "resolved": true
+    }
+  ]
+}

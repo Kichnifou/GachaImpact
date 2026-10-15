@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Liaison et conservation — R1096
+
+Option B étend la récupération Twitch existante sans nouvelle entité : Twitch vérifié ACTIVE/éligible, élément et niveau≥2 ; standalone sans progression significative, avec ou sans élément si niveau1, et XP0 strict tant qu’une autre provenance innocente n’est pas démontrée. Faible niveau n’implique jamais caractère supprimable. Badge/pseudo personnalisés, gains, références, relations, identités et droits restent protégés. Le Player Twitch retenu conserve UUID, présentation et graphe intégral ; aucune fusion de pseudo Web ou de ressources. Archive et déplacement WebIdentity suivent les propriétaires R1046/R1055 existants. Aucun DDL nouveau.
+
 ## Reçus et projections R1081 — aucune nouvelle table
 
 StructuredChatResultV1 est étendu par compact facultatif, elementKey validé, voteCount et pity par personnage ; select/combat rejoignent les commandes graphiques. Dix personnages maximum sauf vote200, faits/titres bornés inchangés, budget reçu JSON256Kio pour vote/16Kio ailleurs ; texte Chat toujours500caractères. Ancien JSON non migré et lisible. Expédition/Vote INTERNAL_CHAT figent elementKey dans leur snapshot existant ; Select conserve le personnage dans la mémoire d'intention avant mutation. Pull agrège les reçus autoritaires sans nouveau gain ni stockage économique concurrent.
