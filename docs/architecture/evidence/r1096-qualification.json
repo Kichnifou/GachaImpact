@@ -49,8 +49,8 @@
       "request": "F/G qualification and delivery",
       "owner": "verification/review/deployment workflow",
       "change": "Private fixtures only, actual published blobs reviews, backend before frontend, strict FF, final postflight",
-      "test": "full8/8 quick5/5; published reviews/deployments pending",
-      "status": "PASS-runtime-delivery-final-doc-closure-pending"
+      "test": "full8/8 quick5/5; actual published reviews APPROVED, staged runtime deployments and postflight PASS; closure SHA deploy checks are performed separately after publication",
+      "status": "PASS-technical-owner-recipe-pending"
     }
   ],
   "verification": {
