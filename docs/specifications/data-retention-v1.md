@@ -1,5 +1,13 @@
 # Politique de rétention V1
 
+## Déclenchement conditionnel — arbitrage propriétaire du 15/10/2026
+
+Le propriétaire ne veut **aucune campagne de purge préventive** des historiques. Les durées décidées ci-dessous demeurent la **politique de référence** si un futur lot de conservation est autorisé ; elles ne valent ni permission de supprimer maintenant ni obligation de développer un scheduler post-V1.
+
+Une étude puis, éventuellement, une purge par domaine ne sont à engager **que si les historiques et la base deviennent trop volumineux et que leur croissance continue est objectivement établie**. Mesurer périodiquement la taille PostgreSQL totale, les plus grosses tables, leur composition en données vivantes/preuves durables/space reusable, le rythme hors imports/tests et la marge du quota. N'introduire aucune date de purge automatique, seuil économique ou achat de capacité sur ce seul arbitrage. Toute intervention future demande vérification des FK/idempotences/statistiques, sauvegarde et tests privés, revue du SHA et autorisation spécifique du propriétaire.
+
+La [photographie en lecture seule du 15/10](../architecture/evidence/database-growth-baseline-20261015.md) montre **120 556 691 octets (114,97 Mio)** de base, dont **80 166 912 octets (76,45 Mio)** de tables publiques ; quota Free anciennement documenté de 500 MB, soit environ 24 % utilisé. Depuis le 09/10, la base a augmenté de 40,82 Mio, mais des pointes d'activité d'import/QA empêchent une extrapolation de rythme durable. Aucun historique Banque/Boutique/Échanges/Chat n'est alors au-delà de ses durées indicatives, et la plupart des gros reçus Twitch sont des preuves traitées : **pas de purge autorisée**. Une surveillance régulière est recommandée ; elle n'est pas configurée comme automatisation par cette décision.
+
 ## Activité quotidienne — R1080
 
 PlayerDailyActivity/ActivityCoverage entrent dans les inventaires personnels/techniques. Aucune purge d'ancienneté décidée pour ce domaine, conformément à la règle des domaines non cités ; aucune purge, backfill ou réimport lancé. Quatre témoins booléens par Player/jour, pas d'horaires individuels ni texte. Archives conservées/protégées et noms archivés exclus des sorties ; toute future suppression exige de préserver couverture/indisponible et statistiques honnêtes. [Contrat Activité](player-activity-v1.md).
