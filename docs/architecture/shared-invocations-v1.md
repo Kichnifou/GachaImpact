@@ -2,7 +2,7 @@
 
 ## Indicateur rouge du bouton actif — R1096
 
-**Livré techniquement, recette humaine encore attendue.** Devant le bouton d'arrêt du diffuseur, un petit disque rouge visible rétablit l'indication de direct du libellé historique « ● En diffusion ». Le nom accessible reste exactement **« Arrêter la diffusion »**, sans ajouter le symbole à son annonce vocale. Le bouton inactif reste **« Diffuser »** ; stop, attente, autorité de l'onglet, diffusion et spectateurs ne changent pas. Les anciennes références « En diffusion » des sections datées ci-dessous sont historiques, non le texte actif. La recette propriétaire de ce détail est prévue après la livraison R1096, et ne vaut pas recette OAuth/Twitch du même lot.
+**Livré techniquement et déclaré terminé par le propriétaire le 15/10/2026.** Devant le bouton d'arrêt du diffuseur, un petit disque rouge visible rétablit l'indication de direct du libellé historique « ● En diffusion ». Le nom accessible reste exactement **« Arrêter la diffusion »**, sans ajouter le symbole à son annonce vocale. Le bouton inactif reste **« Diffuser »** ; stop, attente, autorité de l'onglet, diffusion et spectateurs ne changent pas. Les anciennes références « En diffusion » des sections datées ci-dessous sont historiques, non le texte actif. La validation propriétaire de ce détail est **acquise** ; elle ne vaut pas recette OAuth/Twitch du même lot, encore à observer avec un ami.
 
 ## Libellé du contrôle propre — R1095
 
