@@ -141,4 +141,12 @@ describe('B1 real private PostgreSQL, actual migrations and immutable business s
     expect((await new RetentionEngine(db,'DRY_RUN',clock,()=>{}).run()).status).toBe('SUCCESS');
     expect((await db.retentionRun.findFirstOrThrow()).attempts).toBe(2);
   },60_000);
+  it('reports consumed/provenance exclusions separately from the existing passive TTL owner',async()=>{
+    await db.twitchEventReceipt.createMany({data:[{externalEventId:randomUUID(),eventType:'channel.chat.message',receivedAt:old},{externalEventId:randomUUID(),eventType:'channel.chat.message',receivedAt:old,externalReference:'durable-provenance'}]});
+    const inventory=new RetentionInventory(db),rule=retentionRules.find(x=>x.domain==='twitch_passive')!;
+    const row=await inventory.inspect(rule,at);expect(row.expiredNonTerminalProtected).toBe(1);
+    expect(row.reasons.RECOVERY_EVENT_MIGRATION_PROOF).toBe(1);expect(row.reasons.EXISTING_TTL_OWNER).toBe(1);expect(row.technicallyEligible).toBe(0);
+    const bank=await inventory.inspect({...retentionRules.find(x=>x.domain==='bank')!,terminal:'FALSE'},at);
+    expect(bank.expiredNonTerminalProtected).toBe(1);expect(bank.reasons.TERMINATION_NOT_PROVEN).toBe(1);expect(bank.reasons.DURABLE_ECONOMIC_PROOF).toBe(0);
+  },30_000);
 });
