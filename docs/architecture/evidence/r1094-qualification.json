@@ -69,7 +69,8 @@
       "supplements": 7,
       "independentImageStates": 16,
       "mutationCalls": 0,
-      "jsErrors": 0
+      "jsErrors": 0,
+      "retirementCases": 40
     },
     "nativeZoom": {
       "percent": [
@@ -149,6 +150,45 @@
     },
     "image-variants.json": {
       "sha256": "7bea0981fa6ff172e131cff38200b148e848e1376741d8bdd2467434d13dc310"
+    },
+    "retirement-qa.json": {
+      "sha256": "3b7071f18b91400c690158d993bd90f39b786fd79764b33d86fcd8c5c3a13536"
+    },
+    "review-technical.json": {
+      "sha256": "8838e3bf0c5109053a2435c881b0cc2ccd18d6f39a4c8e90551084b0580a67ec"
+    },
+    "review-visual.json": {
+      "sha256": "b17e539342fdc53dcbcf67d5b2200f4b6abc21141c382c3f4eaa3eee7507b1f8"
+    },
+    "review-zoom-native.json": {
+      "sha256": "ef8c47d33e24fe7a02b9014588d195518ebfdb32dc050e1b0d3c252890f49dc8"
+    },
+    "railway-backend.json": {
+      "sha256": "a13e2fb36a29291f61ae1aa51ff2a0c35d16d18fed5fbabd2f05ce81987b5088"
+    },
+    "railway-candidate.json": {
+      "sha256": "a3fec890e551669a4f8e297bdf2870ca4defb5496a86ad7d2258fd4b440182a8"
+    },
+    "cloudflare-45792be7df10d6d416a58d253b796eed50d9da9c.json": {
+      "sha256": "195708eba7566632d51c3593a20673ca4908ce96caebf82101108933a819b522"
+    },
+    "postflight-candidate.json": {
+      "sha256": "6b9c278a22416b741cef19416ab377f020675726045f3a9f8712235c51cda954"
+    },
+    "route-guards-candidate.json": {
+      "sha256": "91eabe45bb53f335654d908804351590a0ccdbd8a1b8c2b42b9fa2dfcdfd6ddf"
+    },
+    "tutorial-postflight-candidate.json": {
+      "sha256": "6cb760e3f57db082200e57e5ec999483469af360e944de9a280504327cad821f"
+    },
+    "asset-baseline.json": {
+      "sha256": "54747016649d8fbf2e4f97c12eec2d5a67d2dbda540113ce99a1c3e24d985e12"
+    },
+    "asset-candidate.json": {
+      "sha256": "0f20a54fd4178e2bff78fe38078c60d15b3a2c2e5a8901ca70d2a4f23f787d82"
+    },
+    "public-build-comparison-45792be7df10d6d416a58d253b796eed50d9da9c.json": {
+      "sha256": "ddaf56b42058820e3489c0b71374232eae1fe7dee3d87f688fe35f94fe9eb536"
     }
   },
   "intermediateFailures": [
@@ -160,10 +200,88 @@
     "Private fixture localhost:3000 ECONNREFUSED logs; no final browser JS errors."
   ],
   "review": {
-    "status": "Awaiting exact published GitHub SHA reviews"
+    "candidate": "45792be7df10d6d416a58d253b796eed50d9da9c",
+    "technical": {
+      "verdict": "APPROVED",
+      "frontend": 42,
+      "backend": 154,
+      "backendAncestor": "APPROVED"
+    },
+    "visual": {
+      "verdict": "APPROVED",
+      "imageStates": 16,
+      "nativeZoomIndependent": true,
+      "proofHashes": 10
+    },
+    "findings": []
   },
   "delivery": {
-    "status": "Awaiting backend-first promotion and exact-SHA deployment/postflight"
+    "runtimeCandidate": "45792be7df10d6d416a58d253b796eed50d9da9c",
+    "backendFirst": {
+      "sha": "872e7b1bce1f8df4e6505582d9d880eea6fcf767",
+      "deploymentId": "2594739e-213b-46ad-a0b3-1560e34059e0",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-15T06:24:37.936319924Z",
+      "readyBeforeFrontendCandidateDeployment": true
+    },
+    "railway": {
+      "sha": "45792be7df10d6d416a58d253b796eed50d9da9c",
+      "deploymentId": "3abf6b3f-b262-435d-84ca-58a82d9111c5",
+      "status": "SUCCESS",
+      "readyAt": "2026-10-15T06:26:22.363789833Z",
+      "healthyReplicas": 1,
+      "pending": 0,
+      "issues": 0
+    },
+    "cloudflare": {
+      "sha": "45792be7df10d6d416a58d253b796eed50d9da9c",
+      "status": "completed",
+      "conclusion": "success",
+      "preview": "https://344e0837.gachaimpact.pages.dev",
+      "artifacts": [
+        {
+          "path": "/assets/index-BY-UgiAt.js",
+          "http": 200,
+          "sha256": "2faf59615c5594b2fa0d3a9b7c69e5cfcf02036465aede2897d826570dc147b5"
+        },
+        {
+          "path": "/assets/index-De4b10uZ.css",
+          "http": 200,
+          "sha256": "85a71d91eb91689122b2cea100f5fc20103d66630ae2e5d5392b0c7c5384c3d4"
+        }
+      ]
+    },
+    "postflight": {
+      "health": 200,
+      "domains": 200,
+      "productionPreviewBytesMatch": true,
+      "normalizedLocalProductionJsIdentical": true,
+      "differentBuildEnvironmentKeys": [
+        "VITE_API_BASE_URL"
+      ],
+      "anonymousGuards": 18,
+      "tutorialCatalogGetGuards": 6,
+      "exactCors": true,
+      "historyNoStore": true,
+      "publicPreferenceWrites": false
+    },
+    "publicImage": {
+      "http": 200,
+      "bytes": 89354,
+      "hash": "201f2f892e2a4452a91ba5f5e5de722d6041886902ceceecf945261b1a9c330e",
+      "queryAndPlainBothDomainsMatch": true,
+      "observedNetworkTotalMs": {
+        "min": 66.68610000000001,
+        "max": 191.1595
+      },
+      "newEtag": "\"caffb578fb8ff1435fbe8cd14c7d6439\"",
+      "cacheControlByDomain": {
+        "https://gachaimpact.fr": "public, max-age=14400, must-revalidate",
+        "https://gachaimpact.pages.dev": "public, max-age=0, must-revalidate"
+      },
+      "limitation": "Node network resource observations only, not public authenticated UI latency; no player-state actions."
+    },
+    "finalDocumentationCheckpoint": "Runtime unchanged; final docs SHA undergoes separate published delta review, strict FF and exact-SHA deployment/postflight checks after publication, without commit loop to record its own hash."
   },
   "ownerAcceptance": "Required after delivery; not inferred from technical checks."
 }

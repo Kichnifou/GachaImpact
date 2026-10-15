@@ -2,7 +2,7 @@
 
 ## R1094 — corrections du Tutoriel après recette propriétaire (15/10/2026)
 
-Mandat validé : six retraits ciblés du parcours actif (115étapes/24chapitres/21écrans), trois descriptions exactes, première étape compacte à deux phrases desktop et même capture allégée, attente/erreur bornées. Compatibilité additive des catalogues116/121/115, anciens IDs/aliases et progressions conservés, pas de réparation GET ni autostart supplémentaire. Aucun changement métier ni migration ; déploiement backend compatible avant frontend. Qualification, reviews et livraison réelles au Master ; nouvelle recette esthétique propriétaire requise. Historique R1093 et antérieur conservé.
+Mandat validé : six retraits ciblés du parcours actif (115étapes/24chapitres/21écrans), trois descriptions exactes, première étape compacte à deux phrases desktop et même capture allégée, attente/erreur bornées. Compatibilité additive des catalogues116/121/115, anciens IDs/aliases et progressions conservés, pas de réparation GET ni autostart supplémentaire. Aucun changement métier ni migration ; déploiement backend compatible avant frontend. Implémenté, qualifié, double review indépendante approuvée, backend compatible déployé avant frontend puis postflight PASS. Preuves et SHA au Master ; nouvelle recette esthétique propriétaire requise. Historique R1093 et antérieur conservé.
 
 ## R1093 — actualisation additive du Tutoriel V1 (14/10/2026)
 
