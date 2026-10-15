@@ -3,6 +3,7 @@
 .shared-invocation-buttons { display: flex; gap: .5rem; }
 .banner-change-button.shared-invocation-button { width: 8.2rem; max-width: 8.2rem; min-width: 0; flex: 1 1 0; min-height: 32px; height: 32px; padding: .2rem .5rem; white-space: nowrap; font-size: .7rem; }
 .shared-invocation-button.is-live { color: #ffb6b6; border-color: #b54c61; background: #381925; }
+.shared-broadcast-dot { display: inline-block; width: .5em; height: .5em; margin-right: .45em; border-radius: 50%; background: #ff526d; vertical-align: .1em; }
 .shared-invocation-controls small { display: block; color: #a9b4cc; font-size: .66rem; line-height: 1.35; margin-top: .35rem; }
 .shared-invocation-status { position: absolute; top: 8px; right: 12px; left: 12px; z-index: 8; display: flex; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: .3rem .8rem; font-size: .7rem; color: #ffb6b6; pointer-events: none; }
 .shared-invocation-status > button { pointer-events: auto; }

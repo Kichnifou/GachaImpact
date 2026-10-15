@@ -12,6 +12,18 @@ const roots:ReturnType<typeof createRoot>[]=[];
 function controller(total=7){const players=Array.from({length:total},(_,i)=>({playerId:'player-'+i,displayName:'Spectateur '+i,avatarPath:null}));const data:SharedSpectators={sessionId:'scene',total,page:1,totalPages:1,preview:players.slice(0,5),players};return {enabled:true,state:{broadcasting:session,watching:null},api:{spectators:vi.fn(async()=>data)},pending:false,error:'',start:vi.fn(async()=>true),stop:vi.fn(async()=>true),watch:vi.fn(async()=>true),react:vi.fn(),resume:vi.fn(),refreshPersonal:vi.fn()} as unknown as SharedInvocationController;}
 async function mount(ui:React.ReactNode){const host=document.createElement('div');document.body.append(host);const root=createRoot(host);roots.push(root);await act(async()=>root.render(ui));return {root,host};}
 afterEach(()=>{act(()=>roots.splice(0).forEach(r=>r.unmount()));document.body.replaceChildren();vi.useRealTimers()});
+it('decorates only the broadcaster stop with a hidden dot and preserves authority and pending guards',async()=>{
+ const shared=controller(),{root,host}=await mount(<SharedInvocationControls shared={shared}/>);
+ const stop=host.querySelector<HTMLButtonElement>('.shared-invocation-button')!;
+ expect(stop.textContent).toBe('Arrêter la diffusion');expect(stop.querySelector('.shared-broadcast-dot')?.getAttribute('aria-hidden')).toBe('true');
+ await act(async()=>stop.click());expect(shared.stop).toHaveBeenCalledOnce();
+ for(const next of [{...shared,pending:true},{...shared,state:{broadcasting:{...session,authoritative:false},watching:null}}]){
+  await act(async()=>root.render(<SharedInvocationControls shared={next}/>));expect(stop.disabled).toBe(true);
+ }
+ await act(async()=>root.render(<SharedInvocationControls shared={{...shared,state:{broadcasting:null,watching:null}}}/>));
+ expect(host.querySelector('.shared-broadcast-dot')).toBeNull();expect(stop.textContent).toBe('Diffuser');expect(stop.disabled).toBe(false);
+ await act(async()=>stop.click());expect(shared.start).toHaveBeenCalledOnce();
+});
 it.each([0,1,7])('shows real %i viewer count and opens the exact public profile',async total=>{
  const shared=controller(total),profile=vi.fn();await mount(<SharedInvocationAudience shared={shared} session={session} onProfile={profile}/>);
  const button=document.querySelector<HTMLButtonElement>('.shared-spectator-count')!;expect(button.textContent).toContain(`${total} ${total===1?'spectateur':'spectateurs'}`);

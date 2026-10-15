@@ -18,7 +18,7 @@ export default function SharedInvocationControls({ shared, presenting=false }: {
     if(!own&&!watching&&presenting&&!shared.personalError)return null;
     return <div data-tutorial-anchor="invocation-shared" className="shared-invocation-controls">
   <div className="shared-invocation-buttons">
-   {(own||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!own && !own.authoritative} aria-pressed={!!own} title={own ? undefined : 'Votre scène, résultats, pity, garantie et Capture seront visibles aux joueurs connectés.'} onClick={() => void (own ? shared.stop() : shared.start())}>{own ? 'Arrêter la diffusion' : 'Diffuser'}</button>}
+   {(own||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${own ? ' is-live' : ''}`} disabled={shared.pending || !!own && !own.authoritative} aria-pressed={!!own} title={own ? undefined : 'Votre scène, résultats, pity, garantie et Capture seront visibles aux joueurs connectés.'} onClick={() => void (own ? shared.stop() : shared.start())}>{own && <span className="shared-broadcast-dot" aria-hidden="true" />}{own ? 'Arrêter la diffusion' : 'Diffuser'}</button>}
    {(watching||showIdle)&&<button type="button" className={`banner-change-button shared-invocation-button${watching ? ' is-live' : ''}`} disabled={shared.pending} onClick={() => watching ? void shared.watch(null) : setOpen(true)}>{watching ? 'Arrêter' : 'Voir'}</button>}
   </div>
   {showIdle && <small>Diffusez vos invocations, ou visionnez celles des autres joueurs</small>}
