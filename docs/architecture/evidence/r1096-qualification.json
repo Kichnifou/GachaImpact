@@ -11,7 +11,7 @@
     "betaInProgress": true,
     "R1096Validated": false
   },
-  "status": "technically-delivered-final-documentation-review-pending",
+  "status": "technically-delivered-owner-recipe-pending",
   "subLots": {
     "indicator": "daa21d2d - independent UI correction",
     "twitch": "classifier and authenticated return/onboarding; no new OAuth or DDL"
@@ -110,7 +110,8 @@
           "other broadcasting tab"
         ],
         "result": "PASS; actual buttons/hooks, dot/text containment and no runtime errors"
-      }
+      },
+      "privateQaProcesses": "Own Playwright browsers closed and server5276 stopped by reviewer; no listener remaining"
     },
     "readOnlyPrismaStatus": "82 migrations; schema up to date; no new migration"
   },
@@ -576,17 +577,21 @@
       },
       {
         "path": "local-data/r1096-visual/review-published.json",
-        "sha256": "760d6e7ccf726a84484bd75583b269b4be4d44178e89e8b1c496e07e6e1d5dfc"
+        "sha256": "c255dafd00bacee51641ea7f122ec86ff9d4446eca03df33b0367dd1b93a2482"
       },
       {
         "path": "local-data/r1096-visual/review-published-test-delta.json",
-        "sha256": "5b4abfa25d582c53d5598fba48e2fff34fe75f6a067bb4c6fbcbc15c87654b45"
+        "sha256": "63439499ef8acf726161bd6297e7bf30e9e69806fb6ad8608627fc759fb38017"
+      },
+      {
+        "path": "local-data/r1096-visual/review-gameshell-complement.json",
+        "sha256": "beee069409d130f7daefb06feabb4b3856245ddd41666114bbe6200870c3b1c8"
       }
     ]
   },
   "finalDocumentClosure": {
     "scope": "Only Master and qualification records; runtime unchanged from6e062765",
     "selfShaNotEmbedded": true,
-    "remainingGate": "Independent published doc-delta review, strict FF, exact final SHA deploys and postflight"
+    "postPublicationChecks": "Independent published doc-delta review, strict FF, exact final SHA deploys and postflight"
   }
 }
