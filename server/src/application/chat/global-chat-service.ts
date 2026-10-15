@@ -1,4 +1,5 @@
 import { resolveMentionTargets } from './mention-targets.js';
+import { retentionVisiblePage, retentionVisibilitySql } from '../retention/retention-visible-history.js';
 import { presentedName } from '../player/presentation-name.js';
 import { progressPlayerMessage } from './message-progression.js';
 import { xpRewardPresentation } from './xp-reward-presentation.js';
@@ -454,7 +455,9 @@ export class GlobalChatService {
         const date = new Date(cursor.createdAt);
         if (Number.isNaN(date.getTime()) || !/^[0-9a-f-]{36}$/i.test(cursor.id)) throw invalid('Curseur invalide.');
       }
-      const window = await tx.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+      const visible=await retentionVisiblePage(tx,'chat',Prisma.sql`r.generation=${generation}`,Prisma.sql`r.submission_order DESC`,0,PLAYER_HISTORY_LIMIT,this.clock.now(),false);
+      const window = await tx.globalChatMessage.findMany({ where: { generation, id:{in:visible.ids} }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+      await this.hideExpiredReplies(tx,window);
       const offset = cursor ? window.findIndex(row => row.id === cursor.id && row.createdAt.toISOString() === cursor.createdAt) + 1 : 0;
       if (cursor && offset === 0) {
         const stale = await tx.globalChatMessage.findUnique({ where: { id: cursor.id }, select: { generation: true, createdAt: true } });
@@ -472,7 +475,9 @@ export class GlobalChatService {
     if (!Number.isInteger(clientGeneration) || clientGeneration < 0 || knownIds.length > PLAYER_HISTORY_LIMIT || knownIds.some(id => !/^[0-9a-f-]{36}$/i.test(id))) throw invalid('Mise à jour Chat invalide.');
     const generation = await this.generation();
     if (generation !== clientGeneration) return { generation, reset: true, messages: [], changes: [] };
-    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+    const retained=await retentionVisiblePage(this.database,'chat',Prisma.sql`r.generation=${generation}`,Prisma.sql`r.submission_order DESC`,0,PLAYER_HISTORY_LIMIT,this.clock.now(),false);
+    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation,id:{in:retained.ids} }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+    await this.hideExpiredReplies(this.database,visibleWindow);
     const visibleIds = new Set(visibleWindow.map(row => row.id));
     const visibleKnownIds = knownIds.filter(id => visibleIds.has(id));
     let anchor: { submissionOrder: bigint; generation: number } | null = null;
@@ -490,6 +495,7 @@ export class GlobalChatService {
         include: messageInclude, orderBy: { submissionOrder: 'asc' }, take: PLAYER_HISTORY_LIMIT,
       }) : Promise.resolve([]),
     ]);
+    await this.hideExpiredReplies(this.database, changes);
     return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)), ...(messages.length ? { visibleMessageIds: visibleWindow.map(row => row.id) } : {}) };
   }
 
@@ -563,11 +569,19 @@ export class GlobalChatService {
     // Without a read state, every persisted message is unread until an explicit markRead.
     const rows = await this.database.$queryRaw<{ count: number; generation: number }[]>`SELECT count(*)::integer AS count, visible_window.generation FROM (
         SELECT m.id, m.submission_order, m.generation FROM global_chat_state g JOIN global_chat_messages m ON m.generation = g.generation
-        WHERE g.id = 1 ORDER BY m.submission_order DESC LIMIT ${PLAYER_HISTORY_LIMIT}
+        WHERE g.id = 1 AND EXISTS(SELECT 1 FROM global_chat_messages r WHERE r.id=m.id AND ${retentionVisibilitySql('chat',this.clock.now())}) ORDER BY m.submission_order DESC LIMIT ${PLAYER_HISTORY_LIMIT}
       ) visible_window LEFT JOIN global_chat_read_states s ON s.player_id = ${player.id}::uuid
       WHERE s.player_id IS NULL OR s.generation < visible_window.generation OR visible_window.submission_order > s.last_read_submission_order
       GROUP BY visible_window.generation`;
     return { unreadCount: rows[0]?.count ?? 0, generation: rows[0]?.generation ?? await this.generation() };
+  }
+
+  private async hideExpiredReplies(db:PrismaClient|Prisma.TransactionClient,rows:Prisma.GlobalChatMessageGetPayload<{include:typeof messageInclude}>[]) {
+    const ids=[...new Set(rows.flatMap(row=>row.replyToMessageId?[row.replyToMessageId]:[]))];
+    if(!ids.length) return;
+    const parents=await db.$queryRaw<{id:string}[]>(Prisma.sql`SELECT r.id FROM global_chat_messages r WHERE r.id IN (${Prisma.join(ids.map(id=>Prisma.sql`${id}::uuid`))}) AND ${retentionVisibilitySql('chat',this.clock.now())}`);
+    const visible=new Set(parents.map(row=>row.id));
+    for(const row of rows) if(row.replyToMessageId&&!visible.has(row.replyToMessageId)) row.replyToMessage=null;
   }
 
   async markRead(identity: AuthenticatedIdentity, messageId: string) {

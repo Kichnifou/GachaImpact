@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## R1099 — finalisation de la maintenance autorisée
+
+Après livraison A/B1, le propriétaire autorise B2 dans une mission complète avec qualification par domaine, reviews indépendantes GitHub et activation sûre. [Périmètre et blocages techniques](../architecture/r1099-retention-execution.md), état et prochaine action exclusivement au Master. Aucun changement d'ordre V1 ni réouverture d'un sujet abandonné ; les limites de restauration interdisent toute suppression non qualifiée.
+
 ## R1097 — maintenance autorisée par lots, sans réouverture V1
 
 Le nouveau contrat propriétaire de rétention supersède son ancien déclenchement conditionnel. Lot A : nouvelles écritures compatibles et qualification ; lot B moteur/planification sécurisée seulement après examen du résultat A, traitements des anciennes données ensuite qualifiés par domaine. Aucun scheduler/purge général présumé livré. Durées dans [la source canonique](../specifications/data-retention-v1.md), état et prochaine action uniquement au Master ; clôtures et abandons V1 conservés.

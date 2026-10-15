@@ -130,7 +130,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const twitchGiveawayManager = new TwitchGiveawayManager(database, config, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
   const clock = new SystemClock();
-  const retentionScheduler = new RetentionScheduler(new RetentionEngine(database, config.retentionMode ?? 'DISABLED', clock), clock);
+  const retentionScheduler = new RetentionScheduler(new RetentionEngine(database, config.retentionMode ?? 'DISABLED', clock,undefined,undefined,config.retentionExecuteDomains??[]), clock);
   const giveawayService = new GiveawayService(database, twitchGiveawayManager, () => clock.now());
   twitchGiveawayManager.attachCore(giveawayService);
   const twitchGiveawayConsumer = new TwitchGiveawayConsumer(database, giveawayService, twitchGiveawayManager);

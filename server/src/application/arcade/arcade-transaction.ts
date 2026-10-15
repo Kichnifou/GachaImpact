@@ -1,5 +1,6 @@
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
+import { expandDetail } from '../retention/lossless-detail-storage.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
 import { elementKeys, type ElementKey } from '../../domain/economy/resources.js';
 import type { Clock } from '../../domain/time/business-date.js';
@@ -22,7 +23,7 @@ export async function arcadeTransaction<T extends { operationId: string; already
         const old = await tx.arcadeReceipt.findUnique({ where: { playerId_idempotencyKey: { playerId: actorId, idempotencyKey: key } } });
         if (old) {
           if (old.fingerprint !== fingerprint) throw arcadeConflict('Cette clé appartient à une autre action.', 'ARCADE_IDEMPOTENCY_CONFLICT');
-          return { ...(old.response as unknown as T), alreadyProcessed: true };
+          return { ...(expandDetail(old.response) as unknown as T), alreadyProcessed: true };
         }
         const actor = await tx.player.findUniqueOrThrow({ where: { id: actorId } });
         if (actor.status !== 'ACTIVE' || !elementKeys.includes(actor.elementKey as ElementKey)) throw new AppError('Profil indisponible.', 403, 'ARCADE_UNAVAILABLE');

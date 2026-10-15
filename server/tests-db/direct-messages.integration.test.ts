@@ -24,6 +24,16 @@ beforeAll(async () => fixture.setup(), 60_000);
 afterAll(async () => fixture.cleanup(), 60_000);
 
 describe('Direct-message foundations on isolated PostgreSQL', () => {
+  it('excludes expired messages from unread badges and ordinary pages while preserving their proofs', async () => {
+    const sender=await player('Retention sender'),recipient=await player('Retention recipient');
+    const sent=await service.initiate(as(sender),recipient,'Original retained proof',randomUUID());
+    expect((await service.unread(as(recipient))).unreadCount).toBe(1);
+    await db.directMessage.update({where:{id:sent.messageId},data:{createdAt:new Date('2020-01-01T12:00:00Z')}});
+    expect((await service.unread(as(recipient))).unreadCount).toBe(0);
+    expect((await service.list(as(recipient))).conversations.find(row=>row.id===sent.conversationId)?.unreadCount).toBe(0);
+    expect((await service.messages(as(recipient),sent.conversationId)).messages).toEqual([]);
+    expect((await db.directMessage.findUniqueOrThrow({where:{id:sent.messageId}})).content).toBe('Original retained proof');
+  });
   it('does not create a conversation or request toward a staged recovery profile', async () => {
     const sender = await player('Recovery sender'), recipient = await player('Recovery recipient');
     await db.player.update({ where: { id: recipient }, data: { legacyRecovery: { version: 1, operationId: randomUUID(), importId: randomUUID(),

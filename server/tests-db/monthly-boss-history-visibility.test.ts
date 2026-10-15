@@ -109,9 +109,9 @@ async function readPages(archiveStatus: 'AVAILABLE' | 'NONE' | 'UNAVAILABLE', to
 describe('owner-approved native Boss history visibility in PostgreSQL', () => {
   it('excludes only the exact failed instance before combined count and pagination with verified archives', async () => {
     await database.migrationBatch.update({ where: { id: proof.projected.id }, data: { mode: 'CUTOVER' } });
-    const entries = await readPages('AVAILABLE', 15);
+    const entries = await readPages('AVAILABLE', 14);
     expect(entries.some(row => row.id === hiddenId)).toBe(false);
-    expect(entries.filter(row => row.origin === 'NATIVE').map(row => row.id)).toEqual([...ordinary].reverse().map(row => row.id));
+    expect(entries.filter(row => row.origin === 'NATIVE').map(row => row.id)).toEqual(ordinary.filter(row=>row.monthStart>=new Date('2025-10-01')).reverse().map(row => row.id));
     expect(entries.filter(row => row.origin === 'TWITCH_ARCHIVE').map(row => row.monthStart)).toEqual(['2026-10-01', '2026-09-01', '2026-08-01']);
     expect(entries.find(row => row.origin === 'TWITCH_ARCHIVE' && row.monthStart === '2026-09-01')).toMatchObject({
       status: 'DEFEATED', contributions: { total: 9 },
@@ -119,8 +119,8 @@ describe('owner-approved native Boss history visibility in PostgreSQL', () => {
   });
 
   it('applies the same exact exclusion to native count and full pages when archives are absent', async () => {
-    const entries = await readPages('NONE', 12);
-    expect(entries.map(row => row.id)).toEqual([...ordinary].reverse().map(row => row.id));
+    const entries = await readPages('NONE', 11);
+    expect(entries.map(row => row.id)).toEqual(ordinary.filter(row=>row.monthStart>=new Date('2025-10-01')).reverse().map(row => row.id));
     expect(entries.find(row => row.monthStart === '2026-07-01')).toMatchObject({ origin: 'NATIVE', status: 'FAILED' });
   });
 
@@ -128,8 +128,8 @@ describe('owner-approved native Boss history visibility in PostgreSQL', () => {
     await database.migrationBatch.update({ where: { id: proof.projected.id }, data: { mode: 'CUTOVER',
       summary: { kind: 'BOSS_HISTORY', state: 'APPLIED', sourceKey: proof.projected.sourceKey, facts: { bindings: 'invalid' } },
     } });
-    const entries = await readPages('UNAVAILABLE', 12);
-    expect(entries.map(row => row.id)).toEqual([...ordinary].reverse().map(row => row.id));
+    const entries = await readPages('UNAVAILABLE', 11);
+    expect(entries.map(row => row.id)).toEqual(ordinary.filter(row=>row.monthStart>=new Date('2025-10-01')).reverse().map(row => row.id));
   });
 
   it('keeps another failed instance ID in September visible', async () => {
@@ -137,7 +137,7 @@ describe('owner-approved native Boss history visibility in PostgreSQL', () => {
     await database.monthlyBoss.create({ data: { id: alternateId, monthStart: hiddenMonth, nameSnapshot: 'Other native September',
       baseHp: 1_500_000n, hpVariationPercent: 0, maxHp: 1_500_000n, currentHp: 1_269_000n, resistanceElementKey: 'anemo',
     } });
-    const entries = await readPages('NONE', 13);
+    const entries = await readPages('NONE', 12);
     expect(entries[0]).toMatchObject({ id: alternateId, monthStart: '2026-09-01', status: 'FAILED' });
   });
 
@@ -145,13 +145,14 @@ describe('owner-approved native Boss history visibility in PostgreSQL', () => {
     await database.monthlyBoss.update({ where: { id: hiddenId }, data: { currentHp: 0n,
       defeatedAt: new Date('2026-09-30T13:00:00Z'), finalBlowPlayerId: playerId,
     } });
-    const entries = await readPages('NONE', 13);
+    const entries = await readPages('NONE', 12);
     expect(entries[0]).toMatchObject({ id: hiddenId, monthStart: '2026-09-01', status: 'DEFEATED' });
   });
 
-  it('keeps the same failed instance ID visible when its month differs', async () => {
+  it('keeps the proof but hides an expired instance when its month differs', async () => {
     await database.monthlyBoss.update({ where: { id: hiddenId }, data: { monthStart: new Date('2025-08-01') } });
-    const entries = await readPages('NONE', 13);
-    expect(entries.at(-1)).toMatchObject({ id: hiddenId, monthStart: '2025-08-01', status: 'FAILED' });
+    const entries = await readPages('NONE', 11);
+    expect(entries.some(row=>row.id===hiddenId)).toBe(false);
+    expect((await database.monthlyBoss.findUniqueOrThrow({where:{id:hiddenId}})).monthStart).toEqual(new Date('2025-08-01'));
   });
 });

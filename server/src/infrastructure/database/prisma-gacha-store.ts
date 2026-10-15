@@ -1,4 +1,6 @@
+import { expandDetail } from '../../application/retention/lossless-detail-storage.js';
 import { sharedBanner, sharedState } from '../../application/gacha/shared-invocation-projection.js';
+import { retentionVisiblePage } from '../../application/retention/retention-visible-history.js';
 import { assertSharedStandaloneAuthority } from './shared-invocation-guard.js';
 import { assertCommandTargets, commandBannerId } from '../../application/player/player-command-execution.js';
 import { bannerVoteContributions } from '../../application/gacha/banner-vote-contributions.js';
@@ -119,22 +121,23 @@ export class PrismaGachaStore implements GachaStore {
   }
 
   public async getHistory(playerId: string, page: number): Promise<GachaHistoryPage> {
-    const totalResults = await this.database.pullResult.count({ where: { pullOperation: { playerId } } });
+    const visible = await retentionVisiblePage(this.database,'gacha',Prisma.sql`EXISTS(SELECT 1 FROM pull_operations p WHERE p.id=r.pull_operation_id AND p.player_id=${playerId}::uuid)`,Prisma.sql`(SELECT p.created_at FROM pull_operations p WHERE p.id=r.pull_operation_id) DESC,r.pull_operation_id DESC,r.result_index DESC`,(page-1)*GACHA_HISTORY_PAGE_SIZE,GACHA_HISTORY_PAGE_SIZE,new Date());
+    const totalResults = visible.total;
     const totalPages = Math.ceil(totalResults / GACHA_HISTORY_PAGE_SIZE);
     const rows = await this.database.pullResult.findMany({
-      where: { pullOperation: { playerId } },
+      where: { pullOperation: { playerId }, id: { in: visible.ids } },
       orderBy: [
         { pullOperation: { createdAt: 'desc' } },
         { pullOperationId: 'desc' },
         { resultIndex: 'desc' },
       ],
-      skip: (page - 1) * GACHA_HISTORY_PAGE_SIZE,
       take: GACHA_HISTORY_PAGE_SIZE,
       include: {
         character: { select: characterSelection },
         pullOperation: { select: { id: true, pullCount: true, createdAt: true } },
       },
     });
+    for (const row of rows) row.snapshot=expandDetail(row.snapshot);
     return {
       page,
       pageSize: GACHA_HISTORY_PAGE_SIZE,
@@ -455,6 +458,7 @@ export class PrismaGachaStore implements GachaStore {
     } });
     if (!row) return null;
     if (row.pullCount !== expectedCount) throw new BusinessError('GACHA_IDEMPOTENCY_CONFLICT', 'Cette clé d’idempotence correspond à une autre quantité.');
+    for (const result of row.results) result.snapshot=expandDetail(result.snapshot);
     const currentPlayerState = await client.playerGachaState.findUniqueOrThrow({ where: { playerId: row.playerId }, select: stateSelection });
     const playerState = readPersistedPlayerState(row.results.at(-1)?.snapshot ?? null, row.targetCharacterId) ?? currentPlayerState;
     return {

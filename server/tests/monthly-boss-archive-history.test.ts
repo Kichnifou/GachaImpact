@@ -93,10 +93,10 @@ describe('read-only Twitch Boss archive projection', () => {
     expect(native.currentHp).toBe(1000n);
   });
 
-  it('paginates the combined history through archive-only, mixed and native-only pages', async () => {
+  it('paginates retained combined history and excludes expired native months without deleting proofs', async () => {
     const f = fixture([1]), first = f.projected.bindings[0]!.instances[0]!;
     f.projected.bindings[0]!.instances = Array.from({ length: 12 }, (_, index) => {
-      const month = `2025-${String(index + 1).padStart(2, '0')}`, createdAt = `${month}-01T00:00:00.000Z`, defeated = index < 11;
+      const month = new Date(Date.UTC(2025,9+index,1)).toISOString().slice(0,7), createdAt = `${month}-01T00:00:00.000Z`, defeated = index < 11;
       return { ...structuredClone(first), month, createdAt, name: `Archive ${month}`,
         sourceBossKey: createHash('sha256').update(JSON.stringify(['streamerbot-boss-v1', month, createdAt])).digest('hex'),
         maxHp: defeated ? '100' : '300', currentHp: defeated ? '0' : '200', defeated,
@@ -104,18 +104,20 @@ describe('read-only Twitch Boss archive projection', () => {
         contribution: { ...first.contribution!, lastAttackDate: `${month}-06`, finalBlow: defeated, reward: { ...first.contribution!.reward, distributed: defeated } },
       };
     });
-    const natives = Array.from({ length: 15 }, (_, index) => ({ id: `native-${index}`, monthStart: new Date(Date.UTC(2024, 11 - index, 1)),
+    const natives = Array.from({ length: 15 }, (_, index) => ({ id: `native-${index}`, monthStart: new Date(Date.UTC(2026, 8 - index, 1)),
       nameSnapshot: `Native ${index}`, baseHp: 1000n, maxHp: 1000n, currentHp: 500n, resistanceElementKey: 'pyro', defeatedAt: null, finalBlowPlayer: null }));
-    const database = { ...f.database, monthlyBoss: { findMany: vi.fn(async (input: { select?: unknown; where: { id?: { in: string[] } } }) =>
-      input.select ? natives.map(({ id, monthStart }) => ({ id, monthStart })) : natives.filter(row => input.where.id!.in.includes(row.id))) },
+    const database = { ...f.database, monthlyBoss: { findMany: vi.fn(async (input: { select?: unknown; where: { id?: { in: string[] }; monthStart?:{gte:Date;lt:Date} } }) =>
+      input.select ? natives.filter(row=>!input.where.monthStart||(row.monthStart>=input.where.monthStart.gte&&row.monthStart<input.where.monthStart.lt)).map(({ id, monthStart }) => ({ id, monthStart })) : natives.filter(row => input.where.id!.in.includes(row.id))) },
       playerBossParticipation: { findMany: vi.fn(async () => []) }, bossAttack: { findMany: vi.fn(async () => []) } };
     const service = new MonthlyBossService({} as never, database as never, { now: () => new Date('2026-10-09T15:00:00Z') }, { nextInt: () => 0 });
     const pages = await Promise.all([1, 2, 3].map(page => service.getHistory(page)));
-    expect(pages.map(page => page.bosses.length)).toEqual([10, 10, 7]);
-    expect(pages[0]!.bosses.every(row => row.origin === 'TWITCH_ARCHIVE')).toBe(true);
-    expect(pages[1]!.bosses.map(row => row.origin).slice(0, 3)).toEqual(['TWITCH_ARCHIVE', 'TWITCH_ARCHIVE', 'NATIVE']);
-    expect(pages[2]!.bosses.every(row => row.origin === 'NATIVE')).toBe(true);
-    expect(new Set(pages.flatMap(page => page.bosses.map(row => row.id))).size).toBe(27);
+    expect(pages.map(page => page.bosses.length)).toEqual([10, 10, 4]);
+    expect(pages.every(page=>page.total===24)).toBe(true);
+    expect(pages.flatMap(page=>page.bosses).every(row=>row.monthStart>='2025-10-01')).toBe(true);
+    expect(pages[0]!.bosses.some(row=>row.origin==='TWITCH_ARCHIVE')).toBe(true);
+    expect(pages[0]!.bosses.some(row=>row.origin==='NATIVE')).toBe(true);
+    expect(new Set(pages.flatMap(page => page.bosses.map(row => row.id))).size).toBe(24);
+    expect(natives).toHaveLength(15);expect(f.projected.bindings[0]!.instances).toHaveLength(12);
   });
 
   it('keeps native history accessible with an explicit archive warning when approved proof is malformed', async () => {

@@ -351,7 +351,8 @@ export class MonthlyBossService {
 
   public async getRanking(bossId: string) {
     const boss = await this.database.monthlyBoss.findUnique({ where: { id: bossId }, select: { id: true, nameSnapshot: true, monthStart: true, defeatedAt: true } });
-    if (!boss) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Ce Boss n’existe plus.');
+    const oldestMonth=businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));oldestMonth.setUTCFullYear(oldestMonth.getUTCFullYear()-1);
+    if (!boss||boss.monthStart<oldestMonth) throw new BusinessError('BOSS_INSTANCE_CHANGED', 'Ce Boss n’existe plus.');
     return { boss: { ...boss, monthStart: databaseDateToBusinessDate(boss.monthStart) }, ranking: await readRanking(this.database, bossId) };
   }
 
@@ -360,12 +361,13 @@ export class MonthlyBossService {
     const currentMonth = businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));
     // R1063 owner request (2026-10-09): hide only this unsuccessful September
     // instance from player-facing history. Keep its combat facts and scaling.
-    const nativeHistoryWhere: Prisma.MonthlyBossWhereInput = { monthStart: { lt: currentMonth }, NOT: {
+    const oldestMonth=new Date(currentMonth);oldestMonth.setUTCFullYear(oldestMonth.getUTCFullYear()-1);
+    const nativeHistoryWhere: Prisma.MonthlyBossWhereInput = { monthStart: { gte:oldestMonth,lt: currentMonth }, NOT: {
       id: '9e9caa8e-f94c-457c-ad0d-af83e69ad76e', monthStart: businessDateToDatabaseDate('2026-09-01'), defeatedAt: null,
     } };
     let archives: TwitchBossHistoryEntry[];
     let archiveStatus: 'AVAILABLE' | 'NONE' | 'UNAVAILABLE';
-    try { archives = await readTwitchBossHistory(this.database); archiveStatus = archives.length ? 'AVAILABLE' : 'NONE'; }
+    try { archives = (await readTwitchBossHistory(this.database)).filter(row=>row.monthStart>=databaseDateToBusinessDate(oldestMonth)); archiveStatus = archives.length ? 'AVAILABLE' : 'NONE'; }
     catch (error) {
       if (!(error instanceof BossArchiveUnavailableError)) throw error;
       archives = []; archiveStatus = 'UNAVAILABLE';
@@ -416,6 +418,9 @@ export class MonthlyBossService {
   }
 
   public async readArchiveContributions(archiveId: string, page: number) {
+    const oldestMonth=businessDateToDatabaseDate(getBusinessMonth(commandNow(this.clock)));oldestMonth.setUTCFullYear(oldestMonth.getUTCFullYear()-1);
+    const archive=(await readTwitchBossHistory(this.database)).find(row=>row.id===archiveId&&row.monthStart>=databaseDateToBusinessDate(oldestMonth));
+    if(!archive) throw new BusinessError('BOSS_INSTANCE_CHANGED','Cette archive de Boss est introuvable.');
     return readTwitchBossContributions(this.database, archiveId, page);
   }
 

@@ -1,4 +1,5 @@
 import { presentedName } from '../player/presentation-name.js';
+import { retentionVisiblePage, retentionVisibilitySql } from '../retention/retention-visible-history.js';
 import { PresenceService, type PresenceStatus } from '../social/presence-service.js';
 import { Prisma, type PrismaClient, type PrivacyLevel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
@@ -362,8 +363,15 @@ export class DirectMessageService {
     const unreadRows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
       FROM direct_conversation_participants p JOIN direct_messages m ON m.conversation_id = p.conversation_id AND m.author_player_id <> p.player_id
       WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_submission_order IS NULL OR m.submission_order > p.last_read_submission_order)
+        AND EXISTS(SELECT 1 FROM direct_messages r WHERE r.id=m.id AND ${retentionVisibilitySql('direct_messages',this.clock.now())})
       GROUP BY p.conversation_id`;
     const unreadByConversation = new Map(unreadRows.map(row => [row.conversation_id, row.unread_count]));
+    if(rows.length) {
+      const latest=await this.database.$queryRaw<{id:string;conversation_id:string}[]>(Prisma.sql`SELECT DISTINCT ON(r.conversation_id) r.id,r.conversation_id FROM direct_messages r WHERE r.conversation_id IN (${Prisma.join(rows.map(row=>Prisma.sql`${row.id}::uuid`))}) AND ${retentionVisibilitySql('direct_messages',this.clock.now())} ORDER BY r.conversation_id,r.submission_order DESC`);
+      const messages=latest.length?await this.retainedMessages(Prisma.sql`r.id IN (${Prisma.join(latest.map(row=>Prisma.sql`${row.id}::uuid`))})`,'desc',Math.min(latest.length,1000)):[];
+      const byConversation=new Map(messages.map(message=>[message.conversationId,message]));
+      for(const row of rows) {const message=byConversation.get(row.id);row.messages=message?[message]:[];}
+    }
     const presence = await new PresenceService(this.database, this.clock).visibleFor(actor.id, rows.map(row => this.other(row, actor.id)));
     const conversations = [];
     for (const row of rows) {
@@ -411,32 +419,40 @@ export class DirectMessageService {
     try { return BigInt(value); } catch { throw invalid('Curseur historique invalide.'); }
   }
 
+  private async retainedMessages(where:Prisma.Sql,order:'asc'|'desc',take:number) {
+    const page=await retentionVisiblePage(this.database,'direct_messages',where,Prisma.raw(`r.submission_order ${order}`),0,take,this.clock.now(),false);
+    const rows=await this.database.directMessage.findMany({where:{id:{in:page.ids}},orderBy:{submissionOrder:order},take,include:directMessageInclude});
+    const parentIds=[...new Set(rows.flatMap(row=>row.replyToMessageId?[row.replyToMessageId]:[]))];
+    const parents=parentIds.length?await this.database.$queryRaw<{id:string}[]>(Prisma.sql`SELECT r.id FROM direct_messages r WHERE r.id IN (${Prisma.join(parentIds.map(id=>Prisma.sql`${id}::uuid`))}) AND ${retentionVisibilitySql('direct_messages',this.clock.now())}`):[];
+    const retained=new Set(parents.map(row=>row.id));
+    return rows.map(row=>row.replyToMessageId&&!retained.has(row.replyToMessageId)&&row.replyToMessage?{...row,replyToMessage:{...row.replyToMessage,content:null}}:row);
+  }
+
   async history(identity: AuthenticatedIdentity, conversationId: string, limit = 50, cursor: DirectHistoryCursor = {}) {
     const actor = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
     const modes = [cursor.beforeOrder, cursor.afterOrder, cursor.aroundOrder].filter(value => value !== undefined);
     if (modes.length > 1) throw invalid('Curseurs historiques incompatibles.');
-    const include = directMessageInclude;
     let rows: Awaited<ReturnType<typeof this.database.directMessage.findMany>>, hasOlder = false, hasNewer = false;
     if (cursor.aroundOrder) {
       const order = this.historyOrder(cursor.aroundOrder), olderSize = Math.floor((limit - 1) / 2), newerSize = limit - olderSize - 1;
       const [left, right] = await Promise.all([
-        this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { lte: order } }, orderBy: { submissionOrder: 'desc' }, take: olderSize + 2, include }),
-        this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { gt: order } }, orderBy: { submissionOrder: 'asc' }, take: newerSize + 1, include }),
+        this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.submission_order<=${order}`, 'desc', olderSize+2),
+        this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.submission_order>${order}`, 'asc', newerSize+1),
       ]);
       hasOlder = left.length > olderSize + 1; hasNewer = right.length > newerSize;
       rows = [...left.slice(0, olderSize + 1).reverse(), ...right.slice(0, newerSize)];
     } else if (cursor.beforeOrder) {
       const order = this.historyOrder(cursor.beforeOrder);
-      const page = await this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { lt: order } }, orderBy: { submissionOrder: 'desc' }, take: limit + 1, include });
+      const page = await this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.submission_order<${order}`, 'desc', limit+1);
       hasOlder = page.length > limit; hasNewer = true; rows = page.slice(0, limit).reverse();
     } else if (cursor.afterOrder) {
       const order = this.historyOrder(cursor.afterOrder);
-      const page = await this.database.directMessage.findMany({ where: { conversationId, submissionOrder: { gt: order } }, orderBy: { submissionOrder: 'asc' }, take: limit + 1, include });
+      const page = await this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.submission_order>${order}`, 'asc', limit+1);
       hasOlder = true; hasNewer = page.length > limit; rows = page.slice(0, limit);
     } else {
-      const page = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: limit + 1, include });
+      const page = await this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid`, 'desc', limit+1);
       hasOlder = page.length > limit; rows = page.slice(0, limit).reverse();
     }
     const context = await this.historyContext(conversationId, actor.id, this.other(conversation, actor.id));
@@ -453,10 +469,7 @@ export class DirectMessageService {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
     const before = cursor ? this.historyOrder(cursor) : null;
-    const rows = await this.database.directMessage.findMany({
-      where: { conversationId, deletedAt: null, content: { not: null, contains: query, mode: 'insensitive' }, ...(before ? { submissionOrder: { lt: before } } : {}) },
-      orderBy: { submissionOrder: 'desc' }, take: limit + 1, include: directMessageInclude,
-    });
+    const rows = await this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.deleted_at IS NULL AND r.content IS NOT NULL AND r.content ILIKE ${'%'+query+'%'} ${before?Prisma.sql`AND r.submission_order<${before}`:Prisma.empty}`,'desc',limit+1);
     const page = rows.slice(0, limit), context = await this.historyContext(conversationId, actor.id, this.other(conversation, actor.id));
     return { results: page.map(context.project), nextCursor: rows.length > limit ? page.at(-1)?.submissionOrder.toString() ?? null : null };
   }
@@ -465,8 +478,11 @@ export class DirectMessageService {
     const actor = await this.actor(identity), at = new Date(rawAt);
     if (Number.isNaN(at.getTime())) throw invalid('Date historique invalide.');
     await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
-    const selected = await this.database.directMessage.findFirst({ where: { conversationId, createdAt: { gte: at } }, orderBy: [{ createdAt: 'asc' }, { submissionOrder: 'asc' }], select: { id: true, submissionOrder: true, createdAt: true } })
-      ?? await this.database.directMessage.findFirst({ where: { conversationId, createdAt: { lt: at } }, orderBy: [{ createdAt: 'desc' }, { submissionOrder: 'desc' }], select: { id: true, submissionOrder: true, createdAt: true } });
+    const forward=await retentionVisiblePage(this.database,'direct_messages',Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.created_at>=${at}`,Prisma.sql`r.created_at ASC,r.submission_order ASC`,0,1,this.clock.now(),false);
+    const selected=forward.ids.length?await this.database.directMessage.findUnique({where:{id:forward.ids[0]!},select:{id:true,submissionOrder:true,createdAt:true}}):await (async()=>{
+      const backward=await retentionVisiblePage(this.database,'direct_messages',Prisma.sql`r.conversation_id=${conversationId}::uuid AND r.created_at<${at}`,Prisma.sql`r.created_at DESC,r.submission_order DESC`,0,1,this.clock.now(),false);
+      return backward.ids.length?this.database.directMessage.findUnique({where:{id:backward.ids[0]!},select:{id:true,submissionOrder:true,createdAt:true}}):null;
+    })();
     return { anchor: selected ? { messageId: selected.id, submissionOrder: selected.submissionOrder.toString(), createdAt: selected.createdAt.toISOString() } : null };
   }
 
@@ -474,7 +490,7 @@ export class DirectMessageService {
     const actor = await this.actor(identity);
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw invalid('Taille de page invalide.');
     const conversation = await this.requireConversation(this.database as unknown as Prisma.TransactionClient, conversationId, actor.id);
-    const recent = await this.database.directMessage.findMany({ where: { conversationId }, orderBy: { submissionOrder: 'desc' }, take: 500, include: directMessageInclude });
+    const recent = await this.retainedMessages(Prisma.sql`r.conversation_id=${conversationId}::uuid`, 'desc', 500);
     let offset = 0;
     if (cursor) {
       if (!validUuid(cursor.id)) throw invalid('Curseur invalide.');
@@ -516,6 +532,7 @@ export class DirectMessageService {
     const rows = await this.database.$queryRaw<{ conversation_id: string; unread_count: number }[]>`SELECT p.conversation_id, count(m.id)::integer AS unread_count
       FROM direct_conversation_participants p JOIN direct_messages m ON m.conversation_id = p.conversation_id AND m.author_player_id <> p.player_id
       WHERE p.player_id = ${actor.id}::uuid AND (p.last_read_submission_order IS NULL OR m.submission_order > p.last_read_submission_order)
+      AND EXISTS(SELECT 1 FROM direct_messages r WHERE r.id=m.id AND ${retentionVisibilitySql('direct_messages',this.clock.now())})
       GROUP BY p.conversation_id`;
     return { unreadCount: rows.reduce((sum, row) => sum + row.unread_count, 0), conversations: rows.map(row => ({ conversationId: row.conversation_id, unreadCount: row.unread_count })) };
   }

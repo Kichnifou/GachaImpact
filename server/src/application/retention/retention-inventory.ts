@@ -1,7 +1,8 @@
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import { expirationSql, retentionPolicies, type ExclusionReason, type RetentionDomain } from './retention-policy.js';
 
-type Rule = { domain: RetentionDomain; table: string; date: string; order?: string; filter?: string; terminal?: string; protection: string; reason: ExclusionReason; nonTerminalReason?:ExclusionReason; operation: string };
+export type Rule = { domain: RetentionDomain; table: string; date: string; order?: string; filter?: string; terminal?: string; protection: string; reason: ExclusionReason; nonTerminalReason?:ExclusionReason; operation: string };
+export type ScanCursor = { after: string[]; upper: string[] };
 // Closed SQL vocabulary, never user input. Only metadata, dates and booleans leave PostgreSQL.
 // A durable relation protects the row even when the display detail might later be separable.
 export const retentionRules: readonly Rule[] = [
@@ -33,10 +34,13 @@ export class RetentionInventory {
   constructor(private readonly database: PrismaClient, private readonly rowLimit = 10_000) {
     if (!Number.isInteger(rowLimit) || rowLimit < 1 || rowLimit > 10_000) throw new RangeError('Invalid retention scan budget');
   }
-  async inspect(rule: Rule, now: Date): Promise<DomainReport> {
+  async inspect(rule: Rule, now: Date, cursor?: ScanCursor): Promise<DomainReport & { cursor?: ScanCursor }> {
     const started=performance.now();
     const date=rule.date.includes('(')?rule.date:`r.${rule.date}`;
     const order=rule.order??'id';
+    const keys=order.split(',').map(key=>key.trim());
+    const keyTuple=`(${keys.map(key=>`r.${key}`).join(',')})`;
+    const parameterTuple=(index:number)=>`(${keys.map((_,i)=>`($${index}::jsonb->>${i})::uuid`).join(',')})`;
     const base={ domain:rule.domain,table:rule.table,policy:retentionPolicies[rule.domain],temporalReference:rule.date,inspectedAt:now.toISOString(),
       scope:'PRIMARY_DETAIL_TABLE' as const,eligibilityQualification:'B2_UNQUALIFIED' as const,
       inspected:0,withinRetention:0,expiredCalendar:0,expiredProtected:0,expiredUnqualified:0,unknownDate:0,nonTerminalProtected:0,expiredNonTerminalProtected:0,
@@ -48,13 +52,16 @@ export class RetentionInventory {
         await tx.$executeRawUnsafe("SET LOCAL lock_timeout='250ms'");
         // LIMIT is inside materialized input, before aggregate/protection probes. UUID PK avoids a full date sort.
         // Partial scans are a measured prefix, never an extrapolated total or candidate population.
-        return tx.$queryRawUnsafe<{inspected:number; within_retention:number;expired:number;protected:number;unqualified:number;unknown_date:number;non_terminal:number;expired_non_terminal:number;partial:boolean}[]>(`
-          WITH bounded AS MATERIALIZED (SELECT * FROM ${rule.table} r WHERE ${rule.filter??'TRUE'} ORDER BY ${order} LIMIT ${this.rowLimit+1}),
+        const upper=cursor?.upper??(await tx.$queryRawUnsafe<{key:string[]}[]>(`SELECT jsonb_build_array(${keys.map(key=>`r.${key}::text`).join(',')}) AS key FROM ${rule.table} r WHERE ${rule.filter??'TRUE'} ORDER BY ${keys.map(key=>`${key} DESC`).join(',')} LIMIT 1`))[0]?.key;
+        if (!upper) return [{inspected:0,within_retention:0,expired:0,protected:0,unqualified:0,unknown_date:0,non_terminal:0,expired_non_terminal:0,partial:false,cursor:undefined}];
+        const rows=await tx.$queryRawUnsafe<{inspected:number; within_retention:number;expired:number;protected:number;unqualified:number;unknown_date:number;non_terminal:number;expired_non_terminal:number;partial:boolean;last_key:string[]|null}[]>(`
+          WITH bounded AS MATERIALIZED (SELECT * FROM ${rule.table} r WHERE (${rule.filter??'TRUE'}) AND ($2::jsonb IS NULL OR ${keyTuple}>${parameterTuple(2)}) AND ${keyTuple}<=${parameterTuple(3)} ORDER BY ${order} LIMIT ${this.rowLimit+1}),
+          page AS MATERIALIZED (SELECT * FROM bounded ORDER BY ${order} LIMIT ${this.rowLimit}),
           facts AS MATERIALIZED (SELECT ${date} IS NOT NULL AS known,
             COALESCE(${expirationSql(date,retentionPolicies[rule.domain])},FALSE) AS expired,
             COALESCE(${rule.terminal??'TRUE'},FALSE) AS terminal,
             (${rule.protection}) AS protected
-            FROM (SELECT * FROM bounded ORDER BY ${order} LIMIT ${this.rowLimit}) r)
+            FROM page r)
           SELECT count(*)::int AS inspected,
             count(*) FILTER(WHERE known AND terminal AND NOT expired)::int AS within_retention,
             count(*) FILTER(WHERE known AND expired)::int AS expired,
@@ -63,10 +70,12 @@ export class RetentionInventory {
             count(*) FILTER(WHERE NOT known AND terminal)::int AS unknown_date,
             count(*) FILTER(WHERE NOT terminal AND (NOT known OR NOT expired))::int AS non_terminal,
             count(*) FILTER(WHERE known AND expired AND NOT terminal)::int AS expired_non_terminal,
-            (SELECT count(*)>${this.rowLimit} FROM bounded) AS partial FROM facts`,now);
+            (SELECT jsonb_build_array(${keys.map(key=>`r.${key}::text`).join(',')}) FROM page r ORDER BY ${keys.map(key=>`r.${key} DESC`).join(',')} LIMIT 1) AS last_key,
+            (SELECT count(*)>${this.rowLimit} FROM bounded) AS partial FROM facts`,now,cursor?JSON.stringify(cursor.after):null,JSON.stringify(upper));
+        return rows.map(row=>({...row,cursor:row.last_key?{after:row.last_key,upper}:cursor}));
       },{isolationLevel:'RepeatableRead',timeout:5_000,maxWait:10_000});
       const r=result[0]!;
-      return {...base,inspected:r.inspected,withinRetention:r.within_retention,expiredCalendar:r.expired,expiredProtected:r.protected,
+      return {...base,cursor:r.cursor,inspected:r.inspected,withinRetention:r.within_retention,expiredCalendar:r.expired,expiredProtected:r.protected,
         expiredUnqualified:r.unqualified,unknownDate:r.unknown_date,nonTerminalProtected:r.non_terminal,expiredNonTerminalProtected:r.expired_non_terminal,coverage:r.partial?'PARTIAL':'EXHAUSTIVE',
         reasons:{[rule.reason]:r.protected-r.expired_non_terminal,UNKNOWN_DATE:r.unknown_date,
           [rule.nonTerminalReason??'TERMINATION_NOT_PROVEN']:r.non_terminal+r.expired_non_terminal,EQUIVALENT_PROOF_NOT_QUALIFIED:r.unqualified},durationMs:Math.round(performance.now()-started)};

@@ -1,6 +1,7 @@
 import { presentedName } from '../player/presentation-name.js';
 import { PlayerActivityService, type ActivityRange } from '../player/player-activity-service.js';
-import type { PrismaClient } from '../../../generated/prisma/client.js';
+import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
+import { retentionVisiblePage } from '../retention/retention-visible-history.js';
 import type { GenerationVoteSnapshot } from '../../domain/gacha/gacha.js';
 
 const PAGE_SIZE = 10;
@@ -49,10 +50,12 @@ export class HistoryService {
   }
 
   async events(playerId: string, page: number) {
-    const where = { endsAt: { lte: this.now() }, status: { in: ['ACTIVE', 'FINISHED'] as ('ACTIVE' | 'FINISHED')[] } };
+    const now=this.now();
+    const visible=await retentionVisiblePage(this.database,'event',Prisma.sql`r.ends_at<=${now} AND r.status::text IN ('ACTIVE','FINISHED')`,Prisma.sql`r.ends_at DESC,r.id DESC`,(page-1)*PAGE_SIZE,PAGE_SIZE,now);
+    const where = { id: { in: visible.ids }, endsAt: { lte: now }, status: { in: ['ACTIVE', 'FINISHED'] as ('ACTIVE' | 'FINISHED')[] } };
     const [total, editions] = await Promise.all([
-      this.database.eventEdition.count({ where }),
-      this.database.eventEdition.findMany({ where, orderBy: [{ endsAt: 'desc' }, { id: 'desc' }], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE,
+      Promise.resolve(visible.total),
+      this.database.eventEdition.findMany({ where, orderBy: [{ endsAt: 'desc' }, { id: 'desc' }], take: PAGE_SIZE,
         select: { id: true, year: true, startsAt: true, endsAt: true, snapshot: true,
           monthlyDraw: { select: { status: true, winner: { select: { status: true } }, operation: { select: { resultSummary: true } } } } } }),
     ]);

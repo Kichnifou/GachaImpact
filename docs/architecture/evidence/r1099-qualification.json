@@ -1,0 +1,140 @@
+{
+  "mission": "R1099 B2",
+  "baseline": "33487db1cabc679c98f9bc5e85af5ff7db55030c",
+  "initialFourRefsAligned": true,
+  "initialWorktree": "clean",
+  "assistantIaModified": false,
+  "nonDatabase": {
+    "prismaGenerate": "PASS",
+    "quick": "5/5 PASS",
+    "full": "8/8 PASS",
+    "frontend": {
+      "files": 163,
+      "tests": 1752,
+      "status": "PASS"
+    },
+    "backend": {
+      "files": 175,
+      "tests": 2621,
+      "status": "PASS"
+    }
+  },
+  "privatePostgreSQL": {
+    "server": "Windows PostgreSQL 17.6 on loopback only",
+    "fixtures": "new isolated schemas; immutable catalog copied; no real Player copied",
+    "migrations": "all 84 canonical Prisma migrations rehearsed in B1/B2 and Arcade/Boss fixtures",
+    "b1": {
+      "tests": 18,
+      "status": "PASS"
+    },
+    "b2": {
+      "tests": 14,
+      "status": "PASS"
+    },
+    "gachaGlobalChatDirectMessages": {
+      "files": 3,
+      "tests": 108,
+      "status": "PASS"
+    },
+    "twitchShopTradesGiftCodeHistory": {
+      "files": 5,
+      "tests": 78,
+      "status": "PASS"
+    },
+    "arcade": {
+      "tests": 12,
+      "status": "PASS"
+    },
+    "bankBossVisibility": {
+      "files": 2,
+      "tests": 16,
+      "status": "PASS"
+    },
+    "overlap": "per-file final results; reruns and measurement subset not added to totals",
+    "checks": [
+      "10023 rows keyset inventory and durable completion",
+      "composite claims pagination preserves all five proofs",
+      "interruption/resume without double counting",
+      "durable stop and stale token between committed batches",
+      "checkpoint failure rolls back transformed detail and cursor",
+      "exact calendar expiry/count/page boundary, DST and leap/calendar B1 cases",
+      "SQL JSONB equivalence refuses unsafe JavaScript numeric precision",
+      "targeted CAS restore rejects stale postimage, preserves later unrelated Player progress",
+      "Gacha x1/x10 actual owner replay after stored wrapper: no RNG/new movement",
+      "Arcade actual transaction replay after stored wrapper: change callback never invoked",
+      "Twitch terminal Event envelope and full frozen reads restored exactly",
+      "MP unread/list/page and Chat polling changes hide expired detail without deleting proof",
+      "Prisma contains and SQL ILIKE agree for percent, underscore and backslash",
+      "Bank display clock is supplied transaction time; expired history hidden, proofs unchanged",
+      "Boss expired period hidden; exact owner exclusion and original attack/reward fingerprints preserved"
+    ]
+  },
+  "intermediateFailures": [
+    "Native pg_dump data SSL EOF and cursor export timeout: not counted as backups; bounded raw JSON export plus real restore succeeded",
+    "Remote private migration setup could not reach pooler: 18 cases skipped, qualification moved to real local PostgreSQL",
+    "B1 prefix-limit test obsolete after resumable pagination: replaced by actual PostgreSQL statement timeout while preserving retry/backoff/fingerprint assertions",
+    "One B1 injected-error scenario returned FAILED while full/build competed for host resources; isolated rerun of all 18 cases PASS, no production timeout enlarged",
+    "Synthetic claim fixture corrected to actual enum, mandatory dates/token format and native operation proof; constraints unchanged",
+    "Chat old presentation expectations updated to current emoji/rank syntax; all economic assertions retained",
+    "Arcade stale 60 migration expectation updated to exact 84 ledger and final migration",
+    "Old Bank fixture history clock and Boss unlimited-history expectations corrected; expired proofs explicitly checked unchanged"
+  ],
+  "recovery": {
+    "realEncryptedExportAndIsolatedRestore": "r1099-restoration.json",
+    "continuousExternalBackupQualified": false,
+    "irreversibleDeletionDelivered": false,
+    "newChatMpContentRemovalDelivered": false,
+    "losslessSelfContainedRecoveryQualified": true,
+    "storageObjectsTouched": false
+  },
+  "masterHistoryGuard": {
+    "preservedFrom": "## R1098",
+    "normalizedUtf8Bytes": 1229005,
+    "sha256": "cae22c01dbc9241174c6bc5e1f26bb10b20ff4ae2a18bdc916ba8b1b4f029feb",
+    "status": "PASS"
+  },
+  "independentReviews": "working-tree preliminary review only; actual GitHub SHA approvals pending",
+  "productionActivation": "not yet claimed; runtime evidence and closure pending",
+  "syntheticMeasurements": {
+    "scope": "synthetic private original proofs; positive pg_column_size savings, not public or physical disk savings",
+    "tests": "3 PASS / 11 not executed in measurement subset; full B2 14 PASS separately",
+    "domains": [
+      {
+        "domain": "twitch_terminal",
+        "status": "SUCCESS",
+        "scanned": 1,
+        "expired": 1,
+        "compacted": 1,
+        "protected": 0,
+        "logicalBytesBefore": 40340,
+        "logicalBytesAfter": 24197,
+        "storedBytesBefore": 34059,
+        "storedBytesAfter": 24349
+      },
+      {
+        "domain": "gacha",
+        "status": "SUCCESS",
+        "expired": 10,
+        "scanned": 10,
+        "compacted": 10,
+        "protected": 0,
+        "storedBytesAfter": 241430,
+        "logicalBytesAfter": 240980,
+        "storedBytesBefore": 337720,
+        "logicalBytesBefore": 403320
+      },
+      {
+        "domain": "arcade",
+        "status": "SUCCESS",
+        "scanned": 1,
+        "expired": 1,
+        "compacted": 1,
+        "protected": 0,
+        "logicalBytesBefore": 39918,
+        "logicalBytesAfter": 23866,
+        "storedBytesBefore": 33625,
+        "storedBytesAfter": 23911
+      }
+    ]
+  }
+}

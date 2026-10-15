@@ -51,6 +51,10 @@ const execution = z.object({ version: z.literal(1), playerId: z.string(), actorN
   eventMessageBindings: z.array(z.object({ messageId: z.uuid(), responseIndexes: z.array(z.number().int().nonnegative()).min(1) })).optional(),
   stage: z.enum(['EXECUTING', 'RESPONSES']), responses: z.array(response) });
 type Execution = z.infer<typeof execution>;
+/** Maintenance validates through the same reader; unknown or unfinished receipts stay untouched. */
+export function isTerminalCommandStorage(value:unknown):boolean {
+  try {const parsed=execution.safeParse(value);return parsed.success&&parsed.data.stage==='RESPONSES'&&parsed.data.responses.length>0&&parsed.data.responses.every(row=>row.status==='SENT'&&typeof row.messageId==='string'&&row.messageId.length>0);}catch{return false;}
+}
 export type TwitchCommandExecutor = { capturedAt?(): Date; prepare?(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, businessAt?: string, responseBodyLimit?: number): Promise<FrozenCommandIntent>; execute(player: CurrentPlayer, handler: string, args: readonly string[], usage: string, key: string, intent?: FrozenCommandIntent): Promise<string | readonly string[]> };
 export type TwitchCommandSubscriptionInspector = Pick<TwitchEventSubSubscriptionManager, 'activationAvailable' | 'inspectPilotChatTransport'>;
 

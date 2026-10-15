@@ -13,7 +13,7 @@ export class RetentionScheduler {
     if (!this.stopped) return;
     this.stopped=false;
     this.log({event:'RETENTION_SCHEDULED',mode:this.engine.mode,nextCycleAt:nextCycleAt(this.clock.now()).toISOString(),timeZone:'Europe/Paris'});
-    if (this.engine.mode==='DRY_RUN') void this.tick();
+    if (this.engine.mode!=='DISABLED') void this.tick();
   }
   async stop() {this.stopped=true;if(this.timer) clearTimeout(this.timer);this.controller?.abort();await this.running;}
   private async tick() {
@@ -23,7 +23,7 @@ export class RetentionScheduler {
     this.running=this.engine.run(this.controller.signal).then(result=>{
       if (result && typeof result==='object' && 'status' in result && result.status==='SUCCESS')
         delay=Math.max(1,nextCycleAt(this.clock.now()).getTime()-this.clock.now().getTime());
-    }).catch(()=>{this.log({event:'RETENTION_CYCLE_FAILED',mode:'DRY_RUN'});});
+    }).catch(()=>{this.log({event:'RETENTION_CYCLE_FAILED',mode:this.engine.mode});});
     try {await this.running;}finally {this.running=undefined;if(!this.stopped){this.timer=setTimeout(()=>void this.tick(),delay);this.timer.unref?.();}}
   }
 }

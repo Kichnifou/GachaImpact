@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1099 — moteur unique de maintenance réversible
+
+RetentionEngine R1098 étendu : pagination keyset/checkpoints durables au-delà de10000, cutoff/borne supérieure figés, tentatives bornées par phase version/mode, scheduler04:00Paris et alertes inchangés. EXECUTE exige liste environnement et gate PostgreSQL par domaine. RetentionTransformations compresse sans perte Twitch terminal/Gacha/Arcade en courts lots atomiques avec progression, fencing et gain stocké positif. Readers historiques/replay compatibles, aucun recalcul économique. Consultation ordinaire filtrée séparément des preuves ; parcours page seule sans COUNT pour polling/récents. Arrêt/récupération ciblée via script standalone, aucun HTTP ni runtime lancé. [Contrat, matrice et limites](r1099-retention-execution.md). Migration084 additive ; aucune nouvelle suppression activable, récupération externe continue non qualifiée.
+
 ## R1098 — moteur B1 et coordination nocturne
 
 RetentionInventory applique16règles spécialisées aux tables principales, en transactions READ ONLY/RepeatableRead séparées, préfixe PK≤10000+témoin, statement_timeout3s/lock_timeout250ms et résultats agrégés sans contenu privé. L'ancienneté n'est pas l'éligibilité destructive ; scope/qualification/exhaustivité explicites, techniquement traitable0. RetentionEngine n'écrit que retention_job/retention_runs : claim court, bail PostgreSQL/token, renouvellement entre domaines, finalisation clôturée au propriétaire, capacité/alertes franchies dédupliquées. Trois tentatives/jour, backoff15min, pas de replay historique.

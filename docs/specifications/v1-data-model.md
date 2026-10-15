@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1099 — progression technique et preuves lossless
+
+RetentionProgress porte seulement checkpoint/compteurs par domaine ; RetentionJob ajoute gate durable et liste d'autorisation. Aucun lien Player, contenu privé ou nouvel état économique. Les snapshots PullResult et réponses ArcadeReceipt restent intégralement récupérables via wrapper Brotli versionné ; lecteur compatible obligatoire même après arrêt. Le résumé BusinessOperation/Team v2, RNG, rareté, claims, mouvements et statistiques ne sont pas supprimés. Le filtrage des historiques concerne les consultations ordinaires et ne remplace pas les preuves métier. [Matrice canonique B2](../architecture/r1099-retention-execution.md), état réel au Master. La qualification destructive B1 à zéro ne représente pas les compactages lossless, rapportés séparément.
+
 ## R1098 — suivi privé de simulation B1
 
 RetentionJob et RetentionRun portent uniquement la coordination du cycle Paris et les métriques agrégées de maintenance, sans relation Player ni contenu privé. Aucun état/statistique/preuve métier remplacé ; candidats techniques0, détail expiré distinct du détail traitable. Modes DISABLED/DRY_RUN, aucun chemin destructif. [Architecture et matrice spécialisée](../architecture/r1098-retention-engine.md). La migration083 est additive ; statut appliqué/déployé au Master.

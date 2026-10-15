@@ -300,8 +300,8 @@ describe('Banking persistence', { timeout: 20_000 }, () => {
     }
     await store.transfer(transfer(otherPlayerId, 'deposit', 10n, randomUUID(), new Date(occurredAt.getTime() + 100)));
 
-    const first = await store.getHistory(playerId, 1);
-    const second = await store.getHistory(playerId, 2);
+    const first = await store.getHistory(playerId, 1, undefined, occurredAt);
+    const second = await store.getHistory(playerId, 2, undefined, occurredAt);
     expect(first).toMatchObject({ page: 1, totalCount: 12, totalPages: 2 });
     expect(first.operations).toHaveLength(10);
     expect(second.operations).toHaveLength(2);
@@ -309,8 +309,11 @@ describe('Banking persistence', { timeout: 20_000 }, () => {
     expect([...first.operations, ...second.operations].every((operation) => operation.amount === 1n)).toBe(true);
     expect((await store.getState(playerId, date, occurredAt)).recentOperations).toHaveLength(5);
     await store.transfer(transfer(playerId, 'withdraw', 2n, randomUUID(), new Date(occurredAt.getTime() + 200)));
-    expect(await store.getHistory(playerId, 1, 'DEPOSIT')).toMatchObject({ totalCount: 12, totalPages: 2 });
-    expect((await store.getHistory(playerId, 1, 'WITHDRAWAL')).operations).toMatchObject([{ amount: 2n, type: 'WITHDRAWAL' }]);
-    expect(await store.getHistory(playerId, 1, 'INTEREST')).toMatchObject({ totalCount: 0, operations: [] });
+    expect(await store.getHistory(playerId, 1, 'DEPOSIT', occurredAt)).toMatchObject({ totalCount: 12, totalPages: 2 });
+    expect((await store.getHistory(playerId, 1, 'WITHDRAWAL', occurredAt)).operations).toMatchObject([{ amount: 2n, type: 'WITHDRAWAL' }]);
+    expect(await store.getHistory(playerId, 1, 'INTEREST', occurredAt)).toMatchObject({ totalCount: 0, operations: [] });
+    const proofs=await database.bankTransaction.findMany({where:{playerId},orderBy:{id:'asc'}});
+    expect(await store.getHistory(playerId,1,undefined,new Date('2026-11-09T12:00:00Z'))).toMatchObject({totalCount:0,operations:[]});
+    expect(await database.bankTransaction.findMany({where:{playerId},orderBy:{id:'asc'}})).toEqual(proofs);
   }, 30_000);
 });

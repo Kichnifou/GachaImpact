@@ -1,4 +1,5 @@
 import { commandNow } from '../player/player-command-execution.js';
+import { retentionVisibilitySql } from '../retention/retention-visible-history.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { GiftCodeStatus, GiftCodeType, NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
@@ -345,7 +346,9 @@ export class GiftCodeService {
       orderBy: [{ startsAt: 'desc' }, { id: 'asc' }],
     });
     const entries = editions.map((edition) => serializePlayerCode(edition, now));
-    return { available: entries.filter((entry) => !entry.claimed && entry.available), claimed: entries.filter((entry) => entry.claimed) };
+    const retained=await this.database.$queryRaw<{gift_code_edition_id:string}[]>(Prisma.sql`SELECT r.gift_code_edition_id FROM gift_code_claims r WHERE r.player_id=${playerId}::uuid AND ${retentionVisibilitySql('gift_codes',now)}`);
+    const visible=new Set(retained.map(row=>row.gift_code_edition_id));
+    return { available: entries.filter((entry) => !entry.claimed && entry.available), claimed: entries.filter((entry) => entry.claimed&&visible.has(entry.editionId)) };
   }
 
   private async resources(playerId: string) {

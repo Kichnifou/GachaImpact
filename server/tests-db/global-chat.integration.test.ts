@@ -77,6 +77,17 @@ const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where:
 const migrationChecksum = (path: string) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n')).digest('hex');
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
+  it('masks an expired reply parent in polling changes as well as the visible window', async () => {
+    const author=await player(),reader=await player();
+    const parent=await service.send(as(author),'Original expired parent',randomUUID());advance(10001);
+    const child=await service.send(as(author),'Recent child',randomUUID(),parent.message.id);
+    await db.globalChatMessage.update({where:{id:parent.message.id},data:{createdAt:new Date('2020-01-01T12:00:00Z')}});
+    await service.deleteOwn(as(author),child.message.id);
+    const result=await service.updates(as(reader),child.generation,undefined,[child.message.id]);
+    expect(result.changes.find(row=>row.id===child.message.id)?.replyPreview).not.toBe('Original expired parent');
+    expect(result.changes.some(row=>row.id===child.message.id)).toBe(true);
+    expect((await db.globalChatMessage.findUniqueOrThrow({where:{id:parent.message.id}})).content).toBe('Original expired parent');
+  });
   it('claims the accepted day for a freshly accepted message across Paris midnight', async () => {
     const id = await player(0n), key = randomUUID();
     const acceptedAt = new Date('2097-03-01T22:59:59.999Z');
@@ -364,7 +375,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     const operation = await db.businessOperation.create({ data: { playerId: id, operationType: 'test.command-mission', sourceChannel: SourceChannel.INTERNAL_CHAT, idempotencyKey: `test.command:${id}:${command.message.id}` } });
     await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 50n, countedMessages: 50n } });
     await db.$transaction(tx => commandMissions.reconcileMetrics(tx, { playerId: id, sourceChannel: SourceChannel.INTERNAL_CHAT, now, triggerOperationId: operation.id, metrics: ['COUNTED_MESSAGES'] }));
-    expect(await service.commandMissionCompletions(command.message.id)).toEqual(['Mission terminée : Bavard du jour (+160 Primogemmes).']);
+    expect(await service.commandMissionCompletions(command.message.id)).toEqual(['🎯 Mission terminée : Bavard du jour (+160 Primogemmes).']);
     expect(await db.notification.count({ where: { playerId: id, typeKey: 'PERMANENT_MISSION_COMPLETED' } })).toBe(0);
   });
 
@@ -552,11 +563,11 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     expect(await db.globalChatMessage.count({ where: { replyToMessageId: first.message.id, messageType: 'GAME_RESULT' } })).toBe(1);
     expect(await progress(id)).toMatchObject({ xp: 0n, totalMessages: 1n, countedMessages: 0n });
     expect((await db.playerActivityState.findUniqueOrThrow({ where: { playerId: id } })).lastInternalChatAt).toEqual(activity.lastInternalChatAt);
-    expect((await dispatcher.send(as(id), '!inconnue', randomUUID())).result?.content).toBe('Commande inconnue. Utilise !help.');
+    expect((await dispatcher.send(as(id), '!inconnue', randomUUID())).result?.content).toBe('⚠️ Commande inconnue. Utilise !help.');
     advance(4_000);
-    expect((await dispatcher.send(as(id), '!banque deposer non', randomUUID())).result?.content).toBe('Syntaxe : !banque [deposer|retirer <montant|max>].');
+    expect((await dispatcher.send(as(id), '!banque deposer non', randomUUID())).result?.content).toBe('⚠️ Syntaxe : !banque [deposer|retirer <montant|max>].');
     advance(4_000);
-    expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('Cette commande est réservée à Twitch.');
+    expect((await dispatcher.send(as(id), '!wish', randomUUID())).result?.content).toBe('⚠️ Cette commande est réservée à Twitch.');
   }, 30_000);
 
   it('runs R301 exactly once through !mission and refreshes resources without attributing history to Chat', async () => {
@@ -564,8 +575,7 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     await db.playerProgression.update({ where: { playerId: id }, data: { totalMessages: 50n, countedMessages: 50n } });
     const key = randomUUID();
     const first = await dispatcher.send(as(id), '!mission', key);
-    expect(first.result?.content).toContain('Défi : disponible, non attribué');
-    expect(first.result?.content).toContain('B 1/9 terminées');
+    expect(first.result?.content).toContain('🎯 Rangs : B [1/9]');
     expect(first.refreshScopes).toContain('resources');
     const catchUps = await db.businessOperation.findMany({ where: { playerId: id, operationType: 'permanent-mission.standalone-catchup' } });
     expect(catchUps).toHaveLength(1);

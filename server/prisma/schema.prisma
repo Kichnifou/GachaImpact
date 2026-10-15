@@ -3222,6 +3222,8 @@ model CatalogImportOutbox {
 
 // Backend-only technical registry. No player FK and no business mutation.
 model RetentionJob {
+  executionEnabled Boolean @default(false) @map("execution_enabled")
+  enabledDomains Json @default("[]") @map("enabled_domains") @db.JsonB
   id String @id @db.Text
   cycleKey String? @map("cycle_key") @db.Text
   token String? @db.Uuid
@@ -3240,6 +3242,16 @@ model RetentionRun {
   nextAttemptAt DateTime @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
   report Json @default("{}") @db.JsonB
   @@map("retention_runs")
+}
+
+model RetentionProgress {
+  domain String @id @db.Text
+  cycleKey String @map("cycle_key") @db.Text
+  cutoff DateTime @db.Timestamptz(6)
+  cursor Json? @db.JsonB
+  report Json @default("{}") @db.JsonB
+  complete Boolean @default(false)
+  @@map("retention_progress")
 }
 
 model SharedInvocationSession {

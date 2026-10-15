@@ -1,6 +1,8 @@
 import { addBusinessDays, getBusinessDate, getBusinessMinuteAt } from '../../domain/time/business-date.js';
 
-export type RetentionMode = 'DISABLED' | 'DRY_RUN';
+export type RetentionMode = 'DISABLED' | 'DRY_RUN' | 'EXECUTE';
+export const losslessRetentionDomains=['twitch_terminal','gacha','arcade'] as const;
+export type LosslessRetentionDomain=typeof losslessRetentionDomains[number];
 export const retentionPolicies = {
   twitch_terminal: '30 days', twitch_passive: '24 hours', chat: '1 month', bank: '1 month', shop: '3 months',
   trades: '3 months', gift_codes: '1 month', event: '1 year', boss: '1 year', combat: '1 year', contest: '1 year',

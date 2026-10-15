@@ -1,4 +1,5 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
+import { retentionVisiblePage } from '../../application/retention/retention-visible-history.js';
 import { BusinessError } from '../../application/errors.js';
 import type { ShopCatalogItem, ShopEffectSnapshot, ShopHistoryPage, ShopPlayerSnapshot, ShopPurchase, ShopPurchaseInput, ShopPurchaseResult, ShopStore, ShopTicketReward, ShopView } from '../../application/shop/shop-store.js';
 import { elementKeys, isElementKey, isResourceKey, particleResourceKey, resourceKeys, type ElementKey, type ResourceKey } from '../../domain/economy/resources.js';
@@ -26,12 +27,12 @@ export class PrismaShopStore implements ShopStore {
   }
 
   public async getHistory(playerId: string, page: number): Promise<ShopHistoryPage> {
+    const visible = await retentionVisiblePage(this.database,'shop',Prisma.sql`r.player_id=${playerId}::uuid`,Prisma.sql`r.purchased_at DESC,r.id DESC`,(page-1)*SHOP_HISTORY_PAGE_SIZE,SHOP_HISTORY_PAGE_SIZE,new Date());
     const [totalCount, purchases] = await Promise.all([
-      this.database.shopPurchase.count({ where: { playerId } }),
+      Promise.resolve(visible.total),
       this.database.shopPurchase.findMany({
-        where: { playerId },
+        where: { playerId, id: { in: visible.ids } },
         orderBy: [{ purchasedAt: 'desc' }, { id: 'desc' }],
-        skip: (page - 1) * SHOP_HISTORY_PAGE_SIZE,
         take: SHOP_HISTORY_PAGE_SIZE,
         include: purchaseInclude,
       }),
@@ -186,9 +187,10 @@ function requestSummary(input: ShopPurchaseInput): Prisma.InputJsonObject {
 }
 
 async function readView(database: PrismaClient | Prisma.TransactionClient, playerId: string): Promise<ShopView> {
+  const visible = await retentionVisiblePage(database,'shop',Prisma.sql`r.player_id=${playerId}::uuid`,Prisma.sql`r.purchased_at DESC,r.id DESC`,0,RECENT_PURCHASE_LIMIT,new Date(),false);
   const [items, purchases, snapshot] = await Promise.all([
     database.shopItemDefinition.findMany({ where: { isVisible: true }, orderBy: [{ displayOrder: 'asc' }, { id: 'asc' }], include: itemInclude }),
-    database.shopPurchase.findMany({ where: { playerId }, orderBy: [{ purchasedAt: 'desc' }, { id: 'desc' }], take: RECENT_PURCHASE_LIMIT, include: purchaseInclude }),
+    database.shopPurchase.findMany({ where: { playerId, id: { in: visible.ids } }, orderBy: [{ purchasedAt: 'desc' }, { id: 'desc' }], take: RECENT_PURCHASE_LIMIT, include: purchaseInclude }),
     readPlayerSnapshot(database, playerId),
   ]);
   return { ...snapshot, items: items.map(toCatalogItem), recentPurchases: purchases.map(toPurchase) };

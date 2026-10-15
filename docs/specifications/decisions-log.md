@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1099 — mandat B2 délégué du15/10/2026
+
+**AUTORISÉ PAR LE PROPRIÉTAIRE :** finaliser, qualifier, publier/reviewer/promouvoir et activer dans la même mission les traitements de conservation indépendamment sûrs. Durées et économie inchangées ; aucune validation intermédiaire générique requise après gates réussies. Le mandat interdit d'activer un retrait irréversible sans récupération adéquate/continue démontrée. Choix technique délégué : visibilité bornée et compactages intégraux réversibles, progression/gate durable dans une migration additive ; alternatives et limites dans [R1099](../architecture/r1099-retention-execution.md). La restauration ponctuelle ne vaut pas sauvegarde continue ; les suppressions restent bloquées. Ce mandat ne prouve aucune activation : état réel et prochaine action au Master.
+
 ## R1097 — rétention et optimisation non destructive, lot A (15/10/2026)
 
 **VALIDÉ PRODUIT — IMPLÉMENTATION ÉCHELONNÉE, SELON LOT.** Nouveau contrat de rétention propriétaire dans [la source canonique](data-retention-v1.md#contrat-propriétaire-du-15102026--r1097), supersédant le déclenchement seulement en cas de croissance préoccupante. Nuit automatique et traitement des anciennes données après qualification des lots suivants, alertes 250/350/400 MB ; aucun achat ou droit de suppression implicite.

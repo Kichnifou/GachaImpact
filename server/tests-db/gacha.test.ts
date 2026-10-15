@@ -17,6 +17,8 @@ import { PrismaTeamStore } from '../src/infrastructure/database/prisma-team-stor
 import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
 import { readGachaActiveTeam } from '../src/application/gacha/gacha-snapshot-storage.js';
+import {compactDetail} from '../src/application/retention/lossless-detail-storage.js';
+import type {Prisma} from '../generated/prisma/client.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
@@ -59,6 +61,25 @@ it('replays standalone character metadata after a later catalog update without a
 }, 20_000);
 
 describe('Gacha foundation on the development database', () => {
+  it.each([1,10] as const)('replays the stored lossless wrapper without reroll or new economic effects: x%d',async count=>{
+    const fixture=await createPullPlayer(10000n),store=new PrismaGachaStore(database);
+    const input={playerId:fixture.playerId,playerElementKey:'hydro' as const,count,idempotencyKey:randomUUID(),now:fixture.now,random:maxRandom,sourceChannel:'UI' as const};
+    const first=await store.pull(input);
+    const before=await database.resourceMovement.count({where:{playerId:fixture.playerId}});
+    const results=await database.pullResult.findMany({where:{pullOperationId:first.operation.id}});
+    for(const row of results){
+      // Synthetic extra proof exercises a genuinely encoded receipt. Natural small
+      // snapshots may correctly have no positive compression gain.
+      const original={...(row.snapshot as object),qualificationProof:Array.from({length:300},(_,i)=>({i,value:'original proof retained '.repeat(4)}))};
+      const encoded=compactDetail(original as Prisma.JsonValue);
+      expect(encoded).toHaveProperty('retentionEncoding','lossless-brotli-v1');
+      await database.pullResult.update({where:{id:row.id},data:{snapshot:encoded as Prisma.InputJsonValue}});
+    }
+    const replay=await store.pull({...input,random:{nextInt:()=>{throw Error('Replay must not reroll');}}});
+    expect(replay.results).toEqual(first.results);expect(replay.playerState).toEqual(first.playerState);
+    expect(await database.pullOperation.count({where:{playerId:fixture.playerId}})).toBe(1);
+    expect(await database.resourceMovement.count({where:{playerId:fixture.playerId}})).toBe(before);
+  },30000);
   it.each([
     { count: 1, elements: [] as string[], sourceChannel: 'UI' as const },
     { count: 10, elements: ['hydro'], sourceChannel: 'TWITCH' as const },

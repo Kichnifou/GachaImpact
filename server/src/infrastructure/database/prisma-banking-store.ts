@@ -1,4 +1,5 @@
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
+import { retentionVisiblePage } from '../../application/retention/retention-visible-history.js';
 import type { BankingStore, BankHistoryPage, BankOperation, BankState, BankTransferInput, BankTransferResult, BankTransactionType } from '../../application/banking/banking-store.js';
 import { BusinessError } from '../../application/errors.js';
 import { addBusinessDays, businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDayStartAt } from '../../domain/time/business-date.js';
@@ -25,18 +26,18 @@ export class PrismaBankingStore implements BankingStore {
       await lockPlayerMutation(transaction, playerId);
       let account = await ensureAndLockAccount(transaction, playerId, businessDate);
       account = await accruePlayerThrough(transaction, playerId, account, businessDate, now, this.permanentMissions);
-      return readState(transaction, playerId, account.balance);
+      return readState(transaction, playerId, account.balance, now);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 }));
   }
 
-  public async getHistory(playerId: string, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST'): Promise<BankHistoryPage> {
-    const where = { playerId, ...(type ? { transactionType: type } : {}) };
+  public async getHistory(playerId: string, page: number, type?: 'DEPOSIT' | 'WITHDRAWAL' | 'INTEREST', now = new Date()): Promise<BankHistoryPage> {
+    const visible = await retentionVisiblePage(this.database, 'bank', Prisma.sql`r.player_id=${playerId}::uuid ${type ? Prisma.sql`AND r.transaction_type::text=${type}` : Prisma.empty}`, Prisma.sql`r.created_at DESC,r.id DESC`, (page-1)*BANK_HISTORY_PAGE_SIZE, BANK_HISTORY_PAGE_SIZE, now);
+    const where = { playerId, id: { in: visible.ids }, ...(type ? { transactionType: type } : {}) };
     const [totalCount, operations] = await Promise.all([
-      this.database.bankTransaction.count({ where }),
+      Promise.resolve(visible.total),
       this.database.bankTransaction.findMany({
         where,
         orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-        skip: (page - 1) * BANK_HISTORY_PAGE_SIZE,
         take: BANK_HISTORY_PAGE_SIZE,
       }),
     ]);
@@ -63,7 +64,7 @@ export class PrismaBankingStore implements BankingStore {
           if (existing) {
             assertMatchingOperation(existing.playerId, existing.operationType, existing.resultSummary, input.playerId, operationType, requestedAmount);
             if (existing.status !== OperationStatus.COMPLETED) throw new BusinessError('BANK_IDEMPOTENCY_CONFLICT', 'Cette opération Banque est encore en cours.');
-            return this.completedResult(transaction, input.playerId, account.balance, existing.id, true, resolvedTransferAmount(existing.resultSummary));
+            return this.completedResult(transaction, input.playerId, account.balance, existing.id, true, resolvedTransferAmount(existing.resultSummary), input.occurredAt);
           }
 
           const wallet = await lockWallet(transaction, input.playerId);
@@ -104,7 +105,7 @@ export class PrismaBankingStore implements BankingStore {
             completedAt: input.occurredAt,
             resultSummary: { requestedAmount, resolvedAmount: amount.toString(), walletMoras: walletChange.balanceAfter.toString(), bankMoras: bankBalanceAfter.toString() },
           } });
-          return this.completedResult(transaction, input.playerId, bankBalanceAfter, operation.id, false, amount);
+          return this.completedResult(transaction, input.playerId, bankBalanceAfter, operation.id, false, amount, input.occurredAt);
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20_000 });
       } catch (error) {
         if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error;
@@ -135,8 +136,8 @@ export class PrismaBankingStore implements BankingStore {
     return { playersProcessed, daysProcessed };
   }
 
-  private async completedResult(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint, operationId: string, alreadyProcessed: boolean, resolvedAmount: bigint): Promise<BankTransferResult> {
-    return { ...(await readState(transaction, playerId, bankMoras)), resolvedAmount, operation: { id: operationId, alreadyProcessed } };
+  private async completedResult(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint, operationId: string, alreadyProcessed: boolean, resolvedAmount: bigint, now: Date): Promise<BankTransferResult> {
+    return { ...(await readState(transaction, playerId, bankMoras, now)), resolvedAmount, operation: { id: operationId, alreadyProcessed } };
   }
 
   private async readCompletedRetry(playerId: string, operationType: string, requestedAmount: string, idempotencyKey: string, businessDate: string, now: Date, sourceChannel: SourceChannel): Promise<BankTransferResult | null> {
@@ -225,10 +226,11 @@ async function accruePlayerThrough(transaction: Prisma.TransactionClient, player
   return { ...initialAccount, balance, lastInterestDate: businessDateToDatabaseDate(lastDate) };
 }
 
-async function readState(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint): Promise<BankState> {
+async function readState(transaction: Prisma.TransactionClient, playerId: string, bankMoras: bigint, now: Date): Promise<BankState> {
+  const visible = await retentionVisiblePage(transaction,'bank',Prisma.sql`r.player_id=${playerId}::uuid`,Prisma.sql`r.created_at DESC,r.id DESC`,0,RECENT_OPERATION_LIMIT,now,false);
   const [wallet, operations] = await Promise.all([
     transaction.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId, resourceKey: 'moras' } }, select: { amount: true } }),
-    transaction.bankTransaction.findMany({ where: { playerId }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: RECENT_OPERATION_LIMIT }),
+    transaction.bankTransaction.findMany({ where: { playerId, id: { in: visible.ids } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: RECENT_OPERATION_LIMIT }),
   ]);
   return { walletMoras: wallet.amount, bankMoras, recentOperations: operations.map(toOperation) };
 }

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1099 — migration additive084 et formats réversibles
+
+`20261015200000_084_retention_progress` ajoute execution_enabled(FALSE) et enabled_domains(JSONB array≤2048octets) à retention_job, puis retention_progress(PK domaine, cycle, cutoff, cursor JSONB, report objet≤16384octets, complete). RLS/revokes PUBLIC/anon/authenticated, aucune FK métier ni donnée économique copiée. Application publique exclusivement par Prisma predeploy après reviews ; qualification des84migrations privée ne vaut pas application publique. Twitch réutilise son codec R1097 ; Gacha/Arcade peuvent stocker le wrapper `lossless-brotli-v1` dans leurs colonnes JSONB existantes. Gain datum mesuré avant acceptation, aucune baisse disque physique promise. [Architecture et récupération](r1099-retention-execution.md).
+
 ## R1098 — migration additive083, registre technique B1
 
 `20261015180000_083_retention_simulation` ajoute uniquement retention_job(singleton retention-v1, cycle/token/bail, dernière capacité/niveau d'alerte) et retention_runs(PK jour Paris, status fermé, attempts1..3, dates/reprise, rapport JSONB≤128Kio). RLS activée, droits PUBLIC/anon/authenticated révoqués, aucune policy navigateur ni FK joueur. Aucune écriture historique/économique, aucun index métier nouveau. Application publique par Prisma predeploy après gates ; présence locale et répétition privée ne valent pas application publique. [Coordination et sécurité](r1098-retention-engine.md).

@@ -1,4 +1,5 @@
 import { presentedName } from '../player/presentation-name.js';
+import { retentionVisiblePage } from '../retention/retention-visible-history.js';
 import { contestDiagnostics, type ContestDiagnosticSink } from './contest-diagnostics.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
@@ -413,15 +414,14 @@ export class ContestService {
 
   public async getHistory(page: number) {
     if (!Number.isInteger(page) || page < 1) throw new BusinessError('CONTEST_NOT_FOUND', 'Cette page d’historique est invalide.');
-    const [total, contests] = await Promise.all([
-      this.database.contest.count({ where: { status: ContestStatus.FINISHED } }),
-      this.database.contest.findMany({ where: { status: ContestStatus.FINISHED }, include: historySummaryInclude, orderBy: { finishedAt: 'desc' }, skip: (page - 1) * HISTORY_PAGE_SIZE, take: HISTORY_PAGE_SIZE }),
-    ]);
-    return { page, pageSize: HISTORY_PAGE_SIZE, total, pageCount: Math.max(1, Math.ceil(total / HISTORY_PAGE_SIZE)), contests: contests.map(presentContestHistorySummary) };
+    const total=await retentionVisiblePage(this.database,'contest',Prisma.sql`r.status::text='FINISHED'`,Prisma.sql`r.finished_at DESC,r.id DESC`,(page-1)*HISTORY_PAGE_SIZE,HISTORY_PAGE_SIZE,commandNow(this.clock));
+    const rows=await this.database.contest.findMany({where:{status:ContestStatus.FINISHED,id:{in:total.ids}},include:historySummaryInclude,orderBy:[{finishedAt:'desc'},{id:'desc'}]});
+    return { page, pageSize: HISTORY_PAGE_SIZE, total:total.total, pageCount: Math.max(1, Math.ceil(total.total / HISTORY_PAGE_SIZE)), contests: rows.map(presentContestHistorySummary) };
   }
 
   public async getHistoryDetail(contestId: string) {
-    const contest = await this.database.contest.findFirst({ where: { id: contestId, status: ContestStatus.FINISHED }, include: historyContestInclude });
+    const visible=await retentionVisiblePage(this.database,'contest',Prisma.sql`r.id=${contestId}::uuid AND r.status::text='FINISHED'`,Prisma.sql`r.id`,0,1,commandNow(this.clock));
+    const contest = await this.database.contest.findFirst({ where: { id: { in: visible.ids }, status: ContestStatus.FINISHED }, include: historyContestInclude });
     if (!contest) throw new BusinessError('CONTEST_NOT_FOUND', 'Ce résultat de Concours est introuvable.');
     return presentContest(contest, null, true);
   }

@@ -1,4 +1,5 @@
 import { presentedName, uniquePlayerReference } from '../player/presentation-name.js';
+import { retentionVisiblePage } from '../retention/retention-visible-history.js';
 import { commandTargets } from '../player/player-command-execution.js';
 import { assertPlayerRecoveryActivated } from '../player/player-mutation-guard.js';
 import { commandNow } from '../player/player-command-execution.js';
@@ -211,7 +212,8 @@ export class TradeService {
       const where = { OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] };
       const requests = await tx.tradeRequest.findMany({ where: { ...where, state: 'PENDING' }, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
       const project = (r: typeof requests[number]) => ({ id: r.id, sender: { ...r.sender, displayName: presentedName(r.sender) }, recipient: { ...r.recipient, displayName: presentedName(r.recipient) }, senderResourceKey: r.senderResourceKey, recipientResourceKey: r.recipientResourceKey, originalAmount: r.originalAmount.toString(), currentAmount: r.currentAmount.toString(), createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() });
-      const history = await tx.tradeExecution.findMany({ where: { request: where }, include: { request: { include } }, orderBy: [{ executedAt: 'desc' }, { id: 'desc' }], take: 25 });
+      const visible=await retentionVisiblePage(tx,'trades',Prisma.sql`(r.sender_player_id=${playerId}::uuid OR r.recipient_player_id=${playerId}::uuid) AND EXISTS(SELECT 1 FROM trade_executions e WHERE e.trade_request_id=r.id)`,Prisma.sql`r.resolved_at DESC,r.id DESC`,0,25,commandNow(this.clock),false);
+      const history = await tx.tradeExecution.findMany({ where: { request: { ...where, id: { in: visible.ids } } }, include: { request: { include } }, orderBy: [{ executedAt: 'desc' }, { id: 'desc' }], take: 25 });
       return { stocks, received: requests.filter(r => r.recipientPlayerId === playerId).map(project), sent: requests.filter(r => r.senderPlayerId === playerId).map(project), history: history.map(h => ({ ...project(h.request), amount: h.amount.toString(), executedAt: h.executedAt.toISOString() })) };
     });
   }

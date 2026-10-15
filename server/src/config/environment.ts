@@ -17,7 +17,8 @@ const environmentSchema = z.object({
   CHARACTER_CATALOG_ENABLED: z.enum(['true', 'false']).default('false'),
   CHARACTER_CATALOG_PUBLISH_ENABLED: z.enum(['true', 'false']).default('false'),
   CHARACTER_CATALOG_DRY_RUN: z.enum(['true', 'false']).default('true'),
-  RETENTION_MODE: z.enum(['DISABLED', 'DRY_RUN']).default('DISABLED'),
+  RETENTION_MODE: z.enum(['DISABLED', 'DRY_RUN', 'EXECUTE']).default('DISABLED'),
+  RETENTION_EXECUTE_DOMAINS: z.string().default('').transform(value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))]).pipe(z.array(z.enum(['twitch_terminal','gacha','arcade']))),
   SUPABASE_STORAGE_SECRET_KEY: z.string().regex(/^sb_secret_[A-Za-z0-9_-]{10,}$/).optional(),
   TWITCH_CLIENT_ID: z.string().trim().min(1).optional(),
   TWITCH_CLIENT_SECRET: z.string().trim().min(1).optional(),
@@ -40,7 +41,8 @@ export type AppConfig = Readonly<{
   frontendOrigin?: string;
   frontendOrigins?: readonly string[];
   databaseUrl?: string;
-  retentionMode?: 'DISABLED' | 'DRY_RUN';
+  retentionMode?: 'DISABLED' | 'DRY_RUN' | 'EXECUTE';
+  retentionExecuteDomains?: readonly ('twitch_terminal'|'gacha'|'arcade')[];
   characterCatalog?: Readonly<{ enabled: boolean; publish: boolean; dryRun: boolean; storageKey?: string }>;
   supabase: Readonly<{
     url?: string;
@@ -76,8 +78,10 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
     throw new Error('TWITCH_EVENTSUB_SECRET must be 10–100 ASCII characters when the webhook is enabled.');
   }
 
+  if(parsed.data.RETENTION_MODE==='EXECUTE'&&!parsed.data.RETENTION_EXECUTE_DOMAINS.length) throw new Error('EXECUTE requires explicit qualified retention domains.');
   return {
     retentionMode: parsed.data.RETENTION_MODE,
+    retentionExecuteDomains: parsed.data.RETENTION_EXECUTE_DOMAINS,
     characterCatalog: { enabled: parsed.data.CHARACTER_CATALOG_ENABLED === 'true', publish: parsed.data.CHARACTER_CATALOG_PUBLISH_ENABLED === 'true',
       dryRun: parsed.data.CHARACTER_CATALOG_DRY_RUN === 'true', storageKey: parsed.data.SUPABASE_STORAGE_SECRET_KEY },
     host: parsed.data.HOST,

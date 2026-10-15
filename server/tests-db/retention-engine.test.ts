@@ -16,13 +16,14 @@ beforeAll(async()=>{console.info(JSON.stringify({event:'RETENTION_PRIVATE_SCHEMA
     // Reuse the standard physical fixture for repeated engine scenarios. The
     // optional full path rehearses Prisma deploy/status through all migrations.
     // Apply the exact new DDL, rather than relying on schema diff's missing guards.
-    await fixture.admin.query(`DROP TABLE "${fixture.schema}".retention_job, "${fixture.schema}".retention_runs`);
+    await fixture.admin.query(`DROP TABLE "${fixture.schema}".retention_progress, "${fixture.schema}".retention_job, "${fixture.schema}".retention_runs`);
     await fixture.installMigrationOnlySql(new URL('../prisma/migrations/20261015180000_083_retention_simulation/migration.sql',import.meta.url));
+    await fixture.installMigrationOnlySql(new URL('../prisma/migrations/20261015200000_084_retention_progress/migration.sql',import.meta.url));
   }
   playerId=(await db.player.create({data:{displayName:'Synthetic retention'}})).id;otherId=(await db.player.create({data:{displayName:'Synthetic relation'}})).id;
 },180_000);
 afterAll(()=>fixture.cleanup(),60_000);
-afterEach(async()=>{vi.restoreAllMocks();await db.retentionRun.deleteMany();await db.retentionJob.update({where:{id:'retention-v1'},data:{token:null,leaseUntil:null,cycleKey:null,lastCapacity:Prisma.JsonNull,alertLevel:0}});},20_000);
+afterEach(async()=>{vi.restoreAllMocks();await db.retentionProgress.deleteMany();await db.retentionRun.deleteMany();await db.retentionJob.update({where:{id:'retention-v1'},data:{token:null,leaseUntil:null,cycleKey:null,lastCapacity:Prisma.JsonNull,alertLevel:0,executionEnabled:false,enabledDomains:[]}});},20_000);
 const operation=async()=>db.businessOperation.create({data:{playerId,operationType:'private.retention.fixture',sourceChannel:'UI',status:'COMPLETED',startedAt:old,completedAt:old}});
 async function fingerprints(){
   const result:Record<string,string>={};
@@ -107,9 +108,10 @@ describe('B1 real private PostgreSQL, actual migrations and immutable business s
     expect((await new RetentionEngine(db,'DRY_RUN',clock,()=>{}).run()).status).toBe('SUCCESS');expect((await db.retentionRun.findFirstOrThrow()).attempts).toBe(2);
   },60_000);
   it('marks timeout partial, obeys backoff/three attempts, and preserves state',async()=>{
-    const inventory=new RetentionInventory(db,1);const before=await fingerprints();
+    const inventory=new RetentionInventory(db,1),real=inventory.inspect.bind(inventory);const before=await fingerprints();
+    vi.spyOn(inventory,'inspect').mockImplementation((rule,now,cursor)=>real(rule.domain===retentionRules[0]!.domain?{...rule,protection:'(SELECT TRUE FROM pg_sleep(4))'}:rule,now,cursor));
     const result=await new RetentionEngine(db,'DRY_RUN',clock,()=>{},inventory).run();expect(result.status).toBe('PARTIAL');
-    expect(result.report!.domains.some(x=>x.coverage==='PARTIAL')).toBe(true);expect((await new RetentionEngine(db,'DRY_RUN',clock,()=>{}).run()).skipped).toBeDefined();
+    expect(result.report!.domains.some(x=>x.coverage==='ERROR'&&x.errorCode)).toBe(true);expect((await new RetentionEngine(db,'DRY_RUN',clock,()=>{}).run()).skipped).toBeDefined();
     await db.retentionRun.updateMany({data:{attempts:3,nextAttemptAt:old}});expect((await new RetentionEngine(db,'DRY_RUN',clock,()=>{}).run()).skipped).toBeDefined();
     const rule={...retentionRules[0]!,protection:'(SELECT TRUE FROM pg_sleep(4))'};
     expect((await inventory.inspect(rule,at)).coverage).toBe('ERROR');expect(await fingerprints()).toEqual(before);
