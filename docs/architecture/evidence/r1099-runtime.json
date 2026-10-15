@@ -1,0 +1,603 @@
+{
+  "mission": "R1099 B2",
+  "codeSha": "840c13e587dcac773c587f113385eb50b0ec1297",
+  "compatible": {
+    "deploymentId": "d1bb2798-ddbd-4810-a3ea-103e9a63afe3",
+    "railwayStatus": "SUCCESS",
+    "migration084AppliedAt": "2026-10-15T21:46:40.578104094Z",
+    "verifiedAt": "2026-10-15T21:47:46.163Z",
+    "cycle": {
+      "key": "2026-10-15",
+      "status": "SUCCESS",
+      "attempts": 1,
+      "startedAt": "2026-10-15T21:46:56.132Z",
+      "completedAt": "2026-10-15T21:47:06.465Z",
+      "mode": "DRY_RUN",
+      "version": 2,
+      "durationMs": 10249,
+      "notInspectedDomains": [],
+      "destructiveActions": 0,
+      "domains": [
+        {
+          "domain": "twitch_terminal",
+          "inspected": 2392,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 2
+        },
+        {
+          "domain": "twitch_passive",
+          "inspected": 449,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "chat",
+          "inspected": 1255,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "bank",
+          "inspected": 156,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "shop",
+          "inspected": 225,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "trades",
+          "inspected": 69,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 10
+        },
+        {
+          "domain": "gift_codes",
+          "inspected": 94,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 5,
+          "expiredProtected": 5,
+          "unknownDate": 69,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "event",
+          "inspected": 2,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 2
+        },
+        {
+          "domain": "boss",
+          "inspected": 80,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "combat",
+          "inspected": 100,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "contest",
+          "inspected": 31,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "notifications",
+          "inspected": 519,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 250
+        },
+        {
+          "domain": "gacha",
+          "inspected": 7073,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "direct_messages",
+          "inspected": 294,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "arcade",
+          "inspected": 2274,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "catalog",
+          "inspected": 2461,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        }
+      ],
+      "transformations": []
+    },
+    "capacity": {
+      "at": "2026-10-15T21:46:56.056Z",
+      "mb": 124.079251,
+      "mib": 118.33119487762451,
+      "bytes": 124079251,
+      "quota": "NOT_VERIFIED",
+      "relations": [
+        {
+          "bytes": 23437312,
+          "table": "twitch_event_receipts"
+        },
+        {
+          "bytes": 14475264,
+          "table": "business_operations"
+        },
+        {
+          "bytes": 12132352,
+          "table": "pull_results"
+        },
+        {
+          "bytes": 6012928,
+          "table": "resource_movements"
+        },
+        {
+          "bytes": 5660672,
+          "table": "arcade_receipts"
+        },
+        {
+          "bytes": 1376256,
+          "table": "notifications"
+        },
+        {
+          "bytes": 999424,
+          "table": "global_chat_messages"
+        },
+        {
+          "bytes": 901120,
+          "table": "catalog_attempts"
+        },
+        {
+          "bytes": 868352,
+          "table": "player_permanent_mission_progress"
+        },
+        {
+          "bytes": 614400,
+          "table": "arcade_sessions"
+        }
+      ],
+      "alertLevel": 0,
+      "deltaBytes": 2514944,
+      "previousAt": "2026-10-15T18:49:59.504Z"
+    },
+    "registry": [
+      {
+        "cycle_key": "2026-10-15",
+        "leased": false,
+        "lease_until": null,
+        "alert_level": 0,
+        "execution_enabled": false,
+        "enabled_domains": []
+      }
+    ],
+    "ledger": {
+      "applied": 84
+    },
+    "unfinished": {
+      "unfinished": 0
+    }
+  },
+  "activated": {
+    "deploymentId": "5cb11be5-3983-4e70-bbe2-62650f3e4c6e",
+    "railwayStatus": "SUCCESS",
+    "databaseGateEnabledAt": "2026-10-15T21:48:04.474Z",
+    "onlyChangedRailwayVariables": {
+      "RETENTION_MODE": "EXECUTE",
+      "RETENTION_EXECUTE_DOMAINS": "twitch_terminal,gacha,arcade"
+    },
+    "verifiedAt": "2026-10-15T21:50:14.494Z",
+    "cycle": {
+      "key": "2026-10-15",
+      "status": "SUCCESS",
+      "attempts": 1,
+      "startedAt": "2026-10-15T21:49:39.899Z",
+      "completedAt": "2026-10-15T21:50:11.875Z",
+      "mode": "EXECUTE",
+      "version": 2,
+      "durationMs": 31891,
+      "notInspectedDomains": [],
+      "destructiveActions": 0,
+      "domains": [
+        {
+          "domain": "twitch_terminal",
+          "inspected": 2392,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 2
+        },
+        {
+          "domain": "twitch_passive",
+          "inspected": 449,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "chat",
+          "inspected": 1255,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "bank",
+          "inspected": 156,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "shop",
+          "inspected": 225,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "trades",
+          "inspected": 69,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 10
+        },
+        {
+          "domain": "gift_codes",
+          "inspected": 94,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 5,
+          "expiredProtected": 5,
+          "unknownDate": 69,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "event",
+          "inspected": 2,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 2
+        },
+        {
+          "domain": "boss",
+          "inspected": 80,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "combat",
+          "inspected": 100,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "contest",
+          "inspected": 31,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "notifications",
+          "inspected": 519,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 250
+        },
+        {
+          "domain": "gacha",
+          "inspected": 7073,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "direct_messages",
+          "inspected": 294,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "arcade",
+          "inspected": 2274,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        },
+        {
+          "domain": "catalog",
+          "inspected": 2461,
+          "coverage": "EXHAUSTIVE",
+          "expiredCalendar": 0,
+          "expiredProtected": 0,
+          "unknownDate": 0,
+          "nonTerminalProtected": 0
+        }
+      ],
+      "transformations": [
+        {
+          "domain": "twitch_terminal",
+          "status": "SUCCESS",
+          "expired": 0,
+          "scanned": 4988,
+          "compacted": 0,
+          "protected": 0,
+          "storedBytesAfter": 0,
+          "logicalBytesAfter": 0,
+          "storedBytesBefore": 0,
+          "logicalBytesBefore": 0
+        },
+        {
+          "domain": "gacha",
+          "status": "SUCCESS",
+          "expired": 0,
+          "scanned": 7073,
+          "compacted": 0,
+          "protected": 0,
+          "storedBytesAfter": 0,
+          "logicalBytesAfter": 0,
+          "storedBytesBefore": 0,
+          "logicalBytesBefore": 0
+        },
+        {
+          "domain": "arcade",
+          "status": "SUCCESS",
+          "expired": 0,
+          "scanned": 2274,
+          "compacted": 0,
+          "protected": 0,
+          "storedBytesAfter": 0,
+          "logicalBytesAfter": 0,
+          "storedBytesBefore": 0,
+          "logicalBytesBefore": 0
+        }
+      ]
+    },
+    "capacity": {
+      "at": "2026-10-15T21:49:39.784Z",
+      "mb": 124.456083,
+      "mib": 118.69056987762451,
+      "bytes": 124456083,
+      "quota": "NOT_VERIFIED",
+      "relations": [
+        {
+          "bytes": 23437312,
+          "table": "twitch_event_receipts"
+        },
+        {
+          "bytes": 14475264,
+          "table": "business_operations"
+        },
+        {
+          "bytes": 12132352,
+          "table": "pull_results"
+        },
+        {
+          "bytes": 6012928,
+          "table": "resource_movements"
+        },
+        {
+          "bytes": 5660672,
+          "table": "arcade_receipts"
+        },
+        {
+          "bytes": 1376256,
+          "table": "notifications"
+        },
+        {
+          "bytes": 999424,
+          "table": "global_chat_messages"
+        },
+        {
+          "bytes": 901120,
+          "table": "catalog_attempts"
+        },
+        {
+          "bytes": 868352,
+          "table": "player_permanent_mission_progress"
+        },
+        {
+          "bytes": 614400,
+          "table": "arcade_sessions"
+        }
+      ],
+      "alertLevel": 0,
+      "deltaBytes": 376832,
+      "previousAt": "2026-10-15T21:46:56.056Z"
+    },
+    "registry": [
+      {
+        "cycle_key": "2026-10-15",
+        "leased": false,
+        "lease_until": null,
+        "alert_level": 0,
+        "execution_enabled": true,
+        "enabled_domains": [
+          "twitch_terminal",
+          "gacha",
+          "arcade"
+        ]
+      }
+    ],
+    "ledger": {
+      "applied": 84
+    },
+    "unfinished": {
+      "unfinished": 0
+    }
+  },
+  "publicInvariants": {
+    "historicalCohortsUnchanged": [
+      {
+        "kind": "pull_results",
+        "rows": 6613,
+        "digest": "f4ffdb80d0c601f4d3dba21b0c154324"
+      },
+      {
+        "kind": "gacha_operations",
+        "rows": 755,
+        "digest": "fdcc3ffe41da5f7c74dd89af5f284767"
+      },
+      {
+        "kind": "terminal_twitch",
+        "rows": 2374,
+        "digest": "049b01433cde319bb8a2c7133369affd"
+      }
+    ],
+    "twitchAuthority": [
+      {
+        "desired_mode": "GLOBAL",
+        "revision": 19
+      }
+    ],
+    "encodedTwitchReceiptsDecoded": 13,
+    "naturalGachaV2Operations": 46,
+    "wrappedGachaDecoded": 0,
+    "brokenGachaReferences": 0,
+    "registryPrivacy": [
+      {
+        "relname": "retention_job",
+        "relrowsecurity": true,
+        "anon_read": false,
+        "authenticated_read": false
+      },
+      {
+        "relname": "retention_progress",
+        "relrowsecurity": true,
+        "anon_read": false,
+        "authenticated_read": false
+      },
+      {
+        "relname": "retention_runs",
+        "relrowsecurity": true,
+        "anon_read": false,
+        "authenticated_read": false
+      }
+    ],
+    "publicGameplayQaActions": 0
+  },
+  "maintenance": {
+    "schedule": "04:00 Europe/Paris",
+    "nextCycleAt": "2026-10-16T02:00:00.000Z",
+    "trueNightObserved": false,
+    "catchupIsNotTrueNight": true,
+    "scannedByWriters": 14335,
+    "compacted": 0,
+    "expiredInAuthorizedTransforms": 0,
+    "destructiveActions": 0,
+    "irreversibleDeletionEnabled": false,
+    "passiveTwitchTtlOwner": "UNCHANGED",
+    "publicLogicalSavingsBytes": 0,
+    "publicDatumSavingsBytes": 0,
+    "reusableSpaceMeasured": false,
+    "physicalReductionObserved": false
+  },
+  "productionHealth": {
+    "runningReplicas": 1,
+    "totalReplicas": 1,
+    "pendingWork": 0,
+    "issues": 0,
+    "recentFailures": 0,
+    "httpHealth": 200,
+    "unauthenticatedGuards": 18,
+    "allGuards401": true,
+    "exactCors": true,
+    "twoDomainsHttp200": true,
+    "productionPreviewJsCssIdentical": true,
+    "cloudflareStatus": "SUCCESS",
+    "cloudflarePreview": "https://b4a23f95.gachaimpact.pages.dev"
+  },
+  "limits": [
+    "No age-eligible public Twitch/Gacha/Arcade detail; no artificial public history created",
+    "Five expired Codes claims and 69 unknown dates retained; anti-double-claim proof unchanged",
+    "Capacity includes allocations, technical state and reusable space; not beta growth rate or physical savings",
+    "Continuous external backup and irreversible content removal remain unqualified"
+  ],
+  "closure": "Functional code delivered and activated at this SHA; subsequent documentation checkpoint must preserve code and undergo review/FF/deployment checks"
+}

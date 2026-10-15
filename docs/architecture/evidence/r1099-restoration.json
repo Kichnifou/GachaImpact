@@ -21,5 +21,8 @@
   "globalPublicRollbackAuthorized": false,
   "continuousExternalBackupQualified": false,
   "browserSelectAclEqual": true,
-  "aclScope": "RLS flags and anon/authenticated SELECT privileges for all 159 public tables"
+  "aclScope": "RLS flags and anon/authenticated SELECT privileges for all 159 public tables",
+  "localServerStopped": true,
+  "localCloneRetainedPrivately": true,
+  "plaintextCleanup": "Recursive deletion rejected by automatic approval review (blocked by policy); local PostgreSQL stopped, ignored clone retained"
 }

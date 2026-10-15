@@ -137,9 +137,39 @@
       },
       "finding": "P2 inventory domain starvation across completed sweeps and new days",
       "resolution": "inventory:rotation persisted before each call under fencing; exact omitted-set calculation; six-attempt/two-day PostgreSQL test; author35/35 PASS, new SHA review pending"
+    },
+    {
+      "sha": "840c13e587dcac773c587f113385eb50b0ec1297",
+      "reviewer": "A PostgreSQL scheduler recovery",
+      "verdict": "APPROVED",
+      "independentPostgreSql": {
+        "tests": 35,
+        "status": "PASS",
+        "seconds": 52.37,
+        "all84Migrations": true,
+        "syntheticPrivateSchemasOnly": true,
+        "cleanupVerified": true
+      },
+      "findings": "Both P2 fairness findings resolved; no remaining blocker"
+    },
+    {
+      "sha": "840c13e587dcac773c587f113385eb50b0ec1297",
+      "reviewer": "B business and retention",
+      "verdict": "APPROVED",
+      "scope": "Actual GitHub correction compare/blobs and Master guard; business readers/formats unchanged since first approved candidate",
+      "newDatabaseTests": false
     }
   ],
-  "productionActivation": "not yet claimed; runtime evidence and closure pending",
+  "productionActivation": {
+    "mode": "EXECUTE",
+    "domains": [
+      "twitch_terminal",
+      "gacha",
+      "arcade"
+    ],
+    "runtimeEvidence": "r1099-runtime.json",
+    "irreversibleDeletion": false
+  },
   "syntheticMeasurements": {
     "scope": "synthetic private original proofs; positive pg_column_size savings, not public or physical disk savings",
     "tests": "3 PASS / 11 not executed in original 14-case measurement subset; current full B2 17 PASS separately",
@@ -186,5 +216,16 @@
     "supabasePlan": "free freshly returned",
     "continuousProviderBackup": "NOT_QUALIFIED",
     "newPaidService": false
+  },
+  "remotePrivateSchemaCleanup": {
+    "verified": true,
+    "remaining": "one pre-existing historical schema, preserved",
+    "missionSchemasRemaining": 0
+  },
+  "localCloneCleanup": {
+    "server": "STOPPED",
+    "privateIgnoredCloneRetained": true,
+    "recursiveDelete": "Automatic approval review rejected with blocked by policy; not bypassed",
+    "encryptedArchiveAndDpapiKey": "retained privately outside Git"
   }
 }
