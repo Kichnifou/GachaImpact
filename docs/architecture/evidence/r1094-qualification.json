@@ -1,0 +1,169 @@
+{
+  "mission": "R1094",
+  "baseline": "c77c6a55c3ecae0cea67ae9b7d1a75ece6c89cea",
+  "runtime": "6b12f5fc",
+  "backendAncestor": "872e7b1bce1f8df4e6505582d9d880eea6fcf767",
+  "scope": {
+    "activeSteps": 115,
+    "chapters": 24,
+    "screens": 21,
+    "retired": [
+      "catalog-filters",
+      "contest-play",
+      "history-bank",
+      "history-shop",
+      "history-event",
+      "configuration-account"
+    ],
+    "changedCopy": [
+      "display-settings",
+      "invocation-shared",
+      "profile-badges",
+      "chat-thread"
+    ]
+  },
+  "asset": {
+    "path": "public/assets/tutorial/display-reference.webp",
+    "request": "/assets/tutorial/display-reference.webp?v=r1094",
+    "before": {
+      "width": 2528,
+      "height": 1250,
+      "bytes": 234330
+    },
+    "after": {
+      "width": 1600,
+      "height": 791,
+      "bytes": 89354,
+      "sha256": "201f2f892e2a4452a91ba5f5e5de722d6041886902ceceecf945261b1a9c330e"
+    },
+    "preserved": "Same redacted source, full three-zone composition; no crop, no generated image or dependency; integer pixel ratio rounding <0.01%."
+  },
+  "tests": {
+    "frontendTargeted": 92,
+    "backendTargeted": 154,
+    "quick": "5/5",
+    "full": "8/8",
+    "fullFrontend": 1712,
+    "fullBackendNonDb": 2527,
+    "db": "Not rerun: no persistence/store/claim/schema changes. R1093 private PostgreSQL seven-case evidence retained as historical, not current.",
+    "compiledGameShell": {
+      "fullPresentations": 460,
+      "viewports": [
+        [
+          1920,
+          1080
+        ],
+        [
+          2560,
+          1440
+        ],
+        [
+          1366,
+          768
+        ],
+        [
+          390,
+          844
+        ]
+      ],
+      "supplements": 7,
+      "independentImageStates": 16,
+      "mutationCalls": 0,
+      "jsErrors": 0
+    },
+    "nativeZoom": {
+      "percent": [
+        67,
+        80,
+        100,
+        125,
+        150
+      ],
+      "method": "Chrome tabs API in private Edge extension/profile. CDP keyboard Control+- did not change native zoom; unit coverage verifies shortcuts are uncancelled."
+    }
+  },
+  "timing": {
+    "environment": "Compiled actual GameShell, private local HTTP Cache-Control:no-store. Not public production/player network measurements.",
+    "coldNormalMs": {
+      "openingToRequest": 105.4,
+      "network": 2.6,
+      "decode": 24.7,
+      "openingToVisible": 162.5
+    },
+    "coldThrottledMs": {
+      "downloadMbps": 1,
+      "latencyMs": 150,
+      "openingToRequest": 90.7,
+      "network": 901.1,
+      "decode": 11.1,
+      "openingToVisible": 1005.9
+    },
+    "repeatMs": {
+      "normal": 125.7,
+      "throttled": 114,
+      "decodedReuse": true,
+      "network": "No new ResourceTiming entry; original entry not counted as repeat transfer."
+    },
+    "beforeOpening": "No reference image request observed before tutorial opening.",
+    "loading": "Hidden image does not reserve full height; compact status under100px. Decode precedes ready. Error/8s timeout explicit; Next/Finish remain functional."
+  },
+  "compatibility": {
+    "persistedIds": 121,
+    "aliases": 2,
+    "catalogues": [
+      116,
+      121,
+      115
+    ],
+    "getRepair": false,
+    "newFrontendOldServer": "Existing116 fallback preserved; final115 requires deployed r1094 backend.",
+    "completedAutostart": "Unchanged R1093 guard, transactional marker unchanged."
+  },
+  "proof": {
+    "targeted.log": {
+      "sha256": "64b072665d85c49528ffd46619083b84197c97b071e92a006061bd4ff26d2115"
+    },
+    "backend.log": {
+      "sha256": "fd4c1f26434cb63bcf9acd82fcd6c5303631994eb9e03e45887bcbb63b46df8e"
+    },
+    "quick.log": {
+      "sha256": "4920c0ed92bb2022f3cc4360f7dad1212332ed1514559e7d3882450e751a8d28"
+    },
+    "full.log": {
+      "sha256": "7bcf93057d44cdb3c84b83a79435c574f3529f30964431c58d2662d0f5f33c55"
+    },
+    "qualification.json": {
+      "sha256": "412ba0d56f94abea60e51f7a50a54f3da719f5165d661a5390dce86e70390463"
+    },
+    "supplement.json": {
+      "sha256": "4012c90672ef114b771a332b2b77d41ae982d05a9c157ab54f7e7f1497bf0490"
+    },
+    "zoom-native.json": {
+      "sha256": "ef8c47d33e24fe7a02b9014588d195518ebfdb32dc050e1b0d3c252890f49dc8"
+    },
+    "review-visual-check.json": {
+      "sha256": "479d47f2731df451e8feed1351f6feaa3e9a49c21e357cb1f3757b9457c2a3b0"
+    },
+    "review-timing.json": {
+      "sha256": "c5c3cd0ca2377b233d177d1586a9f6ec6f5065c80f3421b05000b00f5111e3e3"
+    },
+    "image-variants.json": {
+      "sha256": "7bea0981fa6ff172e131cff38200b148e848e1376741d8bdd2467434d13dc310"
+    }
+  },
+  "intermediateFailures": [
+    "Expected red reproduction:7failed/1passed before projections.",
+    "Two old preparation test cases expected retired IDs; revised to surviving exact-resume cases; dedicated six retired cases added."
+  ],
+  "warnings": [
+    "Existing bundle >500kB warning.",
+    "Private fixture localhost:3000 ECONNREFUSED logs; no final browser JS errors."
+  ],
+  "review": {
+    "status": "Awaiting exact published GitHub SHA reviews"
+  },
+  "delivery": {
+    "status": "Awaiting backend-first promotion and exact-SHA deployment/postflight"
+  },
+  "ownerAcceptance": "Required after delivery; not inferred from technical checks."
+}

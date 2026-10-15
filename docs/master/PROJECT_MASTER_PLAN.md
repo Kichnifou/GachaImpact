@@ -1,5 +1,18 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1094 — corrections ciblées du Tutoriel après recette propriétaire (15/10/2026)
+
+**Implémenté localement ; livraison en cours, recette du correctif non acquise.** Le propriétaire a parcouru R1093 et demande les six retraits, trois textes exacts et la première image plus compacte/rapide. Base fraîche **c77c6a55c3ecae0cea67ae9b7d1a75ece6c89cea**, main/review locaux et distants alignés0/0, arbre propre, R1094 disponible. Aucun reset ni passe mobile générale/bêta/exe.
+
+**115 étapes actives /24chapitres /21écrans** ; seuls catalog-filters,contest-play,history-bank,history-shop,history-event,configuration-account retirés. Textes invocation-shared/profile-badges/chat-thread exacts, même spotlight/vues réelles et protections. Première étape deux phrases desktop, première seule mobile ; fenêtre max900px, image1600×791/89354octets contre2528×1250/234330, masquages/composition conservés. Chargement uniquement au montage, décodage avant révélation, attente compacte et repli explicite au plus8s sans bloquer les quatre commandes. URL versionnée, zoom natif libre. [Contrat et matrice](../specifications/tutorial-v1.md).
+
+Backend additive872e7b1b, catalogue09389589, présentation6b12f5fc. Serveur garde121IDs+deux aliases ; réponses116/121 inchangées, opt-inr1094 projette six reprises sans écriture GET. Contrôleur projette également avant préparation. COMPLETED/claim unique/store/schema intacts ; aucune migration ou mutation QA publique. Backend-only ancêtre prévu avant frontend, sous réserve des gates indépendantes.
+
+Qualification PASS : **92 ciblés frontend /154 backend, quick5/5, full8/8 (1712frontend /2527backend non-DB)**. GameShell compilé : **460 présentations** (115×quatre formats), sept compléments reprise/retry/focus/ancienserveur ; review visuelle préparatoire indépendante **16 états** normal/lent/erreur/timeout et mesures decode/visibilité. Image visible162,5ms normal local,1005,9ms à1Mbit/s/150ms ; pas de requête avant ouverture, attente<100px, réutilisation décodée à la réouverture sans nouveau transfert. Zoom natif67–150% PASS. Tests DB non relancés, store/transaction/schéma inchangés ; sept cas R1093 historiques conservés sans revendication nouvelle. Échecs rouges attendus et deux assertions anciennes adaptées, logs/warnings consignés.  [registre](../architecture/evidence/r1094-qualification.json). Master protégé : [garde](../architecture/evidence/r1094-master-guard.mjs), historique intégral R1093 et antérieur inchangé, dernières sections/tailles/ancres contrôlées. AGENTS, Guide, workflow, roadmap, navigation et contratUI examinés inchangés ; modifications limitées au Tutoriel et ses propriétaires/preuves.
+
+**Prochaine action : finir qualification, publier review et acquérir reviews indépendantes du vrai SHA ; ensuite backend compatible prêt, promotion frontend FF, déploiements/postflight. Après livraison : recette propriétaire sur gachaimpact.fr et STOP.**
+
+
 ## R1093 — Tutoriel V1 actualisé, affichage et nouveautés (14/10/2026)
 
 **Livré techniquement ; recette propriétaire encore attendue.** Mandat complet : actualisation ciblée du Tutoriel, capture réelle, compatibilité des progressions, reviews indépendantes et déploiements/postflight. Base fraîche **88542e0287668d2c072f67be2afa875b4113c050**, quatre refs égales, divergence 0/0 et arbre propre. R1092 et son historique sont conservés. Aucune passe mobile générale, bêta ou application exe engagée.

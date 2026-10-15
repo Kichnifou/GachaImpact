@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1094 — corrections du Tutoriel après recette propriétaire (15/10/2026)
+
+Mandat validé : six retraits ciblés du parcours actif (115étapes/24chapitres/21écrans), trois descriptions exactes, première étape compacte à deux phrases desktop et même capture allégée, attente/erreur bornées. Compatibilité additive des catalogues116/121/115, anciens IDs/aliases et progressions conservés, pas de réparation GET ni autostart supplémentaire. Aucun changement métier ni migration ; déploiement backend compatible avant frontend. Qualification, reviews et livraison réelles au Master ; nouvelle recette esthétique propriétaire requise. Historique R1093 et antérieur conservé.
+
 ## R1093 — actualisation additive du Tutoriel V1 (14/10/2026)
 
 Mandat validé : nouvelle première étape Affichage avec capture propriétaire réelle, raccourcis Accueil, Invocations partagées, Badges, Historique Activité et textes devenus incomplets. 121 étapes/24 chapitres ; moteur V1 conservé. Progressions existantes et aliases protégés, aucune relance automatique de COMPLETED, négociation compatible ancien/nouveau catalogue sans migration. Code qualifié, double review indépendante approuvée après correction Historique, backend compatible déployé avant frontend, puis postflight PASS. SHA et preuves au Master ; recette propriétaire encore attendue. Aucun outil opérateur ni mutation métier de démonstration.
