@@ -28,7 +28,7 @@
       "status": "PASS"
     },
     "b2": {
-      "tests": 14,
+      "tests": 16,
       "status": "PASS"
     },
     "gachaGlobalChatDirectMessages": {
@@ -66,7 +66,8 @@
       "MP unread/list/page and Chat polling changes hide expired detail without deleting proof",
       "Prisma contains and SQL ILIKE agree for percent, underscore and backslash",
       "Bank display clock is supplied transaction time; expired history hidden, proofs unchanged",
-      "Boss expired period hidden; exact owner exclusion and original attack/reward fingerprints preserved"
+      "Boss expired period hidden; exact owner exclusion and original attack/reward fingerprints preserved",
+      "Execution budget reserved despite partial inventories; durable writer rotation across three days"
     ]
   },
   "intermediateFailures": [
@@ -77,7 +78,8 @@
     "Synthetic claim fixture corrected to actual enum, mandatory dates/token format and native operation proof; constraints unchanged",
     "Chat old presentation expectations updated to current emoji/rank syntax; all economic assertions retained",
     "Arcade stale 60 migration expectation updated to exact 84 ledger and final migration",
-    "Old Bank fixture history clock and Boss unlimited-history expectations corrected; expired proofs explicitly checked unchanged"
+    "Old Bank fixture history clock and Boss unlimited-history expectations corrected; expired proofs explicitly checked unchanged",
+    "First real GitHub review P2 fairness finding: candidate not promoted; reserved writer budget and durable rotation added with real registry load tests"
   ],
   "recovery": {
     "realEncryptedExportAndIsolatedRestore": "r1099-restoration.json",
@@ -93,11 +95,34 @@
     "sha256": "cae22c01dbc9241174c6bc5e1f26bb10b20ff4ae2a18bdc916ba8b1b4f029feb",
     "status": "PASS"
   },
-  "independentReviews": "working-tree preliminary review only; actual GitHub SHA approvals pending",
+  "independentReviews": [
+    {
+      "sha": "2589c6a9df908cbd44eea1f6762838d9eaeb4a19",
+      "reviewer": "B business and retention",
+      "verdict": "APPROVED",
+      "independentNonDb": {
+        "tests": 164,
+        "files": 6,
+        "status": "PASS"
+      }
+    },
+    {
+      "sha": "2589c6a9df908cbd44eea1f6762838d9eaeb4a19",
+      "reviewer": "A PostgreSQL scheduler recovery",
+      "verdict": "CHANGES_REQUIRED",
+      "finding": "P2 writer starvation under repeatedly slow inventories",
+      "independentPostgreSql": {
+        "tests": 32,
+        "status": "PASS",
+        "seconds": 38.77
+      },
+      "resolution": "35s inventory execution phase plus token-fenced durable next-domain rotation before each writer; two PostgreSQL simulated-load tests added, author34/34 PASS; new SHA review pending"
+    }
+  ],
   "productionActivation": "not yet claimed; runtime evidence and closure pending",
   "syntheticMeasurements": {
     "scope": "synthetic private original proofs; positive pg_column_size savings, not public or physical disk savings",
-    "tests": "3 PASS / 11 not executed in measurement subset; full B2 14 PASS separately",
+    "tests": "3 PASS / 11 not executed in prior 14-case measurement subset; current full B2 16 PASS separately",
     "domains": [
       {
         "domain": "twitch_terminal",
@@ -136,5 +161,10 @@
         "storedBytesAfter": 23911
       }
     ]
+  },
+  "infrastructure": {
+    "supabasePlan": "free freshly returned",
+    "continuousProviderBackup": "NOT_QUALIFIED",
+    "newPaidService": false
   }
 }

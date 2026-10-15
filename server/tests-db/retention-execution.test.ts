@@ -21,6 +21,30 @@ const pilot=()=>({version:1,playerId,actorName:'Synthetic',senderId:'100000001',
 async function receipt(extra:Record<string,unknown>={}){return db.twitchEventReceipt.create({data:{externalEventId:randomUUID(),eventType:'channel.chat.message',state:'PROCESSED',receivedAt:old,processedAt:old,payloadHash:'synthetic-original',externalReference:'command-pilot:synthetic',payloadMinimal:{commandPilot:pilot(),messageActivity:{plan:{event:{messageIds:['synthetic-event-proof']}}},...extra} as Prisma.InputJsonValue}});}
 async function lease(domains:string[]=['twitch_terminal']){const token=randomUUID();await db.retentionJob.update({where:{id:'retention-v1'},data:{cycleKey:'2030-06-15',token,leaseUntil:new Date(Date.now()+120000),executionEnabled:true,enabledDomains:domains}});return token;}
 describe('R1099 private PostgreSQL execution, pagination and recovery gates',()=>{
+ it('reserves execution time for every writer despite persistently partial inventories',async()=>{
+   let elapsed=0;vi.spyOn(performance,'now').mockImplementation(()=>elapsed);
+   const inventory=new RetentionInventory(db),inspect=inventory.inspect.bind(inventory);
+   vi.spyOn(inventory,'inspect').mockImplementation(async(...args)=>{const row=await inspect(...args);elapsed+=5001;return {...row,coverage:'PARTIAL'};});
+   const called:string[]=[];
+   vi.spyOn(RetentionTransformations.prototype,'run').mockImplementation(async domain=>{called.push(domain);elapsed+=20000;return {domain,status:'PARTIAL',scanned:1,expired:0,compacted:0,protected:0,logicalBytesBefore:0,logicalBytesAfter:0,storedBytesBefore:0,storedBytesAfter:0};});
+   const result=await new RetentionEngine(db,'EXECUTE',{now:()=>now},()=>{},inventory,['twitch_terminal','gacha','arcade']).run();
+   expect(result.status).toBe('PARTIAL');expect(result.report!.notInspectedDomains.length).toBeGreaterThan(0);
+   expect(called).toEqual(['twitch_terminal','gacha','arcade']);expect(result.report!.transformations.every(row=>row.scanned===1)).toBe(true);
+ },90000);
+ it('persists a fair next writer across days when a slow execution exhausts the cycle',async()=>{
+   let elapsed=0;vi.spyOn(performance,'now').mockImplementation(()=>elapsed);
+   const inventory=new RetentionInventory(db),inspect=inventory.inspect.bind(inventory);
+   vi.spyOn(inventory,'inspect').mockImplementation(async(...args)=>{const row=await inspect(...args);elapsed+=5001;return {...row,coverage:'PARTIAL'};});
+   const called:string[]=[];
+   vi.spyOn(RetentionTransformations.prototype,'run').mockImplementation(async domain=>{called.push(domain);elapsed+=60000;return {domain,status:'PARTIAL',scanned:1,expired:0,compacted:0,protected:0,logicalBytesBefore:0,logicalBytesAfter:0,storedBytesBefore:0,storedBytesAfter:0};});
+   for(let day=0;day<3;day++){
+     elapsed=0;
+     const date=new Date(now.getTime()+day*86400000);
+     expect((await new RetentionEngine(db,'EXECUTE',{now:()=>date},()=>{},inventory,['twitch_terminal','gacha','arcade']).run()).status).toBe('PARTIAL');
+   }
+   expect(called).toEqual(['twitch_terminal','gacha','arcade']);
+   expect((await db.retentionProgress.findUniqueOrThrow({where:{domain:'execute:rotation'}})).cursor).toEqual({next:'twitch_terminal'});
+ },90000);
  it('preserves Prisma contains semantics for LIKE metacharacters in the SQL history reader',async()=>{
    const ids:string[]=[];
    for(const content of ['proof percent %','proof underscore _','proof slash \\','ordinary proof'])ids.push((await db.globalChatMessage.create({data:{authorPlayerId:playerId,sourceChannel:'INTERNAL_CHAT',messageType:'PLAYER',content,createdAt:now}})).id);

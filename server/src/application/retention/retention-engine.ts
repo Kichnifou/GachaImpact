@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { PrismaClient, Prisma } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
-import { capacityLevel, cycleDue, type RetentionMode, type LosslessRetentionDomain } from './retention-policy.js';
+import { capacityLevel, cycleDue, losslessRetentionDomains, type RetentionMode, type LosslessRetentionDomain } from './retention-policy.js';
 import { RetentionTransformations } from './retention-transformations.js';
 import { RetentionInventory, retentionRules, type DomainReport, type Rule, type ScanCursor } from './retention-inventory.js';
 
@@ -49,19 +49,26 @@ export class RetentionEngine {
     });
     if (!admitted) return {skipped:'BUSY_COMPLETED_OR_BACKOFF'};
     const started=performance.now(),domains:DomainReport[]=[];
+    const inventoryDeadline=started+(this.mode==='EXECUTE'?35_000:90_000);
     let capacity:Capacity|undefined,status='FAILED';
     const transformations:Awaited<ReturnType<RetentionTransformations['run']>>[]=[];
     try {
       for (const rule of retentionRules) {
-        if (signal?.aborted || performance.now()-started>90_000) break;
+        if (signal?.aborted || performance.now()>inventoryDeadline) break;
         if (!await this.renew(token)) return {skipped:'LEASE_LOST'};
-        domains.push(await this.inspectPaged(rule,now,cycleKey,token,signal,started));
+        domains.push(await this.inspectPaged(rule,now,cycleKey,token,signal,inventoryDeadline));
       }
       if(this.mode==='EXECUTE') {
         const operations=new RetentionTransformations(this.db,this.allowed);
-        for(const domain of this.allowed) {
+        const [rotation]=await this.db.$queryRawUnsafe<{next:string}[]>("SELECT cursor->>'next' AS next FROM retention_progress WHERE domain='execute:rotation'");
+        const first=Math.max(0,losslessRetentionDomains.indexOf(rotation?.next as LosslessRetentionDomain));
+        const order=[...losslessRetentionDomains.slice(first),...losslessRetentionDomains.slice(0,first)].filter(domain=>this.allowed.includes(domain));
+        for(const domain of order) {
           if(signal?.aborted||performance.now()-started>90_000)break;
           if(!await this.renew(token))return {skipped:'LEASE_LOST'};
+          // Persist the next priority before entering a writer: a crash or an
+          // exhausted cycle cannot keep restarting at the same first domain.
+          if(!await this.rotate(token,cycleKey,now,domain))return {skipped:'LEASE_LOST'};
           transformations.push(await operations.run(domain,token,cycleKey,now,Math.min(started+90_000,performance.now()+15_000),signal));
         }
       }
@@ -92,8 +99,18 @@ export class RetentionEngine {
   private async renew(token:string) {
     return this.db.$transaction(async tx => {await bounded(tx);return (await tx.$executeRawUnsafe("UPDATE retention_job SET lease_until=clock_timestamp()+interval '2 minutes' WHERE id='retention-v1' AND token=$1::uuid AND lease_until>clock_timestamp()",token))===1;},transactionOptions);
   }
-  private async inspectPaged(rule:Rule,now:Date,cycleKey:string,token:string,signal:AbortSignal|undefined,started:number):Promise<DomainReport> {
-    const deadline=Math.min(started+90_000,performance.now()+5_000);
+  private async rotate(token:string,cycleKey:string,now:Date,domain:LosslessRetentionDomain) {
+    const next=losslessRetentionDomains[(losslessRetentionDomains.indexOf(domain)+1)%losslessRetentionDomains.length]!;
+    return this.db.$transaction(async tx=>{
+      await bounded(tx);
+      const [owner]=await tx.$queryRawUnsafe<{owned:boolean}[]>("SELECT token=$1::uuid AND lease_until>clock_timestamp() AS owned FROM retention_job WHERE id='retention-v1' FOR UPDATE",token);
+      if(!owner?.owned)return false;
+      await tx.$executeRawUnsafe("INSERT INTO retention_progress(domain,cycle_key,cutoff,cursor) VALUES('execute:rotation',$1,$2,$3::jsonb) ON CONFLICT(domain) DO UPDATE SET cycle_key=$1,cutoff=$2,cursor=$3::jsonb",cycleKey,now,JSON.stringify({next}));
+      return true;
+    },transactionOptions);
+  }
+  private async inspectPaged(rule:Rule,now:Date,cycleKey:string,token:string,signal:AbortSignal|undefined,phaseDeadline:number):Promise<DomainReport> {
+    const deadline=Math.min(phaseDeadline,performance.now()+5_000);
     let [checkpoint]=await this.db.$queryRawUnsafe<{cycle_key:string;cutoff:Date;cursor:ScanCursor|null;report:DomainReport;complete:boolean}[]>('SELECT cycle_key,cutoff,cursor,report,complete FROM retention_progress WHERE domain=$1',rule.domain);
     if(checkpoint?.complete && checkpoint.cycle_key===cycleKey) return checkpoint.report;
     if(checkpoint?.complete) checkpoint=undefined;
