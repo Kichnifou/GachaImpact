@@ -7,18 +7,18 @@
 .tutorial-bubble .tutorial-error { min-height:21px; color:#ffb6bb; font-size:12px; }
 .tutorial-bubble footer { display:flex; gap:8px; flex-wrap:wrap; }
 .tutorial-bubble .app-button { flex:1 0 auto; padding-inline:10px; font-size:12px; }
-.tutorial-display { width:min(1100px,calc(100vw - 24px)); display:flex; flex-direction:column; overflow:visible; }
+.tutorial-display { width:min(900px,calc(100vw - 24px)); display:flex; flex-direction:column; overflow:visible; padding:16px; }
 .tutorial-display > * { flex-shrink:0; }
 .tutorial-display .tutorial-display-content { min-height:0; flex-shrink:1; overflow-y:auto; }
-.tutorial-display figure { margin:12px 0 0; }
+.tutorial-display figure { margin:10px 0 0; }
 .tutorial-display img { display:block; width:100%; height:auto; border-radius:8px; }
-.tutorial-display figcaption { margin-top:6px; color:#adc4de; font-size:12px; }
+.tutorial-display img[hidden] { display:none; }
+.tutorial-reference-loading, .tutorial-reference-error { padding:12px; border:1px solid #668fb966; border-radius:8px; color:#adc4de; }
+.tutorial-display .tutorial-reference p { margin:0; }
 .tutorial-display .tutorial-error:empty { display:none; }
 .tutorial-display footer { margin-top:12px; }
-.tutorial-zoom-mobile { display:none; }
 @media (max-width:760px), (hover:none) and (pointer:coarse) {
   .tutorial-display .tutorial-zoom-desktop { display:none; }
-  .tutorial-display .tutorial-zoom-mobile { display:block; }
 }
 @media(max-width:760px) {
   .tutorial-sidebar .game-layout { grid-template-areas:'player-priority' 'player-secondary' 'main' 'chat'; }

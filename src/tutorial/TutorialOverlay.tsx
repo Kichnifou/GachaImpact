@@ -7,6 +7,7 @@ import { getTutorialStep, tutorialStepsForCatalog } from './tutorial-catalog'
 import { visibleTutorialAnchors } from './tutorial-target'
 import { spotlightRect, tutorialBubblePosition, unionTutorialRects, type TutorialRect } from './tutorial-geometry'
 import './tutorial.css'
+import TutorialDisplayReference from './TutorialDisplayReference'
 
 type Props = { legacyCatalog?: boolean; stepId: TutorialStepId | null; anchor?: string; fallback?: boolean; pending: boolean; error: string; retryAction?: TutorialAction | null; onPrevious: () => void; onNext: () => void; onPause: () => void; onFinish: () => void }
 export default function TutorialOverlay({ legacyCatalog = false, stepId, anchor, fallback = false, pending, error, retryAction = null, onPrevious, onNext, onPause, onFinish }: Props) {
@@ -106,11 +107,10 @@ export default function TutorialOverlay({ legacyCatalog = false, stepId, anchor,
       <span className="eyebrow">Tutoriel{step ? ` · ${index + 1}/${steps.length}` : ''}</span>
       <h2 id="tutorial-title">{step?.title ?? 'Tutoriel'}</h2>
       <div className={displaySettings ? 'tutorial-display-content' : undefined}>
-      <p id="tutorial-text" aria-live="polite">{step ? fallback ? `${step.text} ${step.fallback}` : step.text : pending ? 'Préparation de la vue…' : 'Réessayez avec le contrôle indiqué, ou mettez la visite en pause.'}</p>
+      {displaySettings ? <div id="tutorial-text"><p><strong>IMPORTANT</strong> : Pour profiter du jeu de manière optimale, adaptez le zoom de votre navigateur pour que l'interface corresponde à l'image ci-dessous.</p><p className="tutorial-zoom-desktop">Faites Ctrl - / Ctrl + pour changer le zoom.</p></div> :
+      <p id="tutorial-text" aria-live="polite">{step ? fallback && !['invocation-shared', 'profile-badges', 'chat-thread'].includes(step.id) ? `${step.text} ${step.fallback}` : step.text : pending ? 'Préparation de la vue…' : 'Réessayez avec le contrôle indiqué, ou mettez la visite en pause.'}</p>}
       {displaySettings && <>
-        <p className="tutorial-zoom-desktop">Sur ordinateur : <kbd>Ctrl +</kbd> / <kbd>Ctrl −</kbd> pour ajuster le zoom, <kbd>Ctrl 0</kbd> pour revenir à 100 %. Sur Mac, utilisez ⌘ à la place de Ctrl.</p>
-        <p className="tutorial-zoom-mobile">Sur téléphone ou tablette, choisissez un affichage confortable avec les réglages disponibles dans votre navigateur. Aucune action de zoom n’est nécessaire pour continuer.</p>
-        <figure><img src="/assets/tutorial/display-reference.webp" width="2528" height="1250" alt="Capture de référence de l’Accueil : sidebar complète à gauche, bannière et raccourcis au centre, Communauté à droite." /><figcaption>Capture réelle de référence · les proportions dépendent de votre écran.</figcaption></figure>
+        <TutorialDisplayReference />
       </>}
       </div>
       <p className="tutorial-error" role={error ? 'alert' : undefined}>{error}</p>

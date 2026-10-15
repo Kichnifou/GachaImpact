@@ -25,16 +25,46 @@ it('orders controls and disables Previous on display-settings', async () => {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble button'))
   expect(buttons.map(button => button.textContent)).toEqual(['Précédent', 'Suivant', 'Pause', 'Terminer'])
   expect(buttons[0].disabled).toBe(true)
-  expect(document.querySelector('.tutorial-bubble')?.textContent).toContain('1/121')
+  expect(document.querySelector('.tutorial-bubble')?.textContent).toContain('1/115')
 })
 it('shows the real reference and leaves native zoom shortcuts uncancelled', async () => {
   await render()
-  expect(document.querySelector<HTMLImageElement>('.tutorial-display img')?.getAttribute('src')).toBe('/assets/tutorial/display-reference.webp')
+  expect(document.querySelector<HTMLImageElement>('.tutorial-display img')?.getAttribute('src')).toBe('/assets/tutorial/display-reference.webp?v=r1094')
   for (const key of ['+', '-', '=', '0']) {
     const event = new KeyboardEvent('keydown', { key, ctrlKey: true, bubbles: true, cancelable: true })
     document.dispatchEvent(event); expect(event.defaultPrevented).toBe(false)
   }
   expect(business).not.toHaveBeenCalled(); expect(next).not.toHaveBeenCalled()
+})
+it('keeps a compact status until image decode succeeds, with precisely the desktop copy', async () => {
+  await render()
+  expect(document.querySelector('#tutorial-text')?.textContent).toBe("IMPORTANT : Pour profiter du jeu de manière optimale, adaptez le zoom de votre navigateur pour que l'interface corresponde à l'image ci-dessous.Faites Ctrl - / Ctrl + pour changer le zoom.")
+  const image = document.querySelector<HTMLImageElement>('.tutorial-display img')!
+  expect(image.hidden).toBe(true)
+  let decoded!: () => void
+  image.decode = () => new Promise(resolve => { decoded = resolve })
+  await act(async () => { image.dispatchEvent(new Event('load')) })
+  expect(image.hidden).toBe(true)
+  await act(async () => decoded())
+  expect(image.hidden).toBe(false)
+  expect(document.querySelector('.tutorial-reference')?.getAttribute('aria-busy')).toBe('false')
+})
+it('presents an explicit image error without disabling Next or Finish', async () => {
+  await render()
+  await act(async () => document.querySelector('.tutorial-display img')!.dispatchEvent(new Event('error')))
+  expect(document.querySelector('.tutorial-reference')?.textContent).toContain('Vous pouvez poursuivre')
+  expect(document.querySelector('.tutorial-display img')).toBeNull()
+  const buttons = document.querySelectorAll<HTMLButtonElement>('.tutorial-bubble footer button')
+  expect(buttons[1].disabled).toBe(false); expect(buttons[3].disabled).toBe(false)
+})
+it('bounds a stalled image request without blocking progression', async () => {
+  vi.useFakeTimers()
+  try {
+    await render()
+    await act(async () => { await vi.advanceTimersByTimeAsync(8000) })
+    expect(document.querySelector('.tutorial-reference')?.textContent).toContain('Vous pouvez poursuivre')
+    expect(document.querySelector<HTMLButtonElement>('.tutorial-bubble footer button:nth-child(2)')!.disabled).toBe(false)
+  } finally { vi.useRealTimers() }
 })
 it('keeps Suivant text stable and protects all mutations while pending', async () => {
   await act(async () => root.render(<><div data-tutorial-anchor="resources" /><TutorialOverlay stepId="resources" pending error="" onPrevious={previous} onNext={next} onPause={pause} onFinish={finish} /></>))
