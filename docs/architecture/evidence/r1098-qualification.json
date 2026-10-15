@@ -48,7 +48,9 @@
       "seconds": 106.68,
       "exitCode": 0
     },
-    "publicApplied": false
+    "publicApplied": true,
+    "publicAppliedCount": 83,
+    "publicUnfinished": 0
   },
   "nonDb": {
     "quick": "5/5 PASS",
@@ -132,12 +134,28 @@
       "unitTestsPassed": 137,
       "files": 4,
       "dbRerun": false
+    },
+    {
+      "scope": "A and B documentation delta",
+      "sha": "3ddaeefa40a6eacdfba94c1d8130137d7a0a41a3",
+      "verdict": "APPROVED by both",
+      "actualRemoteCompareAndBlobsRead": true,
+      "testsRerun": false
     }
   ],
   "delivery": {
-    "state": "Author and two independent reviews acquired; documentation delta review, public migration/deployment/activation/postflight pending",
+    "state": "Compatible deployment, migration, DRY_RUN activation, automatic current-day catchup and read-only postflight confirmed at qualified SHA; closure documentation delta to be reviewed and promoted",
+    "runtimeEvidence": "r1098-runtime.json",
+    "qualifiedSha": "3ddaeefa40a6eacdfba94c1d8130137d7a0a41a3",
+    "compatibleDeployment": "65e2462c-4a81-40d7-bc5b-f41007a34287",
+    "activationDeployment": "e2e0f752-5a53-4bc2-b6a5-8d2b21d97260",
+    "retentionMode": "DRY_RUN",
+    "automaticCatchupStatus": "SUCCESS",
     "nightExecutionObserved": false,
-    "realCleanupActivated": false
+    "nextNight": "2026-10-16T02:00:00.000Z",
+    "realCleanupActivated": false,
+    "destructiveHistoryTreatmentExecuted": false,
+    "b2Launched": false
   },
   "documentation": {
     "updated": [
@@ -183,5 +201,5 @@
     "physicalAllocationLimits": "Whole database physical allocation includes historical QA/migrations/reusable space; not a sustainable gameplay growth rate or projected disk saving.",
     "classifiedPopulations": 16
   },
-  "editorialDelta": "Fix accents and clarify nonterminal/provenance counter semantics, no qualified code change; this documentation delta awaits published-SHA review"
+  "editorialDelta": "Both independent reviewers approved actual GitHub SHA 3ddaeefa40a6eacdfba94c1d8130137d7a0a41a3; documentation only, no qualified code changes"
 }

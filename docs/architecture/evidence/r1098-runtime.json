@@ -1,0 +1,719 @@
+{
+  "kind": "AUTOMATIC_CURRENT_DAY_CATCHUP_NOT_FIRST_NIGHT",
+  "qualifiedSha": "3ddaeefa40a6eacdfba94c1d8130137d7a0a41a3",
+  "compatibleDeployment": "65e2462c-4a81-40d7-bc5b-f41007a34287",
+  "activationDeployment": "e2e0f752-5a53-4bc2-b6a5-8d2b21d97260",
+  "railwayStatus": "SUCCESS; one running replica; no pending work or issues",
+  "onlyVariableAdded": {
+    "RETENTION_MODE": "DRY_RUN"
+  },
+  "existingTwitchWriterChanged": false,
+  "logs": [
+    {
+      "at": "2026-10-15T18:49:59.766246112Z",
+      "message": "",
+      "event": "RETENTION_SCHEDULED",
+      "mode": "DRY_RUN",
+      "nextCycleAt": "2026-10-16T02:00:00.000Z",
+      "timeZone": "Europe/Paris"
+    },
+    {
+      "at": "2026-10-15T18:49:59.766250492Z",
+      "message": "Application ready"
+    },
+    {
+      "at": "2026-10-15T18:50:04.304375684Z",
+      "message": "",
+      "event": "RETENTION_CYCLE",
+      "cycleKey": "2026-10-15",
+      "mode": "DRY_RUN",
+      "status": "SUCCESS",
+      "domains": 16,
+      "durationMs": 4553,
+      "destructiveActions": 0
+    }
+  ],
+  "postflight": {
+    "at": "2026-10-15T18:50:10.884Z",
+    "historicalCohortsUnchanged": [
+      {
+        "kind": "pull_results",
+        "rows": 6613,
+        "digest": "f4ffdb80d0c601f4d3dba21b0c154324"
+      },
+      {
+        "kind": "gacha_operations",
+        "rows": 755,
+        "digest": "fdcc3ffe41da5f7c74dd89af5f284767"
+      },
+      {
+        "kind": "terminal_twitch",
+        "rows": 2374,
+        "digest": "049b01433cde319bb8a2c7133369affd"
+      }
+    ],
+    "encodedReceiptsDecoded": 8,
+    "gachaV2": {
+      "operations": 0
+    },
+    "brokenGachaReferences": 0,
+    "ledger": {
+      "applied": 83
+    },
+    "authority": [
+      {
+        "desired_mode": "GLOBAL",
+        "revision": 19
+      }
+    ],
+    "publicMutations": false,
+    "registryPrivacy": [
+      {
+        "relname": "retention_job",
+        "relrowsecurity": true,
+        "anon_read": false,
+        "authenticated_read": false
+      },
+      {
+        "relname": "retention_runs",
+        "relrowsecurity": true,
+        "anon_read": false,
+        "authenticated_read": false
+      }
+    ],
+    "unfinished": {
+      "unfinished": 0
+    },
+    "registry": [
+      {
+        "cycle_key": "2026-10-15",
+        "leased": false,
+        "lease_until": null,
+        "alert_level": 0
+      }
+    ],
+    "cycles": [
+      {
+        "cycle_key": "2026-10-15",
+        "status": "SUCCESS",
+        "attempts": 1,
+        "started_at": "2026-10-15T18:49:59.510Z",
+        "completed_at": "2026-10-15T18:50:04.251Z",
+        "next_attempt_at": "2026-10-15T19:05:04.251Z",
+        "report": {
+          "mode": "DRY_RUN",
+          "limits": [
+            "Per-domain snapshots; concurrent activity is normal",
+            "Primary detail tables only; auxiliary durable proofs retained",
+            "No payload byte estimate or physical saving claimed",
+            "B2 equivalence and restoration unqualified"
+          ],
+          "domains": [
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "twitch_event_receipts",
+              "domain": "twitch_terminal",
+              "policy": "30 days",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "TERMINATION_NOT_PROVEN": 2,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0,
+                "RECOVERY_EVENT_MIGRATION_PROOF": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 2386,
+              "durationMs": 1358,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "terminal detail compaction with durable proof",
+              "withinRetention": 2384,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "processed_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 2,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "twitch_event_receipts",
+              "domain": "twitch_passive",
+              "policy": "24 hours",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "EXISTING_TTL_OWNER": 22,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0,
+                "RECOVERY_EVENT_MIGRATION_PROOF": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 465,
+              "durationMs": 90,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 22,
+              "futureOperation": "existing TTL owner only; no second cleaner",
+              "withinRetention": 443,
+              "expiredProtected": 22,
+              "physicalGainBytes": null,
+              "temporalReference": "received_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "global_chat_messages",
+              "domain": "chat",
+              "policy": "1 month",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "MODERATION_RELATION_PROOF": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 1243,
+              "durationMs": 129,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "ordinary display detail removal if all relations qualified",
+              "withinRetention": 1243,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "bank_transactions",
+              "domain": "bank",
+              "policy": "1 month",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 156,
+              "durationMs": 98,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "display detail separation; retain transaction proof",
+              "withinRetention": 156,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "shop_purchases",
+              "domain": "shop",
+              "policy": "3 months",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 198,
+              "durationMs": 83,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "display detail separation; retain replay/effects",
+              "withinRetention": 198,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "purchased_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "trade_requests",
+              "domain": "trades",
+              "policy": "3 months",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 9,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 66,
+              "durationMs": 107,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "resolved request detail separation; executions retained",
+              "withinRetention": 57,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "resolved_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 9,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "gift_code_claims",
+              "domain": "gift_codes",
+              "policy": "1 month",
+              "reasons": {
+                "UNKNOWN_DATE": 69,
+                "DEDUPLICATION_PROOF": 5,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 92,
+              "durationMs": 61,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 69,
+              "expiredCalendar": 5,
+              "futureOperation": "player detail separation; claim retained",
+              "withinRetention": 18,
+              "expiredProtected": 5,
+              "physicalGainBytes": null,
+              "temporalReference": "claimed_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "event_editions",
+              "domain": "event",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 2,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 2,
+              "durationMs": 64,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "edition detail summary; claims/points/draw retained",
+              "withinRetention": 0,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "ends_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 2,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "boss_attacks",
+              "domain": "boss",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 80,
+              "durationMs": 81,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "attack detail summary; rewards/stats retained",
+              "withinRetention": 80,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "daily_combat_attempts",
+              "domain": "combat",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 98,
+              "durationMs": 88,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "attempt detail summary; results/stats retained",
+              "withinRetention": 98,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "contests",
+              "domain": "contest",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DURABLE_ECONOMIC_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 31,
+              "durationMs": 60,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "terminal detail summary; ranking/rewards retained",
+              "withinRetention": 31,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "COALESCE(r.finished_at,r.cancelled_at)",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "notifications",
+              "domain": "notifications",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DEDUPLICATION_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 236,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 503,
+              "durationMs": 79,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "resolved display detail separation; dedup retained",
+              "withinRetention": 267,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "resolved_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 236,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "pull_results",
+              "domain": "gacha",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "ORIGINAL_GACHA_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 6613,
+              "durationMs": 463,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "detail summary retaining last rarity and original Team/v2 summary",
+              "withinRetention": 6613,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "direct_messages",
+              "domain": "direct_messages",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "MODERATION_RELATION_PROOF": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 294,
+              "durationMs": 71,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "content removal only after relations/moderation/recovery qualification",
+              "withinRetention": 294,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "arcade_receipts",
+              "domain": "arcade",
+              "policy": "1 year",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "DEDUPLICATION_PROOF": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 1784,
+              "durationMs": 295,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "receipt compaction retaining fingerprint/result and claims",
+              "withinRetention": 1784,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "created_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            },
+            {
+              "scope": "PRIMARY_DETAIL_TABLE",
+              "table": "catalog_attempts",
+              "domain": "catalog",
+              "policy": "3 months",
+              "reasons": {
+                "UNKNOWN_DATE": 0,
+                "CATALOG_PROVENANCE": 0,
+                "TERMINATION_NOT_PROVEN": 0,
+                "EQUIVALENT_PROOF_NOT_QUALIFIED": 0
+              },
+              "coverage": "EXHAUSTIVE",
+              "inspected": 2461,
+              "durationMs": 109,
+              "inspectedAt": "2026-10-15T18:49:59.504Z",
+              "unknownDate": 0,
+              "expiredCalendar": 0,
+              "futureOperation": "technical log separation; publication/provenance retained",
+              "withinRetention": 2461,
+              "expiredProtected": 0,
+              "physicalGainBytes": null,
+              "temporalReference": "checked_at",
+              "expiredUnqualified": 0,
+              "technicallyEligible": 0,
+              "nonTerminalProtected": 0,
+              "logicalCandidateBytes": null,
+              "eligibilityQualification": "B2_UNQUALIFIED",
+              "expiredNonTerminalProtected": 0
+            }
+          ],
+          "version": 1,
+          "capacity": {
+            "at": "2026-10-15T18:49:59.504Z",
+            "mb": 121.564307,
+            "mib": 115.93275737762451,
+            "bytes": 121564307,
+            "quota": "NOT_VERIFIED",
+            "relations": [
+              {
+                "bytes": 23437312,
+                "table": "twitch_event_receipts"
+              },
+              {
+                "bytes": 14262272,
+                "table": "business_operations"
+              },
+              {
+                "bytes": 11739136,
+                "table": "pull_results"
+              },
+              {
+                "bytes": 5701632,
+                "table": "resource_movements"
+              },
+              {
+                "bytes": 4628480,
+                "table": "arcade_receipts"
+              },
+              {
+                "bytes": 1376256,
+                "table": "notifications"
+              },
+              {
+                "bytes": 991232,
+                "table": "global_chat_messages"
+              },
+              {
+                "bytes": 901120,
+                "table": "catalog_attempts"
+              },
+              {
+                "bytes": 868352,
+                "table": "player_permanent_mission_progress"
+              },
+              {
+                "bytes": 598016,
+                "table": "player_cosmetics"
+              }
+            ],
+            "alertLevel": 0,
+            "deltaBytes": null,
+            "previousAt": null
+          },
+          "cycleKey": "2026-10-15",
+          "analyzedAt": "2026-10-15T18:49:59.504Z",
+          "durationMs": 4553,
+          "noAgePolicy": [
+            "business_operations",
+            "resource_movements",
+            "migration_proofs",
+            "player_state",
+            "player_statistics",
+            "identities",
+            "audit",
+            "daily_activity"
+          ],
+          "destructiveActions": 0,
+          "notInspectedDomains": [],
+          "technicallyEligible": 0
+        }
+      }
+    ]
+  },
+  "firstNightObserved": false,
+  "nextNight": "2026-10-16T02:00:00.000Z",
+  "cloudflare": {
+    "sha": "3ddaeefa40a6eacdfba94c1d8130137d7a0a41a3",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/f3fe9011-6aa3-457c-b1cb-22b4dac76c5b",
+    "startedAt": "2026-10-15T18:46:13Z",
+    "completedAt": "2026-10-15T18:46:13Z",
+    "preview": "https://f3fe9011.gachaimpact.pages.dev",
+    "productionHttp": 200,
+    "previewHttp": 200,
+    "productionAssetsMatchExactDeployment": true,
+    "artifactChecks": [
+      {
+        "path": "/assets/index-CbNDDiMq.js",
+        "http": 200,
+        "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18"
+      },
+      {
+        "path": "/assets/index-hQDYvrWu.css",
+        "http": 200,
+        "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989"
+      }
+    ]
+  },
+  "rollback": "Set RETENTION_MODE=DISABLED; retain compatible readers and private registry. No business data rollback needed or authorized.",
+  "http": {
+    "at": "2026-10-15T18:50:29.509Z",
+    "phase": "dry-run",
+    "health": 200,
+    "guardCount": 18,
+    "all401": true,
+    "exactCors": true,
+    "domains": [
+      {
+        "origin": "https://gachaimpact.fr",
+        "http": 200,
+        "assets": [
+          {
+            "path": "/assets/index-CbNDDiMq.js",
+            "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18",
+            "bytes": 1263547
+          },
+          {
+            "path": "/assets/index-hQDYvrWu.css",
+            "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989",
+            "bytes": 461460
+          }
+        ]
+      },
+      {
+        "origin": "https://gachaimpact.pages.dev",
+        "http": 200,
+        "assets": [
+          {
+            "path": "/assets/index-CbNDDiMq.js",
+            "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18",
+            "bytes": 1263547
+          },
+          {
+            "path": "/assets/index-hQDYvrWu.css",
+            "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989",
+            "bytes": 461460
+          }
+        ]
+      }
+    ]
+  }
+}
