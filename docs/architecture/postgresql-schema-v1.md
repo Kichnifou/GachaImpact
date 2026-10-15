@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Pseudo de présentation R1095 — migration additive082
+
+`20261015090000_082_player_presentation_name` ajoute `players.presentation_name TEXT NULL` et `presentation_name_revision INTEGER NOT NULL DEFAULT 0 CHECK (presentation_name_revision >= 0)`, sans nouvel identifiant ni unicité. Aucun backfill de nom. Le compteur indépendant assure le compare-and-set des intentions sous verrou, y compris après une séquence ABA. CHECK : valeur nullable ou trim SQL inchangé, longueur 1..40 caractères PostgreSQL et absence de contrôles POSIX. L’application applique en plus la borne historique de 40 unités UTF-16 et refuse les contrôles directionnels/invisibles définis au [contrat Profil](../specifications/profile-appearance-v1.md#pseudo-de-présentation--r1095). Les permissions/RLS existantes de `players` restent celles du backend ; aucune permission navigateur ajoutée. Mutation authentifiée sur le seul Player courant, verrou de ligne et revalidation ACTIVE. Retrait applicatif sans suppression de colonne ni de valeurs ; aucune migration inverse destructive.
+
 ## Budget de reçu Vote — migration additive081 / R1081
 
 20261013110000_081_vote_result_budget remplace atomiquement le CHECK global_chat_messages_result_presentation_check : JSONV1 Vote à200cartes maximum peut occuper256Kio dans sa forme PostgreSQL ; les autres commandes restent limitées à16Kio. Les garde-fous GAME_RESULT/SYSTEM/auteur null/objet JSON restent inchangés. Aucune réécriture de JSON historique, aucune table/champ/règle économique, policy RLS ou grant ajouté. Application normale via Prisma/predeploy Railway, tests privés de migration/registre/status et rejets de provenance/volume, puis vérification publique distincte au Master. Le texte public reste500caractères ; le contrat fermé en application conserve les validations champ par champ.

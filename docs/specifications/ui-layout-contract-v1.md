@@ -1,5 +1,15 @@
 # Contrat de layout UI V1
 
+## Retours de bêta — R1095
+
+Historique (six onglets), Échanges (quatre vues) et sélecteurs Avatars/Titres utilisent un cadre intérieur scroll-content-frame autour des résultats. Le conteneur remplit la hauteur utile desktop, y compris vide ; entrées de hauteur naturelle, commandes/filtres/pagination séparés. Le corps ScrollableScreenPanel reste seul propriétaire de scroll ; suppression du second scroll/max-height252 d’Échanges Historique. Les suggestions du formulaire restent hors cadre. Mobile conserve son défilement naturel, sans plafond de liste artificiel.
+
+Banque reprend proportions, fond discret et sélection soulignée des sous-onglets Jeux, avec ancêtres et focus non rognés. Bannières/Historique Event : JJ/MM/AAAA Paris sans heure, timestamps et fin inchangés. Bannières : statut autoritaire supérieur droit En cours/Terminé, raretés/noms conservés, origines et compteur de sélection retirés uniquement du rendu ; candidats ayant des votes triés décroissants puis UUID stable, DTO non muté et Choix communauté conservé.
+
+Équipe : gabarit identique de 0 à4 personnages à même viewport/chat, portrait carré inchangé et pied de carte partagé comme réserve invisible des cases vides ; quatre effets réels du référentiel dimensionnent la réserve Passifs sans produire de faux effet actif. Message vide conservé. Composition rapide réutilise le sélecteur et ses cartes, brouillon à quatre places, membres initiaux épinglés sans déplacement sous filtre et numéros de position ; sauvegarde et conflit appartiennent au contrat Team.
+
+Avatars/Titres : titre/fermeture, recherche et tris fixes ; seul catalogue encadré défile. Suppression visuelle de Possédé et de sa colonne pour ces deux familles seulement ; Équipé/Indisponible/Verrouillé et droits conservés. Grille donnant place aux noms longs. Concours : Devenir spectateur ; bouton de diffusion propre actif : Arrêter la diffusion, inactif Diffuser. Fantôme : fenêtres en heures locales depuis les instants serveur, dates si minuit local traversé, secours UTC explicite ; aucune éligibilité recalculée dans le navigateur.
+
 ## R1092 — proportions hover, gabarit Passifs et Shop
 
 Équipe : seules les commandes des conteneurs ≤260 px gagnent hauteur, largeur intrinsèque et typo selon cqw ; Changer/Retirer puis flèches, hover/focus/disabled/reduced-motion conservés. Les cartes, portraits et régions restent ceux de R1091. La variante large validée est inchangée.

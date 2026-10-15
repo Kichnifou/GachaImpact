@@ -320,6 +320,8 @@ Champs conceptuels :
 
 - `id`
 - `displayName`
+- `presentationNameRevision` entier initialisé à zéro : version de présentation incrémentée sous verrou lors d’un changement, indépendante des écritures cosmétiques.
+- `presentationName` nullable (R1095) : pseudo de présentation avec repli sur `displayName` ; ne sert jamais d’identité authentifiée ni de clé moteur. Contrat : [Personnalisation du profil](profile-appearance-v1.md#pseudo-de-présentation--r1095).
 - `element`
 - `createdAt`
 - `status`

@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## Retours de bêta — R1095, 15/10/2026
+
+Le propriétaire confirme R1094 validée et la bêta commencée. Les retours observés R1095 sont traités maintenant ; aucune passe mobile préalable n’est imposée. L’ordre macro V1 demeure inchangé ; les anciennes séquences de préparation ci-dessous sont historiques. Le Master porte seul l’état des corrections, leurs gates et la prochaine action : recette propriétaire R1095 après sa livraison technique. Aucun chantier mobile général, exe ou audit global n’est lancé automatiquement.
+
 ## Réconciliation finale V1 — audit du13/10/2026
 
 Les finitions R1081 Activité/cartes standalone/Sidebar et compléments Boss prolongent ce même domaine32 ; ordre macro inchangé, aucun domaine suivant lancé. Thèmes abandonnés après audit et acceptation propriétaire, aucun chantier de pré-release à réintroduire automatiquement. [Décision](../specifications/decisions-log.md#r1081--finitions-activité-cartes-standalone-objectif-et-boss-13102026), état et prochaine action exclusivement au Master.

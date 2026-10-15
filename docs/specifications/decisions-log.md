@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1095 — corrections et améliorations après premiers bêta-tests (15/10/2026)
+
+Demandes propriétaire validées pour implémentation, sans validation préalable du résultat : cadres de listes à propriétaire de scroll unique ; formats courts uniquement Bannières/Historique Event ; Banque visuellement conforme aux sous-onglets Jeux ; neutralisation du formulaire partenaire uniquement après succès sans perte de saisie tardive ; pseudo éditable séparé des identités techniques et des noms historiques ; notifications Avatar/Titre ouvrant leur sélecteur avec nouveautés stables pendant la première présentation ; gabarits Équipe vides/occupés et Passifs stables ; Composition rapide locale puis sauvegarde atomique concurrente ; Chat français et reprise discrète bornée ; fenêtres Fantôme converties depuis leurs instants en heure navigateur. Aucun changement d’économie, de disponibilité, de permissions ou d’éligibilité Paris.
+
+Choix techniques sous ce mandat : presentationName nullable dédié (displayName sert aussi de résolution moteur), projection commune et refus des cibles ambiguës, compteur de révision CAS et migration additive082 sans réécriture des joueurs ; endpoint Team composition distinct du réordre, snapshot attendu de quatre places et receipt UI avant conflit. Le retrait de l’interface pseudo conserve ses données. Validation propriétaire R1094 acquise et bêta commencée selon son retour ; statut technique, preuves, reviews et prochaine action uniquement au Master.
+
 ## R1094 — corrections du Tutoriel après recette propriétaire (15/10/2026)
 
 Mandat validé : six retraits ciblés du parcours actif (115étapes/24chapitres/21écrans), trois descriptions exactes, première étape compacte à deux phrases desktop et même capture allégée, attente/erreur bornées. Compatibilité additive des catalogues116/121/115, anciens IDs/aliases et progressions conservés, pas de réparation GET ni autostart supplémentaire. Aucun changement métier ni migration ; déploiement backend compatible avant frontend. Implémenté, qualifié, double review indépendante approuvée, backend compatible déployé avant frontend puis postflight PASS. Preuves et SHA au Master ; nouvelle recette esthétique propriétaire requise. Historique R1093 et antérieur conservé.

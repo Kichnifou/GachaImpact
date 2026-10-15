@@ -1,5 +1,17 @@
 # Chat global V1 — contrat produit
 
+## Cibles de mentions et pseudo — R1095
+
+Les projections courantes Auteur/Réponse/Mention utilisent le pseudo de présentation, sans réécrire contenu ni relations historiques. Les suggestions sélectionnées conservent leur UUID. À l’envoi, un token complet présent dans le texte et sélectionné doit encore désigner un Player ACTIVE, non bloqué, avec le même libellé normalisé : sinon `CHAT_MENTION_CHANGED`409 refuse explicitement l’envoi avant insertion/XP. L’intention refusée reste récupérable dans le compositeur ; sélectionner à nouveau la cible avec son nom courant. Ce refus prudent remplace le traitement antérieur de ces sélections comme simples hints : aucun label historique non vérifiable n’autorise une association forgée.
+
+Un token sélectionné et valide peut désigner son UUID parmi des homonymes ; sans sélection structurée, un homonyme ambigu ne reçoit aucune mention. Une sélection dont le token est absent du texte n’ajoute aucune relation ni notification. Les droits, blocages, idempotence de message et identifiants des liens déjà committés restent inchangés.
+
+## Lecture et noms de présentation — R1095
+
+Une erreur de lecture récupérable conserve messages confirmés, brouillon, scroll et cartes. Le poller existant reprend avec backoff plafonné15s, en pause cachée, sans bandeau technique à chaque panne ; après60s un statut français discret signale l’indisponibilité.401/403 restent utiles et hors réessai automatique. Erreurs d’envoi/refus/résultat ambigu conservent leurs intentions, clés et réessais explicites ; aucun rejeu automatique de commande économique. Messages d’erreur Chat traduits par code, sans comparaison de chaîne ni changement global du gestionnaire serveur.
+
+Le message anglais provenait du gestionnaire500 générique et était directement exposé par les catch de ChatPanel, y compris les lectures périodiques. Les tests privés reproduisent cette voie. Une recherche bornée de logs runtime n’a pas retrouvé le requestId de la capture : aucune cause SQL/réseau précise ni absence d’impact de cet incident public n’est revendiquée. Diagnostics serveur existants conservés ; aucun log brut joueur versionné. Un changement du pseudo courant rafraîchit les projections visibles d’auteur sans réécrire le contenu des messages ni les snapshots métier.
+
 ## Finitions de présence et Pull — R1083
 
 MP : la pastille existante précède le nom, dans Conversations/Archives/recherche/en-tête, sans nouvelle occurrence ; flex stable, point non rétrécissable et pseudo long tronqué. ONLINE vert/AWAY jaune/OFFLINE gris, PRIVATE sans point, droits et parcours MP inchangés. Titre navigateur : GachaImpact tant que visible ; texte de notification R1082 alterné toutes1 350 ms seulement caché avec non-lus. visibilitychange arrête/reprend immédiatement, sans marquer lu ; nettoyage count/Player/unmount/F5, aucun polling/permission supplémentaire, repli conservateur normal sans signal fiable.

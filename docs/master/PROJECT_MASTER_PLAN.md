@@ -1,5 +1,19 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1095 — retours des premiers bêta-tests (15/10/2026)
+
+**Candidat local qualifié pour publication/reviews ; aucune nouvelle recette propriétaire présumée.** Le propriétaire confirme R1094 validée dans son périmètre et la bêta effectivement commencée. Base fraîche après fetch : **91d55486daf89264a471b3db4b8c97cb97448b18**, main/review locaux et distants alignés, divergence 0/0, arbre initial propre ; R1095 libre. AssistantIA n’est pas le dépôt cible. Aucun reset, infrastructure supplémentaire, gel des joueurs ou mutation publique de QA.
+
+Périmètre : texte exact Codes disponibles (80, ID codes-available), cadres Historique/Échanges/Avatars/Titres, Banque discrète sans clipping, dates et votes Bannières/Event, neutralisation du partenaire après succès confirmé, pseudo de présentation distinct de l’identité moteur, intentions des notifications et nouveautés conservées pendant leur première ouverture, deux libellés, gabarits Équipe 0–4, composition rapide atomique, lecture Chat résiliente et fenêtres Fantôme locales. Les règles Paris, données économiques, accès et snapshots historiques sont conservés.
+
+Implémentations présentes dans le candidat local : champ nullable presentationName et migration additive082 ; remplacement Team dédié sous verrou avec snapshot attendu et receipt UI idempotent, sans modifier reorderSlots. Aucune migration Team. Les nouvelles écritures restent authentifiées et les fixtures PostgreSQL sont isolées en schémas privés nettoyés. Les tests et mesures sont recensés dans la [matrice de qualification R1095](../architecture/evidence/r1095-qualification.json), sans transformer tests locaux, reviews, publication, déploiement ou validation humaine en preuves équivalentes.
+
+Qualification locale : quick **5/5** et full **8/8**, **1 736 frontend / 2 539 backend non-DB**. PostgreSQL privé : Team24 puis suppléments1 et2 ; pseudo/CAS/claim7 ; mentions4 puis cas final1 (suites recouvrantes, non additionnées). Matrice compilée **275 états réels Équipe**, cadres longs, notifications, cosmétiques, composition, pseudo, Chat et zoom natif80/100/125 %. Les findings préparatoires de concurrence, perte de saisie, publication cosmétique tardive, statut ACTIVE et mentions structurées ont été corrigés puis retestés. Premier full7/8 supersédé : trois assertions DOM Équipe adaptées, aucun défaut masqué.
+
+Code backend **b9f82d36**, Historique/Échanges **c0140aad**, frontend **a7749dc3**. Reviews indépendantes du SHA publié et déploiement backend avant frontend restent à accomplir. L’historique R1094 et antérieur est conservé intégralement et contrôlé par la [garde dédiée](../architecture/evidence/r1095-master-guard.mjs).
+
+**Prochaine action technique : terminer qualification et reviews du candidat, promouvoir par FF strict, vérifier migration/déploiements/postflight. Puis recette propriétaire R1095 dans la bêta déjà commencée.** Aucun nouveau chantier mobile, exe ou audit global automatique.
+
 ## R1094 — corrections ciblées du Tutoriel après recette propriétaire (15/10/2026)
 
 **Livré techniquement ; nouvelle recette propriétaire attendue.** Le propriétaire a parcouru R1093 et demandé six retraits, trois descriptions exactes et une première image plus compacte/rapide. Base fraîche **c77c6a55c3ecae0cea67ae9b7d1a75ece6c89cea**, quatre refs alors alignées, divergence 0/0 et arbre propre ; R1094 disponible. Aucun reset, passe mobile générale, bêta ou exe.

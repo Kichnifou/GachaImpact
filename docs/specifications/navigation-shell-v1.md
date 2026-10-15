@@ -1,5 +1,11 @@
 # Navigation et shell V1
 
+## Intentions et écritures ciblées — R1095
+
+Les notifications cosmétiques rejoignent le propre Profil > Personnalisation, catégorie TITLE ou AVATAR validée par le registre/payload, puis ouvrent Choisir au moyen d’un token éphémère consommé une fois. Une fermeture pendant le chargement ne peut être annulée par sa réponse ; une nouvelle activation crée un nouveau token. Aucune intention cosmétique restaurée au F5 ni consultation lors d’une arrivée simple sur Profil.
+
+Composition rapide vise la Team consultée et réutilise CharacterSelector en multisélection ; annulation sans écriture, succès sans activation implicite, conflit avec brouillon conservé et reprise explicite. Le crayon du pseudo reste limité au propre Aperçu, enregistrement explicite authentifié, identité Player inchangée. Caches actuels rafraîchis sans reconnexion. Aucune nouvelle destination principale.
+
 ## Interactions desktop R1091
 
 Équipe : portrait, nom, pied et espaces libres ouvrent la fiche via une surface native ; Changer, Retirer et flèches sont des contrôles séparés et ne déclenchent pas la fiche. Drag ne produit pas de clic de navigation. Le lien textuel des passifs ouvre la même référence et conserve l'ancre Tutoriel. Event garde ses destinations ; les sous-onglets thématiques des jeux ont leur rangée sous Général/Jeux/Shop/Classement. Aucun nouveau ScreenId ni changement du coordinateur Box.

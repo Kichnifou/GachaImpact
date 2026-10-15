@@ -1,5 +1,9 @@
 # Notifications V1 — contrat transverse
 
+## Ouverture des cosmétiques — R1095
+
+CHARACTER_AVATARS_UNLOCKED ouvre le catalogue Avatar ; COSMETIC_UNLOCKED suit son type TITLE/AVATAR et l’action OPEN_PROFILE_PERSONALIZATION validés par le registre. Le shell rétablit le Player propriétaire, l’onglet Personnalisation et la catégorie puis transmet une intention éphémère d’ouverture. Lecture/archive de notification, consultation de cosmétique et équipement restent trois actions distinctes. Fermeture volontaire et chargement tardif ne réactivent pas le token consommé ; une activation volontaire suivante peut rouvrir.
+
 ## Boss vaincu — complément R1081 du13/10/2026
 
 Le clic sur MONTHLY_BOSS_DEFEATED avec son action canonique OPEN_MONTHLY_BOSS ouvre Activités > Combat > Boss puis appelle l'archivage serveur existant. La ligne et le badge disparaissent du snapshot, l'objet Notification/payload/reçu et les récompenses restent conservés ; aucun second crédit ni claim. Le type/action/domaine doivent toujours correspondre au registre de présentation. Écran du Boss vaincu : récompenses reçues issues de boss_rewards du seul acteur, barème des participants identifié séparément si aucun reçu personnel complet ; même source autoritaire que l'attribution de la notification.

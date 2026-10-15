@@ -1,5 +1,9 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## Libellé du contrôle propre — R1095
+
+Le bouton actif de l’émetteur affiche Arrêter la diffusion, le bouton inactif Diffuser. Autorité de l’onglet, pending, véritable arrêt, indicateurs En direct/En pause et commandes spectateur inchangés. Aucun nouveau transport ni paramètre économique.
+
 ## Finitions du mandat consolidé — 12/10/2026
 
 Cooldown serveur autoritatif500ms par Player, commun à ses onglets et à tous les emojis ; deux Players peuvent réagir simultanément. Frontend bloque tous les boutons500ms dès l'envoi et n'émet aucune requête supplémentaire pendant cette garde. Seul SHARED_REACTION_COOLDOWN dans react est silencieux, sans toast ni GET de réconciliation supplémentaire ; les autres erreurs gardent leur traitement normal. Verrou de concurrence, autorisation de membre, payload fermé, cap16 et TTL4s inchangés, aucun effet économique.

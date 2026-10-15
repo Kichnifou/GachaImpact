@@ -1,0 +1,303 @@
+{
+  "mission": "R1095",
+  "baseline": "91d55486daf89264a471b3db4b8c97cb97448b18",
+  "initialGit": {
+    "mainReviewLocalRemoteEqual": true,
+    "divergence": "0/0",
+    "clean": true
+  },
+  "ownerFeedback": {
+    "R1094Validated": true,
+    "betaStarted": true,
+    "R1095Validated": false
+  },
+  "status": "locally-qualified-awaiting-published-reviews",
+  "coverage": [
+    {
+      "request": "3 Tutorial codes-available",
+      "owner": "src/tutorial/tutorial-catalog.ts",
+      "change": "Only active step 80 description replaced",
+      "tests": [
+        "src/tutorial/tutorial-catalog.test.ts",
+        "src/tutorial/tutorial-copy.test.ts"
+      ],
+      "status": "targeted-pass"
+    },
+    {
+      "request": "4-5 History frames, bank tabs, banners and Event dates",
+      "owner": "src/screens/HistoryScreen.tsx, history.css",
+      "change": "Six framed results, fixed controls/footer, bank underline/focus, scoped short dates, authoritative status and stable nonmutating vote sorting",
+      "tests": [
+        "src/screens/HistoryScreen.test.tsx",
+        "private compiled History six-tab measurements"
+      ],
+      "status": "targeted-and-compiled-pass"
+    },
+    {
+      "request": "6 Trades",
+      "owner": "src/screens/TradesScreen.tsx, TradesScreen.css, src/trades/use-trades.ts",
+      "change": "Four frames, remove nested scroll and 252px caps, confirmed-only guarded neutral form reset, coalesced partner refresh",
+      "tests": [
+        "src/trades/trades.test.tsx",
+        "private compiled four-view terminal scrolling"
+      ],
+      "status": "targeted-and-compiled-pass"
+    },
+    {
+      "request": "7 Editable presentation name",
+      "owner": "AppearanceService, presentation-name helper, shared current projections, ProfileScreen, PresentationNameEditor",
+      "change": "Nullable presentation name and revision CAS, authenticated current actor, stable engine identities, ambiguous name resolution refusal, refreshed current projections and retained historical snapshots",
+      "tests": [
+        "server/tests/presentation-name.test.ts",
+        "server/tests-db/presentation-name.integration.test.ts",
+        "src/components/PresentationNameEditor.test.tsx"
+      ],
+      "status": "targeted-api-and-private-db-pass"
+    },
+    {
+      "request": "8 Avatars, titles, notification opening and novelty consultation",
+      "owner": "AppearancePanel, AppearanceChooser, GameShell",
+      "change": "Framed catalogue with fixed controls, remove Possede only in Avatar/Title, consumed opening tokens, frozen first-opening novelty, guarded catalogue publication",
+      "tests": [
+        "src/screens/AppearancePanel.intent.test.tsx",
+        "src/screens/AppearancePanel.dialog.test.tsx",
+        "src/screens/AppearancePanel.r1052.test.tsx",
+        "private compiled twelve notification paths"
+      ],
+      "status": "targeted-and-compiled-pass"
+    },
+    {
+      "request": "9 Contest and shared invocation button copy",
+      "owner": "ContestScreen, SharedInvocationControls",
+      "change": "Devenir spectateur and Arreter la diffusion only on requested controls",
+      "tests": [
+        "src/screens/ContestScreen.test.tsx",
+        "src/components/SharedInvocationAudience.test.tsx"
+      ],
+      "status": "targeted-pass"
+    },
+    {
+      "request": "10 Team geometry",
+      "owner": "src/teams/team-layout.css, TeamScreen empty footer",
+      "change": "Same square portrait, shared copy sizing, stable four-effect passive reserve including empty",
+      "tests": [
+        "private compiled 275 real occupancy/passive states and occupancy guard"
+      ],
+      "status": "compiled-pass"
+    },
+    {
+      "request": "11 Quick composition",
+      "owner": "TeamScreen, CharacterSelector, TeamStore.replaceComposition, team route",
+      "change": "Frozen pinned opening members, positional four-slot draft, atomic UI receipt and expected composition under locks, existing uniqueness/ownership/catalogue checks",
+      "tests": [
+        "src/screens/TeamScreen.test.tsx",
+        "server/tests/team.test.ts",
+        "server/tests-db/team.test.ts"
+      ],
+      "status": "targeted-api-and-private-db-pass"
+    },
+    {
+      "request": "12 Chat transient read failure",
+      "owner": "src/components/ChatPanel.tsx",
+      "change": "Keep confirmed thread/draft/scroll, bounded poll backoff, French persistent/auth/refusal feedback, no economic resend",
+      "tests": [
+        "src/components/ChatPanel.test.tsx",
+        "private compiled injected 500/recovery/persistent/recovery with zero POST"
+      ],
+      "status": "targeted-and-compiled-pass"
+    },
+    {
+      "request": "13 Local Ghost windows",
+      "owner": "src/event/local-window.ts, EventScreen",
+      "change": "Browser timezone from server instants, cross-midnight dates and explicit UTC fallback, server Paris eligibility retained",
+      "tests": [
+        "src/event/local-window.test.ts"
+      ],
+      "status": "targeted-pass"
+    }
+  ],
+  "verification": {
+    "quick": "PASS 5/5",
+    "full": "PASS 8/8",
+    "privateDatabases": "Prisma isolated schemas only, no public player fixtures",
+    "visual": "275 real Team occupancy/passive states passed; additional History/Trades/Appearance/notification/quick-composition/name/Chat scenarios in private reports",
+    "ownerRecipe": "not executed",
+    "frontend": {
+      "files": 161,
+      "tests": 1736
+    },
+    "backendNonDb": {
+      "files": 170,
+      "tests": 2539
+    },
+    "privateDatabaseSuites": [
+      {
+        "suite": "Team",
+        "passed": 24
+      },
+      {
+        "suite": "Team availability supplement",
+        "passed": 1
+      },
+      {
+        "suite": "Team ACTIVE and receipt suspension supplement",
+        "passed": 2,
+        "skippedByFilter": 24
+      },
+      {
+        "suite": "Presentation name, revision CAS and neutral claim boundary",
+        "passed": 7
+      },
+      {
+        "suite": "Chat mentions targeted",
+        "passed": 4,
+        "skippedByFilter": 46
+      },
+      {
+        "suite": "Chat mentions final combined regression",
+        "passed": 1,
+        "skippedByFilter": 49
+      }
+    ],
+    "independentLocalReviews": {
+      "identityAndRootUi": "No open findings after corrections; published SHA review still required",
+      "team": "Approved locally by a different agent; published SHA review still required",
+      "visual": "Favourable local pre-review; published SHA review still required"
+    }
+  },
+  "prepublicationReviewFindings": [
+    {
+      "severity": "P1",
+      "finding": "Late presentation rename could overwrite a newer intention",
+      "correction": "Dedicated revision CAS under actor lock",
+      "status": "corrected-private-db-pass"
+    },
+    {
+      "severity": "P2",
+      "finding": "Ambiguous trade retry could erase a changed amount",
+      "correction": "Revision includes amount and MAX, regression test preserves new 123 while replaying original 300/key",
+      "status": "corrected-targeted-pass"
+    },
+    {
+      "severity": "P2",
+      "finding": "Late equipment receipt could hide a newer acquisition",
+      "correction": "Catalogue publication revision, preserve newer catalogue and reconcile after commit",
+      "status": "corrected-targeted-pass"
+    },
+    {
+      "severity": "P1",
+      "finding": "New Team composition did not recheck ACTIVE before replaying receipt",
+      "correction": "Composition-only ACTIVE lock before receipt lookup; suspension and archived actor tests",
+      "status": "corrected-private-db-and-independent-review-pass"
+    },
+    {
+      "severity": "P2",
+      "finding": "A renamed or double-selected homonym could silently lose a structured mention",
+      "correction": "Explicit CHAT_MENTION_CHANGED 409 before insertion or XP, visible French explanation and recovery of original intent",
+      "status": "corrected-unit-private-db-and-frontend-pass"
+    },
+    {
+      "severity": "P2",
+      "finding": "New presentation fields were unknown to the conservative Twitch disposable-profile scalar gate",
+      "correction": "Recognize only the two new fields at null/0; preserve personalized data and all other unknown-field restrictions",
+      "status": "corrected-private-db-pass"
+    }
+  ],
+  "limitations": [
+    "The public Chat screenshot requestId/root SQL or network cause was not recovered from bounded runtime logs; no assertion that that incident was harmless.",
+    "No public player mutation was used for QA.",
+    "Publication, independent published-SHA reviews, migrations on production, deployments and postflight remain separate pending gates."
+  ],
+  "rollback": {
+    "independentSubLotRollbackClaimed": "History/Trades code only; other frontend features share shell/API/selector dependencies",
+    "dependencies": "Backend projections/CAS and Team API are deployed before the new frontend; shared shell/API files couple frontend sub-lots",
+    "presentationData": "Removing the editor must retain the additive columns and stored values; no destructive migration rollback",
+    "method": "Normal revert/review/promotion workflow, no force push or history rewriting",
+    "historyTrades": {
+      "commit": "c0140aadfd965d5504fbfa7de426d28d8ad67613",
+      "isolatedRevert": "PASS",
+      "build": "PASS",
+      "targetedTests": 25,
+      "scope": "Seven source/test files only; other code retained. Production withdrawal also requires corresponding canonical doc updates."
+    },
+    "allFrontend": {
+      "status": "PASS",
+      "revertedCommits": [
+        "a7749dc3dc5eddb076573b437dd3e503d1b546a4",
+        "c0140aadfd965d5504fbfa7de426d28d8ad67613"
+      ],
+      "baselineFrontendTreeExact": true,
+      "backendRetained": "b9f82d3608b699dbf0b6a965196c1c800816e683",
+      "build": "PASS",
+      "targetedTests": 159,
+      "targetedFiles": 7,
+      "privateWorktreeCleaned": true,
+      "presentationData": "No SQL rollback or data deletion; additive backend and columns retained"
+    }
+  },
+  "documentReview": {
+    "updated": [
+      "Master",
+      "decisions",
+      "UI layout",
+      "navigation",
+      "Tutorial active matrix only",
+      "profile appearance",
+      "notifications",
+      "global chat",
+      "shared invocations",
+      "Team physical appendix",
+      "backend architecture",
+      "data model",
+      "PostgreSQL schema",
+      "implementation-order-v1.md: beta-started clarification, macro order unchanged"
+    ],
+    "examinedUnchanged": [
+      "AGENTS.md",
+      ".chatgpt/CHATGPT_GUIDE.md",
+      "implementation-workflow.md",
+      "conversation-handoff.md"
+    ],
+    "masterHistoryGuard": "r1095-master-guard.mjs preserves R1094 and earlier entirely"
+  },
+  "backendAncestor": "b9f82d3608b699dbf0b6a965196c1c800816e683",
+  "historyTradesCommit": "c0140aadfd965d5504fbfa7de426d28d8ad67613",
+  "runtime": "a7749dc3dc5eddb076573b437dd3e503d1b546a4",
+  "visualProof": {
+    "report": "local-data/r1095-review-visual/pre-review-summary.json",
+    "counts": {
+      "team": 275,
+      "historyAndTrades": 36,
+      "notificationPaths": 12,
+      "appearanceLifecycle": 3,
+      "quickComposition": 9,
+      "presentationName": 3,
+      "chatReads": 4,
+      "nativeZoom": 18
+    },
+    "nativeZoom": [
+      0.8,
+      1,
+      1.25
+    ],
+    "actualOccupancyGuard": true,
+    "notes": "Separate scenario sets; earlier misleading legacy fixture was corrected and the complete 275-state matrix rerun. Proofs are local synthetic fixtures, no public conversations."
+  },
+  "intermediateFailures": [
+    {
+      "check": "Initial targeted tests",
+      "reason": "Requested copy expectations and partner refresh coalescing adapted; transient reading persistent-state test advanced in discrete React timer steps",
+      "resolved": true
+    },
+    {
+      "check": "Initial verify:full 7/8",
+      "reason": "Three old Team DOM selectors counted the newly shared empty-card style classes as occupied; assertions changed to actual article cards and flexible class matching",
+      "resolved": true
+    },
+    {
+      "check": "Visual fixture pre-matrix",
+      "reason": "Inherited harness filled four characters for nominal 1..3; corrected and occupancy guard plus all 275 states rerun",
+      "resolved": true
+    }
+  ]
+}
