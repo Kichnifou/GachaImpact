@@ -9,6 +9,11 @@ const body = z.object({ type: z.enum(['AVATAR', 'TITLE', 'BADGE']), cosmeticId: 
 const consultation=z.object({type:z.enum(['AVATAR','TITLE']),cosmeticIds:z.array(z.uuid()).min(1).max(200)}).strict();
 export async function registerAppearanceRoutes(app: FastifyInstance, options: { authenticate: preHandlerHookHandler; service: AppearanceService }) {
   app.addHook('onSend', (_request, reply, _payload, done) => { reply.header('Cache-Control', 'no-store'); done(); });
+  app.patch('/api/v1/me/presentation-name', { preHandler: options.authenticate }, request => {
+    const parsed = z.object({ name: z.string(), expectedRevision: z.number().int().min(0).max(2147483646) }).strict().safeParse(request.body);
+    if (!parsed.success) throw new AppError('Pseudo invalide.', 400, 'PRESENTATION_NAME_INVALID');
+    return options.service.renamePresentation(requireAuthenticatedIdentity(request), parsed.data.name, parsed.data.expectedRevision);
+  });
   app.get('/api/v1/me/appearance', { preHandler: options.authenticate }, request => options.service.get(requireAuthenticatedIdentity(request)));
   app.post('/api/v1/me/appearance/consulted',{preHandler:options.authenticate},request=>{
     const parsed=consultation.safeParse(request.body);

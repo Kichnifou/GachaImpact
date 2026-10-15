@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { assertPlayerDomainReady, isPlayerDomainReady, recoveryAllowsDomain } from '../player/player-recovery-readiness.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { commandTargets } from '../player/player-command-execution.js';
@@ -147,14 +148,14 @@ export class EventService {
       where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } } },
       orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
       take: 10,
-      select: { playerId: true, points: true, player: { select: { displayName: true } } },
+      select: { playerId: true, points: true, player: { select: { presentationName: true, displayName: true } } },
     });
     const own = await this.database.eventParticipant.findFirst({ where: { eventEditionId: context.edition.id, playerId: viewer.id, player: { status: { not: 'ARCHIVED' } } } });
     const before = own ? await this.database.eventParticipant.count({ where: { eventEditionId: context.edition.id, player: { status: { not: 'ARCHIVED' } }, OR: [{ points: { gt: own.points } }, ...(own.joinedAt ? [{ points: own.points, joinedAt: { lt: own.joinedAt } }] : [{ points: own.points, joinedAt: { not: null } }]), { points: own.points, joinedAt: own.joinedAt, playerId: { lt: viewer.id } }] } }) : null;
     return {
       editionId: context.edition.id,
       self: own ? { rank: before! + 1, points: own.points } : null,
-      entries: participants.map(({ playerId, player, points }, index) => ({ rank: index + 1, playerId, displayName: player.displayName, points })),
+      entries: participants.map(({ playerId, player, points }, index) => ({ rank: index + 1, playerId, displayName: presentedName(player), points })),
     };
   }
 
@@ -379,11 +380,11 @@ export class EventService {
     const participant = await this.database.eventParticipant.findUnique({ where: { eventEditionId_playerId: { eventEditionId: context.edition.id, playerId: player.id } }, select: { playerId: true } });
     if (!participant) throw new BusinessError('EVENT_NOT_JOINED', 'Rejoignez le Festival avant de jouer.');
     const rows = await this.database.player.findMany({
-      where: { ...eligibleContactRecipient(player.id), ...(q ? { displayName: { contains: q, mode: 'insensitive' as const } } : {}), ...(query.elementKey ? { elementKey: query.elementKey } : {}) },
-      select: { id: true, displayName: true, elementKey: true, progression: { select: { xp: true } }, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic },
+      where: { ...eligibleContactRecipient(player.id),  ...(query.elementKey ? { elementKey: query.elementKey } : {}) },
+      select: { id: true, displayName: true, presentationName: true, elementKey: true, progression: { select: { xp: true } }, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic },
     });
     const collator = new Intl.Collator('fr-FR', { sensitivity: 'base', numeric: true });
-    const recipients = rows.map(row => ({ playerId: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), level: Math.min(MAX_PLAYER_LEVEL, Number((row.progression?.xp ?? 0n) / XP_PER_LEVEL)) }));
+    const recipients = rows.filter(row => !q || [presentedName(row), row.displayName].some(name => name.toLocaleLowerCase('fr-FR').includes(q.toLocaleLowerCase('fr-FR')))).map(row => ({ playerId: row.id, referenceName: row.displayName, displayName: presentedName(row), elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), level: Math.min(MAX_PLAYER_LEVEL, Number((row.progression?.xp ?? 0n) / XP_PER_LEVEL)) }));
     const direction = query.direction === 'asc' ? 1 : -1;
     recipients.sort((left, right) => {
       const primary = query.sort === 'level' ? left.level - right.level : collator.compare(left.displayName, right.displayName);
@@ -796,7 +797,7 @@ export class EventService {
         where: { playerId_eventDefinitionId: { playerId, eventDefinitionId: context.definition.id } },
       }),
       database.eventGameBDailyState.findUnique({ where: { eventEditionId_businessDate: { eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) } } }),
-      database.eventSocialMessage.findMany({ where: { recipientPlayerId: playerId, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) }, include: { sender: { select: { id: true, displayName: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
+      database.eventSocialMessage.findMany({ where: { recipientPlayerId: playerId, eventEditionId: context.edition.id, businessDate: businessDateToDatabaseDate(context.period.businessDate) }, include: { sender: { select: { id: true, displayName: true, presentationName: true } } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] }),
       database.player.findUnique({ where: { id: playerId }, select: { status: true } }),
       database.eventMilestoneClaim.findMany({ where: { eventEditionId: context.edition.id, playerId }, select: { milestone: true } }),
       database.playerResourceBalance.findMany({ where: { playerId }, select: { resourceKey: true, amount: true } }),
@@ -812,7 +813,7 @@ export class EventService {
       : [];
     if (!global) throw new Error('Event Game B daily state was not materialized.');
     const testedCodes = parseEventGameBTestedCodes(global.testedCodes);
-    const discoverer = global.discovererPlayerId ? await database.player.findUnique({ where: { id: global.discovererPlayerId }, select: { id: true, displayName: true } }) : null;
+    const discoverer = global.discovererPlayerId ? await database.player.findUnique({ where: { id: global.discovererPlayerId }, select: { id: true, displayName: true, presentationName: true } }) : null;
     const gameBTheme = gameBThemes[context.editionSnapshot.externalKey as keyof typeof gameBThemes];
     if (!gameBTheme) throw new BusinessError('EVENT_CONFIGURATION_MISSING', 'La configuration du Jeu B est absente pour ce Festival.');
     const gameCTheme = gameCThemes[context.editionSnapshot.externalKey as keyof typeof gameCThemes];
@@ -864,7 +865,7 @@ export class EventService {
       gameA,
       gameB: {
         available: Boolean(participant), theme: { key: context.editionSnapshot.externalKey, label: gameBTheme },
-        solvedToday: global.solvedAt !== null || global.legacyFound, resolvedCode: global.solvedAt || global.legacyFound ? global.solutionCode : null, discoveredBy: discoverer,
+        solvedToday: global.solvedAt !== null || global.legacyFound, resolvedCode: global.solvedAt || global.legacyFound ? global.solutionCode : null, discoveredBy: discoverer ? { ...discoverer, displayName: presentedName(discoverer) } : null,
         attemptsUsed, attemptsRemaining: participant ? Math.max(0, EVENT_GAME_B_MAX_ATTEMPTS - attemptsUsed) : 0,
         testedCodes, remainingCodes,
         canAttempt: Boolean(participant) && !global.solvedAt && !global.legacyFound && attemptsUsed < EVENT_GAME_B_MAX_ATTEMPTS && remainingCodes.length > 0,
@@ -874,7 +875,7 @@ export class EventService {
         theme: { key: context.editionSnapshot.externalKey, label: gameCTheme },
         sentToday: daily?.gameCSent ?? false,
         canSend: Boolean(participant) && player?.status === 'ACTIVE' && !(daily?.gameCSent ?? false),
-        receivedMessages: receivedMessages.map(({ id, sender, content, createdAt, viewedAt }) => ({ id, sender, message: content, createdAt: createdAt.toISOString(), viewed: viewedAt !== null })),
+        receivedMessages: receivedMessages.map(({ id, sender, content, createdAt, viewedAt }) => ({ id, sender: { ...sender, displayName: presentedName(sender) }, message: content, createdAt: createdAt.toISOString(), viewed: viewedAt !== null })),
         unviewedCount: receivedMessages.filter(({ viewedAt }) => viewedAt === null).length,
       },
     };

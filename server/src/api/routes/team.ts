@@ -1,6 +1,6 @@
 import type { FastifyInstance, preHandlerHookHandler } from 'fastify';
 import { z } from 'zod';
-import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from '../../application/team/team-services.js';
+import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, ReplacePlayerTeamComposition, SetPlayerTeamSlot } from '../../application/team/team-services.js';
 import { requireAuthenticatedIdentity } from '../auth/authentication.js';
 import { AppError } from '../errors.js';
 
@@ -14,6 +14,7 @@ type Options = Readonly<{
   reorderPlayerTeams: ReorderPlayerTeams;
   setPlayerTeamSlot: SetPlayerTeamSlot;
   reorderPlayerTeamSlots: ReorderPlayerTeamSlots;
+  replacePlayerTeamComposition?: ReplacePlayerTeamComposition;
   removePlayerTeamSlot: RemovePlayerTeamSlot;
   clearPlayerTeam: ClearPlayerTeam;
 }>;
@@ -24,6 +25,7 @@ const characterSchema = z.object({ characterId: z.uuid() }).strict();
 const nameSchema = z.object({ name: z.string().nullable() }).strict();
 const createSchema = z.object({ expectedPosition: z.number().int().min(11) }).strict();
 const teamOrderSchema = z.object({ teamIds: z.array(z.uuid()).min(10) }).strict();
+const compositionSchema = z.object({ characterIds: z.array(z.uuid().nullable()).length(4), expectedCharacterIds: z.array(z.uuid().nullable()).length(4), idempotencyKey: z.uuid() }).strict();
 const slotOrderSchema = z.object({ characterIds: z.array(z.uuid().nullable()).length(4) }).strict();
 
 export async function registerTeamRoutes(app: FastifyInstance, options: Options): Promise<void> {
@@ -75,6 +77,13 @@ export async function registerTeamRoutes(app: FastifyInstance, options: Options)
     const body = slotOrderSchema.safeParse(request.body);
     if (!params.success || !body.success) throw validationError();
     return options.reorderPlayerTeamSlots.execute(requireAuthenticatedIdentity(request), params.data.teamId, body.data.characterIds);
+  });
+
+  if (options.replacePlayerTeamComposition) app.put('/api/v1/me/teams/:teamId/composition', { preHandler: options.authenticate }, async (request) => {
+    const params = teamParamsSchema.safeParse(request.params);
+    const body = compositionSchema.safeParse(request.body);
+    if (!params.success || !body.success) throw validationError();
+    return options.replacePlayerTeamComposition!.execute(requireAuthenticatedIdentity(request), params.data.teamId, body.data.characterIds, body.data.expectedCharacterIds, body.data.idempotencyKey);
   });
 
   app.delete('/api/v1/me/teams/:teamId/slots/:position', { preHandler: options.authenticate }, async (request) => {

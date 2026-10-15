@@ -720,8 +720,23 @@ describe('Global Chat foundation on isolated PostgreSQL', () => {
     await db.playerBlock.create({ data: { blockerPlayerId: target, blockedPlayerId: author } });
     expect((await service.searchMentions(as(author), targetName)).players.some(item => item.id === target)).toBe(false);
     advance(4_000);
-    const blocked = await service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }]);
-    expect(await db.globalChatMention.count({ where: { messageId: blocked.message.id } })).toBe(0);
+    await expect(service.send(as(author), `Encore @${targetName}`, randomUUID(), null, [{ playerId: target, displayName: targetName }])).rejects.toMatchObject({ code: 'CHAT_MENTION_CHANGED' });
+  }, 20_000);
+
+  it('rejects stale selected mention labels and preserves their UUID on a fresh homonymous selection', async () => {
+    const author = await player(), target = await player(), collision = await player();
+    await db.player.update({ where: { id: target }, data: { presentationName: 'BetaR1095' } });
+    await db.player.update({ where: { id: collision }, data: { presentationName: 'AlphaR1095' } });
+    const before = await progress(author), beforeMessages = await db.globalChatMessage.count({ where: { authorPlayerId: author } });
+    await expect(service.send(as(author), 'Bonjour @AlphaR1095', randomUUID(), null, [{ playerId: target, displayName: 'AlphaR1095' }])).rejects.toMatchObject({ code: 'CHAT_MENTION_CHANGED' });
+    await expect(service.send(as(author), 'Bonjour @ForgeR1095', randomUUID(), null, [{ playerId: target, displayName: 'ForgeR1095' }])).rejects.toMatchObject({ code: 'CHAT_MENTION_CHANGED' });
+    expect(await progress(author)).toEqual(before);
+    expect(await db.globalChatMessage.count({ where: { authorPlayerId: author } })).toBe(beforeMessages);
+    await db.player.update({ where: { id: collision }, data: { presentationName: 'BetaR1095' } });
+    await expect(service.send(as(author), '@BetaR1095 @BetaR1095', randomUUID(), null, [{ playerId: target, displayName: 'BetaR1095' }, { playerId: collision, displayName: 'BetaR1095' }])).rejects.toMatchObject({ code: 'CHAT_MENTION_CHANGED' });
+    const sent = await service.send(as(author), 'Bonjour @BetaR1095', randomUUID(), null, [{ playerId: target, displayName: 'BetaR1095' }]);
+    expect((await db.globalChatMention.findMany({ where: { messageId: sent.message.id } })).map(row => row.mentionedPlayerId)).toEqual([target]);
+    expect(sent.message.resolvedMentions).toEqual([{ playerId: target, displayName: 'BetaR1095' }]);
   }, 20_000);
 
   it('resolves whole normalized direct mentions, deduplicates, and highlights replies to the viewer', async () => {

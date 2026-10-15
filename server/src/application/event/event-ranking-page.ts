@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 
 export const EVENT_RANKING_PAGE_SIZE = 5;
@@ -12,7 +13,7 @@ export async function readEventRankingPage(database: Prisma.TransactionClient, e
   const participants = await database.eventParticipant.findMany({
     where, orderBy: [{ points: 'desc' }, { joinedAt: 'asc' }, { playerId: 'asc' }],
     skip, take: EVENT_RANKING_PAGE_SIZE,
-    select: { playerId: true, points: true, player: { select: { displayName: true } } },
+    select: { playerId: true, points: true, player: { select: { displayName: true, presentationName: true } } },
   });
   const own = await database.eventParticipant.findFirst({ where: { ...where, playerId: viewerId }, select: { points: true, joinedAt: true } });
   const before = own ? await database.eventParticipant.count({ where: { ...where, OR: [
@@ -22,6 +23,6 @@ export async function readEventRankingPage(database: Prisma.TransactionClient, e
   ] } }) : null;
   return { editionId, page, pageSize: EVENT_RANKING_PAGE_SIZE, pageCount, total,
     self: own ? { rank: before! + 1, points: own.points } : null,
-    entries: participants.map(({ playerId, player, points }, index) => ({ rank: skip + index + 1, playerId, displayName: player.displayName, points })),
+    entries: participants.map(({ playerId, player, points }, index) => ({ rank: skip + index + 1, playerId, displayName: presentedName(player), points })),
   };
 }

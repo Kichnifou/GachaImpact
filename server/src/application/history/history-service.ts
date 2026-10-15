@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { PlayerActivityService, type ActivityRange } from '../player/player-activity-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { GenerationVoteSnapshot } from '../../domain/gacha/gacha.js';
@@ -57,7 +58,7 @@ export class HistoryService {
     ]);
     const ids = editions.map(edition => edition.id);
     const [participants, claims, acquisitions] = ids.length ? await Promise.all([
-      this.database.eventParticipant.findMany({ where: { eventEditionId: { in: ids }, player: { status: { not: 'ARCHIVED' } } }, select: { eventEditionId: true, playerId: true, points: true, joinedAt: true, player: { select: { displayName: true } } } }),
+      this.database.eventParticipant.findMany({ where: { eventEditionId: { in: ids }, player: { status: { not: 'ARCHIVED' } } }, select: { eventEditionId: true, playerId: true, points: true, joinedAt: true, player: { select: { presentationName: true, displayName: true } } } }),
       this.database.eventMilestoneClaim.findMany({ where: { eventEditionId: { in: ids }, playerId }, select: { eventEditionId: true, milestone: true } }),
       this.database.eventCollectionAcquisition.findMany({ where: { eventEditionId: { in: ids }, playerId }, select: { eventEditionId: true, item: { select: { displayName: true } } } }),
     ]) : [[], [], []];
@@ -65,7 +66,7 @@ export class HistoryService {
       const snapshot = edition.snapshot && typeof edition.snapshot === 'object' && !Array.isArray(edition.snapshot) ? edition.snapshot as Record<string, unknown> : {};
       const sorted = participants.filter(row => row.eventEditionId === edition.id)
         .sort((a, b) => b.points - a.points || (a.joinedAt?.getTime() ?? Number.MAX_SAFE_INTEGER) - (b.joinedAt?.getTime() ?? Number.MAX_SAFE_INTEGER) || a.playerId.localeCompare(b.playerId));
-      const ranked = sorted.map((row, index) => ({ rank: index + 1, playerId: row.playerId, displayName: row.player.displayName, points: row.points }));
+      const ranked = sorted.map((row, index) => ({ rank: index + 1, playerId: row.playerId, displayName: presentedName(row.player), points: row.points }));
       const own = ranked.find(row => row.playerId === playerId);
       const acquired = acquisitions.find(row => row.eventEditionId === edition.id);
       return {

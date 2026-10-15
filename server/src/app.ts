@@ -58,7 +58,7 @@ import type { GetCharacters, GetCurrentGacha, GetGachaHistory, PerformGachaPull,
 import type { GetTodayDailyReward } from './application/daily-reward/get-today-daily-reward.js';
 import type { ClaimDailyReward } from './application/daily-reward/claim-daily-reward.js';
 import type { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from './application/box/box-services.js';
-import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from './application/team/team-services.js';
+import type { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, ReplacePlayerTeamComposition, SetPlayerTeamSlot } from './application/team/team-services.js';
 import type { GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from './application/banking/banking-services.js';
 import type { GetCurrentPlayerInventory, GetCurrentPlayerInventoryItemDetail } from './application/inventory/inventory-services.js';
 import type { AppConfig } from './config/environment.js';
@@ -155,6 +155,7 @@ export type AppDependencies = Readonly<{
   reorderPlayerTeams?: ReorderPlayerTeams;
   setPlayerTeamSlot?: SetPlayerTeamSlot;
   reorderPlayerTeamSlots?: ReorderPlayerTeamSlots;
+  replacePlayerTeamComposition?: ReplacePlayerTeamComposition;
   removePlayerTeamSlot?: RemovePlayerTeamSlot;
   clearPlayerTeam?: ClearPlayerTeam;
   getCurrentPlayerBank?: GetCurrentPlayerBank;
@@ -293,6 +294,7 @@ export async function buildApp(
         reorderPlayerTeams: dependencies.reorderPlayerTeams,
         setPlayerTeamSlot: dependencies.setPlayerTeamSlot,
         reorderPlayerTeamSlots: dependencies.reorderPlayerTeamSlots,
+        replacePlayerTeamComposition: dependencies.replacePlayerTeamComposition,
         removePlayerTeamSlot: dependencies.removePlayerTeamSlot,
         clearPlayerTeam: dependencies.clearPlayerTeam,
       });

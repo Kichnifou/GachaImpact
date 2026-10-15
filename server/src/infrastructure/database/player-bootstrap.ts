@@ -1,7 +1,7 @@
 import { Prisma } from '../../../generated/prisma/client.js';
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 
-export const currentPlayerSelection = { id: true, displayName: true, elementKey: true, status: true } satisfies Prisma.PlayerSelect;
+export const currentPlayerSelection = { id: true, displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, status: true } satisfies Prisma.PlayerSelect;
 
 /** Both identities start from these defaults; no auth identity is implied. */
 export async function bootstrapPlayer(tx: Prisma.TransactionClient, input: {

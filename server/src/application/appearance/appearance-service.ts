@@ -1,3 +1,4 @@
+import { presentedName, presentationNameSchema } from '../player/presentation-name.js';
 import { CosmeticType, CosmeticVisibility, Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
@@ -39,14 +40,29 @@ export function avatarAssetPath(player: Pick<AppearancePlayer, 'displayName' | '
 export class AppearanceService {
   constructor(private readonly database: PrismaClient, private readonly getPlayer: GetCurrentPlayer) {}
 
+  async renamePresentation(identity: AuthenticatedIdentity, input: unknown, expectedRevision: number) {
+    const parsed = presentationNameSchema.safeParse(input);
+    if (!parsed.success) throw new AppError('Le pseudo doit contenir de 1 à 40 caractères, sans caractères de contrôle.', 400, 'PRESENTATION_NAME_INVALID');
+    const actor = await this.actor(identity);
+    return this.database.$transaction(async tx => {
+      const locked = await tx.$queryRaw<{ status: string }[]>`SELECT status::text FROM players WHERE id = ${actor.id}::uuid FOR UPDATE`;
+      if (locked[0]?.status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
+      const player = await tx.player.findUniqueOrThrow({ where: { id: actor.id }, select: { id: true, displayName: true, presentationName: true, presentationNameRevision: true } });
+      if (presentedName(player) === parsed.data) return { id: player.id, displayName: presentedName(player), revision: player.presentationNameRevision };
+      if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0 || player.presentationNameRevision !== expectedRevision) throw new AppError('Le pseudo a changé. Rechargez le profil avant de confirmer.', 409, 'PRESENTATION_NAME_CONFLICT');
+      await tx.player.update({ where: { id: actor.id }, data: { presentationName: parsed.data, presentationNameRevision: { increment: 1 } } });
+      return { id: player.id, displayName: parsed.data, revision: player.presentationNameRevision + 1 };
+    });
+  }
+
   async playerAvatarAssetPath(playerId: string) {
-    const player = await this.database.player.findUnique({ where: { id: playerId }, select: { displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } });
+    const player = await this.database.player.findUnique({ where: { id: playerId }, select: { displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic } });
     return player ? avatarAssetPath(player) : null;
   }
 
   async playerIdentityAppearance(playerId: string) {
-    const player = await this.database.player.findUnique({ where: { id: playerId }, select: { displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } });
-    return { avatarAssetPath: player ? avatarAssetPath(player) : null, badgeSymbol: freeBadgeSymbol(player?.equippedBadgeCosmetic) };
+    const player = await this.database.player.findUnique({ where: { id: playerId }, select: { displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } });
+    return { ...(player ? { displayName: presentedName(player), presentationNameRevision: player.presentationNameRevision } : {}), avatarAssetPath: player ? avatarAssetPath(player) : null, badgeSymbol: freeBadgeSymbol(player?.equippedBadgeCosmetic) };
   }
 
   private async actor(identity: AuthenticatedIdentity) {
@@ -58,7 +74,7 @@ export class AppearanceService {
   async get(identity: AuthenticatedIdentity) {
     const actor = await this.actor(identity);
     const [player, definitions, possessions, characters] = await Promise.all([
-      this.database.player.findUniqueOrThrow({ where: { id: actor.id }, select: { displayName: true, elementKey: true, ...appearanceSelect } }),
+      this.database.player.findUniqueOrThrow({ where: { id: actor.id }, select: { displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, ...appearanceSelect } }),
       this.database.cosmeticDefinition.findMany({ where: { OR: [{ isActive: true }, { owners: { some: { playerId: actor.id } } }] }, orderBy: [{ type: 'asc' }, { displayName: 'asc' }], select: { id: true, externalKey: true, type: true, displayName: true, assetPath: true, sourceCharacterId: true, sourceCharacter: { select: { name: true, iconPath: true } }, conditionText: true, unlockRule: true, visibility: true, isActive: true } }),
       this.database.playerCosmetic.findMany({ where: { playerId: actor.id }, select: { cosmeticId: true, unlockedAt: true, consultedAt: true, acquisitionDateKnown: true } }),
       this.database.playerCharacter.findMany({ where: { playerId: actor.id }, select: { characterId: true } }),

@@ -14,6 +14,7 @@ import {
   RenamePlayerTeam,
   ReorderPlayerTeams,
   ReorderPlayerTeamSlots,
+  ReplacePlayerTeamComposition,
   SetPlayerTeamSlot,
 } from '../src/application/team/team-services.js';
 import type { PlayerTeams, TeamStore } from '../src/application/team/team-store.js';
@@ -57,6 +58,7 @@ class FakeTeamStore implements TeamStore {
   public reorderTeams = vi.fn(async () => { this.calls.push('reorder-teams'); return snapshot(); });
   public setSlot = vi.fn(async () => { this.calls.push('set'); return snapshot(); });
   public reorderSlots = vi.fn(async () => { this.calls.push('reorder-slots'); return snapshot(); });
+  public replaceComposition = vi.fn(async () => snapshot());
   public removeSlot = vi.fn(async () => { this.calls.push('remove'); return snapshot(); });
   public clear = vi.fn(async () => { this.calls.push('clear'); return snapshot(); });
 }
@@ -175,6 +177,7 @@ describe('Team HTTP contracts', () => {
       reorderPlayerTeams: new ReorderPlayerTeams(currentPlayer, store),
       setPlayerTeamSlot: new SetPlayerTeamSlot(currentPlayer, store),
       reorderPlayerTeamSlots: new ReorderPlayerTeamSlots(currentPlayer, store),
+      replacePlayerTeamComposition: new ReplacePlayerTeamComposition(currentPlayer, store),
       removePlayerTeamSlot: new RemovePlayerTeamSlot(currentPlayer, store),
       clearPlayerTeam: new ClearPlayerTeam(currentPlayer, store),
     });
@@ -219,6 +222,24 @@ describe('Team HTTP contracts', () => {
     expect((await app.inject({ method: 'DELETE', url: `/api/v1/me/teams/${otherTeamId}`, headers })).statusCode).toBe(200);
     expect(store.calls).toEqual(['activate', 'rename', 'create', 'reorder-teams', 'set', 'reorder-slots', 'remove', 'clear', 'delete']);
     expect(store.setSlot).toHaveBeenCalledWith(playerId, teamId, 2, characterId);
+  });
+
+  it('authenticates and validates the atomic composition contract without accepting a target Player', async () => {
+    const { app, store } = await setup();
+    const url = `/api/v1/me/teams/${teamId}/composition`;
+    const headers = { authorization: 'Bearer token' };
+    const payload = { characterIds: [characterId, null, null, null], expectedCharacterIds: [null, null, null, null], idempotencyKey: crypto.randomUUID() };
+    expect((await app.inject({ method: 'PUT', url, payload })).statusCode).toBe(401);
+    for (const invalid of [
+      { ...payload, characterIds: [null, null, null] },
+      { ...payload, expectedCharacterIds: [null, null, null, null, null] },
+      { ...payload, idempotencyKey: 'invalid' },
+      { ...payload, playerId: crypto.randomUUID() },
+    ]) expect((await app.inject({ method: 'PUT', url, headers, payload: invalid })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url, headers, payload })).statusCode).toBe(200);
+    expect(store.replaceComposition).toHaveBeenCalledWith(playerId, teamId, payload.characterIds, payload.expectedCharacterIds, payload.idempotencyKey);
+    store.replaceComposition.mockRejectedValueOnce(new BusinessError('TEAM_COMPOSITION_CHANGED', 'Composition modifiée.'));
+    expect((await app.inject({ method: 'PUT', url, headers, payload })).statusCode).toBe(409);
   });
 
   it('normalizes optional Team names and rejects names longer than twenty characters', async () => {

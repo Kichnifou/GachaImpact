@@ -11,7 +11,10 @@ if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Team data
 const isolated = isolatedBatchDatabase();
 const database = isolated.database;
 beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
-afterAll(() => isolated.cleanup(), 60_000);
+afterAll(async () => {
+  await isolated.cleanup();
+  console.info(`Team private schema cleaned: ${isolated.schema}`);
+}, 60_000);
 const playerIds = new Set<string>();
 const characterIds = new Set<string>();
 let activeCharacterIds: string[] = [];
@@ -44,6 +47,83 @@ afterAll(async () => {
 });
 
 describe('authoritative Team persistence', () => {
+  it.each(['SUSPENDED', 'ARCHIVED'] as const)('rejects composition writes and receipt replay for a %s Player under the mutation lock', async status => {
+    const player = await createPlayer(`Quick ${status}`); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id), target = initial.teams[0]!, key = randomUUID();
+    const empty = [null, null, null, null], ids = [activeCharacterIds[0]!, null, null, null];
+    await store.replaceComposition(player.id, target.id, ids, empty, key);
+    await database.player.update({ where: { id: player.id }, data: { status } });
+    await expect(store.replaceComposition(player.id, target.id, ids, empty, key)).rejects.toMatchObject({ code: 'PLAYER_INACTIVE', statusCode: 403 });
+    await expect(store.replaceComposition(player.id, target.id, empty, ids, randomUUID())).rejects.toMatchObject({ code: 'PLAYER_INACTIVE', statusCode: 403 });
+    expect(await database.teamMember.findMany({ where: { teamId: target.id }, select: { position: true, characterId: true } })).toEqual([{ position: 1, characterId: activeCharacterIds[0] }]);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, operationType: 'team.composition' } })).toBe(1);
+  });
+
+  it('atomically replaces 0..4 slots with holes without activating an inactive Team', async () => {
+    const player = await createPlayer('Quick composition'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id), target = initial.teams[1]!;
+    let expected: (string | null)[] = [null, null, null, null];
+    for (const ids of [[null, activeCharacterIds[0]!, null, null], [activeCharacterIds[1]!, null, activeCharacterIds[2]!, null], [activeCharacterIds[0]!, activeCharacterIds[2]!, null, activeCharacterIds[4]!], activeCharacterIds.slice(0, 4), [null, null, null, null]]) {
+      const result = await store.replaceComposition(player.id, target.id, ids, expected, randomUUID());
+      const team = result.teams.find(team => team.id === target.id)!;
+      expect(team.slots.map(slot => slot.character?.id ?? null)).toEqual(ids);
+      expect(team.active).toBe(false);
+      expect(result.teams.find(team => team.active)?.id).toBe(initial.teams[0]!.id);
+      expect(team.passives.map(passive => passive.elementKey).sort()).toEqual([...new Set(team.slots.flatMap(slot => slot.character ? [slot.character.elementKey] : []))].sort());
+      expected = ids;
+    }
+  });
+
+  it('rejects forged unavailable and duplicate compositions and rolls back a complete duplicate after delete/create', async () => {
+    const player = await createPlayer('Quick validation'), other = await createPlayer('Quick other');
+    await possess(player.id, [...activeCharacterIds, inactiveCharacterId]);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id);
+    const source = initial.teams[0]!, target = initial.teams[1]!, empty = [null, null, null, null];
+    await fillTeam(store, player.id, source.id, activeCharacterIds.slice(0, 4));
+    const old = [null, null, activeCharacterIds[4]!, null];
+    await store.replaceComposition(player.id, target.id, old, empty, randomUUID());
+    const failedKey = randomUUID();
+    await expect(store.replaceComposition(player.id, target.id, activeCharacterIds.slice(0, 4), old, failedKey)).rejects.toMatchObject({ code: 'TEAM_COMPOSITION_DUPLICATE' });
+    expect((await store.getOrProvision(player.id)).teams[1]!.slots.map(slot => slot.character?.id ?? null)).toEqual(old);
+    expect(await database.businessOperation.count({ where: { idempotencyKey: `team.composition:${failedKey}` } })).toBe(0);
+    await expect(store.replaceComposition(other.id, target.id, empty, old, randomUUID())).rejects.toMatchObject({ code: 'TEAM_NOT_FOUND' });
+    const otherTeam = (await store.getOrProvision(other.id)).teams[0]!;
+    await expect(store.replaceComposition(other.id, otherTeam.id, [activeCharacterIds[0]!, null, null, null], empty, randomUUID())).rejects.toMatchObject({ code: 'TEAM_CHARACTER_NOT_AVAILABLE' });
+    for (const characterId of [randomUUID(), inactiveCharacterId]) await expect(store.replaceComposition(player.id, target.id, [characterId, null, null, null], old, randomUUID())).rejects.toMatchObject({ code: 'TEAM_CHARACTER_NOT_AVAILABLE' });
+    await expect(store.replaceComposition(player.id, target.id, [activeCharacterIds[0]!, activeCharacterIds[0]!, null, null], old, randomUUID())).rejects.toMatchObject({ code: 'TEAM_CHARACTER_DUPLICATE' });
+    await expect(store.reorderSlots(player.id, target.id, [activeCharacterIds[0]!, null, null, null])).rejects.toMatchObject({ code: 'TEAM_SLOT_ORDER_INVALID' });
+  });
+
+  it('records one UI receipt and replays before snapshot checking without overwriting a later Twitch mutation', async () => {
+    const player = await createPlayer('Quick replay'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id), target = initial.teams[0]!, key = randomUUID();
+    const empty = [null, null, null, null], ids = [null, activeCharacterIds[0]!, null, null];
+    const results = await Promise.all([store.replaceComposition(player.id, target.id, ids, empty, key), store.replaceComposition(player.id, target.id, ids, empty, key)]);
+    expect(results[0]).toEqual(results[1]);
+    await store.setSlot(player.id, target.id, 1, activeCharacterIds[1]!, randomUUID());
+    expect(await store.replaceComposition(player.id, target.id, ids, empty, key)).toEqual(results[0]);
+    expect((await store.getOrProvision(player.id)).teams[0]!.slots[0]!.character?.id).toBe(activeCharacterIds[1]);
+    expect(await database.businessOperation.count({ where: { playerId: player.id, operationType: 'team.composition', sourceChannel: 'UI' } })).toBe(1);
+    await expect(store.replaceComposition(player.id, target.id, empty, empty, key)).rejects.toMatchObject({ code: 'TEAM_IDEMPOTENCY_CONFLICT' });
+    const other = await createPlayer('Quick wrong receipt');
+    await expect(store.replaceComposition(other.id, target.id, ids, empty, key)).rejects.toMatchObject({ code: 'TEAM_IDEMPOTENCY_CONFLICT' });
+  }, 25_000);
+
+  it('serializes two complete intentions and rejects stale snapshots from slot mutations and reorderings', async () => {
+    const player = await createPlayer('Quick concurrent'); await possess(player.id, activeCharacterIds);
+    const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id), target = initial.teams[0]!;
+    const empty = [null, null, null, null];
+    const results = await Promise.allSettled(activeCharacterIds.slice(0, 2).map(id => store.replaceComposition(player.id, target.id, [id, null, null, null], empty, randomUUID())));
+    expect(results.filter(result => result.status === 'fulfilled')).toHaveLength(1);
+    expect((results.find(result => result.status === 'rejected') as PromiseRejectedResult).reason).toMatchObject({ code: 'TEAM_COMPOSITION_CHANGED' });
+    const before = (await store.getOrProvision(player.id)).teams[0]!.slots.map(slot => slot.character?.id ?? null);
+    await store.reorderSlots(player.id, target.id, [null, before[0]!, null, null]);
+    await expect(store.replaceComposition(player.id, target.id, empty, before, randomUUID())).rejects.toMatchObject({ code: 'TEAM_COMPOSITION_CHANGED' });
+    await store.clear(player.id, target.id, randomUUID());
+    await store.setSlot(player.id, target.id, 4, activeCharacterIds[2]!, randomUUID());
+    await expect(store.replaceComposition(player.id, target.id, empty, empty, randomUUID())).rejects.toMatchObject({ code: 'TEAM_COMPOSITION_CHANGED' });
+  }, 25_000);
+
   it('reuses the first completely empty Team, preserving names and occupied compositions', async () => {
     const player = await createPlayer('Available'); await possess(player.id, activeCharacterIds);
     const store = new PrismaTeamStore(database), initial = await store.getOrProvision(player.id);

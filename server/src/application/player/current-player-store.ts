@@ -4,6 +4,8 @@ export type ProvisionCurrentPlayerInput = Readonly<{
   provider: string;
   providerSubject: string;
   displayName: string;
+  presentationName?: string | null;
+  presentationNameRevision?: number;
 }>;
 
 export type CurrentPlayerResult = Readonly<{

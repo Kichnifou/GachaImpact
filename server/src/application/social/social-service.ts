@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { FavorService } from '../favor/favor-service.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
@@ -36,11 +37,11 @@ export class SocialService {
   async actor(identity: PlayerExecutionActor) {
     const player = await this.getPlayer.execute(identity);
     if (player.status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
-    return player;
+    return 'subject' in identity ? { ...player, displayName: presentedName(player) } : player;
   }
   private async identities(element?: string) {
-    const rows = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(element ? { elementKey: element } : {}) }, select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, progression: { select: { xp: true } } } });
-    return rows.map(row => ({ id: row.id, displayName: row.displayName, elementKey: row.elementKey && isElementKey(row.elementKey) ? row.elementKey : null, avatarAssetPath: avatarAssetPath(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }))
+    const rows = await this.database.player.findMany({ where: { status: 'ACTIVE', ...(element ? { elementKey: element } : {}) }, select: { id: true, displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, progression: { select: { xp: true } } } });
+    return rows.map(row => ({ id: row.id, referenceName: row.displayName, displayName: presentedName(row), elementKey: row.elementKey && isElementKey(row.elementKey) ? row.elementKey : null, avatarAssetPath: avatarAssetPath(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }))
       .sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
   }
   private visiblePresence(viewer: string, ids: string[]) { return this.presence.visibleFor(viewer, ids); }
@@ -49,7 +50,7 @@ export class SocialService {
     // Same accent/case/substring semantics as the existing Player browser. Only identities
     // are scanned; authorized presence is batched before status filtering/pagination.
     const needle = normalizePlayerSearch(query.q);
-    let identities = (await this.identities(query.element)).filter(p => normalizePlayerSearch(p.displayName).includes(needle));
+    let identities = (await this.identities(query.element)).filter(p => [p.displayName, p.referenceName].some(name => normalizePlayerSearch(name).includes(needle)));
     const presence = await this.visiblePresence(viewer.id, identities.map(p => p.id));
     if (query.status) identities = identities.filter(p => presence.get(p.id) === query.status);
     const social = await this.friendship.snapshot(viewer.id);
@@ -103,7 +104,7 @@ export class SocialService {
   }
   async profile(identity: PlayerExecutionActor, playerId: string) {
     const viewer = await this.actor(identity);
-    const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, elementKey: true, ...appearanceSelect, progression: { select: { xp: true } } } });
+    const row = await this.database.player.findFirst({ where: { id: playerId, status: 'ACTIVE' }, select: { id: true, displayName: true, presentationName: true, presentationNameRevision: true, elementKey: true, ...appearanceSelect, progression: { select: { xp: true } } } });
     if (!row) throw new AppError('Joueur introuvable.', 404, 'PLAYER_NOT_FOUND');
     const permissions = await this.privacy.permissions(playerId, viewer.id);
     const [presence, activity, team, box, collection, statistics, favor] = await Promise.all([
@@ -118,6 +119,6 @@ export class SocialService {
     const legends = box.access === 'ALLOWED' && box.data.some(character => character.rarity === 5 && character.constellation === 6)
       ? await this.legends(identity, playerId, permissions.GENERAL_STATISTICS)
       : permissions.BOX ? allowed({ characters: [], legends: [] }) : hidden;
-    return { player: { id: row.id, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics, favor, legends };
+    return { player: { id: row.id, presentationNameRevision: row.presentationNameRevision, displayName: presentedName(row), elementKey: row.elementKey, avatarAssetPath: avatarAssetPath(row), title: equippedTitle(row), level: row.progression ? derivePlayerLevel(row.progression.xp) : 0 }, own: viewer.id === playerId, presence, lastActivity: activity, team, box, collection, statistics, favor, legends };
   }
 }

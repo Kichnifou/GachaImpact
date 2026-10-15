@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { commandTargets } from '../player/player-command-execution.js';
 import { commandNow } from '../player/player-command-execution.js';
 import { NotificationState, Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
@@ -93,8 +94,8 @@ export class FriendshipService {
         const request = pending ?? await tx.friendRequest.create({ data: { senderPlayerId: playerId, recipientPlayerId: target, sourceChannel: source, createdAt: now } });
         changed = !pending; result = { state: 'PENDING', requestId: request.id };
         if (!pending) {
-          const sender = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true } });
-          await tx.notification.create({ data: { playerId: target, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', deduplicationKey: `friend-request:${request.id}`, payload: { senderPlayerId: playerId, senderDisplayName: sender.displayName }, actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
+          const sender = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true, presentationName: true } });
+          await tx.notification.create({ data: { playerId: target, domainKey: 'social', typeKey: 'FRIEND_REQUEST_RECEIVED', deduplicationKey: `friend-request:${request.id}`, payload: { senderPlayerId: playerId, senderDisplayName: presentedName(sender) }, actionKey: 'OPEN_SOCIAL_REQUESTS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
         }
       } else {
         if (!pending || (requestId && pending.id !== requestId) || (action === 'CANCEL' ? pending.senderPlayerId !== playerId : pending.recipientPlayerId !== playerId)) throw unavailable();
@@ -107,8 +108,8 @@ export class FriendshipService {
             ? await tx.friendship.update({ where: { id: friendship.id }, data: { state: 'ACTIVE', archivedAt: null, retiredByProgressionAt: null } })
             : await tx.friendship.create({ data: { ...playerPair, level: 1, becameFriendsAt: now } });
           result.friendshipId = relation.id;
-          const acceptor = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true } });
-          await tx.notification.create({ data: { playerId: pending.senderPlayerId, domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', deduplicationKey: `friend-request-accepted:${pending.id}`, payload: { acceptorPlayerId: playerId, acceptorDisplayName: acceptor.displayName }, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
+          const acceptor = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true, presentationName: true } });
+          await tx.notification.create({ data: { playerId: pending.senderPlayerId, domainKey: 'social', typeKey: 'FRIEND_REQUEST_ACCEPTED', deduplicationKey: `friend-request-accepted:${pending.id}`, payload: { acceptorPlayerId: playerId, acceptorDisplayName: presentedName(acceptor) }, actionKey: 'OPEN_SOCIAL_FRIENDS', actionTargetId: playerId, state: NotificationState.UNREAD, createdAt: now } });
         }
       }
       await this.complete(tx, playerId, key, source, type, intentTarget, result, now);

@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { ArcadeSession, ArcadeStat, Prisma } from '../../../generated/prisma/client.js';
 import { projectMemory, memoryLayout } from '../../domain/arcade/memory.js';
 import { arcadeGames, type ArcadeGame, type ArcadeDifficulty, type ArcadeState, type Outcome } from '../../domain/arcade/types.js';
@@ -5,10 +6,10 @@ import { banterText } from '../../domain/arcade/banter.js';
 import { performancePoints } from '../../domain/arcade/points.js';
 import { inverseOutcome } from './arcade-finalization.js';
 
-export function projectSession(row: ArcadeSession & { player?: { id: string; displayName: string; status?: string }; opponent?: { id: string; displayName: string; status?: string } | null }, viewer = row.playerId) {
+export function projectSession(row: ArcadeSession & { player?: { id: string; displayName: string; presentationName?: string | null; status?: string }; opponent?: { id: string; displayName: string; presentationName?: string | null; status?: string } | null }, viewer = row.playerId) {
   const state = row.privateState as unknown as ArcadeState;
   const multiplayer = row.mode === 'MULTIPLAYER';
-  const present = (player: typeof row.player) => player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? 'Progression archivée' : player.displayName } : null;
+  const present = (player: typeof row.player) => player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(player) } : null;
   const player = present(row.player), opponent = present(row.opponent ?? undefined);
   const guest = multiplayer && viewer === row.opponentPlayerId;
   const outcome = row.outcome ? guest ? inverseOutcome(row.outcome as Outcome) : row.outcome as Outcome : null;

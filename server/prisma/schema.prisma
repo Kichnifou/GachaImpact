@@ -365,6 +365,8 @@ model Player {
   tradesReceived TradeRequest[] @relation("TradeRecipient")
   id                    String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   displayName           String                       @map("display_name") @db.Text
+  presentationName      String?                      @map("presentation_name") @db.Text
+  presentationNameRevision Int                       @default(0) @map("presentation_name_revision")
   elementKey            String?                      @map("element_key") @db.Text
   equippedAvatarCosmeticId String?                   @map("equipped_avatar_cosmetic_id") @db.Uuid
   equippedTitleCosmeticId String?                    @map("equipped_title_cosmetic_id") @db.Uuid

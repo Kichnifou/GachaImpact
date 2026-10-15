@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import { isDeepStrictEqual } from 'node:util';
 import { randomUUID } from 'node:crypto';
@@ -121,7 +122,8 @@ export class SharedInvocations {
         if (!current)
             throw new BusinessError('GACHA_BANNER_UNAVAILABLE', 'La bannière est indisponible.');
         const avatar = await tx.player.findUnique({ where: { id: playerId }, select: { equippedAvatarCosmetic: { select: { assetPath: true } } } });
-        return { displayName, avatarPath: avatar?.equippedAvatarCosmetic?.assetPath ?? null, gacha: { banner: sharedBanner(current.banner), playerState: sharedState(current.playerState) }, presentation: { phase: 'idle', index: 0, pull: null } };
+        const identity = await tx.player.findUniqueOrThrow({ where: { id: playerId }, select: { displayName: true, presentationName: true } });
+        return { displayName: presentedName(identity) || displayName, avatarPath: avatar?.equippedAvatarCosmetic?.assetPath ?? null, gacha: { banner: sharedBanner(current.banner), playerState: sharedState(current.playerState) }, presentation: { phase: 'idle', index: 0, pull: null } };
     }
     async list(identity: AuthenticatedIdentity) {
         await this.owner(identity);
@@ -256,11 +258,11 @@ export class SharedInvocations {
             const ids=(await tx.$queryRaw<{player_id:string}[]>`SELECT player_id FROM shared_invocation_members WHERE watching_id=${session.id}::uuid AND player_id<>${session.owner_id}::uuid AND EXISTS(SELECT 1 FROM jsonb_array_elements(viewer_presences) lease WHERE (lease->>'until')::timestamptz>${now})`).map(row=>row.player_id);
             const where={AND:[{id:{in:ids},status:'ACTIVE' as const},privacyAllowedWhere(p.id,'PRESENCE')]};
             const total=await tx.player.count({where}), totalPages=Math.max(1,Math.ceil(total/20)), currentPage=Math.min(page,totalPages);
-            const select={id:true,displayName:true,elementKey:true,equippedAvatarCosmetic:appearanceSelect.equippedAvatarCosmetic} as const;
+            const select={id:true,displayName:true,presentationName:true,elementKey:true,equippedAvatarCosmetic:appearanceSelect.equippedAvatarCosmetic} as const;
             const orderBy=[{displayName:'asc' as const},{id:'asc' as const}];
             const preview=await tx.player.findMany({where,select,orderBy,take:5});
             const players=await tx.player.findMany({where,select,orderBy,skip:(currentPage-1)*20,take:20});
-            const project=(row:typeof players[number])=>({playerId:row.id,displayName:row.displayName,avatarPath:avatarAssetPath(row)});
+            const project=(row:typeof players[number])=>({playerId:row.id,displayName:presentedName(row),avatarPath:avatarAssetPath(row)});
             return {sessionId:session.id,total,page:currentPage,totalPages,preview:preview.map(project),players:players.map(project)};
         });
     }

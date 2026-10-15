@@ -80,6 +80,17 @@ export class ReorderPlayerTeamSlots {
   }
 }
 
+export class ReplacePlayerTeamComposition {
+  public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
+  public async execute(identity: PlayerExecutionActor, teamId: string, characterIds: readonly (string | null)[], expectedCharacterIds: readonly (string | null)[], idempotencyKey: string) {
+    if (characterIds.length !== 4 || expectedCharacterIds.length !== 4) {
+      throw new BusinessError('TEAM_SLOT_ORDER_INVALID', 'Une composition doit contenir exactement quatre emplacements.');
+    }
+    const player = await this.getPlayer.execute(identity);
+    return this.store.replaceComposition(player.id, teamId, characterIds, expectedCharacterIds, idempotencyKey);
+  }
+}
+
 export class RemovePlayerTeamSlot {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: TeamStore) {}
   public async execute(identity: PlayerExecutionActor, teamId: string, position: number, chatKey?: string, expectedCharacterId?: string) {

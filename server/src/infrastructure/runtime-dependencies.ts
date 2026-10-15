@@ -44,7 +44,7 @@ import { CatalogAdminService } from '../application/character-catalog/catalog-ad
 import { EventMonthlyDrawScheduler, EventMonthlyDrawService } from '../application/event/event-monthly-draw-service.js';
 import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, UseMasterlessStella } from '../application/box/box-services.js';
 import { PrismaBoxStore } from './database/prisma-box-store.js';
-import { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, SetPlayerTeamSlot } from '../application/team/team-services.js';
+import { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, ReplacePlayerTeamComposition, SetPlayerTeamSlot } from '../application/team/team-services.js';
 import { PrismaTeamStore } from './database/prisma-team-store.js';
 import { BankInterestScheduler } from '../application/banking/bank-interest-scheduler.js';
 import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../application/banking/banking-services.js';
@@ -227,6 +227,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     reorderPlayerTeams: new ReorderPlayerTeams(getCurrentPlayer, teamStore),
     setPlayerTeamSlot: new SetPlayerTeamSlot(getCurrentPlayer, teamStore),
     reorderPlayerTeamSlots: new ReorderPlayerTeamSlots(getCurrentPlayer, teamStore),
+    replacePlayerTeamComposition: new ReplacePlayerTeamComposition(getCurrentPlayer, teamStore),
     removePlayerTeamSlot: new RemovePlayerTeamSlot(getCurrentPlayer, teamStore),
     clearPlayerTeam: new ClearPlayerTeam(getCurrentPlayer, teamStore),
     getCurrentPlayerBank: new GetCurrentPlayerBank(getCurrentPlayer, bankingStore, clock),

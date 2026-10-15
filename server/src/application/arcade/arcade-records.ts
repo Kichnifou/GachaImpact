@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import type { ArcadeDifficulty, ArcadeGame } from '../../domain/arcade/types.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
@@ -11,14 +12,14 @@ export class ArcadeRecords {
   async list(playerId: string, query: ArcadeRankingQuery) {
     const stats = await this.database.arcadeStat.findMany({ where: { ...(query.game === 'TOTAL' ? {} : { game: query.game }),
       ...(query.kind === 'GLOBAL' ? { difficulty: query.difficulty } : {}), player: { status: 'ACTIVE', elementKey: { not: null } } },
-      include: { bestSession: { select: { rulesVersion: true, difficulty: true } }, player: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
+      include: { bestSession: { select: { rulesVersion: true, difficulty: true } }, player: { select: { id: true, displayName: true, presentationName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
         privacySettings: { where: { categoryKey: 'GENERAL_STATISTICS' }, select: { level: true } } } } } });
     const values = new Map<string, { playerId: string; displayName: string; elementKey: string; avatarAssetPath: string | null; value: bigint; pairs: number | null; totalPairs: number | null }>();
     for (const stat of stats) {
       if ((stat.player.privacySettings[0]?.level ?? privacyDefaults.GENERAL_STATISTICS) !== 'PUBLIC') continue;
       const value = query.kind === 'GLOBAL' ? BigInt(stat.bestPoints) : stat.score;
       const old = values.get(stat.playerId);
-      values.set(stat.playerId, { playerId: stat.playerId, displayName: stat.player.displayName, elementKey: stat.player.elementKey!,
+      values.set(stat.playerId, { playerId: stat.playerId, displayName: presentedName(stat.player), elementKey: stat.player.elementKey!,
         avatarAssetPath: avatarAssetPath(stat.player), value: (query.kind === 'SCORE' ? old?.value ?? 0n : 0n) + value, pairs: query.kind === 'GLOBAL' ? stat.bestPairs : null,
         totalPairs: query.kind === 'GLOBAL' && stat.game === 'MEMORY' ? memoryLayout(stat.bestSession.difficulty as ArcadeDifficulty, stat.bestSession.rulesVersion).totalPairs : null });
     }

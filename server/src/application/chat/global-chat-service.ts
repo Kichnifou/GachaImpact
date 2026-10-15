@@ -1,3 +1,5 @@
+import { resolveMentionTargets } from './mention-targets.js';
+import { presentedName } from '../player/presentation-name.js';
 import { progressPlayerMessage } from './message-progression.js';
 import { xpRewardPresentation } from './xp-reward-presentation.js';
 import { commandMissionFeedback } from './command-mission-feedback.js';
@@ -37,7 +39,7 @@ export type ChatCursor = { createdAt: string; id: string };
 export type FrozenChatResult = { content: string | readonly string[]; presentation: StructuredChatResult | null };
 type ChatOperationSummary = { fingerprint: string; messageId?: string; xpGranted?: number; refreshScopes?: string[]; dailyChallengeCompleted?: boolean; dailyRewardElement?: string | null; resolvedQuantity?: string; targetId?: string; action?: string; eventContext?: string; standaloneResult?: FrozenChatResult };
 export type ChatMentionInput = { playerId: string; displayName: string };
-const messageInclude = { author: { select: { id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true, author: { select: { id: true, displayName: true } } } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { displayName: true } } } } } as const;
+const messageInclude = { author: { select: { id: true, displayName: true, presentationName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic, equippedBadgeCosmetic: appearanceSelect.equippedBadgeCosmetic } }, operation: { select: { idempotencyKey: true } }, replyToMessage: { select: { id: true, content: true, deletionState: true, authorPlayerId: true, author: { select: { id: true, displayName: true, presentationName: true } } } }, mentions: { select: { mentionedPlayerId: true, mentionedPlayer: { select: { presentationName: true, displayName: true } } } } } as const;
 
 function normalize(content: string) {
   if (typeof content !== 'string' || /[\r\n\u2028\u2029]/u.test(content)) throw invalid('Un message doit tenir sur une seule ligne.');
@@ -65,23 +67,23 @@ function project(row: {
   id: string; authorPlayerId: string | null; sourceChannel: string; messageType: string; content: string;
   resultPresentation?: unknown;
   createdAt: Date; submissionOrder: bigint; deletedAt: Date | null; deletionState: GlobalChatDeletionState;
-  replyToMessageId: string | null; author: { id: string; displayName: string; elementKey: string | null; equippedBadgeCosmetic?: { type: string; externalKey: string; displayName: string; isActive: boolean } | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
+  replyToMessageId: string | null; author: { id: string; displayName: string; presentationName?: string | null; elementKey: string | null; equippedBadgeCosmetic?: { type: string; externalKey: string; displayName: string; isActive: boolean } | null; equippedAvatarCosmetic: { id: string; type: import('../../../generated/prisma/client.js').CosmeticType; isActive: boolean; assetPath: string | null } | null } | null;
   replyToMessage: { id: string; content: string; deletionState: GlobalChatDeletionState; authorPlayerId: string | null; author?: { id: string; displayName: string } | null } | null;
-  mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string } }[];
+  mentions: { mentionedPlayerId: string; mentionedPlayer: { displayName: string; presentationName?: string | null } }[];
   operation: { idempotencyKey: string | null } | null;
 }, viewerId?: string) {
   const deleted = row.deletionState !== GlobalChatDeletionState.ACTIVE;
   return {
-    id: row.id, author: row.author ? { id: row.author.id, displayName: row.author.displayName, elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author), badgeSymbol: freeBadgeSymbol(row.author.equippedBadgeCosmetic) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : row.author?.displayName ?? null,
+    id: row.id, author: row.author ? { id: row.author.id, displayName: presentedName(row.author), elementKey: row.author.elementKey, avatarAssetPath: avatarAssetPath(row.author), badgeSymbol: freeBadgeSymbol(row.author.equippedBadgeCosmetic) } : null, authorLabel: row.messageType === GlobalChatMessageType.GAME_RESULT ? 'GachaImpact' : (row.author ? presentedName(row.author) : null),
     sourceChannel: row.sourceChannel, messageType: row.messageType,
     content: deleted ? null : row.content, createdAt: row.createdAt.toISOString(), submissionOrder: row.submissionOrder.toString(),
     resultPresentation: !deleted && row.messageType === 'GAME_RESULT' && isStructuredChatResult(row.resultPresentation) && row.resultPresentation.source.commandMessageId === row.replyToMessageId ? row.resultPresentation : null,
     deletedAt: row.deletedAt?.toISOString() ?? null, deletionState: row.deletionState,
     replyToMessageId: row.replyToMessageId,
-    replyAuthor: row.replyToMessage?.deletionState === GlobalChatDeletionState.ACTIVE ? (row.replyToMessage.author ?? { id: null, displayName: 'GachaImpact' }) : null,
+    replyAuthor: row.replyToMessage?.deletionState === GlobalChatDeletionState.ACTIVE ? (row.replyToMessage.author ? { ...row.replyToMessage.author, displayName: presentedName(row.replyToMessage.author) } : { id: null, displayName: 'GachaImpact' }) : null,
     replyPreview: row.replyToMessage ? (row.replyToMessage.deletionState === GlobalChatDeletionState.ACTIVE ? row.replyToMessage.content : 'Message supprimé') : null,
     mentionedMe: !!viewerId && !deleted && row.mentions.some(mention => mention.mentionedPlayerId === viewerId),
-    resolvedMentions: deleted ? [] : row.mentions.map(mention => ({ playerId: mention.mentionedPlayerId, displayName: mention.mentionedPlayer.displayName })),
+    resolvedMentions: deleted ? [] : row.mentions.map(mention => ({ playerId: mention.mentionedPlayerId, displayName: presentedName(mention.mentionedPlayer) })),
     repliedToMe: !!viewerId && !deleted && row.replyToMessage?.authorPlayerId === viewerId && row.authorPlayerId !== viewerId,
     clientIntentKey: viewerId && row.authorPlayerId === viewerId ? row.operation?.idempotencyKey ?? null : null,
   };
@@ -167,7 +169,7 @@ export class GlobalChatService {
     const replyId = replyToMessageId ?? null;
     if (replyId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(replyId)) throw invalid('Réponse invalide.');
     if (mentions.length > 10 || mentions.some(mention => !/^[0-9a-f-]{36}$/i.test(mention.playerId) || typeof mention.displayName !== 'string' || mention.displayName.length > 100)) throw invalid('Mention invalide.');
-    // Hints improve autocomplete only. The text and current server identities determine mentions.
+    // Structured selections keep their UUID; stale labels fail explicitly before commit.
     const fingerprint = createHash('sha256').update(JSON.stringify([normalized.value, replyId])).digest('hex');
     const submissionOrder = await this.reserveSubmissionOrder(idempotencyKey);
     if (submissionOrder !== null && this.onSubmissionReserved) await this.onSubmissionReserved(submissionOrder);
@@ -200,34 +202,11 @@ export class GlobalChatService {
       let resolvedMentions: string[] = [];
       if (normalized.type === GlobalChatMessageType.PLAYER && normalized.value.includes('@')) {
         const [players, blocks] = await Promise.all([
-          tx.player.findMany({ where: { status: 'ACTIVE' }, select: { id: true, displayName: true } }),
+          tx.player.findMany({ where: { status: 'ACTIVE' }, select: { id: true, displayName: true, presentationName: true } }),
           tx.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: player.id }, { blockedPlayerId: player.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } }),
         ]);
         const excluded = new Set(blocks.map(block => block.blockerPlayerId === player.id ? block.blockedPlayerId : block.blockerPlayerId));
-        const haystack = normalizePlayerSearch(normalized.value);
-        const matches: { id: string; offset: number; length: number }[] = [];
-        for (const target of players) {
-          if (excluded.has(target.id)) continue;
-          const needle = `@${normalizePlayerSearch(target.displayName)}`;
-          let offset = haystack.indexOf(needle);
-          while (offset >= 0) {
-            const before = offset ? haystack[offset - 1] : null;
-            const after = haystack[offset + needle.length] ?? null;
-            const following = haystack[offset + needle.length + 1] ?? null;
-            if ((!before || /\s/u.test(before)) && (!after || /\s/u.test(after) || /[.,!?;:]/u.test(after) && (!following || /\s/u.test(following)))) {
-              matches.push({ id: target.id, offset, length: needle.length });
-            }
-            offset = haystack.indexOf(needle, offset + 1);
-          }
-        }
-        matches.sort((a, b) => a.offset - b.offset || b.length - a.length || a.id.localeCompare(b.id));
-        const usedOffsets = new Set<number>(), usedPlayers = new Set<string>();
-        for (const match of matches) {
-          if (usedOffsets.has(match.offset)) continue;
-          usedOffsets.add(match.offset);
-          if (!usedPlayers.has(match.id) && usedPlayers.size < 10) usedPlayers.add(match.id);
-        }
-        resolvedMentions = [...usedPlayers];
+        resolvedMentions = resolveMentionTargets(players, excluded, normalized.value, mentions);
       }
       const recentMessages = await tx.globalChatMessage.findMany({ where: { authorPlayerId: player.id, messageType: { in: ['PLAYER', 'COMMAND'] } }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 3, select: { createdAt: true } });
       const latest = recentMessages[0]?.createdAt;
@@ -543,8 +522,8 @@ export class GlobalChatService {
     if (needle.length > 100) return { players: [] };
     const blocked = await this.database.playerBlock.findMany({ where: { OR: [{ blockerPlayerId: viewer.id }, { blockedPlayerId: viewer.id }] }, select: { blockerPlayerId: true, blockedPlayerId: true } });
     const excluded = new Set(blocked.map(row => row.blockerPlayerId === viewer.id ? row.blockedPlayerId : row.blockerPlayerId));
-    const players = await this.database.player.findMany({ where: { status: 'ACTIVE', id: { notIn: [...excluded] } }, select: { id: true, displayName: true, elementKey: true } });
-    const candidates = players.filter(row => normalizePlayerSearch(row.displayName).includes(needle));
+    const players = await this.database.player.findMany({ where: { status: 'ACTIVE', id: { notIn: [...excluded] } }, select: { id: true, displayName: true, presentationName: true, elementKey: true } });
+    const candidates = players.map(row => ({ ...row, displayName: presentedName(row) })).filter(row => normalizePlayerSearch(row.displayName).includes(needle));
     if (needle) return { players: candidates.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' })).slice(0, 8) };
     const [recentMessages, sessions] = await Promise.all([
       this.database.globalChatMessage.findMany({ where: { generation: await this.generation(), authorPlayerId: { not: null }, deletionState: 'ACTIVE' }, orderBy: { submissionOrder: 'desc' }, take: 50, select: { authorPlayerId: true } }),

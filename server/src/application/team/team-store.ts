@@ -47,6 +47,7 @@ export interface TeamStore {
   reorderTeams(playerId: string, teamIds: readonly string[]): Promise<PlayerTeams>;
   setSlot(playerId: string, teamId: string, position: number, characterId: string, chatKey?: string): Promise<PlayerTeams>;
   reorderSlots(playerId: string, teamId: string, characterIds: readonly (string | null)[]): Promise<PlayerTeams>;
+  replaceComposition(playerId: string, teamId: string, characterIds: readonly (string | null)[], expectedCharacterIds: readonly (string | null)[], idempotencyKey: string): Promise<PlayerTeams>;
   removeSlot(playerId: string, teamId: string, position: number, chatKey?: string, expectedCharacterId?: string): Promise<PlayerTeams>;
   clear(playerId: string, teamId: string, chatKey?: string): Promise<PlayerTeams>;
 }

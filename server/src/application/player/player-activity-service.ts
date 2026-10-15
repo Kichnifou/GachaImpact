@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import { addBusinessDays, businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDate, getBusinessDayStartAt, type Clock } from '../../domain/time/business-date.js';
 import { unblockedWith } from '../social/privacy-service.js';
@@ -71,9 +72,9 @@ export class PlayerActivityService {
       const where = { businessDate, player: { status: 'ACTIVE' as const, ...unblockedWith(viewerId), privacySettings: { none: { categoryKey: 'LAST_ACTIVITY' as const, level: { not: 'PUBLIC' as const } } } } };
       const total = await tx.playerDailyActivity.count({ where: { businessDate } });
       const visibleTotal = await tx.playerDailyActivity.count({ where });
-      const rows = await tx.playerDailyActivity.findMany({ where: { ...where, ...(after ? { playerId: { gt: after } } : {}) }, orderBy: { playerId: 'asc' }, take: 101, select: { playerId: true, player: { select: { displayName: true } } } });
+      const rows = await tx.playerDailyActivity.findMany({ where: { ...where, ...(after ? { playerId: { gt: after } } : {}) }, orderBy: { playerId: 'asc' }, take: 101, select: { playerId: true, player: { select: { presentationName: true, displayName: true } } } });
       // Plain names deliberately avoid creating a competing public-profile permission path.
-      return { date, total, visibleTotal, nextCursor: rows.length > 100 ? rows[99]!.playerId : null, names: rows.slice(0, 100).map(row => row.player.displayName) };
+      return { date, total, visibleTotal, nextCursor: rows.length > 100 ? rows[99]!.playerId : null, names: rows.slice(0, 100).map(row => presentedName(row.player)) };
     }, { isolationLevel: 'RepeatableRead' });
   }
 
@@ -88,8 +89,8 @@ export class PlayerActivityService {
         const rows = await tx.playerDailyActivity.findMany({ where: { businessDate,
           ...(after ? { playerId: { gt: after } } : {}), ...(channel === 'TWITCH' ? { twitch: true } : {}),
           player: { status: 'ACTIVE', ...unblockedWith(viewerId), privacySettings: { none: { categoryKey: 'LAST_ACTIVITY', level: { not: 'PUBLIC' } } } } },
-          orderBy: { playerId: 'asc' }, take: 200, select: { playerId: true, player: { select: { id: true, displayName: true } } } });
-        names.push(...rows.map(row => row.player));
+          orderBy: { playerId: 'asc' }, take: 200, select: { playerId: true, player: { select: { id: true, displayName: true, presentationName: true } } } });
+        names.push(...rows.map(row => ({ ...row.player, displayName: channel === 'TWITCH' ? row.player.displayName : presentedName(row.player) })));
         if (rows.length < 200) break;
         after = rows.at(-1)!.playerId;
       }

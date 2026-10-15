@@ -1,6 +1,7 @@
 import { commandSource } from '../../application/player/player-command-execution.js';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
+import { AppError } from '../../api/errors.js';
 import type { PlayerTeams, TeamCharacter, TeamStore } from '../../application/team/team-store.js';
 import { isElementKey } from '../../domain/economy/resources.js';
 import { deriveTeamPassives, listTeamPassiveDefinitions } from '../../domain/team/team-passives.js';
@@ -191,6 +192,38 @@ export class PrismaTeamStore implements TeamStore {
     });
   }
 
+  public async replaceComposition(playerId: string, teamId: string, characterIds: readonly (string | null)[], expectedCharacterIds: readonly (string | null)[], idempotencyKey: string): Promise<PlayerTeams> {
+    if (characterIds.length !== 4 || expectedCharacterIds.length !== 4) {
+      throw new BusinessError('TEAM_SLOT_ORDER_INVALID', 'Une composition doit contenir exactement quatre emplacements.');
+    }
+    const compactIds = characterIds.filter((id): id is string => id !== null);
+    if (new Set(compactIds).size !== compactIds.length) {
+      throw new BusinessError('TEAM_CHARACTER_DUPLICATE', 'Un personnage ne peut occuper qu’un emplacement dans cette Team.');
+    }
+    return runTeamTransaction(this.database, async transaction => {
+      await lockPlayer(transaction, playerId);
+      // Apply the authoritative disabled-catalog cleanup before comparing the opening snapshot.
+      await cleanupInactiveTeamMembers(transaction, playerId);
+      await lockOwnedTeam(transaction, playerId, teamId);
+      await lockPlayerTeams(transaction, playerId);
+      const members = await transaction.teamMember.findMany({ where: { teamId }, select: { position: true, characterId: true } });
+      const currentIds = SLOT_POSITIONS.map(position => members.find(member => member.position === position)?.characterId ?? null);
+      if (currentIds.some((id, index) => id !== expectedCharacterIds[index])) {
+        throw new BusinessError('TEAM_COMPOSITION_CHANGED', 'Cette Team a été modifiée depuis l’ouverture. Votre brouillon est conservé ; rechargez sa composition avant de confirmer.');
+      }
+      const owned = await transaction.playerCharacter.count({ where: { playerId, characterId: { in: compactIds }, character: { isActive: true } } });
+      if (owned !== compactIds.length) {
+        throw new BusinessError('TEAM_CHARACTER_NOT_AVAILABLE', 'Un personnage sélectionné n’est plus actif ou ne fait pas partie de votre Box.');
+      }
+      if (currentIds.some((id, index) => id !== characterIds[index])) {
+        await transaction.teamMember.deleteMany({ where: { teamId } });
+        if (compactIds.length) await transaction.teamMember.createMany({ data: characterIds.flatMap((characterId, index) => characterId ? [{ teamId, position: index + 1, characterId }] : []) });
+        await assertUniqueCompleteComposition(transaction, playerId, teamId);
+      }
+      return readPlayerTeams(transaction, playerId);
+    }, { playerId, chatKey: idempotencyKey, composition: true, request: ['replace-composition', teamId, ...expectedCharacterIds, ...characterIds] });
+  }
+
   public removeSlot(playerId: string, teamId: string, position: number, chatKey?: string, expectedCharacterId?: string): Promise<PlayerTeams> {
     return runTeamTransaction(this.database, async (transaction) => {
       await lockPlayer(transaction, playerId);
@@ -214,18 +247,20 @@ export class PrismaTeamStore implements TeamStore {
   }
 }
 
-type TeamChatReceipt = Readonly<{ playerId: string; chatKey: string; request: readonly (string | number | null)[] }>;
+type TeamChatReceipt = Readonly<{ playerId: string; chatKey: string; composition?: boolean; request: readonly (string | number | null)[] }>;
 async function runTeamTransaction(database: PrismaClient, operation: (transaction: Prisma.TransactionClient) => Promise<PlayerTeams>, receipt?: TeamChatReceipt): Promise<PlayerTeams> {
   for (let attempt = 1; attempt <= MAX_TEAM_ATTEMPTS; attempt += 1) {
     try {
       return await database.$transaction(async transaction => {
         if (!receipt) return operation(transaction);
-        await lockPlayer(transaction, receipt.playerId);
-        const key = `chat.team:${receipt.chatKey}`;
-        const existing = await transaction.businessOperation.findFirst({ where: { idempotencyKey: key, sourceChannel: commandSource('INTERNAL_CHAT') } });
+        await lockPlayer(transaction, receipt.playerId, receipt.composition === true);
+        const key = `${receipt.composition ? 'team.composition' : 'chat.team'}:${receipt.chatKey}`;
+        const sourceChannel = receipt.composition ? 'UI' : commandSource('INTERNAL_CHAT');
+        const operationType = receipt.composition ? 'team.composition' : 'team.command';
+        const existing = await transaction.businessOperation.findFirst({ where: { idempotencyKey: key, sourceChannel } });
         if (existing) {
           const summary = existing.resultSummary as { request?: unknown; state?: PlayerTeams } | null;
-          if (existing.playerId !== receipt.playerId || existing.operationType !== 'team.command' || existing.sourceChannel !== commandSource('INTERNAL_CHAT')
+          if (existing.playerId !== receipt.playerId || existing.operationType !== operationType || existing.sourceChannel !== sourceChannel
             || existing.status !== 'COMPLETED' || JSON.stringify(summary?.request) !== JSON.stringify(receipt.request)) {
             throw new BusinessError('TEAM_IDEMPOTENCY_CONFLICT', 'Cette intention Team ne correspond pas à son premier traitement.');
           }
@@ -234,7 +269,7 @@ async function runTeamTransaction(database: PrismaClient, operation: (transactio
         }
         const state = await operation(transaction);
         await transaction.businessOperation.create({ data: {
-          playerId: receipt.playerId, idempotencyKey: key, operationType: 'team.command', sourceChannel: commandSource('INTERNAL_CHAT'),
+          playerId: receipt.playerId, idempotencyKey: key, operationType, sourceChannel,
           status: 'COMPLETED', completedAt: new Date(), resultSummary: { request: [...receipt.request], state: state as unknown as Prisma.InputJsonValue },
         } });
         return state;
@@ -336,9 +371,10 @@ function toTeamCharacter(row: Prisma.PlayerCharacterGetPayload<{ select: typeof 
   return { ...row.character, rarity: row.character.rarity, elementKey: row.character.elementKey, constellation: row.constellation };
 }
 
-async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string): Promise<void> {
-  const rows = await transaction.$queryRaw<{ id: string }[]>`SELECT id FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
+async function lockPlayer(transaction: Prisma.TransactionClient, playerId: string, requireActive = false): Promise<void> {
+  const rows = await transaction.$queryRaw<{ id: string; status: string }[]>`SELECT id, status::text FROM players WHERE id = ${playerId}::uuid FOR UPDATE`;
   if (!rows[0]) throw new BusinessError('PLAYER_NOT_FOUND', 'No Player is linked to this account.');
+  if (requireActive && rows[0].status !== 'ACTIVE') throw new AppError('Compte indisponible.', 403, 'PLAYER_INACTIVE');
 }
 
 async function lockOwnedTeam(transaction: Prisma.TransactionClient, playerId: string, teamId: string): Promise<{ isActive: boolean }> {

@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { randomBytes } from 'node:crypto';
 import { Prisma, type PrismaClient, type ArcadeInvitation } from '../../../generated/prisma/client.js';
 import type { Clock } from '../../domain/time/business-date.js';
@@ -12,13 +13,13 @@ import { projectSession } from './arcade-projection.js';
 import { createArcadeSession } from './arcade-session-factory.js';
 
 export const arcadeGameNames = { MEMORY: 'Memory', CONNECT_FOUR: 'Puissance 4', TIC_TAC_TOE: 'Morpion' } as const;
-export const invitationIdentities = { host: { select: { id: true, displayName: true } }, guest: { select: { id: true, displayName: true } } } as const;
-type InvitationRow = ArcadeInvitation & { host: { id: string; displayName: string }; guest: { id: string; displayName: string } };
+export const invitationIdentities = { host: { select: { id: true, displayName: true, presentationName: true } }, guest: { select: { id: true, displayName: true, presentationName: true } } } as const;
+type InvitationRow = ArcadeInvitation & { host: { id: string; displayName: string; presentationName?: string | null }; guest: { id: string; displayName: string; presentationName?: string | null } };
 export type ArcadeInviteInput = { opponentPlayerId: string; game: ArcadeGame; difficulty: ArcadeDifficulty; friendsOnly: boolean; idempotencyKey: string };
 export type ArcadeInviteAction = { kind: 'READY' | 'CANCEL' | 'REFUSE'; idempotencyKey: string };
 export function projectInvitation(row: InvitationRow, viewer: string) {
   return { id: row.id, direction: row.hostPlayerId === viewer ? 'OUTGOING' as const : 'INCOMING' as const,
-    host: row.host, guest: row.guest, game: row.game as ArcadeGame, difficulty: row.difficulty as ArcadeDifficulty,
+    host: { ...row.host, displayName: presentedName(row.host) }, guest: { ...row.guest, displayName: presentedName(row.guest) }, game: row.game as ArcadeGame, difficulty: row.difficulty as ArcadeDifficulty,
     status: row.status as 'PENDING' | 'STARTED' | 'REFUSED' | 'CANCELLED' | 'EXPIRED' | 'INVALIDATED', hostReady: row.hostReady, guestReady: row.guestReady,
     expiresAt: row.expiresAt.toISOString(), sessionId: row.sessionId };
 }
@@ -93,9 +94,9 @@ export class ArcadeInvitations {
       sessions: { some: { endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) }, lastActivityAt: { gt: new Date(now.getTime() - PRESENCE_AWAY_MS) } } },
       arcadeSessions: { none: { status: 'ACTIVE' } }, arcadeOpponentSessions: { none: { status: 'ACTIVE' } },
       arcadeInvitationsSent: { none: { status: 'PENDING', expiresAt: { gt: now } } }, arcadeInvitationsReceived: { none: { status: 'PENDING', expiresAt: { gt: now } } },
-    }, select: { id: true, displayName: true }, orderBy: [{ displayName: 'asc' }, { id: 'asc' }], take: 100 });
+    }, select: { id: true, displayName: true, presentationName: true }, orderBy: [{ displayName: 'asc' }, { id: 'asc' }], take: 100 });
     const visible = await this.presence.visibleFor(playerId, rows.map(row => row.id));
-    return { opponents: rows.filter(row => visible.get(row.id) === 'ONLINE') };
+    return { opponents: rows.filter(row => visible.get(row.id) === 'ONLINE').map(row => ({ ...row, displayName: presentedName(row) })) };
   }
   async invite(playerId: string, input: ArcadeInviteInput): Promise<ArcadeInvitationMutation> {
     await this.reconcileNotificationsForPlayer(playerId);
@@ -109,7 +110,7 @@ export class ArcadeInvitations {
         if (presence.get(input.opponentPlayerId) !== 'ONLINE' || !friend) throw arcadeConflict('Ce joueur est indisponible. Choisissez un autre adversaire.', 'ARCADE_OPPONENT_UNAVAILABLE');
         const row = await tx.arcadeInvitation.create({ data: { hostPlayerId: playerId, guestPlayerId: input.opponentPlayerId, game: input.game, difficulty: input.difficulty, createdAt: now, expiresAt: new Date(now.getTime() + 120000) }, include: invitationIdentities });
         await tx.notification.create({ data: { playerId: input.opponentPlayerId, domainKey: 'arcade', typeKey: 'ARCADE_INVITE', deduplicationKey: `arcade-invite:${row.id}`, actionKey: 'OPEN_ARCADE_INVITE', actionTargetId: row.id,
-          payload: { invitationId: row.id, hostPlayerId: playerId, hostDisplayName: row.host.displayName, game: row.game, difficulty: row.difficulty, message: `${row.host.displayName} vous invite à jouer à ${arcadeGameNames[input.game]}.` }, createdAt: now } });
+          payload: { invitationId: row.id, hostPlayerId: playerId, hostDisplayName: presentedName(row.host), game: row.game, difficulty: row.difficulty, message: `${presentedName(row.host)} vous invite à jouer à ${arcadeGameNames[input.game]}.` }, createdAt: now } });
         return { response: { invitation: projectInvitation(row, playerId), operationId, alreadyProcessed: false }, invitationId: row.id };
       });
   }

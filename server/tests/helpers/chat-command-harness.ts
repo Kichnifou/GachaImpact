@@ -67,7 +67,7 @@ export function harness() {
     tradeService: {
       eligibility: vi.fn(async (_id: string, name: string) => ({ player: name === 'Autre' ? { id: 'other', displayName: 'Autre' } : null, eligible: name === 'Autre', maximum: '5', reason: name === 'Autre' ? null : 'NOT_FOUND' })),
       partners: vi.fn(async (_id?: string, _q?: string, _page?: number) => ({ partners: [{ id: 'other', displayName: 'Autre', maximum: 5n }] })),
-      snapshot: vi.fn(async () => ({ received: [{ id: 'request', sender: { displayName: 'Autre' }, currentAmount: 3n }], sent: [{ id: 'request', recipient: { displayName: 'Autre' }, currentAmount: 3n }] })),
+      snapshot: vi.fn(async () => ({ received: [{ id: 'request', sender: { id: 'other', displayName: 'Autre' }, currentAmount: 3n }], sent: [{ id: 'request', recipient: { id: 'other', displayName: 'Autre' }, currentAmount: 3n }] })),
       create: vi.fn(async () => ({ amount: 3n })), mutate: vi.fn(async () => ({ state: 'ACCEPTED', amount: 3n })),
       all: vi.fn(async () => ({ results: [{ state: 'ACCEPTED' }] })),
     },

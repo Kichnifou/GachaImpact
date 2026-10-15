@@ -150,11 +150,13 @@ export class PlayerCommandResolver {
 
   private async player(identity: PlayerExecutionActor, name: string) {
     const query = playerReferenceName(name);
+    const matches: { id: string; displayName: string }[] = [];
     for (let page = 1; ; page += 1) {
       const directory = await this.services.socialService.directory(identity, { q: query, page });
-      const found = directory.players.find(entry => samePlayerReference(entry.displayName, name));
-      if (found) return found;
-      if (page >= directory.totalPages) return null;
+      for (const entry of directory.players) {
+        if (samePlayerReference(entry.displayName, name) || ('referenceName' in entry && typeof entry.referenceName === 'string' && samePlayerReference(entry.referenceName, name))) matches.push(entry);
+      }
+      if (page >= directory.totalPages) return matches.length === 1 ? matches[0]! : null;
     }
   }
 
@@ -409,7 +411,9 @@ export class PlayerCommandResolver {
             const state = await this.services.tradeService.snapshot(actor.id);
             const requests = action === 'annuler' ? state.sent : state.received;
             const raw = args.slice(1).join(' ');
-            const request = raw ? requests.find(entry => samePlayerReference(action === 'annuler' ? entry.recipient.displayName : entry.sender.displayName, raw)) : requests.length === 1 ? requests[0] : null;
+            const target = raw ? await this.player(identity, raw) : null;
+            const matchingRequests = raw ? target ? requests.filter(entry => (action === 'annuler' ? entry.recipient.id : entry.sender.id) === target.id) : [] : requests;
+            const request = matchingRequests.length === 1 ? matchingRequests[0] : null;
             const requestId = await this.chat.rememberCommandText(commandMessageId, 'targetId', request?.id ?? '');
             if (!requestId) return raw ? '⚠️ Demande d’échange introuvable.' : syntax(definition.syntax);
             const result = await this.services.tradeService.mutate(actor.id, requestId, action === 'accepter' ? 'accept' : action === 'annuler' ? 'cancel' : 'refuse', commandMessageId, this.sourceChannel);
@@ -533,10 +537,11 @@ export class PlayerCommandResolver {
             const recipientName = match[1]!.trim();
             if (samePlayerReference(player, recipientName)) return `⚠️ ${eventPhrase(event, 'gameCSelf', player)}`;
             let recipient: { playerId: string; displayName: string } | null = null;
+            const recipients: { playerId: string; displayName: string }[] = [];
             for (let page = 1; ; page += 1) {
               const search = await this.services.eventService.searchGameCRecipients(identity, { q: playerReferenceName(recipientName), sort: 'name', direction: 'asc', page });
-              recipient = search.recipients.find(entry => samePlayerReference(entry.displayName, recipientName)) ?? null;
-              if (recipient || page >= search.totalPages) break;
+              recipients.push(...search.recipients.filter(entry => samePlayerReference(entry.displayName, recipientName) || ('referenceName' in entry && typeof entry.referenceName === 'string' && samePlayerReference(entry.referenceName, recipientName))));
+              if (page >= search.totalPages) { recipient = recipients.length === 1 ? recipients[0]! : null; break; }
             }
             const recipientId = await this.chat.rememberCommandText(commandMessageId, 'targetId', recipient?.playerId ?? '');
             if (!recipientId) return `⚠️ ${player}, destinataire Event introuvable ou indisponible.`;

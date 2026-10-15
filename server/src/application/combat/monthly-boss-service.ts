@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { assertPlayerDomainReady, isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { assertCommandTargets } from '../player/player-command-execution.js';
@@ -383,7 +384,7 @@ export class MonthlyBossService {
       orderBy: { monthStart: 'desc' },
       skip: selected ? 0 : (page - 1) * HISTORY_PAGE_SIZE,
       take: HISTORY_PAGE_SIZE,
-      include: { finalBlowPlayer: { select: { id: true, displayName: true, status: true } } },
+      include: { finalBlowPlayer: { select: { id: true, displayName: true, presentationName: true, status: true } } },
     });
     const summaries = await readBossSummaries(this.database, bosses);
     const nativeEntries = bosses.map((boss) => {
@@ -494,7 +495,7 @@ export class MonthlyBossScheduler {
 
 async function readView(client: Client, playerId: string, businessDate: string, bossId: string): Promise<MonthlyBossView> {
   const [boss, loadout, possessions, todayAttack, stats, legacyAttack] = await Promise.all([
-    client.monthlyBoss.findUniqueOrThrow({ where: { id: bossId }, include: { finalBlowPlayer: { select: { id: true, displayName: true, status: true } } } }),
+    client.monthlyBoss.findUniqueOrThrow({ where: { id: bossId }, include: { finalBlowPlayer: { select: { id: true, displayName: true, presentationName: true, status: true } } } }),
     client.playerBossLoadout.findUnique({ where: { playerId }, include: { slots: { orderBy: { position: 'asc' } } } }),
     client.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: possessionSelection }),
     client.bossAttack.findUnique({ where: { bossId_playerId_businessDate: { bossId, playerId, businessDate: businessDateToDatabaseDate(businessDate) } } }),
@@ -544,11 +545,11 @@ type BossSummarySource = Readonly<{
   maxHp: bigint;
   currentHp: bigint;
   defeatedAt: Date | null;
-  finalBlowPlayer: { id: string; displayName: string; status?: string } | null;
+  finalBlowPlayer: { id: string; displayName: string; presentationName?: string | null; status?: string } | null;
 }>;
 
 function presentBossAttribution(player: BossSummarySource['finalBlowPlayer']) {
-  return player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? 'Progression archivée' : player.displayName } : null;
+  return player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(player) } : null;
 }
 
 type BossSummaryData = Readonly<{ summary: MonthlyBossSummary; ranking: readonly MonthlyBossRankingEntry[] }>;
@@ -559,11 +560,11 @@ async function readBossSummaries(client: Client, bosses: readonly BossSummarySou
   const [participations, attacks] = await Promise.all([
     client.playerBossParticipation.findMany({
       where: { bossId: { in: bossIds } },
-      include: { player: { select: { displayName: true, status: true } } },
+      include: { player: { select: { presentationName: true, displayName: true, status: true } } },
     }),
     client.bossAttack.findMany({
       where: { bossId: { in: bossIds } },
-      select: { id: true, bossId: true, playerId: true, damage: true, createdAt: true, player: { select: { displayName: true, status: true } } },
+      select: { id: true, bossId: true, playerId: true, damage: true, createdAt: true, player: { select: { presentationName: true, displayName: true, status: true } } },
     }),
   ]);
   return new Map(bosses.map((boss) => {
@@ -571,7 +572,7 @@ async function readBossSummaries(client: Client, bosses: readonly BossSummarySou
     const ranking = bossParticipations.map((row, index) => ({
       rank: index + 1,
       playerId: row.playerId,
-      displayName: row.player.displayName,
+      displayName: presentedName(row.player),
       totalDamage: row.totalDamage,
       attackCount: row.attackCount,
       bestHit: row.bestHit,
@@ -592,7 +593,7 @@ async function readBossSummaries(client: Client, bosses: readonly BossSummarySou
       },
       records: {
         topContributor: ranking[0] ?? null,
-        biggestHit: biggestHit ? { playerId: biggestHit.playerId, displayName: biggestHit.player.status === 'ARCHIVED' ? 'Progression archivée' : biggestHit.player.displayName, damage: biggestHit.damage, createdAt: biggestHit.createdAt } : null,
+        biggestHit: biggestHit ? { playerId: biggestHit.playerId, displayName: biggestHit.player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(biggestHit.player), damage: biggestHit.damage, createdAt: biggestHit.createdAt } : null,
         mostAttacks,
         finalBlow: presentBossAttribution(boss.finalBlowPlayer),
         topThree: ranking.slice(0, 3),
@@ -620,8 +621,8 @@ function compareBigIntDesc(left: bigint, right: bigint): number { return left ==
 function compareText(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
 
 async function readRanking(client: Client, bossId: string): Promise<MonthlyBossRankingEntry[]> {
-  const rows = await client.playerBossParticipation.findMany({ where: { bossId, player: { status: { not: 'ARCHIVED' } } }, include: { player: { select: { displayName: true } } }, orderBy: [{ totalDamage: 'desc' }, { firstAttackAt: 'asc' }, { playerId: 'asc' }] });
-  return rows.map((row, index) => ({ rank: index + 1, playerId: row.playerId, displayName: row.player.displayName, totalDamage: row.totalDamage, attackCount: row.attackCount, bestHit: row.bestHit }));
+  const rows = await client.playerBossParticipation.findMany({ where: { bossId, player: { status: { not: 'ARCHIVED' } } }, include: { player: { select: { presentationName: true, displayName: true } } }, orderBy: [{ totalDamage: 'desc' }, { firstAttackAt: 'asc' }, { playerId: 'asc' }] });
+  return rows.map((row, index) => ({ rank: index + 1, playerId: row.playerId, displayName: presentedName(row.player), totalDamage: row.totalDamage, attackCount: row.attackCount, bestHit: row.bestHit }));
 }
 
 function toCharacter(possession: Possession) {

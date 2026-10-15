@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import { contestDiagnostics, type ContestDiagnosticSink } from './contest-diagnostics.js';
 import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
@@ -48,13 +49,13 @@ const ACTIVE_STATUSES = [ContestStatus.LOBBY, ContestStatus.RUNNING] as const;
 const SCORE_EVENT_TYPES = ['TURN_PLAYED', 'BOT_TURN_PLAYED', 'TURN_AUTO_BASIC', 'SUPPORT_PLAYED'] as const;
 
 const participantInclude = {
-  player: { select: { id: true, displayName: true, status: true } },
-  originalPlayer: { select: { id: true, displayName: true, status: true } },
+  player: { select: { id: true, displayName: true, presentationName: true, status: true } },
+  originalPlayer: { select: { id: true, displayName: true, presentationName: true, status: true } },
 } satisfies Prisma.ContestParticipantInclude;
 
 const liveContestInclude = {
   participants: { include: participantInclude, orderBy: { slot: 'asc' as const } },
-  spectators: { include: { player: { select: { id: true, displayName: true, status: true } } }, orderBy: { joinedAt: 'asc' as const } },
+  spectators: { include: { player: { select: { id: true, displayName: true, presentationName: true, status: true } } }, orderBy: { joinedAt: 'asc' as const } },
 } satisfies Prisma.ContestInclude;
 
 const historyContestInclude = {
@@ -941,7 +942,7 @@ function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPla
       liveRank: liveRanks.get(item.slot) ?? null,
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
     }}),
-    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.status === 'ARCHIVED' ? 'Progression archivée' : item.player.displayName, selected: contest.selectedSpectatorPlayerId === item.playerId })),
+    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(item.player), selected: contest.selectedSpectatorPlayerId === item.playerId })),
     recentScoreChanges,
     promotions,
     historyEvents: historyContest ? presentHistoryEvents(historyContest) : [],

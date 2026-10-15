@@ -45,7 +45,7 @@ export async function amiCommand(identity: PlayerExecutionActor, args: readonly 
   const raw = heart || explicit || action === 'voir' ? args.slice(1).join(' ') : args.join(' ');
   if (!raw) return syntax;
   const all = heart && ['all', '@all'].includes(raw.toLocaleLowerCase('fr-FR'));
-  const resolved = all ? null : samePlayerReference(actor.displayName, raw) ? actor : state.players.find(player => samePlayerReference(player.displayName, raw)) ?? await findPlayer(raw);
+  const resolved = all ? null : samePlayerReference(actor.displayName, raw) ? actor : await findPlayer(raw);
   const targetId = await chat.rememberCommandText(commandMessageId, 'targetId', all ? 'all' : resolved?.id ?? '');
   const targetName = resolved?.displayName ?? playerReferenceName(raw);
   if (!targetId) return warning(`le joueur ${targetName} est introuvable.`);

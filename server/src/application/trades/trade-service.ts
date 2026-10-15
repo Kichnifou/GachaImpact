@@ -1,3 +1,4 @@
+import { presentedName, uniquePlayerReference } from '../player/presentation-name.js';
 import { commandTargets } from '../player/player-command-execution.js';
 import { assertPlayerRecoveryActivated } from '../player/player-mutation-guard.js';
 import { commandNow } from '../player/player-command-execution.js';
@@ -25,7 +26,7 @@ export type TradeEligibility = Readonly<{
 }>;
 type Result = { requestId: string; state: string; amount: string; sender?: { id: string; displayName: string }; recipient?: { id: string; displayName: string }; senderResourceKey?: string; recipientResourceKey?: string };
 const unavailable = () => new AppError('Cet échange est indisponible.', 409, 'TRADE_UNAVAILABLE');
-const identity = { id: true, displayName: true, elementKey: true } as const;
+const identity = { id: true, displayName: true, presentationName: true, elementKey: true } as const;
 const include = { sender: { select: identity }, recipient: { select: identity } } as const;
 
 export class TradeService {
@@ -179,8 +180,9 @@ export class TradeService {
   async eligibility(playerId: string, requestedName: string): Promise<TradeEligibility> {
     return this.database.$transaction(async tx => {
       const now = commandNow(this.clock);
-      const players = await tx.player.findMany({ select: { id: true, displayName: true } });
-      const found = players.find(player => normalizePlayerSearch(player.displayName) === normalizePlayerSearch(requestedName));
+      const players = await tx.player.findMany({ select: { id: true, displayName: true, presentationName: true } });
+      const resolved = uniquePlayerReference(players, requestedName);
+      const found = resolved ? { ...resolved, displayName: presentedName(resolved) } : null;
       const failure = (reason: TradeEligibility['reason'], player: TradeEligibility['player'] = null, resourceKey?: string): TradeEligibility =>
         ({ player, eligible: false, maximum: '0', reason, ...(resourceKey ? { resourceKey } : {}) });
       if (!found) return failure('NOT_FOUND');
@@ -208,7 +210,7 @@ export class TradeService {
       });
       const where = { OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] };
       const requests = await tx.tradeRequest.findMany({ where: { ...where, state: 'PENDING' }, include, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
-      const project = (r: typeof requests[number]) => ({ id: r.id, sender: r.sender, recipient: r.recipient, senderResourceKey: r.senderResourceKey, recipientResourceKey: r.recipientResourceKey, originalAmount: r.originalAmount.toString(), currentAmount: r.currentAmount.toString(), createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() });
+      const project = (r: typeof requests[number]) => ({ id: r.id, sender: { ...r.sender, displayName: presentedName(r.sender) }, recipient: { ...r.recipient, displayName: presentedName(r.recipient) }, senderResourceKey: r.senderResourceKey, recipientResourceKey: r.recipientResourceKey, originalAmount: r.originalAmount.toString(), currentAmount: r.currentAmount.toString(), createdAt: r.createdAt.toISOString(), expiresAt: r.expiresAt.toISOString() });
       const history = await tx.tradeExecution.findMany({ where: { request: where }, include: { request: { include } }, orderBy: [{ executedAt: 'desc' }, { id: 'desc' }], take: 25 });
       return { stocks, received: requests.filter(r => r.recipientPlayerId === playerId).map(project), sent: requests.filter(r => r.senderPlayerId === playerId).map(project), history: history.map(h => ({ ...project(h.request), amount: h.amount.toString(), executedAt: h.executedAt.toISOString() })) };
     });
@@ -220,7 +222,7 @@ export class TradeService {
       const pending = await tx.tradeRequest.findMany({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] }, select: { senderPlayerId: true, recipientPlayerId: true } });
       const paired = new Set(pending.flatMap(r => [r.senderPlayerId, r.recipientPlayerId]));
       const normalizedQuery = normalizePlayerSearch(q);
-      const candidates = players.filter(p => p.elementKey && isElementKey(p.elementKey) && !paired.has(p.id) && normalizePlayerSearch(p.displayName).includes(normalizedQuery));
+      const candidates = players.filter(p => p.elementKey && isElementKey(p.elementKey) && !paired.has(p.id) && normalizePlayerSearch(presentedName(p)).includes(normalizedQuery));
       const ids = [playerId, ...candidates.map(p => p.id)];
       const balances = await tx.playerResourceBalance.findMany({ where: { playerId: { in: ids }, resourceKey: { startsWith: 'particles_' } }, select: { playerId: true, resourceKey: true, amount: true } });
       const reservations = await tx.tradeRequest.groupBy({ by: ['senderPlayerId', 'senderResourceKey'], where: { senderPlayerId: { in: ids }, state: 'PENDING' }, _sum: { currentAmount: true } });
@@ -230,7 +232,7 @@ export class TradeService {
       for (const player of candidates) {
         const a = available.get(`${playerId}:particles_${player.elementKey}`) ?? 0n, b = available.get(`${player.id}:${particleResourceKey(actor.elementKey)}`) ?? 0n;
         const max = a < b ? a : b;
-        if (max > 0n) rows.push({ id: player.id, displayName: player.displayName, elementKey: player.elementKey, avatarAssetPath: avatarAssetPath(player), maximum: max.toString() });
+        if (max > 0n) rows.push({ id: player.id, displayName: presentedName(player), elementKey: player.elementKey, avatarAssetPath: avatarAssetPath(player), maximum: max.toString() });
       }
       rows.sort((a, b) => a.displayName.localeCompare(b.displayName, 'fr', { sensitivity: 'base' }) || a.id.localeCompare(b.id));
       const totalPages = Math.max(1, Math.ceil(rows.length / 10)), page = Math.min(totalPages, Math.max(1, requestedPage));

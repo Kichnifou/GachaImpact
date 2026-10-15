@@ -1,3 +1,4 @@
+import { presentedName } from '../player/presentation-name.js';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
 import { derivePlayerLevel } from '../../domain/player/player-progression.js';
 import { elementKeys } from '../../domain/economy/resources.js';
@@ -59,7 +60,7 @@ export class RankingService {
     const players = await this.database.player.findMany({
       where: { status: 'ACTIVE', elementKey: { not: null } },
       select: {
-        id: true, displayName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
+        id: true, displayName: true, presentationName: true, elementKey: true, equippedAvatarCosmetic: appearanceSelect.equippedAvatarCosmetic,
         privacySettings: metric.privacy.length ? { where: { categoryKey: { in: [...metric.privacy] } }, select: { categoryKey: true, level: true } } : undefined,
         progression: metric.source === 'progression' ? { select: { xp: true, totalMessages: true, countedMessages: true } } : undefined,
         gachaState: metric.source === 'gacha' ? { select: { totalPulls: true, totalFiveStars: true, totalFourStars: true, pity5: true, fiftyFiftyWon: true, fiftyFiftyLost: true } } : undefined,
@@ -101,7 +102,7 @@ export class RankingService {
       };
       const score = values[metric.id];
       if (score === null || compare(score, 0n) <= 0) continue;
-      eligible.push({ playerId: player.id, displayName: player.displayName, elementKey: player.elementKey!, avatarAssetPath: avatarAssetPath(player), score, rank: 0 });
+      eligible.push({ playerId: player.id, displayName: presentedName(player), elementKey: player.elementKey!, avatarAssetPath: avatarAssetPath(player), score, rank: 0 });
     }
     eligible.sort((a, b) => compare(b.score, a.score) || normalizePlayerSearch(a.displayName).localeCompare(normalizePlayerSearch(b.displayName), 'fr') || a.playerId.localeCompare(b.playerId));
     eligible.forEach((row, index) => { row.rank = index && compare(row.score, eligible[index - 1]!.score) === 0 ? eligible[index - 1]!.rank : index + 1; });
@@ -113,7 +114,7 @@ export class RankingService {
     if (!metric) return null;
     const ranked = await this.ranked(metric);
     const totalPages = Math.max(1, Math.ceil(ranked.length / pageSize));
-    const toEntry = (row: Ranked): Entry => ({ playerId: row.playerId, displayName: row.displayName, elementKey: row.elementKey, avatarAssetPath: row.avatarAssetPath, rank: row.rank, value: display(metric, row.score), isSelf: row.playerId === viewerId });
+    const toEntry = (row: Ranked): Entry => ({ playerId: row.playerId, displayName: presentedName(row), elementKey: row.elementKey, avatarAssetPath: row.avatarAssetPath, rank: row.rank, value: display(metric, row.score), isSelf: row.playerId === viewerId });
     const self = ranked.find(row => row.playerId === viewerId);
     let selfStatus: 'RANKED' | 'NOT_PUBLIC' | 'NOT_ELIGIBLE' = self ? 'RANKED' : 'NOT_ELIGIBLE';
     if (!self && metric.privacy.length) {
