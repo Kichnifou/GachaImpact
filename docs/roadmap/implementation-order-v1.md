@@ -1,5 +1,13 @@
 # Ordre d’implémentation V1
 
+## Clôtures décidées par le propriétaire — 15/10/2026
+
+**Terminé/accepté :** gameplay, économie, progression, Twitch GLOBAL, fonctionnalités standalone, indicateur rouge Invocation R1096 et **finition mobile générale**. Le propriétaire acte explicitement ces clôtures ; elles ne constituent plus des travaux obligatoires à ouvrir. **Abandonnés :** application `.exe`, PWA, thèmes supplémentaires et Objectifs personnels ; aucun de ces sujets ne doit redevenir une tâche V1 par lecture d'une ancienne section de référence.
+
+**Encore à vivre, sans chantier automatique :** recette du parcours Twitch R1096 avec un ami ultérieurement ; premier tirage naturel Event lors de la clôture du 31/10 (01/11 à 00:00 Europe/Paris) ; essais multijoueurs complémentaires en bêta ; enfin validation V1 et ouverture officielle décidées par le propriétaire. Les purges historiques ne sont plus un jalon pré-release ni un backlog automatique : investigation uniquement en cas de volume préoccupant **et de croissance vérifiée** (voir [base du 15/10](../architecture/evidence/database-growth-baseline-20261015.md) et [politique](../specifications/data-retention-v1.md)).
+
+Les anciens états « mobile à faire », « Objectifs personnels FUTUR », « R1095 à tester » et « PWA ultérieure » des sections chronologiques ci-dessous sont **supersédés**. Le [Master](../master/PROJECT_MASTER_PLAN.md) reste propriétaire du statut vivant.
+
 ## Synchronisation pendant la bêta — après R1096, 15/10/2026
 
 Le propriétaire a **validé R1095**, y compris le combat manuel et ses règles de mission Z ; le petit point rouge de diffusion a ensuite été livré dans R1096, dont la recette humaine reste partielle. La bêta multijoueur est **en cours**. L'authentification/récupération Twitch R1096 a été qualifiée techniquement mais doit encore être observée avec un ami volontaire ; aucun choix de progression public n'est présumé exécuté. Les adaptations mobile générales, les corrections de bêta réellement observées et la décision propriétaire finale de lancement V1 restent distinctes ; le premier tirage Event du 01/11/2026 se suit naturellement sans mutation de QA. Le [Master](../master/PROJECT_MASTER_PLAN.md) reste seul responsable de l'état vivant et de la prochaine action. Le [bilan documentaire daté](../architecture/evidence/documentation-audit-20261015.md) inventorie les véritables restants et les sujets post-V1 différés. Les paragraphes R1095 et antérieurs ci-dessous sont historiques, non des demandes à rejouer.
@@ -156,7 +164,7 @@ R1034 supersède R1032 après 28 : 26 et 28 validées/clôturées, 27 clôturée
 
 ## Sujet hors séquence obligatoire
 
-**Objectifs personnels** reste `FUTUR / PÉRIMÈTRE V1 À TRANCHER`. Aucune position obligatoire dans la trajectoire ci-dessus ne lui est attribuée tant que le propriétaire n’a pas statué.
+**Objectifs personnels — ABANDONNÉ par décision propriétaire du 15/10/2026.** L'ancienne direction valide / « périmètre V1 à trancher » est historique ; aucune étape de la trajectoire V1 ne la prévoit et aucun mandat futur ne doit la réintroduire automatiquement.
 
 ## Vérité UI et dé-mock progressif
 
