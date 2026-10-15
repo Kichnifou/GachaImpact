@@ -1,5 +1,11 @@
 # Roadmap de préparation et de développement GachaImpact
 
+## Décision de clôture propriétaire — 15/10/2026
+
+Le gameplay V1, l'économie, la progression, Twitch GLOBAL, les fonctionnalités standalone, la finition mobile générale et le point rouge R1096 sont **considérés terminés par le propriétaire**. Les projets `.exe`/PWA, thèmes supplémentaires et « Objectifs personnels » sont abandonnés. Les mentions antérieures de ces étapes dans la trajectoire macro ci-dessous sont historiques, pas des demandes d'implémentation.
+
+Restants de processus : récupération Twitch R1096 à tester avec un ami plus tard, observation naturelle de la première clôture Event le 01/11 à 00:00 Europe/Paris, bêta multijoueur complémentaire à poursuivre plus tard, puis décision propriétaire de validation finale/ouverture V1. Les purges d'historique sont conditionnées à une taille **et** une croissance de base démontrées, non automatiques ([mesure du 15/10](../architecture/evidence/database-growth-baseline-20261015.md)). Les statuts/prochaines actions actuels restent au [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Mission consolidée autorisée le 11/10/2026 — R1066–R1077
 
 [Publication progressive, Invocations partagées et vraie Roue animée](../architecture/consolidated-r1066-r1077.md) : mandat propriétaire complet après R1051, livré en quatre lots distincts A→B→C→D avec tests, review indépendante, promotion et déploiements. Les nouvelles règles catalogue s’appliquent aux nouvelles fiches et reprises ADMIN ciblées, sans rouvrir les 120 historiques ; Twitch et l’économie existante conservent leurs propriétaires. Aucun autre domaine ni dépense supplémentaire. Le Master garde seul l’état effectif et la prochaine action.
