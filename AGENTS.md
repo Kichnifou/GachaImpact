@@ -30,7 +30,7 @@ Le jeu doit à terme être :
 - entièrement jouable sans compte Twitch ;
 - utilisable sur PC et mobile avec une interface responsive ;
 - mis à jour côté web/serveur, sans programme à redistribuer aux joueurs ;
-- éventuellement installable comme PWA dans une phase ultérieure.
+- maintenu comme application web ; application Windows `.exe` et installation PWA **abandonnées sur décision propriétaire du 15/10/2026** (aucun chantier à proposer sans nouveau mandat).
 
 Streamer.bot ne fait pas partie de la nouvelle architecture et aucune dépendance envers lui ne doit être réintroduite. Twitch restera facultatif.
 
@@ -57,6 +57,8 @@ L'interface principale suit une structure générale en trois zones :
 La navigation doit permettre d'accéder clairement aux différentes parties du jeu. De grandes tuiles ou de grands boutons aux coins arrondis peuvent fournir des accès rapides aux systèmes principaux.
 
 La maquette `Concept1.png` fournie par le propriétaire constitue la référence visuelle principale pour la direction future : interface sombre et moderne inspirée des jeux/gachas, cartes et panneaux arrondis, contrastes lisibles, informations importantes visibles rapidement et hiérarchie nette entre contenus principaux et secondaires. Elle n'est pas une spécification pixel-perfect. Ses personnages, illustrations, icônes, couleurs, textes, valeurs, dimensions et menus sont indicatifs et peuvent évoluer.
+
+Le propriétaire considère la finition mobile générale **terminée** au 15/10/2026. Les thèmes graphiques supplémentaires et le système « Objectifs personnels » sont **abandonnés** ; ne pas les traiter comme du travail V1 restant. Le responsive habituel reste une exigence de non-régression pour tout futur changement d'écran.
 
 Les règles transverses de hauteur, scroll, stabilité, pagination, drag-and-drop et responsive sont définies dans `docs/specifications/ui-layout-contract-v1.md`. Toute évolution d’un écran long ou d’une modale de données doit respecter ce contrat et identifier explicitement le conteneur propriétaire du défilement.
 
