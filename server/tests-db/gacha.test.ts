@@ -16,10 +16,13 @@ import { PrismaGachaStore } from '../src/infrastructure/database/prisma-gacha-st
 import { PrismaTeamStore } from '../src/infrastructure/database/prisma-team-store.js';
 import { PrismaDailyChallengeStore } from '../src/infrastructure/database/prisma-daily-challenge-store.js';
 import { getBusinessDate } from '../src/domain/time/business-date.js';
+import { readGachaActiveTeam } from '../src/application/gacha/gacha-snapshot-storage.js';
 
 const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Gacha database tests.');
 const isolated = isolatedBatchDatabase();
+// Remote private-schema qualification allows network/bootstrap/cleanup time.
+// Production transaction deadlines and every economic assertion stay intact.
 const database = isolated.database;
 beforeAll(async () => {
   await isolated.setup({ seedPublicCatalog: true });
@@ -32,7 +35,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(() => isolated.cleanup(), 60_000);
 const pullFixturePlayerIds = new Set<string>();
-afterEach(async () => cleanupPullFixtures());
+afterEach(async () => cleanupPullFixtures(), 60_000);
 afterAll(async () => {
   await cleanupPullFixtures();
   await database.$disconnect();
@@ -56,6 +59,55 @@ it('replays standalone character metadata after a later catalog update without a
 }, 20_000);
 
 describe('Gacha foundation on the development database', () => {
+  it.each([
+    { count: 1, elements: [] as string[], sourceChannel: 'UI' as const },
+    { count: 10, elements: ['hydro'], sourceChannel: 'TWITCH' as const },
+    { count: 10, elements: ['pyro', 'hydro', 'electro', 'dendro'], sourceChannel: 'INTERNAL_CHAT' as const },
+  ])('preserves both receipt formats and the original Team after later changes: $sourceChannel x$count', async ({ count, elements, sourceChannel }) => {
+    const fixture = await createPullPlayer(10000n), store = new PrismaGachaStore(database);
+    await configureTeams(fixture.playerId, elements);
+    const input = { playerId: fixture.playerId, playerElementKey: 'hydro' as const, count: count as 1 | 10, sourceChannel,
+      idempotencyKey: randomUUID(), now: fixture.now, random: maxRandom };
+    const first = await store.pull(input);
+    const operation = await database.pullOperation.findUniqueOrThrow({ where: { id: first.operation.id }, include: { businessOperation: true, results: { orderBy: { resultIndex: 'asc' } } } });
+    const originalTeam = readGachaActiveTeam(operation.results[0]!.snapshot, operation.businessOperation.resultSummary);
+    if (count > 1) expect(operation.results.every(row => !Object.hasOwn(row.snapshot as object, 'activeTeam'))).toBe(true);
+    const movements = await database.resourceMovement.count({ where: { playerId: fixture.playerId } });
+    await configureTeams(fixture.playerId, ['geo', 'cryo', 'anemo']);
+    await database.playerGachaState.update({ where: { playerId: fixture.playerId }, data: { selectedBannerCharacterId: null, pity5: 88, guaranteedFeatured5: true } });
+    const replayInput = { ...input, random: { nextInt: () => { throw new Error('Must not reroll or recalculate passives'); } } };
+    const banner = await database.bannerRotation.findUniqueOrThrow({ where: { id: operation.bannerRotationId } });
+    // No active banner at the original business time: receipt replay must still
+    // use the committed operation, never resolve a current replacement.
+    const replay = await (async () => {
+      await database.bannerRotation.update({ where: { id: banner.id }, data: { endsAt: new Date(fixture.now.getTime() - 1) } });
+      try { return await store.pull(replayInput); }
+      finally { await database.bannerRotation.update({ where: { id: banner.id }, data: { endsAt: banner.endsAt } }); }
+    })();
+    expect(replay.results).toEqual(first.results); expect(replay.playerState).toEqual(first.playerState);
+    expect(pullChatResult('Fixture', replay)).toEqual(pullChatResult('Fixture', first));
+    expect(standalonePullSummary(replay, 'Fixture')).toEqual(standalonePullSummary(first, 'Fixture'));
+    expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+    expect(await database.pullResult.findMany({ where: { pullOperationId: first.operation.id }, orderBy: { resultIndex: 'asc' } })).toEqual(operation.results);
+    // Construct an old-format receipt exclusively from this test's synthetic
+    // rows. Production/historical rows are never converted by application code.
+    if (count > 1) {
+      for (const row of operation.results) {
+        const { snapshotVersion: _version, activeTeamRef: _ref, ...snapshot } = row.snapshot as Record<string, import('../generated/prisma/client.js').Prisma.JsonValue>;
+        await database.pullResult.update({ where: { id: row.id }, data: { snapshot: { ...snapshot, activeTeam: originalTeam } } });
+      }
+      const { gachaSnapshotVersion: _version, activeTeam: _team, ...summary } = operation.businessOperation.resultSummary as Record<string, import('../generated/prisma/client.js').Prisma.JsonValue>;
+      await database.businessOperation.update({ where: { id: operation.businessOperationId }, data: { resultSummary: summary } });
+    }
+    const legacyRows = await database.pullResult.findMany({ where: { pullOperationId: first.operation.id }, orderBy: { resultIndex: 'asc' } });
+    const oldReplay = await store.pull(replayInput);
+    expect(oldReplay).toEqual(replay);
+    expect(await database.pullResult.findMany({ where: { pullOperationId: first.operation.id }, orderBy: { resultIndex: 'asc' } })).toEqual(legacyRows);
+    expect(readGachaActiveTeam(legacyRows[0]!.snapshot, null)).toEqual(originalTeam);
+    expect(await database.resourceMovement.count({ where: { playerId: fixture.playerId } })).toBe(movements);
+    const history = await store.getHistory(fixture.playerId, 1);
+    expect(history.results.map(row => row.passiveEffects)).toEqual([...first.results].reverse().map(row => row.passiveEffects));
+  }, 90_000);
   it('retains the command actor after a crash before Chat freeze and later rename without another debit', async () => {
     const fixture = await createPullPlayer(10000n), getPlayer = new GetCurrentPlayer(new PrismaCurrentPlayerStore(database));
     const clock = { now: () => fixture.now }, store = new PrismaGachaStore(database);
@@ -336,7 +388,7 @@ describe('Gacha foundation on the development database', () => {
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: concurrent.playerId, resourceKey: 'primogems' } } })).amount).toBe(0n);
       expect(await database.pullOperation.count({ where: { playerId: concurrent.playerId } })).toBe(1);
     } finally { await deletePullPlayer(concurrent.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('unlocks every first character from a x10 in one avatar notification and leaves replay unchanged', async () => {
     const fixture = await createPullPlayer(1_600n);
@@ -407,7 +459,7 @@ describe('Gacha foundation on the development database', () => {
         where: { playerId: fixture.playerId, causeKey: 'daily-challenge.completion' },
       })).toBe(1);
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('paginates history by ten, keeps newest operations and x10 order, and isolates players', async () => {
     const empty = await createPullPlayer(0n);
@@ -453,7 +505,7 @@ describe('Gacha foundation on the development database', () => {
       await deletePullPlayer(exact.playerId);
       await deletePullPlayer(over.playerId);
     }
-  }, 25_000);
+  }, 90_000);
 
   it('rolls the complete transaction back when resolution fails after the debit', async () => {
     const fixture = await createPullPlayer(160n);
@@ -491,7 +543,7 @@ describe('Gacha foundation on the development database', () => {
       expect(possession).toMatchObject({ copies: 2, constellation: 1 });
       expect(await database.pullOperation.count({ where: { playerId: acquisitionFixture.playerId } })).toBe(2);
     } finally { await deletePullPlayer(acquisitionFixture.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('prevents a concurrent x10 and x1 from overspending the same 1600 Primogemmes', async () => {
     const fixture = await createPullPlayer(1_600n);
@@ -508,7 +560,7 @@ describe('Gacha foundation on the development database', () => {
       expect([0n, 1_440n]).toContain(balance);
       expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('persists and replays the exact C6+ stat progression without a second random choice', async () => {
     const fixture = await createPullPlayer(160n);
@@ -645,9 +697,10 @@ describe('Gacha foundation on the development database', () => {
       expect(result.playerState.pity5).toBe(3);
       expect(result.results[0]!.bonusRewards).toHaveLength(9);
       const persisted = await database.pullResult.findFirstOrThrow({ where: { pullOperationId: result.operation.id } });
-      expect(persisted.snapshot).toMatchObject({ activeTeam: { elements: ['pyro', 'hydro', 'electro', 'dendro'] } });
+      const operation = await database.pullOperation.findUniqueOrThrow({ where: { id: result.operation.id }, include: { businessOperation: true } });
+      expect(readGachaActiveTeam(persisted.snapshot, operation.businessOperation.resultSummary)).toMatchObject({ elements: ['pyro', 'hydro', 'electro', 'dendro'] });
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('applies Geo, Cryo and Anemo transactionally without touching message counters', async () => {
     const fixture = await createPullPlayer(1_600n);
@@ -669,7 +722,7 @@ describe('Gacha foundation on the development database', () => {
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'primogems' } } })).amount).toBe(2_480n);
       expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: fixture.playerId, resourceKey: 'moras' } } })).amount).toBe(16_250n);
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 15_000);
+  }, 60_000);
 
   it('replays x10 passive effects exactly without rerolls or duplicate XP and resource credits', async () => {
     const fixture = await createPullPlayer(1_600n);
@@ -693,7 +746,9 @@ describe('Gacha foundation on the development database', () => {
       expect(await database.pullOperation.count({ where: { playerId: fixture.playerId } })).toBe(1);
       const snapshots = await database.pullResult.findMany({ where: { pullOperationId: first.operation.id }, select: { snapshot: true }, orderBy: { resultIndex: 'asc' } });
       expect(snapshots).toHaveLength(10);
-      expect(snapshots.every(({ snapshot }) => JSON.stringify(snapshot).includes('activeTeam'))).toBe(true);
+      expect(snapshots.every(({ snapshot }) => snapshot && typeof snapshot === 'object' && !Array.isArray(snapshot) && !Object.hasOwn(snapshot, 'activeTeam'))).toBe(true);
+      const operation = await database.pullOperation.findUniqueOrThrow({ where: { id: first.operation.id }, include: { businessOperation: true } });
+      expect(snapshots.map(({ snapshot }) => readGachaActiveTeam(snapshot, operation.businessOperation.resultSummary))).toEqual(Array(10).fill(expect.objectContaining({ elements: ['cryo', 'anemo', 'dendro'] })));
     } finally { await deletePullPlayer(fixture.playerId); }
   }, 90_000);
 
@@ -713,7 +768,7 @@ describe('Gacha foundation on the development database', () => {
       if (disabledCharacterId) await database.character.update({ where: { id: disabledCharacterId }, data: { isActive: true } });
       await deletePullPlayer(fixture.playerId);
     }
-  }, 15_000);
+  }, 60_000);
 
   it('uses every level-II passive contract from two active element stacks', async () => {
     const fixture = await createPullPlayer(2_000n);
@@ -781,7 +836,7 @@ describe('Gacha foundation on the development database', () => {
       expect(dendro.results[0]!.passiveEffects).toContainEqual(expect.objectContaining({ elementKey: 'dendro', type: 'resource_bundle' }));
       expect(pullChatResult('Axel', dendro)[0]).toContain('🌿 +40 primos');
     } finally { await deletePullPlayer(fixture.playerId); }
-  }, 35_000);
+  }, 90_000);
 });
 
 const maxRandom = { nextInt: (maximum: number) => maximum - 1 };

@@ -401,7 +401,7 @@ export class PrismaGachaStore implements GachaStore {
           constellationAfter: record.constellationAfter, copiesAfter: record.copiesAfter,
           wasFiftyFifty: record.wasFiftyFifty, wonFiftyFifty: record.wonFiftyFifty,
           guaranteeConsumed: record.guaranteeConsumed, captureTriggered: record.captureTriggered,
-          snapshot: { ...snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, activeTeam, passiveEffects, backToBack, resourceTotalsAfter), ...(sourceChannel === 'INTERNAL_CHAT' && record.character ? { standaloneCharacter: record.character as unknown as Prisma.InputJsonValue } : {}) }, createdAt: input.now,
+          snapshot: { ...snapshot(resolved.stateBefore, state, bonusRewards, c6Progression, input.count === 1 ? activeTeam : undefined, passiveEffects, backToBack, resourceTotalsAfter), ...(sourceChannel === 'INTERNAL_CHAT' && record.character ? { standaloneCharacter: record.character as unknown as Prisma.InputJsonValue } : {}) }, createdAt: input.now,
         } });
         records.push(record);
       }
@@ -433,7 +433,8 @@ export class PrismaGachaStore implements GachaStore {
       });
       await transaction.businessOperation.update({ where: { id: businessOperation.id }, data: {
         status: OperationStatus.COMPLETED, completedAt: input.now,
-        resultSummary: { pullOperationId: pullOperation.id, pullCount: input.count, primogemCost: cost.toString() },
+        resultSummary: { pullOperationId: pullOperation.id, pullCount: input.count, primogemCost: cost.toString(),
+          ...(input.count > 1 ? { gachaSnapshotVersion: 2, activeTeam: activeTeamSnapshotJson(activeTeam) } : {}) },
       } });
       return { operation: { id: pullOperation.id, pullCount: input.count, primogemCost: cost, createdAt: input.now, alreadyProcessed: false }, results: records, playerState };
     }, {
@@ -556,7 +557,7 @@ function snapshot(
   after: PullState,
   bonusRewards: readonly { resourceKey: ResourceKey; amount: bigint; causeKey: string }[],
   c6Progression: PullResultRecord['c6Progression'],
-  activeTeam: ActiveTeamSnapshot,
+  activeTeam: ActiveTeamSnapshot | undefined,
   passiveEffects: readonly GachaPassiveEffect[],
   backToBack: boolean,
   resourceTotalsAfter: Readonly<Partial<Record<ResourceKey, string>>>,
@@ -564,7 +565,7 @@ function snapshot(
   return {
     stateBefore: snapshotState(before), stateAfter: snapshotState(after), backToBack, resourceTotalsAfter,
     bonusRewards: bonusRewards.map(({ resourceKey, amount, causeKey }) => ({ resourceKey, amount: amount.toString(), causeKey })),
-    activeTeam: activeTeamSnapshotJson(activeTeam),
+    ...(activeTeam ? { activeTeam: activeTeamSnapshotJson(activeTeam) } : { snapshotVersion: 2, activeTeamRef: 'operation' }),
     passiveEffects: passiveEffects.map(passiveEffectJson),
     ...(c6Progression ? { c6Progression } : {}),
   };

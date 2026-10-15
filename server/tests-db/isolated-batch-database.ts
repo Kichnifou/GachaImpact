@@ -21,7 +21,10 @@ export function isolatedBatchDatabase() {
   let closedConnections = 0;
   pool.on('connect', () => { openedConnections += 1; });
   pool.on('remove', () => { closedConnections += 1; });
-  const database = new PrismaClient({ adapter: new PrismaPg(pool, { schema, disposeExternalPool: true }) });
+  // Private fixtures cross a remote network; leave production owners' explicit
+  // transaction deadlines intact while allowing bootstrap/cleanup to complete.
+  const database = new PrismaClient({ adapter: new PrismaPg(pool, { schema, disposeExternalPool: true }),
+    transactionOptions: { timeout: 30_000, maxWait: 10_000 } });
   let created = false;
   let migrationStatus = '';
   return { database, admin, schema,
