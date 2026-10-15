@@ -53,9 +53,14 @@ export class RetentionEngine {
     let capacity:Capacity|undefined,status='FAILED';
     const transformations:Awaited<ReturnType<RetentionTransformations['run']>>[]=[];
     try {
-      for (const rule of retentionRules) {
+      const [scanRotation]=await this.db.$queryRawUnsafe<{next:string}[]>("SELECT cursor->>'next' AS next FROM retention_progress WHERE domain='inventory:rotation'");
+      const scanFirst=Math.max(0,retentionRules.findIndex(rule=>rule.domain===scanRotation?.next));
+      const scanOrder=[...retentionRules.slice(scanFirst),...retentionRules.slice(0,scanFirst)];
+      for (const rule of scanOrder) {
         if (signal?.aborted || performance.now()>inventoryDeadline) break;
         if (!await this.renew(token)) return {skipped:'LEASE_LOST'};
+        const next=retentionRules[(retentionRules.indexOf(rule)+1)%retentionRules.length]!.domain;
+        if(!await this.rotate(token,cycleKey,now,'inventory:rotation',next))return {skipped:'LEASE_LOST'};
         domains.push(await this.inspectPaged(rule,now,cycleKey,token,signal,inventoryDeadline));
       }
       if(this.mode==='EXECUTE') {
@@ -68,7 +73,8 @@ export class RetentionEngine {
           if(!await this.renew(token))return {skipped:'LEASE_LOST'};
           // Persist the next priority before entering a writer: a crash or an
           // exhausted cycle cannot keep restarting at the same first domain.
-          if(!await this.rotate(token,cycleKey,now,domain))return {skipped:'LEASE_LOST'};
+          const next=losslessRetentionDomains[(losslessRetentionDomains.indexOf(domain)+1)%losslessRetentionDomains.length]!;
+          if(!await this.rotate(token,cycleKey,now,'execute:rotation',next))return {skipped:'LEASE_LOST'};
           transformations.push(await operations.run(domain,token,cycleKey,now,Math.min(started+90_000,performance.now()+15_000),signal));
         }
       }
@@ -79,7 +85,7 @@ export class RetentionEngine {
       status=signal?.aborted?'CANCELLED':domains.length!==retentionRules.length||domains.some(x=>x.coverage!=='EXHAUSTIVE')||(this.mode==='EXECUTE'&&(transformations.length!==this.allowed.length||transformations.some(row=>row.status!=='SUCCESS')))?'PARTIAL':'SUCCESS';
     } catch {status='FAILED';}
     const report={version:2,mode:this.mode,cycleKey,analyzedAt:now.toISOString(),durationMs:Math.round(performance.now()-started),domains,transformations,
-      notInspectedDomains:retentionRules.slice(domains.length).map(rule=>rule.domain),
+      notInspectedDomains:retentionRules.filter(rule=>!domains.some(row=>row.domain===rule.domain)).map(rule=>rule.domain),
       capacity,destructiveActions:0,technicallyEligible:0,
       noAgePolicy:['business_operations','resource_movements','migration_proofs','player_state','player_statistics','identities','audit','daily_activity'],
       limits:['Resumable keyset sweep at fixed cutoff/upper UUID; concurrent inserts revisited next sweep','Primary detail tables only; auxiliary durable proofs retained','Lossless JSON compaction only; stored datum savings are not physical disk shrinkage','Irreversible deletion and content removal remain blocked']};
@@ -99,13 +105,12 @@ export class RetentionEngine {
   private async renew(token:string) {
     return this.db.$transaction(async tx => {await bounded(tx);return (await tx.$executeRawUnsafe("UPDATE retention_job SET lease_until=clock_timestamp()+interval '2 minutes' WHERE id='retention-v1' AND token=$1::uuid AND lease_until>clock_timestamp()",token))===1;},transactionOptions);
   }
-  private async rotate(token:string,cycleKey:string,now:Date,domain:LosslessRetentionDomain) {
-    const next=losslessRetentionDomains[(losslessRetentionDomains.indexOf(domain)+1)%losslessRetentionDomains.length]!;
+  private async rotate(token:string,cycleKey:string,now:Date,key:'inventory:rotation'|'execute:rotation',next:string) {
     return this.db.$transaction(async tx=>{
       await bounded(tx);
       const [owner]=await tx.$queryRawUnsafe<{owned:boolean}[]>("SELECT token=$1::uuid AND lease_until>clock_timestamp() AS owned FROM retention_job WHERE id='retention-v1' FOR UPDATE",token);
       if(!owner?.owned)return false;
-      await tx.$executeRawUnsafe("INSERT INTO retention_progress(domain,cycle_key,cutoff,cursor) VALUES('execute:rotation',$1,$2,$3::jsonb) ON CONFLICT(domain) DO UPDATE SET cycle_key=$1,cutoff=$2,cursor=$3::jsonb",cycleKey,now,JSON.stringify({next}));
+      await tx.$executeRawUnsafe('INSERT INTO retention_progress(domain,cycle_key,cutoff,cursor) VALUES($1,$2,$3,$4::jsonb) ON CONFLICT(domain) DO UPDATE SET cycle_key=$2,cutoff=$3,cursor=$4::jsonb',key,cycleKey,now,JSON.stringify({next}));
       return true;
     },transactionOptions);
   }

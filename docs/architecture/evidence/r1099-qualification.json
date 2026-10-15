@@ -28,7 +28,7 @@
       "status": "PASS"
     },
     "b2": {
-      "tests": 16,
+      "tests": 17,
       "status": "PASS"
     },
     "gachaGlobalChatDirectMessages": {
@@ -67,7 +67,8 @@
       "Prisma contains and SQL ILIKE agree for percent, underscore and backslash",
       "Bank display clock is supplied transaction time; expired history hidden, proofs unchanged",
       "Boss expired period hidden; exact owner exclusion and original attack/reward fingerprints preserved",
-      "Execution budget reserved despite partial inventories; durable writer rotation across three days"
+      "Execution budget reserved despite partial inventories; durable writer rotation across three days",
+      "Durable inventory rotation across six retries/two days; all sixteen domains visited despite early partial/completed sweeps; omitted partition exact"
     ]
   },
   "intermediateFailures": [
@@ -79,7 +80,8 @@
     "Chat old presentation expectations updated to current emoji/rank syntax; all economic assertions retained",
     "Arcade stale 60 migration expectation updated to exact 84 ledger and final migration",
     "Old Bank fixture history clock and Boss unlimited-history expectations corrected; expired proofs explicitly checked unchanged",
-    "First real GitHub review P2 fairness finding: candidate not promoted; reserved writer budget and durable rotation added with real registry load tests"
+    "First real GitHub review P2 fairness finding: candidate not promoted; reserved writer budget and durable rotation added with real registry load tests",
+    "Second real GitHub review P2 inventory-domain fairness: not promoted; durable inventory priority and exact omitted partition added, author35/35 PG PASS"
   ],
   "recovery": {
     "realEncryptedExportAndIsolatedRestore": "r1099-restoration.json",
@@ -117,12 +119,30 @@
         "seconds": 38.77
       },
       "resolution": "35s inventory execution phase plus token-fenced durable next-domain rotation before each writer; two PostgreSQL simulated-load tests added, author34/34 PASS; new SHA review pending"
+    },
+    {
+      "sha": "0b6316bdf81d04ebdbe62e2680d3b0f5fe0c220e",
+      "reviewer": "B business and retention",
+      "verdict": "APPROVED",
+      "scope": "five-file fairness correction, no business reader or format changed"
+    },
+    {
+      "sha": "0b6316bdf81d04ebdbe62e2680d3b0f5fe0c220e",
+      "reviewer": "A PostgreSQL scheduler recovery",
+      "verdict": "CHANGES_REQUIRED",
+      "independentPostgreSql": {
+        "tests": 34,
+        "status": "PASS",
+        "seconds": 43.71
+      },
+      "finding": "P2 inventory domain starvation across completed sweeps and new days",
+      "resolution": "inventory:rotation persisted before each call under fencing; exact omitted-set calculation; six-attempt/two-day PostgreSQL test; author35/35 PASS, new SHA review pending"
     }
   ],
   "productionActivation": "not yet claimed; runtime evidence and closure pending",
   "syntheticMeasurements": {
     "scope": "synthetic private original proofs; positive pg_column_size savings, not public or physical disk savings",
-    "tests": "3 PASS / 11 not executed in prior 14-case measurement subset; current full B2 16 PASS separately",
+    "tests": "3 PASS / 11 not executed in original 14-case measurement subset; current full B2 17 PASS separately",
     "domains": [
       {
         "domain": "twitch_terminal",

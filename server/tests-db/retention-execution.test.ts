@@ -21,6 +21,26 @@ const pilot=()=>({version:1,playerId,actorName:'Synthetic',senderId:'100000001',
 async function receipt(extra:Record<string,unknown>={}){return db.twitchEventReceipt.create({data:{externalEventId:randomUUID(),eventType:'channel.chat.message',state:'PROCESSED',receivedAt:old,processedAt:old,payloadHash:'synthetic-original',externalReference:'command-pilot:synthetic',payloadMinimal:{commandPilot:pilot(),messageActivity:{plan:{event:{messageIds:['synthetic-event-proof']}}},...extra} as Prisma.InputJsonValue}});}
 async function lease(domains:string[]=['twitch_terminal']){const token=randomUUID();await db.retentionJob.update({where:{id:'retention-v1'},data:{cycleKey:'2030-06-15',token,leaseUntil:new Date(Date.now()+120000),executionEnabled:true,enabledDomains:domains}});return token;}
 describe('R1099 private PostgreSQL execution, pagination and recovery gates',()=>{
+ it('rotates inventories across retries and days even when early domains finish only on their third visit',async()=>{
+   let elapsed=0;vi.spyOn(performance,'now').mockImplementation(()=>elapsed);
+   const inventory=new RetentionInventory(db),inspect=inventory.inspect.bind(inventory),visits=new Map<string,number>();
+   vi.spyOn(inventory,'inspect').mockImplementation(async(...args)=>{
+     const row=await inspect(...args),count=(visits.get(args[0].domain)??0)+1;
+     visits.set(args[0].domain,count);elapsed+=5001;
+     return {...row,coverage:count<3?'PARTIAL':'EXHAUSTIVE'};
+   });
+   vi.spyOn(RetentionTransformations.prototype,'run').mockImplementation(async domain=>({domain,status:'SUCCESS',scanned:0,expired:0,compacted:0,protected:0,logicalBytesBefore:0,logicalBytesAfter:0,storedBytesBefore:0,storedBytesAfter:0}));
+   for(let day=0;day<2;day++)for(let attempt=0;attempt<3;attempt++){
+     elapsed=0;
+     await db.retentionRun.updateMany({data:{nextAttemptAt:new Date(0)}});
+     const result=await new RetentionEngine(db,'EXECUTE',{now:()=>new Date(now.getTime()+day*86400000)},()=>{},inventory,['twitch_terminal','gacha','arcade']).run();
+     expect(result.skipped).toBeUndefined();
+     const inspected=result.report!.domains.map(row=>row.domain),missing=result.report!.notInspectedDomains;
+     expect([...inspected,...missing].sort()).toEqual(retentionRules.map(row=>row.domain).sort());
+   }
+   expect([...visits.keys()].sort()).toEqual(retentionRules.map(row=>row.domain).sort());
+   expect(await db.retentionProgress.findUnique({where:{domain:'inventory:rotation'}})).not.toBeNull();
+ },90000);
  it('reserves execution time for every writer despite persistently partial inventories',async()=>{
    let elapsed=0;vi.spyOn(performance,'now').mockImplementation(()=>elapsed);
    const inventory=new RetentionInventory(db),inspect=inventory.inspect.bind(inventory);
