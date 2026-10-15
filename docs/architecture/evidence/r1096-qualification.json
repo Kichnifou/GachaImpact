@@ -11,7 +11,7 @@
     "betaInProgress": true,
     "R1096Validated": false
   },
-  "status": "locally-qualified-awaiting-published-sha-reviews",
+  "status": "technically-delivered-final-documentation-review-pending",
   "subLots": {
     "indicator": "daa21d2d - independent UI correction",
     "twitch": "classifier and authenticated return/onboarding; no new OAuth or DDL"
@@ -42,15 +42,15 @@
       "request": "D/E Option B and integrity",
       "owner": "twitch-profile-claim/twitch-account-link",
       "change": "Existing strict path retained; low-progress extension only advanced Twitch target and exact-zero source with exhaustive graph, neutral badge/presentation, exact default empty teams",
-      "test": "30 private PostgreSQL +6 units +4 independent private PostgreSQL; legacy suites pending",
-      "status": "PASS-local-legacy-compatibility-review-pending"
+      "test": "30 private PostgreSQL +6 units; independent4/19/5/1/2 case runs separately qualified and overlapping, not summed",
+      "status": "PASS"
     },
     {
       "request": "F/G qualification and delivery",
       "owner": "verification/review/deployment workflow",
       "change": "Private fixtures only, actual published blobs reviews, backend before frontend, strict FF, final postflight",
       "test": "full8/8 quick5/5; published reviews/deployments pending",
-      "status": "partially-complete"
+      "status": "PASS-runtime-delivery-final-doc-closure-pending"
     }
   ],
   "verification": {
@@ -63,13 +63,18 @@
       "tests": 2545
     },
     "full": "PASS 8/8",
-    "quick": "PASS 5/5 before final UI delta; final repeat required",
+    "quick": "PASS 5/5",
     "targetedUi": "161 initial; final return suite152 after two additional scenarios (overlapping suites, not summed)",
     "postgres": {
       "author": 30,
       "independent": 4,
       "privateSchemasCleaned": true,
-      "legacyCompatibility": "in progress"
+      "legacyCompatibility": {
+        "accountLink": "19 selected PASS after direct-test timeout5s adjusted30s without changing assertions; 14 filtered",
+        "oauth": "5 qualified PASS, original selected run3PASS/2obsolete assertions failed and preserved",
+        "independentRollback": "1 PASS",
+        "correctedTrackedTests": "2 PASS, exact blob91b59187e0222c768fa49dd3cd3141198c598bf2; overlaps preceding evidence, not summed"
+      }
     },
     "visual": {
       "formats": [
@@ -85,13 +90,388 @@
       "reports": [
         "local-data/r1096-visual/pre-review-summary.json",
         "local-data/r1096-visual/chosen-oauth-and-late.json"
+      ],
+      "publishedCandidate": "APPROVED; rebuild exact66b3 and rerun55cases, successor test-only checked by GitHub trees",
+      "fullGameShellIndicator": {
+        "cases": 16,
+        "formats": [
+          "1920x1080",
+          "2560x1440",
+          "1366x768",
+          "390x844"
+        ],
+        "report": "local-data/r1096-visual/shared-gameshell.json",
+        "sha256": "a7b9b4eae66d7232acc5848761f7d924b6372a960bb901ae6919bf8909fa621e",
+        "source": "GameShell -> InvocationScreen -> useSharedInvocations -> SharedInvocationControls",
+        "states": [
+          "idle",
+          "active keyboard focus",
+          "pending stop deferred",
+          "other broadcasting tab"
+        ],
+        "result": "PASS; actual buttons/hooks, dot/text containment and no runtime errors"
+      }
+    },
+    "readOnlyPrismaStatus": "82 migrations; schema up to date; no new migration"
+  },
+  "reviews": "APPROVED actual published GitHub candidate and backend ancestor",
+  "deployment": {
+    "backend": {
+      "sha": "a253570b2dd16cfc1d841c05b090d468b21231a7",
+      "deploymentId": "bfd30cb9-9804-4d08-b68f-ebee3c7dacc6",
+      "health": {
+        "environment": {
+          "id": "2f3725a1-94a1-4791-83cd-5bd4b1dbb4e3",
+          "name": "production"
+        },
+        "services": [
+          {
+            "serviceId": "0ea371ef-6354-4386-a706-56c21808318a",
+            "serviceName": "GachaImpact",
+            "state": "online",
+            "statusText": "Online",
+            "activeDeployments": [
+              {
+                "id": "bfd30cb9-9804-4d08-b68f-ebee3c7dacc6",
+                "status": "SUCCESS",
+                "createdAt": "2026-10-15T11:04:09.765Z",
+                "statusUpdatedAt": "2026-10-15T11:06:33.923Z"
+              }
+            ],
+            "replicaStatus": {
+              "running": 1,
+              "crashed": 0,
+              "total": 1
+            },
+            "cronJob": null,
+            "issues": {
+              "warningCount": 0,
+              "criticalCount": 0
+            },
+            "recentFailures": 0,
+            "recentFailedDeployments": [],
+            "hasIssues": false,
+            "isCronJob": false,
+            "hasVolume": false
+          }
+        ],
+        "pendingWork": [],
+        "summary": {
+          "totalServices": 1,
+          "servicesWithIssues": 0,
+          "totalFailures": 0
+        }
+      },
+      "ready": [
+        {
+          "timestamp": "2026-10-15T11:06:30.510406559Z",
+          "message": "Application ready"
+        }
+      ],
+      "migration": "No new migration; read-only Prisma status: 82 up to date"
+    },
+    "runtime": {
+      "sha": "6e0627652448e3049ecd29f07cf089baa5344c9b",
+      "deploymentId": "d1aed0ad-6d33-4237-83f7-761f7233fcaa",
+      "createdAt": "2026-10-15T11:07:42.703Z",
+      "health": {
+        "environment": {
+          "id": "2f3725a1-94a1-4791-83cd-5bd4b1dbb4e3",
+          "name": "production"
+        },
+        "services": [
+          {
+            "serviceId": "0ea371ef-6354-4386-a706-56c21808318a",
+            "serviceName": "GachaImpact",
+            "state": "online",
+            "statusText": "Online",
+            "activeDeployments": [
+              {
+                "id": "d1aed0ad-6d33-4237-83f7-761f7233fcaa",
+                "status": "SUCCESS",
+                "createdAt": "2026-10-15T11:07:42.703Z",
+                "statusUpdatedAt": "2026-10-15T11:08:52.424Z"
+              }
+            ],
+            "replicaStatus": {
+              "running": 1,
+              "crashed": 0,
+              "total": 1
+            },
+            "cronJob": null,
+            "issues": {
+              "warningCount": 0,
+              "criticalCount": 0
+            },
+            "recentFailures": 0,
+            "recentFailedDeployments": [],
+            "hasIssues": false,
+            "isCronJob": false,
+            "hasVolume": false
+          }
+        ],
+        "pendingWork": [],
+        "summary": {
+          "totalServices": 1,
+          "servicesWithIssues": 0,
+          "totalFailures": 0
+        }
+      },
+      "ready": [
+        {
+          "timestamp": "2026-10-15T11:08:48.219167459Z",
+          "message": "Application ready"
+        }
       ]
+    },
+    "cloudflare": {
+      "sha": "6e0627652448e3049ecd29f07cf089baa5344c9b",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/637f0d81-5f8c-4a4c-8826-f7fb9860f481",
+      "startedAt": "2026-10-15T11:08:47Z",
+      "completedAt": "2026-10-15T11:08:47Z",
+      "preview": "https://637f0d81.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-CbNDDiMq.js",
+          "http": 200,
+          "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18"
+        },
+        {
+          "path": "/assets/index-hQDYvrWu.css",
+          "http": 200,
+          "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989"
+        }
+      ]
+    },
+    "postflight": {
+      "at": "2026-10-15T11:09:48.704Z",
+      "phase": "runtime",
+      "health": 200,
+      "guards": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=banners&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=event&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=activity&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/chat/messages",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/appearance",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/twitch",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/start",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=banners&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=event&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=activity&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/chat/messages",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/appearance",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/twitch",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/start",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        }
+      ],
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-CbNDDiMq.js",
+              "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18",
+              "bytes": 1263547
+            },
+            {
+              "path": "/assets/index-hQDYvrWu.css",
+              "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989",
+              "bytes": 461460
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-CbNDDiMq.js",
+              "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18",
+              "bytes": 1263547
+            },
+            {
+              "path": "/assets/index-hQDYvrWu.css",
+              "sha256": "b467b9d0c987e37deaf6976b00e317a2ff394f454eca9cd6bebaa7a3a7ba9989",
+              "bytes": 461460
+            }
+          ]
+        }
+      ],
+      "noAuthorizedBusinessMutation": true,
+      "publicAuthenticatedRecipe": "Not performed. Private compiled UI/DB evidence and anonymous refusals are separate."
+    },
+    "buildComparison": {
+      "sha": "6e0627652448e3049ecd29f07cf089baa5344c9b",
+      "local": {
+        "file": "index-CwgYZCTf.js",
+        "sha256": "725829e91e18076d28e2db6b595e4bf5b4fa3e3fa440709c06da8089fc5ed8be"
+      },
+      "production": {
+        "path": "/assets/index-CbNDDiMq.js",
+        "http": 200,
+        "sha256": "6fe36a9f1a03ed89c8339edd4a1846879c128231f87aea91c20bd5487cebaa18"
+      },
+      "environmentKeys": [
+        "VITE_API_BASE_URL",
+        "VITE_SUPABASE_PUBLISHABLE_KEY",
+        "VITE_SUPABASE_URL"
+      ],
+      "differentEnvironmentKeys": [
+        "VITE_API_BASE_URL"
+      ],
+      "normalizedIdentical": true,
+      "publicPreferenceWrites": false
+    },
+    "order": {
+      "backendReady": "2026-10-15T11:06:30.510406559Z",
+      "frontendDeploymentCreated": "2026-10-15T11:07:42.703Z",
+      "backendReadyBeforeFrontend": true
     }
   },
-  "reviews": "pending published SHA",
-  "deployment": "pending",
   "rollback": {
-    "indicator": "separate commit; isolated revert to qualify",
+    "indicator": {
+      "commit": "daa21d2d",
+      "isolatedRevertAt": "66b3f279ea1f4cf891340dcc3c1eeb48bf5dc228",
+      "changedFiles": 3,
+      "build": "PASS",
+      "targetedTests": "23 PASS in 3 suites; other Twitch source retained",
+      "cleanup": "Tracked files restored; clean QA worktree retained. Automatic approval review refused junction removal: blocked by policy. No private DB cleanup affected."
+    },
     "twitch": "Removing UI does not undo a completed identity recovery; no destructive migration or automatic inverse move"
   },
   "limitations": [
@@ -108,7 +488,8 @@
       "backend architecture",
       "data model",
       "Twitch foundations",
-      "R1096 qualification and Master history guard"
+      "R1096 qualification and Master history guard",
+      "Two targeted legacy OAuth test expectations, no runtime change"
     ],
     "examinedUnchanged": [
       "AGENTS",
@@ -117,7 +498,8 @@
       "handoff procedure",
       "PostgreSQL schema (no DDL)",
       "legacy migration",
-      "R1055 operator resolution"
+      "R1055 operator resolution",
+      "implementation-order-v1.md: macro order unchanged, dated earlier status retained"
     ],
     "historyGuard": "R1096 preserves entire R1095 and older suffix"
   },
@@ -160,6 +542,51 @@
       "check": "Index whitespace check",
       "reason": "One trailing blank line in new remount test removed before publication",
       "resolved": true
+    },
+    {
+      "check": "Selected legacy OAuth regression tests",
+      "reason": "Initial3PASS/2fail: snapshot omitted already-existing VERIFIED_NATIVE_ADMISSION, rollback fixture contained a comparison already blocked by baseline FK guard",
+      "resolution": "Test-only commit6e062765 asserts exact target/audit plus unchanged gameplay and replay, and genuinely triggers identity-write rollback with source/session/prior state intact. Exact two patched cases PASS; no product guard relaxed."
+    },
+    {
+      "check": "First staged git fetch/push",
+      "reason": "Temporary DNS failure resolving github.com; local main FF succeeded but remote push did not",
+      "resolution": "Fresh GitHub API confirmed remote baseline; normal push retry succeeded; no history rewrite or network reconfiguration"
+    },
+    {
+      "check": "Visual indicator harness scope",
+      "reason": "Initial indicator state screenshots rendered the real component in isolation; added full GameShell invocation route proof. First full-Shell fixture had no selected target, so controls were absent.",
+      "resolution": "Private fixture corrected with Keqing target and dated banner; all16 real-Shell states passed on four formats; failed fixture captures excluded."
     }
-  ]
+  ],
+  "runtimeCandidate": "6e0627652448e3049ecd29f07cf089baa5344c9b",
+  "publishedReviews": {
+    "candidate": "6e0627652448e3049ecd29f07cf089baa5344c9b",
+    "backend": "a253570b2dd16cfc1d841c05b090d468b21231a7",
+    "allIndependentScopesApproved": true,
+    "scopeOwnership": "Backend reviewed by identity agent; root UI reviewed by backend implementer excluding own backend; separate visual/docs reviewer",
+    "reports": [
+      {
+        "path": "local-data/r1096-identity-review/review-backend-published.json",
+        "sha256": "02806b222c3dc3e46f947e52f2a38b355d027ae7cfd1786e44da5a2e1af20000"
+      },
+      {
+        "path": "local-data/r1096-backend/review-ui-published.json",
+        "sha256": "2ba922d4bb6e79141bd0a2a04e0f417c1dc0727bcb0d2089ac34742a56663634"
+      },
+      {
+        "path": "local-data/r1096-visual/review-published.json",
+        "sha256": "760d6e7ccf726a84484bd75583b269b4be4d44178e89e8b1c496e07e6e1d5dfc"
+      },
+      {
+        "path": "local-data/r1096-visual/review-published-test-delta.json",
+        "sha256": "5b4abfa25d582c53d5598fba48e2fff34fe75f6a067bb4c6fbcbc15c87654b45"
+      }
+    ]
+  },
+  "finalDocumentClosure": {
+    "scope": "Only Master and qualification records; runtime unchanged from6e062765",
+    "selfShaNotEmbedded": true,
+    "remainingGate": "Independent published doc-delta review, strict FF, exact final SHA deploys and postflight"
+  }
 }
