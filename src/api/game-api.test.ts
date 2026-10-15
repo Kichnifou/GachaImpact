@@ -273,6 +273,8 @@ describe('game API client', () => {
     await client.removeTeamSlot(teamId, 3)
     await client.clearTeam(teamId)
     await client.deleteTeam(teamId)
+    const compositionKey = crypto.randomUUID()
+    await client.replaceTeamComposition(teamId, [null, characterId, null, null], [characterId, null, null, null], compositionKey)
     expect(fetchImplementation.mock.calls.map(([url, init]) => [url, init?.method, init?.body ? JSON.parse(String(init.body)) : null])).toEqual([
       ['http://127.0.0.1:3001/api/v1/me/teams', undefined, null],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/active`, 'PATCH', null],
@@ -284,6 +286,7 @@ describe('game API client', () => {
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots/3`, 'DELETE', null],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/slots`, 'DELETE', null],
       [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}`, 'DELETE', null],
+      [`http://127.0.0.1:3001/api/v1/me/teams/${teamId}/composition`, 'PUT', { characterIds: [null, characterId, null, null], expectedCharacterIds: [characterId, null, null, null], idempotencyKey: compositionKey }],
     ])
   })
 

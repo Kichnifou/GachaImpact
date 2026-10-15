@@ -1,4 +1,5 @@
 import '../event/event-crypte-layout.css'
+import { formatLocalWindow } from '../event/local-window'
 import { useShortDesktop } from '../hooks/use-short-desktop'
 import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
@@ -56,7 +57,6 @@ function formatPeriodDate(date: Date) {
   return ['day', 'month', 'year'].map(type => Number(parts.find(part => part.type === type)!.value)).join('/')
 }
 
-const timeFormatter = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' })
 const unavailableRecipientSearch = async (): Promise<EventGameCRecipientsDto> => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, recipients: [] })
 const unavailableGameCSend = async (): Promise<EventGameCSendDto> => { throw new Error('Jeu C indisponible.') }
 const discoveryMessage = (game: EventDto['gameB']) => `Combinaison découverte par ${game.discoveredBy?.displayName ?? 'un participant'} ! Tous les participants gagnent 1 point et 1 monnaie du Festival.`
@@ -422,7 +422,7 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
         <div className="event-game-a-heading"><span className="eyebrow">Jeu du Festival</span><span className={`event-game-a-day-state${value.gameA.completedToday ? ' complete' : expiredToday ? ' expired' : ''}`}>{value.gameA.completedToday ? 'Réussi aujourd’hui' : expiredToday ? 'Délai dépassé...' : 'À réussir aujourd’hui'}</span></div>
         <div className="event-game-a-windows">
           {value.gameA.windows.map((window, index) => <article className={`event-game-a-window ${value.gameA.completedToday ? 'completed' : window.state.toLowerCase()}`} key={window.startAt} data-window-state={value.gameA.completedToday ? 'COMPLETED' : window.state}>
-            <span>Fenêtre {index + 1}</span><strong>{timeFormatter.format(new Date(window.startAt))} – {timeFormatter.format(new Date(window.endAt))}</strong><small>{value.gameA.completedToday || window.state === 'PAST' ? 'Terminée' : window.state === 'ACTIVE' ? 'Active' : 'Prochaine'}</small>
+            <span>Fenêtre {index + 1} · heures locales</span><strong>{formatLocalWindow(window.startAt, window.endAt)}</strong><small>{value.gameA.completedToday || window.state === 'PAST' ? 'Terminée' : window.state === 'ACTIVE' ? 'Active' : 'Prochaine'}</small>
           </article>)}
         </div>
         <div className="event-game-a-action"><span>{value.gameA.attemptsToday} tentative{value.gameA.attemptsToday > 1 ? 's' : ''} aujourd’hui</span>

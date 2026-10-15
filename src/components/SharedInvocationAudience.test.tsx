@@ -38,7 +38,7 @@ it('shows an error with retry and accepts a subsequent authoritative refresh',as
 });
 it('hides idle sharing controls throughout a personal presentation but retains the broadcaster stop and viewer reactions',async()=>{
  const shared=controller(),{root,host}=await mount(<SharedInvocationControls shared={{...shared,state:{broadcasting:null,watching:null}}} presenting/>);expect(host.textContent).toBe('');
- await act(async()=>root.render(<SharedInvocationControls shared={shared} presenting/>));expect(host.textContent).toContain('En diffusion');expect(host.textContent).not.toContain('Voir');
+ await act(async()=>root.render(<SharedInvocationControls shared={shared} presenting/>));expect(host.textContent).toContain('Arrêter la diffusion');expect(host.textContent).not.toContain('Voir');
  await act(async()=>root.render(<SharedInvocationControls shared={{...shared,state:{broadcasting:null,watching:session}}} presenting/>));expect(host.textContent).toContain('Arrêter');expect(host.textContent).not.toContain('Diffuser');expect(host.querySelectorAll('.shared-invocation-reactions button')).toHaveLength(5);
 });
 it('keeps quiet resynchronization buttonless and exposes only a small fallback after persistent failure',async()=>{

@@ -11,6 +11,23 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | undefined
 afterEach(() => { act(() => root?.unmount()); root = undefined; document.body.replaceChildren() })
 const value: AppearanceDto = { avatar: { kind: 'ELEMENT', assetPath: null }, title: null, equippedAvatarCosmeticId: null, equippedTitleCosmeticId: null, catalog: [{ id: 'a', displayName: 'Avatar possédé', type: 'AVATAR', owned: true, isActive: true, visibility: 'VISIBLE', assetPath: null, condition: null, isNew: true }] }
+it('preserves a new acquisition after reopening while an older equipment response is pending', async () => {
+  let confirm!: (next: AppearanceDto) => void
+  const late = { ...value, catalog: [...value.catalog, { ...value.catalog[0]!, id: 'b', displayName: 'Nouvelle acquisition', isNew: true }] }
+  const actions = { appearance: vi.fn().mockResolvedValueOnce(value).mockResolvedValue(late), equipAppearance: () => new Promise<AppearanceDto>(resolve => { confirm = resolve }), consultAppearance: async () => ({ consulted: [] }) } as unknown as SocialActions
+  const host = document.createElement('div'); document.body.append(host); root = createRoot(host)
+  const render = async (refreshToken: number) => act(async () => root!.render(<AppearancePanel actions={actions} displayName="Fixture" elementKey="pyro" onChanged={async () => {}} refreshToken={refreshToken} />))
+  await render(0)
+  await act(async () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+  act(() => document.querySelector<HTMLButtonElement>('.appearance-catalog button')!.click())
+  await act(async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  await act(async () => document.querySelector<HTMLButtonElement>('.appearance-choose')!.click())
+  await render(1)
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Nouvelle acquisition')
+  await act(async () => confirm({ ...value, equippedAvatarCosmeticId: 'a' }))
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain('Nouvelle acquisition')
+  expect(actions.appearance).toHaveBeenCalledTimes(3)
+})
 async function setup(equip = vi.fn(async () => value), tutorial = false, initial = value) {
   const consult = vi.fn(async () => ({ consulted: ['a'] })), changed = vi.fn(async () => undefined)
   const actions = { appearance: async () => initial, equipAppearance: equip, consultAppearance: consult } as unknown as SocialActions

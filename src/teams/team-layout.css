@@ -4,8 +4,9 @@
   .screen-content.team-screen .team-slot-drag-wrapper { container: team-card / inline-size; flex: 0 1 auto; width: min(calc((100% - 33px) / 4), max(70px, calc(100cqh - 64px))); height: auto; min-height: 0; }
   .screen-content.team-screen .team-slot-drag-wrapper .large-team-card { min-height: 0; }
   .screen-content.team-screen > .large-team-grid.team-count-0 { aspect-ratio: auto; min-height: 0; }
-  .screen-content.team-screen .empty-team-slot { height: 100%; }
-  .screen-content.team-screen .team-count-0 .empty-team-card { min-height: 0; height: 100%; }
+  .screen-content.team-screen .empty-team-slot { height: auto; }
+  .screen-content.team-screen .empty-team-card { min-height: 0; height: auto; aspect-ratio: auto; }
+  .screen-content.team-screen .empty-team-portrait { height: auto; aspect-ratio: 1; display: grid; place-items: center; }
   .screen-content.team-screen .team-bonuses { min-height: 0; overflow: visible; display: block; padding: 7px 10px; }
   .team-screen .team-bonus-content { height: auto; align-content: stretch; grid-template-rows: auto minmax(min-content, 1fr); gap: 8px; }
   .screen-content.team-screen .team-bonuses .bonus-grid { height: auto; grid-template-rows: repeat(2, minmax(min-content, 1fr)); gap: 6px; }
@@ -72,6 +73,22 @@
 .team-screen .team-card-actions button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .team-passive-layout-size { display: none; }
 .team-passive-reserve { display: none; }
+.team-screen .empty-team-card { min-height: 0; height: auto; }
+.team-screen .empty-team-portrait { flex: 0 0 auto; min-height: 0; height: auto; width: 100%; aspect-ratio: 1; }
+.team-screen .team-empty-copy { visibility: hidden; flex: 0 0 auto; box-sizing: border-box; width: 100%; }
+.team-screen .team-empty-mobile-actions { display: none; }
+@media (max-width: 760px), (hover: none), (pointer: coarse) {
+  .team-screen .team-empty-mobile-actions { display: block; height: 60px; flex: 0 0 auto; }
+}
+@media (max-width: 1120px) {
+  .team-screen .team-passive-layout { display: grid; grid-template-areas: "effects"; }
+  .team-screen .team-passive-layout > .bonus-grid { grid-area: effects; align-self: start; }
+  .team-screen .team-passive-layout > .bonus-grid:not(.team-passive-reserve) { contain: size; min-height: 0; height: 100%; align-content: start; }
+  .team-screen .team-passive-reserve { display: grid; visibility: hidden; pointer-events: none; }
+  .team-screen .team-passive-layout-size { display: flex; align-items: center; min-width: 0; box-sizing: border-box; padding: 11px; gap: 10px; border: 1px solid transparent; }
+  .team-screen .team-passive-layout-size > div { min-width: 0; font-size: 10px; line-height: 1.35; white-space: nowrap; overflow: hidden; }
+  .team-screen .team-passive-layout-size strong { font-size: 10px; }
+}
 @media (min-width: 1121px) {
   .screen-content.team-screen .team-bonuses .bonus-element-icon { width: 22px; height: 22px; flex-basis: 22px; }
   .screen-content.team-screen .team-bonuses .bonus-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: auto; }

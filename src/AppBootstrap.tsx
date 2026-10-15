@@ -135,6 +135,13 @@ function AppBootstrap() {
   ), [loadResources])
 
   const socialActions = useMemo(() => ({ ...getGameApiClient().social,
+    renamePresentation: async (name: string, expectedRevision: number) => {
+      const owner = playerReadOwner.current
+      const result = await getGameApiClient().social.renamePresentation(name, expectedRevision)
+      if (!owner.active || owner !== playerReadOwner.current) throw new Error('La session a changé.')
+      setPlayer(current => current?.id === result.id ? { ...current, displayName: result.displayName, presentationNameRevision: result.revision } : current)
+      return result
+    },
     ownMissions: loadMissions,
     sendHearts: (target: string, key: string) => confirmedMutation(() => getGameApiClient().social.sendHearts(target, key), loadResources),
   }), [loadMissions, loadResources])
@@ -153,9 +160,12 @@ function AppBootstrap() {
     void refreshContest().catch(() => undefined)
     return result
   }, [refreshContest])
+  const teamReadRevision = useRef(0)
   const loadTeams = useCallback(async () => {
+    const owner = playerReadOwner.current
+    const revision = ++teamReadRevision.current
     const nextTeams = await getGameApiClient().getTeams()
-    setTeams(nextTeams)
+    if (owner.active && revision === teamReadRevision.current) setTeams(nextTeams)
     return nextTeams
   }, [])
   const loadDailyCombat = useCallback(() => readDaily('combat', () => getGameApiClient().getDailyCombat(), setDailyCombat), [readDaily])
@@ -676,6 +686,18 @@ function AppBootstrap() {
       onSetTeamSlot={async (teamId, position, characterId) => { const next = await getGameApiClient().setTeamSlot(teamId, position, characterId); setTeams(next); return next }}
       onReorderTeamSlots={async (teamId, characterIds) => { const next = await getGameApiClient().reorderTeamSlots(teamId, characterIds); setTeams(next); return next }}
       onRemoveTeamSlot={async (teamId, position) => { const next = await getGameApiClient().removeTeamSlot(teamId, position); setTeams(next); return next }}
+      onReplaceTeamComposition={async (teamId, characterIds, expectedCharacterIds, idempotencyKey) => {
+        const owner = playerReadOwner.current
+        ++teamReadRevision.current
+        const next = await getGameApiClient().replaceTeamComposition(teamId, characterIds, expectedCharacterIds, idempotencyKey)
+        if (owner.active) {
+          // A receipt may precede another tab/Twitch mutation: reconcile from a fresh authoritative read.
+          const reconciliation = loadTeams()
+          const revision = teamReadRevision.current
+          try { return await reconciliation } catch { if (owner.active && owner === playerReadOwner.current && revision === teamReadRevision.current) setTeams(next) }
+        }
+        return next
+      }}
       onClearTeam={async (teamId) => { const next = await getGameApiClient().clearTeam(teamId); setTeams(next); return next }}
       onSetGachaTarget={async (characterId) => {
         const { playerState } = await getGameApiClient().setGachaTarget(characterId)

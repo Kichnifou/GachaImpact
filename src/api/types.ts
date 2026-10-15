@@ -5,6 +5,7 @@ export type ElementKey = (typeof elementKeys)[number]
 export type PlayerDto = Readonly<{
   id: string
   displayName: string
+  presentationNameRevision?: number
   elementKey: ElementKey | null
   avatarAssetPath?: string | null
   badgeSymbol?: string | null

@@ -1,3 +1,4 @@
+import PresentationNameEditor from '../components/PresentationNameEditor'
 import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -15,7 +16,7 @@ import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import ScreenHeader from '../components/ScreenHeader'
 import GameAssetIcon from '../components/GameAssetIcon'
 import PlayerAvatar from '../components/PlayerAvatar'
-import AppearancePanel from './AppearancePanel'
+import AppearancePanel, { type AppearanceOpenIntent } from './AppearancePanel'
 import MissionProjectionView from '../missions/MissionProjectionView'
 import type { DirectMessagePlayerDto, PermanentMissionProjectionDto } from '../api/types'
 import { presenceLabels, type Access, type GeneralStatistics, type Profile, type SocialActions } from '../social/types'
@@ -48,13 +49,14 @@ function LastActivity({ value }: { value: Access<string | null> }) {
   return <details className="profile-last-activity"><summary title={date.toLocaleString('fr-FR')}>Dernière activité : {relative}</summary><time dateTime={value.data}>{date.toLocaleString('fr-FR')}</time></details>
 }
 const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques', 'Missions', 'Personnalisation'] as const
-export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu', refreshToken = 0 }: { refreshToken?: number; playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
+export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu', refreshToken = 0, appearanceIntent, onAppearanceIntentConsumed }: { appearanceIntent?: AppearanceOpenIntent | null; onAppearanceIntentConsumed?: (token: string) => void; refreshToken?: number; playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
   const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [normalTab, setTab] = useDestinationTab('profile',initialTab)
   const presentation = useTutorialPresentation()
   const guidedTab = useTutorialView('profile', normalTab, tabs)
   const tab = presentation.active && presentation.step?.view?.startsWith('Personnalisation') ? 'Personnalisation' : guidedTab
   const [missions, setMissions] = useState<Access<PermanentMissionProjectionDto> | null>(null), [missionsError, setMissionsError] = useState(''), [missionsRequest, setMissionsRequest] = useState(0)
   const [missionsTarget, setMissionsTarget] = useState('')
+  const [nameRevision, setNameRevision] = useState(0)
   const [boxFilters, setBoxFilters] = useState<BoxFilters>(initialBoxFilters)
   const clearFeedback = controller.clearFeedback
   useEffect(() => () => clearFeedback(), [clearFeedback])
@@ -66,7 +68,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
       finally { if (active) timer = window.setTimeout(() => void load(), 30_000) }
     }
     void load(); return () => { active = false; window.clearTimeout(timer) }
-  }, [actions, playerId, refreshToken])
+  }, [actions, playerId, refreshToken, nameRevision])
   useEffect(() => {
     if (tab !== 'Missions') return
     let active = true
@@ -95,8 +97,15 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
     <ScreenHeader eyebrow="Social" title={value?.player.displayName ?? 'Profil'} />
     <ScrollableScreenPanel bodyClassName={tab === 'Box' && value?.box.access === 'ALLOWED' ? 'collection-results-body scroll-content-frame' : ''} bodyTutorialAnchor="profile-content" className="profile-frame" fixed={<><div className="profile-navigation"><AppButton onClick={onDirectory}>Joueurs</AppButton>{tab === 'Statistiques' && <AppButton onClick={onRankings}>Classements</AppButton>}{value?.own && <AppButton onClick={onPrivacy}>Confidentialité</AppButton>}</div><nav className="secondary-navigation" aria-label="Rubriques du profil">{tabs.filter(t => t !== 'Personnalisation' || playerId === ownerPlayerId).map(t => <AppButton key={t} className={tab === t ? 'active' : ''} aria-pressed={tab === t} onClick={() => { controller.clearFeedback(); if (t === 'Missions' && tab !== 'Missions') setMissionsTarget(''); setTab(t) }}>{t}</AppButton>)}</nav>{tab === 'Box' && value?.box.access === 'ALLOWED' && <BoxFiltersBar placeholder="Rechercher un personnage…" filters={boxFilters} onChange={setBoxFilters} />}</>}>
       {error ? <p role="alert">{error}</p> : !value ? <p role="status">Chargement du profil…</p> : <>
-        {tab === 'Aperçu' && <div className="profile-overview"><div className="profile-identity"><PlayerAvatar {...value.player} /><div className="profile-identity-copy"><div className="profile-name-line"><h2>{value.player.displayName}</h2><span className="profile-element" role="img" aria-label={value.player.elementKey ? `Élément ${elementLabels[value.player.elementKey]}` : 'Élément non choisi'}>{value.player.elementKey && <GameAssetIcon src={getElementAssetPath(value.player.elementKey)} fallback="✦" />}</span></div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} /></div>}
-        {tab === 'Personnalisation' && value.own && <AppearancePanel actions={actions} displayName={value.player.displayName} elementKey={value.player.elementKey} onChanged={refreshAppearance} />}
+        {tab === 'Aperçu' && <div className="profile-overview"><div className="profile-identity"><PlayerAvatar {...value.player} /><div className="profile-identity-copy"><div className="profile-name-line"><h2>{value.player.displayName}</h2><span className="profile-element" role="img" aria-label={value.player.elementKey ? `Élément ${elementLabels[value.player.elementKey]}` : 'Élément non choisi'}>{value.player.elementKey && <GameAssetIcon src={getElementAssetPath(value.player.elementKey)} fallback="✦" />}</span>{value.own && playerId === ownerPlayerId && actions.renamePresentation && !presentation.active && <PresentationNameEditor key={playerId} name={value.player.displayName} revision={value.player.presentationNameRevision ?? 0} onSave={async (name, expectedRevision) => {
+          let result: Awaited<ReturnType<NonNullable<SocialActions['renamePresentation']>>>
+          try { result = await actions.renamePresentation!(name, expectedRevision) }
+          catch (reason) { if (reason && typeof reason === 'object' && 'code' in reason && reason.code === 'PRESENTATION_NAME_CONFLICT') setNameRevision(revision => revision + 1); throw reason }
+          setValue(current => current?.player.id === result.id ? { ...current, player: { ...current.player, displayName: result.displayName, presentationNameRevision: result.revision } } : current)
+          setNameRevision(revision => revision + 1)
+          await onAppearanceChanged()
+        }} />}</div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} /></div>}
+        {tab === 'Personnalisation' && value.own && <AppearancePanel openIntent={appearanceIntent} onIntentConsumed={onAppearanceIntentConsumed} refreshToken={refreshToken} actions={actions} displayName={value.player.displayName} elementKey={value.player.elementKey} onChanged={refreshAppearance} />}
         {tab === 'Team active' && team}
         {tab === 'Box' && <Section value={value.box}>{characters => {
           const filtered = filterBoxCharacters(characters, boxFilters).sort((a, b) => compareBoxCharacters(a, b, boxFilters)).map(c => ({ ...c, classKey: null }))

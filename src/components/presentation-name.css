@@ -1,0 +1,8 @@
+.presentation-name-pencil { width: 2rem; height: 2rem; padding: 0; flex: 0 0 auto; }
+.profile-name-line:has(.presentation-name-editor) { flex-wrap: wrap; }
+.presentation-name-editor { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; flex-basis: 100%; }
+.presentation-name-editor input { min-width: 0; max-width: 100%; width: 16rem; color: var(--text-main, #eef3ff); background: #101d33; border: 1px solid #426081; border-radius: .5rem; padding: .5rem; }
+.presentation-name-editor input:focus-visible { outline: 2px solid #5dd4ff; outline-offset: 2px; }
+.presentation-name-editor p { flex-basis: 100%; }
+
+.profile-screen[data-profile-view="Aperçu"] .profile-identity > .mini-avatar { height: auto; min-height: 0; aspect-ratio: 1; align-self: start; }

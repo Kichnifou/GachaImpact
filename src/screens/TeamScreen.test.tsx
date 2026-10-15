@@ -11,6 +11,8 @@ import TeamScreen, { CharacterSelector, TeamPassiveReferenceModal } from './Team
 import teamScreenSource from './TeamScreen.tsx?raw'
 import { TutorialPresentationContext } from '../tutorial/tutorial-presentation'
 import { getTutorialStep } from '../tutorial/tutorial-catalog'
+import { ApiError } from '../api/game-api'
+import { compositionIds, pinOpeningCharacters, toggleComposition } from '../team/quick-composition'
 
 
 it('anchors the full passive reference and highlights only the real guided formation', () => {
@@ -147,7 +149,7 @@ function mountTeamScreen(initialTeams: PlayerTeamsDto, overrides: Partial<TeamSc
       setSnapshot(next)
       return next
     }
-    return <TeamScreen {...callbacks} {...overrides} teams={snapshot} onLoad={loadForever} onReorderTeams={applyTeamReorder} onReorderSlots={applySlotReorder} />
+    return <TeamScreen {...callbacks} {...overrides} teams={snapshot} onLoad={overrides.onLoad ?? loadForever} onReorderTeams={applyTeamReorder} onReorderSlots={applySlotReorder} />
   }
 
   act(() => root.render(<Harness />))
@@ -159,6 +161,131 @@ function buttonByLabel(container: HTMLElement, label: string) {
   if (!button) throw new Error(`Button not found: ${label}`)
   return button
 }
+
+function quickButton(container: HTMLElement, text: string) {
+  const button = Array.from(container.querySelectorAll('button')).find(button => button.textContent === text)
+  if (!button) throw new Error(`Button not found: ${text}`)
+  return button
+}
+
+function quickCard(container: HTMLElement, name: string) {
+  const button = Array.from(container.querySelectorAll<HTMLButtonElement>('.selector-character-grid button')).find(button => button.querySelector('h3')?.textContent === name)
+  if (!button) throw new Error(`Card not found: ${name}`)
+  return button
+}
+
+describe('quick composition', () => {
+  it('preserves holes, pins opening characters outside filters and keeps their order after deselection', () => {
+    const partial = { ...team(1), slots: [{ position: 1 as const, character: null }, { position: 2 as const, character: catalog[2]! }, { position: 3 as const, character: null }, { position: 4 as const, character: catalog[0]! }] }
+    const ids = compositionIds(partial)
+    expect(ids).toEqual([null, 'keqing', null, 'furina'])
+    expect(toggleComposition(ids, 'emilie')).toEqual(['emilie', 'keqing', null, 'furina'])
+    expect(toggleComposition(ids, 'keqing')).toEqual([null, null, null, 'furina'])
+    const opening = partial.slots.flatMap(slot => slot.character ? [slot.character] : [])
+    expect(pinOpeningCharacters(opening, [catalog[1]!, catalog[0]!]).map(character => character.id)).toEqual(['keqing', 'furina', 'emilie'])
+    expect(toggleComposition(['furina', 'keqing', 'emilie', 'hutao'], 'fifth')).toEqual(['furina', 'keqing', 'emilie', 'hutao'])
+  })
+
+  it('abandons local selections and submits no mutation for an unchanged confirmation', async () => {
+    const replace = vi.fn(async () => teams(2))
+    const container = mountTeamScreen(teams(2), { onReplaceComposition: replace })
+    act(() => quickButton(container, 'Composition rapide').click())
+    expect(container.querySelectorAll('.quick-composition-position')).toHaveLength(2)
+    act(() => quickCard(container, 'Keqing').click())
+    expect(container.querySelector('.quick-composition-summary')?.textContent).toContain('3/4')
+    expect(replace).not.toHaveBeenCalled()
+    act(() => quickButton(container, 'Annuler').click())
+    act(() => quickButton(container, 'Composition rapide').click())
+    expect(container.querySelector('.quick-composition-summary')?.textContent).toContain('2/4')
+    await act(async () => quickButton(container, 'Confirmer').click())
+    expect(replace).not.toHaveBeenCalled()
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it('keeps the opening members pinned outside an element filter even after deselection', () => {
+    const container = mountTeamScreen(teams(2), { onReplaceComposition: vi.fn() })
+    act(() => quickButton(container, 'Composition rapide').click())
+    const filter = container.querySelector<HTMLSelectElement>('.team-selector-filters select')!
+    act(() => { filter.value = 'pyro'; filter.dispatchEvent(new Event('change', { bubbles: true })) })
+    const names = () => Array.from(container.querySelectorAll('.selector-character-grid h3')).map(node => node.textContent)
+    expect(names()).toEqual(['Furina', 'Émilie', 'Hu Tao'])
+    act(() => quickCard(container, 'Furina').click())
+    expect(names()).toEqual(['Furina', 'Émilie', 'Hu Tao'])
+    expect(quickCard(container, 'Furina').querySelector('.quick-composition-position')).toBeNull()
+    act(() => quickCard(container, 'Hu Tao').click())
+    expect(names()).toEqual(['Furina', 'Émilie', 'Hu Tao'])
+    expect(quickCard(container, 'Hu Tao').querySelector('.quick-composition-position')?.textContent).toBe('1')
+  })
+
+  it('fills the first free slot, refuses a fifth and permits accessible removal of filtered selections', () => {
+    const initial = { ...teams(4), availableCharacters: [...catalog, character({ id: 'fifth', name: 'Fifth' })] }
+    const container = mountTeamScreen(initial, { onReplaceComposition: vi.fn() })
+    act(() => quickButton(container, 'Composition rapide').click())
+    expect(quickCard(container, 'Fifth').disabled).toBe(true)
+    act(() => buttonByLabel(container, 'Désélectionner Émilie de la place 2').click())
+    expect(quickCard(container, 'Fifth').disabled).toBe(false)
+    act(() => quickCard(container, 'Fifth').click())
+    expect(quickCard(container, 'Fifth').querySelector('.quick-composition-position')?.textContent).toBe('2')
+    expect(quickCard(container, 'Émilie').disabled).toBe(true)
+    act(() => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it('guards double confirmation and retries an ambiguous write with the same target payload and key', async () => {
+    const first = deferred<PlayerTeamsDto>()
+    const replace = vi.fn().mockReturnValueOnce(first.promise).mockResolvedValueOnce(teams(1))
+    const container = mountTeamScreen(teams(0), { onReplaceComposition: replace })
+    act(() => teamButton(container, 2).click())
+    act(() => quickButton(container, 'Composition rapide').click())
+    act(() => quickCard(container, 'Keqing').click())
+    act(() => { const confirm = quickButton(container, 'Confirmer'); confirm.click(); confirm.click() })
+    expect(replace).toHaveBeenCalledTimes(1)
+    expect(replace.mock.calls[0]!.slice(0, 3)).toEqual([team(2).id, ['keqing', null, null, null], [null, null, null, null]])
+    await act(async () => first.reject(new Error('network lost')))
+    expect(quickCard(container, 'Furina').disabled).toBe(true)
+    expect(quickButton(container, 'Annuler').disabled).toBe(true)
+    await act(async () => quickButton(container, 'Réessayer la confirmation').click())
+    expect(replace.mock.calls[1]).toEqual(replace.mock.calls[0])
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it('keeps the draft on conflict and rebases only after an explicit authoritative reload', async () => {
+    const replace = vi.fn().mockRejectedValueOnce(new ApiError('TEAM_COMPOSITION_CHANGED', 'Composition modifiée', 409)).mockResolvedValueOnce(teams(1))
+    const initialLoad = deferred<PlayerTeamsDto>()
+    const onLoad = vi.fn().mockReturnValueOnce(initialLoad.promise).mockResolvedValueOnce(teams(1))
+    const container = mountTeamScreen(teams(0), { onReplaceComposition: replace, onLoad })
+    act(() => quickButton(container, 'Composition rapide').click())
+    act(() => quickCard(container, 'Keqing').click())
+    await act(async () => quickButton(container, 'Confirmer').click())
+    expect(container.querySelector('.quick-composition-summary')?.textContent).toContain('Keqing')
+    expect(quickButton(container, 'Confirmer').disabled).toBe(true)
+    await act(async () => quickButton(container, 'Recharger la Team et conserver le brouillon').click())
+    expect(container.querySelector('.quick-composition-summary')?.textContent).toContain('Keqing')
+    expect(container.textContent).toContain('Furina')
+    await act(async () => quickButton(container, 'Confirmer').click())
+    expect(replace.mock.calls[1]!.slice(0, 3)).toEqual([team(1).id, ['keqing', null, null, null], ['furina', null, null, null]])
+    expect(replace.mock.calls[0]![3]).not.toEqual(replace.mock.calls[1]![3])
+  })
+
+  it('does not apply a late response to a newly selected Team or a replacement mounted screen', async () => {
+    const flight = deferred<PlayerTeamsDto>()
+    const replace = vi.fn<NonNullable<TeamScreenProps['onReplaceComposition']>>(() => flight.promise)
+    const container = mountTeamScreen(teams(0), { onReplaceComposition: replace })
+    act(() => quickButton(container, 'Composition rapide').click())
+    act(() => quickCard(container, 'Furina').click())
+    act(() => quickButton(container, 'Confirmer').click())
+    // Programmatic selection models an external navigation while the write is in flight.
+    act(() => teamButton(container, 2).click())
+    expect(replace.mock.calls[0]![0]).toBe(team(1).id)
+    act(() => mountedRoots.pop()!.unmount())
+    const replacement = mountTeamScreen(teams(0), { onReplaceComposition: vi.fn() })
+    act(() => quickButton(replacement, 'Composition rapide').click())
+    act(() => quickCard(replacement, 'Keqing').click())
+    await act(async () => flight.resolve(teams(1)))
+    expect(replacement.querySelector('.quick-composition-summary')?.textContent).toContain('Keqing')
+    expect(replacement.querySelector('[role="dialog"]')).not.toBeNull()
+  })
+})
 
 function teamButton(container: HTMLElement, position: number) {
   const button = Array.from(container.querySelectorAll<HTMLButtonElement>('.team-page-track button')).find((candidate) => candidate.querySelector('span')?.textContent === `Team ${position}`)
@@ -263,7 +390,7 @@ describe('real Team screen', () => {
   it.each([0, 1, 4])('renders a genuine %i/4 ordered composition', (count) => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(count)} {...callbacks} />)
     expect((html.match(/class="team-slot-number"/g) ?? [])).toHaveLength(4)
-    expect((html.match(/character-showcase-team/g) ?? [])).toHaveLength(count)
+    expect((html.match(/<article class="[^"]*character-showcase-team/g) ?? [])).toHaveLength(count)
     expect((html.match(/empty-team-card/g) ?? [])).toHaveLength(4 - count)
     expect(html).not.toContain('Niveau 90')
     if (count > 0) expect(html).toContain('C1')
@@ -354,7 +481,7 @@ describe('real Team screen', () => {
 
   it('keeps empty slots full-card actionable without the old permanent empty copy', () => {
     const html = renderToStaticMarkup(<TeamScreen teams={teams(0)} {...callbacks} />)
-    expect((html.match(/<button[^>]*class="large-team-card empty-team-card"/g) ?? [])).toHaveLength(4)
+    expect((html.match(/<button[^>]*class="large-team-card empty-team-card[^"]*"/g) ?? [])).toHaveLength(4)
     expect((html.match(/class="empty-team-hover-action">Ajouter/g) ?? [])).toHaveLength(4)
     expect(html).not.toContain('Emplacement libre')
     expect(html).not.toContain('Ajouter un personnage</button>')

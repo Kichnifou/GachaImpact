@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useModalDialog } from '../components/useModalDialog'
 import ModalCloseButton from '../components/ModalCloseButton'
 
-export default function AppearanceChooser({ title, onClose, children, background }: { title: string; onClose: () => void; children: ReactNode; background?: HTMLElement | null }) {
+export default function AppearanceChooser({ title, onClose, children, controls, background }: { title: string; onClose: () => void; children: ReactNode; controls?: ReactNode; background?: HTMLElement | null }) {
   const id = useId()
   const ref = useModalDialog<HTMLElement>(onClose)
   useEffect(() => {
@@ -15,7 +15,8 @@ export default function AppearanceChooser({ title, onClose, children, background
   return createPortal(<div className="modal-layer appearance-chooser-layer" onMouseDown={onClose}>
     <section ref={ref} className="panel appearance-chooser" role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} data-tutorial-anchor="appearance-chooser" onMouseDown={event => event.stopPropagation()}>
       <header><h2 id={id}>{title}</h2><ModalCloseButton onClose={onClose} /></header>
-      <div className="appearance-chooser-body">{children}</div>
+      {controls && <div className="appearance-chooser-controls">{controls}</div>}
+      <div className="appearance-chooser-body scroll-content-frame">{children}</div>
     </section>
   </div>, document.body)
 }

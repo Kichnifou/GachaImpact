@@ -82,7 +82,7 @@ const ownerCopy = [
   {"id":"shop-catalog","title":"Catalogue de la Boutique","text":"Le catalogue affiche les offres et leur disponibilité. Prix, quantité, MAX et résultat annoncé se consultent avant un achat."},
   {"id":"shop-tickets","title":"Tickets et probabilités","text":"Les tickets affichent leurs possibilités et probabilités lorsqu’ils sont proposés."},
   {"id":"shop-wallet","title":"Portefeuille et transactions","text":"Retrouvez votre portefeuille, la dernière transaction et l’accès à l’historique."},
-  {"id":"codes-available","title":"Codes disponibles","text":"Les codes publiés indiquent période, récompenses directes et état de récupération. Certains offrent aussi des gains Event selon votre inscription. Vous pouvez réclamer un code sans le saisir."},
+  {"id":"codes-available","title":"Codes disponibles","text":"Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau."},
   {"id":"codes-claimed","title":"Codes récupérés","text":"Cette vue conserve les codes déjà récupérés."},
   {"id":"social-friends","title":"Amis et cœurs","text":"Dans l’écran Social, retrouvez vos niveaux d’amitié et cœurs individuels ou groupés."},
   {"id":"social-requests","title":"Demandes reçues et envoyées","text":"Cette vue permet de visionner, accepter ou annuler des demandes envoyées et reçues."},

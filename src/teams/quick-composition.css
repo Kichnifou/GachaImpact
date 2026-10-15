@@ -1,0 +1,10 @@
+.team-selector.team-selector-multi { grid-template-rows: auto auto auto minmax(0, 1fr) auto; }
+.quick-composition-summary { padding: 0 1.1rem .7rem; color: var(--text-muted); font-size: .8rem; }
+.quick-composition-summary > div { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+.quick-composition-summary button { min-width: 0; white-space: normal; }
+.team-selector-multi .character-card { position: relative; }
+.team-selector-multi .selected-mark { display: none; }
+.quick-composition-position { position: absolute; top: .5rem; right: .5rem; display: grid; place-items: center; width: 1.7rem; height: 1.7rem; border: 1px solid #67d5ff; border-radius: 50%; color: #edf7ff; background: #123c64; font-weight: 800; }
+.quick-composition-footer-actions { display: flex; flex-shrink: 0; gap: .5rem; }
+.team-selector-multi .selector-footer p { margin: .35rem 0; max-width: 60ch; }
+@media (max-width: 640px) { .team-selector-multi .selector-footer { align-items: stretch; flex-direction: column; gap: .5rem; } .quick-composition-footer-actions { justify-content: flex-end; } }

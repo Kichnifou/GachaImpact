@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { tutorialHistoricalSteps, tutorialStepIds, tutorialSteps } from './tutorial-catalog'
 
 describe('player tutorial catalog contract', () => {
+  it('keeps Codes disponibles at step 80 and changes only its requested copy', () => {
+    expect(tutorialSteps[79]).toMatchObject({ id: 'codes-available', title: 'Codes disponibles', anchor: 'codes-list', text: "Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau." })
+    expect(new Set(tutorialSteps.map(step => step.chapter)).size).toBe(24)
+    expect(new Set(tutorialSteps.map(step => step.screen)).size).toBe(21)
+  })
   it('covers every player ScreenId exactly as a destination set, excluding moderation', () => {
     const source = readFileSync(new URL('../types.ts', import.meta.url), 'utf8').split('export type ElementTone')[0]!
     const screens = [...source.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(id => id !== 'moderation')

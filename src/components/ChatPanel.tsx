@@ -2,6 +2,7 @@ import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useLatestRef } from '../hooks/use-latest-ref'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
+import { apiErrorMessage } from '../utils/formatters'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope, DirectMessagePlayerDto } from '../api/types'
 import { elementColors } from '../utils/elementTheme'
@@ -145,6 +146,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   const [failedOverlayVisible, setFailedOverlayVisible] = useState(true)
   const [ambiguousOverlayVisible, setAmbiguousOverlayVisible] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [readStatus, setReadStatus] = useState<string | null>(null)
+  const readFailure = useRef<{ since: number; attempts: number } | null>(null)
+  const identityName = useRef(playerDisplayName)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [scrollbarAtBottom, setScrollbarAtBottom] = useState(true)
   const [composerExpanded, setComposerExpanded] = useState(false)
@@ -282,6 +286,17 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (initial) { initialScrollPending.current = true; atBottom.current = false; setScrollbarAtBottom(true); setCursor(page.nextCursor); setLoaded(true) }
   }, [adoptGeneration, api, playerId])
 
+  useEffect(() => {
+    if (identityName.current === playerDisplayName) return
+    identityName.current = playerDisplayName
+    const next = messagesRef.current.map(message => ({ ...message,
+      ...(message.author?.id === playerId ? { author: { ...message.author, displayName: playerDisplayName }, ...(message.messageType === 'PLAYER' ? { authorLabel: playerDisplayName } : {}) } : {}),
+      ...(message.replyAuthor?.id === playerId ? { replyAuthor: { ...message.replyAuthor, displayName: playerDisplayName } } : {}),
+    }))
+    messagesRef.current = next; setMessages(next)
+    if (loaded) void messagesNow(false).catch(() => { readFailure.current ??= { since: Date.now(), attempts: 0 } })
+  }, [playerDisplayName, playerId, loaded, messagesNow])
+
   const updatesNow = useCallback(async () => {
     if (typeof api.updates !== 'function') return messagesNow(false)
     if (generation.current === null) return messagesNow(true)
@@ -328,7 +343,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     initialScrollPending.current = true; atBottom.current = true; deferredLatest.current = false; unseenIds.current.clear()
     setScrollbarAtBottom(true); setNewCount(0)
     if (list.current) list.current.scrollTop = list.current.scrollHeight
-    void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
+    void messagesNow(true).catch(() => { readFailure.current ??= { since: Date.now(), attempts: 0 } })
   }, [chatActive, messagesNow])
 
   useEffect(() => {
@@ -337,15 +352,25 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const tick = async () => {
       if (cancelled || busy || document.hidden) return
       busy = true
-      try { if (!chatActive) await unreadNow(); else if (!loaded) await messagesNow(true); else await updatesNow() }
-      catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Chat indisponible.') }
+      try {
+        if (!chatActive) await unreadNow(); else if (!loaded) await messagesNow(true); else await updatesNow()
+        if (!cancelled) { readFailure.current = null; setReadStatus(null) }
+      } catch (cause) {
+        if (cancelled) return
+        const failure = readFailure.current ?? { since: Date.now(), attempts: 0 }
+        failure.attempts++; readFailure.current = failure
+        if (cause instanceof ApiError && (cause.status === 401 || cause.status === 403)) {
+          setReadStatus(cause.status === 401 ? 'Votre session a expiré. Reconnectez-vous.' : 'L’accès au chat est refusé.')
+          cancelled = true
+        } else if (Date.now() - failure.since >= 60_000) setReadStatus('Le fil est temporairement indisponible. Reconnexion en cours…')
+      }
       finally { busy = false }
     }
     const runAndSchedule = async () => {
       if (cancelled || busy || document.hidden) return
       const startedAt = performance.now()
       await tick()
-      if (!cancelled && !document.hidden) timer = setTimeout(runAndSchedule, Math.max(0, (chatActive ? 350 : 5000) - (performance.now() - startedAt)))
+      if (!cancelled && !document.hidden) timer = setTimeout(runAndSchedule, Math.max(0, (readFailure.current ? Math.min(15_000, 1000 * 2 ** Math.min(4, readFailure.current.attempts)) : chatActive ? 350 : 5000) - (performance.now() - startedAt)))
     }
     const visible = () => { clearTimeout(timer); if (!document.hidden) void runAndSchedule() }
     void runAndSchedule()
@@ -384,11 +409,11 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       visibleMessageIds.current = page.visibleMessageIds ?? [...new Set([...visibleMessageIds.current, ...page.messages.map(item => item.id)])].slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
       setMessages(current => orderMessages([...page.messages.filter(item => !current.some(old => old.id === item.id)), ...current]).slice(0, CHAT_VISIBLE_MESSAGE_LIMIT))
       setCursor(page.nextCursor)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Historique indisponible.') }
+    } catch (cause) { setError((cause instanceof ApiError ? apiErrorMessage(cause) : 'Historique indisponible.')) }
     finally { olderBusy.current = false }
   }
   const markRecent = () => { if (presentationActive.current) return; const id = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))?.id; if (id && !document.hidden && chatActive && readId.current !== id) { readId.current = id; void api.read(id).then(() => setUnread(0)).catch(() => { readId.current = null }) } }
-  const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.')); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); markRecent() }
+  const scrollBottom = () => { if (deferredLatest.current) { void messagesNow(true).catch(cause => setError((cause instanceof ApiError ? apiErrorMessage(cause) : 'Chat indisponible.'))); return } if (list.current) list.current.scrollTop = list.current.scrollHeight; atBottom.current = true; setScrollbarAtBottom(true); setNewCount(0); markRecent() }
   useExplicitThreadResize(list, threadResizeToken, () => {
     if (!chatActive || document.hidden) return
     scrollPlacementRevision.current += 1
@@ -428,7 +453,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         if (previousGeneration === null || result.generation > previousGeneration) adoptGeneration(result.generation, [], null, true)
         else setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
         if (previousGeneration === null || result.generation >= previousGeneration) {
-          void messagesNow(true).catch(cause => setError(cause instanceof Error ? cause.message : 'Chat indisponible.'))
+          void messagesNow(true).catch(() => { readFailure.current ??= { since: Date.now(), attempts: 0 } })
         }
       } else {
         if (isNewIntent && next.burstTrigger && isCurrentBurstTrigger(pacingAttempts.current, next.key)) {
@@ -467,12 +492,12 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         setMentions(current => current.length ? current : next.mentions)
         return
       }
-      setError(cause instanceof Error ? cause.message : 'Envoi indisponible.')
+      setError((cause instanceof ApiError ? apiErrorMessage(cause) : 'Envoi indisponible.'))
       if (deterministicRejection) {
         setFailedOverlayVisible(true)
         setMessages(current => current.filter(item => item.clientIntentKey !== next.key))
         setAmbiguousIntents(current => current.filter(item => item.key !== next.key))
-        setFailedIntents(current => current.some(item => item.key === next.key) ? current : [...current, { ...next, reason: cause.message }])
+        setFailedIntents(current => current.some(item => item.key === next.key) ? current : [...current, { ...next, reason: apiErrorMessage(cause) }])
       } else {
         setAmbiguousOverlayVisible(true)
         setFailedIntents(current => current.filter(item => item.key !== next.key))
@@ -546,10 +571,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     catch (cause) {
       const restored = messagesRef.current.map(message => message === changed.get(message.id) ? before.get(message.id)! : message)
       messagesRef.current = restored; setMessages(restored)
-      setError(cause instanceof Error ? cause.message : 'Suppression indisponible.')
+      setError((cause instanceof ApiError ? apiErrorMessage(cause) : 'Suppression indisponible.'))
     }
   }
-  const report = async (id: string) => { try { await api.report(id); setReportId(null); setFeedback('Signalement envoyé.'); setTimeout(() => setFeedback(current => current === 'Signalement envoyé.' ? null : current), 3000) } catch (cause) { setError(cause instanceof Error ? cause.message : 'Signalement indisponible.') } }
+  const report = async (id: string) => { try { await api.report(id); setReportId(null); setFeedback('Signalement envoyé.'); setTimeout(() => setFeedback(current => current === 'Signalement envoyé.' ? null : current), 3000) } catch (cause) { setError((cause instanceof ApiError ? apiErrorMessage(cause) : 'Signalement indisponible.')) } }
   const hide = (id: string) => { const next = hidden.includes(id) ? hidden.filter(item => item !== id) : [...hidden, id]; setHidden(next); sessionStorage.setItem(`chat.hidden.${playerId}`, JSON.stringify(next)); setMenuId(null); (document.activeElement as HTMLElement | null)?.blur() }
   const mention = (person: { id: string; displayName: string }) => { setDraft(value => value.replace(/@[^\s@]*$/u, `@${person.displayName} `)); setMentions(value => [...value.filter(item => item.playerId !== person.id), { playerId: person.id, displayName: person.displayName }]); setSuggestions([]); focusComposer() }
   const copy = async (message: ChatMessageDto) => { try { await navigator.clipboard.writeText(message.content ?? ''); if (copyFeedbackTimer.current) clearTimeout(copyFeedbackTimer.current); setFeedback('Message copié.'); copyFeedbackTimer.current = setTimeout(() => { setFeedback(current => current === 'Message copié.' ? null : current); copyFeedbackTimer.current = null }, 2000) } catch { setError('Copie indisponible.') } }
@@ -600,9 +625,9 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
         <div className="chat-composer-field">
           {!!suggestions.length && <div className="chat-mention-suggestions" role="listbox" aria-label="Joueurs à mentionner">{suggestions.map((person, index) => <button type="button" role="option" aria-selected={index === suggestionIndex} className={index === suggestionIndex ? 'selected' : undefined} key={person.id} onMouseDown={event => event.preventDefault()} onClick={() => mention(person)}>{person.displayName}</button>)}</div>}
           <div className="chat-composer-accessory">{reply && <div className="chat-composer-reply"><span className="chat-overlay-content">Réponse à {reply.authorLabel}<small>« {reply.deletionState === 'ACTIVE' ? reply.content : 'Message supprimé'} »</small></span><button type="button" className="chat-overlay-close" onClick={() => setReply(null)} aria-label="Fermer la réponse">×</button></div>}
-            {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span className="chat-overlay-content" title={`${failedIntents.at(-1)!.reason} — ${failedIntents.at(-1)!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents.at(-1)!.content}</span><button type="button" disabled={commandPending} onClick={() => void enqueueTransport(failedIntents.at(-1)!, false)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
+            {!!failedIntents.length && failedOverlayVisible && <div className="chat-status chat-error chat-failed-status" role="alert"><span className="chat-overlay-content" title={`${failedIntents.at(-1)!.reason} — ${failedIntents.at(-1)!.content}`}>{failedIntents.length > 1 ? `${failedIntents.length} envois refusés : ` : 'Envoi refusé : '}{failedIntents.at(-1)!.content}<small>{failedIntents.at(-1)!.reason}</small></span><button type="button" disabled={commandPending} onClick={() => void enqueueTransport(failedIntents.at(-1)!, false)}>Réessayer</button><button type="button" disabled={commandPending || !!draft} title={draft ? 'Terminer le brouillon courant pour récupérer ce message' : undefined} onClick={recoverFailed}>Récupérer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFailedOverlayVisible(false)}>×</button></div>}
             {!!ambiguousIntents.length && !failedIntents.length && ambiguousOverlayVisible && <div className="chat-status"><span className="chat-overlay-content">{ambiguousIntents.length === 1 ? 'Envoi non confirmé.' : `${ambiguousIntents.length} envois non confirmés.`}</span><button type="button" disabled={commandPending} onClick={() => void enqueueTransport(ambiguousIntents[0]!, false)}>Réessayer</button><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setAmbiguousOverlayVisible(false)}>×</button></div>}
-            {error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert"><span className="chat-overlay-content">{error}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status"><span className="chat-overlay-content">{feedback}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
+            {readStatus && <p className="chat-status" role="status">{readStatus}</p>}{error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status chat-error" role="alert"><span className="chat-overlay-content">{error}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setError(null)}>×</button></p>}{feedback && !error && !ambiguousIntents.length && !failedIntents.length && <p className="chat-status" role="status"><span className="chat-overlay-content">{feedback}</span><button type="button" className="chat-overlay-close" aria-label="Fermer le feedback" onClick={() => setFeedback(null)}>×</button></p>}
           </div>
           <label className="sr-only" htmlFor="chat-message">Écrire un message</label><textarea ref={composer} id="chat-message" name="chat-composer-current-message" className={`chat-composer-textarea${composerExpanded ? ' is-expanded' : ''}${showCharacterCount ? ' with-counter' : ''}`} data-autogrow="true" rows={1} autoComplete="off" value={draft} disabled={burstLocked} onChange={event => { const value = Array.from(event.target.value.replace(/[\r\n]+/gu, ' ')).slice(0, 500).join(''); setDraft(value); setSuggestions([]); setMentions(current => current.filter(item => value.includes(`@${item.displayName}`))) }} onKeyDown={event => { if (suggestions.length && ['ArrowDown', 'ArrowUp', 'Tab', 'Escape'].includes(event.key)) { event.preventDefault(); if (event.key === 'ArrowDown') setSuggestionIndex(index => (index + 1) % suggestions.length); else if (event.key === 'ArrowUp') setSuggestionIndex(index => (index - 1 + suggestions.length) % suggestions.length); else if (event.key === 'Tab') mention(suggestions[suggestionIndex]!); else setSuggestions([]); return } if (event.key === 'Enter') { if (suggestions.length) { event.preventDefault(); mention(suggestions[suggestionIndex]!); return } event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} maxLength={1000} placeholder={burstLocked ? 'Spam, veuillez attendre...' : 'Écrire un message…'} />
           {showCharacterCount && <span className="chat-character-count" aria-label={`${500 - characterCount} caractères restants`}>{characterCount - 500}</span>}

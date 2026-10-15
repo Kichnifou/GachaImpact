@@ -88,7 +88,7 @@ export const tutorialHistoricalSteps = [
   step('shop-catalog', 'Boutique', 'shop', 'shop-catalog', 'Catalogue de la Boutique', 'Le catalogue affiche les offres et leur disponibilité. Prix, quantité, MAX et résultat annoncé se consultent avant un achat.'),
   step('shop-tickets', 'Boutique', 'shop', 'shop-tickets', 'Tickets et probabilités', 'Les tickets affichent leurs possibilités et probabilités lorsqu’ils sont proposés.'),
   step('shop-wallet', 'Boutique', 'shop', 'shop-wallet', 'Portefeuille et transactions', 'Retrouvez votre portefeuille, la dernière transaction et l’accès à l’historique.'),
-  step('codes-available', 'Codes cadeaux', 'codes', 'codes-list', 'Codes disponibles', 'Les codes publiés indiquent période, récompenses directes et état de récupération. Certains offrent aussi des gains Event selon votre inscription. Vous pouvez réclamer un code sans le saisir.', 'available'),
+  step('codes-available', 'Codes cadeaux', 'codes', 'codes-list', 'Codes disponibles', "Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau.", 'available'),
   step('codes-claimed', 'Codes cadeaux', 'codes', 'codes-list', 'Codes récupérés', 'Cette vue conserve les codes déjà récupérés.', 'claimed'),
   step('social-friends', 'Social', 'social', 'social-list', 'Amis et cœurs', 'Dans l’écran Social, retrouvez vos niveaux d’amitié et cœurs individuels ou groupés.', 'friends'),
   step('social-requests', 'Social', 'social', 'social-list', 'Demandes reçues et envoyées', 'Cette vue permet de visionner, accepter ou annuler des demandes envoyées et reçues.', 'requests'),

@@ -61,6 +61,49 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); act(() => roots.splice(0).forEach(root => root.unmount())); document.body.replaceChildren() })
 
 describe('ChatPanel réel', () => {
+  it('visibly explains a changed mention and retains the rejected intent for recovery', async () => {
+    chat.send.mockRejectedValueOnce(new ApiError('CHAT_MENTION_CHANGED', 'Une cible de mention a changé.', 409))
+    const container = await mount()
+    await act(async () => type(container, '@Alpha salut'))
+    await act(async () => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(container.textContent).toContain('Sélectionnez à nouveau le joueur avant d’envoyer.')
+    expect(container.textContent).toContain('@Alpha salut')
+    const recover = [...container.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === 'Récupérer')!
+    await act(async () => recover.click())
+    expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('@Alpha salut')
+    expect(chat.send).toHaveBeenCalledOnce()
+  })
+  it('keeps confirmed messages and draft during transient reading errors with bounded recovery', async () => {
+    vi.useFakeTimers()
+    const updates = enableUpdates()
+    updates.mockRejectedValue(new ApiError('INTERNAL_ERROR', 'An unexpected server error occurred.', 500))
+    const container = await mount()
+    await act(async () => type(container, 'Brouillon à garder'))
+    await act(async () => vi.advanceTimersByTimeAsync(5000))
+    expect(container.textContent).toContain('Bonjour')
+    expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('Brouillon à garder')
+    expect(container.textContent).not.toContain('An unexpected server error')
+    expect(container.textContent).not.toContain('temporairement indisponible')
+    expect(updates.mock.calls.length).toBeLessThan(6)
+    for (let index = 0; index < 5; index++) await act(async () => vi.advanceTimersByTimeAsync(16000))
+    expect(container.textContent).toContain('temporairement indisponible')
+    updates.mockResolvedValue({ generation: 0, reset: false, messages: [], changes: [] })
+    await act(async () => vi.advanceTimersByTimeAsync(16000))
+    expect(container.textContent).not.toContain('temporairement indisponible')
+    expect(container.querySelector<HTMLTextAreaElement>('#chat-message')?.value).toBe('Brouillon à garder')
+  })
+  it.each([401, 403])('keeps an actionable French read refusal %s without automatic retries', async status => {
+    vi.useFakeTimers()
+    const updates = enableUpdates()
+    updates.mockRejectedValue(new ApiError(status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN', 'An unexpected server error occurred.', status))
+    const container = await mount()
+    await act(async () => vi.advanceTimersByTimeAsync(5000))
+    const calls = updates.mock.calls.length
+    expect(container.textContent).toContain(status === 401 ? 'session a expiré' : 'accès au chat est refusé')
+    expect(container.textContent).not.toContain('An unexpected server error')
+    await act(async () => vi.advanceTimersByTimeAsync(20000))
+    expect(updates).toHaveBeenCalledTimes(calls)
+  })
   it('places reply context before the complete author/message flow', async () => {
     chat.messages.mockResolvedValue({ messages: [{ ...message, replyToMessageId: 'target', replyPreview: 'Moi aussi', replyAuthor: { id: ownId, displayName: 'Moi' }, content: 'Qui toi aussi ?' }], nextCursor: null, generation: 0 })
     const container = await mount()
@@ -449,7 +492,7 @@ describe('ChatPanel réel', () => {
     await act(async () => { button(container, 'Actions pour le message de Moi').click() })
     await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).find(item => item.textContent === 'Supprimer')!.click(); await Promise.resolve() })
     expect(container.textContent).toContain('Texte conservé')
-    expect(container.textContent).toContain('Refusée')
+    expect(container.textContent).toContain('Suppression indisponible.')
   })
 
   it('renders only server-resolved mentions in bold while retaining safe links', async () => {

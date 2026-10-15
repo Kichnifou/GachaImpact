@@ -212,6 +212,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getRanking: (metric: string, page: number) => request<RankingPageDto>('/api/v1/rankings?' + new URLSearchParams({ metric, page: String(page) })),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
     social: {
+      renamePresentation: (name: string, expectedRevision: number) => request<{ id: string; displayName: string; revision: number }>('/api/v1/me/presentation-name', { method: 'PATCH', body: JSON.stringify({ name, expectedRevision }) }),
       friends: () => request<FriendsSnapshot>('/api/v1/me/friends'),
       friendAction: (targetPlayerId, action, idempotencyKey, requestId) => request<{ state: string }>('/api/v1/me/friends/actions', { method: 'POST', body: JSON.stringify({ targetPlayerId, action, idempotencyKey, requestId }) }),
       sendHearts: (targetPlayerId, idempotencyKey) => request<HeartResult>('/api/v1/me/friends/hearts', { method: 'POST', body: JSON.stringify({ targetPlayerId, idempotencyKey }) }),
@@ -475,6 +476,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
       request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/order`, { method: 'PUT', body: JSON.stringify({ characterIds }) }),
     removeTeamSlot: (teamId: string, position: number) =>
       request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots/${position}`, { method: 'DELETE' }),
+    replaceTeamComposition: (teamId: string, characterIds: readonly (string | null)[], expectedCharacterIds: readonly (string | null)[], idempotencyKey: string) =>
+      request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/composition`, { method: 'PUT', body: JSON.stringify({ characterIds, expectedCharacterIds, idempotencyKey }) }),
     clearTeam: (teamId: string) => request<PlayerTeamsDto>(`/api/v1/me/teams/${teamId}/slots`, { method: 'DELETE' }),
   }
 }

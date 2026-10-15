@@ -220,7 +220,7 @@ describe('ContestScreen', () => {
     const { container } = mount(value)
     expect(container.querySelector<HTMLSelectElement>('.contest-join-panel select')?.disabled).toBe(true)
     expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-inline-actions button')).find((button) => button.textContent === 'Participer')?.disabled).toBe(true)
-    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-inline-actions button')).find((button) => button.textContent === 'Regarder activement')?.disabled).toBe(false)
+    expect(Array.from(container.querySelectorAll<HTMLButtonElement>('.contest-inline-actions button')).find((button) => button.textContent === 'Devenir spectateur')?.disabled).toBe(false)
     expect(container.querySelector('.contest-join-unavailable')?.textContent).toBe('Participation quotidienne déjà utilisée.')
   })
 

@@ -48,6 +48,9 @@ export function apiErrorMessage(error: unknown): string {
 
   const code = error.code
   const messages: Record<string, string> = {
+    CHAT_MENTION_CHANGED: 'Une cible de mention a changé. Sélectionnez à nouveau le joueur avant d’envoyer.',
+    PRESENTATION_NAME_CONFLICT: 'Le pseudo a changé. Fermez puis rouvrez l’édition avant de confirmer.',
+    PRESENTATION_NAME_INVALID: 'Choisissez un pseudo de 1 à 40 caractères, sans caractères de contrôle.',
     CATALOG_STORAGE_UNAVAILABLE: 'Le stockage des images doit être configuré et vérifié. Réessayez après cette validation.',
     CATALOG_VALIDATION_FAILED: 'L’identité, les informations ou le rôle de l’image ne satisfont pas les contrôles. Consultez les manques de la fiche.',
     CATALOG_PUBLICATION_DISABLED: 'La publication reste désactivée tant que le stockage et les gates de sûreté ne sont pas validés.',

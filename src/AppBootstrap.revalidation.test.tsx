@@ -11,7 +11,7 @@ import { usePresence } from './social/use-presence'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
   userId: 'web-owner', status: 'signedIn', shell: null as ComponentProps<typeof GameShell> | null,
-  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'archiveNotification', 'getCurrentGacha', 'getCharacters', 'getTeams', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella', 'claimGiftCode'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
+  api: Object.fromEntries(['getCurrentPlayer', 'getResources', 'getProgression', 'getWheelToday', 'getDailyRewardToday', 'getDailyChallenge', 'getDailyCombat', 'getMonthlyBoss', 'getContest', 'getEvent', 'getExpedition', 'getNotifications', 'archiveNotification', 'getCurrentGacha', 'getCharacters', 'getTeams', 'replaceTeamComposition', 'getPermissions', 'getFavor', 'pullGacha', 'chooseElement', 'useStella', 'claimGiftCode'].map(key => [key, vi.fn()])) as Record<string, ReturnType<typeof vi.fn>>,
   signOut: vi.fn(),
   presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
@@ -44,6 +44,28 @@ beforeEach(() => {
 })
 afterEach(() => { act(() => root.unmount()); mocks.shell = null; vi.useRealTimers() })
 const mount = () => act(async () => root.render(<AppBootstrap />))
+
+it.each(['newer-read', 'changed-account'])('does not publish an old Team receipt after reconciliation fails following %s', async scenario => {
+  await mount()
+  let reject!: (reason: Error) => void
+  const receipt = { teams: [{ id: 'receipt-team' }], availableCharacters: [], passiveReference: [] }
+  const newer = { teams: [{ id: 'newer-team' }], availableCharacters: [], passiveReference: [] }
+  mocks.api.replaceTeamComposition.mockResolvedValue(receipt)
+  mocks.api.getTeams.mockImplementationOnce(() => new Promise((_resolve, fail) => { reject = fail }))
+  let changing!: Promise<unknown>
+  await act(async () => { changing = mocks.shell!.onReplaceTeamComposition!('old-team', [null, null, null, null], [null, null, null, null], 'key'); await Promise.resolve() })
+  mocks.api.getTeams.mockResolvedValue(newer)
+  if (scenario === 'newer-read') await act(async () => { await mocks.shell!.onLoadTeams() })
+  else {
+    mocks.status = 'signedOut'; await mount()
+    mocks.status = 'signedIn'; mocks.userId = 'new-web-owner'
+    mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'new-player' })
+    await mount()
+  }
+  expect(mocks.shell!.teams).toEqual(newer)
+  await act(async () => { reject(new Error('read unavailable')); await changing })
+  expect(mocks.shell!.teams).toEqual(newer)
+})
 
 it.each(['before','during'])('does not restore an archived catalogue notification from a poll started %s the archive',async timing=>{
   const stale={unreadCount:1,notifications:[{id:'catalogue-group'}]},empty={unreadCount:0,notifications:[]}
