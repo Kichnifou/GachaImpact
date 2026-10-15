@@ -62,7 +62,7 @@ describe('HistoryScreen', () => {
       expect(container.textContent).toContain('Vous n’avez pas participé')
     } finally { act(() => root.unmount()) }
   })
-  it.each([[0, 0, 2, 1], [0, 0, 0, 0]])('keeps banner snapshots but presents only positive votes: %j', async (...counts) => {
+  it.each([[0, 0, 2, 1], [0, 0, 1, 2], [0, 0, 2, 2], [0, 0, 0, 0]])('keeps banner snapshots but presents only positive votes: %j', async (...counts) => {
     const container = document.createElement('div'); const root = createRoot(container)
     const snapshot: BannerHistoryDto = { ...banners, entries: [{ ...banners.entries[0]!, featured: [{ characterId: 'chosen', name: 'Skirk', rarity: 5, slot: 4, source: 'COMMUNITY_VOTE' }],
       generationVoteSnapshot: { sourceRotationId: 'source', capturedAt: '2026-09-01T00:00:00Z', selectedCharacterId: 'chosen', selectedCharacterName: 'Skirk', selectionSource: 'COMMUNITY_VOTE',
@@ -70,11 +70,17 @@ describe('HistoryScreen', () => {
     const before = JSON.stringify(snapshot)
     try {
       await act(async () => { root.render(<HistoryScreen {...props} initialCategory="banners" onBannersOrEvent={async () => snapshot} />); await Promise.resolve() })
-      expect(container.textContent).toContain('Skirk · vote communautaire')
+      expect(container.textContent).toContain('5★ · Skirk')
+      expect(container.textContent).not.toContain('vote communautaire')
+      expect(container.textContent).not.toContain('Sélection :')
+      expect(container.querySelector('h2')?.textContent).toBe('Bannière du 01/09/2026')
+      expect(container.querySelector('.history-banner-heading > span')?.textContent).toBe('Terminé')
       expect(container.textContent).not.toContain('slot communautaire')
       const choice = [...container.querySelectorAll('p')].find(row => row.textContent?.startsWith('Choix communauté'))!
       expect(choice.textContent).toBe('Choix communauté : Skirk')
       expect(container.querySelectorAll('.history-votes li')).toHaveLength(counts.filter(value => value > 0).length)
+      const expectedVotes = snapshot.entries[0]!.generationVoteSnapshot!.candidates.filter(candidate => candidate.voteCount > 0).sort((a, b) => b.voteCount - a.voteCount || a.characterId.localeCompare(b.characterId))
+      expect([...container.querySelectorAll('.history-votes li')].map(row => row.textContent?.split(' ')[1])).toEqual(expectedVotes.map(row => row.characterName.split(' ')[1]))
       if (counts.some(Boolean)) { expect(container.textContent).toContain('Candidat 2'); expect(container.textContent).toContain('Candidat 3') }
       else expect(container.querySelector('.history-votes')).toBeNull()
       expect(container.textContent).not.toContain('Candidat 0'); expect(container.textContent).not.toContain('Candidat 1')

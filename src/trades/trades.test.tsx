@@ -186,7 +186,27 @@ describe('Particle trades UI', () => {
     const reads = actions.snapshot.mock.calls.length
     await click(node, 'Envoyer'); expect(actions.create).toHaveBeenCalledWith('b', '300', expect.any(String))
     expect(node.textContent).toContain('Demande envoyée.'); expect(actions.snapshot.mock.calls.length).toBeGreaterThan(reads)
+    expect(node.querySelector<HTMLInputElement>('[role="combobox"]')?.value).toBe('')
+    expect(node.querySelector<HTMLInputElement>('[aria-label="Quantité"]')?.value).toBe('')
+    expect(node.querySelector('.trade-partner[aria-pressed="true"]')).toBeNull()
     expect(onSnapshot).toHaveBeenLastCalledWith(empty)
+  })
+  it('does not erase new partner input or navigate after a late success', async () => {
+    let done!: (value: Awaited<ReturnType<TradeActions['create']>>) => void
+    const actions = api()
+    actions.create.mockImplementation(() => new Promise(resolve => { done = resolve }))
+    const { node } = await mount(actions)
+    await choose(node); await click(node, 'MAX'); await click(node, 'Envoyer')
+    const input = node.querySelector<HTMLInputElement>('[role="combobox"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'Nouvelle recherche')
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await click(node, 'Historique')
+    await act(async () => done({ requestId: 'new', state: 'PENDING', amount: '300' }))
+    expect(node.querySelector('.trade-history')).toBeTruthy()
+    await click(node, 'Partenaires')
+    expect(node.querySelector<HTMLInputElement>('[role="combobox"]')?.value).toBe('Nouvelle recherche')
   })
   it('shows received/sent reduced offers, contextual actions and recent history', async () => {
     const actions = api({ ...empty, received: [request], sent: [request], history: [{ ...request, amount: '200', executedAt: request.createdAt }] }), { node } = await mount(actions)
@@ -206,9 +226,26 @@ describe('Particle trades UI', () => {
     await act(async () => { send.click(); send.click() }); expect(actions.create).toHaveBeenCalledTimes(1)
     const key = actions.create.mock.calls[0]![2]
     await act(async () => reject(new ApiError('NETWORK_ERROR', 'Connexion interrompue.', null)))
+    expect(node.querySelector<HTMLInputElement>('[role="combobox"]')?.value).toBe('Bob')
+    expect(node.querySelector<HTMLInputElement>('[aria-label="Quantité"]')?.value).toBe('300')
     actions.partners.mockResolvedValue({ partners: [], page: 1, total: 0, pageSize: 10, totalPages: 1 })
     await act(async () => window.dispatchEvent(new Event('focus')))
     await click(node, 'Réessayer l’action'); expect(actions.create).toHaveBeenLastCalledWith('b', '300', key)
+  })
+  it('preserves a changed quantity when a previous ambiguous intent succeeds on retry', async () => {
+    const actions = api()
+    actions.create.mockRejectedValueOnce(new ApiError('NETWORK_ERROR', 'Connexion interrompue.', null))
+    const { node } = await mount(actions); await choose(node); await click(node, 'MAX'); await click(node, 'Envoyer')
+    const key = actions.create.mock.calls[0]![2]
+    const amount = node.querySelector<HTMLInputElement>('[aria-label="Quantité"]')!
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(amount, '123')
+      amount.dispatchEvent(new Event('input', { bubbles: true }))
+    })
+    await click(node, 'Réessayer l’action')
+    expect(actions.create).toHaveBeenLastCalledWith('b', '300', key)
+    expect(amount.value).toBe('123')
+    expect(node.querySelector<HTMLInputElement>('[role="combobox"]')?.value).toBe('Bob')
   })
   it('polls only while visible, queues focus without overlapping, synchronizes remote stocks and stops on unmount', async () => {
     vi.useFakeTimers(); Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })

@@ -8,6 +8,7 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
   const [partners, setPartners] = useState<TradePartners | null>(null)
   const [pending, setPending] = useState(false), [error, setError] = useState<string | null>(null), [feedback, setFeedback] = useState('')
   const [syncError, setSyncError] = useState('')
+  const [partnerRevision, setPartnerRevision] = useState(0)
   const partnerRequest = useRef<{ controller: AbortController } | null>(null)
   const partnerDebounce = useRef<ReturnType<typeof setTimeout> | null>(null)
   const partnerGeneration = useRef(0)
@@ -61,11 +62,11 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
     partnerGeneration.current++
     partnerRequest.current?.controller.abort()
     partnerRequest.current = null
-    if (!latest.current.partnersActive) return
     if (partnerDebounce.current) clearTimeout(partnerDebounce.current)
     partnerDebounce.current = null
-    loadPartners()
-  }, [loadPartners])
+    // Load after React publishes any confirmed form reset to latest.current.
+    setPartnerRevision(value => value + 1)
+  }, [])
   useEffect(() => {
     if (!partnersActive) return
     if (query) partnerDebounce.current = setTimeout(() => { partnerDebounce.current = null; loadPartners() }, 120)
@@ -76,7 +77,7 @@ export function useTrades(actions: TradeActions, onSnapshot: (value: TradeSnapsh
       partnerRequest.current?.controller.abort()
       partnerRequest.current = null
     }
-  }, [query, page, partnersActive, loadPartners])
+  }, [query, page, partnersActive, partnerRevision, loadPartners])
   useEffect(() => {
     if (!partnersActive) return
     const refreshPartners = () => {
