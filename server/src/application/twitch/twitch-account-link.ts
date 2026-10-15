@@ -6,7 +6,7 @@ import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
 import { derivePlayerLevel } from '../../domain/player/player-progression.js';
 import { isPrismaConcurrencyCollision } from '../../infrastructure/database/prisma-concurrency.js';
-import { isDisposableWebPlayer, moveDisposableWebIdentity } from './twitch-profile-claim.js';
+import { canAutomaticallyRecoverWebPlayer, moveDisposableWebIdentity } from './twitch-profile-claim.js';
 import type { AppConfig } from '../../config/environment.js';
 import { currentOperatorPlans, executeOperatorClosure, lockCanonicalizationPair, type OperatorPlans } from './twitch-canonicalization-operator.js';
 import { legacyFriendshipDecisionEvidence, reconcileLegacyFriendships, assertLegacyFriendshipResolutionReady } from '../migration/legacy-friendship-reconciliation.js';
@@ -109,7 +109,7 @@ export class TwitchAccountLink {
         await admitLinkedNativePlayer(tx, twitchUserId, pair.web.playerId);
         return { linked: true, playerId: pair.web.playerId, resolutionRequired: false };
       }
-      if (await isDisposableWebPlayer(tx, pair.web.playerId)) {
+      if (await canAutomaticallyRecoverWebPlayer(tx, pair.web.playerId, pair.twitch.playerId)) {
         await moveDisposableWebIdentity(tx, pair.web.id, pair.web.playerId, pair.twitch.playerId);
         await tx.twitchIdentity.update({ where: { twitchUserId }, data: { login, displayName } });
         await reconcileExternalBannerVotes(tx, twitchUserId);

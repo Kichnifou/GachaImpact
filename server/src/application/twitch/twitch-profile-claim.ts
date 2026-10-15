@@ -5,6 +5,7 @@ import { isPrismaConcurrencyCollision } from '../../infrastructure/database/pris
 import { isTutorialPreference } from '../tutorial/tutorial-preferences.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import { z } from 'zod';
+import { derivePlayerLevel } from '../../domain/player/player-progression.js';
 
 const emptyDefaults = new Set(['PlayerEconomyStats', 'PlayerWheelStats', 'PlayerDailyRewardState', 'PlayerProgression', 'PlayerGachaState']);
 const housekeeping = new Set(['WebIdentity', 'PlayerSession']);
@@ -25,6 +26,7 @@ const knownTables: Record<string, string> = {
   twitch_link_states: 'TwitchLinkState', twitch_link_resolutions: 'TwitchLinkResolution',
   notifications: 'Notification',
   player_bank_accounts: 'PlayerBankAccount',
+  teams: 'Team',
 };
 type Row = Record<string, unknown>;
 type Delegate = { findMany(args: unknown): Promise<Row[]> };
@@ -57,22 +59,25 @@ async function isUnclaimedAvailabilityNotice(tx: Prisma.TransactionClient, row: 
 
 /** Every Player FK domain is inspected. New/unknown domains with rows fail closed.
  * Only the actual empty bootstrap and disposable UI/session bookkeeping are accepted. */
-export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, playerId: string): Promise<boolean> {
+export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, playerId: string, allowChosenElement = false): Promise<boolean> {
   const player = await tx.player.findUnique({ where: { id: playerId } });
-  if (!player || player.status !== 'ACTIVE' || player.elementKey !== null || player.legacyUsername !== null
-    || player.migrationRunId !== null || player.legacyRecovery !== null || player.equippedAvatarCosmeticId !== null || player.equippedTitleCosmeticId !== null || !hasNeutralPresentationName(player)) return false;
-  const playerKeys = new Set(['id', 'displayName', 'presentationName', 'presentationNameRevision', 'elementKey', 'equippedAvatarCosmeticId', 'equippedTitleCosmeticId', 'status', 'createdAt', 'updatedAt', 'migrationRunId', 'legacyUsername', 'legacyRecovery']);
+  if (!player || player.status !== 'ACTIVE' || !allowChosenElement && player.elementKey !== null || player.legacyUsername !== null
+    || player.migrationRunId !== null || player.legacyRecovery !== null || player.equippedAvatarCosmeticId !== null || player.equippedTitleCosmeticId !== null || player.equippedBadgeCosmeticId !== null || !hasNeutralPresentationName(player)) return false;
+  const playerKeys = new Set(['id', 'displayName', 'presentationName', 'presentationNameRevision', 'elementKey', 'equippedAvatarCosmeticId', 'equippedTitleCosmeticId', 'equippedBadgeCosmeticId', 'status', 'createdAt', 'updatedAt', 'migrationRunId', 'legacyUsername', 'legacyRecovery']);
   const playerColumns = await tx.$queryRaw<{ count: bigint }[]>`SELECT count(*)::bigint count FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='players'`;
   if (Object.keys(player).some(key => !playerKeys.has(key)) || playerColumns[0]!.count !== BigInt(playerKeys.size)) return false;
   const web = await tx.webIdentity.findUnique({ where: { playerId } });
   if (!web || web.state !== 'ACTIVE') return false;
+  if (await tx.twitchCanonicalizationPlan.count({ where: { webIdentityId: web.id } })) return false;
+  const schema = (await tx.$queryRaw<{ schema: string }[]>`SELECT current_schema() schema`)[0]!.schema;
   const required = new Set([...emptyDefaults, 'PlayerResourceBalance', 'PlayerPermanentMissionState', 'PlayerPermanentMissionProgress', 'PrivacySetting', 'WebIdentity']);
-  const domains = await tx.$queryRaw<{ table_name: string; columns: string[] }[]>`SELECT child.relname table_name, array_agg(DISTINCT a.attname)::text[] columns
+  const domains = await tx.$queryRaw<{ table_name: string; schema: string; columns: string[] }[]>`SELECT child.relname table_name, n.nspname schema, array_agg(DISTINCT a.attname)::text[] columns
     FROM pg_constraint fk JOIN pg_class child ON child.oid=fk.conrelid JOIN pg_class parent ON parent.oid=fk.confrelid
     JOIN pg_namespace n ON n.oid=child.relnamespace JOIN pg_namespace pn ON pn.oid=parent.relnamespace
     CROSS JOIN LATERAL unnest(fk.conkey) key(col) JOIN pg_attribute a ON a.attrelid=child.oid AND a.attnum=key.col
-    WHERE fk.contype='f' AND n.nspname=current_schema() AND pn.nspname=current_schema() AND parent.relname='players' GROUP BY child.relname ORDER BY child.relname`;
+    WHERE fk.contype='f' AND pn.nspname=current_schema() AND parent.relname='players' GROUP BY child.relname,n.nspname ORDER BY child.relname`;
   for (const domain of domains) {
+    if (domain.schema !== schema) return false;
     const model = { name: knownTables[domain.table_name] ?? '' };
     if (!model.name) {
       if (!/^[a-z][a-z0-9_]*$/.test(domain.table_name) || domain.columns.some(column => !/^[a-z][a-z0-9_]*$/.test(column))) return false;
@@ -80,13 +85,19 @@ export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, player
       if (result[0]!.count) return false;
       continue;
     }
+    const expectedPlayerColumns = model.name === 'TwitchLinkResolution' ? ['twitch_player_id', 'web_player_id'] : ['player_id'];
+    if (domain.columns.slice().sort().join() !== expectedPlayerColumns.join()) return false;
     const technical = model.name === 'TwitchLinkState' || model.name === 'TwitchLinkResolution' || model.name === 'Notification';
     const rows = await delegate(tx, model.name).findMany({ where: model.name === 'TwitchLinkResolution'
       ? { OR: [{ webPlayerId: playerId }, { twitchPlayerId: playerId }] } : { playerId }, take: 1000 });
     if (rows.length >= 1000 || required.has(model.name) && !rows.length) return false;
+    required.delete(model.name);
     if (!rows.length) continue;
     const columns = await tx.$queryRaw<{ count: bigint }[]>`SELECT count(*)::bigint count FROM information_schema.columns WHERE table_schema=current_schema() AND table_name=${domain.table_name}`;
     if (columns[0]!.count !== BigInt(Object.keys(rows[0]!).length)) return false;
+    // Disposal can cascade through these rows. No new descendant inherits permission
+    // merely because its ancestor is normal bootstrap/session bookkeeping.
+    if (!await hasOnlyKnownDisposableChildren(tx, domain.table_name, schema)) return false;
     if (technical) {
       const expectedColumns = model.name === 'TwitchLinkResolution' ? ['twitch_player_id', 'web_player_id'] : ['player_id'];
       if (domain.columns.slice().sort().join() !== expectedColumns.join()) return false;
@@ -131,6 +142,8 @@ export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, player
       const schema = (await tx.$queryRaw<{ schema: string }[]>`SELECT current_schema() schema`)[0]!.schema;
       if (children.some(fk => fk.child !== 'bank_transactions' || fk.schema !== schema
         || fk.child_columns.join() !== 'player_id' || fk.parent_columns.join() !== 'player_id')) return false;
+    } else if (model.name === 'Team') {
+      if (!allowChosenElement || !isEmptyBaseTeams(rows) || await tx.teamMember.count({ where: { team: { playerId } } })) return false;
     } else if (housekeeping.has(model.name)) {
       if (model.name === 'WebIdentity' && rows.length !== 1) return false;
     } else if (emptyDefaults.has(model.name)) {
@@ -160,7 +173,40 @@ export async function isDisposableWebPlayer(tx: Prisma.TransactionClient, player
       if (rows.length !== 1 || rows[0]!.lastInternalChatAt !== null || rows[0]!.lastTwitchActivityAt !== null || rows[0]!.lastGameplayActivityAt !== null) return false;
     } else return false;
   }
-  return true;
+  return required.size === 0;
+}
+
+export function isEmptyBaseTeams(rows: readonly Row[]): boolean {
+  return rows.length === 10 && new Set(rows.map(row => row.displayPosition)).size === 10 && rows.every(row =>
+    Number.isInteger(row.displayPosition) && Number(row.displayPosition) >= 1 && Number(row.displayPosition) <= 10
+    && row.name === null && row.isBaseSlot === true && row.legacySavedAt === null && row.isActive === (row.displayPosition === 1)
+    && Object.keys(row).every(key => ['id', 'playerId', 'displayPosition', 'name', 'isActive', 'isBaseSlot', 'legacySavedAt', 'createdAt', 'updatedAt'].includes(key)));
+}
+
+async function hasOnlyKnownDisposableChildren(tx: Prisma.TransactionClient, parent: string, schema: string): Promise<boolean> {
+  const children = await tx.$queryRaw<{ child: string; schema: string; child_columns: string[]; parent_columns: string[] }[]>`
+    SELECT c.relname child,cn.nspname schema,
+      ARRAY(SELECT a.attname::text FROM unnest(fk.conkey) k JOIN pg_attribute a ON a.attrelid=c.oid AND a.attnum=k)::text[] child_columns,
+      ARRAY(SELECT a.attname::text FROM unnest(fk.confkey) k JOIN pg_attribute a ON a.attrelid=p.oid AND a.attnum=k)::text[] parent_columns
+    FROM pg_constraint fk JOIN pg_class c ON c.oid=fk.conrelid JOIN pg_namespace cn ON cn.oid=c.relnamespace
+    JOIN pg_class p ON p.oid=fk.confrelid JOIN pg_namespace pn ON pn.oid=p.relnamespace
+    WHERE fk.contype='f' AND pn.nspname=current_schema() AND p.relname=${parent}`;
+  return children.every(child => child.schema === schema && (
+    parent === 'web_identities' && ['twitch_link_states', 'twitch_link_resolutions', 'twitch_canonicalization_plans'].includes(child.child)
+      && child.child_columns.join() === 'web_identity_id' && child.parent_columns.join() === 'id'
+    || parent === 'teams' && child.child === 'team_members' && child.child_columns.join() === 'team_id' && child.parent_columns.join() === 'id'
+    || parent === 'player_bank_accounts' && child.child === 'bank_transactions' && child.child_columns.join() === 'player_id' && child.parent_columns.join() === 'player_id'
+  ));
+}
+
+/** Old virgin-web recovery is retained; only the low-progress extension requires an advanced Twitch target. */
+export async function canAutomaticallyRecoverWebPlayer(tx: Prisma.TransactionClient, sourcePlayerId: string, targetPlayerId: string): Promise<boolean> {
+  if (await isDisposableWebPlayer(tx, sourcePlayerId)) return true;
+  const target = await tx.player.findUnique({ where: { id: targetPlayerId }, select: { status: true, elementKey: true, progression: { select: { xp: true } } } });
+  if (!target || target.status !== 'ACTIVE' || target.elementKey === null || !target.progression || derivePlayerLevel(target.progression.xp) < 2) return false;
+  // Every positive XP origin currently available is gameplay/messages/moderation.
+  // The classifier retains exact zero defaults; a low level alone never discards XP.
+  return isDisposableWebPlayer(tx, sourcePlayerId, true);
 }
 
 export async function moveDisposableWebIdentity(tx: Prisma.TransactionClient, webIdentityId: string, sourcePlayerId: string, targetPlayerId: string) {
