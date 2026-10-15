@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## Synchronisation pendant la bêta — après R1096, 15/10/2026
+
+Le propriétaire a **validé R1095**, y compris le combat manuel et ses règles de mission Z ; le petit point rouge de diffusion a ensuite été livré dans R1096, dont la recette humaine reste partielle. La bêta multijoueur est **en cours**. L'authentification/récupération Twitch R1096 a été qualifiée techniquement mais doit encore être observée avec un ami volontaire ; aucun choix de progression public n'est présumé exécuté. Les adaptations mobile générales, les corrections de bêta réellement observées et la décision propriétaire finale de lancement V1 restent distinctes ; le premier tirage Event du 01/11/2026 se suit naturellement sans mutation de QA. Le [Master](../master/PROJECT_MASTER_PLAN.md) reste seul responsable de l'état vivant et de la prochaine action. Le [bilan documentaire daté](../architecture/evidence/documentation-audit-20261015.md) inventorie les véritables restants et les sujets post-V1 différés. Les paragraphes R1095 et antérieurs ci-dessous sont historiques, non des demandes à rejouer.
+
 ## Retours de bêta — R1095, 15/10/2026
 
 Le propriétaire confirme R1094 validée et la bêta commencée. Les retours observés R1095 sont traités maintenant ; aucune passe mobile préalable n’est imposée. L’ordre macro V1 demeure inchangé ; les anciennes séquences de préparation ci-dessous sont historiques. Le Master porte seul l’état des corrections, leurs gates et la prochaine action : recette propriétaire R1095 après sa livraison technique. Aucun chantier mobile général, exe ou audit global n’est lancé automatiquement.
@@ -133,7 +137,7 @@ Cette séquence inclut les domaines déjà traversés ; elle ne les déclare pas
 22. **Administration / Modération complète** — achever les outils privés nécessaires aux domaines physiques.
 23. **Mini-jeux XP interface** — concevoir les vrais mini-jeux cadrés dans [04-xp-audit.md](../legacy/04-xp-audit.md), sans transformer les activités ordinaires en source XP.
 24. **Accueil dynamique et résumé Quotidiennes/sidebar final** — consolider [11-missions-daily-audit.md](../legacy/11-missions-daily-audit.md) et [navigation-shell-v1.md](../specifications/navigation-shell-v1.md).
-25. **Tutoriel interactif, Help textuel et Aide standalone distincts** — Tutoriel de 116 étapes/24 chapitres/21 écrans avec reprise/replay manuels depuis Menu/Aide selon [tutorial-v1.md](../specifications/tutorial-v1.md) ; R1033 ajoute un unique autostart rétroactif par Player via PlayerPreference, sans nouveau ScreenId/route écran ni autostart récurrent. Help R728–R731 selon [l’audit](../legacy/23-help-command-coherence-audit.md), Guide R1026 selon [help-guide-v1.md](../specifications/help-guide-v1.md). Aucune nouvelle étape Tutoriel ; statut technique/public au Master.
+25. **Tutoriel interactif, Help textuel et Aide standalone distincts** — Tutoriel actuel de **115 étapes actives / 24 chapitres / 21 écrans** avec reprise/replay manuels depuis Menu/Aide selon [tutorial-v1.md](../specifications/tutorial-v1.md) ; catalogues historiques 116/121 préservés pour les clients existants. R1033 ajoute un unique autostart rétroactif par Player via PlayerPreference, sans nouveau ScreenId/route écran ni autostart récurrent. Help R728–R731 selon [l’audit](../legacy/23-help-command-coherence-audit.md), Guide R1026 selon [help-guide-v1.md](../specifications/help-guide-v1.md). Aucun nouveau chapitre ni étape ajouté lors de cette réconciliation ; état technique/public au Master.
 
 ### Séquence d'exécution finale — numéros conservés (R1034)
 
