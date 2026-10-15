@@ -196,7 +196,7 @@ it('recovers the actual Twitch Player from the pre-element account panel and rel
   await mount();
   expect(mocks.shell).toBeNull();
   expect(mocks.api.getResources).not.toHaveBeenCalled();
-  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Lier mon compte Twitch')!.click());
   mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'recovered-twitch-player', elementKey: 'pyro' });
   mocks.api.getResources.mockResolvedValue({ ...resources, primogems: '8800' });
   mocks.api.getProgression.mockResolvedValue({ totalXp: '900', level: 30 });
@@ -212,7 +212,7 @@ it('recovers the actual Twitch Player from the pre-element account panel and rel
   for (const domain of ['getCharacters', 'getFavor', 'getPermissions', 'getExpedition', 'getContest', 'getEvent', 'getNotifications']) expect(mocks.api[domain]).toHaveBeenCalled();
   expect(mocks.signOut).not.toHaveBeenCalled();
   expect(container.querySelector('[role="dialog"]')).toBeNull();
-  expect(container.textContent).not.toContain('Configuration › Compte');
+  expect(container.textContent).not.toContain('Lier mon compte Twitch');
   expect(mocks.presence.session).toHaveBeenCalledOnce();
 });
 
@@ -236,7 +236,7 @@ it('closes the old Account dialog and clears a temporary element selection when 
   await mount();
   await act(async () => container.querySelector<HTMLButtonElement>('.element-choice.hydro')!.click());
   expect(container.querySelector('.element-choice.hydro')!.getAttribute('aria-pressed')).toBe('true');
-  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Lier mon compte Twitch')!.click());
   mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'retained-null-element-twitch-player', elementKey: null });
   await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Retour OAuth vérifié')!.click());
   expect(container.querySelector('[role="dialog"]')).toBeNull();
@@ -326,7 +326,7 @@ it('does not expose the return refresh before the Player is resolved', async () 
 it('recovers a no-element Twitch Player with retained gameplay, then uses normal choice without resetting its state', async () => {
   mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'temporary-web', elementKey: null });
   await mount();
-  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Configuration › Compte')!.click());
+  await act(async () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Lier mon compte Twitch')!.click());
   mocks.api.getCurrentPlayer.mockResolvedValue({ ...player, id: 'twitch-without-element', elementKey: null });
   mocks.api.getResources.mockResolvedValue({ ...resources, primogems: '777' });
   mocks.api.getProgression.mockResolvedValue({ totalXp: '60', level: 2 });

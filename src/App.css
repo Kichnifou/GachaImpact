@@ -9365,6 +9365,13 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 
 .element-account-help { margin: 22px 0 24px; color: var(--muted); font-size: 12px; line-height: 1.6; }
 .element-account-help p { margin: 0 0 12px; }
+.element-account-help .element-twitch-link { min-height: 44px; padding: 10px 24px; font-size: 14px; }
+.element-path-separator { display: block; margin-top: 20px; color: var(--muted); font-size: 12px; letter-spacing: .12em; }
+.element-entry-footer { display: flex; justify-content: flex-end; margin-top: 20px; }
+.element-sign-out { color: #7ed6f7; background: none; border: 0; padding: 6px 0 6px 12px; font: inherit; font-size: 12px; cursor: pointer; }
+.element-sign-out:hover { color: #c5efff; text-decoration: underline; }
+.element-sign-out:focus-visible { outline: 2px solid #65d6ff; outline-offset: 4px; border-radius: 3px; }
+.element-sign-out:disabled { opacity: .5; cursor: not-allowed; }
 .element-account-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 .notification-bulk-actions { display: grid; flex: 1; align-self: flex-end; justify-content: end; grid-template-columns: max-content; justify-items: stretch; gap: 1px; margin-left: 12px; }
 .notifications-panel .notification-bulk-action { min-height: 18px; line-height: 1.1; background: transparent; border-color: transparent; box-shadow: none; color: #9cddff; padding: 1px 3px; font-size: 9px; white-space: nowrap; text-align:right; justify-content:flex-end; }

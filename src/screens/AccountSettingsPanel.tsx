@@ -8,6 +8,7 @@ import AppButton from '../components/AppButton'
 import { getGameApiClient } from '../api/game-api'
 import type { SnapshotApplyDto, SnapshotPreviewDto, TwitchAccountDto } from '../api/types'
 import { apiErrorMessage } from '../utils/formatters'
+import { forgetTwitchReturnContext } from '../auth/twitch-return'
 
 const expected = new Set(['banner_votes.json', 'c6_characters.json', 'combat_config.json', 'combat_data.json', 'contests_data.json', 'element_passives.json', 'friendships_data.json', 'genshin_characters.json', 'gift_codes.json', 'giveaway.json', 'long_missions.json', 'missions_pool.json', 'monthly_boss.json', 'monthly_events.json', 'monthly_events_data.json', 'shop_items.json', 'viewers_data.json'])
 type ConfirmAction = 'apply' | null
@@ -28,7 +29,7 @@ const awaitingSubscription = (value: TwitchAccountDto) => Boolean(value.giftSupr
 // for transport. Account and runtime inspection keep their existing 8s bounds.
 const comparisonReadDeadline = 35_000
 
-export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined }: { onRefreshPlayerState?: () => Promise<void> }) {
+export default function AccountSettingsPanel({ onRefreshPlayerState = async () => undefined, onBeforeTwitchRedirect }: { onRefreshPlayerState?: () => Promise<void>; onBeforeTwitchRedirect?: () => void }) {
   const api = getGameApiClient()
   const [resolution, setResolution] = useState<TwitchLinkResolutionDto | null>(null)
   const [comparisonStatus, setComparisonStatus] = useState<'loading' | 'ready' | 'error'>('loading')
@@ -44,6 +45,11 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
   const [pending, setPending] = useState(false)
   const [streamerbotAcknowledged, setStreamerbotAcknowledged] = useState(false)
   const pendingRef = useRef(false)
+  const linkOwner = useRef({ active: false })
+  useEffect(() => {
+    const owner = { active: true }; linkOwner.current = owner
+    return () => { owner.active = false }
+  }, [])
   const commandRevision = useRef(0)
   const [runtimeChecking, setRuntimeChecking] = useState(false)
   const [applying, setApplying] = useState(false)
@@ -66,10 +72,9 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
     setAccount(null); setAccountLoadFailed(false); setComparisonStatus('loading'); setComparisonError('')
     const url = new URL(location.href)
     const outcome = presentationMode ? null : url.searchParams.get('twitch')
-    if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url)
+    if (outcome) { url.searchParams.delete('twitch'); history.replaceState(history.state, '', url); forgetTwitchReturnContext()
       if (outcome !== 'connected' && outcome !== 'progression-choice' && outcome !== 'profile-recovered' && !outcome.startsWith('runtime-') && !outcome.startsWith('favor-runtime-') && !outcome.startsWith('gift-supreme-')) setError(outcome === 'TWITCH_PROFILE_WEB_CONFLICT' ? apiErrorMessage({ code: outcome }) : outcome === 'TWITCH_IDENTITY_CONFLICT' ? 'Ce compte Twitch possède déjà une identité web. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_DISPOSABLE' ? 'Votre profil web contient des données à préserver. Résolution opérateur nécessaire.' : outcome === 'TWITCH_PROFILE_NOT_FOUND' ? 'Aucun profil Twitch existant à récupérer.' : 'La liaison Twitch a échoué ou a été annulée.') }
     // OAuth returns through a full page bootstrap; the authenticated subject now resolves the recovered Player.
-    if (outcome === 'connected' || outcome === 'profile-recovered') setSuccess(twitchLinkSuccess)
     if (outcome === 'profile-recovered') void onRefreshPlayerState().catch(reason => setError(apiErrorMessage(reason)))
     if (outcome === 'runtime-error') setError('L’autorisation ou l’activation du chat Twitch a échoué ou a été annulée.')
     if (outcome === 'favor-runtime-error') setError('L’autorisation ou l’activation des abonnements Twitch a échoué ou a été annulée.')
@@ -97,6 +102,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         if (!active) return
         if (revision !== commandRevision.current) return
         setAccount(value)
+        if (value.linked && (outcome === 'connected' || outcome === 'profile-recovered')) setSuccess(twitchLinkSuccess)
         accountLoaded = true
         if (!value.linked && !presentationMode) void loadComparison()
         else { setResolution(null); setComparisonStatus('ready') }
@@ -160,7 +166,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
       setFiles(Object.fromEntries(contents))
     } catch { setError('Impossible de lire les fichiers sélectionnés.') }
   }
-  const connect = () => { if (comparisonStatus !== 'ready' || resolution) return; void run(async () => { const { url } = await api.startTwitchLink(); if (new URL(url).origin !== 'https://id.twitch.tv') throw new Error('URL Twitch invalide.'); location.assign(url) }, false, true) }
+  const connect = () => { if (comparisonStatus !== 'ready' || resolution) return; void run(async () => { const owner = linkOwner.current; const { url } = await api.startTwitchLink(); if (!owner.active || owner !== linkOwner.current) return; const target = new URL(url); if (target.origin !== 'https://id.twitch.tv' || target.pathname !== '/oauth2/authorize' || target.username || target.password) throw new Error('URL Twitch invalide.'); onBeforeTwitchRedirect?.(); location.assign(target.toString()) }, false, true) }
   const resolve = (choice: 'WEB' | 'TWITCH') => void run(async () => {
     if (!resolution) return
     const next = await api.resolveTwitchLink(resolution.id, choice, resolution.revision, ...(resolution.operatorPlans?.[choice] ? [resolution.operatorPlans[choice].id] : []))

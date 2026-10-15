@@ -152,7 +152,7 @@ describe('Configuration > Compte', () => {
     const root = createRoot(container); roots.push(root);
     const choose = vi.fn();
     await act(async () => root.render(<ElementChoiceScreen onChoose={choose} onRefreshPlayerState={vi.fn()} />));
-    const opener = button(container, 'Configuration › Compte'); opener.focus();
+    const opener = button(container, 'Lier mon compte Twitch'); opener.focus();
     await act(async () => opener.click());
     expect(button(container.querySelector('[role="dialog"]')!, 'Lier mon compte Twitch')).toBeDefined();
     expect(choose).not.toHaveBeenCalled();
@@ -768,12 +768,12 @@ it('offers account access and sign-out before choosing an element, without showi
   const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
   const logout = vi.fn(async () => undefined), choose = vi.fn()
   await act(async () => root.render(<ElementChoiceScreen onChoose={choose} onRefreshPlayerState={vi.fn()} onSignOut={logout} />))
-  expect(button(container,'Configuration › Compte')).toBeDefined()
+  expect(button(container,'Lier mon compte Twitch')).toBeDefined()
   await act(async () => button(container,'Déconnexion').click())
   expect(logout).toHaveBeenCalledOnce(); expect(choose).not.toHaveBeenCalled()
   await act(async () => root.render(<ElementChoiceScreen onChoose={choose} />))
   expect(button(container,'Déconnexion')).toBeUndefined()
-  expect(button(container,'Configuration › Compte')).toBeUndefined()
+  expect(button(container,'Lier mon compte Twitch')).toBeUndefined()
 })
 
 it('offers a new link after an expired verified choice without switching any Player', async () => {

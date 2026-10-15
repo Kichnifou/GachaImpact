@@ -5,6 +5,7 @@ import type { ArcadeMutation } from './api/arcade-types'
 import type { BankTransferDto, ContestDto, CurrentGachaDto, DailyChallengeDto, DailyChallengeMutationDto, DailyCombatDto, DailyRewardTodayDto, ElementKey, EventDto, EventRankingPageDto, ExpeditionDto, GachaCharacterDto, GachaPullDto, ModerationPermissionsDto, ModerationStateDto, MonthlyBossDto, NotificationsDto, PlayerDto, PlayerProgressionDto, PlayerResourcesDto, PlayerTeamsDto, ShopPurchaseDto, WheelTodayDto } from './api/types'
 import { useAuth } from './auth/auth-context'
 import { resolveBootstrapStage } from './auth/bootstrap-state'
+import { clearTwitchReturn, forgetTwitchReturnContext, readTwitchReturn, rememberTwitchLink, twitchReturnChangedPlayer, twitchReturnContext } from './auth/twitch-return'
 import AuthScreen from './components/AuthScreen'
 import ElementChoiceScreen from './components/ElementChoiceScreen'
 import GameShell from './components/GameShell'
@@ -36,6 +37,14 @@ import type { CharacterPreparationDto } from './api/types'
 function AppBootstrap() {
   const { status: authStatus, session, configurationMessage, signOut } = useAuth()
   const sessionUserId = session?.user.id
+  const twitchReturn = useRef<string | null>(readTwitchReturn())
+  useLayoutEffect(() => {
+    if (authStatus === 'signedOut' || authStatus === 'signedIn' && sessionUserId && twitchReturnContext(sessionUserId) === 'stale') {
+      if (twitchReturn.current) clearTwitchReturn(true)
+      else forgetTwitchReturnContext()
+      twitchReturn.current = null
+    }
+  }, [authStatus, sessionUserId])
   const notificationSessionRef = useRef(sessionUserId)
   useLayoutEffect(() => { notificationSessionRef.current = sessionUserId }, [sessionUserId])
   const playerReadOwner = useRef({ active: false })
@@ -462,6 +471,12 @@ function AppBootstrap() {
     void retryBootstrapRead(() => getGameApiClient().getCurrentPlayer())
       .then(async (nextPlayer) => {
         if (!active) return
+        // The callback query never selects a Player. getCurrentPlayer has resolved
+        // the authenticated identity after the server's committed OAuth decision.
+        if (nextPlayer.elementKey && ['connected', 'profile-recovered'].includes(twitchReturn.current ?? '') && (twitchReturnChangedPlayer(sessionUserId, nextPlayer.id) || twitchReturn.current === 'profile-recovered')) {
+          clearTwitchReturn(true)
+          twitchReturn.current = null
+        }
         setMilestoneFeedbacks([])
         acceptPlayer(nextPlayer)
         if (nextPlayer.elementKey) await loadGameState()
@@ -549,10 +564,28 @@ function AppBootstrap() {
       <ElementChoiceScreen
         key={player.id}
         onSignOut={signOut}
-        onRefreshPlayerState={refreshPlayerState}
+        twitchReturn={twitchReturn.current}
+        onBeforeTwitchRedirect={(() => {
+          const owner = playerReadOwner.current
+          return () => {
+            if (!owner.active || owner !== playerReadOwner.current) throw new Error('La session a changé.')
+            rememberTwitchLink(sessionUserId!, player.id)
+          }
+        })()}
+        onRefreshPlayerState={(() => {
+          const owner = playerReadOwner.current
+          return async () => {
+            if (!owner.active || owner !== playerReadOwner.current) throw new Error('La session a changé.')
+            clearTwitchReturn(true)
+            twitchReturn.current = null
+            await refreshPlayerState()
+          }
+        })()}
         onChoose={async (elementKey: ElementKey) => {
+          const owner = playerReadOwner.current
           try {
             await getGameApiClient().chooseElement(elementKey)
+            if (!owner.active || owner !== playerReadOwner.current) throw new Error('La session a changé.')
             const nextPlayer = { ...player, elementKey }
             acceptPlayer(nextPlayer)
             await loadGameState()
@@ -570,6 +603,13 @@ function AppBootstrap() {
 
   return (
     <><GameShell sharedInvocationApi={getGameApiClient().sharedInvocations}
+      onBeforeTwitchRedirect={(() => {
+        const owner = playerReadOwner.current
+        return () => {
+          if (!owner.active || owner !== playerReadOwner.current) throw new Error('La session a changé.')
+          rememberTwitchLink(sessionUserId!, player.id)
+        }
+      })()}
       dailyRefresh={{ refresh: refreshDailies, refreshing: dailyRefreshing, errors: dailyErrors, favor: dailyFavor }}
       onRefreshResources={refreshFavorResources}
       externalFeedbackPending={milestoneFeedbacks.length > 0}
