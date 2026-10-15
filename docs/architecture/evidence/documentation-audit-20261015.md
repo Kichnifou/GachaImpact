@@ -1,5 +1,9 @@
 # Réconciliation documentaire V1 pendant la bêta — 15/10/2026
 
+## Amendement propriétaire ultérieur du 15/10/2026
+
+**Cette photographie était antérieure à la dernière clôture communiquée par le propriétaire.** Il déclare désormais terminés le gameplay/économie/progression/Twitch GLOBAL/standalone, le point rouge Invocation R1096 et la **finition mobile générale**. Il abandonne explicitement les pistes `.exe`/PWA, thèmes supplémentaires et Objectifs personnels ; il confirme la Reward Gift Suprême visible et active côté Twitch, sans revendication d'une nouvelle redemption end-to-end. Les tâches réellement conservées sont : récupération Twitch R1096 avec un ami plus tard, premier tirage Event naturel fin octobre, bêta multijoueur ultérieure, validation finale et décision d'ouverture V1. Les purges historiques ne seront examinées que si taille **et** croissance deviennent préoccupantes : [baseline DB en lecture seule](database-growth-baseline-20261015.md). Les « restant mobile / Objectifs futurs » dans la photographie originale ci-dessous sont **historiques et supersédés**, non des tickets à ouvrir. Le [Master](../../master/PROJECT_MASTER_PLAN.md) conserve l'état vivant.
+
 **Base de lecture :** `256729da6ab44ee01d56bc3a736f2edfa26b4e04` (checkpoint documentaire R1096 ; `main = review`, divergence 0/0). **Nature : preuve datée et bilan de priorités, pas second tracker vivant.** L'état opérationnel et la prochaine action appartiennent uniquement au [Master](../../master/PROJECT_MASTER_PLAN.md).
 
 ## Méthode et couverture
