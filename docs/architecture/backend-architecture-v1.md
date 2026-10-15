@@ -1,5 +1,11 @@
 # GachaImpact — Architecture backend V1
 
+## R1098 — moteur B1 et coordination nocturne
+
+RetentionInventory applique16règles spécialisées aux tables principales, en transactions READ ONLY/RepeatableRead séparées, préfixe PK≤10000+témoin, statement_timeout3s/lock_timeout250ms et résultats agrégés sans contenu privé. L'ancienneté n'est pas l'éligibilité destructive ; scope/qualification/exhaustivité explicites, techniquement traitable0. RetentionEngine n'écrit que retention_job/retention_runs : claim court, bail PostgreSQL/token, renouvellement entre domaines, finalisation clôturée au propriétaire, capacité/alertes franchies dédupliquées. Trois tentatives/jour, backoff15min, pas de replay historique.
+
+RetentionScheduler utilise le runtime start/close existant, async non bloquant, arrêt coopératif et réveil04:00 Europe/Paris ; polling60s pour reprise/échec, sommeil jusqu'à la nuit suivante après succès. DISABLED par défaut, seul DRY_RUN activable. Aucun endpoint/player UI, worker, Cron fournisseur ou writer destructif ; autres schedulers et optimisations R1097 inchangés. Migration additive083 backend-only, aucun FK joueur. [Contrat, alternatives, bornes, matrices et sauvegarde B2](r1098-retention-engine.md). État de livraison au Master, pas une activation présumée.
+
 ## R1097 — stockage futur non destructif
 
 [Contrat technique](r1097-storage-optimization.md) : codec central uniquement sur les lectures figées Twitch, enveloppe/statuts/réponses/requêtes JSONB identiques, lecteur historique et encodé, writer activable après déploiement compatible. Gacha count > 1 : Team originale unique dans BusinessOperation.resultSummary, références v2 dans PullResult.snapshot ; x1 inline. Lecteurs économiques/DTO fondés sur effets persistés inchangés, reconstruction de preuve centralisée sans Team actuelle. Transactions/verrous/mouvements/RNG inchangés, zéro migration. [Politique validée](../specifications/data-retention-v1.md), purges et automatisation ultérieures non actives.

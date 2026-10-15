@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1098 — migration additive083, registre technique B1
+
+`20261015180000_083_retention_simulation` ajoute uniquement retention_job(singleton retention-v1, cycle/token/bail, dernière capacité/niveau d'alerte) et retention_runs(PK jour Paris, status fermé, attempts1..3, dates/reprise, rapport JSONB≤128Kio). RLS activée, droits PUBLIC/anon/authenticated révoqués, aucune policy navigateur ni FK joueur. Aucune écriture historique/économique, aucun index métier nouveau. Application publique par Prisma predeploy après gates ; présence locale et répétition privée ne valent pas application publique. [Coordination et sécurité](r1098-retention-engine.md).
+
 ## R1097 — formats JSONB sans migration
 
 Aucun DDL ni index modifié : 82 migrations inchangées. Nouvelles preuves multi-pull : `business_operations.result_summary` contient Team unique/version 2 ; `pull_results.snapshot` référence l'opération, x1 et historique inline conservés. `twitch_event_receipts.payload_minimal.commandPilot.intent.reads` peut être réversible Brotli v1 après activation du writer ; tous les chemins JSONB de phase/statuts/réponses/IDs restent identiques. [Contrat et déploiement compatible](r1097-storage-optimization.md). Aucune ligne ancienne convertie, aucun compactage temporel.

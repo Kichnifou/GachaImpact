@@ -16,6 +16,7 @@ local-data/streamerbot-snapshots/
 local-data/identity-resolutions/
 local-data/migration-backups/
 local-data/r1097/
+local-data/r1098/
 .env
 .env.*
 !.env.example

@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1098 — suivi privé de simulation B1
+
+RetentionJob et RetentionRun portent uniquement la coordination du cycle Paris et les métriques agrégées de maintenance, sans relation Player ni contenu privé. Aucun état/statistique/preuve métier remplacé ; candidats techniques0, détail expiré distinct du détail traitable. Modes DISABLED/DRY_RUN, aucun chemin destructif. [Architecture et matrice spécialisée](../architecture/r1098-retention-engine.md). La migration083 est additive ; statut appliqué/déployé au Master.
+
 ## R1097 — formats compatibles des nouvelles preuves
 
 Pour les nouvelles invocations count > 1, BusinessOperation.resultSummary conserve gachaSnapshotVersion=2 et une seule activeTeam originale ; PullResult.snapshot conserve snapshotVersion=2/activeTeamRef=operation, états/effets/bonus persistés inchangés. x1 et anciennes lignes gardent activeTeam inline. Le lecteur de preuve accepte les deux, sans recalcul ou Team courante. Twitch conserve intégralement les intentions avec reads éventuellement encodé sans perte, sans modifier l'enveloppe interrogeable. [Contrat technique](../architecture/r1097-storage-optimization.md). Aucune entité/colonne/migration ou réécriture historique. [Rétention propriétaire R1097](data-retention-v1.md) validée, suppression/planification non activées dans A.

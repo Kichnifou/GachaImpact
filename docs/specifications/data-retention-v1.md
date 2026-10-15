@@ -1,5 +1,11 @@
 # Politique de rétention V1
 
+## R1098 — B1 de simulation, sans nettoyage nouveau
+
+Le mandat du15/10/2026 autorise le moteur de classification, les métriques et la simulation nocturne04:00 Europe/Paris sur le backend existant, après qualification/review/déploiement. Les durées produit R1097 ci-dessous ne changent pas. Modes fermés DISABLED/DRY_RUN, défaut DISABLED ; aucun mode destructif livré. La présence du scheduler ne vaut aucune permission de purger, convertir ou masquer des détails joueurs. L'état réellement déployé/activé et la première nuit observée restent au Master.
+
+Mois/années calendaires en heure murale Paris, fin de mois rabattue au dernier jour valide, égalité exacte conservée.30jours Twitch terminal calendaires Paris ;24h passives écoulées avec le propriétaire TTL existant inchangé. Horloge serveur injectable, dates nulles historiques inconnues ; non terminal protégé sans inventer sa date de fin. Comptages des tables principales bornés et explicitement exhaustifs/partiels/erreur ; éligibilité B2 non qualifiée et candidats techniques0 jusqu'à preuve des protections/remplacements et récupération. Les tables auxiliaires/provenances/relations JSON restent conservées. [Architecture et inventaire](../architecture/r1098-retention-engine.md).
+
 ## Contrat propriétaire du 15/10/2026 — R1097
 
 **VALIDÉ PRODUIT — IMPLÉMENTATION ÉCHELONNÉE, SELON LOT.** Cet arbitrage supersède « pas de purge préventive avant croissance préoccupante ». Lot A : nouvelles écritures seulement, anciennes lignes intactes ; aucun scheduler nocturne, Supabase Cron ou nouvelle purge. TTL passif existant inchangé.

@@ -1,0 +1,165 @@
+{
+  "mission": "R1098 B1",
+  "date": "2026-10-15",
+  "baseline": "0c3385b005788bfd60a8df942083ac52f451db99",
+  "initialFourRefsAligned": true,
+  "initialDivergence": "0/0",
+  "initialWorktree": "clean",
+  "assistantIaModified": false,
+  "architecture": {
+    "modeDefault": "DISABLED",
+    "allowedModes": [
+      "DISABLED",
+      "DRY_RUN"
+    ],
+    "destructivePathDelivered": false,
+    "primaryDetailRules": 16,
+    "technicallyEligibleB2": 0,
+    "scanLimitPerRule": 10000,
+    "scanCoverage": "EXHAUSTIVE/PARTIAL/ERROR per primary table only",
+    "clock": "injectable server Clock, calendar expiry evaluated in PostgreSQL Europe/Paris",
+    "strictExpirationBoundary": true,
+    "schedule": "04:00 Europe/Paris",
+    "catchup": "current Paris day after 04 only; no historical replay",
+    "lease": "PostgreSQL clock, 2 minutes, token fencing and short singleton row locks",
+    "attemptsPerAdmittedCycle": 3,
+    "retryBackoffMinutes": 15,
+    "statementTimeoutMs": 3000,
+    "lockTimeoutMs": 250,
+    "transactionTimeoutMs": 5000,
+    "transactionAcquisitionMaxWaitMs": 10000,
+    "cycleBudgetBetweenDomainsMs": 90000
+  },
+  "migration": {
+    "name": "20261015180000_083_retention_simulation",
+    "additive": true,
+    "tables": [
+      "retention_job",
+      "retention_runs"
+    ],
+    "businessForeignKeys": 0,
+    "rls": true,
+    "browserGrants": false,
+    "initialApplied": 82,
+    "initialUnfinished": 0,
+    "initialRolledBackHistoricalEntry": 1,
+    "privateFullPrismaRun": {
+      "passed": 18,
+      "seconds": 106.68,
+      "exitCode": 0
+    },
+    "publicApplied": false
+  },
+  "nonDb": {
+    "quick": "5/5 PASS",
+    "full": "8/8 PASS",
+    "frontendTests": 1752,
+    "backendTests": 2607,
+    "backendFiles": 174,
+    "fullWorkerLimit": 1,
+    "targetedFinal": {
+      "passed": 142,
+      "files": 5,
+      "exitCode": 0
+    },
+    "note": "Full suite before final additive exclusion-counter refinement; subsequent targeted PostgreSQL/unit/typechecks qualify that delta. No assertion or gameplay contract weakened.",
+    "finalBackendTypecheck": "PASS after final exclusion-counter delta"
+  },
+  "privatePostgres": {
+    "retentionBroad": {
+      "passed": 18,
+      "withAllPrismaMigrations": true,
+      "exitCode": 0,
+      "seconds": 106.68
+    },
+    "gachaRegression": {
+      "passed": 4,
+      "skipped": 33,
+      "totalAvailable": 37,
+      "exitCode": 0,
+      "seconds": 72
+    },
+    "twitchRegression": {
+      "passed": 4,
+      "skipped": 27,
+      "totalAvailable": 31,
+      "exitCode": 0,
+      "seconds": 238.22,
+      "coverage": "concurrent real private Pull, business-commit recovery, full 14-command consultations, long thread-author Box reply/Brotli"
+    },
+    "businessFingerprintsUnchanged": true,
+    "publicQaPlayersCreated": 0,
+    "suitesOverlapDoNotSum": true,
+    "cleanup": {
+      "verified": true,
+      "onlyPreExistingPrivateSchemaRemains": true,
+      "thirdPartyConnectionsTerminated": 0
+    }
+  },
+  "intermediateFailures": {
+    "fixtures": "Gacha shape/index and Arcade target CHECK violations corrected in synthetic fixtures, constraints retained",
+    "transport": "CLI/default native connect budget and unbounded pg bootstrap/cleanup observed failing before assertions; separate acquisition failure at engine finalization",
+    "diagnostic": "No advisory lock or persistent native orphan found; instrumented private setup+cleanup succeeded; guarded cleanup of one exclusively attributed private orphan, no third-party connection terminated",
+    "qualificationHarness": "Private pg connection10s/client query35s/server SQL30s/lock5s, finally cleanup; native private migration CLI connect_timeout20s if absent. Production pool/credentials unchanged",
+    "finalDisposition": "Final 18/18 full-migration private run PASS; 4/4 Gacha and 4/4 Twitch targeted regressions PASS. Earlier runs overlap, not added."
+  },
+  "simulation": "r1098-simulation.json",
+  "backup": {
+    "organizationPlan": "Free freshly returned",
+    "effectiveQuota": "NOT_VERIFIED; published Free500MB reference is not a verified project billing quota",
+    "restorableBackupVerified": false,
+    "restoreDrillExecuted": false,
+    "newPaidService": false,
+    "b2Authorization": false
+  },
+  "reviews": [],
+  "delivery": {
+    "state": "candidate; independent published-SHA reviews, public migration/deployment/activation/postflight pending",
+    "nightExecutionObserved": false,
+    "realCleanupActivated": false
+  },
+  "documentation": {
+    "updated": [
+      "Master",
+      "data-retention-v1",
+      "backend-architecture-v1",
+      "postgresql-schema-v1",
+      "v1-data-model",
+      "r1098-retention-engine",
+      "qualification/evidence"
+    ],
+    "examinedUnchanged": [
+      "AGENTS.md",
+      ".chatgpt/CHATGPT_GUIDE.md",
+      "implementation-workflow",
+      "conversation-handoff",
+      "implementation-order-v1",
+      "decisions-log",
+      "R1097 contract and qualification",
+      "dated database-growth baseline",
+      "R1065 Supabase stabilization",
+      "free-first-v1",
+      "specialized domain audits/contracts"
+    ],
+    "newProductDurationDecision": false,
+    "macroRoadmapOrderChanged": false,
+    "masterHistoryBytes": 1222371,
+    "masterHistorySha256": "dcb45f343d532278d1d512ab3661e384fdf89fb4b7b701687864d7378407d6bc"
+  },
+  "future": "STOP after B1 delivery. Owner/ChatGPT examines real measurements, protections, recovery and B2-specific authorization. No purge, age conversion, DM content removal or Gacha compaction authorized.",
+  "manualSimulation": {
+    "at": "2026-10-15T18:34:53.791Z",
+    "kind": "MANUAL_READ_ONLY_INVENTORY_NOT_NIGHT_CYCLE",
+    "proof": "r1098-simulation.json",
+    "primaryTables": 15,
+    "allPrimaryCountsExhaustive": true,
+    "businessWrites": 0,
+    "registryWrites": 0,
+    "b2Eligible": 0,
+    "capacityBytes": 121482387,
+    "capacityMB": 121.482387,
+    "capacityMiB": 115.85463237762451,
+    "physicalAllocationLimits": "Whole database physical allocation includes historical QA/migrations/reusable space; not a sustainable gameplay growth rate or projected disk saving.",
+    "classifiedPopulations": 16
+  }
+}

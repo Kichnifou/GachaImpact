@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
+const baseline='0c3385b005788bfd60a8df942083ac52f451db99',file='docs/master/PROJECT_MASTER_PLAN.md';
+const normalize=s=>s.replace(/\r\n/g,'\n');
+const before=normalize(execFileSync('git',['show',`${baseline}:${file}`],{maxBuffer:4*1024*1024}).toString('utf8'));
+const after=normalize(readFileSync(file,'utf8')),marker='## R1097';
+assert.equal(before.split(marker).length,2);assert.equal(after.split(marker).length,2);
+const history=before.slice(before.indexOf(marker));assert.equal(after.slice(after.indexOf(marker)),history);
+console.log(JSON.stringify({baseline,preservedHistoryBytes:Buffer.byteLength(history),historySha256:createHash('sha256').update(history).digest('hex'),pass:true}));
