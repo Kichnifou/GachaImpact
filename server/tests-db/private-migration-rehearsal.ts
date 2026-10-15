@@ -18,6 +18,9 @@ export async function rehearsePrivateMigrations(admin: pg.Client, schema: string
   try {
     const folders = readdirSync('prisma/migrations', { withFileTypes: true }).filter(entry => entry.isDirectory()).map(entry => entry.name).sort();
     const privateUrl = new URL(connectionString); privateUrl.searchParams.set('schema', schema);
+    // Prisma's native CLI defaults to a 5s handshake timeout, unlike pg's
+    // unbounded default. Remote Windows qualification needs a finite 20s budget.
+    if (!privateUrl.searchParams.has('connect_timeout')) privateUrl.searchParams.set('connect_timeout', '20');
     const run = promisify(execFile);
     const prisma = async (action: 'deploy' | 'status') => (await run(process.execPath, ['node_modules/prisma/build/index.js', 'migrate', action, '--config', path.join(root, 'prisma.config.mts')],
       { env: { ...process.env, DATABASE_URL: privateUrl.toString() }, timeout: 120_000 })).stdout;

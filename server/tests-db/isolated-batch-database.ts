@@ -13,10 +13,14 @@ export function isolatedBatchDatabase() {
   const schema = `batch_test_${randomUUID().replaceAll('-', '')}`;
   const connectionString = process.env['DATABASE_URL'];
   if (!connectionString) throw new Error('DATABASE_URL required');
-  const admin = new pg.Client({ connectionString });
+  // A Vitest hook timeout does not cancel pending pg work. Bound private
+  // acquisition and SQL before it can outlive setup/cleanup. No production pool change.
+  const admin = new pg.Client({ connectionString, connectionTimeoutMillis: 10_000, query_timeout: 35_000,
+    options: '-c statement_timeout=30000 -c lock_timeout=5000' });
   // Concurrent mutation tests need a third connection while keeping each
   // sequential private fixture well below Supabase's shared connection limit.
-  const pool = new pg.Pool({ connectionString, options: `-c search_path=${schema},public`, max: 3, idleTimeoutMillis: 1_000 });
+  const pool = new pg.Pool({ connectionString, options: `-c search_path=${schema},public -c statement_timeout=30000 -c lock_timeout=5000`,
+    connectionTimeoutMillis: 10_000, query_timeout: 35_000, max: 3, idleTimeoutMillis: 1_000 });
   let openedConnections = 0;
   let closedConnections = 0;
   pool.on('connect', () => { openedConnections += 1; });
@@ -120,9 +124,11 @@ export function isolatedBatchDatabase() {
       await admin.query(sql);
     },
     async cleanup() {
-      await database.$disconnect();
-      if (created && /^batch_test_[0-9a-f]{32}$/.test(schema)) await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
-      await admin.end();
+      try { await database.$disconnect(); }
+      finally {
+        try { if (created && /^batch_test_[0-9a-f]{32}$/.test(schema)) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
+        finally { await admin.end(); }
+      }
     },
   };
 }
