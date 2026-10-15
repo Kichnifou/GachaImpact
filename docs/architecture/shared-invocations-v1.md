@@ -1,5 +1,9 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## Indicateur rouge du bouton actif — R1096
+
+**Livré techniquement, recette humaine encore attendue.** Devant le bouton d'arrêt du diffuseur, un petit disque rouge visible rétablit l'indication de direct du libellé historique « ● En diffusion ». Le nom accessible reste exactement **« Arrêter la diffusion »**, sans ajouter le symbole à son annonce vocale. Le bouton inactif reste **« Diffuser »** ; stop, attente, autorité de l'onglet, diffusion et spectateurs ne changent pas. Les anciennes références « En diffusion » des sections datées ci-dessous sont historiques, non le texte actif. La recette propriétaire de ce détail est prévue après la livraison R1096, et ne vaut pas recette OAuth/Twitch du même lot.
+
 ## Libellé du contrôle propre — R1095
 
 Le bouton actif de l’émetteur affiche Arrêter la diffusion, le bouton inactif Diffuser. Autorité de l’onglet, pending, véritable arrêt, indicateurs En direct/En pause et commandes spectateur inchangés. Aucun nouveau transport ni paramètre économique.
