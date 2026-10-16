@@ -3,7 +3,7 @@
   "lot": "R1100 continuity",
   "at": "2026-10-16T08:37:02.920Z",
   "baseline": "201e81fdf4a9884a17c15fff0f75799d5f9aca1b",
-  "status": "locally qualified; GitHub reviews, public migration and activation not yet acquired",
+  "status": "Code qualified, independently reviewed on GitHub, promoted and activated; no public destructive QA or owner recipe",
   "admin": {
     "existingServerSecretCapability": "GET official Auth Admin synthetic nonexistent UUID ->404 user_not_found",
     "destructivePublicProbe": false,
@@ -120,7 +120,7 @@
   },
   "legacyDebt": {
     "baseline": "201e81fdf4a9884a17c15fff0f75799d5f9aca1b",
-    "fullTargetedSuite": "two known baseline replay failures remain after fixture corrections; contract subset27/27 passes",
+    "fullTargetedSuite": "30 passed /2 failed: known baseline active-account replacement replay failures; contract subset27/27 passes",
     "reason": "targeted-canary-v3 was already written at baseline but historical-operation-retention requires targeted-canary-v2. Active-account replacement replay is outside account deletion; unchanged production files confirmed.",
     "unchanged": [
       "server/src/application/migration/historical-operation-retention.ts",
@@ -149,5 +149,307 @@
     "realTwitchCommand": false,
     "ownerPublicRecipe": false,
     "automaticNextLot": false
+  },
+  "delivery": {
+    "at": "2026-10-16T08:50:13.295Z",
+    "qualifiedCodeSha": "2a3e542226629aadec4608292d7cee7c1309c2bb",
+    "reviews": [
+      {
+        "reviewer": "deletion_audit",
+        "sha": "2a3e542226629aadec4608292d7cee7c1309c2bb",
+        "verdict": "APPROVED",
+        "githubFiles": 73,
+        "independentBackendTests": 15
+      },
+      {
+        "reviewer": "published_review",
+        "sha": "2a3e542226629aadec4608292d7cee7c1309c2bb",
+        "verdict": "APPROVED",
+        "githubBlobs": 72,
+        "deletedFiles": 1,
+        "independentBackendTests": 109,
+        "independentUiTests": 5
+      }
+    ],
+    "railway": {
+      "guardDeployment": "e720eeaf-63d0-4409-9672-07188631671e",
+      "guardStatus": "SUCCESS",
+      "previousBaselineDeploymentRetired": true,
+      "activationDeployment": "d8854140-0a8d-45ac-be45-06c8d1debaad",
+      "activationStatus": "SUCCESS",
+      "sha": "2a3e542226629aadec4608292d7cee7c1309c2bb",
+      "markerConfigured": true,
+      "secretSetThroughStdin": true,
+      "localDpapiCopy": true,
+      "directContainerSshCheck": "not available: no existing SSH keys; no SSH setup added",
+      "activationProof": "configured key verified via authenticated Railway variables; exact deployed code wires service deterministically; no public deletion executed"
+    },
+    "database": {
+      "at": "2026-10-16T08:48:32.194Z",
+      "migrationCount": 85,
+      "finished": 85,
+      "pending": [],
+      "mismatched": [],
+      "protection": [
+        {
+          "table": "account_deletions",
+          "rls": true,
+          "anon": false,
+          "authenticated": false
+        },
+        {
+          "table": "account_erasure_markers",
+          "rls": true,
+          "anon": false,
+          "authenticated": false
+        }
+      ],
+      "jobs": [],
+      "retention": [
+        {
+          "execution_enabled": true,
+          "enabled_domains": [
+            "twitch_terminal",
+            "gacha",
+            "arcade"
+          ]
+        }
+      ],
+      "authority": [
+        {
+          "id": "twitch-commands",
+          "desired_mode": "GLOBAL"
+        }
+      ],
+      "readOnly": true
+    },
+    "cloudflare": {
+      "sha": "2a3e542226629aadec4608292d7cee7c1309c2bb",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/706081ca-8509-490f-927c-fcb3c84da744",
+      "startedAt": "2026-10-16T08:42:49Z",
+      "completedAt": "2026-10-16T08:42:49Z",
+      "preview": "https://706081ca.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-6cvPMCVt.js",
+          "http": 200,
+          "sha256": "1c3532eee474ff9bc0db36fd4710ee7c28e00f9307d3821504664c440d2460d2"
+        },
+        {
+          "path": "/assets/index-Cf7hla5Y.css",
+          "http": 200,
+          "sha256": "62740df30d539bd39858b40f9f5d2f81ad9450dd0f1108b12874086473da6963"
+        }
+      ]
+    },
+    "postflight": {
+      "at": "2026-10-16T08:48:33.904Z",
+      "phase": "activated",
+      "health": 200,
+      "guards": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=banners&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=event&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=activity&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/chat/messages",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/appearance",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "GET",
+          "path": "/api/v1/me/twitch",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/start",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "POST",
+          "path": "/api/v1/me/account/deletion",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=banners&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=event&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/history?category=activity&page=1",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/chat/messages",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/appearance",
+          "http": 401,
+          "exactCors": true,
+          "noStore": true
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "GET",
+          "path": "/api/v1/me/twitch",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/start",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "POST",
+          "path": "/api/v1/me/account/deletion",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "method": "POST",
+          "path": "/api/v1/me/twitch/resolution",
+          "http": 401,
+          "exactCors": true,
+          "noStore": false
+        }
+      ],
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-6cvPMCVt.js",
+              "sha256": "1c3532eee474ff9bc0db36fd4710ee7c28e00f9307d3821504664c440d2460d2",
+              "bytes": 1268278
+            },
+            {
+              "path": "/assets/index-Cf7hla5Y.css",
+              "sha256": "62740df30d539bd39858b40f9f5d2f81ad9450dd0f1108b12874086473da6963",
+              "bytes": 462253
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200,
+          "assets": [
+            {
+              "path": "/assets/index-6cvPMCVt.js",
+              "sha256": "1c3532eee474ff9bc0db36fd4710ee7c28e00f9307d3821504664c440d2460d2",
+              "bytes": 1268278
+            },
+            {
+              "path": "/assets/index-Cf7hla5Y.css",
+              "sha256": "62740df30d539bd39858b40f9f5d2f81ad9450dd0f1108b12874086473da6963",
+              "bytes": 462253
+            }
+          ]
+        }
+      ],
+      "noAuthorizedBusinessMutation": true,
+      "publicAuthenticatedRecipe": "Not performed. Private compiled UI/DB evidence and anonymous refusals are separate."
+    },
+    "localSyntheticDatabaseStopped": true
   }
 }
