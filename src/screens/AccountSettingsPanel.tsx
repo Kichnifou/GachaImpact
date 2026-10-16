@@ -1,5 +1,6 @@
 import TwitchProgressionChoice from './TwitchProgressionChoice'
 import AccountSecurityPanel from './AccountSecurityPanel'
+import AccountDeletionPanel from './AccountDeletionPanel'
 import type { TwitchLinkResolutionDto } from '../api/types'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
@@ -299,6 +300,7 @@ export default function AccountSettingsPanel({ onRefreshPlayerState = async () =
         {account.lastImport && <p>Dernier import : {new Date(account.lastImport.at).toLocaleString('fr-FR')}</p>}
       </section>}
     </div>
+    <AccountDeletionPanel />
     {success && <p className="account-link-success" role="status">{success}</p>}
     {confirm && <div className="account-confirm-backdrop" onMouseDown={event => { if (event.target === event.currentTarget && !applyingRef.current) setConfirm(null) }}><div ref={dialogRef} className="account-confirm" role="dialog" aria-modal="true" aria-labelledby="account-confirm-title" aria-busy={applying}><h3 id="account-confirm-title">Confirmer le rafraîchissement ?</h3><p>{preview?.warning}</p>{applying && <p className="account-apply-progress" role="status"><span className="account-apply-spinner" aria-hidden="true" />{account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…'}</p>}<div><button type="button" disabled={applying} onClick={() => setConfirm(null)}>Annuler</button><button ref={confirmRef} type="button" disabled={pending} onClick={confirmAction}>{applying ? account?.lastImport ? 'Rafraîchissement en cours…' : 'Import en cours…' : 'Confirmer'}</button></div></div></div>}
   </ScrollableScreenPanel>

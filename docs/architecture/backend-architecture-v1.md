@@ -1,5 +1,10 @@
 # GachaImpact — Architecture backend V1
 
+## R1100 — refus autoritatif de suppression de compte
+
+POST /api/v1/me/account/deletion : guard Bearer existant, 401 sans identité vérifiée, sinon 503 ACCOUNT_DELETION_UNAVAILABLE/no-store sans accès DB, provisionnement ou Auth Admin. Aucun credential/config ne peut activer ce chemin. La procédure réauthentifiée, reprenable et bloquant les anciens JWT reste non implémentée. [Contrat partiel et prérequis](r1100-account-deletion.md) ; état au Master.
+
+
 ## R1099 — moteur unique de maintenance réversible
 
 RetentionEngine R1098 étendu : pagination keyset/checkpoints durables au-delà de10000, cutoff/borne supérieure figés, tentatives bornées par phase version/mode, scheduler04:00Paris et alertes inchangés. EXECUTE exige liste environnement et gate PostgreSQL par domaine. RetentionTransformations compresse sans perte Twitch terminal/Gacha/Arcade en courts lots atomiques avec progression, fencing et gain stocké positif. Readers historiques/replay compatibles, aucun recalcul économique. Consultation ordinaire filtrée séparément des preuves ; parcours page seule sans COUNT pour polling/récents. Arrêt/récupération ciblée via script standalone, aucun HTTP ni runtime lancé. [Contrat, matrice et limites](r1099-retention-execution.md). Migration084 additive ; aucune nouvelle suppression activable, récupération externe continue non qualifiée.

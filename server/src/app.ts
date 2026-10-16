@@ -30,6 +30,7 @@ import fastify, { type FastifyInstance } from 'fastify';
 import { createAuthenticationHook, registerAuthenticationContext } from './api/auth/authentication.js';
 import { registerErrorHandler } from './api/error-handler.js';
 import { registerCurrentPlayerRoutes } from './api/routes/current-player.js';
+import { registerAccountDeletionRoutes } from './api/routes/account-deletion.js';
 import { registerHealthRoute } from './api/routes/health.js';
 import { registerPlayerGameRoutes } from './api/routes/player-game.js';
 import { registerPlayerProgressionRoutes } from './api/routes/player-progression.js';
@@ -236,6 +237,7 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
+    await app.register(registerAccountDeletionRoutes, { authenticate });
     if (dependencies.twitchPilot && dependencies.snapshotPilot) await app.register(registerTwitchPilotRoutes, { authenticate, twitch: dependencies.twitchPilot, snapshot: dependencies.snapshotPilot, config, commandPilot: dependencies.twitchCommandPilot });
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });

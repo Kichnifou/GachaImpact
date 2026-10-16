@@ -1,5 +1,14 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1100 — repli de suppression de compte désactivé (16/10/2026)
+
+**Repli partiel qualifié localement, aucune suppression réelle implémentée/activable.** Bootstrap a55aaa798e51d0355c2d0d1c1d4a02259bc1aad2, main/review/origin alignées 0/0, arbre propre, R1100 libre. Interface Compte et modale préparées, confirmation toujours désactivée, POST authentifié toujours refusé sans accès DB/Auth Admin. Accès privilégié Auth non établi ; clé Storage Railway non réaffectée. Aucun compte public supprimé ni QA mutative publique. [Périmètre, inventaire préliminaire, limites et prérequis exacts](../architecture/r1100-account-deletion.md).
+
+**Qualification locale acquise :** quick 5/5, full 8/8 PASS ; 1755 tests frontend et 2625 backend non-DB. Ciblés Compte 112/112 et refus serveur 4/4 PASS. GameShell compilé/CSS de production, fixtures privées : 1920×1080, 1366×768, 390×844 et 390×600, focus/Tab/Échap, confirmation désactivée et zéro POST PASS ; captures desktop/mobile inspectées. [Preuves](../architecture/evidence/r1100-qualification.json). Publication/review indépendante/promotion/déploiements à vérifier, non présumés acquis. Tests d’effacement PostgreSQL/Auth/Twitch NON EXÉCUTÉS : procédure destructive absente. Aucune migration.
+
+**Reprise :** établir l’accès Admin Auth sécurisé puis implémenter/qualifier l’effacement complet, blocage JWT, neutralisation des données partagées et anti-restauration. Une clé seule ne suffit pas. Ce repli n’est pas la livraison de la fonctionnalité demandée. STOP après livraison du repli ; aucun autre lot automatique. Historique R1099 et antérieur intégralement préservé.
+
+
 ## R1099 — conservation B2 livrée, domaines sûrs automatisés (15/10/2026)
 
 **Mandat exécuté dans son périmètre démontré sûr.** Bootstrap `33487db1cabc679c98f9bc5e85af5ff7db55030c`, quatre références initialement alignées0/0 et arbre propre, R1099 libre. Code qualifié/livré `840c13e587dcac773c587f113385eb50b0ec1297`, promotion main/review par fast-forward strict. AssistantIA hors périmètre. Historique intégral R1098 et antérieur préservé, garde1229005octets normalisés/SHA256 `cae22c01dbc9241174c6bc5e1f26bb10b20ff4ae2a18bdc916ba8b1b4f029feb` PASS. Aucun joueur public utilisé pour QA économique, nouveau service ou achat.

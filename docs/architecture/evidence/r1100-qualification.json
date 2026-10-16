@@ -1,0 +1,168 @@
+{
+  "baseline": "a55aaa798e51d0355c2d0d1c1d4a02259bc1aad2",
+  "scope": "Disabled fallback only; irreversible deletion NOT implemented or qualified",
+  "quick": "5/5 PASS",
+  "full": "8/8 PASS",
+  "frontendTests": 1755,
+  "backendNonDbTests": 2625,
+  "targetedAccountTests": 112,
+  "targetedServerTests": 4,
+  "visual": {
+    "scope": "Compiled current GameShell, synthetic local fixtures, exact production CSS from dist",
+    "rows": [
+      {
+        "w": 1920,
+        "h": 1080,
+        "color": "rgba(126, 38, 55, 0.9)",
+        "rect": {
+          "x": 720,
+          "y": 357,
+          "width": 480,
+          "height": 366,
+          "top": 357,
+          "right": 1200,
+          "bottom": 723,
+          "left": 720
+        },
+        "client": 364,
+        "scroll": 364,
+        "width": 478,
+        "keyboard": true,
+        "finalDisabled": true,
+        "deleteRequests": 0
+      },
+      {
+        "w": 1366,
+        "h": 768,
+        "color": "rgba(126, 38, 55, 0.9)",
+        "rect": {
+          "x": 443,
+          "y": 201,
+          "width": 480,
+          "height": 366,
+          "top": 201,
+          "right": 923,
+          "bottom": 567,
+          "left": 443
+        },
+        "client": 364,
+        "scroll": 364,
+        "width": 478,
+        "keyboard": true,
+        "finalDisabled": true,
+        "deleteRequests": 0
+      },
+      {
+        "w": 390,
+        "h": 844,
+        "color": "rgba(126, 38, 55, 0.9)",
+        "rect": {
+          "x": 16,
+          "y": 203,
+          "width": 358,
+          "height": 438,
+          "top": 203,
+          "right": 374,
+          "bottom": 641,
+          "left": 16
+        },
+        "client": 436,
+        "scroll": 436,
+        "width": 356,
+        "keyboard": true,
+        "finalDisabled": true,
+        "deleteRequests": 0
+      },
+      {
+        "w": 390,
+        "h": 600,
+        "color": "rgba(126, 38, 55, 0.9)",
+        "rect": {
+          "x": 16,
+          "y": 81,
+          "width": 358,
+          "height": 438,
+          "top": 81,
+          "right": 374,
+          "bottom": 519,
+          "left": 16
+        },
+        "client": 436,
+        "scroll": 436,
+        "width": 356,
+        "keyboard": true,
+        "finalDisabled": true,
+        "deleteRequests": 0
+      }
+    ],
+    "errors": [],
+    "inspected": [
+      "dialog-390x844.png",
+      "account-1920x1080.png"
+    ]
+  },
+  "masterHistory": {
+    "from": "R1099",
+    "sha256": "1428777aa6887745b37a94d92c005d3e7b1b967cffc9ef2c87e04d896b67fe2d",
+    "unchanged": true
+  },
+  "artifacts": [
+    {
+      "path": "local-data/r1100-quick.log",
+      "sha256": "79440619ba61e72089a90b813889a9664721009577575e802aeb84ab87f2ce68"
+    },
+    {
+      "path": "local-data/r1100-full.log",
+      "sha256": "64fa29154ec98c65637ae57e6eba3cdba32bc493b1a51dee1178f1d90eece0db"
+    },
+    {
+      "path": "local-data/r1100-visual/qualification.json",
+      "sha256": "63ed7c5e1eb2a27197c212cd5d259d478af7630e9411820aa6bdb4f884b77f1b"
+    },
+    {
+      "path": "local-data/r1100-visual/account-1920x1080.png",
+      "sha256": "d20f55a6b9a12fa50b2fc976fc34e6a8de8433981c29b4008941879d5aed155a"
+    },
+    {
+      "path": "local-data/r1100-visual/dialog-1920x1080.png",
+      "sha256": "2e6b25695f8c5c366c1f607051e2655c0e928cf3cca0de1d78cb6540e7473abf"
+    },
+    {
+      "path": "local-data/r1100-visual/account-1366x768.png",
+      "sha256": "f15a6e6be1fc11d3e4561265c65471126fcb6bd838ae8c622268e830976a77a0"
+    },
+    {
+      "path": "local-data/r1100-visual/dialog-1366x768.png",
+      "sha256": "96a0844c16f8fd64d388bfaf76a40c86fe8851284ba3edd148bc98d3235569af"
+    },
+    {
+      "path": "local-data/r1100-visual/account-390x844.png",
+      "sha256": "dd9bc2bcd5aacbf765d8a442d816ebf227112ddd6ffe9e49bb7c83aeee1132c4"
+    },
+    {
+      "path": "local-data/r1100-visual/dialog-390x844.png",
+      "sha256": "0434b7baaf568eed46a7a5a60017a44a1633d42befa83306df2d07da6fe537d8"
+    },
+    {
+      "path": "local-data/r1100-visual/account-390x600.png",
+      "sha256": "eeacacdad1a37ec4e77047649761bd7f708d1a29cf7cddbcd3316142a376678d"
+    },
+    {
+      "path": "local-data/r1100-visual/dialog-390x600.png",
+      "sha256": "e5e559cb4107623a3d0057485b8b7e18c6bda354e8b56285ab27bb7940d18872"
+    }
+  ],
+  "database": {
+    "migration": false,
+    "mutativeTests": false,
+    "reason": "No database dependency or erasure implementation in fallback"
+  },
+  "limits": [
+    "No Auth deletion, reauthentication or JWT blocking implemented",
+    "No Twitch or Storage erasure implemented",
+    "No authenticated production QA or public account deletion",
+    "Privileged Auth access not established; existing Storage secret not repurposed"
+  ],
+  "review": "Independent published SHA review required before promotion",
+  "deployment": "Not yet established"
+}

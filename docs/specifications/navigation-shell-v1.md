@@ -1,5 +1,10 @@
 # Navigation et shell V1
 
+## R1100 — entrée Compte, suppression indisponible
+
+Section finale Compte, bouton danger et modale existante adaptée avec SUPPRIMER/Annuler ; confirmation finale toujours désactivée, indisponibilité explicite et aucune requête d’effacement. Action non ouvrable pendant le Tutoriel. Aucun succès/déconnexion/cache de suppression implémenté. [Contrat partiel](../architecture/r1100-account-deletion.md).
+
+
 ## Entrée et retour Twitch — R1096
 
 Avant élément, l’action centrale « Lier mon compte Twitch » ouvre directement la modale Compte existante, suivie de OU puis des sept éléments. Texte propriétaire exact dans ElementChoiceScreen ; titre, choix permanent et confirmation conservés. Déconnexion reste une action native clavier, bleue et discrète au bas droit du cadre.

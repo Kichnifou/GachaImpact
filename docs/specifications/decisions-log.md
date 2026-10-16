@@ -1,5 +1,10 @@
 # Journal des décisions validées
 
+## R1100 — suppression volontaire du compte, mandat du 16/10/2026
+
+**AUTORISÉ PAR LE PROPRIÉTAIRE :** suppression définitive personnelle avec confirmation SUPPRIMER et réauthentification fiable, identité cible serveur, protection des tiers, reprise et absence de restauration automatique. Cycle review/main/déploiements/postflight autorisé, aucun vrai compte public pour QA. Le mandat permet expressément une livraison partielle qualifiée avec chemin irréversible désactivé en cas d’accès privilégié Supabase indispensable manquant. Ce repli est appliqué : interface préparée/refus serveur uniquement, aucune décision prétendant la suppression implémentée. [Contrat et prérequis](../architecture/r1100-account-deletion.md), état réel au Master. R1099 et durées inchangés.
+
+
 ## R1099 — mandat B2 délégué du15/10/2026
 
 **AUTORISÉ PAR LE PROPRIÉTAIRE :** finaliser, qualifier, publier/reviewer/promouvoir et activer dans la même mission les traitements de conservation indépendamment sûrs. Durées et économie inchangées ; aucune validation intermédiaire générique requise après gates réussies. Le mandat interdit d'activer un retrait irréversible sans récupération adéquate/continue démontrée. Choix technique délégué : visibilité bornée et compactages intégraux réversibles, progression/gate durable dans une migration additive ; alternatives et limites dans [R1099](../architecture/r1099-retention-execution.md). La restauration ponctuelle ne vaut pas sauvegarde continue ; les suppressions restent bloquées. Ce mandat ne prouve aucune activation : état réel et prochaine action au Master.
