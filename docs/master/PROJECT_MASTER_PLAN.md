@@ -1,5 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Statut V1 — clôture produit et lancement autorisé (16 octobre 2026)
+
+**DÉCISION PROPRIÉTAIRE DU 16/10/2026 : GachaImpact V1 est terminée, acceptée et autorisée pour une sortie officielle le vendredi 16 octobre 2026 au soir (Europe/Paris).** Le propriétaire réalisera lui-même l'annonce et l'ouverture ; au moment du présent checkpoint, **la sortie est décidée/prévue, pas encore constatée comme annoncée ou exécutée**.
+
+**DÉVELOPPEMENT V1 : TERMINÉ / AUCUN PENDING BLOQUANT.** Les domaines fonctionnels, gameplay, économie, progression, Twitch GLOBAL, standalone, responsive/mobile, tutoriel, administration, migration, rétention sûre et suppression de compte sont clôturés dans leur périmètre V1 validé. Les anciens statuts « EN COURS », « pending », « à faire », « prochain lot » et gates pré-release des sections chronologiques ci-dessous sont **supersédés pour la planification V1** : ils ne sont pas des tâches de développement encore ouvertes. La phase32 de la roadmap est terminée ; aucun nouveau lot V1 n'est demandé.
+
+**Dernière validation technique : R1101** au checkpoint GitHub `792f6c9b46e8342d8e24c8044616dc0c3d282da2` (main/review alignées au contrôle préalable). Quick5/5, full8/8, rejeu PostgreSQL51/51, suppression15/15 et parcours UI/API71/71, reviews indépendantes approuvées ; déploiements Railway/Cloudflare au SHA R1101 qualifié, Prisma85, protections Auth, Twitch GLOBAL et maintenance R1099 inchangées. [Contrat R1101](../architecture/r1101-v1-closure.md) et [preuve](../architecture/evidence/r1101-qualification.json). Ce checkpoint final est **documentaire seulement** : aucun code, migration, réglage runtime ou donnée joueur modifié par la décision de sortie.
+
+**Observations non bloquantes, NON prétendues réalisées :** liaison/récupération OAuth avec un ami volontaire ; essais multijoueurs complémentaires ; première clôture/tirage naturel Event du **1er novembre 2026 à 00:00 Europe/Paris**. Ils sont reclassés **suivi d'exploitation ultérieur, sans gate de publication ni mission V1 automatique** ; leur absence d'observation n'annule pas l'acceptation produit. Aucun test destructif d'effacement de compte en production ni résultat économique artificiel n'est inventé. Les protections conservatoires des preuves, historiques, sauvegardes et formats de rétention restent applicables.
+
+**Après ouverture :** jeu exploité normalement ; seuls incidents vérifiés et besoins expressément demandés relèvent de la maintenance corrective. Pas de nouvelle fonctionnalité V1, campagne de QA artificielle, optimisation, achat ni lancement V1.1/V2 implicites. Projets PWA, `.exe`, thèmes supplémentaires et Objectifs personnels restent abandonnés. **Prochaine action : publication/annonce officielle par le propriétaire ce soir, sans intervention Codex requise.** Le présent bloc fait autorité pour le statut vivant ; les anciennes chronologies et leurs limites de preuve sont intégralement préservées.
+
 ## R1101 — bilan de clôture V1 (16/10/2026)
 
 **V1 — Développement fonctionnel terminé et stabilisation finale validée.** Décision explicite du propriétaire, gates critiques acquises sur le code `e0b14e7b3a9a12faa5388e6c05ad6a508a05b822`, départ `0ee3419bcf409ecfe89f880792fb5264f5ab34a2`. [Contrat et limites](../architecture/r1101-v1-closure.md), [preuve finale ciblée](../architecture/evidence/r1101-qualification.json). Aucun nouveau domaine, audit général, changement économique ou migration PostgreSQL.

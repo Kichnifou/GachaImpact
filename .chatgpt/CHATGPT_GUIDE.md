@@ -76,13 +76,13 @@ Dans le vocabulaire actuel du projet :
 
 La V0 est une base d'interface et d'UX. Elle n'est pas une spécification métier et ses mocks peuvent volontairement être faux, incomplets ou obsolètes par rapport à la V1.
 
-La V1 est **en cours d'implémentation** : une alpha publique existe, avec frontend, backend, authentification, base PostgreSQL et plusieurs vertical slices réelles. Les audits legacy sont clôturés ; ils servent désormais de preuves et de spécifications fonctionnelles, pas de tracker d'avancement. Le Master indique toujours le checkpoint, le domaine actif et la prochaine étape ; ces informations vivantes ne doivent pas être recopiées ici.
+La V1 est **techniquement clôturée et acceptée depuis le 16/10/2026** (R1101), avec sortie officielle décidée par le propriétaire pour le soir même ; ce guide n'atteste pas de l'annonce publique effective. Les audits legacy restent des preuves et spécifications, pas un tracker. Aucun ancien « pending » de développement V1 ne doit être réactivé par lecture d'un historique : seules des corrections de bugs avérés, demandées explicitement, pourront être engagées. Le Master indique toujours le checkpoint, l'état public et la prochaine étape.
 
 L'objectif n'est pas de recopier aveuglément le legacy.
 
 ## Rôle de la documentation pendant l'implémentation
 
-La documentation produite dans `docs/` forme une **spécification d'implémentation fiable, cohérente et exploitable par Codex** pendant le développement réel désormais en cours.
+La documentation produite dans `docs/` reste une **source de vérité métier, technique et de maintenance fiable, cohérente et exploitable par Codex**, y compris après clôture du développement V1.
 
 Chaque audit, décision, dépendance, règle de migration et contrat de commande doit permettre à Codex :
 - de comprendre ce qui doit être implémenté sans réinterpréter le legacy ;
@@ -161,7 +161,7 @@ Après réception du SHA : **vérifier le commit GitHub et le déploiement exact
 
 Les audits legacy exhaustifs sont clôturés. Ils restent les autorités fonctionnelles des domaines concernés et ne doivent pas être rouverts simplement parce que l'implémentation avance.
 
-Pour le développement V1 en cours :
+Pour toute maintenance corrective ultérieure ou nouveau mandat explicitement autorisé :
 
 1. identifier le domaine actif et le périmètre exact dans le Master ;
 2. lire les audits et décisions propriétaires du domaine ;

@@ -2,8 +2,8 @@
 
 Références du mandat du 11/10 : [Catalogue R1051](architecture/character-catalog-assets-r1051.md), [Invocations partagées](architecture/shared-invocations-v1.md), [Roue graphique](specifications/wheel-graphic-v1.md), [Activité quotidienne](specifications/player-activity-v1.md) et [réconciliation documentaire du 15/10](architecture/evidence/documentation-audit-20261015.md) et [mesure de capacité PostgreSQL du 15/10](architecture/evidence/database-growth-baseline-20261015.md), après l'[audit initial du 13/10](architecture/evidence/documentation-audit-20261013.md). État et prochaine reprise au [Master](master/PROJECT_MASTER_PLAN.md).
 
-Version documentaire : 0.1  
-Statut : ÉVOLUTIF — IMPLÉMENTATION V1 EN COURS
+Version documentaire : 1.0 — clôture V1 du 16/10/2026  
+Statut : **V1 DÉVELOPPEMENT TERMINÉ / PRODUIT ACCEPTÉ — sortie officielle décidée pour le 16/10/2026 au soir**. Les anciens travaux en attente appartiennent aux historiques ; aucune nouvelle mission V1 n'est ouverte. Les observations humaines futures ne sont pas présentées comme effectuées. État vivant et preuves au [Master](master/PROJECT_MASTER_PLAN.md).
 
 ## But
 

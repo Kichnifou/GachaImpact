@@ -1,6 +1,6 @@
 # GachaImpact
 
-GachaImpact est la reconstruction standalone d'un ancien jeu communautaire Twitch / Streamer.bot inspiré de Genshin Impact. Sa V1 est en cours d'implémentation et une [alpha publique](https://gachaimpact.pages.dev) est disponible.
+GachaImpact est la reconstruction standalone d'un jeu communautaire Twitch / Streamer.bot inspiré de Genshin Impact. **Le développement de sa V1 est terminé et validé.** Sa sortie officielle est décidée pour le **soir du 16 octobre 2026** par le propriétaire ; l'annonce et l'ouverture publiques sont distinctes de ce checkpoint documentaire. Site officiel : **[gachaimpact.fr](https://gachaimpact.fr)**.
 
 Le repository contient :
 
@@ -41,7 +41,7 @@ Les [audits métier](docs/legacy/) documentent les règles retenues à partir de
 
 ## V0 et V1
 
-- **V0** : coque visuelle historique encore utilisée pour les domaines non dé-mockés.
-- **V1** : version métier standalone en cours d'implémentation, déjà reliée au backend et à la base pour plusieurs vertical slices.
+- **V0** : prototype d'interface historique, conservé comme référence de conception ; il ne reflète pas nécessairement les règles réelles du jeu.
+- **V1** : jeu standalone fonctionnel avec backend autoritaire, PostgreSQL, Twitch GLOBAL et interfaces joueur ; développement et stabilisation techniquement clôturés (R1101). Publication officielle décidée pour le 16/10/2026 au soir.
 
 Ne jamais déduire une règle métier V1 uniquement depuis les mocks ou l'interface V0.

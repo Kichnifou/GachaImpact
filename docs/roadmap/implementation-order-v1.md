@@ -1,5 +1,15 @@
 # Ordre d’implémentation V1
 
+## Statut définitif de la V1 — décision propriétaire du 16 octobre 2026
+
+**DÉVELOPPEMENT V1 TERMINÉ, STABILISÉ ET ACCEPTÉ ; OUVERTURE OFFICIELLE DÉCIDÉE POUR CE SOIR (Europe/Paris).** Le propriétaire annonce et ouvre la V1 lui-même. Ce checkpoint de documentation n'affirme pas que l'annonce ou l'ouverture ont déjà eu lieu.
+
+**Étape 32 : TERMINÉE.** Tous les anciens « EN COURS », « pending » et gates de pré-release des sections historiques ci-dessous sont clos **comme travaux de développement V1** et n'ont plus de statut bloquant. R1101 est qualifié, reviewé, promu et déployé ; aucun nouveau lot, thème ou fonctionnalité V1 à lancer.
+
+Les essais OAuth avec un ami, observations bêta multijoueur et premier tirage Event naturel du **01/11/2026 à 00:00 Europe/Paris** sont des **observations d'exploitation non bloquantes et non encore acquises**, pas des tâches de développement pendantes ni des tests déclarés réussis. Les exceptions sécurité/rétention documentées restent protégées ; elles ne sont pas maquillées en suppression effectuée.
+
+Après l'ouverture : maintenance uniquement en présence d'un défaut réel et sur nouveau mandat explicite. Les abandons PWA, `.exe`, thèmes et Objectifs personnels restent abandonnés. [Statut vivant, preuves et décision d'ouverture](../master/PROJECT_MASTER_PLAN.md).
+
 ## R1101 — décision de clôture du développement V1
 
 Le propriétaire décide de terminer le périmètre fonctionnel et la stabilisation V1 à l'issue de R1101, sous réserve des gates critiques réellement réussies. Après clôture, aucune nouvelle fonctionnalité ou mission V1 planifiée ; bugs avérés en maintenance corrective sur mandat. OAuth avec un ami, premier tirage Event naturel du01/11/2026 et observations de bêta restent des recettes/observations futures, sans relance automatique du développement. Ouverture officielle et communication relèvent du propriétaire. [Contrat ciblé](../architecture/r1101-v1-closure.md) ; seul le [Master](../master/PROJECT_MASTER_PLAN.md) indique la clôture effectivement acquise. Abandons PWA/`.exe`/thèmes/Objectifs inchangés.
@@ -176,7 +186,7 @@ R1034 supersède R1032 après 28 : 26 et 28 validées/clôturées, 27 clôturée
 | 30 | **TERMINÉE — FOUNDATION / REHEARSAL PRIVÉE R1041**. 43 identités Helix vérifiées + deux quarantaines propriétaires exactes, zéro autre blocker ; rehearsal réelle, rollback, second import identique, backup/restauration, fixtures et contrôles complets PASS. 17 sources/0 inconnu, plan avant purge de 117 tables ; source des deux différés conservée, aucune création fantôme. Gate missing toujours bloquant sans autorisation explicite. Aucune écriture publique ni activation Twitch. État/preuves au Master et [contrat](../architecture/legacy-migration-v1.md). |
 | Gate avant 31A | **FONDATIONS R1048/R1046 ET R1055/R1056 PROMUES** — autorité durable, provisioning, liaison conservatrice/opérateur, CLI ciblée et politique 43/171/2 ; contrôles de déploiement/migrations effectués selon le Master. Avant une nouvelle opération seulement : gates fraîches de la dernière migration, OFF/révision/flag, identité immuable, état des opérations et backup. Ne pas réappliquer 061/062/063 ni les imports déjà réalisés. |
 | 31 | **HISTORIQUE ACQUIS DANS SON PÉRIMÈTRE — 31A PUIS31B, GLOBAL R1064** — parcours Kichni_Test/Mynonyme/Kichnifou/Ceo et contrats communautaires R1056, autorité unique et rollback ; niveau réel de validation au Master. Batch seulement après validation propriétaire Ceo, audit des faits partagés, snapshot/Helix frais et rehearsal adaptée ; Native conservés, 171 owner-discarded et deux quarantaines séparés au plan, zéro autre blocker. Aucun import silencieux des quarantaines ni bascule GLOBAL automatique. [Runbook](../process/legacy-cutover-runbook.md). |
-| 32 | **EN COURS — stabilisation silencieuse et clôture pré-release V1** — ordre détaillé des compléments R1057/R1058 ci-dessus, notamment Codes → optimisation Supabase → tirage Event → mots de passe → Catalogue Character ; autres gates R1054, observations réelles/bêta et sweep avant révélation. Aucune obligation de fabriquer les situations rares non survenues. |
+| 32 | **TERMINÉE — stabilisation et développement pré-release V1 clôturés selon R1101 et la décision propriétaire du 16/10/2026** — ordre détaillé des compléments R1057/R1058 ci-dessus, notamment Codes → optimisation Supabase → tirage Event → mots de passe → Catalogue Character ; autres gates R1054, observations réelles/bêta et sweep avant révélation. Aucune obligation de fabriquer les situations rares non survenues. |
 
 ## Sujet hors séquence obligatoire
 

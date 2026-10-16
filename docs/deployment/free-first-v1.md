@@ -1,5 +1,11 @@
 # Déploiement Free-first V1 — état public et checklist
 
+## Sortie officielle V1 — décision du 16 octobre 2026
+
+**DÉVELOPPEMENT TERMINÉ, V1 ACCEPTÉE.** Le propriétaire décide l'ouverture et l'annonce officielles pour ce vendredi 16 octobre 2026 au soir. La plateforme existante ([gachaimpact.fr](https://gachaimpact.fr), Cloudflare Pages, Railway, Supabase) est déjà déployée et qualifiée au checkpoint R1101 ; aucun nouveau service, environnement, coût, changement de configuration ni déploiement applicatif spécifique n'est requis par la seule décision de lancement. **Cette entrée ne prouve pas que l'annonce du soir a déjà été publiée.**
+
+Les anciennes mentions d'« alpha », de staging différé et de « pré-release » ci-dessous sont historiques et **supersédées pour le statut produit actuel**. Les 85 migrations, les protections, Twitch GLOBAL et la conservation automatique gardent leurs contrats. Les recettes OAuth avec ami et le premier tirage Event naturel du 01/11 restent des observations ultérieures non bloquantes ; aucune action économique ou suppression réelle de QA ne doit être fabriquée. Prochaine action produit : lancement par le propriétaire, puis maintenance corrective seulement si besoin. [Master](../master/PROJECT_MASTER_PLAN.md).
+
 ## Observation naturelle du 12/10/2026
 
 Le premier cycle quotidien naturel R1051 du 12/10 est observé COMPLETED en lecture seule (06:14UTC), last_success_date2026-10-12 ; aucune relance forcée. Les mentions « futur/à observer » du checkpoint11/10 ci-dessous restent historiques. État des déploiements, migration075 de finition et preuves : [point courant du Master](../master/PROJECT_MASTER_PLAN.md#point-courant--finition-autorisée-du-12102026). Aucun fournisseur, variable, quota, droit Storage ou coût nouveau dans cette finition.

@@ -1,5 +1,15 @@
 # Journal des décisions validées
 
+## Décision finale V1 — clôture produit et sortie officielle (16/10/2026)
+
+**DÉCISION EXPLICITE DU PROPRIÉTAIRE :** GachaImpact **V1 est terminée, acceptée et prête pour sa publication officielle ce vendredi 16 octobre 2026 au soir**, après livraison qualifiée R1101. Les tâches et statuts « pending », « EN COURS » et gates de développement pré-release encore inscrits dans des passages historiques sont **clos et supersédés** pour le périmètre V1. La communication et la mise à disposition officielles sont effectuées par le propriétaire, et ne sont pas présumées déjà faites à l'heure de cette décision.
+
+**Fin des lots V1 :** aucune fonctionnalité, optimisation, migration, recette artificielle ou déploiement supplémentaire obligatoire avant la sortie. La maintenance corrective restera possible sur anomalie avérée et nouveau mandat. Les sujets PWA, `.exe`, thèmes supplémentaires et Objectifs personnels demeurent abandonnés.
+
+**Limites réelles, non bloquantes :** le parcours OAuth avec un ami, les compléments de bêta et le tirage Event naturel du **01/11/2026 à 00:00 Europe/Paris** ne sont pas déclarés exécutés. Ils sont suivis plus tard en exploitation normale, sans bloquer la sortie et sans être comptés comme tests réussis. Les restrictions existantes relatives aux sauvegardes, preuves économiques, données personnelles et nettoyages irréversibles demeurent.
+
+L'état de livraison technique vérifié, le dernier SHA et l'unique prochaine action appartiennent au [Master](../master/PROJECT_MASTER_PLAN.md). Les anciennes sections de ce journal conservent leur chronologie et leurs preuves.
+
 ## R1101 — dernier lot de stabilisation et clôture V1 (16/10/2026)
 
 **DÉCISION EXPLICITE DU PROPRIÉTAIRE :** clôturer le périmètre de développement V1 après qualification du suivi de suppression différée, correction des deux rejeux historiques, vérifications ciblées, reviews indépendantes et déploiements/postflight réussis. Aucun audit général, nouvelle fonctionnalité ou changement économique. Cette décision n'invente pas la réussite des gates ; état réel au Master.

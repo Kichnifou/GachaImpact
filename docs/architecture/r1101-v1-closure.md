@@ -1,5 +1,7 @@
 # R1101 — stabilisation et clôture du développement V1
 
+**DÉCISION PRODUIT COMPLÉMENTAIRE DU 16/10/2026 :** après les gates techniques déjà acquises, le propriétaire accepte la V1 et décide sa sortie officielle pour ce soir (Europe/Paris). Tous les « pending » de développement et les anciennes gates pré-release sont clos ; aucune mission V1 supplémentaire. Annonce effective non présumée publiée ; OAuth avec un ami, bêta complémentaire et tirage naturel Event du 01/11 restent des observations ultérieures non bloquantes, non déclarées réussies. [État vivant et prochaine action](../master/PROJECT_MASTER_PLAN.md).
+
 Mandat propriétaire du16/10/2026, départ `0ee3419bcf409ecfe89f880792fb5264f5ab34a2`, quatre références alignées0/0 et arbre propre. Aucun audit général rouvert, nouvelle fonctionnalité, modification économique ou migration PostgreSQL. Le [Master](../master/PROJECT_MASTER_PLAN.md) possède seul l'état de livraison et la clôture.
 
 **Livraison technique acquise :** code `e0b14e7b3a9a12faa5388e6c05ad6a508a05b822` APPROVED par deux reviewers indépendants, promu strictement et déployé au SHA exact Railway/Cloudflare ; postflight READ ONLY acquis. Développement V1 clôturé selon mandat, recettes humaines futures non inventées. Le checkpoint documentaire final suit les mêmes gates avant livraison ; état détaillé et preuves au Master ci-dessus.
