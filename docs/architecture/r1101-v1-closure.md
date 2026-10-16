@@ -2,6 +2,8 @@
 
 Mandat propriétaire du16/10/2026, départ `0ee3419bcf409ecfe89f880792fb5264f5ab34a2`, quatre références alignées0/0 et arbre propre. Aucun audit général rouvert, nouvelle fonctionnalité, modification économique ou migration PostgreSQL. Le [Master](../master/PROJECT_MASTER_PLAN.md) possède seul l'état de livraison et la clôture.
 
+**Livraison technique acquise :** code `e0b14e7b3a9a12faa5388e6c05ad6a508a05b822` APPROVED par deux reviewers indépendants, promu strictement et déployé au SHA exact Railway/Cloudflare ; postflight READ ONLY acquis. Développement V1 clôturé selon mandat, recettes humaines futures non inventées. Le checkpoint documentaire final suit les mêmes gates avant livraison ; état détaillé et preuves au Master ci-dessus.
+
 ## Suppression différée : défaut réellement reproduit
 
 Le bouton « Vérifier la clôture » de R1100 était disponible : son état n'était pas le défaut. Le suivi vivait dans la modale du GameShell ; une lecture de jeu refusée401 pouvait provoquer signOut, démonter le suivi et perdre la preuve mémoire. Recharger la page ou perdre la première réponse présentait le même problème de visibilité.
