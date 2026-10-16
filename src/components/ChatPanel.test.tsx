@@ -693,7 +693,7 @@ describe('ChatPanel réel', () => {
     } finally { vi.useRealTimers() }
   })
 
-  it('starts active polls on a 350 ms cadence and never overlaps a slow request', async () => {
+  it('waits after a slow read and never overlaps focus, online and polling reads', async () => {
     vi.useFakeTimers()
     try {
       let release!: (value: { messages: ChatMessageDto[]; changes: ChatMessageDto[]; generation: number; reset: boolean }) => void
@@ -703,7 +703,13 @@ describe('ChatPanel réel', () => {
       expect(updates).toHaveBeenCalledTimes(1)
       await act(async () => { await vi.advanceTimersByTimeAsync(2_000) })
       expect(updates).toHaveBeenCalledTimes(1)
+      await act(async () => { window.dispatchEvent(new Event('focus')); window.dispatchEvent(new Event('online')) })
+      expect(updates).toHaveBeenCalledTimes(1)
       await act(async () => { release({ messages: [], changes: [], generation: 0, reset: false }); await Promise.resolve(); await vi.advanceTimersByTimeAsync(0) })
+      expect(updates).toHaveBeenCalledTimes(1)
+      await act(async () => { await vi.advanceTimersByTimeAsync(1_499) })
+      expect(updates).toHaveBeenCalledTimes(1)
+      await act(async () => { await vi.advanceTimersByTimeAsync(2_001) })
       expect(updates).toHaveBeenCalledTimes(2)
     } finally { vi.useRealTimers() }
   })

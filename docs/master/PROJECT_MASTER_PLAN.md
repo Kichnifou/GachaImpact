@@ -1,5 +1,15 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1102 — maintenance des performances après lancement (16/10/2026)
+
+**Ouverture officielle confirmée par le propriétaire dans le mandat R1102.** V1 terminée/acceptée, anciens pending clos et abandons inchangés. Le présent bloc supersède uniquement la prochaine action d'annonce et le statut « sortie non constatée » du checkpoint historique ci-dessous. Domaine actif : maintenance corrective de ralentissements avec environ dix joueurs ; aucune fonctionnalité nouvelle, migration, infrastructure ou dépense.
+
+Départ GitHub `bd3dcb0c2ec183210314cfad0863b6e646998e6a`, main/review distantes identiques, arbre propre. [Diagnostic, corrections et limites](../architecture/r1102-launch-performance.md), [preuve agrégée](../architecture/evidence/r1102-performance.json). Surcoûts confirmés : chat global350ms sans pause après lenteur, hydratation répétée de toute la fenêtre, N+1 notifications cadeaux et matérialisation annuelle redondante. Corrections locales implémentées ; verrous, idempotence, règles de récompense, Twitch GLOBAL, visibilité et rétention conservés. Aucune cause unique de l'incident affirmée.
+
+Validation locale : frontend ciblé82/82, cadeaux/notifications/social25/25, chat API/pression7/7, quick5/5 et full8/8. Reproduction idle non-DB10/30lecteurs :20/60appels ORM hydratés avant,0après ; aucune mesure de latence publique après correction acquise. Première suite PostgreSQL cadeaux : préparation timeout,6skipped et schéma propre nettoyé/vérifié. Chat ciblé :4PASS dont10/30lecteurs+écritures/replay contrôlés,1timeout sur parent expiré,48exclus ; reprise isolée en cours. Aucun test exclu assimilé à PASS.
+
+**Prochaine action exacte :** terminer qualification PostgreSQL ciblée et nettoyage des fixtures privées, publier/vérifier le candidat review, review réellement indépendante du SHA, puis promotion fast-forward et déploiements/postflight quand les gates sont acquises. Suspendre uniquement un backend non qualifié ; poursuivre les corrections frontend indépendantes sûres. Mesures publiques uniquement passives ; aucune charge synthétique, compte public de QA, achat, tirage ou récompense artificielle. Recette humaine et fluidité publique encore à confirmer. Le Master demeure la passation vivante ; aucun tracker parallèle.
+
 ## Statut V1 — clôture produit et lancement autorisé (16 octobre 2026)
 
 **DÉCISION PROPRIÉTAIRE DU 16/10/2026 : GachaImpact V1 est terminée, acceptée et autorisée pour une sortie officielle le vendredi 16 octobre 2026 au soir (Europe/Paris).** Le propriétaire réalisera lui-même l'annonce et l'ouverture ; au moment du présent checkpoint, **la sortie est décidée/prévue, pas encore constatée comme annoncée ou exécutée**.

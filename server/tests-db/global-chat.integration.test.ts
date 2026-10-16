@@ -77,6 +77,45 @@ const progress = (id: string) => db.playerProgression.findUniqueOrThrow({ where:
 const migrationChecksum = (path: string) => createHash('sha256').update(readFileSync(path, 'utf8').replace(/\r\n?/gu, '\n')).digest('hex');
 
 describe('Global Chat foundation on isolated PostgreSQL', () => {
+  it.each([10, 30])('serves %i concurrent idle readers without hydrating unchanged relations, then reconciles controlled writes', async clients => {
+    const author = await player(), reader = await player(), moderator = await player();
+    await db.playerRoleAssignment.create({ data: { playerId: moderator, role: 'MODERATOR' } });
+    const { generation } = await dispatcher.clear(as(moderator), '!clear', randomUUID());
+    const first = await service.send(as(author), 'Private performance fixture', randomUUID());
+    const snapshot = await service.list(as(reader), 100);
+    const anchor = snapshot.messages.at(-1)!;
+    const find = vi.spyOn(db.globalChatMessage, 'findMany');
+    const durations: number[] = [];
+    try {
+      const responses = await Promise.all(Array.from({ length: clients }, async () => {
+        const started = performance.now();
+        const result = await service.updates(as(reader), generation, anchor, snapshot.visibleMessageIds);
+        durations.push(performance.now() - started);
+        return result;
+      }));
+      expect(responses.every(result => !result.reset && !result.messages.length && !result.changes.length)).toBe(true);
+      const hydratedReads = find.mock.calls.filter(([args]) => !!args?.include).length;
+      durations.sort((a,b) => a-b);
+      process.stdout.write(`R1102 private idle reads ${JSON.stringify({ clients, hydratedReads, p50: durations[Math.ceil(clients*.5)-1], p95: durations[Math.ceil(clients*.95)-1], p99: durations.at(-1) })}\n`);
+      expect(hydratedReads).toBe(0);
+    } finally { find.mockRestore(); }
+    advance(10_001);
+    const key = randomUUID();
+    const [sent, replay] = await Promise.all([
+      service.send(as(author), 'Controlled concurrent write', key),
+      service.send(as(author), 'Controlled concurrent write', key),
+      ...Array.from({ length: clients }, () => service.updates(as(reader), generation, anchor, snapshot.visibleMessageIds)),
+    ]);
+    expect(sent.message.id).toBe(replay.message.id);
+    expect(await db.globalChatMessage.count({ where: { authorPlayerId: author, content: 'Controlled concurrent write' } })).toBe(1);
+    await service.deleteOwn(as(author), first.message.id);
+    const caughtUp = await service.updates(as(reader), generation, anchor, snapshot.visibleMessageIds);
+    expect(caughtUp.messages.map(row => row.id)).toEqual([sent.message.id]);
+    expect(caughtUp.messages[0]?.clientIntentKey).toBeNull();
+    expect(caughtUp.changes).toMatchObject([{ id: first.message.id, deletionState: 'AUTHOR', content: null }]);
+    expect((await service.updates(as(reader), generation, sent.message, [...snapshot.visibleMessageIds!, sent.message.id])).messages).toEqual([]);
+  }, 120_000);
+
   it('masks an expired reply parent in polling changes as well as the visible window', async () => {
     const author=await player(),reader=await player();
     const parent=await service.send(as(author),'Original expired parent',randomUUID());advance(10001);

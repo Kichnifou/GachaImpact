@@ -1,7 +1,8 @@
 import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useLatestRef } from '../hooks/use-latest-ref'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type CSSProperties, type ReactNode } from 'react'
+import { ChatReadCoordinator, chatPollDelay } from '../chat/chat-read-coordinator'
 import { apiErrorMessage } from '../utils/formatters'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import type { ChatMentionDto, ChatMessageDto, ChatRefreshScope, DirectMessagePlayerDto } from '../api/types'
@@ -121,6 +122,7 @@ function mergeChatMessagesStable(current: readonly ChatMessageDto[], incoming: r
 
 function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = null, playerAvatarAssetPath = null, playerBadgeSymbol = null, isCollapsed, isExpanded = false, onToggleExpanded, onToggle, onOpenPlayers, onOpenProfile, onRefreshScopes, connectedCount = null, directMessageIntent = null, onDirectMessageIntentConsumed = () => undefined }: Props) {
   const api = getGameApiClient().chat
+  const reads = useMemo(() => new ChatReadCoordinator(), [api, playerId])
   const presentation = useTutorialPresentation()
   const presentationActive = useLatestRef(presentation.active)
   const [normalActiveTab, setActiveTab] = useDestinationTab('communityPanel','chat')
@@ -242,14 +244,14 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     setAmbiguousIntents([])
   }, [])
   const unreadNow = useCallback(async () => {
-    const value = await api.unread()
+    const value = await reads.run('unread', () => api.unread())
     if (generation.current !== null && value.generation < generation.current) return
     if (generation.current !== null && value.generation !== generation.current) {
       adoptGeneration(value.generation, [], null, false, value.unreadCount)
     } else setUnread(value.unreadCount)
-  }, [adoptGeneration, api])
+  }, [adoptGeneration, api, reads])
   const messagesNow = useCallback(async (initial: boolean) => {
-    const page = await api.messages()
+    const page = await reads.run('messages', () => api.messages())
     if (generation.current !== null && page.generation < generation.current) return
     const changed = generation.current !== null && generation.current !== page.generation
     if (changed) {
@@ -284,7 +286,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     messagesRef.current = next
     setMessages(next)
     if (initial) { initialScrollPending.current = true; atBottom.current = false; setScrollbarAtBottom(true); setCursor(page.nextCursor); setLoaded(true) }
-  }, [adoptGeneration, api, playerId])
+  }, [adoptGeneration, api, playerId, reads])
 
   useEffect(() => {
     if (identityName.current === playerDisplayName) return
@@ -301,7 +303,10 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     if (typeof api.updates !== 'function') return messagesNow(false)
     if (generation.current === null) return messagesNow(true)
     const anchor = [...messagesRef.current].reverse().find(item => !item.id.startsWith('optimistic:'))
-    const update = await api.updates(generation.current, anchor ? { createdAt: anchor.createdAt, id: anchor.id } : null, visibleMessageIds.current)
+    const clientGeneration = generation.current
+    const clientCursor = anchor ? { createdAt: anchor.createdAt, id: anchor.id } : null
+    const knownIds = visibleMessageIds.current
+    const update = await reads.run(JSON.stringify(['updates', clientGeneration, clientCursor, knownIds]), () => api.updates(clientGeneration, clientCursor, knownIds))
     if (update.generation < generation.current) return
     if (update.reset) return messagesNow(true)
     if (!update.messages.length && !update.changes.length) return
@@ -333,7 +338,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     }
     const merged = mergeChatMessagesStable(current.map(retain), fresh).slice(-CHAT_VISIBLE_MESSAGE_LIMIT)
     messagesRef.current = merged; setMessages(merged)
-  }, [api, messagesNow, playerId])
+  }, [api, messagesNow, playerId, reads])
 
   // oxlint-disable-next-line react/set-state-in-effect -- reopen state and local scroll must settle before the first visible paint
   useLayoutEffect(() => {
@@ -347,7 +352,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
   }, [chatActive, messagesNow])
 
   useEffect(() => {
-    let cancelled = false, busy = false
+    let cancelled = false, busy = false, slowLevel = 0
     let timer: ReturnType<typeof setTimeout> | undefined
     const tick = async () => {
       if (cancelled || busy || document.hidden) return
@@ -370,12 +375,13 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
       if (cancelled || busy || document.hidden) return
       const startedAt = performance.now()
       await tick()
-      if (!cancelled && !document.hidden) timer = setTimeout(runAndSchedule, Math.max(0, (readFailure.current ? Math.min(15_000, 1000 * 2 ** Math.min(4, readFailure.current.attempts)) : chatActive ? 350 : 5000) - (performance.now() - startedAt)))
+      slowLevel = performance.now() - startedAt >= 1500 ? Math.min(3, slowLevel + 1) : Math.max(0, slowLevel - 1)
+      if (!cancelled && !document.hidden) timer = setTimeout(runAndSchedule, chatPollDelay(chatActive, readFailure.current?.attempts ?? 0, slowLevel))
     }
     const visible = () => { clearTimeout(timer); if (!document.hidden) void runAndSchedule() }
     void runAndSchedule()
-    document.addEventListener('visibilitychange', visible); window.addEventListener('focus', visible)
-    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visible); window.removeEventListener('focus', visible) }
+    document.addEventListener('visibilitychange', visible); window.addEventListener('focus', visible); window.addEventListener('online', visible)
+    return () => { cancelled = true; clearTimeout(timer); document.removeEventListener('visibilitychange', visible); window.removeEventListener('focus', visible); window.removeEventListener('online', visible) }
   }, [chatActive, loaded, messagesNow, playerId, unreadNow, updatesNow])
 
   useEffect(() => {
@@ -402,7 +408,7 @@ function ChatPanel({ playerId, playerDisplayName = 'Vous', playerElementKey = nu
     const anchor = { top: list.current.scrollTop, height: list.current.scrollHeight }
     const placementRevision = scrollPlacementRevision.current
     try {
-      const page = await api.messages(cursor)
+      const page = await reads.run(JSON.stringify(['older', cursor]), () => api.messages(cursor))
       if (generation.current !== null && page.generation !== generation.current) { await messagesNow(true); return }
       if (placementRevision === scrollPlacementRevision.current) prepend.current = anchor
       else initialScrollPending.current = atBottom.current
