@@ -1,8 +1,8 @@
 # GachaImpact — Architecture backend V1
 
-## R1102 — lectures Chat et réconciliation cadeaux
+## R1102 — pression des consultations Chat
 
-`GlobalChatService.updates` conserve génération, fenêtre retenue200, curseur et ordre `submissionOrder`, mais lit d'abord les métadonnées minimales puis hydrate uniquement inconnus/suppressions connues, avec masquage des parents expirés. Aucun cache partagé ni writer/transaction Chat changé. Cadeaux : notifications chargées en lot sous les mêmes verrous, éditions annuelles `createMany(skipDuplicates)` et matérialisation unique par consultation ; mêmes dates, résolution, concurrence et scheduler. [Contrat technique et qualification](r1102-launch-performance.md), état réel au Master. Aucun schéma/index/pool/timeout ou transport nouveau.
+Le frontend attend1 500–2 000ms après fin de lecture, avec jitter/backoff et coalescing/sérialisation par panneau/joueur. Les optimisations backend Chat/cadeaux expérimentées ont été retirées faute de qualification PostgreSQL complète ; backend, transactions, verrous, schéma et transport restent inchangés. [Diagnostic et limites](r1102-launch-performance.md), état réel au Master.
 
 ## R1101 — formats de preuve et suivi de suppression
 

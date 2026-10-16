@@ -476,10 +476,8 @@ export class GlobalChatService {
     const generation = await this.generation();
     if (generation !== clientGeneration) return { generation, reset: true, messages: [], changes: [] };
     const retained=await retentionVisiblePage(this.database,'chat',Prisma.sql`r.generation=${generation}`,Prisma.sql`r.submission_order DESC`,0,PLAYER_HISTORY_LIMIT,this.clock.now(),false);
-    // Check the complete retained window, but hydrate relations only for rows
-    // delivered to this viewer. An idle poll must not reload 200 authors,
-    // cosmetics, operations, reply parents and mentions.
-    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation,id:{in:retained.ids} }, select: { id: true, createdAt: true, submissionOrder: true, deletionState: true }, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+    const visibleWindow = await this.database.globalChatMessage.findMany({ where: { generation,id:{in:retained.ids} }, include: messageInclude, orderBy: { submissionOrder: 'desc' }, take: PLAYER_HISTORY_LIMIT });
+    await this.hideExpiredReplies(this.database,visibleWindow);
     const visibleIds = new Set(visibleWindow.map(row => row.id));
     const visibleKnownIds = knownIds.filter(id => visibleIds.has(id));
     let anchor: { submissionOrder: bigint; generation: number } | null = null;
@@ -490,16 +488,14 @@ export class GlobalChatService {
       if (!row) return { generation, reset: true, messages: [], changes: [] };
       anchor = { submissionOrder: row.submissionOrder, generation };
     }
-    const messageIds = new Set(visibleWindow.filter(row => visibleKnownIds.length ? !visibleKnownIds.includes(row.id) : !cursor || !anchor || row.submissionOrder > anchor.submissionOrder).map(row => row.id));
-    const changedIds = new Set(visibleWindow.filter(row => visibleKnownIds.includes(row.id) && row.deletionState !== 'ACTIVE').map(row => row.id));
-    const deliveryIds = [...new Set([...messageIds, ...changedIds])];
-    const delivered = deliveryIds.length ? await this.database.globalChatMessage.findMany({
-      where: { generation, id: { in: deliveryIds } }, include: messageInclude,
-      orderBy: { submissionOrder: 'asc' }, take: PLAYER_HISTORY_LIMIT,
-    }) : [];
-    await this.hideExpiredReplies(this.database, delivered);
-    const messages = delivered.filter(row => messageIds.has(row.id));
-    const changes = delivered.filter(row => changedIds.has(row.id));
+    const [messages, changes] = await Promise.all([
+      Promise.resolve(visibleWindow.filter(row => visibleKnownIds.length ? !visibleKnownIds.includes(row.id) : !cursor || !anchor || row.submissionOrder > anchor.submissionOrder).reverse()),
+      visibleKnownIds.length ? this.database.globalChatMessage.findMany({
+        where: { generation, id: { in: visibleKnownIds }, deletionState: { not: 'ACTIVE' } },
+        include: messageInclude, orderBy: { submissionOrder: 'asc' }, take: PLAYER_HISTORY_LIMIT,
+      }) : Promise.resolve([]),
+    ]);
+    await this.hideExpiredReplies(this.database, changes);
     return { generation, reset: false, messages: messages.map(row => project(row, viewer.id)), changes: changes.map(row => project(row, viewer.id)), ...(messages.length ? { visibleMessageIds: visibleWindow.map(row => row.id) } : {}) };
   }
 

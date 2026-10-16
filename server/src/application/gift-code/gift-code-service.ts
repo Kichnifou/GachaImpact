@@ -70,7 +70,7 @@ export class GiftCodeService {
     const player = await this.getPlayer.execute(identity);
     const now = commandNow(this.clock);
     await this.materializeAnnualEditions(this.database, now);
-    await this.reconcileNotificationsForPlayer(player.id, now, false);
+    await this.reconcileNotificationsForPlayer(player.id, now);
     return this.playerSnapshot(player.id, now);
   }
 
@@ -170,16 +170,10 @@ export class GiftCodeService {
         include: { giftCode: { include: { rewards: true } } },
       });
       const activeIds = editions.map(({ id }) => id);
-      const deduplicationKeys = editions.map(({ id }) => `gift-code:${playerId}:${id}`);
-      const notifications = deduplicationKeys.length ? await tx.notification.findMany({
-        where: { deduplicationKey: { in: deduplicationKeys } },
-        select: { id: true, deduplicationKey: true, state: true, payload: true, actionKey: true, actionTargetId: true },
-      }) : [];
-      const notificationsByKey = new Map(notifications.map(notification => [notification.deduplicationKey, notification]));
       for (const edition of editions) {
         const rewards = configuredRewards(edition.giftCode).map(({ resourceKey, amount }) => ({ resourceKey, amount }));
         const deduplicationKey = `gift-code:${playerId}:${edition.id}`;
-        const existing = notificationsByKey.get(deduplicationKey);
+        const existing = await tx.notification.findUnique({ where: { deduplicationKey }, select: { id: true, state: true, payload: true, actionKey: true, actionTargetId: true } });
         const content = { payload: { title: edition.giftCode.title, token: edition.giftCode.token, rewards }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: edition.id };
         if (existing) {
           if (existing.state !== NotificationState.RESOLVED && existing.actionKey === content.actionKey
@@ -368,7 +362,7 @@ export class GiftCodeService {
     const codes = await database.giftCode.findMany({ where: { status: GiftCodeStatus.PUBLISHED, type: GiftCodeType.ANNUAL, recurringMonth: month, ...(this.maintenanceScope.annualCodeIds ? { id: { in: [...this.maintenanceScope.annualCodeIds] } } : {}) }, select: { id: true } });
     const startsAt = monthStart(year, month); const endsAt = month === 12 ? monthStart(year + 1, 1) : monthStart(year, month + 1);
     // INSERT ON CONFLICT keeps simultaneous claims/discovery from racing an emulated upsert.
-    if (codes.length) await database.giftCodeEdition.createMany({ data: codes.map(code => ({ giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt })), skipDuplicates: true });
+    for (const code of codes) await database.giftCodeEdition.createMany({ data: [{ giftCodeId: code.id, editionKey: String(year), year, startsAt, endsAt }], skipDuplicates: true });
   }
 
   private async materializeAnnualEditionForCode(database: Database, codeId: string, now: Date): Promise<void> {

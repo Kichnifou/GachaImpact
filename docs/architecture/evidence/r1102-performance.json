@@ -1,133 +1,136 @@
 {
-  "capturedAt": "2026-10-16T19:49:00Z",
-  "baselineCommit": "bd3dcb0c2ec183210314cfad0863b6e646998e6a",
-  "source": "Railway connector, rolling previous-hour windows captured before deployment; calls are not an atomic snapshot",
-  "railway": {
-    "requests": {
-      "2xx": 52172,
-      "3xx": 21,
-      "4xx": 509,
-      "5xx": 661,
-      "total": 53363
-    },
-    "errors": {
-      "errorRate": 1.2387091938083281,
-      "totalRequests": 53362,
-      "errorCount": 661,
-      "clientErrorCount": 509
-    },
-    "slowestLatencyBucket": {
-      "ts": 1792177440,
-      "p50": 246,
-      "p90": 30000,
-      "p95": 30000,
-      "p99": 30000
-    },
-    "resources": [
-      {
-        "measurement": "CPU_USAGE",
-        "current": 0.07632253333333334,
-        "average": 0.08018868114754099,
-        "min": 0.0033145500000000003,
-        "max": 0.189566,
-        "sampleCount": 61
-      },
-      {
-        "measurement": "MEMORY_USAGE_GB",
-        "current": 0.632664064,
-        "average": 0.5247129767868852,
-        "min": 0.214474752,
-        "max": 0.63449088,
-        "sampleCount": 61
-      }
-    ]
-  },
-  "routes": [
-    {
-      "path": "/api/v1/chat/updates",
-      "counts": {
-        "2xx": 24121,
-        "3xx": 0,
-        "4xx": 22,
-        "5xx": 0,
-        "total": 24143
-      },
-      "slowestLatencyBucket": {
-        "ts": 1792178040,
-        "p50": 171,
-        "p90": 23496,
-        "p95": 30000,
-        "p99": 30000
-      }
-    },
-    {
-      "path": "/api/v1/contest",
-      "counts": {
-        "2xx": 761,
-        "3xx": 0,
-        "4xx": 5,
-        "5xx": 69,
-        "total": 835
-      },
-      "slowestLatencyBucket": {
-        "ts": 1792178040,
-        "p50": 3,
-        "p90": 29307,
-        "p95": 30000,
-        "p99": 30000
-      }
-    }
-  ],
-  "postgres": {
-    "cumulativeSince": "2026-10-07T18:25:17.273538Z",
-    "snapshots": [
-      {
-        "at": "2026-10-16T19:46:59Z",
-        "blocked": 0
-      },
-      {
-        "at": "2026-10-16T19:51:00Z",
-        "blocked": 0,
-        "activeTransactionMaxSeconds": 52.82
-      },
-      {
-        "at": "2026-10-16T19:53:23Z",
-        "blocked": 3
-      },
-      {
-        "at": "2026-10-16T19:53:39Z",
-        "blocked": 0
-      }
-    ],
-    "limits": "Instantaneous samples, not wait histograms. Unqualified pg_stat_statements queries cannot reliably exclude private tests, so their counts are not production workload evidence."
-  },
-  "reproduction": {
-    "mockIdleConcurrentReaders": [
-      {
-        "clients": 10,
-        "baselineHydratedFindManyCalls": 20,
-        "candidateHydratedFindManyCalls": 0
-      },
-      {
-        "clients": 30,
-        "baselineHydratedFindManyCalls": 60,
-        "candidateHydratedFindManyCalls": 0
-      }
-    ],
-    "latencyClaim": false
-  },
-  "qualification": {
-    "quick": "5/5 PASS",
-    "full": "8/8 PASS before final supplemental pressure test",
-    "frontendTargeted": "82/82 PASS",
-    "giftNonDb": "25/25 PASS",
-    "chatNonDb": "7/7 PASS",
-    "giftPostgresFirstAttempt": "setup timeout before tests; 6 skipped; own private schema removed and absence verified",
-    "chatPostgres": "pending"
-  },
-  "limits": [
-    "No production synthetic load or business QA mutation",
-    "No comparable production after window yet",
-    "No new indexes, migrations, pool, timeouts, service or paid infrastructure"
-  ]
+    "capturedAt":  "2026-10-16T19:49:00Z",
+    "baselineCommit":  "bd3dcb0c2ec183210314cfad0863b6e646998e6a",
+    "source":  "Railway connector, rolling previous-hour windows captured before deployment; calls are not an atomic snapshot",
+    "railway":  {
+                    "requests":  {
+                                     "2xx":  52172,
+                                     "3xx":  21,
+                                     "4xx":  509,
+                                     "5xx":  661,
+                                     "total":  53363
+                                 },
+                    "errors":  {
+                                   "errorRate":  1.2387091938083281,
+                                   "totalRequests":  53362,
+                                   "errorCount":  661,
+                                   "clientErrorCount":  509
+                               },
+                    "slowestLatencyBucket":  {
+                                                 "ts":  1792177440,
+                                                 "p50":  246,
+                                                 "p90":  30000,
+                                                 "p95":  30000,
+                                                 "p99":  30000
+                                             },
+                    "resources":  [
+                                      {
+                                          "measurement":  "CPU_USAGE",
+                                          "current":  0.07632253333333334,
+                                          "average":  0.08018868114754099,
+                                          "min":  0.0033145500000000003,
+                                          "max":  0.189566,
+                                          "sampleCount":  61
+                                      },
+                                      {
+                                          "measurement":  "MEMORY_USAGE_GB",
+                                          "current":  0.632664064,
+                                          "average":  0.5247129767868852,
+                                          "min":  0.214474752,
+                                          "max":  0.63449088,
+                                          "sampleCount":  61
+                                      }
+                                  ]
+                },
+    "routes":  [
+                   {
+                       "path":  "/api/v1/chat/updates",
+                       "counts":  {
+                                      "2xx":  24121,
+                                      "3xx":  0,
+                                      "4xx":  22,
+                                      "5xx":  0,
+                                      "total":  24143
+                                  },
+                       "slowestLatencyBucket":  {
+                                                    "ts":  1792178040,
+                                                    "p50":  171,
+                                                    "p90":  23496,
+                                                    "p95":  30000,
+                                                    "p99":  30000
+                                                }
+                   },
+                   {
+                       "path":  "/api/v1/contest",
+                       "counts":  {
+                                      "2xx":  761,
+                                      "3xx":  0,
+                                      "4xx":  5,
+                                      "5xx":  69,
+                                      "total":  835
+                                  },
+                       "slowestLatencyBucket":  {
+                                                    "ts":  1792178040,
+                                                    "p50":  3,
+                                                    "p90":  29307,
+                                                    "p95":  30000,
+                                                    "p99":  30000
+                                                }
+                   }
+               ],
+    "postgres":  {
+                     "cumulativeSince":  "2026-10-07T18:25:17.273538Z",
+                     "snapshots":  [
+                                       {
+                                           "at":  "2026-10-16T19:46:59Z",
+                                           "blocked":  0
+                                       },
+                                       {
+                                           "at":  "2026-10-16T19:51:00Z",
+                                           "blocked":  0,
+                                           "activeTransactionMaxSeconds":  52.82
+                                       },
+                                       {
+                                           "at":  "2026-10-16T19:53:23Z",
+                                           "blocked":  3
+                                       },
+                                       {
+                                           "at":  "2026-10-16T19:53:39Z",
+                                           "blocked":  0
+                                       }
+                                   ],
+                     "limits":  "Instantaneous samples, not wait histograms. Unqualified pg_stat_statements queries cannot reliably exclude private tests, so their counts are not production workload evidence."
+                 },
+    "reproduction":  {
+                         "mockIdleConcurrentReaders":  [
+                                                           {
+                                                               "clients":  10,
+                                                               "baselineHydratedFindManyCalls":  20,
+                                                               "candidateHydratedFindManyCalls":  0
+                                                           },
+                                                           {
+                                                               "clients":  30,
+                                                               "baselineHydratedFindManyCalls":  60,
+                                                               "candidateHydratedFindManyCalls":  0
+                                                           }
+                                                       ],
+                         "latencyClaim":  false
+                     },
+    "qualification":  {
+                          "quick":  "5/5 PASS",
+                          "full":  "8/8 PASS initial and 8/8 PASS final frontend-only after backend removal",
+                          "frontendTargeted":  "82/82 PASS",
+                          "giftNonDb":  "25/25 PASS",
+                          "chatNonDb":  "7/7 PASS",
+                          "giftPostgresFirstAttempt":  "two attempts: setup timeout before tests, 6 skipped each; own schemas cleaned",
+                          "chatPostgres":  "targeted 4PASS/1timeout/48excluded; isolated retry setup+cleanup timeout/53skipped",
+                          "independentReview":  "73e4fda global CHANGES_REQUIRED missing DB proof; frontend APPROVED; 105 independent tests PASS",
+                          "cleanup":  "Supabase query confirmed only preexisting batch_test schema remains after exact cleanup of mission schemas; no public business fixture"
+                      },
+    "limits":  [
+                   "No production synthetic load or business QA mutation",
+                   "No comparable production after window yet",
+                   "No new indexes, migrations, pool, timeouts, service or paid infrastructure"
+               ],
+    "finalScope":  "frontend only; experimental backend from73e4fda reverted before promotion"
 }
