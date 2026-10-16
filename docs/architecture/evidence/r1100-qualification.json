@@ -163,6 +163,85 @@
     "No authenticated production QA or public account deletion",
     "Privileged Auth access not established; existing Storage secret not repurposed"
   ],
-  "review": "Independent published SHA review required before promotion",
-  "deployment": "Not yet established"
+  "review": {
+    "sha": "5bfdfd70c5c0a5ecc5544571fedcb427884cb4ac",
+    "scope": "Disabled fallback only",
+    "verdicts": [
+      {
+        "reviewer": "deletion_audit",
+        "verdict": "APPROVED",
+        "remoteBlobs": 13,
+        "frontendTests": 3,
+        "serverTests": 4
+      },
+      {
+        "reviewer": "published_review",
+        "verdict": "APPROVED",
+        "remoteBlobs": 13,
+        "frontendTests": 112,
+        "serverTests": 4,
+        "artifactHashesVerified": 11
+      }
+    ],
+    "blockingFindings": 0
+  },
+  "deployment": {
+    "qualifiedCodeSha": "5bfdfd70c5c0a5ecc5544571fedcb427884cb4ac",
+    "railway": {
+      "id": "b4a41b22-f07c-4a70-887a-752595154c67",
+      "status": "SUCCESS",
+      "predeploy": "84 migrations found; no pending migrations to apply"
+    },
+    "cloudflare": {
+      "sha": "5bfdfd70c5c0a5ecc5544571fedcb427884cb4ac",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/0b88229c-854f-40b3-8850-fb60656cbdb7",
+      "startedAt": "2026-10-16T05:31:43Z",
+      "completedAt": "2026-10-16T05:31:43Z",
+      "preview": "https://0b88229c.gachaimpact.pages.dev",
+      "productionHttp": 200,
+      "previewHttp": 200,
+      "productionAssetsMatchExactDeployment": true,
+      "artifactChecks": [
+        {
+          "path": "/assets/index-Br01DQ9A.css",
+          "http": 200,
+          "sha256": "3f59c7979d22832dcb170a23f11521c2800135a103af035b32cd4e6eceb94cc6"
+        },
+        {
+          "path": "/assets/index-CnxTLeeJ.js",
+          "http": 200,
+          "sha256": "d52675711ed5cadde6d67d5a1d1fb3c69ef8749290e90211b4c87905db816e35"
+        }
+      ]
+    },
+    "postflight": {
+      "at": "2026-10-16T05:33:10.604Z",
+      "health": 200,
+      "guards": {
+        "count": 20,
+        "all401": true,
+        "exactCors": true,
+        "deletionGuard": 2
+      },
+      "domains": [
+        {
+          "origin": "https://gachaimpact.fr",
+          "http": 200
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "http": 200
+        }
+      ],
+      "bothDomainsAssetsIdentical": true,
+      "noAuthorizedBusinessMutation": true,
+      "fullPrivateArtifact": {
+        "path": "local-data/r1100-postflight-code.json",
+        "sha256": "ef6b387590b2c97a758e807190bd106d338240995a2b48c5d1b24b77a8c153c2"
+      }
+    },
+    "limits": "No authenticated live game action, deletion, or nightly retention/Twitch command execution was tested in production; non-regression evidence is full tests, unchanged relevant code/config and guarded public endpoints."
+  }
 }
