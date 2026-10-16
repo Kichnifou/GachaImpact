@@ -1,4 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
+import { assertNotErased } from '../player/account-erasure-markers.js';
+import { lockTwitchNativeAdmission } from '../twitch/twitch-native-admission.js';
 import type { Prisma, PrismaClient } from '../../../generated/prisma/client.js';
 import { assertLegacyCosmeticsClassified, clearLegacyDerivedCosmetics, rebuildDerivedPlayerCosmetics } from '../appearance/derived-player-cosmetics.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
@@ -427,6 +429,8 @@ export class SnapshotPilotService {
     if (report.domains.some(domain => domain.category === 'BLOCKED_AMBIGUOUS' || (domain.category === 'PLAYER_LOCAL_PHYSICAL' && domain.action === 'PENDING_MAPPING')))
       throw new AppError('Le mapping du snapshot est incomplet ; aucun import ne peut être confirmé.', 409, 'SNAPSHOT_MAPPING_INCOMPLETE');
     const applyOnce = () => this.db.$transaction(async tx => {
+      await lockTwitchNativeAdmission(tx,linked.twitchUserId);
+      await assertNotErased(tx,'TWITCH',linked.twitchUserId);
       await tx.$queryRaw`SELECT id FROM players WHERE id = ${player.id}::uuid FOR UPDATE`;
       const nativeTarget = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: linked.twitchUserId } });
       if (nativeTarget && nativeTarget.dataAuthority !== 'LEGACY')

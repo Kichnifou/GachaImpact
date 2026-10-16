@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
-import { readdir, readFile } from 'node:fs/promises';
+import { readdir } from 'node:fs/promises';
+import { readPrivateBackup } from './private-offline-backup.js';
 import { join } from 'node:path';
 import { parseStreamerbotSnapshot, snapshotFileNames, type Snapshot } from './streamerbot-snapshot.js';
 
@@ -11,14 +12,14 @@ export async function loadLegacySnapshotDirectory(directory: string): Promise<Sn
   const expected = [...snapshotFileNames, 'manifest.json'].sort();
   if (names.length !== expected.length || names.some((name, index) => name !== expected[index]))
     throw new Error('Le dossier snapshot doit contenir exactement les 17 JSON et manifest.json.');
-  const manifest = JSON.parse((await readFile(join(directory, 'manifest.json'), 'utf8')).replace(/^\uFEFF/, '')) as Manifest;
+  const manifest = JSON.parse((await readPrivateBackup(join(directory, 'manifest.json'))).toString('utf8').replace(/^\uFEFF/, '')) as Manifest;
   if (!Array.isArray(manifest.files) || manifest.files.length !== snapshotFileNames.length)
     throw new Error('Manifest snapshot incomplet.');
   const declared = new Map(manifest.files.map(file => [file.name, file]));
   if (declared.size !== snapshotFileNames.length) throw new Error('Manifest snapshot dupliqué.');
   const files: Record<string, string> = {};
   for (const name of snapshotFileNames) {
-    const bytes = await readFile(join(directory, name));
+    const bytes = await readPrivateBackup(join(directory, name));
     const entry = declared.get(name);
     if (!entry || entry.size !== bytes.length || entry.sha256 !== createHash('sha256').update(bytes).digest('hex'))
       throw new Error(`Hash ou taille incorrecte : ${name}.`);

@@ -29,3 +29,7 @@ export function getSupabaseClient(): SupabaseClient {
 
   return singleton
 }
+export function createReauthenticationClient():SupabaseClient {
+  const config=loadFrontendConfig()
+  return createClient(config.supabaseUrl,config.supabasePublishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}})
+}

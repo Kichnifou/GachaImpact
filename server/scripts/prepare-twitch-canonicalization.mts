@@ -1,3 +1,4 @@
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import 'dotenv/config';
 import { open } from 'node:fs/promises';
 import { z } from 'zod';
@@ -24,11 +25,11 @@ async function main() {
       webIdentityId: parsed['web-identity'], expectedWebPlayerId: parsed['expected-web-player'], twitchUserId: parsed['twitch-id'],
       choice: parsed.choice, expectedRevision: parsed['expected-revision'], acknowledgement: parsed.acknowledgement }, async backup => {
       const file = await open(output, 'wx', 0o600);
-      try { await file.writeFile(JSON.stringify(backup)); await file.sync(); } finally { await file.close(); }
+      try { await file.writeFile(await encryptPrivateBackup(Buffer.from(JSON.stringify(backup)))); await file.sync(); } finally { await file.close(); }
     });
     // Plan IDs and the backup remain in the private local artifact, never the terminal.
     const receipt = await open(await checkedIdentityFile(`${output}.plan.json`, true), 'wx', 0o600);
-    try { await receipt.writeFile(JSON.stringify(plan)); await receipt.sync(); } finally { await receipt.close(); }
+    try { await receipt.writeFile(await encryptPrivateBackup(Buffer.from(JSON.stringify(plan)))); await receipt.sync(); } finally { await receipt.close(); }
     process.stdout.write(JSON.stringify({ authorized: true, choice: parsed.choice, expiresAt: plan.expiresAt, consequences: plan.consequences, publicChoiceExecuted: false }) + '\n');
   } finally { await db.$disconnect(); }
 }

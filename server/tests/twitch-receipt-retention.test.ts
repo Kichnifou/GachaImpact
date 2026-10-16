@@ -110,7 +110,7 @@ describe('bounded Twitch observation receipt retention', () => {
     let rejectCleanup!: (reason: Error) => void;
     receipts.findMany.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectCleanup = reject; }));
     let saved: unknown;
-    const tx = { twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null) }, twitchEventReceipt: {
+    const tx = { $queryRaw:vi.fn().mockResolvedValue([]),twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null) }, twitchEventReceipt: {
       findUnique: vi.fn().mockImplementation(async () => saved ?? null),
       create: vi.fn().mockImplementation(async ({ data }) => saved = { ...data, id: 'new', state: 'RECEIVED' }),
     } };
@@ -125,7 +125,7 @@ describe('bounded Twitch observation receipt retention', () => {
   });
   it('does not schedule chat retention for another observed event type', async () => {
     const { retention, receipts } = setup();
-    const tx = { twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null) }, twitchEventReceipt: {
+    const tx = { $queryRaw:vi.fn().mockResolvedValue([]),twitchIdentity: { findUnique: vi.fn().mockResolvedValue(null) }, twitchEventReceipt: {
       findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockImplementation(async ({ data }) => ({ ...data, id: 'other' })),
     } };
     const observer = new TwitchEventObserver({ $transaction: async (action: (value: typeof tx) => unknown) => action(tx) } as unknown as PrismaClient, retention);

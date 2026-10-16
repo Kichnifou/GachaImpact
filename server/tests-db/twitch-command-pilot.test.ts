@@ -145,10 +145,12 @@ describe('signed command pilot in private PostgreSQL', () => {
   }, 60_000);
   it('disarms after the real Pull commit, suppresses outbound and resumes only the response after explicit targeted re-arm', async () => {
     const before = await state(), sends = outbound.send.mock.calls.length, executions = business.mock.calls.length;
-    business.mockImplementationOnce(async (...args) => {
-      const result = await core.execute(...args); pilot.disarm(playerId); return result;
-    });
-    const request = signed(event()); expect((await post(request)).statusCode).toBe(204);
+    // Inject OFF after the response checkpoint commits, before its first send.
+    // Disarming inside business without awaiting it used to race that checkpoint.
+    const boundary=pilot as unknown as {deliver(...args:unknown[]):Promise<void>};
+    const deliver=boundary.deliver.bind(boundary);
+    const stop=vi.spyOn(boundary,'deliver').mockImplementationOnce(async(...args)=>{await pilot.disarm(playerId);await deliver(...args);});
+    const request = signed(event()); expect((await post(request)).statusCode).toBe(204);stop.mockRestore();
     const committed = await state(); expect(committed.pulls).toBe(before.pulls + 1);
     expect(committed.operations).toBe(before.operations + 1); expect(committed.wallet).toBe(before.wallet - 160n);
     expect(business).toHaveBeenCalledTimes(executions + 1); expect(outbound.send).toHaveBeenCalledTimes(sends);

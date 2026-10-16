@@ -1,4 +1,4 @@
-import { presentedName } from '../player/presentation-name.js';
+import { presentedName, archivedPlayerName } from '../player/presentation-name.js';
 import { PlayerActivityService, type ActivityRange } from '../player/player-activity-service.js';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import { retentionVisiblePage } from '../retention/retention-visible-history.js';
@@ -57,7 +57,7 @@ export class HistoryService {
       Promise.resolve(visible.total),
       this.database.eventEdition.findMany({ where, orderBy: [{ endsAt: 'desc' }, { id: 'desc' }], take: PAGE_SIZE,
         select: { id: true, year: true, startsAt: true, endsAt: true, snapshot: true,
-          monthlyDraw: { select: { status: true, winner: { select: { status: true } }, operation: { select: { resultSummary: true } } } } } }),
+          monthlyDraw: { select: { status: true, winner: { select: { status: true,displayName:true } }, operation: { select: { resultSummary: true } } } } } }),
     ]);
     const ids = editions.map(edition => edition.id);
     const [participants, claims, acquisitions] = ids.length ? await Promise.all([
@@ -85,10 +85,10 @@ export class HistoryService {
 }
 
 /** Whitelist the public result; never spread the draw or the private operation. */
-export function publicEventDraw(draw: { status: string; winner: { status: string } | null; operation: { resultSummary: unknown } | null } | null) {
+export function publicEventDraw(draw: { status: string; winner: { status: string;displayName?:string } | null; operation: { resultSummary: unknown } | null } | null) {
   const summary = draw?.operation?.resultSummary;
   const name = summary && typeof summary === 'object' && 'winnerName' in summary && typeof summary.winnerName === 'string' ? summary.winnerName : null;
   return { status: draw?.status ?? 'NOT_RECORDED',
-    winnerName: draw?.status === 'COMPLETED' ? draw.winner?.status === 'ARCHIVED' ? 'Progression archivée' : name : null,
+    winnerName: draw?.status === 'COMPLETED' ? draw.winner?.status === 'ARCHIVED' ? archivedPlayerName(draw.winner) : name : null,
     reward: draw?.status === 'COMPLETED' ? { itemKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', amount: 1 } : null };
 }

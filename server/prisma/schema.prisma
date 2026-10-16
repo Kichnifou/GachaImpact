@@ -9,6 +9,34 @@ datasource db {
   provider = "postgresql"
 }
 
+// Private resumable erasure journal. Auth subject is cleared after provider deletion.
+model AccountDeletion {
+  id String @id @db.Uuid
+  playerId String @unique @map("player_id") @db.Uuid
+  scopePlayerIds String[] @map("scope_player_ids") @db.Uuid
+  scopeTwitchIds String[] @map("scope_twitch_ids") @db.Text
+  subjectHash String? @unique @map("subject_hash") @db.Text
+  authSubject String? @map("auth_subject") @db.Text
+  status String @default("ACCEPTED") @db.Text
+  acceptedAt DateTime @default(now()) @map("accepted_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  leaseToken String? @map("lease_token") @db.Uuid
+  attempts Int @default(0)
+  lastFailureStage String? @map("last_failure_stage") @db.Text
+  requiresOfflineErasure Boolean @default(false) @map("requires_offline_erasure")
+  @@map("account_deletions")
+}
+
+// Keyed pseudonymous markers protect only obsolete restore/import paths.
+model AccountErasureMarker {
+  kind String @db.Text
+  digest String @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@id([kind, digest])
+  @@map("account_erasure_markers")
+}
+
 enum PlayerStatus {
   ACTIVE
   SUSPENDED

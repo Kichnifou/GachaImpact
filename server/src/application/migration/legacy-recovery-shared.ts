@@ -11,6 +11,7 @@ import { normalizeLegacyName, resolveSnapshotViewer } from './streamerbot-snapsh
 import { validateRecoverySource, type RecoverySource } from './legacy-recovery.js';
 import { applyLegacyGiveaway, type LegacyGiveawayPlan } from './legacy-giveaway-apply.js';
 import { recoveryBossFacts } from './legacy-recovery-boss-facts.js';
+import {assertNotErased} from '../player/account-erasure-markers.js';
 import { oncePerBackup, recoveryTransaction } from './legacy-recovery-transaction.js';
 
 type Tx = Prisma.TransactionClient;
@@ -155,7 +156,10 @@ async function inspect(tx: Tx, input: SharedRecoveryInput, proof: ReturnType<typ
 async function locks(tx: Tx, input: SharedRecoveryInput, proof: ReturnType<typeof checked>) {
   await tx.$executeRaw`SET LOCAL statement_timeout='5000ms'`;
   await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`recovery-shared:${proof.sourceKey}`},0))::text`;
-  for (const id of proof.population.approved.map(m => m.twitchUserId).sort()) await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${id}`},0))::text`;
+  for (const id of proof.population.approved.map(m => m.twitchUserId).sort()) {
+    await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${id}`},0))::text`;
+    await assertNotErased(tx,'TWITCH',id);
+  }
   await tx.$queryRaw`SELECT id FROM twitch_native_authorities WHERE id='twitch-commands' FOR UPDATE`;
   if (input.kind === 'GIVEAWAY_HISTORY') await tx.$executeRaw`SELECT pg_advisory_xact_lock(7861450867001::bigint)`;
   const map = await mappings(tx, proof);

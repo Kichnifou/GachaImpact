@@ -7,6 +7,7 @@ import { createDatabase } from '../src/infrastructure/database/prisma-database.j
 import { loadConfig } from '../src/config/environment.js';
 import { loadLocalOperatorSnapshot } from '../src/application/migration/local-operator-snapshot.js';
 import { checkedIdentityFile, readLocalIdentityJson, identityReportDirectory } from '../src/application/migration/local-identity-file.js';
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import { applyLegacyCanary, planLegacyCanary, rollbackLegacyCanary, canarySummary, canaryBackupHash, type CanaryBackup } from '../src/application/migration/legacy-canary.js';
 import { TwitchNativeAuthority, STREAMERBOT_PATH_DISABLED } from '../src/application/twitch/twitch-native-authority.js';
 import { isolatedBatchDatabase } from '../tests-db/isolated-batch-database.js';
@@ -74,7 +75,7 @@ async function main() {
     await mkdir(identityReportDirectory(), { recursive: true });
     const backupFile = await checkedIdentityFile(resolve(identityReportDirectory(), `canary-backup-${randomUUID()}.json`), true);
     const result = await applyLegacyCanary(db, config, values['operator-player']!, plan, values['legacy-path-frozen'],
-      async backup => { const file = await open(backupFile, 'wx', 0o600); try { await file.writeFile(JSON.stringify(backup)); await file.sync(); } finally { await file.close(); } });
+      async backup => { const bytes=await encryptPrivateBackup(Buffer.from(JSON.stringify(backup))); const file = await open(backupFile, 'wx', 0o600); try { await file.writeFile(bytes); await file.sync(); } finally { await file.close(); } });
     process.stdout.write(JSON.stringify({ status: result.status, backupHash: result.backupHash, backupCreated: true, backupFileName: basename(backupFile), dataAuthority: result.dataAuthority }) + '\n');
   } finally { await db.$disconnect(); }
 }

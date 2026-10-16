@@ -27,6 +27,7 @@ export function validateRecoverySource(input: RecoverySource) {
 }
 
 export async function planRecoveryProfile(db: PrismaClient, input: RecoverySource, twitchUserId: string) {
+  await assertNotErased(db,'TWITCH',twitchUserId);
   const source = validateRecoverySource(input);
   const member = source.population.approved.find(m => m.twitchUserId === twitchUserId);
   if (!member) fail('OUTSIDE_POPULATION');
@@ -98,3 +99,4 @@ export async function activateRecoveryProfiles(db: PrismaClient, config: AppConf
   }
   return { status: 'ACTIVATED' as const, ...await authority.extendImportedCanaries(actorPlayerId, additions, STREAMERBOT_PATH_DISABLED, expectedRevision) };
 }
+import {assertNotErased} from '../player/account-erasure-markers.js';

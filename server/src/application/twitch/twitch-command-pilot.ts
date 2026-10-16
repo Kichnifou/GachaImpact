@@ -1,4 +1,5 @@
 import { TwitchNativeAuthority, type NativeAuthorityStore, type NativeAuthorityState, type NativeAuthorityMode } from './twitch-native-authority.js';
+import { twitchErasedAt } from '../player/account-erasure-markers.js';
 import { twitchTimingPhase, twitchTimingMark, twitchTimingDimensions } from './twitch-command-timing.js';
 import { PrismaTwitchPlayerStore } from '../../infrastructure/database/prisma-twitch-player-store.js';
 import type { TwitchMessageActivity } from './twitch-message-activity.js';
@@ -227,10 +228,19 @@ export class TwitchCommandPilot {
       || event.source_broadcaster_user_id && event.source_broadcaster_user_id !== transport.broadcasterId) return;
     // Authority precedes identity/provisioning, parser and every business effect.
     if (!executeCommands || !isEligibleNativeChat(event) || !await this.enabled(event.chatter_user_id) || !event.message.text.trim()) return;
+    const observation=await this.db.twitchEventReceipt.findUnique({where:{id:receiptId},select:{receivedAt:true,payloadMinimal:true}});
+    const source=observation?.payloadMinimal&&typeof observation.payloadMinimal==='object'&&!Array.isArray(observation.payloadMinimal)
+      ?observation.payloadMinimal['sourceTimestamp']:null;
+    if(!observation?.receivedAt)return;
+    const observedAt=new Date(Math.min(observation.receivedAt.getTime(),typeof source==='string'&&Number.isFinite(Date.parse(source))?Date.parse(source):Infinity));
+    const erasedAt=await twitchErasedAt(this.db,event.chatter_user_id);
+    if(erasedAt) {
+      if(observedAt<=erasedAt)return;
+    }
     const existing = await twitchTimingPhase('identity', () => this.db.twitchIdentity.findUnique({ where: { twitchUserId: event.chatter_user_id }, include: { player: true } }));
     if (await this.isNativeOutboundMessage(raw)) return;
     const identity = existing ?? await twitchTimingPhase('identity', () => this.players.resolve({ twitchUserId: event.chatter_user_id,
-      login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt: this.executor.capturedAt?.() ?? new Date() }));
+      login: event.chatter_user_login ?? '', displayName: event.chatter_user_name ?? event.chatter_user_login ?? 'Voyageur', observedAt }));
     if (identity) twitchTimingDimensions({ identity: existing ? 'existing' : 'resolved' });
     if (!await this.enabled(event.chatter_user_id) || transport !== this.transport || !identity || identity.player.status !== 'ACTIVE'
       || identity.twitchUserId !== event.chatter_user_id) return;

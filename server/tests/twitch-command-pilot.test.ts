@@ -18,7 +18,7 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
   const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot: { enabled, compressIntentReads: true },
     twitch: { pilotPlayerIds: [playerId], pilotLogin: 'kichnifou' }, twitchEventSub: { enabled: true, callbackUrl: 'https://api.example/api/v1/twitch/eventsub' } };
   const receipt = { id: 'receipt', externalEventId: 'network-id', eventType: 'channel.chat.message', twitchUserId: '123', state: 'RECEIVED',
-    externalReference: null as string | null, payloadMinimal: {} as Record<string, unknown>, processedAt: null, errorMessage: null };
+    receivedAt:new Date('2026-10-15T00:00:00Z'),externalReference: null as string | null, payloadMinimal: {} as Record<string, unknown>, processedAt: null, errorMessage: null };
   const identity = { playerId, twitchUserId: '123', login: 'kichnifou', player: { id: playerId, displayName: 'Fixture', elementKey: 'pyro', status: 'ACTIVE' } };
   const identityRead = vi.fn(async ({ where }: { where: { twitchUserId?: string; playerId?: string } }) => where.twitchUserId === '123' || where.playerId === playerId ? identity : null);
   const tx = { $queryRaw: vi.fn(async () => []), businessOperation: { findFirst: vi.fn(async () => null) }, twitchIdentity: { findUnique: identityRead }, twitchEventReceipt: {
@@ -64,6 +64,20 @@ async function fixture(enabled = true, arm = true, receiverId = '123') {
 }
 
 describe('Kichnifou-operated command pilot with independent viewer actors', () => {
+  it('passes the authenticated observation time into provisioning, even when execution is later',async()=>{
+    const f=await fixture();f.canaries.add('456');
+    f.receipt.payloadMinimal={sourceTimestamp:'2026-10-15T00:01:00Z'};
+    f.receipt.receivedAt=new Date('2026-10-15T00:02:00Z');
+    Object.assign(f.executor,{capturedAt:()=>new Date('2026-10-16T12:00:00Z')});
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pity','456'),'receipt');
+    expect(f.players.resolve).toHaveBeenCalledWith(expect.objectContaining({twitchUserId:'456',observedAt:new Date('2026-10-15T00:01:00Z')}));
+  });
+  it('also fences an observation received before deletion when its signed source clock is ahead',async()=>{
+    const f=await fixture();f.canaries.add('456');
+    f.receipt.payloadMinimal={sourceTimestamp:'2026-10-15T00:05:00Z'};
+    await f.pilot.consumeAuthenticated(commandEnvelope('!pity','456'),'receipt');
+    expect(f.players.resolve).toHaveBeenCalledWith(expect.objectContaining({observedAt:f.receipt.receivedAt}));
+  });
   it.each(['SUCCESS', 'FAILED', 'AMBIGUOUS', 'SENDING'] as const)('keeps compressed reply state safety and ordered output: %s', async outcome => {
     const f = await fixture();
     Object.assign(f.executor, { prepare: vi.fn(async () => ({ now: '2026-10-15T00:00:00Z', reads: { 'getCurrentPlayerBox.execute': [Array(200).fill({ name: 'Étoile' })] }, memory: {}, mutation: { path: 'performGachaPullChat.execute', args: [] } })) });

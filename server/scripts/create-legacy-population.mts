@@ -1,3 +1,4 @@
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import 'dotenv/config';
 import { open } from 'node:fs/promises';
 import { loadLocalOperatorSnapshot } from '../src/application/migration/local-operator-snapshot.js';
@@ -10,7 +11,7 @@ async function main() {
   const population = createOwnerApprovedPopulation(await readLocalIdentityJson(historicalReport), await loadLocalOperatorSnapshot(snapshot));
   const target = await checkedIdentityFile(output, true);
   const file = await open(target, 'wx', 0o600);
-  try { await file.writeFile(JSON.stringify(population)); await file.sync(); } finally { await file.close(); }
+  try { await file.writeFile(await encryptPrivateBackup(Buffer.from(JSON.stringify(population)))); await file.sync(); } finally { await file.close(); }
   process.stdout.write(JSON.stringify({ decision: population.decision, sourceProfiles: 216, approvedPopulation: 43, ownerDiscarded: 171,
     quarantined: 2, historicalMembershipFrozen: true, freshRevalidationRequired: true }) + '\n');
 }

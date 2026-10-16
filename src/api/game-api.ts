@@ -174,6 +174,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   }
   return {
     sharedInvocations,
+    deleteAccount:(reauthenticationToken:string)=>request<{status:'COMPLETED'|'PENDING'}>('/api/v1/me/account/deletion',
+      {method:'POST',body:JSON.stringify({confirmation:'SUPPRIMER',reauthenticationToken})}),
     chat: {
       messages: (cursor?: ChatPageDto['nextCursor']) => request<ChatPageDto>('/api/v1/chat/messages' + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
       updates: (generation: number, cursor: { createdAt: string; id: string } | null, knownIds: string[]) => request<ChatUpdatesDto>('/api/v1/chat/updates', { method: 'POST', body: JSON.stringify({ generation, ...(cursor ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id } : {}), knownIds }) }),

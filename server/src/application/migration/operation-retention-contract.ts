@@ -15,6 +15,7 @@ export const operationReferenceContract = [
   ['event_calendar_claims', 'operation_id', 'CONSERVED'],
   ['event_collection_acquisitions', 'operation_id', 'CONSERVED'],
   ['event_milestone_claims', 'operation_id', 'CONSERVED'],
+  ['event_monthly_draws', 'operation_id', 'CONSERVED'],
   ['favor_daily_claims', 'operation_id', 'REPLACED'],
   ['favor_grants', 'operation_id', 'REPLACED'],
   ['friend_hearts', 'operation_id', 'CONSERVED'],

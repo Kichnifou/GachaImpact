@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "lot": "R1100 continuity",
+  "at": "2026-10-16T08:37:02.920Z",
+  "baseline": "201e81fdf4a9884a17c15fff0f75799d5f9aca1b",
+  "status": "locally qualified; GitHub reviews, public migration and activation not yet acquired",
+  "admin": {
+    "existingServerSecretCapability": "GET official Auth Admin synthetic nonexistent UUID ->404 user_not_found",
+    "destructivePublicProbe": false,
+    "secretExposed": false
+  },
+  "controls": {
+    "quick": "5/5 PASS",
+    "full": "8/8 PASS",
+    "frontendTests": 1757,
+    "backendTests": 2643,
+    "db": [
+      {
+        "name": "account-deletion",
+        "passed": 14,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 0
+      },
+      {
+        "name": "legacy-recovery",
+        "passed": 7,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 0
+      },
+      {
+        "name": "legacy-recovery-domains",
+        "passed": 23,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 0
+      },
+      {
+        "name": "twitch-command-pilot",
+        "passed": 31,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 0
+      },
+      {
+        "name": "twitch-event-observer",
+        "passed": 4,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 0
+      },
+      {
+        "name": "targeted-contract",
+        "passed": 27,
+        "scope": "fresh local PostgreSQL / isolated synthetic schema",
+        "skipped": 5
+      }
+    ],
+    "regression": [
+      {
+        "name": "retention-execution",
+        "passed": 17,
+        "scope": "isolated private PostgreSQL schema"
+      },
+      {
+        "name": "direct-message-reports.integration",
+        "passed": 7,
+        "scope": "isolated private PostgreSQL schema"
+      },
+      {
+        "name": "trades.integration",
+        "passed": 26,
+        "scope": "isolated private PostgreSQL schema"
+      },
+      {
+        "name": "twitch-auto-recovery.r1096",
+        "passed": 30,
+        "scope": "isolated private PostgreSQL schema"
+      }
+    ],
+    "visual": {
+      "viewports": [
+        {
+          "w": 1920,
+          "h": 1080,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true
+        },
+        {
+          "w": 1366,
+          "h": 768,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true
+        },
+        {
+          "w": 390,
+          "h": 844,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true
+        },
+        {
+          "w": 390,
+          "h": 600,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true
+        }
+      ],
+      "errors": [],
+      "compiledGameShell": true,
+      "productionCss": true
+    }
+  },
+  "legacyDebt": {
+    "baseline": "201e81fdf4a9884a17c15fff0f75799d5f9aca1b",
+    "fullTargetedSuite": "two known baseline replay failures remain after fixture corrections; contract subset27/27 passes",
+    "reason": "targeted-canary-v3 was already written at baseline but historical-operation-retention requires targeted-canary-v2. Active-account replacement replay is outside account deletion; unchanged production files confirmed.",
+    "unchanged": [
+      "server/src/application/migration/historical-operation-retention.ts",
+      "server/src/application/chat/global-chat-service.ts",
+      "server/src/application/chat/chat-command-dispatcher.ts",
+      "server/src/infrastructure/database/prisma-banking-store.ts"
+    ],
+    "humanApprovalInvented": false
+  },
+  "backups": {
+    "decision": "restore refusal at30days; physical erase at expiry or next PC wake if off; deleted accounts always excluded",
+    "encryptedFilesVerified": 14969,
+    "taskResult": 0,
+    "managedRemainingAtLastSweep": 12185,
+    "access": "Windows current user, SYSTEM, Administrators; DPAPI CurrentUser",
+    "privateContentsPublished": false
+  },
+  "history": {
+    "baseline": "201e81fdf4a9884a17c15fff0f75799d5f9aca1b",
+    "normalizedR1099SuffixUnchanged": true,
+    "sha256": "1428777aa6887745b37a94d92c005d3e7b1b967cffc9ef2c87e04d896b67fe2d"
+  },
+  "exclusions": {
+    "realPublicAccountDeletion": false,
+    "publicStorageDeletion": false,
+    "realTwitchCommand": false,
+    "ownerPublicRecipe": false,
+    "automaticNextLot": false
+  }
+}

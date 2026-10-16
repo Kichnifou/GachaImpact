@@ -1,3 +1,4 @@
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { open } from 'node:fs/promises';
@@ -36,7 +37,7 @@ async function main() {
     const write = async (value: unknown) => {
       const output = await checkedIdentityFile(values.output!, true);
       const file = await open(output, 'wx', 0o600);
-      try { await file.writeFile(JSON.stringify(value)); await file.sync(); } finally { await file.close(); }
+      try { await file.writeFile(await encryptPrivateBackup(Buffer.from(JSON.stringify(value)))); await file.sync(); } finally { await file.close(); }
     };
     const input = { ...scope, snapshot, reports, sourcePairKeyHash: values['source-pair-hash']! };
     if (mode === 'plan') {

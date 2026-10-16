@@ -1,4 +1,5 @@
 import { CosmeticType, CosmeticVisibility, type Prisma } from '../../../generated/prisma/client.js';
+import { assertNotErased } from '../player/account-erasure-markers.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import { mapLegacyPersonalFacts } from './legacy-personal-facts.js';
 import type { PlannedPlayer } from './legacy-global-plan.js';
@@ -9,6 +10,7 @@ type PlayerMapping = Awaited<ReturnType<SnapshotPilotService['globalPlayerPlan']
 /** Writes only current, proven personal state. No synthetic BusinessOperation, movement or acquisition. */
 export async function applyLegacyPersonalState(tx: Prisma.TransactionClient, player: PlannedPlayer,
   mapping: PlayerMapping, batchId: string, snapshotHash: string, cutoverAt: Date) {
+  await assertNotErased(tx,'TWITCH',player.twitchUserId);
   const authority = await tx.twitchNativeTarget.findUnique({ where: { twitchUserId: player.twitchUserId } });
   if (player.personalImport === false || authority?.dataAuthority === 'NATIVE') throw new Error('NATIVE_PLAYER_LEGACY_IMPORT_FORBIDDEN');
   const blockers = mapping.domains.filter(domain => domain.category === 'BLOCKED_AMBIGUOUS' || domain.action === 'PENDING_MAPPING');

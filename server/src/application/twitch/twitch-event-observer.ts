@@ -1,6 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { PrismaClient, TwitchEventReceipt } from '../../../generated/prisma/client.js';
 import { TwitchReceiptRetention } from './twitch-receipt-retention.js';
+import { twitchErasedAt } from '../player/account-erasure-markers.js';
+import { lockTwitchNativeAdmission } from './twitch-native-admission.js';
+export class TwitchErasedDelivery extends Error { constructor(){super('TWITCH_ERASED_DELIVERY');} }
 import { twitchSubscriptionProof, twitchSubscriptionGiftProof, twitchSubscriptionMessageProof,
   type TwitchSubscriptionProof, type TwitchSubscriptionGiftProof, type TwitchSubscriptionMessageProof } from './twitch-subscription-proof.js';
 
@@ -85,6 +88,11 @@ export function matchesTwitchObservationHash(receipt: TwitchEventReceipt): boole
 export class TwitchEventObserver {
   constructor(private readonly db: PrismaClient, private readonly retention = new TwitchReceiptRetention(db)) {}
 
+  async isErasedDelivery(twitchUserId:string,sourceTimestamp:string) {
+    const erasedAt=await twitchErasedAt(this.db,twitchUserId);
+    return Boolean(erasedAt&&Date.parse(sourceTimestamp)<=erasedAt.getTime());
+  }
+
   async observeTwitchEvent(input: TwitchObservedEvent) {
     const event = normalize(input);
     const payloadHash = createHash('sha256').update(JSON.stringify(event)).digest('hex');
@@ -97,6 +105,11 @@ export class TwitchEventObserver {
       return result(receipt, playerId, true);
     };
     const observe = () => this.db.$transaction(async tx => {
+      if(event.twitchUserId) {
+        await lockTwitchNativeAdmission(tx,event.twitchUserId);
+        const erasedAt=await twitchErasedAt(tx,event.twitchUserId);
+        if(erasedAt&&(!event.sourceTimestamp||Date.parse(event.sourceTimestamp)<=erasedAt.getTime()))throw new TwitchErasedDelivery();
+      }
       const identity = event.twitchUserId == null ? null : await tx.twitchIdentity.findUnique({ where: { twitchUserId: event.twitchUserId }, select: { playerId: true } });
       const existing = await tx.twitchEventReceipt.findUnique({ where: { externalEventId: event.externalEventId } });
       if (existing) return check(existing, identity?.playerId ?? null);

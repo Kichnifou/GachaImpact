@@ -25,6 +25,8 @@ import { GetTodayWheelState } from '../application/wheel/get-today-wheel-state.j
 import type { AppConfig } from '../config/environment.js';
 import { createSupabaseAuthAdapter } from './auth/supabase-auth-adapter.js';
 import { PrismaCurrentPlayerStore } from './database/prisma-current-player-store.js';
+import { AccountDeletionService } from '../application/player/account-deletion-service.js';
+import { SupabaseAccountAdmin } from './auth/supabase-account-admin.js';
 import { createDatabase } from './database/prisma-database.js';
 import { PrismaPlayerElementStore } from './database/prisma-player-element-store.js';
 import { PrismaPlayerResourceStore } from './database/prisma-player-resource-store.js';
@@ -105,6 +107,7 @@ import { TwitchGiftSupremeRuntime } from '../application/twitch/twitch-gift-supr
 import { TwitchGiveawayManager } from '../application/twitch/twitch-giveaway-manager.js';
 import { TwitchGiveawayConsumer } from '../application/twitch/twitch-giveaway-consumer.js';
 import { GiveawayService } from '../application/giveaway/giveaway-service.js';
+import {accountAccessVerifier} from '../application/player/account-access-verifier.js';
 
 export function createRuntimeDependencies(config: AppConfig) {
   if (!config.databaseUrl) {
@@ -113,6 +116,14 @@ export function createRuntimeDependencies(config: AppConfig) {
 
   const issuer = resolveSupabaseIssuer(config);
   const database = createDatabase(config.databaseUrl);
+  const baseVerifier=createSupabaseAuthAdapter(issuer);
+  const accountAdmin=config.supabase.url&&config.characterCatalog?.storageKey
+    ?new SupabaseAccountAdmin(config.supabase.url,config.characterCatalog.storageKey,baseVerifier):undefined;
+  const accountDeletion=accountAdmin&&config.accountDeletion?.markerKey
+    ?new AccountDeletionService(database,accountAdmin,baseVerifier,config.accountDeletion.markerKey,'RETENTION_30_DAYS'):undefined;
+  // Install the barrier before the marker key activates deletion, so previous
+  // replicas already observe accepted jobs during the activation rollout.
+  const guardedVerifier=accountAccessVerifier(database,accountAdmin,baseVerifier);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
   const catalogEngine = new CatalogEngine(database, { enabled: config.characterCatalog?.enabled ?? false,
@@ -191,7 +202,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     getPlayerMissions,
     tradeService,
     tradePlayer: getCurrentPlayer,
-    authIdentityVerifier: createSupabaseAuthAdapter(issuer),
+    authIdentityVerifier: guardedVerifier,
+    accountDeletion,
     getOrProvisionCurrentPlayer: new GetOrProvisionCurrentPlayer(store),
     choosePlayerElement: new ChoosePlayerElement(
       getCurrentPlayer,
@@ -277,8 +289,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); },
-    close: async () => { scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); accountDeletion?.start(); },
+    close: async () => { await accountDeletion?.stop(); scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,

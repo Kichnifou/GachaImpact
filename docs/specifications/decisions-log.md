@@ -2,7 +2,11 @@
 
 ## R1100 — suppression volontaire du compte, mandat du 16/10/2026
 
-**AUTORISÉ PAR LE PROPRIÉTAIRE :** suppression définitive personnelle avec confirmation SUPPRIMER et réauthentification fiable, identité cible serveur, protection des tiers, reprise et absence de restauration automatique. Cycle review/main/déploiements/postflight autorisé, aucun vrai compte public pour QA. Le mandat permet expressément une livraison partielle qualifiée avec chemin irréversible désactivé en cas d’accès privilégié Supabase indispensable manquant. Ce repli est appliqué : interface préparée/refus serveur uniquement, aucune décision prétendant la suppression implémentée. [Contrat et prérequis](../architecture/r1100-account-deletion.md), état réel au Master. R1099 et durées inchangés.
+**DÉCISION PROPRIÉTAIRE — continuité du 16/10/2026 :** effacement immédiat des données actives ; sauvegardes privées chiffrées conservées au maximum 30 jours, accès restreint, restauration bloquée pour le compte supprimé et information explicite du joueur. Cette règle autorise l'exception de sauvegarde ; elle ne prouve ni l'effacement actif implémenté ni la mise en conformité des copies locales. Qualification et état de livraison au Master.
+
+**PRÉCISION EXPLICITE VALIDÉE :** refus de restauration à 30 jours ; effacement physique au prochain réveil du PC si celui-ci est éteint. L'expiration du lecteur est stricte ; la purge physique locale ne peut pas être promise pendant l'arrêt matériel. Aucun service d'escrow de clés supplémentaire demandé.
+
+**AUTORISÉ PAR LE PROPRIÉTAIRE :** suppression définitive personnelle avec confirmation SUPPRIMER et réauthentification fiable, identité cible serveur, protection des tiers, reprise et absence de restauration automatique. Cycle review/main/déploiements/postflight autorisé, aucun vrai compte public pour QA. Le premier mandat permettait une livraison partielle désactivée si l'accès privilégié manquait : ce checkpoint historique a été publié. Le mandat de continuité impose désormais de finaliser l'effacement effectif avec les accès existants, sans deuxième repli ; capacité Admin confirmée par contrôle non destructif. [Contrat et limites](../architecture/r1100-account-deletion.md), état réel au Master. R1099 et durées inchangés.
 
 
 ## R1099 — mandat B2 délégué du15/10/2026

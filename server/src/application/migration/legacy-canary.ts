@@ -1,4 +1,5 @@
 import { parseLegacyElement } from './legacy-element.js';
+import { assertNotErased } from '../player/account-erasure-markers.js';
 import { randomUUID, createHash } from 'node:crypto';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { Snapshot } from './streamerbot-snapshot.js';
@@ -100,6 +101,7 @@ export async function applyLegacyCanary(db: PrismaClient, config: AppConfig, act
   return db.$transaction(async tx => {
     await new TwitchNativeAuthority(db, config).requireOperator(tx, actorPlayerId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${plan.player.twitchUserId}`},0))::text`;
+    await assertNotErased(tx,'TWITCH',plan.player.twitchUserId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
     const social = await captureLegacyFriendshipBackup(tx, { snapshot: plan.snapshot, report: plan.report,
@@ -182,6 +184,7 @@ export async function rollbackLegacyCanary(db: PrismaClient, config: AppConfig, 
     const authority = new TwitchNativeAuthority(db, config);
     await authority.requireOperator(tx, actorPlayerId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`twitch-provision:${backup.twitchUserId}`},0))::text`;
+    await assertNotErased(tx,'TWITCH',backup.twitchUserId);
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext('social:friendship'))::text`;
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(70422401)`;
     const control = await tx.twitchNativeAuthority.findUnique({ where: { id: 'twitch-commands' } });

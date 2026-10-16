@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { findChatCommand } from '../../application/chat/chat-command-registry.js';
 import { withTwitchCommandTiming, twitchTimingPhase } from '../../application/twitch/twitch-command-timing.js';
-import { TwitchObservationConflict, type TwitchEventObserver } from '../../application/twitch/twitch-event-observer.js';
+import { TwitchObservationConflict,TwitchErasedDelivery, type TwitchEventObserver } from '../../application/twitch/twitch-event-observer.js';
 import type { TwitchFavorSubscriptionConsumer } from '../../application/twitch/twitch-favor-subscription-consumer.js';
 import type { TwitchFavorGiftConsumer } from '../../application/twitch/twitch-favor-gift-consumer.js';
 import type { TwitchFavorResubConsumer } from '../../application/twitch/twitch-favor-resub-consumer.js';
@@ -103,6 +103,9 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
     if (notification.data.subscription.version !== '1'
       || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message', ...(options.giftSupreme ? [GIFT_SUPREME_EVENT_TYPE] : [])].includes(notification.data.subscription.type)) return reply.code(422).send();
     try {
+      const sender=z.object({event:z.object({chatter_user_id:z.string().optional(),user_id:z.string().nullish()})}).safeParse(body);
+      const senderId=sender.success?sender.data.event.chatter_user_id??sender.data.event.user_id:null;
+      if(senderId&&await options.observer.isErasedDelivery?.(senderId,timestamp))return reply.code(204).send();
       if (notification.data.subscription.type === GIFT_SUPREME_EVENT_TYPE) {
         const parsed = giftSupremeEnvelope.safeParse(body);
         if (!parsed.success) return reply.code(400).send();
@@ -173,6 +176,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
       else await processChat();
       return reply.code(204).send();
     } catch (error) {
+      if(error instanceof TwitchErasedDelivery)return reply.code(204).send();
       if (error instanceof TwitchObservationConflict || error instanceof GiftSupremeIdempotencyConflict) return reply.code(409).send();
       throw error;
     }

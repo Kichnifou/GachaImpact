@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## R1100 — continuité de la suppression de compte autorisée
+
+Finaliser le mandat déjà approuvé : effacement réauthentifié, protection des pairs, reprise et anti-restauration. Exception de sauvegardes privées30jours avec précision PC éteint validée. Aucun autre domaine V1 rouvert ; état, qualification, publication et activation exclusivement au [Master](../master/PROJECT_MASTER_PLAN.md), [contrat dédié](../architecture/r1100-account-deletion.md). STOP R1100 à la livraison.
+
 ## R1099 — finalisation de la maintenance autorisée
 
 Après livraison A/B1, le propriétaire autorise B2 dans une mission complète avec qualification par domaine, reviews indépendantes GitHub et activation sûre. [Périmètre et blocages techniques](../architecture/r1099-retention-execution.md), état et prochaine action exclusivement au Master. Aucun changement d'ordre V1 ni réouverture d'un sujet abandonné ; les limites de restauration interdisent toute suppression non qualifiée.

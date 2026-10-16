@@ -7,6 +7,7 @@ import type {
 import { PermanentMissionService } from '../../application/missions/permanent-mission-service.js';
 import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { bootstrapPlayer, currentPlayerSelection } from './player-bootstrap.js';
+import { assertSubjectNotDeleting, lockAuthSubject } from '../../application/player/account-erasure-markers.js';
 
 const MAX_PROVISION_ATTEMPTS = 2;
 
@@ -55,6 +56,8 @@ export class PrismaCurrentPlayerStore implements CurrentPlayerStore {
   ): Promise<CurrentPlayerResult> {
     return this.database.$transaction(
       async (transaction) => {
+        await lockAuthSubject(transaction,input.providerSubject);
+        await assertSubjectNotDeleting(transaction,input.providerSubject);
         const existingIdentity = await transaction.webIdentity.findUnique({
           where: {
             provider_providerSubject: {

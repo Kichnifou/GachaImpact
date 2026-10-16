@@ -1,3 +1,4 @@
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import 'dotenv/config';
 import { open } from 'node:fs/promises';
 import { loadConfig } from '../src/config/environment.js';
@@ -16,7 +17,7 @@ async function main() {
   if (backup.hash !== values['confirm-backup-hash'] || canaryBackupHash(preimage) !== hash || rowGraphHash(backup.rows.tables) !== backup.rows.hash
     || backup.rows.schema !== 'public' || backup.rows.playerIds.length !== 1 || backup.rows.playerIds[0] !== values['expected-player'] || backup.twitchUserId !== values['twitch-id']) throw new Error('COSMETIC_REPAIR_BACKUP_MISMATCH');
   const output = await checkedIdentityFile(values.output, true);
-  const write = async (value: unknown) => { const file = await open(output, 'wx', 0o600); try { await file.writeFile(JSON.stringify(value)); await file.sync(); } finally { await file.close(); } };
+  const write = async (value: unknown) => { const file = await open(output, 'wx', 0o600); try { await file.writeFile(await encryptPrivateBackup(Buffer.from(JSON.stringify(value)))); await file.sync(); } finally { await file.close(); } };
   const config = loadConfig(), db = createDatabase(config.databaseUrl!);
   try {
     if ((await db.$queryRaw<{ schema: string }[]>`SELECT current_schema() AS schema`)[0]?.schema !== 'public') throw new Error('COSMETIC_REPAIR_PUBLIC_SCHEMA_REQUIRED');

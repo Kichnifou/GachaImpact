@@ -4,6 +4,7 @@ import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import type { NativeAuthorityStore } from '../../application/twitch/twitch-native-authority.js';
 import { STREAMERBOT_PATH_DISABLED } from '../../application/twitch/twitch-native-authority.js';
 import { lockTwitchNativeAdmission } from '../../application/twitch/twitch-native-admission.js';
+import { twitchErasedAt } from '../../application/player/account-erasure-markers.js';
 
 export class PrismaTwitchPlayerStore {
   constructor(private readonly db: PrismaClient, private readonly authority: NativeAuthorityStore) {}
@@ -12,6 +13,8 @@ export class PrismaTwitchPlayerStore {
       try {
         return await this.db.$transaction(async tx => {
           await lockTwitchNativeAdmission(tx, input.twitchUserId);
+          const erasedAt=await twitchErasedAt(tx,input.twitchUserId);
+          if(erasedAt&&input.observedAt<=erasedAt)return null;
           // The deployment gate may differ between replicas. Recheck it after the control lock.
           if (!await this.authority.covers(input.twitchUserId, tx)) return null;
           // Recheck in the same transaction, including a kill switch committed while waiting for the identity lock.

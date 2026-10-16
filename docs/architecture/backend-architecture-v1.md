@@ -1,8 +1,8 @@
 # GachaImpact — Architecture backend V1
 
-## R1100 — refus autoritatif de suppression de compte
+## R1100 — suppression effective et reprenable du compte
 
-POST /api/v1/me/account/deletion : guard Bearer existant, 401 sans identité vérifiée, sinon 503 ACCOUNT_DELETION_UNAVAILABLE/no-store sans accès DB, provisionnement ou Auth Admin. Aucun credential/config ne peut activer ce chemin. La procédure réauthentifiée, reprenable et bloquant les anciens JWT reste non implémentée. [Contrat partiel et prérequis](r1100-account-deletion.md) ; état au Master.
+POST /api/v1/me/account/deletion : identité de session uniquement, confirmation SUPPRIMER et preuve Supabase password fraîche vérifiée côté serveur. Acceptation sérialisée et irréversible, blocage immédiat des accès/provisionnements anciens, journal privé avec bail/token et worker de reprise. Effacement des progressions courantes et archives prouvées du même WebIdentity, nettoyage partagé/Brotli, Storage et Auth Admin officiels ; aucun succès avant clôture. Marqueurs HMAC Player/Twitch/source d'amitié contre restauration. Refus des responsabilités globales, tirage Event figé et associations réassignées avant acceptation. Admission Twitch → Edition → Players triés ; cutoff PostgreSQL après tous les verrous. [Contrat et limites](r1100-account-deletion.md) ; qualification, publication et activation distinctes au Master.
 
 
 ## R1099 — moteur unique de maintenance réversible

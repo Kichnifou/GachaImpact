@@ -1,3 +1,4 @@
+import { archivedPlayerName } from '../player/presentation-name.js';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { PrismaClient } from '../../../generated/prisma/client.js';
@@ -124,7 +125,7 @@ async function readArchives(database: Pick<PrismaClient, '$queryRaw' | 'player'>
     const mostAttacks = [...ranking].sort((a, b) => desc(a.attackCount, b.attackCount) || desc(a.totalDamage, b.totalDamage) || a.playerId.localeCompare(b.playerId))[0] ?? null;
     const final = proof.contributions.find(row => row.value.finalBlow);
     const finalPlayer = final ? byId.get(final.playerId)! : null;
-    const finalBlow = finalPlayer ? { id: finalPlayer.id, displayName: finalPlayer.status === 'ARCHIVED' ? 'Progression archivée' : finalPlayer.displayName } : null;
+    const finalBlow = finalPlayer ? { id: finalPlayer.id, displayName: finalPlayer.status === 'ARCHIVED' ? archivedPlayerName(finalPlayer) : finalPlayer.displayName } : null;
     const id = publicId(proof.sourceBossKey), totalDamage = BigInt(proof.totalDamage), attackCount = BigInt(proof.totalAttacks);
     const entry: TwitchBossHistoryEntry = { id, origin: 'TWITCH_ARCHIVE', monthStart: proof.month + '-01', name: proof.name,
       baseHp: null, maxHp: BigInt(proof.maxHp), currentHp: BigInt(proof.currentHp), resistanceElementKey: archiveElement(proof.resistance)!,
@@ -133,7 +134,7 @@ async function readArchives(database: Pick<PrismaClient, '$queryRaw' | 'player'>
       historicalRewardsDistributed: proof.rewardsDistributed,
       community: { participantCount: proof.participantCount, totalDamage, attackCount, averageDamage: calculateRoundedBossAverage(totalDamage, attackCount) },
       records: { topContributor: ranking[0] ?? null, mostAttacks, topThree: ranking.slice(0, 3), finalBlow,
-        biggestHit: biggest && biggestPlayer ? { playerId: biggest.playerId, displayName: biggestPlayer.status === 'ARCHIVED' ? 'Progression archivée' : biggestPlayer.displayName,
+        biggestHit: biggest && biggestPlayer ? { playerId: biggest.playerId, displayName: biggestPlayer.status === 'ARCHIVED' ? archivedPlayerName(biggestPlayer) : biggestPlayer.displayName,
           damage: BigInt(biggest.value.bestHit), createdAt: null } : null },
       contributions: contributionPage(id, ranking, 1) };
     return { entry, ranking };

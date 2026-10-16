@@ -8762,6 +8762,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .account-deletion-section .app-button-danger:hover:not(:disabled) { border-color: rgba(255, 152, 162, .8); background: rgba(158, 48, 65, .98); }
 .account-deletion-dialog { box-sizing: border-box; max-height: calc(100dvh - 32px); overflow-y: auto; }
 .account-deletion-dialog label { display: block; margin-bottom: 8px; }
+.account-deletion-dialog > .app-button { margin: 8px 0 14px; }
 .account-deletion-dialog input { box-sizing: border-box; width: 100%; min-height: 38px; padding: 8px 10px; color: #dceaff; background: #081427; border: 1px solid var(--border); border-radius: 7px; font: inherit; }
 .account-deletion-dialog input:focus-visible { outline: 2px solid #70dcff; outline-offset: 2px; }
 .app-button-icon { width: 36px; min-width: 36px; height: 36px; min-height: 36px; display: inline-grid; place-items: center; padding: 0; border-radius: 9px; }

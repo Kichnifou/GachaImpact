@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertNotErased, twitchErasedAt } from '../player/account-erasure-markers.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { businessDateToDatabaseDate, getBusinessDate } from '../../domain/time/business-date.js';
 import { parseLegacyParisInstant } from './legacy-box-mapping.js';
@@ -87,8 +88,10 @@ function validateStoredFact(fact: StoredFact) {
 
 /** Register only report-proven immutable IDs. A CANARY report never guesses its peers. */
 export async function registerLegacyFriendships(tx: Tx, input: RegistrationInput) {
+  await assertNotErased(tx,'TWITCH',input.ownerTwitchUserId);
   const { owner, proof, provenKey, facts } = validatedRegistration(input);
   for (const fact of facts) {
+    await assertNotErased(tx,'FRIENDSHIP_SOURCE',fact.sourcePairKeyHash);
     const found = await tx.legacyFriendshipFact.findUnique({ where: { sourcePairKeyHash: fact.sourcePairKeyHash } });
     const update = proofUpdate(fact, found, provenKey, owner.twitchUserId, proof);
     if (!found) await tx.legacyFriendshipFact.create({ data: { ...fact, sourceSnapshotHash: input.snapshot.hash, ...update.data } });
@@ -285,6 +288,7 @@ export async function reconcileLegacyFriendships(tx: Tx, input: { now: Date; twi
   for (const fact of facts) {
     if (fact.status === 'BLOCKED') return fail('SOURCE_CONFLICT');
     if (!fact.leftTwitchUserId || !fact.rightTwitchUserId || !fact.leftProofHash || !fact.rightProofHash) { deferred++; continue; }
+    if(await twitchErasedAt(tx,fact.leftTwitchUserId)||await twitchErasedAt(tx,fact.rightTwitchUserId)){deferred++;continue;}
     if (fact.leftTwitchUserId === fact.rightTwitchUserId) return fail('IDENTITY_CONFLICT');
     const [left, right] = await Promise.all([
       tx.twitchIdentity.findUnique({ where: { twitchUserId: fact.leftTwitchUserId }, include: { player: { select: { status: true } } } }),

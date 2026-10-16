@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import { classifyOperationForeignKeys, operationReferenceContract, operationForeignKeySignature } from './operation-retention-contract.js';
 import { assertLegacyCosmeticsClassified } from '../appearance/derived-player-cosmetics.js';
+import { assertNotErased } from '../player/account-erasure-markers.js';
 
 export const personalReplacementTables = [
   'player_resource_balances', 'resource_movements', 'player_economy_stats', 'player_bank_accounts', 'bank_transactions',
@@ -156,6 +157,8 @@ export async function deleteTargetedRows(tx: Prisma.TransactionClient, graph: Ro
 }
 
 export async function restoreTargetedRows(tx: Prisma.TransactionClient, backup: RowGraph, retention?: TargetedRetention) {
+  for(const playerId of backup.playerIds)await assertNotErased(tx,'PLAYER',playerId);
+  for(const row of backup.tables.twitch_identities??[])await assertNotErased(tx,'TWITCH',(JSON.parse(row) as {twitch_user_id:string}).twitch_user_id);
   if (rowGraphHash(backup.tables) !== backup.hash) throw new Error('CANARY_BACKUP_HASH_MISMATCH');
   const current = await captureTargetedPlayerRows(tx, backup.playerIds, Object.keys(backup.tables));
   if (current.schema !== backup.schema || JSON.stringify(current.order) !== JSON.stringify(backup.order)) throw new Error('CANARY_BACKUP_DDL_MISMATCH');

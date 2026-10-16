@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertNotErased } from '../player/account-erasure-markers.js';
 import { z } from 'zod';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AppConfig } from '../../config/environment.js';
@@ -148,6 +149,7 @@ export async function rollbackLegacySocialPair(db: PrismaClient, config: AppConf
     || backup.operatorPlayerId !== input.operatorPlayerId || backup.expectedRevision !== input.expectedRevision) return fail('BACKUP_INVALID');
   return db.$transaction(async tx => {
     await prefixLocks(tx, backup.twitchUserIds);
+    for(const twitchId of backup.twitchUserIds)await assertNotErased(tx,'TWITCH',twitchId);
     const affected = await legacyFriendshipAffectedPlayers(tx, backup.twitchUserIds);
     await playerLocks(tx, [...backup.playerIds, ...backup.preimage.playerIds, ...affected]);
     await gates(tx, config, input);

@@ -20,6 +20,7 @@ const environmentSchema = z.object({
   RETENTION_MODE: z.enum(['DISABLED', 'DRY_RUN', 'EXECUTE']).default('DISABLED'),
   RETENTION_EXECUTE_DOMAINS: z.string().default('').transform(value=>[...new Set(value.split(',').map(part=>part.trim()).filter(Boolean))]).pipe(z.array(z.enum(['twitch_terminal','gacha','arcade']))),
   SUPABASE_STORAGE_SECRET_KEY: z.string().regex(/^sb_secret_[A-Za-z0-9_-]{10,}$/).optional(),
+  ACCOUNT_DELETION_MARKER_KEY: z.string().regex(/^[a-f0-9]{64}$/).optional(),
   TWITCH_CLIENT_ID: z.string().trim().min(1).optional(),
   TWITCH_CLIENT_SECRET: z.string().trim().min(1).optional(),
   TWITCH_REDIRECT_URI: optionalUrl,
@@ -44,6 +45,7 @@ export type AppConfig = Readonly<{
   retentionMode?: 'DISABLED' | 'DRY_RUN' | 'EXECUTE';
   retentionExecuteDomains?: readonly ('twitch_terminal'|'gacha'|'arcade')[];
   characterCatalog?: Readonly<{ enabled: boolean; publish: boolean; dryRun: boolean; storageKey?: string }>;
+  accountDeletion?:Readonly<{markerKey?:string}>;
   supabase: Readonly<{
     url?: string;
     publishableKey?: string;
@@ -80,6 +82,7 @@ export function loadConfig(environment: NodeJS.ProcessEnv = process.env): AppCon
 
   if(parsed.data.RETENTION_MODE==='EXECUTE'&&!parsed.data.RETENTION_EXECUTE_DOMAINS.length) throw new Error('EXECUTE requires explicit qualified retention domains.');
   return {
+    accountDeletion:{markerKey:parsed.data.ACCOUNT_DELETION_MARKER_KEY},
     retentionMode: parsed.data.RETENTION_MODE,
     retentionExecuteDomains: parsed.data.RETENTION_EXECUTE_DOMAINS,
     characterCatalog: { enabled: parsed.data.CHARACTER_CATALOG_ENABLED === 'true', publish: parsed.data.CHARACTER_CATALOG_PUBLISH_ENABLED === 'true',

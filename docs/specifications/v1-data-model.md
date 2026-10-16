@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1100 — effacement personnel reprenable
+
+AccountDeletion est un journal privé sans FK ni JSON : UUID d'ancrage et tableau borné des versions Player prouvées, identifiants Twitch temporaires vidés après effacement DB, subject brut retiré après Auth, hash de reprise retiré sept jours après clôture, bail/token et étapes fixes. AccountErasureMarker contient uniquement kind/digest HMAC/date (PLAYER, TWITCH, FRIENDSHIP_SOURCE). Les seules ancres Player partagées sont neutralisées ; progression courante et archives appartenant au compte sont retirées. LegacyFriendshipFact identifiant est supprimé après détachement de ses références ; compteurs/dates des pairs conservés. [Contrat et conservation](../architecture/r1100-account-deletion.md), état opérationnel au Master.
+
 ## R1099 — progression technique et preuves lossless
 
 RetentionProgress porte seulement checkpoint/compteurs par domaine ; RetentionJob ajoute gate durable et liste d'autorisation. Aucun lien Player, contenu privé ou nouvel état économique. Les snapshots PullResult et réponses ArcadeReceipt restent intégralement récupérables via wrapper Brotli versionné ; lecteur compatible obligatoire même après arrêt. Le résumé BusinessOperation/Team v2, RNG, rareté, claims, mouvements et statistiques ne sont pas supprimés. Le filtrage des historiques concerne les consultations ordinaires et ne remplace pas les preuves métier. [Matrice canonique B2](../architecture/r1099-retention-execution.md), état réel au Master. La qualification destructive B1 à zéro ne représente pas les compactages lossless, rapportés séparément.

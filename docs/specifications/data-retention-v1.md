@@ -1,5 +1,9 @@
 # Politique de rétention V1
 
+## R1100 — suppression personnelle et exception des copies privées
+
+Décision propriétaire du16/10/2026 : effacement immédiat des données actives après demande personnelle réauthentifiée ; copies privées chiffrées, accès restreint, restauration du compte supprimé interdite par marqueurs HMAC. Limite du lecteur30jours ; effacement physique à l'échéance ou au prochain réveil du PC s'il est éteint, précision explicitement validée et affichée au joueur. Writers chiffrés dès création, AES-GCM/DPAPI CurrentUser, tâche Windows quotidienne/logon StartWhenAvailable et sweep de réserve. Les anciennes progressions prouvées du même compte et preuves d'amitié identifiantes font partie de l'effacement. Les seuls chiffres/ancres partagés nécessaires sont conservés comme pseudonymes. [Contrat, limites et restauration](../architecture/r1100-account-deletion.md). Les durées, scheduler et compactages R1099 restent inchangés ; aucune purge globale nouvelle.
+
 ## R1099 — B2 autorisé, visibilité et compactage sans perte
 
 Le mandat du15/10 autorise la finalisation et l'activation autonome après qualification/reviews/déploiement. Les durées R1097 restent inchangées. Les consultations ordinaires Banque/Boutique/Échanges/Codes/Chat/MP/Gacha/Event/Concours et les résumés mensuels Boss sont bornés, sans retrait des preuves persistées. Les périodes mensuelles Boss restent consultables un an après leur période ; l'inventaire des attaques individuelles reste distinct. Les notifications résolues sont déjà absentes de la liste normale ; Combat et Arcade conservent leurs états/statistiques actuels. Catalogue/provenances durables restent intacts.

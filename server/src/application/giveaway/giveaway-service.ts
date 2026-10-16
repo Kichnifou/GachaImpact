@@ -1,3 +1,4 @@
+import { archivedPlayerName } from '../player/presentation-name.js';
 import { randomInt } from 'node:crypto';
 import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
 import { AppError } from '../../api/errors.js';
@@ -274,8 +275,8 @@ export class GiveawayService {
     const ranked = session ? giveawayRanked(chatStats.map(row => ({ playerId: row.playerId,
       displayName: row.player.displayName, messageCount: row.messageCount }))) : [];
     return { session: session ? { id: session.id, status: session.status, openedAt: session.openedAt?.toISOString() ?? null,
-      closedAt: session.closedAt?.toISOString() ?? null, openedBy: session.openedBy?.status === 'ARCHIVED' ? 'Progression archivée' : session.openedBy?.displayName ?? null,
-      winner: session.winner?.status === 'ARCHIVED' ? 'Progression archivée' : session.winner?.displayName ?? null, participantCount: participants.length, chatterCount: chatStats.length,
+      closedAt: session.closedAt?.toISOString() ?? null, openedBy: session.openedBy?.status === 'ARCHIVED' ? archivedPlayerName(session.openedBy) : session.openedBy?.displayName ?? null,
+      winner: session.winner?.status === 'ARCHIVED' ? archivedPlayerName(session.winner) : session.winner?.displayName ?? null, participantCount: participants.length, chatterCount: chatStats.length,
       top: ranked.slice(0, 3).map(row => ({ playerId: row.playerId, displayName: row.displayName,
         messageCount: row.messageCount.toString(), rank: row.rank })), announcements: session.announcements } : null,
       bridge: await this.bridge.status() };

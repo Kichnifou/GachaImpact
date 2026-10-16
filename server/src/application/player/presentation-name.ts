@@ -21,3 +21,6 @@ export function uniquePlayerReference<T extends { id: string; displayName: strin
   const matches = players.filter(player => [player.displayName, player.presentationName].some(name => name != null && normalizePresentationReference(name) === query));
   return matches.length === 1 ? matches[0]! : null;
 }
+/** Only the neutral erasure anchor has this stored label. Older archives keep
+ * their existing generic presentation and cannot regain a visible identity. */
+export const archivedPlayerName=(player:{displayName?:string})=>player.displayName==='Compte supprimé'?'Compte supprimé':'Progression archivée';

@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1100 — migration additive085 et périmètre d'effacement
+
+`20261016080000_085_account_deletion` ajoute account_deletions et account_erasure_markers, RLS/revokes navigateur, sans nouvelle FK/JSON. Périmètre1–25 UUID incluant l'ancre, baux/token et statuts contrôlés ; journal privé et marqueurs HMAC. Gardes ARCHIVED conservées, exception uniquement pour le job vivant et ses Players prouvés ; scrub d'une seule colonne JSON de tiers, retrait exact des deux liens de provenance d'amitié ou du grantor personnel, sans mutation économique des pairs. Guard SQL subject contre reprovisionnement ancien JWT. Inventaire307FK/83JSON exact, dérive inconnue refusée. Le contrat BusinessOperation classe désormais la FK EventMonthlyDraw déjà présente depuis069 comme CONSERVED (31 références, aucune FK créée ici). Qualification privée des85migrations distincte de leur application publique via predeploy Prisma ; preuve au Master.
+
 ## R1099 — migration additive084 et formats réversibles
 
 `20261015200000_084_retention_progress` ajoute execution_enabled(FALSE) et enabled_domains(JSONB array≤2048octets) à retention_job, puis retention_progress(PK domaine, cycle, cutoff, cursor JSONB, report objet≤16384octets, complete). RLS/revokes PUBLIC/anon/authenticated, aucune FK métier ni donnée économique copiée. Application publique exclusivement par Prisma predeploy après reviews ; qualification des84migrations privée ne vaut pas application publique. Twitch réutilise son codec R1097 ; Gacha/Arcade peuvent stocker le wrapper `lossless-brotli-v1` dans leurs colonnes JSONB existantes. Gain datum mesuré avant acceptation, aucune baisse disque physique promise. [Architecture et récupération](r1099-retention-execution.md).

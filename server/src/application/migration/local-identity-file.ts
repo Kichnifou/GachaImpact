@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { lstat, readFile } from 'node:fs/promises';
+import { lstat } from 'node:fs/promises';
+import { readPrivateBackup } from './private-offline-backup.js';
 import { dirname, parse, resolve, sep } from 'node:path';
 
 export const identityReportDirectory = () => resolve('..', 'local-data', 'identity-resolutions');
@@ -33,6 +34,6 @@ export async function checkedIdentityFile(file: string, newFile = false): Promis
 }
 
 export async function readLocalIdentityJson(file: string): Promise<unknown> {
-  try { return JSON.parse(await readFile(await checkedIdentityFile(file), 'utf8')); }
+  try { return JSON.parse((await readPrivateBackup(await checkedIdentityFile(file))).toString('utf8')); }
   catch { throw new Error('TWITCH_REPORT_UNUSABLE'); }
 }

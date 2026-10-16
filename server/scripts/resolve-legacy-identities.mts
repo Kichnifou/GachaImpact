@@ -1,3 +1,4 @@
+import { encryptPrivateBackup } from '../src/application/migration/private-offline-backup.js';
 import { loadHistoricalOwnerPopulation } from '../src/application/migration/owner-approved-population.js';
 import { loadLocalOperatorSnapshot } from '../src/application/migration/local-operator-snapshot.js';
 import 'dotenv/config';
@@ -36,7 +37,7 @@ const resolution = Object.keys(candidates.knownIds).length || candidates.conflic
   : direct;
 const report = createVerifiedTwitchReport(snapshot, resolution, new Date(), scope);
 await checkedIdentityFile(target, true);
-await writeFile(target, JSON.stringify(report, null, 2), { flag: 'wx', mode: 0o600 });
+await writeFile(target, await encryptPrivateBackup(Buffer.from(JSON.stringify(report, null, 2))), { flag: 'wx', mode: 0o600 });
 process.stdout.write(JSON.stringify({ scope: scope.kind, resolved: report.users.length, missing: report.missing.length,
   conflicts: report.conflicts.length, duplicates: report.duplicates }) + '\n');
 

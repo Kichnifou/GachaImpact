@@ -104,8 +104,10 @@ import type { GiveawayService } from './application/giveaway/giveaway-service.js
 import type { TwitchGiveawayManager } from './application/twitch/twitch-giveaway-manager.js';
 import type { TwitchGiveawayConsumer } from './application/twitch/twitch-giveaway-consumer.js';
 import type { TwitchCommandPilot } from './application/twitch/twitch-command-pilot.js';
+import type { AccountDeletionService } from './application/player/account-deletion-service.js';
 
 export type AppDependencies = Readonly<{
+  accountDeletion?:AccountDeletionService;
   globalChatService?: GlobalChatService;
   chatCommandDispatcher?: ChatCommandDispatcher;
   rankingService?: RankingService;
@@ -237,7 +239,8 @@ export async function buildApp(
     });
 
     const authenticate = createAuthenticationHook(dependencies.authIdentityVerifier);
-    await app.register(registerAccountDeletionRoutes, { authenticate });
+    await app.register(registerAccountDeletionRoutes, { authenticate: dependencies.accountDeletion
+      ? createAuthenticationHook(dependencies.accountDeletion.resumeIdentityVerifier):authenticate, service:dependencies.accountDeletion });
     if (dependencies.twitchPilot && dependencies.snapshotPilot) await app.register(registerTwitchPilotRoutes, { authenticate, twitch: dependencies.twitchPilot, snapshot: dependencies.snapshotPilot, config, commandPilot: dependencies.twitchCommandPilot });
     if (dependencies.tradeService && dependencies.tradePlayer) await app.register(registerTradeRoutes, { authenticate, service: dependencies.tradeService, getPlayer: dependencies.tradePlayer });
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });

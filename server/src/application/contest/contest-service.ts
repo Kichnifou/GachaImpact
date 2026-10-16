@@ -1,4 +1,4 @@
-import { presentedName } from '../player/presentation-name.js';
+import { presentedName, archivedPlayerName } from '../player/presentation-name.js';
 import { retentionVisiblePage } from '../retention/retention-visible-history.js';
 import { contestDiagnostics, type ContestDiagnosticSink } from './contest-diagnostics.js';
 import { commandNow } from '../player/player-command-execution.js';
@@ -893,7 +893,7 @@ function replacementBotIdentity(slot: number) {
 
 function presentParticipantIdentity(participant: ContestRecord['participants'][number]) {
   if (participant.kind === ContestParticipantKind.BOT && participant.originalPlayerId) return replacementBotIdentity(participant.slot);
-  return { displayName: participant.player?.status === 'ARCHIVED' ? 'Progression archivée' : participant.playerNameSnapshot, characterName: participant.characterNameSnapshot, avatar: participant.avatarSnapshot };
+  return { displayName: participant.player?.status === 'ARCHIVED' ? archivedPlayerName(participant.player) : participant.playerNameSnapshot, characterName: participant.characterNameSnapshot, avatar: participant.avatarSnapshot };
 }
 
 function presentTheme(theme: ContestTheme) { const item = contestThemePresentation[theme as ContestThemeKey]; return { key: theme, label: item.label, title: item.title, statKey: item.statKey }; }
@@ -942,7 +942,7 @@ function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPla
       liveRank: liveRanks.get(item.slot) ?? null,
       finalRank: history ? item.finalRank : null, rewardPrimogems: history ? item.rewardPrimogems.toString() : null,
     }}),
-    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(item.player), selected: contest.selectedSpectatorPlayerId === item.playerId })),
+    spectators: contest.spectators.map((item) => ({ playerId: item.playerId, displayName: item.player.status === 'ARCHIVED' ? archivedPlayerName(item.player) : presentedName(item.player), selected: contest.selectedSpectatorPlayerId === item.playerId })),
     recentScoreChanges,
     promotions,
     historyEvents: historyContest ? presentHistoryEvents(historyContest) : [],
@@ -1010,9 +1010,9 @@ function presentHistoryEvents(contest: ContestHistoryRecord): PresentedHistoryEv
     if (!playerId) return null;
     const participant = contest.participants.find((item) => item.playerId === playerId || item.originalPlayerId === playerId);
     if (participant?.playerId === playerId) return presentParticipantIdentity(participant).displayName;
-    if (participant?.originalPlayerId === playerId) return participant.originalPlayer?.status === 'ARCHIVED' ? 'Progression archivée' : participant.originalPlayer?.displayName ?? participant.playerNameSnapshot;
+    if (participant?.originalPlayerId === playerId) return participant.originalPlayer?.status === 'ARCHIVED' ? archivedPlayerName(participant.originalPlayer) : participant.originalPlayer?.displayName ?? participant.playerNameSnapshot;
     const spectator = contest.spectators.find((item) => item.playerId === playerId)?.player;
-    return spectator?.status === 'ARCHIVED' ? 'Progression archivée' : spectator?.displayName ?? null;
+    return spectator?.status === 'ARCHIVED' ? archivedPlayerName(spectator) : spectator?.displayName ?? null;
   };
   const result: PresentedHistoryEvent[] = [];
   for (const event of contest.events) {

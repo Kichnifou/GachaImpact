@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertNotErased } from '../player/account-erasure-markers.js';
 import type { Prisma } from '../../../generated/prisma/client.js';
 import type { Snapshot } from './streamerbot-snapshot.js';
 import type { VerifiedTwitchReport } from './verified-twitch-report.js';
@@ -58,6 +59,8 @@ export async function legacyFriendshipBackupPostHash(tx: Tx, backup: LegacyFrien
 
 /** Restore only this operation's social preimage; refusal is atomic if any later write/reference exists. */
 export async function restoreLegacyFriendshipBackup(tx: Tx, backup: LegacyFriendshipBackup, expectedPostHash: string) {
+  for(const pair of backup.sourcePairKeyHashes)await assertNotErased(tx,'FRIENDSHIP_SOURCE',pair);
+  for(const playerId of backup.playerIds)await assertNotErased(tx,'PLAYER',playerId);
   validate(backup);
   const current = await capture(tx, backup.schema, backup.sourcePairKeyHashes);
   if (hash(current) !== expectedPostHash) throw new Error('LEGACY_FRIENDSHIP_POSTIMAGE_CHANGED');

@@ -1,25 +1,64 @@
-import { useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import AppButton from '../components/AppButton'
 import { useModalDialog } from '../components/useModalDialog'
 import { useTutorialPresentation } from '../tutorial/tutorial-presentation'
-
-const unavailable = 'La suppression de compte est temporairement indisponible. Aucune donnée ne sera supprimée.'
+import { AuthContext } from '../auth/auth-context'
+import { createReauthenticationClient, getSupabaseClient } from '../infrastructure/supabase/client'
+import { getGameApiClient } from '../api/game-api'
+import { ApiError } from '../api/game-api'
 
 function DeletionDialog({ onClose }: { onClose: () => void }) {
-  const ref = useModalDialog<HTMLDivElement>(onClose)
+  const auth=useContext(AuthContext),busy=useRef(false),proof=useRef('')
+  const ref = useModalDialog<HTMLDivElement>(()=>{if(!busy.current&&!accepted)onClose()})
   const [confirmation, setConfirmation] = useState('')
-  return <div className="account-confirm-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-    <div ref={ref} className="account-confirm account-deletion-dialog" role="dialog" aria-modal="true" aria-labelledby="account-deletion-title" aria-describedby="account-deletion-warning account-deletion-unavailable" tabIndex={-1}>
+  const [password,setPassword]=useState(''),[verified,setVerified]=useState(false),[accepted,setAccepted]=useState(false)
+  const [stage,setStage]=useState<'idle'|'verifying'|'deleting'>('idle'),[error,setError]=useState(''),[notice,setNotice]=useState('')
+  useEffect(()=>{if(!verified)return;const timer=setTimeout(()=>{if(!accepted){proof.current='';setVerified(false);setNotice('Vérifie à nouveau ton identité.')}},300_000);return()=>clearTimeout(timer)},[verified,accepted])
+  useEffect(()=>()=>{proof.current=''},[])
+  async function verify(){
+    if(busy.current||!password||!auth?.session?.user.email)return
+    busy.current=true;proof.current='';setVerified(false);setStage('verifying');setError('');setNotice('')
+    const client=createReauthenticationClient()
+    try{
+      const result=await client.auth.signInWithPassword({email:auth.session.user.email,password})
+      if(result.error||!result.data.session||result.data.user?.id!==auth.session.user.id)throw new Error('REAUTH_FAILED')
+      proof.current=result.data.session.access_token;setVerified(true);setNotice('Identité vérifiée pour cinq minutes.')
+    }catch{setError('La vérification a échoué. Vérifie ton mot de passe et réessaie.')}
+    finally{setPassword('');setStage('idle');busy.current=false}
+  }
+  async function remove(){
+    if(busy.current||confirmation!=='SUPPRIMER'||!proof.current||!verified)return
+    busy.current=true;setStage('deleting');setError('');setNotice('')
+    try{
+      const result=await getGameApiClient().deleteAccount(proof.current)
+      if(result.status!=='COMPLETED'){setAccepted(true);setNotice('La suppression est engagée et ton compte est bloqué. Sa clôture reste en cours ; tu peux vérifier à nouveau son état.');return}
+      proof.current='';setPassword('')
+      try{await getSupabaseClient().auth.signOut({scope:'local'})}catch{/* Provider already deleted; still clear this origin and reload. */}
+      try{localStorage.clear()}catch{/* Storage may be disabled by the browser. */}
+      try{sessionStorage.clear()}catch{/* Reload still clears the in-memory game state. */}
+      window.location.replace('/')
+    }catch(reason){
+      if(reason instanceof ApiError&&reason.code==='ACCOUNT_DELETION_RESPONSIBILITY')setError(reason.message)
+      else if(reason instanceof ApiError&&reason.code==='ACCOUNT_REAUTH_REQUIRED'){proof.current='';setVerified(false);setError('Vérifie à nouveau ton identité avant de confirmer.')}
+      else setError('La clôture n’a pas pu être confirmée. Réessaie pour vérifier son état. Aucun succès de suppression n’est confirmé.')
+    }finally{setStage('idle');busy.current=false}
+  }
+  const pending=stage!=='idle'
+  return <div className="account-confirm-backdrop" onMouseDown={event => { if (event.target === event.currentTarget&&!busy.current&&!accepted) onClose() }}>
+    <div ref={ref} className="account-confirm account-deletion-dialog" role="dialog" aria-modal="true" aria-labelledby="account-deletion-title" aria-describedby="account-deletion-warning" aria-busy={pending} tabIndex={-1}>
       <h3 id="account-deletion-title">Supprimer mon compte</h3>
-      <p id="account-deletion-warning">Cette action supprimera définitivement ton compte GachaImpact, tes personnages, tes ressources et toute ta progression. Elle est irréversible. Certaines preuves historiques anonymisées pourront être conservées.</p>
-      <p id="account-deletion-unavailable" role="status">{unavailable}</p>
+      <p id="account-deletion-warning">Cette action supprimera définitivement ton compte GachaImpact, tes personnages, tes ressources et toute ta progression. Elle est irréversible. Seules les preuves historiques indispensables pourront être conservées, sans tes identifiants externes ni tes contenus personnels.</p>
+      <p>Les données actives seront effacées immédiatement. Les sauvegardes privées chiffrées ont un accès restreint et ne pourront pas restaurer ton compte supprimé. Toute restauration est interdite après 30 jours. Les copies sont effacées à l’échéance, ou au prochain réveil du PC s’il est éteint.</p>
+      <label htmlFor="account-deletion-password">Mot de passe actuel</label>
+      <input id="account-deletion-password" type="password" autoComplete="current-password" value={password} disabled={pending||accepted} onChange={event=>setPassword(event.target.value)} />
+      <AppButton disabled={pending||accepted||!password||!auth?.session?.user.email} onClick={()=>void verify()}>{stage==='verifying'?'Vérification…':'Vérifier mon identité'}</AppButton>
       <label htmlFor="account-deletion-confirmation">Saisis SUPPRIMER pour confirmer</label>
-      <input id="account-deletion-confirmation" autoComplete="off" spellCheck={false} value={confirmation} onChange={event => setConfirmation(event.target.value)} />
-      <p>Une nouvelle vérification de ton identité sera nécessaire lorsque la suppression sera disponible.</p>
+      <input id="account-deletion-confirmation" autoComplete="off" spellCheck={false} disabled={pending||accepted} value={confirmation} onChange={event => setConfirmation(event.target.value)} />
+      {error&&<p role="alert">{error}</p>}
+      {notice&&<p role="status">{notice}</p>}
       <div>
-        <AppButton onClick={onClose}>Annuler</AppButton>
-        {/* R1100 fallback: no handler, capability flag or client-side way to enable deletion. */}
-        <AppButton variant="danger" disabled aria-describedby="account-deletion-unavailable">Supprimer définitivement</AppButton>
+        <AppButton disabled={pending||accepted} onClick={onClose}>Annuler</AppButton>
+        <AppButton variant="danger" disabled={pending||confirmation!=='SUPPRIMER'||!verified} onClick={()=>void remove()}>{stage==='deleting'?'Suppression en cours…':accepted?'Vérifier la clôture':'Supprimer définitivement'}</AppButton>
       </div>
     </div>
   </div>
@@ -31,7 +70,6 @@ export default function AccountDeletionPanel() {
   return <section className="account-section account-deletion-section">
     <h3>Supprimer mon compte</h3>
     <p>La suppression efface définitivement ton compte et toute ta progression.</p>
-    <p>{unavailable}</p>
     <AppButton variant="danger" disabled={tutorial} onClick={() => setOpen(true)}>Supprimer mon compte</AppButton>
     {open && !tutorial && <DeletionDialog onClose={() => setOpen(false)} />}
   </section>

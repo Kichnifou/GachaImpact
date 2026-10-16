@@ -1,4 +1,4 @@
-import { presentedName } from '../player/presentation-name.js';
+import { presentedName, archivedPlayerName } from '../player/presentation-name.js';
 import { assertPlayerDomainReady, isPlayerDomainReady } from '../player/player-recovery-readiness.js';
 import { lockPlayerMutation, lockPlayerMutationState } from '../player/player-mutation-guard.js';
 import { assertCommandTargets } from '../player/player-command-execution.js';
@@ -554,7 +554,7 @@ type BossSummarySource = Readonly<{
 }>;
 
 function presentBossAttribution(player: BossSummarySource['finalBlowPlayer']) {
-  return player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(player) } : null;
+  return player ? { id: player.id, displayName: player.status === 'ARCHIVED' ? archivedPlayerName(player) : presentedName(player) } : null;
 }
 
 type BossSummaryData = Readonly<{ summary: MonthlyBossSummary; ranking: readonly MonthlyBossRankingEntry[] }>;
@@ -598,7 +598,7 @@ async function readBossSummaries(client: Client, bosses: readonly BossSummarySou
       },
       records: {
         topContributor: ranking[0] ?? null,
-        biggestHit: biggestHit ? { playerId: biggestHit.playerId, displayName: biggestHit.player.status === 'ARCHIVED' ? 'Progression archivée' : presentedName(biggestHit.player), damage: biggestHit.damage, createdAt: biggestHit.createdAt } : null,
+        biggestHit: biggestHit ? { playerId: biggestHit.playerId, displayName: biggestHit.player.status === 'ARCHIVED' ? archivedPlayerName(biggestHit.player) : presentedName(biggestHit.player), damage: biggestHit.damage, createdAt: biggestHit.createdAt } : null,
         mostAttacks,
         finalBlow: presentBossAttribution(boss.finalBlowPlayer),
         topThree: ranking.slice(0, 3),

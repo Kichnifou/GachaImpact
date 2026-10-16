@@ -25,6 +25,9 @@ const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot
 let operatorId: string, sequence = 10;
 beforeAll(async () => {
   await fixture.setup({ seedPublicCatalog: true });
+  // A fresh local catalog has not run the global legacy item materialization.
+  await db.itemDefinition.upsert({where:{externalKey:'masterless-stella-fortuna'},update:{},
+    create:{externalKey:'masterless-stella-fortuna',displayName:'Synthetic Stella',category:'SPECIAL'}});
   const operator = await db.player.create({ data: { displayName: 'Synthetic operator',
     twitchIdentity: { create: { twitchUserId: '900000000000', login: 'kichnifou', displayName: 'Synthetic operator', firstSeenAt: new Date() } } } });
   operatorId = operator.id; config.twitch.pilotPlayerIds.push(operatorId);
@@ -32,12 +35,14 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(() => fixture.cleanup(), 60_000);
 async function target() {
-  const { snapshot, report } = canarySnapshot();
-  report.users[0]!.twitchUserId = String(900000000000 + sequence++);
+  // Each synthetic identity owns a different source name; proof facts persist
+  // across cases and must never bind one login to multiple Twitch identities.
+  const twitchUserId=String(900000000000 + sequence++);
+  const { snapshot, report } = canarySnapshot({}, {legacyLogin:'retention_'+sequence,twitchUserId});
   const subject = randomUUID();
   const player = await db.$transaction(tx => bootstrapPlayer(tx, { displayName: 'Synthetic retention target',
     webIdentity: { provider: 'supabase', providerSubject: subject },
-    twitchIdentity: { twitchUserId: report.users[0]!.twitchUserId, login: 'fixture_canary', displayName: 'Fixture', firstSeenAt: new Date() } }));
+    twitchIdentity: { twitchUserId: report.users[0]!.twitchUserId, login:report.users[0]!.legacyLogin, displayName: 'Fixture', firstSeenAt: new Date() } }));
   await db.playerProgression.update({ where: { playerId: player.id }, data: { xp: 777n } });
   await db.playerResourceBalance.updateMany({ where: { playerId: player.id }, data: { amount: 999n } });
   await db.playerBankAccount.create({ data: { playerId: player.id, balance: 888n, lastInterestDate: new Date('2026-10-05') } });
@@ -79,11 +84,11 @@ async function replace(t: Target) {
 }
 
 describe('targeted replacement retention contract on private PostgreSQL', () => {
-  it('classifies ALL 30 actual foreign keys exactly once, including the complete conserved category', async () => {
+  it('classifies ALL 31 actual foreign keys exactly once, including the complete conserved category', async () => {
     const { fks } = await targetedRowMetadata(db);
-    expect(classifyOperationForeignKeys(fks, replacing)).toHaveLength(30);
-    expect(new Set(operationReferenceContract.map(([t, c]) => `${t}.${c}`)).size).toBe(30);
-    expect(operationReferenceContract.filter(([, , c]) => c === 'CONSERVED')).toHaveLength(18);
+    expect(classifyOperationForeignKeys(fks, replacing)).toHaveLength(31);
+    expect(new Set(operationReferenceContract.map(([t, c]) => `${t}.${c}`)).size).toBe(31);
+    expect(operationReferenceContract.filter(([, , c]) => c === 'CONSERVED')).toHaveLength(19);
   });
   it('deletes an unreferenced operation', async () => {
     const t = await target(), op = await operation(t); await replace(t);
@@ -162,10 +167,10 @@ describe('targeted replacement retention contract on private PostgreSQL', () => 
       await expect(assertTargetedDeletionSafe(db, rows, replacing, retention)).rejects.toThrow('CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR');
     } finally { await fixture.admin.query('DROP TABLE retention_team_ref'); }
   });
-  it('applies a mixed retained/deleted replacement and records the complete version 2 preimage', async () => {
+  it('applies a mixed retained/deleted replacement and records the complete version 3 preimage', async () => {
     const t = await target(), kept = await operation(t), removed = await operation(t); await history(t, kept.id); await movement(t, kept.id);
     const before = await graph(t), { backup } = await imported(t);
-    expect(backup.version).toBe(2); expect(backup.rows.hash).toBe(before.hash);
+    expect(backup.version).toBe(3); expect(backup.rows.hash).toBe(before.hash);
     expect(canaryBackupSchema.safeParse(JSON.parse(JSON.stringify(backup))).success).toBe(true);
     expect((await graph(t)).tables.business_operations).toEqual(before.tables.business_operations!.filter(row => JSON.parse(row).id === kept.id));
     expect(await db.businessOperation.findUnique({ where: { id: removed.id } })).toBeNull();
@@ -243,7 +248,8 @@ describe('targeted replacement retention contract on private PostgreSQL', () => 
   it('restores a serialized version 1 backup with its original strict deletion semantics', async () => {
     const t = await target(), op = await operation(t); await movement(t, op.id); const original = await graph(t), { backup } = await imported(t);
     const { version: _version, hash: _hash, ...common } = backup;
-    const { retention: _retention, ...preimage } = { ...common, retention: backup.version === 2 ? backup.retention : undefined };
+    const { retention: _retention, social: _social, ...preimage } = { ...common,
+      retention: backup.version !== 1 ? backup.retention : undefined,social:backup.version===3?backup.social:undefined };
     const old = { ...preimage, version: 1 as const };
     const v1 = canaryBackupSchema.parse(JSON.parse(JSON.stringify({ ...old, hash: canaryBackupHash(old) }))) as CanaryBackup;
     await db.twitchCanaryImport.updateMany({ where: { playerId: t.playerId }, data: { backupHash: v1.hash } });
