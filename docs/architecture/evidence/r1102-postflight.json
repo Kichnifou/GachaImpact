@@ -1,0 +1,125 @@
+{
+  "runtime": {
+    "sha": "46a62e092c28e095490ad32a1237601c78c81fa0",
+    "railway": {
+      "id": "644ec71f-68fd-44c7-a855-c54c15144880",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "8290fe4b-ad75-49e0-bb0d-073f7346bcf0",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    "assets": {
+      "javascript": "/assets/index-DTme_tMC.js",
+      "sha256": "a0e57f36eca16d84c6980dc18c403fe3d603ea2432a3db506b8babcaaa5ddf88",
+      "css": "/assets/index-jA_LY0yC.css",
+      "cssUnchanged": true,
+      "previewAndBothPublicDomainsMatch": true
+    },
+    "health": 200,
+    "anonymousGuards": {
+      "chatUpdatesPOST": 401,
+      "notificationsGET": 401,
+      "contestGET": 401,
+      "presenceGET": 401
+    },
+    "migrations": {
+      "finished": 85,
+      "unfinished": 0
+    },
+    "fixtureCleanupVerified": true
+  },
+  "passive": {
+    "window": {
+      "from": "2026-10-16T20:10:00Z",
+      "to": "2026-10-16T20:12:00Z",
+      "completeMinuteBuckets": 2,
+      "comparableToBaseline": false
+    },
+    "latencyBuckets": [
+      {
+        "ts": 1792181400,
+        "p50": 165,
+        "p90": 312,
+        "p95": 423,
+        "p99": 922
+      },
+      {
+        "ts": 1792181460,
+        "p50": 161,
+        "p90": 223,
+        "p95": 340,
+        "p99": 470
+      }
+    ],
+    "requestBuckets": [
+      {
+        "ts": 1792181400,
+        "2xx": 1357,
+        "3xx": 0,
+        "4xx": 6,
+        "5xx": 0,
+        "total": 1363
+      },
+      {
+        "ts": 1792181460,
+        "2xx": 1276,
+        "3xx": 0,
+        "4xx": 0,
+        "5xx": 0,
+        "total": 1276
+      }
+    ],
+    "chatRequestBuckets": [
+      {
+        "ts": 1792181400,
+        "2xx": 761,
+        "3xx": 0,
+        "4xx": 2,
+        "5xx": 0,
+        "total": 763
+      },
+      {
+        "ts": 1792181460,
+        "2xx": 692,
+        "3xx": 0,
+        "4xx": 0,
+        "5xx": 0,
+        "total": 692
+      }
+    ],
+    "errorFilteredRuntimeLogEntries": 0,
+    "logWindow": {
+      "from": "2026-10-16T20:10:00Z",
+      "to": "2026-10-16T20:12:30Z"
+    },
+    "postgresSnapshots": [
+      {
+        "at": "2026-10-16T20:10:19Z",
+        "blocked": 0,
+        "lockWaitMaxSeconds": 0
+      },
+      {
+        "at": "2026-10-16T20:12:41Z",
+        "blocked": 1,
+        "lockWaitMaxSeconds": 0.004674
+      }
+    ],
+    "resourcesSnapshot": {
+      "at": "2026-10-16T20:12:22Z",
+      "values": [
+        {
+          "measurement": "CPU_USAGE",
+          "current": 0
+        },
+        {
+          "measurement": "MEMORY_USAGE_GB",
+          "current": 0.467705856
+        }
+      ],
+      "limits": "Rolling connector current samples after process deployment; no comparable CPU/memory gain inferred"
+    },
+    "interpretation": "Short passive window, old browser bundles and exact player activity unknown. Lower latency observed, no causal percentage or sustained fluidity guarantee."
+  }
+}
