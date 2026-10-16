@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "lot": "R1101",
+  "baseline": "0ee3419bcf409ecfe89f880792fb5264f5ab34a2",
+  "at": "2026-10-16T09:52:13.114Z",
+  "status": "locally qualified candidate; independent GitHub reviews and deployments pending",
+  "changes": {
+    "pending": "durable non-secret intent outsideGameShell; captured valid JWT; lost response/reload/error/expiry explicit; no third-account cleanup",
+    "replay": "explicit v1/v2/v3 proof contracts; invalid claimed membership refuses economic fallback",
+    "schemaMigration": false,
+    "economicRulesChanged": false
+  },
+  "qualification": {
+    "reproduction": {
+      "passed": 30,
+      "failed": 2,
+      "realPrivateMigrations": 85
+    },
+    "replay": {
+      "passed": 51,
+      "failed": 0,
+      "originalCases": 32,
+      "additionalFormatCases": 19
+    },
+    "deletionDb": {
+      "passed": 15,
+      "failed": 0,
+      "realSignedJwt": true,
+      "workerRestart": true,
+      "alreadyDeletedAuth": true,
+      "expiredJwtRefused": true,
+      "peerAccessRefused": true
+    },
+    "ui": {
+      "passed": 71,
+      "failed": 0,
+      "actualAppBootstrapContest401Integration": true
+    },
+    "authContracts": {
+      "passed": 24,
+      "failed": 0
+    },
+    "quick": "5/5 PASS",
+    "full": "8/8 PASS",
+    "frontendTests": 1766,
+    "backendTests": 2643,
+    "postFullCss": "scoped readability styles; subsequent frontend build/typecheck and visual qualification PASS",
+    "visual": {
+      "scope": "Compiled current GameShell, synthetic local fixtures, exact production CSS from dist",
+      "rows": [
+        {
+          "w": 1920,
+          "h": 1080,
+          "color": "rgba(126, 38, 55, 0.9)",
+          "rect": {
+            "x": 720,
+            "y": 245.5,
+            "width": 480,
+            "height": 589,
+            "top": 245.5,
+            "right": 1200,
+            "bottom": 834.5,
+            "left": 720
+          },
+          "client": 587,
+          "scroll": 587,
+          "width": 478,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true,
+          "pendingOutsideGame": true,
+          "reload": true,
+          "expiredSafe": true,
+          "followup": {
+            "rect": {
+              "x": 720,
+              "y": 398.125,
+              "width": 480,
+              "height": 283.75,
+              "top": 398.125,
+              "right": 1200,
+              "bottom": 681.875,
+              "left": 720
+            },
+            "scroll": 282,
+            "client": 282,
+            "width": 478,
+            "font": 14
+          }
+        },
+        {
+          "w": 1366,
+          "h": 768,
+          "color": "rgba(126, 38, 55, 0.9)",
+          "rect": {
+            "x": 443,
+            "y": 89.5,
+            "width": 480,
+            "height": 589,
+            "top": 89.5,
+            "right": 923,
+            "bottom": 678.5,
+            "left": 443
+          },
+          "client": 587,
+          "scroll": 587,
+          "width": 478,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true,
+          "pendingOutsideGame": true,
+          "reload": true,
+          "expiredSafe": true,
+          "followup": {
+            "rect": {
+              "x": 443,
+              "y": 242.125,
+              "width": 480,
+              "height": 283.75,
+              "top": 242.125,
+              "right": 923,
+              "bottom": 525.875,
+              "left": 443
+            },
+            "scroll": 282,
+            "client": 282,
+            "width": 478,
+            "font": 14
+          }
+        },
+        {
+          "w": 390,
+          "h": 844,
+          "color": "rgba(126, 38, 55, 0.9)",
+          "rect": {
+            "x": 16,
+            "y": 79.5,
+            "width": 358,
+            "height": 685,
+            "top": 79.5,
+            "right": 374,
+            "bottom": 764.5,
+            "left": 16
+          },
+          "client": 683,
+          "scroll": 683,
+          "width": 356,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true,
+          "pendingOutsideGame": true,
+          "reload": true,
+          "expiredSafe": true,
+          "followup": {
+            "rect": {
+              "x": 14,
+              "y": 258.28125,
+              "width": 362,
+              "height": 327.4375,
+              "top": 258.28125,
+              "right": 376,
+              "bottom": 585.71875,
+              "left": 14
+            },
+            "scroll": 325,
+            "client": 325,
+            "width": 360,
+            "font": 14
+          }
+        },
+        {
+          "w": 390,
+          "h": 600,
+          "color": "rgba(126, 38, 55, 0.9)",
+          "rect": {
+            "x": 16,
+            "y": 16,
+            "width": 358,
+            "height": 568,
+            "top": 16,
+            "right": 374,
+            "bottom": 584,
+            "left": 16
+          },
+          "client": 566,
+          "scroll": 683,
+          "width": 356,
+          "keyboard": true,
+          "reauthentication": true,
+          "pending": true,
+          "error": true,
+          "completionCacheClear": true,
+          "pendingOutsideGame": true,
+          "reload": true,
+          "expiredSafe": true,
+          "followup": {
+            "rect": {
+              "x": 14,
+              "y": 136.28125,
+              "width": 362,
+              "height": 327.4375,
+              "top": 136.28125,
+              "right": 376,
+              "bottom": 463.71875,
+              "left": 14
+            },
+            "scroll": 325,
+            "client": 325,
+            "width": 360,
+            "font": 14
+          }
+        }
+      ],
+      "errors": []
+    }
+  },
+  "reusedEvidence": [
+    {
+      "path": "r1100-continuity-qualification.json",
+      "scope": "unchanged account erasure, anti-restoration, Twitch GLOBAL and isolated regression domains"
+    },
+    {
+      "path": "r1099-qualification.json",
+      "scope": "unchanged retention engine and three lossless compactages"
+    }
+  ],
+  "finalGuarantees": {
+    "authOnboarding": "current full suites",
+    "twitchGlobalCommands": "current full suites and recent unchanged R1100 PostgreSQL pilot31/31; runtime metadata checked after deploy",
+    "resourcesRewardsIdempotence": "current full suites and replay51/51",
+    "bankShopTrades": "current full suites plus unchanged R1100 trade PostgreSQL26/26",
+    "gachaProgression": "current full suites and reused R1099/R1100 PostgreSQL evidence",
+    "chatMpNotifications": "current full suites plus unchanged R1100 MP PostgreSQL7/7",
+    "deletion": "15privateDB/24Auth contracts/71UI targeted; no public destructive recipe",
+    "maintenance": "unchanged code; R1099/R1100 qualifications reused; runtime postflight pending",
+    "navigation": "full suites and compiled productionCSS fourviewports"
+  },
+  "limits": {
+    "expiredJwt": "server continues accepted deletion, but expiredJWT cannot confirm completion; safe visible unconfirmed state, no new receipt/anonymous endpoint",
+    "storageDisabled": "intent survives in memory only if browser storage refuses persistence",
+    "realPublicDeletion": false,
+    "publicEconomicQa": false,
+    "publicImport": false,
+    "ownerOauthFriendRecipe": false,
+    "naturalEventDrawObserved": false,
+    "officialOpeningDecision": "owner only"
+  },
+  "history": {
+    "baseline": "0ee3419bcf409ecfe89f880792fb5264f5ab34a2",
+    "entireR1100AndEarlierUnchanged": true,
+    "normalizedBytes": 1243025,
+    "sha256": "11c9ade81b5ab91e50b7035d8aada5f1d867bfa45277e0be4495de45d384c209"
+  },
+  "closure": {
+    "ownerDecision": true,
+    "criticalGates": "tests passed; independent remote reviews, promotion/deploy/postflight still required",
+    "nextPhaseAutomaticallyStarted": false
+  }
+}

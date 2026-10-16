@@ -1,5 +1,9 @@
 # Ordre d’implémentation V1
 
+## R1101 — décision de clôture du développement V1
+
+Le propriétaire décide de terminer le périmètre fonctionnel et la stabilisation V1 à l'issue de R1101, sous réserve des gates critiques réellement réussies. Après clôture, aucune nouvelle fonctionnalité ou mission V1 planifiée ; bugs avérés en maintenance corrective sur mandat. OAuth avec un ami, premier tirage Event naturel du01/11/2026 et observations de bêta restent des recettes/observations futures, sans relance automatique du développement. Ouverture officielle et communication relèvent du propriétaire. [Contrat ciblé](../architecture/r1101-v1-closure.md) ; seul le [Master](../master/PROJECT_MASTER_PLAN.md) indique la clôture effectivement acquise. Abandons PWA/`.exe`/thèmes/Objectifs inchangés.
+
 ## R1100 — continuité de la suppression de compte autorisée
 
 Finaliser le mandat déjà approuvé : effacement réauthentifié, protection des pairs, reprise et anti-restauration. Exception de sauvegardes privées30jours avec précision PC éteint validée. Aucun autre domaine V1 rouvert ; état, qualification, publication et activation exclusivement au [Master](../master/PROJECT_MASTER_PLAN.md), [contrat dédié](../architecture/r1100-account-deletion.md). STOP R1100 à la livraison.

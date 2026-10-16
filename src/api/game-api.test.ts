@@ -2,6 +2,14 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { createGameApiClient } from './game-api'
 
+it('retries deletion using only its captured JWT without refreshing a deleted Auth session',async()=>{
+  const getAccessToken=vi.fn(async()=>{throw new Error('Auth session already deleted')})
+  const fetchImplementation=vi.fn<typeof fetch>(async()=>Response.json({status:'PENDING'},{status:202}))
+  const client=createGameApiClient({baseUrl:'https://api.example',getAccessToken,fetchImplementation})
+  expect(await client.deleteAccount('fresh-proof','captured-owner-jwt')).toEqual({status:'PENDING'})
+  expect(getAccessToken).not.toHaveBeenCalled();expect(fetchImplementation.mock.calls[0]?.[1]).toMatchObject({headers:{authorization:'Bearer captured-owner-jwt'}})
+});
+
 it('binds abandonment consent to the exact displayed operator plan', async () => {
   const fetchImplementation = vi.fn().mockImplementation(async () => new Response('{}'));
   const client = createGameApiClient({ baseUrl: 'https://api.example', getAccessToken: async () => 'private-test-token', fetchImplementation });

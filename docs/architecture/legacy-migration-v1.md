@@ -1,5 +1,9 @@
 # Migration legacy V1 — contrat canonique
 
+## R1101 — lecture des preuves de conservation historiques
+
+Le lecteur d'idempotence reconnaît les preuves v2/v3 par contrats explicites : appartenance UUID/Player, run/batch terminés, trois snapshots identiques, backupHash lié à l'import non annulé, version numérique1 ; v3 exige également la preuve sociale du même backupHash et son postHash valide. Une preuve ambiguë refuse le replay sans redispatch ni récompense nouvelle. v1 strict, sans opération conservée ni ces deux preuves, reste ordinaire pour les opérations post-import. Formats inconnus revendiquant une conservation refusés. Aucun import, writer, sauvegarde ou règle économique modifié/rejoué. [Qualification R1101](r1101-v1-closure.md) : les deux défauts historiques sont reproduits puis corrigés ; état de livraison au Master.
+
 ## Statut des preuves et nouveau domaine Activité
 
 Les états OFF/autorité Streamer.bot et prochaines gates des checkpoints datés ci-dessous sont historiques. [R1064 GLOBAL](twitch-global-r1064.md) porte le contrat courant ; Master/runbook portent seuls les opérations déjà appliquées. Ne pas rejouer31A/31B. R1080 classe player_daily_activity dans les propriétaires personnels et activity_coverage dans les tables préservées, avec exception APPLICATION-only exacte pour consentement/disposable ; aucun import/purge/fusion n'est lancé. [Contrat](../specifications/player-activity-v1.md).

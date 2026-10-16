@@ -7,6 +7,8 @@ import type GameShell from './components/GameShell'
 import type { PlayerDto } from './api/types'
 import AppBootstrap from './AppBootstrap'
 import { usePresence } from './social/use-presence'
+import {AuthContext} from './auth/auth-context'
+import {AccountDeletionFlowProvider,useAccountDeletionFlow} from './screens/AccountDeletionFlow'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const mocks = vi.hoisted(() => ({
@@ -15,7 +17,7 @@ const mocks = vi.hoisted(() => ({
   signOut: vi.fn(),
   presence: { connected: vi.fn(), session: vi.fn(), heartbeat: vi.fn(), end: vi.fn() },
 }))
-vi.mock('./auth/auth-context', () => ({ useAuth: () => ({ status: mocks.status, session: mocks.status === 'signedIn' ? { user: { id: mocks.userId } } : null, signOut: mocks.signOut }) }))
+vi.mock('./auth/auth-context', async original => ({...await original<typeof import('./auth/auth-context')>(), useAuth: () => ({ status: mocks.status, session: mocks.status === 'signedIn' ? { user: { id: mocks.userId } } : null, signOut: mocks.signOut }) }))
 vi.mock('./api/game-api', async original => ({ ...await original<typeof import('./api/game-api')>(), getGameApiClient: () => ({ ...mocks.api, social: mocks.presence, trades: {} }) }))
 vi.mock('./components/GameShell', () => ({ default: function GameSessionShell(props: ComponentProps<typeof GameShell>) {
   mocks.shell = props
@@ -369,6 +371,26 @@ it('preserves the last authoritative Contest after a transient 503 and a slow re
   expect(mocks.shell!.contestAvailability).toEqual({ phase: 'unavailable', pending: true })
   await act(async () => { resolve(value) })
   expect(mocks.shell!.contestAvailability).toEqual({ phase: 'ready', pending: false })
+})
+
+it('keeps deletion followup when a real in-flight Contest401 arrives and Auth subsequently signs out',async()=>{
+  const {ApiError}=await import('./api/game-api')
+  const remove=vi.fn().mockResolvedValue({status:'PENDING'});mocks.api.deleteAccount=remove
+  function Begin(){const flow=useAccountDeletionFlow()!;return <button onClick={()=>void flow.begin('web-owner','captured-fresh-jwt')}>Start deletion</button>}
+  function renderFlow(signedIn=true){act(()=>root.render(<AuthContext.Provider value={{status:signedIn?'signedIn':'signedOut',session:signedIn?{user:{id:'web-owner'},access_token:'original-jwt'}:null} as never}>
+    <AccountDeletionFlowProvider><AppBootstrap/><Begin/></AccountDeletionFlowProvider></AuthContext.Provider>))}
+  try{
+    renderFlow();await act(async()=>undefined)
+    let reject!:(error:Error)=>void;mocks.api.getContest.mockImplementationOnce(()=>new Promise((_,fail)=>{reject=fail}))
+    await act(async()=>{void mocks.shell!.onRefreshContest!().catch(()=>undefined)})
+    await act(async()=>{Array.from(container.querySelectorAll('button')).find(b=>b.textContent==='Start deletion')!.click()})
+    await act(async()=>reject(new ApiError('SESSION_REQUIRED','Account accepted for erasure',401)))
+    expect(container.textContent).toContain('suppression est engagée');expect(mocks.signOut).not.toHaveBeenCalled()
+    const reads=mocks.api.getCurrentPlayer.mock.calls.length;mocks.status='signedOut';renderFlow(false);await act(async()=>undefined)
+    expect(container.textContent).toContain('Vérifier la clôture');expect(mocks.api.getCurrentPlayer.mock.calls.length).toBe(reads)
+    await act(async()=>Array.from(container.querySelectorAll('button')).find(b=>b.textContent==='Vérifier la clôture')!.click())
+    expect(remove).toHaveBeenLastCalledWith('captured-fresh-jwt','captured-fresh-jwt',expect.any(AbortSignal))
+  }finally{localStorage.clear();sessionStorage.clear();delete mocks.api.deleteAccount}
 })
 
 it('clears the private Contest and handles an authentication failure instead of retrying forever', async () => {

@@ -1,5 +1,7 @@
 # R1100 — suppression effective du compte
 
+**Continuité R1101 :** le suivi différé est désormais porté hors GameShell, avec intention locale non secrète avant dispatch et retry sur le même POST avec JWT capturé encore valide. Le bouton PENDING était disponible ; le défaut corrigé concernait le démontage après401/reload/perte de réponse. Après expiration, clôture non confirmée et worker poursuivi si accepté ; aucune nouvelle authentification de suivi, endpoint anonyme ou exception JWT. [Contrat et preuves R1101](r1101-v1-closure.md). Le périmètre d'effacement et la politique de sauvegardes restent inchangés ; les constats datés ci-dessous restent historiques.
+
 Continuité du 16/10/2026, bootstrap `201e81fdf4a9884a17c15fff0f75799d5f9aca1b` : ancien repli désactivé, quatre références alignées et arbre propre. Le [Master](../master/PROJECT_MASTER_PLAN.md) conserve le premier état historique et distingue qualification, publication, activation et recette humaine. Aucun compte public pour la QA.
 
 ## Décisions et accès privilégié

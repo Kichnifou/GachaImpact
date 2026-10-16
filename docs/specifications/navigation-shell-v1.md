@@ -1,8 +1,8 @@
 # Navigation et shell V1
 
-## R1100 — entrée Compte, suppression indisponible
+## R1101 — suppression différée et suivi hors jeu
 
-Section finale Compte, bouton danger et modale existante adaptée avec SUPPRIMER/Annuler ; confirmation finale toujours désactivée, indisponibilité explicite et aucune requête d’effacement. Action non ouvrable pendant le Tutoriel. Aucun succès/déconnexion/cache de suppression implémenté. [Contrat partiel](../architecture/r1100-account-deletion.md).
+Section finale Compte, bouton danger et modale SUPPRIMER/réauthentification R1100 ; action non ouvrable pendant le Tutoriel. Le bouton de suivi PENDING était déjà disponible. R1101 conserve désormais le suivi au-dessus du GameShell et des écrans Auth, pour résister à un401/reload/perte de réponse ; lectures de jeu suspendues, intention locale non secrète, JWT en mémoire uniquement. Vérifier la clôture utilise le même POST authentifié ; un JWT expiré reste refusé et l'état non confirmé demeure compréhensible/fermable, sans annulation serveur. Déconnexion/nettoyage uniquement aprèsCOMPLETED, réponse tardive d'un autre compte sans effet. [Contrat R1100](../architecture/r1100-account-deletion.md), [qualification et limites R1101](../architecture/r1101-v1-closure.md).
 
 
 ## Entrée et retour Twitch — R1096

@@ -13,6 +13,9 @@ import {TwitchEventObserver} from '../src/application/twitch/twitch-event-observ
 import type {Prisma} from '../generated/prisma/client.js';
 import {PrismaTwitchPlayerStore} from '../src/infrastructure/database/prisma-twitch-player-store.js';
 import {twitchErasedAt} from '../src/application/player/account-erasure-markers.js';
+import {buildApp} from '../src/app.js';
+import {createLocalJWKSet,exportJWK,generateKeyPair,SignJWT} from 'jose';
+import {SupabaseAuthAdapter,SupabaseJwtVerifier} from '../src/infrastructure/auth/supabase-auth-adapter.js';
 const fixture=isolatedBatchDatabase(),db=fixture.database,key='11'.repeat(32);
 beforeAll(async()=>{await fixture.setup({prismaMigrations:true,seedPublicCatalog:true});process.env['ACCOUNT_DELETION_MARKER_KEY']=key;},180000);
 afterAll(async()=>{delete process.env['ACCOUNT_DELETION_MARKER_KEY'];await fixture.cleanup();},60000);
@@ -26,6 +29,37 @@ function service(failAuth=false,offline=false){const errors:unknown[]=[],deleted
  return {admin,errors,instance:new AccountDeletionService(db,admin,verifier,key,offline?'WAIT_FOR_OFFLINE_ERASURE':'RETENTION_30_DAYS',error=>errors.push(error))};}
 const proof=(subject:string)=>({confirmation:'SUPPRIMER' as const,reauthenticationToken:`fresh:${subject}`});
 describe('R1100 synthetic erasure in private PostgreSQL',()=>{
+ it('returns202 then confirms worker completion after restart with a valid JWT even when Auth is already gone; expiry and peer access stay refused',async()=>{
+   const target=await player(),peer=await player(),s=service(true),issuer='https://synthetic.invalid/auth/v1';
+   const {publicKey,privateKey}=await generateKeyPair('RS256');const jwk=await exportJWK(publicKey);
+   const verifier=new SupabaseAuthAdapter(new SupabaseJwtVerifier(issuer,createLocalJWKSet({keys:[{...jwk,alg:'RS256',kid:'private-test'}]})));
+   const token=(subject:string,expired=false)=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'private-test'}).setIssuer(issuer).setSubject(subject)
+     .setExpirationTime(Math.floor(Date.now()/1000)+(expired?-60:3600)).sign(privateKey);
+   const instance=new AccountDeletionService(db,s.admin,verifier,key,'RETENTION_30_DAYS');
+   const provision=vi.fn(()=>{throw new Error('No provisioning on followup')});
+   const app=await buildApp({host:'127.0.0.1',port:3001,supabase:{}},{authIdentityVerifier:instance.guardedVerifier(),accountDeletion:instance,getOrProvisionCurrentPlayer:{execute:provision} as never});
+   try{
+     const jwt=await token(target.subject),body=proof(target.subject);
+     const post=(access:string,payload:Record<string,unknown>=body)=>app.inject({method:'POST',url:'/api/v1/me/account/deletion',headers:{authorization:'Bearer '+access},payload});
+     expect((await post(jwt)).statusCode).toBe(202);
+     expect(await db.playerProgression.count({where:{playerId:target.player.id}})).toBe(0);
+     const job=await db.accountDeletion.findUniqueOrThrow({where:{playerId:target.player.id}});
+     expect(job.status).toBe('DATABASE_ERASED');expect((await post(jwt)).json()).toEqual({status:'PENDING'});expect(s.admin.verifyFresh).toHaveBeenCalledTimes(1);
+     const adminCalls=s.admin.deleteUser.mock.calls.length;
+     expect((await post(await token(target.subject,true))).statusCode).toBe(401);expect(s.admin.deleteUser).toHaveBeenCalledTimes(adminCalls);
+     const peerBefore=await db.playerProgression.findUniqueOrThrow({where:{playerId:peer.player.id}});
+     expect((await post(await token(peer.subject),{...body,playerId:target.player.id})).statusCode).toBe(400);
+     expect((await post(await token(peer.subject))).statusCode).toBe(401);
+     expect(await db.playerProgression.findUniqueOrThrow({where:{playerId:peer.player.id}})).toEqual(peerBefore);
+     // Auth deletion completed just before the old process stopped. A new
+     // worker safely repeats the idempotent provider step, never the DB erasure.
+     s.admin.isLive.mockResolvedValue(false);s.admin.deleteUser.mockResolvedValue(undefined);
+     const restarted=new AccountDeletionService(db,s.admin,verifier,key,'RETENTION_30_DAYS');await restarted.resumePending();
+     expect((await post(jwt)).statusCode).toBe(200);expect((await post(jwt)).json()).toEqual({status:'COMPLETED'});
+     expect(await db.accountDeletion.count({where:{playerId:target.player.id}})).toBe(1);expect(s.admin.verifyFresh).toHaveBeenCalledTimes(2); // own initial proof plus refused peer proof
+     expect(await instance.guardedVerifier().verify(jwt)).toBeNull();expect(provision).not.toHaveBeenCalled();
+   }finally{await app.close()}
+ });
  it('erases completed canonicalization and automatic Web archives but never an unchosen Twitch target',async()=>{
    const target=await player(),lost=await player(),automatic=await player(),peer=await player(),s=service();
    const web=await db.webIdentity.findUniqueOrThrow({where:{playerId:target.player.id}});

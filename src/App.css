@@ -4488,6 +4488,9 @@ button.inventory-resource-card { width: 100%; cursor: pointer; font: inherit; }
   width: min(480px, 100%);
 }
 
+.entry-panel.account-deletion-followup > p { font-size: 14px; line-height: 1.55; margin: 14px 0; }
+.account-deletion-followup-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+
 .entry-brand {
   width: 62px;
   height: 62px;

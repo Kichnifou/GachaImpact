@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1101 — dernier lot de stabilisation et clôture V1 (16/10/2026)
+
+**DÉCISION EXPLICITE DU PROPRIÉTAIRE :** clôturer le périmètre de développement V1 après qualification du suivi de suppression différée, correction des deux rejeux historiques, vérifications ciblées, reviews indépendantes et déploiements/postflight réussis. Aucun audit général, nouvelle fonctionnalité ou changement économique. Cette décision n'invente pas la réussite des gates ; état réel au Master.
+
+Après clôture : aucune nouvelle fonctionnalité V1 planifiée, bugs avérés seulement en maintenance corrective sur mandat ; aucune V1.1/V2 ou optimisation automatique. OAuth avec un ami, tirage Event naturel du01/11/2026à00:00Europe/Paris et observations de bêta restent des preuves futures d'exploitation, sans nouveau lot automatique. La décision d'ouverture officielle et la communication restent au propriétaire ; aucune annonce autorisée. Abandons PWA/`.exe`/thèmes/Objectifs personnels maintenus. [Contrat ciblé](../architecture/r1101-v1-closure.md).
+
 ## R1100 — suppression volontaire du compte, mandat du 16/10/2026
 
 **DÉCISION PROPRIÉTAIRE — continuité du 16/10/2026 :** effacement immédiat des données actives ; sauvegardes privées chiffrées conservées au maximum 30 jours, accès restreint, restauration bloquée pour le compte supprimé et information explicite du joueur. Cette règle autorise l'exception de sauvegarde ; elle ne prouve ni l'effacement actif implémenté ni la mise en conformité des copies locales. Qualification et état de livraison au Master.

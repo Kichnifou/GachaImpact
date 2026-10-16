@@ -120,8 +120,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   const fetchImplementation = dependencies.fetchImplementation ?? fetch
   const baseUrl = dependencies.baseUrl.replace(/\/$/, '')
 
-  async function request<T>(path: string, init?: RequestInit): Promise<T> {
-    const accessToken = await dependencies.getAccessToken()
+  async function request<T>(path: string, init?: RequestInit, capturedAccessToken?:string): Promise<T> {
+    const accessToken = capturedAccessToken ?? await dependencies.getAccessToken()
 
     if (!accessToken) {
       throw new ApiError('SESSION_REQUIRED', 'Une session valide est nécessaire.', 401)
@@ -174,8 +174,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
   }
   return {
     sharedInvocations,
-    deleteAccount:(reauthenticationToken:string)=>request<{status:'COMPLETED'|'PENDING'}>('/api/v1/me/account/deletion',
-      {method:'POST',body:JSON.stringify({confirmation:'SUPPRIMER',reauthenticationToken})}),
+    deleteAccount:(reauthenticationToken:string,capturedAccessToken?:string,signal?:AbortSignal)=>request<{status:'COMPLETED'|'PENDING'}>('/api/v1/me/account/deletion',
+      {method:'POST',body:JSON.stringify({confirmation:'SUPPRIMER',reauthenticationToken}),signal},capturedAccessToken),
     chat: {
       messages: (cursor?: ChatPageDto['nextCursor']) => request<ChatPageDto>('/api/v1/chat/messages' + (cursor ? '?' + new URLSearchParams({ cursorCreatedAt: cursor.createdAt, cursorId: cursor.id }) : '')),
       updates: (generation: number, cursor: { createdAt: string; id: string } | null, knownIds: string[]) => request<ChatUpdatesDto>('/api/v1/chat/updates', { method: 'POST', body: JSON.stringify({ generation, ...(cursor ? { cursorCreatedAt: cursor.createdAt, cursorId: cursor.id } : {}), knownIds }) }),

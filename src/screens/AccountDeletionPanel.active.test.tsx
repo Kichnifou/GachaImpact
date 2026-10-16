@@ -33,8 +33,8 @@ describe('account deletion reauthentication and closure',()=>{
  });
  it('prevents double requests and never signs out on partial completion',async()=>{
    const host=await ready();await act(async()=>{button(host,'Supprimer définitivement').click();button(host,'Supprimer définitivement').click()})
-   expect(mocks.remove).toHaveBeenCalledTimes(1);expect(mocks.remove).toHaveBeenCalledWith('fresh-proof');expect(mocks.signOut).not.toHaveBeenCalled()
-   expect(host.querySelector('[role="status"]')?.textContent).toContain('clôture reste en cours');expect(button(host,'Annuler').disabled).toBe(true)
+   expect(mocks.remove).toHaveBeenCalledTimes(1);expect(mocks.remove).toHaveBeenCalledWith('fresh-proof','fresh-proof',expect.any(AbortSignal));expect(mocks.signOut).not.toHaveBeenCalled()
+   expect(host.querySelector('[role="status"]')?.textContent).toContain('clôture reste en cours');expect(button(host,'Vérifier la clôture').disabled).toBe(false)
  });
  it('clears local caches and signs out only after confirmed completion',async()=>{
    mocks.remove.mockResolvedValueOnce({status:'COMPLETED'});localStorage.setItem('synthetic-player-cache','private');sessionStorage.setItem('synthetic-player-state','private')

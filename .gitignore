@@ -19,6 +19,7 @@ local-data/private-backups/
 local-data/r1097/
 local-data/r1098/
 local-data/r1099/
+local-data/r1101*
 .env
 .env.*
 !.env.example

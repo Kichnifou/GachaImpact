@@ -17,6 +17,8 @@ import { SnapshotPilotService } from '../src/application/migration/snapshot-pilo
 import { ChatCommandDispatcher, type ChatCommandServices } from '../src/application/chat/chat-command-dispatcher.js';
 import { GetCurrentPlayerBank, TransferPlayerBank } from '../src/application/banking/banking-services.js';
 import { PrismaBankingStore } from '../src/infrastructure/database/prisma-banking-store.js';
+import { isRetainedHistoricalOperation } from '../src/application/migration/historical-operation-retention.js';
+import type { Prisma } from '../generated/prisma/client.js';
 
 const fixture = isolatedBatchDatabase(), db = fixture.database;
 const replacing = new Set<string>(personalReplacementTables);
@@ -24,7 +26,7 @@ const config = { host: 'localhost', port: 3001, supabase: {}, twitchCommandPilot
   twitch: { pilotPlayerIds: [] as string[], pilotLogin: 'kichnifou' } };
 let operatorId: string, sequence = 10;
 beforeAll(async () => {
-  await fixture.setup({ seedPublicCatalog: true });
+  await fixture.setup({ seedPublicCatalog: true, prismaMigrations: true });
   // A fresh local catalog has not run the global legacy item materialization.
   await db.itemDefinition.upsert({where:{externalKey:'masterless-stella-fortuna'},update:{},
     create:{externalKey:'masterless-stella-fortuna',displayName:'Synthetic Stella',category:'SPECIAL'}});
@@ -259,6 +261,65 @@ describe('targeted replacement retention contract on private PostgreSQL', () => 
     const t = await target(), op = await operation(t); await history(t, op.id); const before = await graph(t);
     await expect(db.$transaction(tx => restoreTargetedRows(tx, before), { timeout: 120_000 })).rejects.toThrow('CANARY_SHARED_REFERENCE_REQUIRES_OPERATOR');
   }, 120_000);
+});
+
+describe('explicit historical replay proof formats',()=>{
+  async function retained(){const t=await target(),op=await operation(t);await history(t,op.id);const {backup}=await imported(t);
+    const run=await db.migrationRun.findFirstOrThrow({where:{playerId:t.playerId},include:{batch:true}});
+    return{t,op,run,batch:run.batch!,backup};}
+  const read=(playerId:string,operationId:string)=>db.$transaction(tx=>isRetainedHistoricalOperation(tx,playerId,operationId));
+  it.each(['targeted-canary-v2','targeted-canary-v3'])('recognizes the exact retained proof for %s and leaves peers unchanged',async writer=>{
+    const {t,op,batch}=await retained(),peer=await target(),before=await graph(peer);
+    if(writer==='targeted-canary-v2'){
+      const {socialRestoration:_social,...summary}=batch.summary as Prisma.JsonObject;
+      await db.migrationBatch.update({where:{id:batch.id},data:{migratorVersion:writer,summary:summary as Prisma.InputJsonObject}});
+    }
+    expect(await read(t.playerId,op.id)).toBe(true);expect(await read(peer.playerId,op.id)).toBe(false);
+    expect((await graph(peer)).hash).toBe(before.hash);
+  });
+  it.each(['future-writer','string-version','backup-mismatch','batch-snapshot','run-snapshot','malformed-ids',
+    'missing-social','string-social-version','social-backup','social-posthash','incomplete-run','incomplete-batch','missing-import','rolled-back-import'])
+  ('refuses ambiguous claimed membership without writing: %s',async kind=>{
+    const {t,op,batch,run}=await retained();const summary=structuredClone(batch.summary) as Prisma.JsonObject;
+    const proof=summary.historicalOperationRetention as Prisma.JsonObject,social=summary.socialRestoration as Prisma.JsonObject;
+    if(kind==='future-writer')await db.migrationBatch.update({where:{id:batch.id},data:{migratorVersion:'targeted-canary-v99'}});
+    if(kind==='string-version')proof.version='1';
+    if(kind==='backup-mismatch')proof.backupHash='0'.repeat(64);
+    if(kind==='batch-snapshot')await db.migrationBatch.update({where:{id:batch.id},data:{snapshotHash:'0'.repeat(64)}});
+    if(kind==='run-snapshot')await db.migrationRun.update({where:{id:run.id},data:{snapshotHash:'0'.repeat(64)}});
+    if(kind==='malformed-ids')proof.operationIds=[op.id,'invalid'];
+    if(kind==='missing-social')delete summary.socialRestoration;
+    if(kind==='string-social-version')social.version='1';
+    if(kind==='social-backup')social.backupHash='0'.repeat(64);
+    if(kind==='social-posthash')social.postHash='invalid';
+    if(kind==='incomplete-run')await db.migrationRun.update({where:{id:run.id},data:{status:'BLOCKED'}});
+    if(kind==='incomplete-batch')await db.migrationBatch.update({where:{id:batch.id},data:{status:'APPLYING'}});
+    if(kind==='missing-import')await db.twitchCanaryImport.deleteMany({where:{playerId:t.playerId}});
+    if(kind==='rolled-back-import')await db.twitchCanaryImport.updateMany({where:{playerId:t.playerId},data:{status:'ROLLED_BACK',rolledBackAt:new Date()}});
+    await db.migrationBatch.update({where:{id:batch.id},data:{summary:summary as Prisma.InputJsonObject}});
+    const before=await graph(t);
+    await expect(read(t.playerId,op.id)).rejects.toMatchObject({code:'HISTORICAL_REPLAY_PROOF_INVALID'});
+    expect((await graph(t)).hash).toBe(before.hash);
+  });
+  it('refuses a peer operation falsely listed in the target proof',async()=>{
+    const {t,batch}=await retained(),peer=await target(),op=await operation(peer),before=await graph(peer);
+    const summary=structuredClone(batch.summary) as Prisma.JsonObject;
+    (summary.historicalOperationRetention as Prisma.JsonObject).operationIds=[op.id];
+    await db.migrationBatch.update({where:{id:batch.id},data:{summary:summary as Prisma.InputJsonObject}});
+    await expect(read(t.playerId,op.id)).rejects.toMatchObject({code:'HISTORICAL_REPLAY_PROOF_INVALID'});
+    expect((await graph(peer)).hash).toBe(before.hash);
+  });
+  it('does not classify restored operations as retained after a genuine rollback',async()=>{
+    const {t,op,backup}=await retained();expect(await read(t.playerId,op.id)).toBe(true);
+    await rollbackLegacyCanary(db,config,operatorId,backup);expect(await read(t.playerId,op.id)).toBe(false);
+  });
+  it('preserves ordinary retries after a strict legacyv1 import but refuses a v1 claiming retained operations',async()=>{
+    const t=await target(),batch=await db.migrationBatch.create({data:{snapshotHash:t.snapshot.hash,status:'COMPLETED',mode:'REHEARSAL',migratorVersion:'targeted-canary-v1',summary:{kind:'TARGETED_CANARY',classification:'DEFERRED_CANARY_SHARED_FACT',total:0,byDomain:{}}}});
+    await db.migrationRun.create({data:{playerId:t.playerId,batchId:batch.id,snapshotHash:t.snapshot.hash,status:'COMPLETED',source:'STREAMERBOT_SNAPSHOT',summary:{}}});
+    const op=await operation(t);expect(await read(t.playerId,op.id)).toBe(false);
+    await db.migrationBatch.update({where:{id:batch.id},data:{summary:{kind:'TARGETED_CANARY',historicalOperationRetention:{version:1,backupHash:'a'.repeat(64),operationIds:[op.id]}}}});
+    await expect(read(t.playerId,op.id)).rejects.toMatchObject({code:'HISTORICAL_REPLAY_PROOF_INVALID'});
+  });
 });
 
 describe('real runtime idempotency after personal replacement', () => {

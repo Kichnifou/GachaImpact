@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1101 — formats de preuve et suivi de suppression
+
+HistoricalOperationRetention reconnaît explicitement les preuves v2/v3 validées, dont socialev3, snapshots liés, ownership et appartenance exacte ; journal ambigu refusé avant redispatch/récompense. v1 strict sans conservation reste compatible. Aucun writer, règle économique, schéma ou migration modifié. Le suivi client de suppression sort du GameShell ; le même endpoint et le worker R1100 conservent leurs barrières JWT/Auth. [Contrat ciblé](r1101-v1-closure.md), état réel au Master.
+
 ## R1100 — suppression effective et reprenable du compte
 
 POST /api/v1/me/account/deletion : identité de session uniquement, confirmation SUPPRIMER et preuve Supabase password fraîche vérifiée côté serveur. Acceptation sérialisée et irréversible, blocage immédiat des accès/provisionnements anciens, journal privé avec bail/token et worker de reprise. Effacement des progressions courantes et archives prouvées du même WebIdentity, nettoyage partagé/Brotli, Storage et Auth Admin officiels ; aucun succès avant clôture. Marqueurs HMAC Player/Twitch/source d'amitié contre restauration. Refus des responsabilités globales, tirage Event figé et associations réassignées avant acceptation. Admission Twitch → Edition → Players triés ; cutoff PostgreSQL après tous les verrous. [Contrat et limites](r1100-account-deletion.md) ; qualification, publication et activation distinctes au Master.
