@@ -1,5 +1,13 @@
 # Contrat de layout UI V1
 
+## Compléments Légendes, fiches Chat et avatars — 17/10/2026
+
+Le mandat ultérieur déplace les totaux de chaque Légende dans le dernier emplacement à droite : participations puis victoires sur deux lignes. Le libellé « C6 · Légende » et son ancienne réserve invisible d'en-tête disparaissent ; portrait56px conservé. La composition interne utilise2/3/6colonnes selon la largeur de carte, cinq thèmes toujours simultanés, totaux en bas à droite quand une seule rangée est nécessaire. La sonde ancienne de dimensions est retirée dans cette dernière disposition : seules les données visibles déterminent les minima. Aucun titre ou compteur réel ne peut être masqué. Cadres communs du Profil, Box, tailles de police et couleurs des titres restent conservés ; capacité3/2/1 adaptée à l'espace utile, mobile dans le flux existant.
+
+Dans le Chat de droite, un résultat contenant au moins quatre personnages utilise quatre colonnes, fiches plafonnées76px et réduites si nécessaire selon la largeur utile. Noms, étoiles et constellation restent lisibles. Les résultats1–3personnages et le mode communauté agrandie conservent leur présentation. La règle concerne toutes les commandes structurées, dont Team et Pull ; aucune réponse métier ni taille du panneau droit ne change.
+
+Les mini-avatars de joueurs avec une photo personnalisée disposent des sept fonds élémentaires. Hydro/Cryo/Geo/Dendro complètent les gradients Pyro/Electro/Anemo existants, sur l'élément personnel canonique du joueur. Le fallback icône d'élément garde son fond neutre existant. Aucune sélection d'avatar, identité ou élément n'est modifié. Qualification et état réellement livré au Master.
+
 ## Finitions internes et accès Configuration du17/10/2026
 
 Les dimensions validées des cartes/cases Légendes sont conservées ; seule la hiérarchie interne change (portrait agrandi, totaux à droite, titre centré, victoires seules). Aucun changement du cadre commun Profil Box↔Légendes ni de la Box. La navigation principale contient six tuiles équilibrées ; selon la dernière précision propriétaire, l'ordre droit devient Configuration, Déconnexion puis Notifications, contrôle le plus à droite. Les contrôles doivent tenir sur390px y compris avec le lien Live. Le texte complet du Boss mensuel, étape42/115, doit rester lisible dans la bulle du tutoriel sur petit écran.

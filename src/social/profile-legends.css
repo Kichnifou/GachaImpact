@@ -7,17 +7,18 @@
 .profile-legend:has(.profile-legend-themes) { display:grid; grid-template-rows:auto minmax(min-content,1fr); }
 .profile-legend header { display:grid; grid-template-columns:56px minmax(0,1fr); column-gap:8px; align-items:center; }
 .profile-legend header > div { min-width:0; grid-column:2; grid-row:1; display:flex; flex-direction:column; }
-.profile-legend-header-reserve { grid-column:1/-1; grid-row:1; visibility:hidden; pointer-events:none; padding-top:50px; margin:0; font-size:12px; line-height:1.4; overflow-wrap:anywhere; }
-.profile-legend-totals { margin:2px 0 0; font-size:12px; line-height:1.2; overflow-wrap:anywhere; }
 .profile-legend header h2 { margin:0 0 2px; font-size:18px; line-height:1.2; overflow-wrap:anywhere; }
 .profile-legend header span { display:block; color:var(--muted); font-size:12px; line-height:1; }
 .profile-legend-portrait { grid-column:1; grid-row:1; width:56px; height:56px; border-radius:10px; overflow:hidden; }
 .profile-legend-portrait img { width:100%; height:100%; object-fit:cover; }
 .profile-legend > p { font-size:12px; line-height:1.4; margin:5px 0; overflow-wrap:anywhere; }
-.profile-legend-themes { margin:0; display:grid; grid-auto-rows:minmax(min-content,1fr); gap:4px; }
+.profile-legend-themes { margin:0; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-rows:minmax(min-content,1fr); gap:4px; }
 .profile-legend-themes > div { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; grid-template-rows:auto minmax(min-content,1fr) auto; align-items:start; gap:1px 2px; padding:3px 5px; background:#091326; border:1px solid #21314b; border-radius:8px; }
 .profile-legend-themes dt { grid-row:1; grid-column:1; color:#c8d7e9; font-size:12.5px; font-weight:700; letter-spacing:-.2px; line-height:1.2; overflow-wrap:anywhere; }
 .profile-legend-themes dd { min-width:0; margin:0; }
+.profile-legend-themes > .profile-legend-totals { display:flex; align-items:center; justify-content:center; border-color:transparent; background:transparent; text-align:center; }
+.profile-legend-totals dd { display:flex; flex-direction:column; gap:4px; font-size:12px; line-height:1.4; color:#c8d7e9; overflow-wrap:anywhere; }
+.profile-legend-totals-label { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
 .profile-legend-score { grid-row:1; grid-column:2; text-align:right; color:#69d3ff; font-size:14px; line-height:1.2; font-weight:700; }
 .profile-legend-title { grid-column:1 / -1; grid-row:2; align-self:center; justify-self:center; text-align:center; }
 .profile-legend-title .contest-title-badge { font-size:11px; }
@@ -45,5 +46,9 @@
   .profile-legend-themes { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
 @container (min-width:550px) {
-  .profile-legend-themes { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  .profile-legend-themes { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .profile-legend-themes > .profile-legend-totals { align-items:flex-end; }
+  /* The legacy two-counter probe was sized for the former five-column layout.
+     The six visible cells now determine their own readable minimum. */
+  .profile-legend-size-reserve { display:none; }
 }

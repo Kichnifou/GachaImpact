@@ -20,8 +20,9 @@ describe('Profile Legends privacy', () => {
     const legend = { character: { ...character, externalKey: 'durin', elementKey: 'pyro', iconPath: null }, stats: { strength: 16, intelligence: 8, beauty: 17, charisma: 5, popularity: 18 }, totals: { contests: '7', wins: '3' }, themes: Object.fromEntries(['STRENGTH', 'INTELLIGENCE', 'BEAUTY', 'CHARISMA', 'POPULARITY'].map(key => [key, { participations: '7', wins: '3', titleRank: 2, title: key === 'CHARISMA' ? 'Icône d’Argent' : null }])) } as ContestLegendDto
     render({ access: 'ALLOWED', data: { characters: [character], legends: [legend] } })
     expect(container.textContent).toContain('Icône d’Argent')
-    expect(container.textContent).toContain('7 participations · 3 victoires')
-    expect(container.querySelector('.profile-legends-page header .profile-legend-totals')?.textContent).toBe('7 participations · 3 victoires')
+    expect(container.querySelector('.profile-legends-page header .profile-legend-totals')).toBeNull()
+    expect(container.querySelector('.profile-legends-page')?.textContent).not.toContain('C6 · Légende')
+    expect(Array.from(container.querySelectorAll('.profile-legends-page .profile-legend-totals dd span'), row => row.textContent)).toEqual(['7 participations', '3 victoires'])
     for (const count of ['0','1','2']) {
       const next = { ...legend, themes:Object.fromEntries(Object.entries(legend.themes).map(([key, theme]) => [key,{ ...theme,wins:count }])) } as ContestLegendDto
       render({ access:'ALLOWED',data:{ characters:[character],legends:[next] } })

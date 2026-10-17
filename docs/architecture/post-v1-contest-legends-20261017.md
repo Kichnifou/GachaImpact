@@ -1,5 +1,9 @@
 # Maintenance post-V1 — Concours, fiche personnage et Légendes
 
+## Complément ultérieur du17/10/2026 — totaux dans le dernier emplacement
+
+Mandat explicite : les totaux quittent l'en-tête et occupent le dernier emplacement à droite, participations puis victoires sur deux lignes ; le libellé « C6 · Légende » disparaît. Portrait56px et cinq thèmes conservés, titres et compteurs entièrement lisibles, cadre commun Profil/Box inchangé. L'intérieur s'adapte en2/3/6colonnes ; la réserve invisible de l'ancien en-tête et celle des anciennes cellules en6colonnes ne participent plus aux minima. Pagination3/2/1 selon l'espace utile, aucun scroll interne ajouté. [Contrat UI](../specifications/ui-layout-contract-v1.md), état réellement qualifié/livré au Master. Ce mandat supersède le seul placement des totaux et du libellé dans la section précédente.
+
 ## Finitions internes du17/10/2026
 
 Dimensions extérieures, cinq thèmes ensemble et pagination des personnages conservés. Portrait56px dans le budget vertical antérieur de l'en-tête et des totaux ; nom/C6/totaux à sa droite. Libellé de thème12,5px gras, /20 en haut à droite, titre centré par grille dans l'espace disponible, victoires seules en bas à droite (`0 victoire`, `1 victoire`, `2 victoires`). Le nombre de participations reste seulement dans les totaux de la Légende. Données, calculs, droits et Box inchangés.

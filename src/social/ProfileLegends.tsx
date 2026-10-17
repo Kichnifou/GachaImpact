@@ -20,12 +20,13 @@ export function legendPageCapacity(width:number, height:number, cardHeights:read
 type LegendData = Extract<NonNullable<Profile['legends']>, { access: 'ALLOWED' }>['data']
 const themes = Object.entries(stats) as [keyof typeof stats, string][]
 const victories = (count: string) => `${count} ${BigInt(count) <= 1n ? 'victoire' : 'victoires'}`
+const participations = (count: string) => `${count} ${BigInt(count) <= 1n ? 'participation' : 'participations'}`
 
 function LegendCard({ character, data, box }: { character: LegendData['characters'][number]; data: LegendData; box: Profile['box'] }) {
   const legend = data.legends.find(item => item.character.id === character.id)
   const portrait = box.access === 'ALLOWED' ? box.data.find(item => item.id === character.id)?.iconPath : null
   return <article className="panel profile-legend">
-    <header><CharacterPortraitFrame characterName={character.name} element={legend?.character.elementKey ?? 'unknown'} assetPaths={[portrait ?? null]} frameClassName="profile-legend-portrait" imageClassName="profile-legend-image"/><div><h2>{character.name}</h2><span>C6 · Légende</span>{legend && <p className="profile-legend-totals">{legend.totals.contests} participations · {victories(legend.totals.wins)}</p>}</div>{legend && <p className="profile-legend-header-reserve" aria-hidden="true">{legend.totals.contests} participations · {legend.totals.wins} victoires</p>}</header>
+    <header><CharacterPortraitFrame characterName={character.name} element={legend?.character.elementKey ?? 'unknown'} assetPaths={[portrait ?? null]} frameClassName="profile-legend-portrait" imageClassName="profile-legend-image"/><div><h2>{character.name}</h2></div></header>
     {legend ? <>
       <dl className="profile-legend-themes">{themes.map(([key, label]) => {
         const theme = legend.themes[contestStatThemes[key]]
@@ -39,7 +40,7 @@ function LegendCard({ character, data, box }: { character: LegendData['character
             <dd className="profile-legend-legacy-wins">{theme.wins} / {theme.participations} victoires</dd>
           </dl></dd>
         </div>
-      })}</dl>
+      })}<div className="profile-legend-totals"><dt className="profile-legend-totals-label">Résultats de la Légende</dt><dd><span>{participations(legend.totals.contests)}</span><span>{victories(legend.totals.wins)}</span></dd></div></dl>
     </> : <p>Les statistiques de cette Légende sont privées.</p>}
   </article>
 }

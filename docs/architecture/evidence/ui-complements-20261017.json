@@ -1,0 +1,25 @@
+{
+  "scope": ["Legend totals in final cell and C6 label removal", "four compact character cards per row in right Chat", "all seven player mini-avatar backgrounds"],
+  "immutableVisualBaselineSha": "b52f7cc7eb5a521d1b20329da7165bc17245a890",
+  "targetedFrontendTestsPassed": 17,
+  "frontendTypecheckPassed": true,
+  "fullQualification": { "stepsPassed": 8, "frontendTestsPassed": 1835, "backendNonDatabaseTestsPassed": 2690 },
+  "independentCompiledPrequalification": {
+    "observations": 96,
+    "unchangedProfileBoxComparisons": 14,
+    "desktopParentRectangleMaxDeltaPx": 0,
+    "visibleClippingCases": 0,
+    "gridOverflowCasesOver1Px": 0,
+    "fourChatCardsOnSameRow": ["normal desktop", "expanded community", "mobile"],
+    "mobileChatCardWidthPx": 76,
+    "mobileChatParentRoundingDeltaPx": 1,
+    "avatarCases": 21,
+    "distinctPersonalElementGradients": 7,
+    "neutralElementFallbacksPreserved": 7,
+    "extremeCase1366x768ChatOpenLongTitles20DigitCounts": { "cardBottom": 693, "gridBottom": 686.859, "visibleTextBottom": 682.859, "footerTop": 701 },
+    "mobileLayout": "existing document flow, total height adapts to content; all content accessible",
+    "characterCapacity": "3/2/1; increases where the shorter header/content permits, never decreases in measured matrix"
+  },
+  "explorationIncluded": false,
+  "humanProductionAcceptance": "not claimed; deployment and actual SHA recorded in Master and delivery"
+}

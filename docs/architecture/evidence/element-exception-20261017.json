@@ -1,0 +1,13 @@
+{
+  "scope": "single owner-authorized canonical account; no real identifier or amount included",
+  "runtimeSha": "b52f7cc7eb5a521d1b20329da7165bc17245a890",
+  "reviewedProcedureSha": "1afb2b248ff59147bb4fa29ae6dbe5c89af4e1d2",
+  "independentReview": { "runtimeGitHubBlobs": 18, "runtimeAdditionalTestsPassed": 11, "budgetDeltaGitHubBlobs": 5, "testFixGitHubBlobs": 1, "verdict": "APPROVED" },
+  "qualification": { "fullStepsPassed": 8, "frontendTestsPassed": 1835, "backendNonDatabaseTestsPassed": 2690, "privateMaintenanceTestsPassed": 14, "privateExpeditionTestsPassed": 17, "privateTradeTestsPassed": 26, "additionalPrivateSlowProofTestPassed": 1, "slowProofExcludedPreviouslyPassedCases": 14, "privateFixturesCleaned": true },
+  "firstAttempt": { "committed": false, "rolledBack": true, "maintenanceOperations": 0, "maintenanceMovements": 0, "reason": "two private proof captures exceeded the ordinary 30s transaction budget" },
+  "production": { "checkedAt": "2026-10-17T20:26:58.069Z", "committed": true, "sentRequestsFoundAndClosed": 0, "receivedRequestsFoundAndClosed": 1, "receivedTerminalState": "REFUSED", "fromElement": "cryo", "toElement": "electro", "exactBalanceSwapAudited": true, "capturedPersonalGraphPreserved": true, "peerResourcesPreserved": true, "auditEntries": 1, "resourceMovements": 2, "pendingTargetRequestsAfter": 0 },
+  "replay": { "checkedAt": "2026-10-17T20:27:18.718Z", "alreadyProcessed": true, "secondSwap": false },
+  "deployment": { "railway": "cbf8013a-53a1-4847-9156-9256ed79e40a", "cloudflare": "de073375-1171-4640-a45d-3a45f2ed3a4a", "bothSucceededAtRuntimeSha": true, "postflightAt": "2026-10-17T20:18:42.689Z", "publicHealth": 200, "anonymousGuards": 8, "guardStatus": 401 },
+  "explorationIncludedOrPubliclyMigrated": false,
+  "privateEvidence": "encrypted local preimages, audit, transaction receipt and replay receipt; intentionally excluded from Git"
+}

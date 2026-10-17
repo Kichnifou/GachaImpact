@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Compléments UI — Légendes, fiches Chat, avatars (17/10/2026)
+
+**Autorisation explicite :** déplacer les totaux de Légende à droite dans l'emplacement libre, participations puis victoires sur deux lignes, supprimer « C6 · Légende » ; faire tenir quatre fiches de personnages sur une ligne dans le Chat droit ; compléter les fonds d'avatar pour les éléments manquants. Autorisé jusqu'à main après qualification, séparément d'Exploration qui reste review-only. Les cinq thèmes, titres, tailles de police et cadre commun Profil/Box sont préservés. Le dernier mandat supersède le seul placement interne antérieur des totaux et du libellé. État réel au Master, [contrat UI](ui-layout-contract-v1.md).
+
 ## Intervention exceptionnelle d'élément — complément prioritaire du17/10/2026
 
 **Autorisé explicitement :** clôturer les demandes de particules PENDING envoyées et reçues du seul compte ciblé, puis appliquer atomiquement Cryo→Electro et l'inversion de ses deux stocks, sans statistiques historiques ni autres ressources modifiées. L'ancienne attente d'expiration est supersédée. Tests PostgreSQL privés et revue indépendante du vrai SHA avant application réelle, déjà autorisée sans nouveau GO. Aucun changement général d'élément pour les joueurs. Un garde-fou sous verrou empêche une conversion en vol d'utiliser l'ancien élément ; sa publication isolée précède l'opération. Exploration demeure review-only, sans migration publique. [Contrat](../architecture/exceptional-element-maintenance-20261017.md), état réel au Master.

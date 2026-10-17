@@ -3835,6 +3835,10 @@ button.character-card { width: 100%; padding: 0; cursor: pointer; font: inherit;
 .mini-avatar.electro { background: linear-gradient(145deg, #8656bd, #37315e); }
 .mini-avatar.pyro { background: linear-gradient(145deg, #b95745, #54313c); }
 .mini-avatar.anemo { background: linear-gradient(145deg, #359c7e, #254d51); }
+.mini-avatar.hydro { background: linear-gradient(145deg, #368bc1, #243f68); }
+.mini-avatar.cryo { background: linear-gradient(145deg, #7dc9d7, #315d74); }
+.mini-avatar.geo { background: linear-gradient(145deg, #c6a345, #64502d); }
+.mini-avatar.dendro { background: linear-gradient(145deg, #79a848, #354e32); }
 .player-avatar { overflow: hidden; flex: 0 0 auto; }
 .player-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
 .player-avatar[data-avatar-kind="element"] { background: #1d2d43; }
@@ -9551,6 +9555,11 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .chat-result-facts { margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 2px 10px; list-style: none; font-size: 10px; color: #b8cae4; }
 .community-is-expanded .chat-result-character { width: 94px; }
 .community-is-expanded .chat-result-portrait { height: 83px; }
+/* Four complete compact cards fit the right-hand Chat, including its padding.
+   Keep existing dimensions for a single result and for the expanded community. */
+.game-shell:not(.community-is-expanded) .chat-panel .chat-result-characters:has(> :nth-child(4)) { display:grid; grid-template-columns:repeat(4,minmax(0,76px)); gap:4px; }
+.game-shell:not(.community-is-expanded) .chat-panel .chat-result-characters:has(> :nth-child(4)) .chat-result-character { box-sizing:border-box; width:100%; padding:2px; }
+.game-shell:not(.community-is-expanded) .chat-panel .chat-result-characters:has(> :nth-child(4)) .chat-result-portrait { height:auto; aspect-ratio:1; }
 .player-sidebar .objective-content { grid-template-columns: 76px minmax(0, 1fr); gap: 10px; }
 .objective-character { min-width: 0; display: grid; align-content: start; gap: 0; border: 1px solid color-mix(in srgb, var(--objective-element) 35%, transparent); border-radius: 7px; background: rgba(10, 22, 40, .55); overflow: hidden; }
 .player-sidebar .objective-character .objective-art { width: 100%; height: auto; aspect-ratio: 1; border: 0; border-radius: 0; }
