@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Exploration — application du mandat review du17/10/2026
+
+L'implémentation applique le mandat déjà validé : trois coffres cachés persistés, un seul ouvert et crédit atomique, stocks régionaux puis mode infini, vraie recette locale PostgreSQL privée. Les décors restent candidats tant que droits et attribution ne sont pas vérifiés ; secours graphique jouable et import contrôlé autorisés lorsque la recherche sûre ne fournit pas cinq décors. Aucune validation humaine ni autorisation main/migration publique déduite des tests. La promotion automatique reste explicitement suspendue pour B ; main conserve uniquement les compléments UI et la maintenance autorisés. [Contrat](../architecture/exploration-20261017.md), état réel au Master.
+
 ## Listes de joueurs — précision du17/10/2026
 
 Mandat explicite : réduire nom/niveau pour garder les pseudos longs lisibles ; dernière précision, conserver le statut à droite centré verticalement et remplacer le nom de l'élément sous le pseudo par une petite icône après celui-ci. Niveau seul sur la seconde ligne. Autorisé jusqu'à main après qualification, sans commits Exploration. Le statut sous les métadonnées de la première correction est supersédé ; aucun changement métier.

@@ -22,9 +22,9 @@ describe('player tutorial catalog contract', () => {
     expect(getTutorialStep('history-bank').id).toBe('history-bank')
     expect(tutorialSteps[79]).not.toBe(historical)
   })
-  it('covers every player ScreenId exactly as a destination set, excluding moderation', () => {
+  it('preserves the 115-step public destination set, excluding moderation and review Exploration', () => {
     const source = readFileSync(new URL('../types.ts', import.meta.url), 'utf8').split('export type ElementTone')[0]!
-    const screens = [...source.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(id => id !== 'moderation')
+    const screens = [...source.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(id => !['moderation', 'exploration'].includes(id!))
     expect([...new Set(tutorialSteps.map(step => step.screen))].sort()).toEqual(screens.sort())
     expect(new Set(tutorialStepIds).size).toBe(tutorialSteps.length)
     expect(tutorialSteps).toHaveLength(115)

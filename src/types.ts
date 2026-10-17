@@ -1,6 +1,7 @@
 export type ScreenId =
   | 'home'
   | 'invocation'
+  | 'exploration'
   | 'characters-box'
   | 'characters-team'
   | 'characters-catalog'

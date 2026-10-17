@@ -2,6 +2,8 @@ import { TwitchLiveService } from '../application/twitch/twitch-live-service.js'
 import { TwitchStreamClient } from './twitch/twitch-stream-client.js';
 import { TwitchMessageActivity } from '../application/twitch/twitch-message-activity.js';
 import { ArcadeInvitations } from '../application/arcade/arcade-invitations.js';
+import { ExplorationService } from '../application/exploration/exploration-service.js';
+import { ExplorationBackgroundStock } from '../application/exploration/background-stock.js';
 import { TwitchCommandPilot } from '../application/twitch/twitch-command-pilot.js';
 import { twitchPlayerCommandExecutor } from '../application/twitch/twitch-player-command-executor.js';
 import { TwitchCommandChatClient } from './twitch/twitch-command-chat-client.js';
@@ -130,10 +132,14 @@ export function createRuntimeDependencies(config: AppConfig) {
   const guardedVerifier=accountAccessVerifier(database,accountAdmin,baseVerifier);
   const store = new PrismaCurrentPlayerStore(database);
   const getCurrentPlayer = new GetCurrentPlayer(store);
+  const clock = new SystemClock();
   const catalogEngine = new CatalogEngine(database, { enabled: config.characterCatalog?.enabled ?? false,
     publish: config.characterCatalog?.publish ?? false, dryRun: config.characterCatalog?.dryRun ?? true,
     storageUrl: config.supabase.url, storageKey: config.characterCatalog?.storageKey });
   const catalogScheduler = new CatalogScheduler(database, catalogEngine);
+  const explorationService = new ExplorationService(database,getCurrentPlayer,clock);
+  const explorationBackgrounds = new ExplorationBackgroundStock(database,()=>clock.now());
+  catalogScheduler.onAfterCycle(async()=>{try{await explorationService.expireAbandoned();await explorationBackgrounds.tick();}catch{console.error('EXPLORATION_BACKGROUND_CYCLE_FAILED');}});
   const twitchEventObserver = new TwitchEventObserver(database);
   const twitchAppTokens = config.twitch?.clientId && config.twitch.clientSecret
     ? new TwitchAppAccessTokenProvider(config.twitch.clientId, config.twitch.clientSecret) : undefined;
@@ -144,7 +150,6 @@ export function createRuntimeDependencies(config: AppConfig) {
   const twitchGiftSupremeManager = twitchSubscriptions ? new TwitchGiftSupremeManager(database, config, twitchSubscriptions) : undefined;
   const twitchGiveawayManager = new TwitchGiveawayManager(database, config, twitchSubscriptions);
   const wheelStore = new PrismaWheelStore(database);
-  const clock = new SystemClock();
   const retentionScheduler = new RetentionScheduler(new RetentionEngine(database, config.retentionMode ?? 'DISABLED', clock,undefined,undefined,config.retentionExecuteDomains??[]), clock);
   const giveawayService = new GiveawayService(database, twitchGiveawayManager, () => clock.now());
   twitchGiveawayManager.attachCore(giveawayService);
@@ -291,6 +296,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     appearanceService: new AppearanceService(database, getCurrentPlayer),
     rankingService: new RankingService(database),
     arcadeService: new ArcadeService(database, getCurrentPlayer, clock),
+    explorationService,
     arcadeRecords: new ArcadeRecords(database),
     activityService: new PlayerActivityService(database, clock),
     historyService: new HistoryService(database, () => clock.now()),

@@ -99,6 +99,8 @@ import type { HistoryService } from './application/history/history-service.js';
 import { registerHistoryRoutes } from './api/routes/history.js';
 import { registerGiveawayRoutes } from './api/routes/giveaway.js';
 import { registerArcadeRoutes } from './api/routes/arcade.js';
+import { registerExplorationRoutes } from './api/routes/exploration.js';
+import type { ExplorationService } from './application/exploration/exploration-service.js';
 import type { ArcadeService } from './application/arcade/arcade-service.js';
 import type { ArcadeRecords } from './application/arcade/arcade-records.js';
 import type { GiveawayService } from './application/giveaway/giveaway-service.js';
@@ -113,6 +115,7 @@ export type AppDependencies = Readonly<{
   chatCommandDispatcher?: ChatCommandDispatcher;
   rankingService?: RankingService;
   arcadeService?: ArcadeService;
+  explorationService?: ExplorationService;
   arcadeRecords?: ArcadeRecords;
   historyService?: HistoryService;
   tradeService?: TradeService;
@@ -248,6 +251,7 @@ export async function buildApp(
     if (dependencies.socialService) await app.register(registerSocialRoutes, { authenticate, service: dependencies.socialService });
     if (dependencies.appearanceService) await app.register(registerAppearanceRoutes, { authenticate, service: dependencies.appearanceService });
     if (dependencies.arcadeService && dependencies.arcadeRecords) await app.register(registerArcadeRoutes, { authenticate, service: dependencies.arcadeService, records: dependencies.arcadeRecords });
+    if (dependencies.explorationService) await app.register(registerExplorationRoutes, { authenticate, service: dependencies.explorationService });
     if (dependencies.rankingService && dependencies.socialService) await app.register(registerRankingRoutes, { authenticate, service: dependencies.rankingService, social: dependencies.socialService });
     if (dependencies.historyService && dependencies.socialService) await app.register(registerHistoryRoutes, { authenticate, service: dependencies.historyService, social: dependencies.socialService });
     if (dependencies.directMessageService) await app.register(registerDirectMessageRoutes, { authenticate, service: dependencies.directMessageService });

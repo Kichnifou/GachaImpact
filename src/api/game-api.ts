@@ -1,4 +1,5 @@
 import type { DailyCombatCompositionInput } from './types'
+import type { ExplorationSnapshot,ExplorationAction,ExplorationMutation,ExplorationPresence } from '../../server/src/domain/exploration/types'
 import type { SharedInvocationApi, SharedInvocationList, SharedInvocationState } from './shared-invocations-types'
 import { nextSharedPresenceRevision, establishedSharedInvocationTabId } from '../gacha/shared-invocation-tab'
 import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
@@ -296,6 +297,9 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     inviteArcade: (input: ArcadeInvite) => request<ArcadeInvitationMutation>('/api/v1/arcade/invitations', { method: 'POST', body: JSON.stringify(input) }),
     actArcadeInvitation: (id: string, input: ArcadeInviteAction) => request<ArcadeInvitationMutation>(`/api/v1/arcade/invitations/${encodeURIComponent(id)}/actions`, { method: 'POST', body: JSON.stringify(input) }),
     getArcade: () => request<ArcadeOverview>('/api/v1/arcade'),
+    getExploration: () => request<ExplorationSnapshot>('/api/v1/exploration'),
+    actExploration: (input:ExplorationAction) => request<ExplorationMutation>('/api/v1/exploration/actions',{method:'POST',body:JSON.stringify(input)}),
+    explorationPresence: (sessionId:string,input:ExplorationPresence) => request<{active:boolean;expiresAt:string|null;serverNow:string}>(`/api/v1/exploration/sessions/${encodeURIComponent(sessionId)}/presence`,{method:'POST',keepalive:true,body:JSON.stringify(input)}),
     arcadeAfterMatchPresence: (id: string, input: ArcadeAfterMatchPresenceInput) => request<ArcadeAfterMatchPresence>(`/api/v1/arcade/sessions/${encodeURIComponent(id)}/after-match/presence`, { method: 'POST', keepalive: true, body: JSON.stringify(input) }),
     requestArcadeAfterMatch: (id: string, input: ArcadeAfterMatchInput) => request<ArcadeMutation>(`/api/v1/arcade/sessions/${encodeURIComponent(id)}/after-match/actions`, { method: 'POST', body: JSON.stringify(input) }),
     getArcadeSession: (id: string) => request<ArcadeSession>(`/api/v1/arcade/sessions/${id}`),

@@ -16,6 +16,8 @@ local-data/streamerbot-snapshots/
 local-data/identity-resolutions/
 local-data/migration-backups/
 local-data/private-backups/
+local-data/exploration-rehearsal/
+/server/local-data/
 local-data/r1097/
 local-data/r1098/
 local-data/r1099/

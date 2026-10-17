@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Exploration — candidat review du17/10/2026
+
+ExplorationService commun aux routes authentifiées GET exploration, POST actions et présence de session. Canonique ACTIVE et élément relus sous verrou Player ; Serializable/retry pour progression/choix/crédit PrismaEconomyService/reçu atomiques. Preuve de chemin URDL bornée validée sur la grille persistée, aucun flux de positions ni récompense tirée par le navigateur. Expiration persistée réconciliée à la lecture/action et par le cycle CatalogueScheduler existant. Découverte nocturne partagée de métadonnées, aucun candidat publié automatiquement ; import local contrôlé et stock approuvé cinq/région. Recette compilée127.0.0.1 avec vrai backend et schéma PostgreSQL UUID privé ; aucune API publique ni compte réel copié. [Contrat](exploration-20261017.md).
+
 ## Maintenance exceptionnelle d'élément — 17/10/2026
 
 Une procédure locale hors API réutilise les verrous TradeService/Player et le moteur économique pour une intervention unique auditée, sans migration. La conversion revalide l'élément après son verrou Player ; une récupération d'Expédition relit cet élément et rejoue ensuite la ressource historique persistée. Aucun service de changement d'élément accessible aux joueurs. [Contrat](exceptional-element-maintenance-20261017.md), qualification et application réelle au Master ; Exploration reste exclu de ce lot public.

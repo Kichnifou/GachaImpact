@@ -9,6 +9,8 @@ export class CatalogScheduler {
   private timer?: ReturnType<typeof setTimeout>;
   private stopped = true;
   private running?: Promise<void>;
+  private afterCycle?:()=>Promise<void>;
+  onAfterCycle(task:()=>Promise<void>){this.afterCycle=task;}
   constructor(private readonly database: PrismaClient, private readonly engine: CatalogEngine,
     private readonly now: () => Date = () => new Date(), private readonly onError: (code: string) => void = console.error) {}
   start() { this.stopped = false; void this.tick(); }
@@ -25,6 +27,7 @@ export class CatalogScheduler {
     const job = await this.database.catalogJob.findUnique({ where: { id: 'R1051' } });
     if (this.engine.settings.enabled && job?.lastSuccessDate !== getBusinessDate(this.now())) await this.engine.run();
     await this.engine.deliverNotifications();
+    await this.afterCycle?.();
   }
   private async tick() {
     if (this.stopped || this.running) return;

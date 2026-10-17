@@ -1,0 +1,70 @@
+.screen-content.exploration-screen { height:100%; min-height:0; display:flex; flex-direction:column; gap:8px; }
+.exploration-heading { flex:none; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.exploration-heading h1 { margin:1px 0 0; font-size:25px; line-height:1.1; }
+.exploration-heading .eyebrow { font-size:9px; }
+.exploration-panel.panel { --exploration-accent:#64d4bb; flex:1; min-height:0; padding:12px; display:flex; flex-direction:column; gap:7px; background-color:#0c2130; background-image:radial-gradient(ellipse at 80% 10%,#3b90794d,transparent 65%),linear-gradient(155deg,#142e45,#102b2a 60%,#122239); background-size:cover; background-position:center; overflow:hidden; }
+.exploration-panel[data-region="liyue"],.exploration-panel[data-region="geo"] { --exploration-accent:#efc982; background-color:#332719; }
+.exploration-panel[data-region="inazuma"],.exploration-panel[data-region="nodkrai"] { --exploration-accent:#b7a0ed; }
+.exploration-panel[data-region="fontaine"],.exploration-panel[data-region="espace"] { --exploration-accent:#8dcdf2; }
+.exploration-panel[data-region="natlan"] { --exploration-accent:#f2a276; }
+.exploration-region-heading { flex:none; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:4px 8px; }
+.exploration-region-heading strong { color:var(--exploration-accent); font-size:17px; }
+.exploration-region-heading span { font-size:12px; color:#d3e7f1; }
+.exploration-region-heading progress { grid-column:1/-1; width:100%; height:6px; accent-color:var(--exploration-accent); }
+.exploration-board { flex:1; min-height:110px; min-width:0; display:grid; place-items:center; overflow:hidden; border-radius:8px; touch-action:none; }
+.exploration-board:focus-visible { outline:2px solid #83d6ee; outline-offset:-2px; }
+.exploration-board svg { display:block; width:100%; height:100%; min-height:0; max-height:100%; object-fit:contain; }
+.exploration-floor { fill:#0715269c; }
+.exploration-wall { fill:#12263be8; stroke:#739ba75c; stroke-width:1; }
+.exploration-spawn { fill:none; stroke:#93d7c399; stroke-dasharray:3 3; }
+.exploration-chest text { fill:#fff; font-size:12px; font-weight:800; text-anchor:middle; paint-order:stroke; stroke:#24170d; stroke-width:2px; }
+.exploration-chest.opened { opacity:.5; }
+[data-exploration-avatar] { transition:transform 90ms linear; }
+.exploration-controls { flex:none; display:flex; align-items:center; justify-content:center; gap:12px; }
+.exploration-dpad { flex:none; display:grid; grid-template-columns:repeat(3,32px); grid-template-rows:repeat(2,32px); gap:3px; touch-action:none; }
+.exploration-dpad .app-button { width:32px; min-height:32px; padding:0; font-size:19px; touch-action:none; user-select:none; }
+.exploration-dpad .direction-U { grid-column:2; grid-row:1; }
+.exploration-dpad .direction-L { grid-column:1; grid-row:2; }
+.exploration-dpad .direction-D { grid-column:2; grid-row:2; }
+.exploration-dpad .direction-R { grid-column:3; grid-row:2; }
+.exploration-controls small { max-width:185px; color:#bdd4df; font-size:11px; }
+.exploration-outcome { flex:none; min-height:23px; text-align:center; color:#def7ea; font-size:13px; }
+.exploration-outcome strong { display:flex; justify-content:center; align-items:center; gap:6px; }
+.exploration-outcome .game-asset-icon { width:22px; height:22px; }
+.exploration-outcome .game-asset-icon img,.exploration-detail-icons .game-asset-icon img { display:block; width:100%; height:100%; object-fit:contain; }
+.exploration-actions { flex:none; display:flex; justify-content:center; gap:8px; }
+.exploration-credit { flex:none; font-size:9px; text-align:right; }
+.exploration-credit a { color:#d2e4ec; }
+.exploration-error { flex:none; display:flex; justify-content:space-between; align-items:center; gap:8px; color:#ffdbb3; font-size:12px; }
+.exploration-error .app-button { font-size:11px; min-height:30px; }
+.exploration-departure { flex:1; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; }
+.exploration-departure h2 { margin:0; font-size:23px; }
+.exploration-departure p { margin:0; max-width:380px; color:#c2d4df; font-size:13px; }
+.exploration-departure label { display:grid; gap:5px; width:min(280px,100%); text-align:left; color:#c2d4df; font-size:12px; }
+.exploration-departure select,.exploration-details select { min-height:36px; width:100%; padding:5px 8px; color:#eaf6ff; background:#11263a; border:1px solid #547084; border-radius:7px; }
+.exploration-horizon { display:grid; place-items:center; width:130px; height:100px; border-radius:50%; color:#d9f7ee; font-size:44px; background:radial-gradient(circle,#74c2a855,transparent 65%); }
+.exploration-details.panel { width:min(440px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); overflow:auto; padding:18px; display:grid; gap:12px; }
+.exploration-details header { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+.exploration-details h2 { margin:0; font-size:21px; }
+.exploration-details progress { width:100%; height:7px; accent-color:#76d5b9; }
+.exploration-details p,.exploration-details small { margin:0; color:#bfd3df; font-size:12px; line-height:1.5; }
+.exploration-progress-details { display:grid; gap:10px; margin:0; }
+.exploration-progress-details>div { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; }
+.exploration-progress-details dt { font-size:12px; color:#d9e9f3; }
+.exploration-detail-icons { display:inline-flex; vertical-align:middle; gap:2px; margin-right:5px; }
+.exploration-detail-icons .game-asset-icon { width:16px; height:16px; }
+.exploration-progress-details dd { margin:0; font-size:12px; }
+.exploration-progress-details progress { grid-column:1/-1; }
+@media(max-width:1120px) { .screen-content.exploration-screen { height:min(620px,calc(100dvh - 170px)); min-height:390px; } }
+@media(max-width:550px) {
+  .exploration-panel.panel { padding:8px; gap:6px; }
+  .exploration-heading h1 { font-size:22px; }
+  .exploration-heading .eyebrow { display:none; }
+  .exploration-controls { gap:9px; }
+  .exploration-controls>small { display:none; }
+  .exploration-controls>.app-button { padding:0 10px; font-size:12px; }
+  .exploration-departure { gap:9px; }
+  .exploration-departure h2 { font-size:19px; }
+  .exploration-horizon { height:65px; }
+}
+@media(prefers-reduced-motion:reduce) { [data-exploration-avatar] { transition:none; } }

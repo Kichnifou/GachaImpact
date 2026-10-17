@@ -290,6 +290,7 @@ enum BannerSelectionSource {
 }
 
 model Element {
+  explorationSessions ExplorationSession[]
   key                      String                     @id @db.Text
   displayName              String                     @map("display_name") @db.Text
   displayOrder             Int                        @unique(map: "elements_display_order_key") @map("display_order") @db.SmallInt
@@ -380,6 +381,8 @@ model ResourceDefinition {
 }
 
 model Player {
+  explorationProgress ExplorationRegionProgress[]
+  explorationSessions ExplorationSession[]
   birthdayDay Int? @map("birthday_day") @db.SmallInt
   birthdayMonth Int? @map("birthday_month") @db.SmallInt
   birthdayRegisteredAt DateTime? @map("birthday_registered_at") @db.Timestamptz(6)
@@ -545,6 +548,73 @@ model Player {
   @@index([equippedTitleCosmeticId], map: "players_equipped_title_cosmetic_id_idx")
   @@index([equippedBadgeCosmeticId], map: "players_equipped_badge_cosmetic_id_idx")
   @@map("players")
+}
+
+model ExplorationRegionProgress {
+  playerId String @map("player_id") @db.Uuid
+  regionKey String @map("region_key") @db.Text
+  primogemsUsed Int @default(0) @map("primogems_used")
+  morasUsed Int @default(0) @map("moras_used")
+  ownUsed Int @default(0) @map("own_used")
+  otherUsed Int @default(0) @map("other_used")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields:[playerId],references:[id],onDelete:Restrict)
+  @@id([playerId,regionKey])
+  @@map("exploration_region_progress")
+}
+
+model ExplorationSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId String @map("player_id") @db.Uuid
+  regionKey String @map("region_key") @db.Text
+  regionName String @map("region_name") @db.Text
+  elementKey String @map("element_key") @db.Text
+  seed String @db.Text
+  maze Json @db.JsonB
+  hiddenRewards Json @map("hidden_rewards") @db.JsonB
+  infinite Boolean
+  state String @default("ACTIVE") @db.Text
+  openedChest Int? @map("opened_chest")
+  openedReward Json? @map("opened_reward") @db.JsonB
+  backgroundPath String? @map("background_path") @db.Text
+  presence Json @default("{}") @db.JsonB
+  expiresAt DateTime? @map("expires_at") @db.Timestamptz(6)
+  endedAt DateTime? @map("ended_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  player Player @relation(fields:[playerId],references:[id],onDelete:Restrict)
+  element Element @relation(fields:[elementKey],references:[key],onDelete:Restrict)
+  @@index([playerId,createdAt])
+  @@index([expiresAt])
+  @@map("exploration_sessions")
+}
+
+model ExplorationBackground {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  regionKey String @map("region_key") @db.Text
+  state String @default("CANDIDATE") @db.Text
+  sourceUrl String @map("source_url") @db.Text
+  imageUrl String @map("image_url") @db.Text
+  licenseUrl String @map("license_url") @db.Text
+  licenseName String @map("license_name") @db.Text
+  attribution String @db.Text
+  localPath String? @map("local_path") @db.Text
+  sha256 String? @db.Text
+  width Int
+  height Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([regionKey,sourceUrl])
+  @@index([regionKey,state])
+  @@map("exploration_backgrounds")
+}
+
+model ExplorationBackgroundSearch {
+  regionKey String @id @map("region_key") @db.Text
+  regionName String @map("region_name") @db.Text
+  searchedDay String? @map("searched_day") @db.Text
+  leaseUntil DateTime? @map("lease_until") @db.Timestamptz(6)
+  lastResult String? @map("last_result") @db.Text
+  @@map("exploration_background_search")
 }
 
 model CosmeticDefinition {

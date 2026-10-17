@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Exploration — candidat review du17/10/2026
+
+ExplorationRegionProgress est le stock consommé Player/région : quatre quotas100/200/300/400, somme1000. ExplorationSession persiste élément de départ, région, seed/grille, trois résultats cachés, choix unique, gain ouvert, décor, présences bornées et échéance. Un seul courant par Player. ExplorationBackground conserve les candidats avec droits/attribution/hash/chemin local et approbation ; ExplorationBackgroundSearch porte file quotidienne Paris/bail durable par région. BusinessOperation existant conserve l'action et sa réponse pour relance sans second gain. Aucun modèle économique parallèle. Migration090 exclusivement répétée en schéma privé, jamais appliquée publiquement sans GO. [Contrat](../architecture/exploration-20261017.md).
+
 ## R1112 — suivi technique du live officiel
 
 TwitchLiveChannel porte la projection confirmée et le bail de réconciliation serveur. TwitchLiveStream porte l'identité durable de diffusion, son ouverture consommée et sa relation à GiveawaySession, atomique avec la création de session. Les reprises brèves peuvent conserver la même session ; une fermeture manuelle n'efface pas cette preuve. Aucune donnée de viewer ni règle économique nouvelle. [Contrat](../architecture/twitch-live-giveaway-r1112.md), état appliqué au Master.

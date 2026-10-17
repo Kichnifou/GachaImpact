@@ -16,6 +16,7 @@ import {twitchErasedAt} from '../src/application/player/account-erasure-markers.
 import {buildApp} from '../src/app.js';
 import {createLocalJWKSet,exportJWK,generateKeyPair,SignJWT} from 'jose';
 import {SupabaseAuthAdapter,SupabaseJwtVerifier} from '../src/infrastructure/auth/supabase-auth-adapter.js';
+import {createExplorationMaze} from '../src/domain/exploration/maze.js';
 const fixture=isolatedBatchDatabase(),db=fixture.database,key='11'.repeat(32);
 beforeAll(async()=>{await fixture.setup({prismaMigrations:true,seedPublicCatalog:true});process.env['ACCOUNT_DELETION_MARKER_KEY']=key;},180000);
 afterAll(async()=>{delete process.env['ACCOUNT_DELETION_MARKER_KEY'];await fixture.cleanup();},60000);
@@ -29,6 +30,20 @@ function service(failAuth=false,offline=false){const errors:unknown[]=[],deleted
  return {admin,errors,instance:new AccountDeletionService(db,admin,verifier,key,offline?'WAIT_FOR_OFFLINE_ERASURE':'RETENTION_30_DAYS',error=>errors.push(error))};}
 const proof=(subject:string)=>({confirmation:'SUPPRIMER' as const,reauthenticationToken:`fresh:${subject}`});
 describe('R1100 synthetic erasure in private PostgreSQL',()=>{
+ it('classifies090 and erases only the target Exploration sessions, progress and private receipts',async()=>{
+   const target=await player(),peer=await player(),s=service();
+   for(const account of [target,peer]){
+     await db.player.update({where:{id:account.player.id},data:{elementKey:'cryo'}});
+     await db.explorationRegionProgress.create({data:{playerId:account.player.id,regionKey:'mondstadt',ownUsed:1}});
+     await db.explorationSession.create({data:{playerId:account.player.id,regionKey:'mondstadt',regionName:'Mondstadt',elementKey:'cryo',seed:'1',maze:createExplorationMaze(1) as unknown as Prisma.InputJsonValue,hiddenRewards:[{category:'empty',resourceKey:null,amount:'0'},{category:'own',resourceKey:'particles_cryo',amount:'300'},{category:'other',resourceKey:'particles_pyro',amount:'100'}],infinite:false,presence:{privateTab:{sequence:1,visible:true,seenAt:Date.now()}},expiresAt:new Date(Date.now()+10000)}});
+   }
+   const operation=await db.businessOperation.create({data:{playerId:target.player.id,sourceChannel:'UI',operationType:'exploration.action',idempotencyKey:randomUUID(),status:'COMPLETED',resultSummary:{response:{playerId:target.player.id,privatePath:'URDL'}}}});
+   const peerSession=await db.explorationSession.findFirstOrThrow({where:{playerId:peer.player.id}}),peerProgress=await db.explorationRegionProgress.findMany({where:{playerId:peer.player.id}});
+   await checkErasureSchema(db);expect((await s.instance.execute({subject:target.subject},proof(target.subject))).status).toBe('COMPLETED');expect(s.errors).toEqual([]);
+   expect(await db.explorationSession.count({where:{playerId:target.player.id}})).toBe(0);expect(await db.explorationRegionProgress.count({where:{playerId:target.player.id}})).toBe(0);
+   expect(await db.explorationSession.findUniqueOrThrow({where:{id:peerSession.id}})).toEqual(peerSession);expect(await db.explorationRegionProgress.findMany({where:{playerId:peer.player.id}})).toEqual(peerProgress);
+   expect((await db.businessOperation.findUniqueOrThrow({where:{id:operation.id}})).resultSummary).toEqual({accountDeleted:true});
+ });
  it('returns202 then confirms worker completion after restart with a valid JWT even when Auth is already gone; expiry and peer access stay refused',async()=>{
    const target=await player(),peer=await player(),s=service(true),issuer='https://synthetic.invalid/auth/v1';
    await db.player.update({where:{id:target.player.id},data:{birthdayDay:29,birthdayMonth:2,birthdayRegisteredAt:new Date(),birthdayLastRewardYear:2025}});

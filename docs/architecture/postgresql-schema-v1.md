@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## Exploration — migration090 review uniquement
+
+20261017220000_090_exploration ajoute quatre tables privées exploration_region_progress, exploration_sessions, exploration_backgrounds et exploration_background_search. Contraintes de quotas, état/choix/butin cohérents, trois résultats, maillage et échéances ; index partiel unique session courante par Player. Trois FKs Player/élément et quatre JSON de session classifiés pour effacement ; données du seul Player supprimées, reçus personnels expurgés. Classification complémentaire de la FK Twitch089 session_id déjà existante, sans modification de cette migration. RLS et droits PUBLIC/anon/authenticated révoqués. Aucun backfill/gain initial ; deploy/status Prisma sur UUID privé seulement. Le schéma public reste089. [Contrat](exploration-20261017.md), preuves finales au Master.
+
 ## R1112 — migration additive089
 
 `twitch_live_channels` conserve la preuve LIVE/OFFLINE/UNKNOWN, le stream courant, les dates de confirmation et le bail/token serveur par broadcaster officiel. `twitch_live_streams` conserve l'identifiant Twitch durable, la date de début, la consommation de l'ouverture, la session associée et la fin. FK restrictive vers GiveawaySession, indexes broadcaster/date et session ; aucun FK Player, JSON privé ou transfert économique. RLS et révocation PUBLIC/anon/authenticated sur les deux tables. Application par Prisma predeploy après les gates ; répétition privée et application publique restent distinctes au Master. [Contrat](twitch-live-giveaway-r1112.md).

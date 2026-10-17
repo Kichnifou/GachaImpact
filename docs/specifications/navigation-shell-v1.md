@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Exploration — lot B review uniquement
+
+La version review ajoute Exploration après Activités dans les sept tuiles principales et après Concours dans le Menu canonique24destinations. Hash exploration et historique habituels, préférences version1 enrichies sans réinitialiser ordre/masquages existants. Le tutoriel public conserve ses115étapes ; aucune étape Exploration ajoutée dans ce lot. Main reste à six tuiles jusqu'au GO explicite du propriétaire. [Contrat](../architecture/exploration-20261017.md), état et recette au Master.
+
 ## Finitions UI du17/10/2026 — Configuration dans l'en-tête
 
 La navigation principale du lot A affiche exactement Accueil, Invocation, Personnages, Activités, Sac, Boutique. Configuration reste une destination canonique du Menu, des préférences et de `#configuration` ; seul son grand bouton est retiré. Dernière précision propriétaire : l'ordre droit est Menu, Modération si autorisée, ⚙ Configuration, Déconnexion, Notifications. Notifications est toujours le contrôle le plus à droite. Configuration ouvre les mêmes sous-onglets et participe à l'historique habituel. Menu/Modération et notifications restent fonctionnels. Exploration ne sera ajoutée qu'au lot B, après Activités, sans promotion main automatique.

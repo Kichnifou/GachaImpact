@@ -8,8 +8,8 @@ const player = { id: crypto.randomUUID(), displayName: 'Menu Test', elementKey: 
 const identity = { subject: 'navigation-subject' }
 
 describe('navigation preferences', () => {
-  it('uses the exact 23-destination canonical default with personal Profile and direct Arcade', () => {
-    expect(mergeNavigationMenuPreference(null)).toEqual({ version: 1, hidden: [], order: ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'] })
+  it('uses the exact 24-destination canonical default with review Exploration', () => {
+    expect(mergeNavigationMenuPreference(null)).toEqual({ version: 1, hidden: [], order: ['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'exploration', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'] })
   })
   it('retires Activities and inserts only absent Profile/Arcade beside their anchors without resetting survivors', () => {
     const oldOrder = ['bank', 'event', 'combat', 'home', 'activities', 'shop', 'configuration']
@@ -93,7 +93,7 @@ it('inserts absent Help after Tutorial, preserves custom placement and hidden st
  const full=mergeNavigationMenuPreference(null);
  const legacy={...full,order:full.order.filter(id=>id!=='help'),hidden:['bank']};
  const merged=mergeNavigationMenuPreference(legacy);
- expect(merged.version).toBe(1); expect(merged.order).toHaveLength(23);
+ expect(merged.version).toBe(1); expect(merged.order).toHaveLength(24);
  expect(merged.order.indexOf('help')).toBe(merged.order.indexOf('tutorial')+1);
  expect(merged.order.filter(id=>id!=='help')).toEqual(legacy.order);
  expect(mergeNavigationMenuPreference(merged)).toEqual(merged);
@@ -101,4 +101,16 @@ it('inserts absent Help after Tutorial, preserves custom placement and hidden st
  expect(custom.order.slice(0,3)).toEqual(['help','shop','tutorial']);expect(custom.hidden).toEqual(['help']);
  const incomplete=mergeNavigationMenuPreference({order:['bank','configuration'],hidden:[]});
  expect(incomplete.order.indexOf('help')).toBe(incomplete.order.indexOf('tutorial')+1);
+});
+
+it('inserts Exploration after Contest without resetting version, custom placement or hidden destinations', () => {
+ const current=mergeNavigationMenuPreference(null);
+ const old={...current,order:current.order.filter(id=>id!=='exploration'),hidden:['bank','friends']};
+ const merged=mergeNavigationMenuPreference(old);
+ expect(merged.order.indexOf('exploration')).toBe(merged.order.indexOf('contest')+1);
+ expect(merged.order.filter(id=>id!=='exploration')).toEqual(old.order);
+ expect(merged.hidden).toEqual(old.hidden); expect(merged.version).toBe(1);
+ expect(mergeNavigationMenuPreference(merged)).toEqual(merged);
+ const custom=mergeNavigationMenuPreference({order:['exploration','shop','contest','configuration'],hidden:['exploration']});
+ expect(custom.order.slice(0,3)).toEqual(['exploration','shop','contest']); expect(custom.hidden).toEqual(['exploration']);
 });

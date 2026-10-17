@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Exploration — lot B review uniquement
+
+Plateau17×11 complet dans le panneau central GameShell, aucune zone de défilement interne au labyrinthe. SVG adapté à la largeur et hauteur utiles, silhouette et trois coffres imposés, contour blanc de silhouette au rendu. Flèches maintenues/Espace, D-pad tactile et bouton Ouvrir ; focus limité au plateau. Région/progression toujours visibles, butin puis Arrêter/Suivant après choix unique. Écran petit format dans le flux existant ; la modale Progression possède son propre scroll borné, une région à la fois et icônes de ressources habituelles. Fond local cover avec voile et secours graphique si aucun décor approuvé. [Contrat et qualification](../architecture/exploration-20261017.md), livraison review seule au Master.
+
 ## Listes de joueurs — texte compact du17/10/2026
 
 Nom14px (13px sur petit écran), niveau11px, interlignes explicites. Le complément propriétaire ultérieur remet le statut à droite, centré verticalement ; il remplace le libellé textuel de l'élément par son icône14px après le pseudo, avec nom accessible. La ligne inférieure affiche seulement le niveau. Marge interne de la modale18px. Sur mobile étroit, l'action de relation passe sous l'identité et reste accessible. Même hiérarchie dans les listes Social. Aucun texte tronqué par ellipse ni taille d'avatar changée ; le défilement appartient toujours à la liste existante, sans couper les actions. Pseudos19caractères/icône/pastille tiennent sur une ligne ; noms30caractères complets autorisés sur deux lignes si nécessaire. Qualification dans le GameShell/CSS compilés, sans modifier présence, relations ou backend.
