@@ -39,6 +39,20 @@
             "height": 631
           }
         ],
+        "ticketGeometry": {
+          "odds": {
+            "x": 958,
+            "y": 568.078125,
+            "right": 1457.5,
+            "bottom": 686.078125
+          },
+          "controls": {
+            "x": 958,
+            "y": 821.5,
+            "right": 1457.5,
+            "bottom": 910.5
+          }
+        },
         "unit": true,
         "confirmed": true,
         "horizontalOverflow": false
@@ -49,17 +63,31 @@
         "cards": [
           {
             "x": 339,
-            "y": 333.93609619140625,
-            "width": 309.5,
-            "height": 319
+            "y": 333.5152282714844,
+            "width": 629,
+            "height": 160
           },
           {
-            "x": 658.5,
-            "y": 333.93609619140625,
-            "width": 309.5,
-            "height": 319
+            "x": 339,
+            "y": 499.5152282714844,
+            "width": 629,
+            "height": 160.00003051757812
           }
         ],
+        "ticketGeometry": {
+          "odds": {
+            "x": 564.765625,
+            "y": 504.375,
+            "right": 773.53125,
+            "bottom": 593.125
+          },
+          "controls": {
+            "x": 783.53125,
+            "y": 485.5,
+            "right": 961,
+            "bottom": 612
+          }
+        },
         "unit": true,
         "confirmed": true,
         "horizontalOverflow": false
@@ -70,17 +98,31 @@
         "cards": [
           {
             "x": 22,
-            "y": 689.6856079101562,
+            "y": 689.5831298828125,
             "width": 342,
             "height": 330.6875
           },
           {
             "x": 22,
-            "y": 1030.373046875,
+            "y": 1030.2706298828125,
             "width": 342,
             "height": 362.6875
           }
         ],
+        "ticketGeometry": {
+          "odds": {
+            "x": 38,
+            "y": 589.375,
+            "right": 348,
+            "bottom": 703.375
+          },
+          "controls": {
+            "x": 38,
+            "y": 703.375,
+            "right": 348,
+            "bottom": 813.375
+          }
+        },
         "unit": true,
         "confirmed": true,
         "horizontalOverflow": false
@@ -91,23 +133,37 @@
         "cards": [
           {
             "x": 22,
-            "y": 689.5159301757812,
+            "y": 690.1217041015625,
             "width": 342,
             "height": 330.6875
           },
           {
             "x": 22,
-            "y": 1030.203369140625,
+            "y": 1030.8092041015625,
             "width": 342,
-            "height": 362.6876220703125
+            "height": 362.6875
           }
         ],
+        "ticketGeometry": {
+          "odds": {
+            "x": 38,
+            "y": 467.375,
+            "right": 348,
+            "bottom": 581.375
+          },
+          "controls": {
+            "x": 38,
+            "y": 581.375,
+            "right": 348,
+            "bottom": 691.375
+          }
+        },
         "unit": true,
         "confirmed": true,
         "horizontalOverflow": false
       }
     ],
-    "inspection": "Desktop1366 and mobile390x600 before/after inspected; result text wraps fully"
+    "inspection": "Corrected desktop1366 after purchase inspected; explicit odds/control rectangles do not overlap at all four viewports."
   },
   "migration": {
     "name": "20261017120000_086_shop_masterless_stella",
@@ -115,5 +171,17 @@
     "publicStatus": "not applied at candidate preparation"
   },
   "economicQaPublic": false,
-  "humanAcceptance": false
+  "humanAcceptance": false,
+  "review": {
+    "candidate": "e0c4aa4c59b415a29384b7d752b9ef810912a5c0",
+    "verdict": "CHANGES_REQUIRED",
+    "finding": "P2 desktop1366 after receipt: compressed Ticket options overlapped price",
+    "independentTests": {
+      "postgres": 6,
+      "frontend": 32,
+      "backend": 251
+    },
+    "correction": "Reuse existing compact desktop layout when useful panel width>=500px and height<=460px; keep full text/overflow visible",
+    "correctionReview": "pending"
+  }
 }
