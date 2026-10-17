@@ -1,0 +1,7270 @@
+{
+  "scope": "Candidat R1111 et complément Combat Entraînement, avant review/promotion",
+  "bootstrap": "9401fea038d2c5a9cf685a045d002602f758ea83",
+  "profile": {
+    "cause": "Retrait intégral du bloc R1110 @media(max-height:1000px) modifiant header/h1, commandes et onglets ; aucune modification Box ou autre onglet.",
+    "mobileOwnerDecision": "Réponse explicite17/10 : conserver le flux existant, titre/boutons/onglets/haut/largeur identiques, hauteur totale mobile liée au contenu ; panneau entier identique desktop.",
+    "comparison": "Box→Légendes→Box→Légendes répété, zéro écart des éléments communs aux14configurations, sauf hauteur mobile explicitement exemptée.",
+    "records": [
+      {
+        "width": 2560,
+        "height": 1440,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1134,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1134,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 964,
+          "sh": 964,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 701,
+          "y": 1373,
+          "width": 1108,
+          "height": 36,
+          "bottom": 1409,
+          "right": 1809
+        },
+        "cards": [
+          {
+            "x": 701,
+            "y": 445,
+            "width": 361.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1074.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1447.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 2560,
+        "height": 1440,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1134,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1134,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 964,
+          "sh": 964,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 701,
+          "y": 1373,
+          "width": 1108,
+          "height": 36,
+          "bottom": 1409,
+          "right": 1809
+        },
+        "cards": [
+          {
+            "x": 701,
+            "y": 445,
+            "width": 361.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1074.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1447.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 2560,
+        "height": 1440,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1416,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1416,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 964,
+          "sh": 964,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 701,
+          "y": 1373,
+          "width": 1390,
+          "height": 36,
+          "bottom": 1409,
+          "right": 2091
+        },
+        "cards": [
+          {
+            "x": 701,
+            "y": 445,
+            "width": 455.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1168.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1635.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 2560,
+        "height": 1440,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1416,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 688,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 714,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 701,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 701,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 799.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 701,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 688,
+            "y": 311,
+            "w": 1416,
+            "h": 1111,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 964,
+          "sh": 964,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 701,
+          "y": 1373,
+          "width": 1390,
+          "height": 36,
+          "bottom": 1409,
+          "right": 2091
+        },
+        "cards": [
+          {
+            "x": 701,
+            "y": 445,
+            "width": 455.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1168.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          },
+          {
+            "x": 1635.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 920,
+            "bottom": 1365,
+            "lastThemeBottom": 1353.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 604,
+          "sh": 604,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 1013,
+          "width": 1108,
+          "height": 36,
+          "bottom": 1049,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 361.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 754.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 1127.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 604,
+          "sh": 604,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 1013,
+          "width": 1108,
+          "height": 36,
+          "bottom": 1049,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 361.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 754.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 1127.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 604,
+          "sh": 604,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 1013,
+          "width": 1390,
+          "height": 36,
+          "bottom": 1049,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 455.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 848.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 1315.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 751,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 604,
+          "sh": 604,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 1013,
+          "width": 1390,
+          "height": 36,
+          "bottom": 1049,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 455.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 848.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          },
+          {
+            "x": 1315.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 560,
+            "bottom": 1005,
+            "lastThemeBottom": 994
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 980,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 504,
+          "sh": 504,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 913,
+          "width": 1108,
+          "height": 36,
+          "bottom": 949,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 361.328125,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 754.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 1127.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 980,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 504,
+          "sh": 504,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 2,
+        "info": "‹\n6 / 6\n›",
+        "nav": {
+          "x": 381,
+          "y": 913,
+          "width": 1108,
+          "height": 36,
+          "bottom": 949,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 548,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 941,
+            "y": 445,
+            "width": 548,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 980,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 504,
+          "sh": 504,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 913,
+          "width": 1390,
+          "height": 36,
+          "bottom": 949,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 455.328125,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 848.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 1315.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 980,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 651,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 504,
+          "sh": 504,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 2,
+        "info": "‹\n6 / 6\n›",
+        "nav": {
+          "x": 381,
+          "y": 913,
+          "width": 1390,
+          "height": 36,
+          "bottom": 949,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 689,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          },
+          {
+            "x": 1082,
+            "y": 445,
+            "width": 689,
+            "height": 460,
+            "bottom": 905,
+            "lastThemeBottom": 894
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 900,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 424,
+          "sh": 424,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 833,
+          "width": 1108,
+          "height": 36,
+          "bottom": 869,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 361.328125,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          },
+          {
+            "x": 754.328125,
+            "y": 445,
+            "width": 361.328125,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          },
+          {
+            "x": 1127.65625,
+            "y": 445,
+            "width": 361.34375,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 900,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1134,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1108,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1108,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1134,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 424,
+          "sh": 424,
+          "w": 1108,
+          "sw": 1108
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 381,
+          "y": 833,
+          "width": 1108,
+          "height": 36,
+          "bottom": 869,
+          "right": 1489
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 1108,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 900,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 424,
+          "sh": 424,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 3,
+        "info": "‹\n4 / 4\n›",
+        "nav": {
+          "x": 381,
+          "y": 833,
+          "width": 1390,
+          "height": 36,
+          "bottom": 869,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 455.328125,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          },
+          {
+            "x": 848.328125,
+            "y": 445,
+            "width": 455.328125,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          },
+          {
+            "x": 1315.65625,
+            "y": 445,
+            "width": 455.34375,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1920,
+        "height": 900,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 368,
+            "y": 181,
+            "w": 1416,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 394,
+            "y": 227,
+            "w": 357.984375,
+            "h": 42,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "42px",
+            "line": "42px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 381,
+            "y": 324,
+            "w": 1390,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 381,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 479.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 381,
+            "y": 386,
+            "w": 1390,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 368,
+            "y": 311,
+            "w": 1416,
+            "h": 571,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 424,
+          "sh": 424,
+          "w": 1390,
+          "sw": 1390
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 381,
+          "y": 833,
+          "width": 1390,
+          "height": 36,
+          "bottom": 869,
+          "right": 1771
+        },
+        "cards": [
+          {
+            "x": 381,
+            "y": 445,
+            "width": 1390,
+            "height": 380,
+            "bottom": 825,
+            "lastThemeBottom": 814
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 664,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 638,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 638,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 664,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 664,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 638,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 638,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 664,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 292,
+          "sh": 292,
+          "w": 638,
+          "sw": 638
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–2 / 5\n›",
+        "nav": {
+          "x": 339,
+          "y": 659,
+          "width": 638,
+          "height": 78,
+          "bottom": 737,
+          "right": 977
+        },
+        "cards": [
+          {
+            "x": 339,
+            "y": 445,
+            "width": 638,
+            "height": 206,
+            "bottom": 651,
+            "lastThemeBottom": 640
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 664,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 638,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 638,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 664,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 664,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 638,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 638,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 664,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 292,
+          "sh": 292,
+          "w": 638,
+          "sw": 638
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–1 / 5\n›",
+        "nav": {
+          "x": 339,
+          "y": 659,
+          "width": 638,
+          "height": 78,
+          "bottom": 737,
+          "right": 977
+        },
+        "cards": [
+          {
+            "x": 339,
+            "y": 445,
+            "width": 638,
+            "height": 206,
+            "bottom": 651,
+            "lastThemeBottom": 640
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 946,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 920,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 920,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 946,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 946,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 920,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 920,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 946,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 292,
+          "sh": 292,
+          "w": 920,
+          "sw": 920
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–2 / 5\n›",
+        "nav": {
+          "x": 339,
+          "y": 659,
+          "width": 920,
+          "height": 78,
+          "bottom": 737,
+          "right": 1259
+        },
+        "cards": [
+          {
+            "x": 339,
+            "y": 445,
+            "width": 920,
+            "height": 206,
+            "bottom": 651,
+            "lastThemeBottom": 640
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 946,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 920,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 920,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 946,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 326,
+            "y": 181,
+            "w": 946,
+            "h": 116,
+            "margin": "0px",
+            "padding": "22px 25px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 352,
+            "y": 228.015625,
+            "w": 349.296875,
+            "h": 40.984375,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "40.98px",
+            "line": "40.98px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 339,
+            "y": 324,
+            "w": 920,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 339,
+            "y": 332,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 437.421875,
+            "y": 332,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 339,
+            "y": 386,
+            "w": 920,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 326,
+            "y": 311,
+            "w": 946,
+            "h": 439,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 292,
+          "sh": 292,
+          "w": 920,
+          "sw": 920
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–2 / 5\n›",
+        "nav": {
+          "x": 339,
+          "y": 659,
+          "width": 920,
+          "height": 78,
+          "bottom": 737,
+          "right": 1259
+        },
+        "cards": [
+          {
+            "x": 339,
+            "y": 445,
+            "width": 920,
+            "height": 206,
+            "bottom": 651,
+            "lastThemeBottom": 640
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 747,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 600,
+          "sh": 600,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1256,
+          "width": 346,
+          "height": 36,
+          "bottom": 1292,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 556,
+            "bottom": 1248,
+            "lastThemeBottom": 1236.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 747,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 600,
+          "sh": 600,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1256,
+          "width": 346,
+          "height": 36,
+          "bottom": 1292,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 556,
+            "bottom": 1248,
+            "lastThemeBottom": 1236.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 747,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 600,
+          "sh": 600,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1256,
+          "width": 346,
+          "height": 36,
+          "bottom": 1292,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 556,
+            "bottom": 1248,
+            "lastThemeBottom": 1236.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 747,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 600,
+          "sh": 600,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1256,
+          "width": 346,
+          "height": 36,
+          "bottom": 1292,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 556,
+            "bottom": 1248,
+            "lastThemeBottom": 1236.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "chatCollapsed": false,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 567,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 420,
+          "sh": 420,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1076,
+          "width": 346,
+          "height": 36,
+          "bottom": 1112,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 376,
+            "bottom": 1068,
+            "lastThemeBottom": 1056.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "chatCollapsed": false,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 567,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 420,
+          "sh": 420,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–2 / 5\n›",
+        "nav": {
+          "x": 22,
+          "y": 1034,
+          "width": 346,
+          "height": 78,
+          "bottom": 1112,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 334,
+            "bottom": 1026,
+            "lastThemeBottom": 1015
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "chatCollapsed": true,
+        "long": false,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 567,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 420,
+          "sh": 420,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›",
+        "nav": {
+          "x": 22,
+          "y": 1076,
+          "width": 346,
+          "height": 36,
+          "bottom": 1112,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 376,
+            "bottom": 1068,
+            "lastThemeBottom": 1056.984375
+          }
+        ],
+        "allTwelve": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "chatCollapsed": true,
+        "long": true,
+        "commonBox": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 4012.90625,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "commonLegends": {
+          ".screen-header": {
+            "x": 9,
+            "y": 452,
+            "w": 372,
+            "h": 92,
+            "margin": "0px",
+            "padding": "19px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "22px"
+          },
+          ".screen-header h1": {
+            "x": 29,
+            "y": 490,
+            "w": 247.1875,
+            "h": 29,
+            "margin": "4px 0px 5px",
+            "padding": "0px",
+            "font": "29px",
+            "line": "29px",
+            "gap": "normal"
+          },
+          ".profile-navigation": {
+            "x": 22,
+            "y": 571,
+            "w": 346,
+            "h": 52,
+            "margin": "0px",
+            "padding": "8px 0px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "12px"
+          },
+          ".profile-navigation > button:first-child": {
+            "x": 22,
+            "y": 579,
+            "w": 86.421875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".profile-navigation > button:nth-child(2)": {
+            "x": 120.421875,
+            "y": 579,
+            "w": 139.671875,
+            "h": 36,
+            "margin": "0px",
+            "padding": "0px 13px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          },
+          ".secondary-navigation": {
+            "x": 22,
+            "y": 633,
+            "w": 346,
+            "h": 49,
+            "margin": "0px",
+            "padding": "6px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "6px"
+          },
+          ".profile-frame": {
+            "x": 9,
+            "y": 558,
+            "w": 372,
+            "h": 567,
+            "margin": "0px",
+            "padding": "8px",
+            "font": "16px",
+            "line": "normal",
+            "gap": "normal"
+          }
+        },
+        "body": {
+          "h": 420,
+          "sh": 420,
+          "w": 346,
+          "sw": 346
+        },
+        "capacity": 1,
+        "info": "‹\n12 / 12\n›\n‹\nThèmes 1–2 / 5\n›",
+        "nav": {
+          "x": 22,
+          "y": 1034,
+          "width": 346,
+          "height": 78,
+          "bottom": 1112,
+          "right": 368
+        },
+        "cards": [
+          {
+            "x": 22,
+            "y": 692,
+            "width": 346,
+            "height": 334,
+            "bottom": 1026,
+            "lastThemeBottom": 1015
+          }
+        ],
+        "allTwelve": true
+      }
+    ],
+    "late": {
+      "partialPage": 2,
+      "refreshFocusStable": true,
+      "keyboardPagination": true,
+      "resizeAnchorStable": true,
+      "delayedFontAndPortrait": true,
+      "desktop": [
+        1920,
+        980
+      ],
+      "mobile": [
+        390,
+        600
+      ]
+    },
+    "boxAndOtherTabsUnchanged": true
+  },
+  "combat": {
+    "contract": "PUT authentifié /api/v1/me/combat/daily/loadout, snapshot4slots/mode/rencontre, verrouPlayer et reçuBusinessOperation existants. Payload lié à la clé, retry sans réapplication ancienne ;0–4, ordre, MANUAL, possession/actif/KO validés. Aucun schéma/migration.",
+    "selector": "CharacterSelector partagé extrait ; Équipe conserve ses paramètres/rendu/mutations. Combat fournit libellé et disponibilité KO.",
+    "postgresql": {
+      "passed": 6,
+      "privateSchema": true,
+      "cleaned": true,
+      "migrationsReplayed": 88,
+      "noPublicMutation": true,
+      "cases": [
+        "0/partiel/complet ordonné, MANUAL, preview serveur et Teams/Boss inchangés sans combat/récompense",
+        "doublon/inactif/nonpossédé et rollback complet",
+        "KO nouveau/déplacé refusé et maintien même place permis",
+        "doubleconfirmation même clé, retry après autre mutation sans réapplication, clé/payload différent refusé",
+        "deux confirmations concurrentes : un succès et un conflit",
+        "snapshot slots/mode/rencontre changé et refresh explicite"
+      ]
+    },
+    "visual": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "teamSingle": {
+          "x": 530,
+          "y": 180,
+          "width": 860,
+          "height": 720,
+          "bottom": 900,
+          "right": 1390,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 841,
+          "footerBottom": 899,
+          "bodyTop": 307,
+          "bodyBottom": 829
+        },
+        "combatSingle": {
+          "x": 530,
+          "y": 180,
+          "width": 860,
+          "height": 720,
+          "bottom": 900,
+          "right": 1390,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 841,
+          "footerBottom": 899,
+          "bodyTop": 307,
+          "bodyBottom": 829
+        },
+        "teamMulti": {
+          "x": 530,
+          "y": 180,
+          "width": 860,
+          "height": 720,
+          "bottom": 900,
+          "right": 1390,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 836,
+          "footerBottom": 899,
+          "bodyTop": 377.578125,
+          "bodyBottom": 824
+        },
+        "combatMulti": {
+          "x": 530,
+          "y": 180,
+          "width": 860,
+          "height": 720,
+          "bottom": 900,
+          "right": 1390,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 836,
+          "footerBottom": 899,
+          "bodyTop": 377.578125,
+          "bodyBottom": 824
+        },
+        "frame": {
+          "h": 649,
+          "sh": 649,
+          "w": 1108,
+          "sw": 1108,
+          "sections": [
+            {
+              "x": 389,
+              "y": 403,
+              "width": 1092,
+              "height": 262.5,
+              "top": 403,
+              "right": 1481,
+              "bottom": 665.5,
+              "left": 389
+            },
+            {
+              "x": 389,
+              "y": 673.5,
+              "width": 1092,
+              "height": 102,
+              "top": 673.5,
+              "right": 1481,
+              "bottom": 775.5,
+              "left": 389
+            },
+            {
+              "x": 389,
+              "y": 783.5,
+              "width": 1092,
+              "height": 257.5,
+              "top": 783.5,
+              "right": 1481,
+              "bottom": 1041,
+              "left": 389
+            }
+          ],
+          "enemyContent": [
+            {
+              "card": {
+                "x": 389,
+                "y": 475.75,
+                "width": 267,
+                "height": 150,
+                "top": 475.75,
+                "right": 656,
+                "bottom": 625.75,
+                "left": 389
+              },
+              "children": [
+                {
+                  "x": 507.296875,
+                  "y": 517.75,
+                  "width": 141.703125,
+                  "height": 18,
+                  "top": 517.75,
+                  "right": 649,
+                  "bottom": 535.75,
+                  "left": 507.296875
+                },
+                {
+                  "x": 507.296875,
+                  "y": 538.75,
+                  "width": 141.703125,
+                  "height": 10,
+                  "top": 538.75,
+                  "right": 649,
+                  "bottom": 548.75,
+                  "left": 507.296875
+                },
+                {
+                  "x": 507.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 31,
+                  "top": 552.75,
+                  "right": 649,
+                  "bottom": 583.75,
+                  "left": 507.296875
+                },
+                {
+                  "x": 507.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 552.75,
+                  "right": 649,
+                  "bottom": 566.75,
+                  "left": 507.296875
+                },
+                {
+                  "x": 507.296875,
+                  "y": 569.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 569.75,
+                  "right": 649,
+                  "bottom": 583.75,
+                  "left": 507.296875
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 664,
+                "y": 475.75,
+                "width": 267,
+                "height": 150,
+                "top": 475.75,
+                "right": 931,
+                "bottom": 625.75,
+                "left": 664
+              },
+              "children": [
+                {
+                  "x": 782.296875,
+                  "y": 517.75,
+                  "width": 141.703125,
+                  "height": 18,
+                  "top": 517.75,
+                  "right": 924,
+                  "bottom": 535.75,
+                  "left": 782.296875
+                },
+                {
+                  "x": 782.296875,
+                  "y": 538.75,
+                  "width": 141.703125,
+                  "height": 10,
+                  "top": 538.75,
+                  "right": 924,
+                  "bottom": 548.75,
+                  "left": 782.296875
+                },
+                {
+                  "x": 782.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 31,
+                  "top": 552.75,
+                  "right": 924,
+                  "bottom": 583.75,
+                  "left": 782.296875
+                },
+                {
+                  "x": 782.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 552.75,
+                  "right": 924,
+                  "bottom": 566.75,
+                  "left": 782.296875
+                },
+                {
+                  "x": 782.296875,
+                  "y": 569.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 569.75,
+                  "right": 924,
+                  "bottom": 583.75,
+                  "left": 782.296875
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 939,
+                "y": 475.75,
+                "width": 267,
+                "height": 150,
+                "top": 475.75,
+                "right": 1206,
+                "bottom": 625.75,
+                "left": 939
+              },
+              "children": [
+                {
+                  "x": 1057.296875,
+                  "y": 517.75,
+                  "width": 141.703125,
+                  "height": 18,
+                  "top": 517.75,
+                  "right": 1199,
+                  "bottom": 535.75,
+                  "left": 1057.296875
+                },
+                {
+                  "x": 1057.296875,
+                  "y": 538.75,
+                  "width": 141.703125,
+                  "height": 10,
+                  "top": 538.75,
+                  "right": 1199,
+                  "bottom": 548.75,
+                  "left": 1057.296875
+                },
+                {
+                  "x": 1057.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 31,
+                  "top": 552.75,
+                  "right": 1199,
+                  "bottom": 583.75,
+                  "left": 1057.296875
+                },
+                {
+                  "x": 1057.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 552.75,
+                  "right": 1199,
+                  "bottom": 566.75,
+                  "left": 1057.296875
+                },
+                {
+                  "x": 1057.296875,
+                  "y": 569.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 569.75,
+                  "right": 1199,
+                  "bottom": 583.75,
+                  "left": 1057.296875
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 1214,
+                "y": 475.75,
+                "width": 267,
+                "height": 150,
+                "top": 475.75,
+                "right": 1481,
+                "bottom": 625.75,
+                "left": 1214
+              },
+              "children": [
+                {
+                  "x": 1332.296875,
+                  "y": 517.75,
+                  "width": 141.703125,
+                  "height": 18,
+                  "top": 517.75,
+                  "right": 1474,
+                  "bottom": 535.75,
+                  "left": 1332.296875
+                },
+                {
+                  "x": 1332.296875,
+                  "y": 538.75,
+                  "width": 141.703125,
+                  "height": 10,
+                  "top": 538.75,
+                  "right": 1474,
+                  "bottom": 548.75,
+                  "left": 1332.296875
+                },
+                {
+                  "x": 1332.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 31,
+                  "top": 552.75,
+                  "right": 1474,
+                  "bottom": 583.75,
+                  "left": 1332.296875
+                },
+                {
+                  "x": 1332.296875,
+                  "y": 552.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 552.75,
+                  "right": 1474,
+                  "bottom": 566.75,
+                  "left": 1332.296875
+                },
+                {
+                  "x": 1332.296875,
+                  "y": 569.75,
+                  "width": 141.703125,
+                  "height": 14,
+                  "top": 569.75,
+                  "right": 1474,
+                  "bottom": 583.75,
+                  "left": 1332.296875
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "x": 1126.9375,
+              "y": 784,
+              "width": 116.4375,
+              "height": 27,
+              "top": 784,
+              "right": 1243.375,
+              "bottom": 811,
+              "left": 1126.9375
+            },
+            {
+              "x": 1249.375,
+              "y": 784,
+              "width": 89.703125,
+              "height": 27,
+              "top": 784,
+              "right": 1339.078125,
+              "bottom": 811,
+              "left": 1249.375
+            },
+            {
+              "x": 1345.078125,
+              "y": 784,
+              "width": 91.328125,
+              "height": 27,
+              "top": 784,
+              "right": 1436.40625,
+              "bottom": 811,
+              "left": 1345.078125
+            },
+            {
+              "x": 1442.40625,
+              "y": 784,
+              "width": 38.59375,
+              "height": 27,
+              "top": 784,
+              "right": 1481,
+              "bottom": 811,
+              "left": 1442.40625
+            }
+          ]
+        },
+        "atomicCalls": 2,
+        "filtersPinnedCancel": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "teamSingle": {
+          "x": 253,
+          "y": 24,
+          "width": 860,
+          "height": 720,
+          "bottom": 744,
+          "right": 1113,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 685,
+          "footerBottom": 743,
+          "bodyTop": 151,
+          "bodyBottom": 673
+        },
+        "combatSingle": {
+          "x": 253,
+          "y": 24,
+          "width": 860,
+          "height": 720,
+          "bottom": 744,
+          "right": 1113,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 685,
+          "footerBottom": 743,
+          "bodyTop": 151,
+          "bodyBottom": 673
+        },
+        "teamMulti": {
+          "x": 253,
+          "y": 24,
+          "width": 860,
+          "height": 720,
+          "bottom": 744,
+          "right": 1113,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 680,
+          "footerBottom": 743,
+          "bodyTop": 221.578125,
+          "bodyBottom": 668
+        },
+        "combatMulti": {
+          "x": 253,
+          "y": 24,
+          "width": 860,
+          "height": 720,
+          "bottom": 744,
+          "right": 1113,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 680,
+          "footerBottom": 743,
+          "bodyTop": 221.578125,
+          "bodyBottom": 668
+        },
+        "frame": {
+          "h": 337,
+          "sh": 337,
+          "w": 638,
+          "sw": 638,
+          "sections": [
+            {
+              "x": 345,
+              "y": 401,
+              "width": 626,
+              "height": 128,
+              "top": 401,
+              "right": 971,
+              "bottom": 529,
+              "left": 345
+            },
+            {
+              "x": 345,
+              "y": 533,
+              "width": 626,
+              "height": 74,
+              "top": 533,
+              "right": 971,
+              "bottom": 607,
+              "left": 345
+            },
+            {
+              "x": 345,
+              "y": 611,
+              "width": 626,
+              "height": 120,
+              "top": 611,
+              "right": 971,
+              "bottom": 731,
+              "left": 345
+            }
+          ],
+          "enemyContent": [
+            {
+              "card": {
+                "x": 345,
+                "y": 433,
+                "width": 150.5,
+                "height": 96,
+                "top": 433,
+                "right": 495.5,
+                "bottom": 529,
+                "left": 345
+              },
+              "children": [
+                {
+                  "x": 414.359375,
+                  "y": 442,
+                  "width": 74.140625,
+                  "height": 30,
+                  "top": 442,
+                  "right": 488.5,
+                  "bottom": 472,
+                  "left": 414.359375
+                },
+                {
+                  "x": 414.359375,
+                  "y": 475,
+                  "width": 74.140625,
+                  "height": 10,
+                  "top": 475,
+                  "right": 488.5,
+                  "bottom": 485,
+                  "left": 414.359375
+                },
+                {
+                  "x": 414.359375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 31,
+                  "top": 489,
+                  "right": 488.5,
+                  "bottom": 520,
+                  "left": 414.359375
+                },
+                {
+                  "x": 414.359375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 489,
+                  "right": 488.5,
+                  "bottom": 503,
+                  "left": 414.359375
+                },
+                {
+                  "x": 414.359375,
+                  "y": 506,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 506,
+                  "right": 488.5,
+                  "bottom": 520,
+                  "left": 414.359375
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 503.5,
+                "y": 433,
+                "width": 150.5,
+                "height": 96,
+                "top": 433,
+                "right": 654,
+                "bottom": 529,
+                "left": 503.5
+              },
+              "children": [
+                {
+                  "x": 572.859375,
+                  "y": 442,
+                  "width": 74.140625,
+                  "height": 30,
+                  "top": 442,
+                  "right": 647,
+                  "bottom": 472,
+                  "left": 572.859375
+                },
+                {
+                  "x": 572.859375,
+                  "y": 475,
+                  "width": 74.140625,
+                  "height": 10,
+                  "top": 475,
+                  "right": 647,
+                  "bottom": 485,
+                  "left": 572.859375
+                },
+                {
+                  "x": 572.859375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 31,
+                  "top": 489,
+                  "right": 647,
+                  "bottom": 520,
+                  "left": 572.859375
+                },
+                {
+                  "x": 572.859375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 489,
+                  "right": 647,
+                  "bottom": 503,
+                  "left": 572.859375
+                },
+                {
+                  "x": 572.859375,
+                  "y": 506,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 506,
+                  "right": 647,
+                  "bottom": 520,
+                  "left": 572.859375
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 662,
+                "y": 433,
+                "width": 150.5,
+                "height": 96,
+                "top": 433,
+                "right": 812.5,
+                "bottom": 529,
+                "left": 662
+              },
+              "children": [
+                {
+                  "x": 731.359375,
+                  "y": 442,
+                  "width": 74.140625,
+                  "height": 30,
+                  "top": 442,
+                  "right": 805.5,
+                  "bottom": 472,
+                  "left": 731.359375
+                },
+                {
+                  "x": 731.359375,
+                  "y": 475,
+                  "width": 74.140625,
+                  "height": 10,
+                  "top": 475,
+                  "right": 805.5,
+                  "bottom": 485,
+                  "left": 731.359375
+                },
+                {
+                  "x": 731.359375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 31,
+                  "top": 489,
+                  "right": 805.5,
+                  "bottom": 520,
+                  "left": 731.359375
+                },
+                {
+                  "x": 731.359375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 489,
+                  "right": 805.5,
+                  "bottom": 503,
+                  "left": 731.359375
+                },
+                {
+                  "x": 731.359375,
+                  "y": 506,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 506,
+                  "right": 805.5,
+                  "bottom": 520,
+                  "left": 731.359375
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 820.5,
+                "y": 433,
+                "width": 150.5,
+                "height": 96,
+                "top": 433,
+                "right": 971,
+                "bottom": 529,
+                "left": 820.5
+              },
+              "children": [
+                {
+                  "x": 889.859375,
+                  "y": 442,
+                  "width": 74.140625,
+                  "height": 30,
+                  "top": 442,
+                  "right": 964,
+                  "bottom": 472,
+                  "left": 889.859375
+                },
+                {
+                  "x": 889.859375,
+                  "y": 475,
+                  "width": 74.140625,
+                  "height": 10,
+                  "top": 475,
+                  "right": 964,
+                  "bottom": 485,
+                  "left": 889.859375
+                },
+                {
+                  "x": 889.859375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 31,
+                  "top": 489,
+                  "right": 964,
+                  "bottom": 520,
+                  "left": 889.859375
+                },
+                {
+                  "x": 889.859375,
+                  "y": 489,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 489,
+                  "right": 964,
+                  "bottom": 503,
+                  "left": 889.859375
+                },
+                {
+                  "x": 889.859375,
+                  "y": 506,
+                  "width": 74.140625,
+                  "height": 14,
+                  "top": 506,
+                  "right": 964,
+                  "bottom": 520,
+                  "left": 889.859375
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "x": 616.9375,
+              "y": 611.5,
+              "width": 116.4375,
+              "height": 27,
+              "top": 611.5,
+              "right": 733.375,
+              "bottom": 638.5,
+              "left": 616.9375
+            },
+            {
+              "x": 739.375,
+              "y": 611.5,
+              "width": 89.703125,
+              "height": 27,
+              "top": 611.5,
+              "right": 829.078125,
+              "bottom": 638.5,
+              "left": 739.375
+            },
+            {
+              "x": 835.078125,
+              "y": 611.5,
+              "width": 91.328125,
+              "height": 27,
+              "top": 611.5,
+              "right": 926.40625,
+              "bottom": 638.5,
+              "left": 835.078125
+            },
+            {
+              "x": 932.40625,
+              "y": 611.5,
+              "width": 38.59375,
+              "height": 27,
+              "top": 611.5,
+              "right": 971,
+              "bottom": 638.5,
+              "left": 932.40625
+            }
+          ]
+        },
+        "atomicCalls": 2,
+        "filtersPinnedCancel": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "teamSingle": {
+          "x": 20,
+          "y": 62,
+          "width": 350,
+          "height": 720,
+          "bottom": 782,
+          "right": 370,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 697,
+          "footerBottom": 781,
+          "bodyTop": 231,
+          "bodyBottom": 685
+        },
+        "combatSingle": {
+          "x": 20,
+          "y": 62,
+          "width": 350,
+          "height": 720,
+          "bottom": 782,
+          "right": 370,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 697,
+          "footerBottom": 781,
+          "bodyTop": 231,
+          "bodyBottom": 685
+        },
+        "teamMulti": {
+          "x": 20,
+          "y": 62,
+          "width": 350,
+          "height": 720,
+          "bottom": 782,
+          "right": 370,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 696,
+          "footerBottom": 781,
+          "bodyTop": 343.96875,
+          "bodyBottom": 684
+        },
+        "combatMulti": {
+          "x": 20,
+          "y": 62,
+          "width": 350,
+          "height": 720,
+          "bottom": 782,
+          "right": 370,
+          "scroll": 718,
+          "client": 718,
+          "footerTop": 696,
+          "footerBottom": 781,
+          "bodyTop": 343.96875,
+          "bodyBottom": 684
+        },
+        "frame": {
+          "h": 1323,
+          "sh": 1323,
+          "w": 346,
+          "sw": 346,
+          "sections": [
+            {
+              "x": 32,
+              "y": 6,
+              "width": 326,
+              "height": 535,
+              "top": 6,
+              "right": 358,
+              "bottom": 541,
+              "left": 32
+            },
+            {
+              "x": 32,
+              "y": 551,
+              "width": 326,
+              "height": 156,
+              "top": 551,
+              "right": 358,
+              "bottom": 707,
+              "left": 32
+            },
+            {
+              "x": 32,
+              "y": 717,
+              "width": 326,
+              "height": 597,
+              "top": 717,
+              "right": 358,
+              "bottom": 1314,
+              "left": 32
+            }
+          ],
+          "enemyContent": [
+            {
+              "card": {
+                "x": 32,
+                "y": 45,
+                "width": 326,
+                "height": 118,
+                "top": 45,
+                "right": 358,
+                "bottom": 163,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 69,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 69,
+                  "right": 348,
+                  "bottom": 87,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 92,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 92,
+                  "right": 348,
+                  "bottom": 102,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 108,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 108,
+                  "right": 348,
+                  "bottom": 139,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 108,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 108,
+                  "right": 348,
+                  "bottom": 122,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 125,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 125,
+                  "right": 348,
+                  "bottom": 139,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 171,
+                "width": 326,
+                "height": 118,
+                "top": 171,
+                "right": 358,
+                "bottom": 289,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 195,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 195,
+                  "right": 348,
+                  "bottom": 213,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 218,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 218,
+                  "right": 348,
+                  "bottom": 228,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 234,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 234,
+                  "right": 348,
+                  "bottom": 265,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 234,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 234,
+                  "right": 348,
+                  "bottom": 248,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 251,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 251,
+                  "right": 348,
+                  "bottom": 265,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 297,
+                "width": 326,
+                "height": 118,
+                "top": 297,
+                "right": 358,
+                "bottom": 415,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 321,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 321,
+                  "right": 348,
+                  "bottom": 339,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 344,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 344,
+                  "right": 348,
+                  "bottom": 354,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 360,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 360,
+                  "right": 348,
+                  "bottom": 391,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 360,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 360,
+                  "right": 348,
+                  "bottom": 374,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 377,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 377,
+                  "right": 348,
+                  "bottom": 391,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 423,
+                "width": 326,
+                "height": 118,
+                "top": 423,
+                "right": 358,
+                "bottom": 541,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 447,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 447,
+                  "right": 348,
+                  "bottom": 465,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 470,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 470,
+                  "right": 348,
+                  "bottom": 480,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 486,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 486,
+                  "right": 348,
+                  "bottom": 517,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 486,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 486,
+                  "right": 348,
+                  "bottom": 500,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 503,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 503,
+                  "right": 348,
+                  "bottom": 517,
+                  "left": 178.078125
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "x": 32,
+              "y": 750,
+              "width": 116.4375,
+              "height": 27,
+              "top": 750,
+              "right": 148.4375,
+              "bottom": 777,
+              "left": 32
+            },
+            {
+              "x": 154.4375,
+              "y": 750,
+              "width": 89.703125,
+              "height": 27,
+              "top": 750,
+              "right": 244.140625,
+              "bottom": 777,
+              "left": 154.4375
+            },
+            {
+              "x": 250.140625,
+              "y": 750,
+              "width": 91.328125,
+              "height": 27,
+              "top": 750,
+              "right": 341.46875,
+              "bottom": 777,
+              "left": 250.140625
+            },
+            {
+              "x": 32,
+              "y": 783,
+              "width": 38.59375,
+              "height": 27,
+              "top": 783,
+              "right": 70.59375,
+              "bottom": 810,
+              "left": 32
+            }
+          ]
+        },
+        "atomicCalls": 2,
+        "filtersPinnedCancel": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "teamSingle": {
+          "x": 20,
+          "y": 20,
+          "width": 350,
+          "height": 560,
+          "bottom": 580,
+          "right": 370,
+          "scroll": 558,
+          "client": 558,
+          "footerTop": 495,
+          "footerBottom": 579,
+          "bodyTop": 189,
+          "bodyBottom": 483
+        },
+        "combatSingle": {
+          "x": 20,
+          "y": 20,
+          "width": 350,
+          "height": 560,
+          "bottom": 580,
+          "right": 370,
+          "scroll": 558,
+          "client": 558,
+          "footerTop": 495,
+          "footerBottom": 579,
+          "bodyTop": 189,
+          "bodyBottom": 483
+        },
+        "teamMulti": {
+          "x": 20,
+          "y": 20,
+          "width": 350,
+          "height": 560,
+          "bottom": 580,
+          "right": 370,
+          "scroll": 558,
+          "client": 558,
+          "footerTop": 494,
+          "footerBottom": 579,
+          "bodyTop": 301.96875,
+          "bodyBottom": 482
+        },
+        "combatMulti": {
+          "x": 20,
+          "y": 20,
+          "width": 350,
+          "height": 560,
+          "bottom": 580,
+          "right": 370,
+          "scroll": 558,
+          "client": 558,
+          "footerTop": 494,
+          "footerBottom": 579,
+          "bodyTop": 301.96875,
+          "bodyBottom": 482
+        },
+        "frame": {
+          "h": 1323,
+          "sh": 1323,
+          "w": 346,
+          "sw": 346,
+          "sections": [
+            {
+              "x": 32,
+              "y": -116,
+              "width": 326,
+              "height": 535,
+              "top": -116,
+              "right": 358,
+              "bottom": 419,
+              "left": 32
+            },
+            {
+              "x": 32,
+              "y": 429,
+              "width": 326,
+              "height": 156,
+              "top": 429,
+              "right": 358,
+              "bottom": 585,
+              "left": 32
+            },
+            {
+              "x": 32,
+              "y": 595,
+              "width": 326,
+              "height": 597,
+              "top": 595,
+              "right": 358,
+              "bottom": 1192,
+              "left": 32
+            }
+          ],
+          "enemyContent": [
+            {
+              "card": {
+                "x": 32,
+                "y": -77,
+                "width": 326,
+                "height": 118,
+                "top": -77,
+                "right": 358,
+                "bottom": 41,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": -53,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": -53,
+                  "right": 348,
+                  "bottom": -35,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": -30,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": -30,
+                  "right": 348,
+                  "bottom": -20,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": -14,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": -14,
+                  "right": 348,
+                  "bottom": 17,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": -14,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": -14,
+                  "right": 348,
+                  "bottom": 0,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 3,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 3,
+                  "right": 348,
+                  "bottom": 17,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 49,
+                "width": 326,
+                "height": 118,
+                "top": 49,
+                "right": 358,
+                "bottom": 167,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 73,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 73,
+                  "right": 348,
+                  "bottom": 91,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 96,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 96,
+                  "right": 348,
+                  "bottom": 106,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 112,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 112,
+                  "right": 348,
+                  "bottom": 143,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 112,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 112,
+                  "right": 348,
+                  "bottom": 126,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 129,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 129,
+                  "right": 348,
+                  "bottom": 143,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 175,
+                "width": 326,
+                "height": 118,
+                "top": 175,
+                "right": 358,
+                "bottom": 293,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 199,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 199,
+                  "right": 348,
+                  "bottom": 217,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 222,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 222,
+                  "right": 348,
+                  "bottom": 232,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 238,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 238,
+                  "right": 348,
+                  "bottom": 269,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 238,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 238,
+                  "right": 348,
+                  "bottom": 252,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 255,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 255,
+                  "right": 348,
+                  "bottom": 269,
+                  "left": 178.078125
+                }
+              ]
+            },
+            {
+              "card": {
+                "x": 32,
+                "y": 301,
+                "width": 326,
+                "height": 118,
+                "top": 301,
+                "right": 358,
+                "bottom": 419,
+                "left": 32
+              },
+              "children": [
+                {
+                  "x": 178.078125,
+                  "y": 325,
+                  "width": 169.921875,
+                  "height": 18,
+                  "top": 325,
+                  "right": 348,
+                  "bottom": 343,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 348,
+                  "width": 169.921875,
+                  "height": 10,
+                  "top": 348,
+                  "right": 348,
+                  "bottom": 358,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 364,
+                  "width": 169.921875,
+                  "height": 31,
+                  "top": 364,
+                  "right": 348,
+                  "bottom": 395,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 364,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 364,
+                  "right": 348,
+                  "bottom": 378,
+                  "left": 178.078125
+                },
+                {
+                  "x": 178.078125,
+                  "y": 381,
+                  "width": 169.921875,
+                  "height": 14,
+                  "top": 381,
+                  "right": 348,
+                  "bottom": 395,
+                  "left": 178.078125
+                }
+              ]
+            }
+          ],
+          "actions": [
+            {
+              "x": 32,
+              "y": 628,
+              "width": 116.4375,
+              "height": 27,
+              "top": 628,
+              "right": 148.4375,
+              "bottom": 655,
+              "left": 32
+            },
+            {
+              "x": 154.4375,
+              "y": 628,
+              "width": 89.703125,
+              "height": 27,
+              "top": 628,
+              "right": 244.140625,
+              "bottom": 655,
+              "left": 154.4375
+            },
+            {
+              "x": 250.140625,
+              "y": 628,
+              "width": 91.328125,
+              "height": 27,
+              "top": 628,
+              "right": 341.46875,
+              "bottom": 655,
+              "left": 250.140625
+            },
+            {
+              "x": 32,
+              "y": 661,
+              "width": 38.59375,
+              "height": 27,
+              "top": 661,
+              "right": 70.59375,
+              "bottom": 688,
+              "left": 32
+            }
+          ]
+        },
+        "atomicCalls": 2,
+        "filtersPinnedCancel": true
+      }
+    ],
+    "overlapCorrection": {
+      "before1366": {
+        "commandBottom": 642,
+        "formationTop": 600,
+        "overlap": 42
+      },
+      "fix": "Training seulement651–820px : chance/détails en grille, feedback compact, gaps/padding réalloués. Ennemis96px entiers, joueurs80px minimum. Boss inchangé.",
+      "after": [
+        {
+          "x": 345,
+          "y": 401,
+          "width": 626,
+          "height": 128,
+          "top": 401,
+          "right": 971,
+          "bottom": 529,
+          "left": 345
+        },
+        {
+          "x": 345,
+          "y": 533,
+          "width": 626,
+          "height": 74,
+          "top": 533,
+          "right": 971,
+          "bottom": 607,
+          "left": 345
+        },
+        {
+          "x": 345,
+          "y": 611,
+          "width": 626,
+          "height": 120,
+          "top": 611,
+          "right": 971,
+          "bottom": 731,
+          "left": 345
+        }
+      ]
+    },
+    "independentOfTeamsAndBoss": true
+  },
+  "tests": {
+    "full": {
+      "passed": 8,
+      "total": 8,
+      "frontend": 1819,
+      "backendNonDb": 2674
+    },
+    "teamCombatUi": 75,
+    "combatHttp": 3,
+    "privatePostgresql": 6,
+    "finalFrontendBuild": true
+  },
+  "qualificationCorrections": [
+    "Premier full7/8 à cause d’un espace final, corrigé ; passes suivantes8/8. Dernier CSS requalifié build/visuel, puis release full.",
+    "Assertions anciennes CombatPicker remplacées par celles du sélecteur partagé avec confirmation explicite.",
+    "Footer mobile comparé en coordonnées document afin de distinguer scrollIntoView du déplacement de layout.",
+    "Commandes existantes au hover desktop et hasTouch mobile testées sans clic forcé.",
+    "ScrollHeight seul insuffisant : chevauchement découvert visuellement, corrigé puis assertions des sections et descendants ennemis ajoutées."
+  ],
+  "artifacts": "GameShell complet et CSS Vite compilés UTF-8, trafic externe bloqué ; local-data/shop-feedback-qa/r1111-*.png et combat-*.png",
+  "limitations": [
+    "Fixtures synthétiques locales ; recette humaine non acquise.",
+    "Aucune mutation publique, migration ou infrastructure nouvelle.",
+    "Revue du vrai SHA, promotion, déploiements et postflight encore à acquérir."
+  ]
+}

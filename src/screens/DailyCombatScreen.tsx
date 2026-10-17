@@ -1,8 +1,9 @@
+import CombatFormationSelector from '../combat/CombatFormationSelector'
+import type { DailyCombatCompositionInput } from '../api/types'
 import { useTutorialView, useTutorialPanel, useTutorialPresentation } from '../tutorial/tutorial-presentation'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { BoxCharacterDto, DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto } from '../api/types'
+import type { DailyCombatCharacterDto, DailyCombatDto, DailyCombatFightDto, ElementKey, MonthlyBossAttackDto, MonthlyBossDto, MonthlyBossHistoryDto } from '../api/types'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
-import BoxCharacterCard from '../components/BoxCharacterCard'
 import CharacterAssetImage from '../components/CharacterAssetImage'
 import GameAssetIcon from '../components/GameAssetIcon'
 import { CombatBoxCharacterDetail, PlayerCombatCard, type CombatBoxBindings } from '../components/CombatPlayerFormation'
@@ -18,6 +19,8 @@ export type DailyCombatBoxBindings = CombatBoxBindings
 export type DailyCombatScreenProps = Readonly<{
   value: DailyCombatDto
   box?: DailyCombatBoxBindings
+  onReplaceComposition?: (input: DailyCombatCompositionInput) => Promise<DailyCombatDto>
+  onReload?: () => Promise<DailyCombatDto>
   onSetSlot: (position: number, characterId: string) => Promise<DailyCombatDto>
   onRemoveSlot: (position: number) => Promise<DailyCombatDto>
   onCopyActive: () => Promise<DailyCombatDto>
@@ -34,7 +37,7 @@ export type DailyCombatScreenProps = Readonly<{
   onLoadBossHistory?: (page: number) => Promise<MonthlyBossHistoryDto>
 }>
 
-export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, onSetBossSlot = async () => unavailableMonthlyBoss, onRemoveBossSlot = async () => unavailableMonthlyBoss, onCopyActiveToBoss = async () => unavailableMonthlyBoss, onClearBoss = async () => unavailableMonthlyBoss, onAttackBoss = async () => { throw new Error('Boss indisponible.') }, onLoadBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }) }: DailyCombatScreenProps) {
+export default function DailyCombatScreen({ value, box, onReplaceComposition, onReload, onSetSlot, onRemoveSlot, onCopyActive, onAuto, onClear, onFight, monthlyBoss = unavailableMonthlyBoss, bossRequestToken = 0, onSetBossSlot = async () => unavailableMonthlyBoss, onRemoveBossSlot = async () => unavailableMonthlyBoss, onCopyActiveToBoss = async () => unavailableMonthlyBoss, onClearBoss = async () => unavailableMonthlyBoss, onAttackBoss = async () => { throw new Error('Boss indisponible.') }, onLoadBossHistory = async () => ({ page: 1, pageSize: 10, total: 0, totalPages: 1, bosses: [] }) }: DailyCombatScreenProps) {
   const [tabSelection, setTabSelection] = useState<{ tab: 'training' | 'boss'; requestToken: number }>({ tab: bossRequestToken > 0 ? 'boss' : 'training', requestToken: bossRequestToken })
   const [storedTab,setStoredTab,hasDestination]=useDestinationTab('combat',bossRequestToken>0?'boss':'training')
   const normalTab = hasDestination || tabSelection.requestToken === bossRequestToken ? storedTab : 'boss'
@@ -42,6 +45,7 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
   const guidedCalculation = useTutorialPanel('combat-calculation')
   const setTab = (next: 'training' | 'boss') => {setStoredTab(next);setTabSelection({ tab: next, requestToken: bossRequestToken })}
   const [pickerPosition, setPickerPosition] = useState<number | null>(null)
+  const [quickOpen,setQuickOpen] = useState(false)
   const [detailId, setDetailId] = useState<string | null>(null)
   const [calculationOpen, setCalculationOpen] = useState(false)
   const [normalTrainingPane, setTrainingPane] = useState<'enemies' | 'formation'>('enemies')
@@ -84,14 +88,14 @@ export default function DailyCombatScreen({ value, box, onSetSlot, onRemoveSlot,
           <div className={`combat-feedback-slot${error ? ' error' : lastResult?.won || value.status === 'COMPLETED' ? ' victory' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite"><span>{feedback ?? '\u00a0'}</span></div>
         </section>
 
-        <section data-tutorial-anchor="combat-formation" className="combat-loadout-section"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button><button type="button" disabled={Boolean(pending) || value.availableCharacterCount < 4} onClick={() => void mutate('auto', onAuto)}>Équipe automatique</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header>
+        <section data-tutorial-anchor="combat-formation" className="combat-loadout-section"><header className="combat-section-heading"><h2>Votre formation</h2><div className="combat-loadout-actions"><button type="button" disabled={Boolean(pending)} onClick={() => void mutate('copy', onCopyActive)}>Sélectionner l’équipe active</button>{onReplaceComposition && <button type="button" disabled={Boolean(pending)} onClick={() => setQuickOpen(true)}>Composition rapide</button>}<button type="button" disabled={Boolean(pending) || value.availableCharacterCount < 4} onClick={() => void mutate('auto', onAuto)}>Équipe automatique</button><button type="button" disabled={Boolean(pending) || selectedIds.size === 0} onClick={() => void mutate('clear', onClear)}>Vider</button></div></header>
           <div className="combat-card-grid combat-loadout-grid">{value.loadout.slots.map(({ position, character, ko }) => character
             ? <PlayerCombatCard character={character} position={position} ko={ko} pending={Boolean(pending)} canOpenDetail={Boolean(box)} onOpenDetail={() => setDetailId(character.id)} onChange={() => setPickerPosition(position)} onRemove={() => void mutate(`remove-${position}`, () => onRemoveSlot(position))} key={position} />
             : <button type="button" className="combat-character-card combat-empty-slot" disabled={Boolean(pending)} onClick={() => setPickerPosition(position)} key={position}><span>{String(position).padStart(2, '0')}</span><strong>Ajouter</strong><small>Choisir un personnage</small></button>)}</div>
         </section>
       </>}
     </ScrollableScreenPanel>
-    {pickerPosition !== null && <CombatPicker value={value} selectedIds={selectedIds} position={pickerPosition} pending={Boolean(pending)} onClose={() => setPickerPosition(null)} onSelect={(characterId) => void mutate(`slot-${pickerPosition}`, async () => { await onSetSlot(pickerPosition, characterId); setPickerPosition(null) })} />}
+    {(quickOpen || pickerPosition !== null) && <CombatFormationSelector value={value} position={quickOpen ? null : pickerPosition} onSetSlot={onSetSlot} onReplace={onReplaceComposition} onReload={onReload} onClose={() => {setQuickOpen(false);setPickerPosition(null)}} onBusy={busy=>setPending(busy?'composition':null)}/>}
     {(calculationOpen || guidedCalculation) && value.preview && <CombatCalculationModal preview={value.preview} onClose={() => setCalculationOpen(false)} />}
     {detailId && box && <CombatBoxCharacterDetail characterId={detailId} combat={value} bindings={box} onClose={() => setDetailId(null)} />}
   </div>
@@ -131,12 +135,6 @@ function CombatCalculationModal({ preview, onClose }: { preview: NonNullable<Dai
 
 function CalculationStat({ label, value }: { label: string; value: string }) { return <div><dt>{label}</dt><dd>{value}</dd></div> }
 
-function CombatPicker({ value, selectedIds, position, pending, onClose, onSelect }: { value: DailyCombatDto; selectedIds: ReadonlySet<string>; position: number; pending: boolean; onClose: () => void; onSelect: (id: string) => void }) {
-  const currentId = value.loadout.slots.find((slot) => slot.position === position)?.character?.id
-  return <div className="modal-layer" role="presentation" onMouseDown={onClose}><section className="floating-panel combat-picker" role="dialog" aria-modal="true" aria-labelledby="combat-picker-title" onMouseDown={(event) => event.stopPropagation()}><header className="floating-panel-heading"><div><span className="eyebrow">Emplacement {position}</span><h2 id="combat-picker-title">Choisir un personnage</h2></div><button type="button" className="icon-button" onClick={onClose} aria-label="Fermer"><span className="icon-glyph">×</span></button></header><div className="combat-picker-grid">{value.availableCharacters.map((character) => { const ko = value.koCharacterIds.includes(character.id); const used = selectedIds.has(character.id) && character.id !== currentId; return <BoxCharacterCard character={asBoxCharacter(character)} disabled={pending || ko || used} statusLabel={ko ? '💀 KO · Disponible demain' : used ? 'Déjà sélectionné' : undefined} statusTone={ko ? 'danger' : 'default'} showFavorite={false} onOpen={() => onSelect(character.id)} onToggleFavorite={() => undefined} key={character.id} /> })}</div></section></div>
-}
-
-function asBoxCharacter(character: DailyCombatCharacterDto): BoxCharacterDto { return { ...character, c6CompetitionStats: null } }
 function halfPoint(value: number) { const whole = Math.trunc(value / 2); return value % 2 === 0 ? String(whole) : `${whole},5` }
 function combatFeedback(value: DailyCombatDto, result: DailyCombatFightDto['result'] | null, error: string | null): ReactNode {
   if (error) return error

@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Sélection Combat Entraînement — complément du17/10/2026
+
+Changer/Ajouter ouvre CharacterSelector commun à Équipe avec confirmation explicite, filtre/recherche. Composition rapide ouvre sa variante multiple épinglée, applique uniquement la formation Entraînement atomiquement en MANUAL ; annulation sans mutation, conflit avec refresh explicite conservant le brouillon, ambiguïté avec même clé. Boss/Teams restent indépendants. Aucun nouveau polling ou destination. R1111 impose aussi le cadre Profil invariant entre Box et Légendes ; précision mobile de hauteur liée au contenu au contrat UI.
+
 ## Profil Légendes — maintenance post-V1 du 17/10/2026
 
 Onglet `Légendes` après `Box`, destination Profil persistée et navigation précédente/suivante habituelles. Les Légendes ne figurent plus sous Box. Ancres et filtres Box conservés, droits de liste BOX et détails GENERAL_STATISTICS inchangés. [Contrat](../architecture/post-v1-contest-legends-20261017.md).

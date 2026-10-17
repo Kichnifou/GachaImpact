@@ -10,6 +10,7 @@ import { AppError } from '../errors.js';
 type Options = Readonly<{ authenticate: preHandlerHookHandler; service: CombatService }>;
 const slotParams = z.object({ position: z.coerce.number().int().min(1).max(4) }).strict();
 const slotBody = z.object({ characterId: z.string().uuid() }).strict();
+const compositionBody = z.object({ characterIds: z.array(z.string().uuid().nullable()).length(4), expectedCharacterIds: z.array(z.string().uuid().nullable()).length(4), expectedMode: z.enum(['AUTO', 'MANUAL']), encounterId: z.string().uuid(), idempotencyKey: z.string().uuid() }).strict();
 const fightBody = z.object({ idempotencyKey: z.string().uuid() }).strict();
 
 export const registerDailyCombatRoutes: FastifyPluginAsync<Options> = async (app, options) => {
@@ -24,6 +25,7 @@ export const registerDailyCombatRoutes: FastifyPluginAsync<Options> = async (app
   });
   app.post('/api/v1/me/combat/daily/loadout/copy-active', { preHandler: options.authenticate }, async (request) => serializeView(await options.service.copyActiveTeam(requireAuthenticatedIdentity(request))));
   app.post('/api/v1/me/combat/daily/loadout/auto', { preHandler: options.authenticate }, async (request) => serializeView(await options.service.autoSelect(requireAuthenticatedIdentity(request))));
+  app.put('/api/v1/me/combat/daily/loadout', { preHandler: options.authenticate }, async request => serializeView(await options.service.replaceComposition(requireAuthenticatedIdentity(request), parse(compositionBody, request.body))));
   app.delete('/api/v1/me/combat/daily/loadout', { preHandler: options.authenticate }, async (request) => serializeView(await options.service.clearLoadout(requireAuthenticatedIdentity(request))));
   app.post('/api/v1/me/combat/daily/fight', { preHandler: options.authenticate }, async (request) => {
     const body = parse(fightBody, request.body); const result = await options.service.fight(requireAuthenticatedIdentity(request), body.idempotencyKey);

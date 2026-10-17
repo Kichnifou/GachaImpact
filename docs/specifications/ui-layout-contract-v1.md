@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## R1111 — cadre Profil invariant et complément Combat
+
+Supersède les adaptations du haut R1110 : aucune règle propre à Légendes ne peut modifier header/h1, commandes Joueurs/Confidentialité, onglets ou boutons communs. Box→Légendes répété garde coordonnées/styles/dimensions communes (≤1px). Desktop : panneau extérieur aussi identique ; mobile : précision propriétaire, flux préexistant, haut/largeur identiques et hauteur totale liée au contenu. Seul le body Légendes est paginé3/2/1 et en thèmes si nécessaire, sans clipping ni scroll interne desktop. Profil Box et autres onglets strictement inchangés.
+
+Entraînement réutilise CharacterSelector Équipe en simple/multiple ; état KO visible, confirmation/footer accessibles, scroll de liste uniquement. Quatre actions de formation dans le cadre existant. À651–820px desktop, chance/détails/résultat et espacements Training s’adaptent sans chevauchement avec Votre formation ; ennemis96px et informations entières, aucun changement Boss. [Qualification](../architecture/evidence/r1111-combat-maintenance.json).
+
 ## R1110 — Profil Légendes exclusivement
 
 L’erratum exclut totalement Profil → Box : grille, filtres, cartes, scrollbar et interactions inchangés. Légendes réunit chaque thème (statistique, badge/titre et compteurs) en cellule lisible. Capacité3/2/1 selon mesures réelles indépendantes de modes de densité, footer séparé stable ; si une carte complète ne tient pas, pagination de ses thèmes sans perte d’information. Fonts/images/resize recalculent ; page/ancre/droits conservés, page partielle de même largeur. Adaptations du conteneur sous data-profile-view=Légendes exclusivement. Sept viewports dont1920×980, Chat ouvert/replié et comparaison Box inchangée dans les [preuves](../architecture/evidence/r1110-profile-legends.json). Flux mobile préexistant conservé, aucun scroll interne Légendes. Supersède la composition et le calcul Légendes R1109 seulement.

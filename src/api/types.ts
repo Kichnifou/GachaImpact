@@ -441,6 +441,8 @@ export type DailyCombatPreviewDto = Readonly<{
   memberContributions: readonly Readonly<{ characterId: string; halfPoints: number }>[]
 }>
 
+export type DailyCombatCompositionInput = Readonly<{ characterIds: readonly (string | null)[]; expectedCharacterIds: readonly (string | null)[]; expectedMode: 'MANUAL' | 'AUTO'; encounterId: string; idempotencyKey: string }>
+
 export type DailyCombatDto = Readonly<{
   businessDate: string
   status: 'TODO' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED'

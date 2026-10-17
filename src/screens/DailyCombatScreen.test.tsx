@@ -1,3 +1,4 @@
+import { ApiError } from '../api/game-api'
 // @vitest-environment happy-dom
 
 import { act, useState } from 'react'
@@ -78,8 +79,10 @@ describe('Daily Combat screen', () => {
     expect(container.querySelector('.combat-command-title')?.textContent).toBe('Rencontre du jour')
     expect(container.querySelector('.combat-command-bar')?.textContent).not.toContain('2026-09-12')
     act(() => container.querySelector<HTMLButtonElement>('.combat-empty-slot')!.click())
-    expect(container.querySelectorAll('.combat-picker .box-character-card')).toHaveLength(8)
-    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="Ouvrir la fiche de Personnage 1"]')!.click(); await Promise.resolve() })
+    expect(container.querySelectorAll('.team-selector .character-card')).toHaveLength(8)
+    act(() => container.querySelector<HTMLButtonElement>('.team-selector .character-card')!.click())
+    expect(props.onSetSlot).not.toHaveBeenCalled()
+    await act(async () => { Array.from(container.querySelectorAll<HTMLButtonElement>('.selector-footer button')).find(button=>button.textContent==='Confirmer')!.click(); await Promise.resolve() })
     expect(props.onSetSlot).toHaveBeenCalledWith(1, 'character-1')
   })
 
@@ -100,16 +103,16 @@ describe('Daily Combat screen', () => {
     expect(formationKo?.textContent).not.toContain('Demain')
 
     act(() => container.querySelector<HTMLButtonElement>('.combat-empty-slot')!.click())
-    const pickerCards = Array.from(container.querySelectorAll<HTMLElement>('.combat-picker .box-character-card'))
-    const koStatus = pickerCards[0]?.querySelector('.box-character-status')
-    const selectedStatus = pickerCards[1]?.querySelector('.box-character-status')
+    const pickerCards = Array.from(container.querySelectorAll<HTMLElement>('.team-selector .character-card'))
+    const koStatus = pickerCards[0]?.querySelector('.selector-character-status')
+    const selectedStatus = pickerCards[1]?.querySelector('.selector-character-status')
     expect(koStatus?.textContent).toBe('💀 KO · Disponible demain')
     expect(koStatus?.classList.contains('danger')).toBe(true)
-    expect(pickerCards[0]?.querySelector<HTMLButtonElement>('.box-card-open')?.disabled).toBe(true)
+    expect((pickerCards[0] as HTMLButtonElement)?.disabled).toBe(true)
     expect(selectedStatus?.textContent).toBe('Déjà sélectionné')
     expect(selectedStatus?.classList.contains('danger')).toBe(false)
-    expect(pickerCards[2]?.querySelector('.box-character-status')).toBeNull()
-    expect(pickerCards[2]?.querySelector<HTMLButtonElement>('.box-card-open')?.disabled).toBe(false)
+    expect(pickerCards[2]?.querySelector('.selector-character-status')).toBeNull()
+    expect((pickerCards[2] as HTMLButtonElement)?.disabled).toBe(false)
   })
 
   it('shows chance and Mode in the command bar and explains Base, Bonus, Malus and final result', () => {
@@ -312,4 +315,39 @@ describe('Daily Combat screen', () => {
     expect(container.textContent).not.toContain('Classement du mois')
     expect(container.textContent).not.toContain('Bientôt disponible')
   })
+})
+
+const clickText = (container:HTMLElement,text:string) => Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(button=>button.textContent===text)!.click()
+it('quick composition preserves holes, pins opening members, cancels without mutation and confirms ordered MANUAL intention',async()=>{
+ const value=combat({loadout:{nextAttemptMode:'AUTO',slots:[{position:1,character:characters[0]!,ko:false},{position:2,character:null,ko:false},{position:3,character:characters[2]!,ko:false},{position:4,character:null,ko:false}]}})
+ const replace=vi.fn(async()=>value),{container}=mount(value,{onReplaceComposition:replace})
+ act(()=>clickText(container,'Composition rapide'))
+ act(()=>{const filter=container.querySelector<HTMLSelectElement>('.team-selector select')!;filter.value='hydro';filter.dispatchEvent(new Event('change',{bubbles:true}))})
+ expect(container.querySelector('.selector-character-grid')?.textContent).toContain('Personnage 1');expect(container.querySelector('.selector-character-grid')?.textContent).toContain('Personnage 3')
+ act(()=>container.querySelector<HTMLButtonElement>('[aria-label="Désélectionner Personnage 1 de la place 1"]')!.click())
+ act(()=>Array.from(container.querySelectorAll<HTMLButtonElement>('.team-selector .character-card')).find(button=>button.textContent?.includes('Personnage 2'))!.click())
+ await act(async()=>{clickText(container,'Confirmer');await Promise.resolve()})
+ expect(replace).toHaveBeenCalledWith(expect.objectContaining({characterIds:['character-2',null,'character-3',null],expectedCharacterIds:['character-1',null,'character-3',null],expectedMode:'AUTO',encounterId:'encounter'}))
+ expect(container.querySelector('.team-selector')).toBeNull();expect(container.querySelector<HTMLButtonElement>('.combat-fight-button')?.disabled).toBe(true)
+ act(()=>clickText(container,'Composition rapide'));act(()=>clickText(container,'Annuler'));expect(replace).toHaveBeenCalledTimes(1)
+})
+it('permits retaining the current KO in the single selector without a mutation',async()=>{
+ const value=combat({koCharacterIds:['character-1'],loadout:{nextAttemptMode:'MANUAL',slots:[{position:1,character:characters[0]!,ko:true},{position:2,character:null,ko:false},{position:3,character:null,ko:false},{position:4,character:null,ko:false}]}})
+ const{container,props}=mount(value);act(()=>clickText(container,'Changer'));const ko=container.querySelector<HTMLButtonElement>('.team-selector .character-card')!;expect(ko.disabled).toBe(false);await act(async()=>{clickText(container,'Confirmer');await Promise.resolve()});expect(props.onSetSlot).not.toHaveBeenCalled();expect(container.querySelector('.team-selector')).toBeNull()
+})
+it('freezes an ambiguous quick intention and retries its exact key once, rejecting a double click',async()=>{
+ const value=combat();let reject!:(error:unknown)=>void
+ const replace=vi.fn().mockImplementationOnce(()=>new Promise((_,fail)=>{reject=fail})).mockResolvedValue(value)
+ const{container}=mount(value,{onReplaceComposition:replace});act(()=>clickText(container,'Composition rapide'))
+ act(()=>container.querySelector<HTMLButtonElement>('.team-selector .character-card')!.click())
+ act(()=>{clickText(container,'Confirmer');clickText(container,'Confirmer')});expect(replace).toHaveBeenCalledTimes(1)
+ await act(async()=>{reject(new ApiError('NETWORK_ERROR','Perte réseau',null));await Promise.resolve()})
+ expect(container.querySelector<HTMLButtonElement>('[aria-label="Fermer"]')!.disabled).toBe(true);expect(container.querySelector<HTMLInputElement>('.team-selector input')!.disabled).toBe(true)
+ await act(async()=>{clickText(container,'Réessayer la confirmation');await Promise.resolve()});expect(replace).toHaveBeenCalledTimes(2);expect(replace.mock.calls[0]![0]).toEqual(replace.mock.calls[1]![0]);expect(container.querySelector('.team-selector')).toBeNull()
+})
+it('reloads a conflicting server snapshot while preserving the quick draft before reconfirmation',async()=>{
+ const value=combat(),latest=combat({loadout:{nextAttemptMode:'AUTO',slots:[{position:1,character:null,ko:false},{position:2,character:characters[1]!,ko:false},{position:3,character:null,ko:false},{position:4,character:null,ko:false}]}})
+ const replace=vi.fn().mockRejectedValueOnce(new ApiError('DAILY_COMBAT_COMPOSITION_CHANGED','Conflit',409)).mockResolvedValue(value),reload=vi.fn(async()=>latest)
+ const{container}=mount(value,{onReplaceComposition:replace,onReload:reload});act(()=>clickText(container,'Composition rapide'));act(()=>container.querySelector<HTMLButtonElement>('.team-selector .character-card')!.click());await act(async()=>{clickText(container,'Confirmer');await Promise.resolve()});expect(Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(b=>b.textContent==='Confirmer')?.disabled).toBe(true)
+ await act(async()=>{clickText(container,'Recharger la formation et conserver le brouillon');await Promise.resolve()});expect(reload).toHaveBeenCalledOnce();await act(async()=>{clickText(container,'Confirmer');await Promise.resolve()});expect(replace.mock.calls[1]![0]).toMatchObject({characterIds:['character-1',null,null,null],expectedCharacterIds:[null,'character-2',null,null],expectedMode:'AUTO'});expect(replace.mock.calls[1]![0].idempotencyKey).not.toBe(replace.mock.calls[0]![0].idempotencyKey)
 })

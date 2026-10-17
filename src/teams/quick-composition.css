@@ -8,3 +8,7 @@
 .quick-composition-footer-actions { display: flex; flex-shrink: 0; gap: .5rem; }
 .team-selector-multi .selector-footer p { margin: .35rem 0; max-width: 60ch; }
 @media (max-width: 640px) { .team-selector-multi .selector-footer { align-items: stretch; flex-direction: column; gap: .5rem; } .quick-composition-footer-actions { justify-content: flex-end; } }
+
+.selector-character-status { display:block; color:#aebbd0; font-size:11px; line-height:1.3; padding:4px; }
+
+.selector-character-status.danger { color:#e9b2a6; }

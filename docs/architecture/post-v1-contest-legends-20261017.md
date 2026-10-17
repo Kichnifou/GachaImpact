@@ -16,6 +16,8 @@ R1108 a retiré le disclosure sous la constellation. R1109 restaure les cadres s
 
 ## Profil : onglet Légendes
 
+**R1111 :** toute compaction du haut de page est retirée. Header, commandes et onglets gardent exactement le cadre Box. Desktop : panneau extérieur identique ; mobile : propriétaire confirme le flux existant, haut/largeur identiques et hauteur totale selon contenu. Seul le body reçoit la pagination. Aucun changement Box ou autres onglets. [Comparaison](evidence/r1111-combat-maintenance.json).
+
 L’onglet suit Box et garde sa destination persistable propre. R1110 supersède la composition R1109 : portrait/nom/C6, totaux puis cinq cellules thématiques réunissant score, titre coloré obtenu ou Sans titre neutre et compteurs. Aucun nombre métier modifié.
 
 BOX contrôle la liste, GENERAL_STATISTICS ses détails, sans élargissement de droits ni portrait déduit de données interdites. Mesure des mêmes cartes/styles à trois largeurs, maximum de tous les contenus, footer réel et sécurité2px. Aucun héritage de densité : priorité3cartes puis2puis1 ; si une carte complète ne tient pas, pages de thèmes mesurées sur toutes les partitions. Footer séparé, page partielle de même largeur, aucun overflow masquant du contenu réel. ResizeObserver, resize, chargements images/fonts requalifient la capacité. Ancre conservée au resize, page stable au refresh, reset au changement de joueur/liste/confidentialité. Mobile : région bornée et pages de thèmes si nécessaire, flux de document préexistant pour atteindre le Profil, aucun scroll interne Légendes.

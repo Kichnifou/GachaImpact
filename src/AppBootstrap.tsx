@@ -684,6 +684,7 @@ function AppBootstrap() {
       onArchiveAllNotifications={async () => { const owner = notificationSessionRef.current; ++notificationRevision.current; notificationFlight.current = null; const next = await getGameApiClient().archiveAllNotifications(); if (owner === notificationSessionRef.current) { ++notificationRevision.current; notificationFlight.current = null; setNotifications(next) } return next }}
       onArchiveReadNotifications={async () => { const next = await getGameApiClient().archiveReadNotifications(); setNotifications(next); return next }}
       onLoadDailyCombat={loadDailyCombat}
+      onReplaceDailyCombatComposition={async input => dailyReads.mutate('combat', () => getGameApiClient().replaceDailyCombatComposition(input), next => acceptDaily('combat', next, setDailyCombat))}
       onSetDailyCombatSlot={async (position, characterId) => { return dailyReads.mutate('combat', () => getGameApiClient().setDailyCombatSlot(position, characterId), next => acceptDaily('combat', next, setDailyCombat)) }}
       onRemoveDailyCombatSlot={async (position) => { return dailyReads.mutate('combat', () => getGameApiClient().removeDailyCombatSlot(position), next => acceptDaily('combat', next, setDailyCombat)) }}
       onCopyActiveTeamToDailyCombat={async () => { return dailyReads.mutate('combat', () => getGameApiClient().copyActiveTeamToDailyCombat(), next => acceptDaily('combat', next, setDailyCombat)) }}

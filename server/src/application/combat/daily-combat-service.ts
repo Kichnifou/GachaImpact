@@ -5,7 +5,7 @@ import { isElementKey } from '../../domain/economy/resources.js';
 import { getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import { BusinessError } from '../errors.js';
 import type { GetCurrentPlayer } from '../player/get-current-player.js';
-import type { DailyCombatStore } from './daily-combat-store.js';
+import type { DailyCombatStore, DailyCombatComposition } from './daily-combat-store.js';
 
 export class CombatService {
   public constructor(private readonly getPlayer: GetCurrentPlayer, private readonly store: DailyCombatStore, private readonly clock: Clock) {}
@@ -22,6 +22,7 @@ export class CombatService {
   public async previewActiveTeam(identity: PlayerExecutionActor) { return this.store.previewActiveTeam(await this.context(identity)); }
   public async getElementMatrix() { return this.store.getElementMatrix(); }
   public async setSlot(identity: PlayerExecutionActor, position: number, characterId: string) { return this.store.setSlot({ ...await this.context(identity), position, characterId }); }
+  public async replaceComposition(identity: PlayerExecutionActor, input: DailyCombatComposition) { return this.store.replaceComposition({ ...await this.context(identity), ...input }); }
   public async removeSlot(identity: PlayerExecutionActor, position: number) { return this.store.removeSlot({ ...await this.context(identity), position }); }
   public async copyActiveTeam(identity: PlayerExecutionActor) { return this.store.copyActiveTeam(await this.context(identity)); }
   public async autoSelect(identity: PlayerExecutionActor) { return this.store.autoSelect(await this.context(identity)); }

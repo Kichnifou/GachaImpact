@@ -1,5 +1,9 @@
 # 13 — Audit legacy Combat
 
+## Sélecteurs Entraînement — maintenance du17/10/2026
+
+Sélection simple et Composition rapide reprennent CharacterSelector Équipe ; brouillon épinglé0–4slots et confirmation unique MANUAL dans la seule formation Entraînement. Snapshot/clé/reçu/verrouPlayer assurent le remplacement atomique ; KO/actif/possession/ordre, chance serveur, retries et indépendance Team/Boss conservés. [Contrat et choix transactionnel](../architecture/combat-quick-composition-20261017.md), [preuves](../architecture/evidence/r1111-combat-maintenance.json), livraison au Master.
+
 Statut : AUDIT CLÔTURÉ — R370 À R450
 Date : 2026-09-02
 

@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1111 et complément Combat — mandats du17/10/2026
+
+**Validés explicitement.** R1111 retire toute adaptation du header/navigation propre à Profil Légendes ; utiliser le body restant sans changer Box. Précision mobile acceptée explicitement : flux existant, titre/boutons/onglets/haut/largeur identiques, hauteur totale selon contenu ; desktop panneau entier identique.
+
+Complément indépendant : sélecteur Équipe partagé et Composition rapide dans Combat Entraînement,0–4slots ordonnés, MANUAL ; remplacement atomique avec snapshot attendu/idempotence, sans Team/Boss modifié ni quatre mutations indépendantes. KO nouveau interdit, membre courant conservable sans changement ; transactions/journal existants, pas de migration. Tests privés et revue indépendante avant promotion. État réel au Master.
+
 ## R1110 — correction Profil Légendes seulement (17/10/2026)
 
 **Validée par mandat et erratum explicites.** Annulation complète du périmètre Profil → Box : aucun changement de grille, pagination, scrollbar, cartes, filtres ou interactions. Recomposer Légendes pour corriger le clipping réel, préserver statistiques/titres/couleurs/droits, adapter3/2/1 à la place réelle et paginer ses informations si une carte complète ne tient pas. Toute adaptation du conteneur Profil est limitée à cet onglet. GameShell/CSS production incluant1920×980 et Chat ouvert/replié, puis cycle complet sans nouveauGO. Aucun backend, économie, migration ou infrastructure. État réellement qualifié/livré au Master.

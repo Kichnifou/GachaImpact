@@ -1,7 +1,7 @@
 import { assertCommandTargets, commandTargets } from '../../application/player/player-command-execution.js';
 import { CombatAttemptMode, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
-import type { DailyCombatCharacter, DailyCombatContext, DailyCombatRandoms, DailyCombatStore, DailyCombatView } from '../../application/combat/daily-combat-store.js';
+import type { DailyCombatCharacter, DailyCombatComposition, DailyCombatContext, DailyCombatRandoms, DailyCombatStore, DailyCombatView } from '../../application/combat/daily-combat-store.js';
 import { calculateDailyCombatPreview, DAILY_COMBAT_REWARD, projectElementMatchups } from '../../domain/combat/daily-combat.js';
 import { elementKeys, isElementKey, resourceKeys, type ElementKey } from '../../domain/economy/resources.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate } from '../../domain/time/business-date.js';
@@ -71,6 +71,44 @@ export class PrismaDailyCombatStore implements DailyCombatStore {
   public async getElementMatrix() {
     const relations = relationMap(await this.database.elementCombatMatchup.findMany());
     return elementKeys.map(element => ({ element, ...projectElementMatchups(element, relations) }));
+  }
+
+  public async replaceComposition(context: DailyCombatContext & DailyCombatComposition): Promise<DailyCombatView> {
+    if (context.characterIds.length !== 4 || context.expectedCharacterIds.length !== 4) throw new BusinessError('DAILY_COMBAT_COMPOSITION_INVALID', 'Quatre emplacements sont requis.');
+    const ids = context.characterIds.filter((id): id is string => id !== null);
+    if (new Set(ids).size !== ids.length) throw new BusinessError('DAILY_COMBAT_CHARACTER_DUPLICATE', 'Ce personnage est déjà sélectionné.');
+    const encounterId = await this.ensureEncounter(context.businessDate);
+    const key = 'daily-combat.composition:' + context.playerId + ':' + context.idempotencyKey;
+    const request = JSON.stringify([context.encounterId, context.expectedMode, context.expectedCharacterIds, context.characterIds]);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        return await this.database.$transaction(async transaction => {
+          await lockPlayer(transaction, context.playerId);
+          const existing = await transaction.businessOperation.findFirst({ where: { sourceChannel: SourceChannel.UI, idempotencyKey: key } });
+          if (existing) {
+            const summary = existing.resultSummary as { request?: string } | null;
+            if (existing.playerId !== context.playerId || existing.operationType !== 'daily-combat.composition' || existing.status !== OperationStatus.COMPLETED || summary?.request !== request) throw new BusinessError('DAILY_COMBAT_IDEMPOTENCY_CONFLICT', 'Cette clé correspond à une autre composition.');
+            return readView(transaction, context.playerId, context.businessDate, encounterId);
+          }
+          if (context.encounterId !== encounterId) throw new BusinessError('DAILY_COMBAT_COMPOSITION_CHANGED', 'La rencontre a changé. Rechargez la formation avant de confirmer.');
+          await ensureLoadout(transaction, context.playerId);
+          await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId, character: { isActive: false } } });
+          const current = await transaction.playerDailyCombatLoadout.findUniqueOrThrow({ where: { playerId: context.playerId }, include: { slots: true } });
+          const currentIds = [1, 2, 3, 4].map(position => current.slots.find(slot => slot.position === position)?.characterId ?? null);
+          if (current.nextAttemptMode !== context.expectedMode || currentIds.some((id, index) => id !== context.expectedCharacterIds[index])) throw new BusinessError('DAILY_COMBAT_COMPOSITION_CHANGED', 'La formation a été modifiée. Rechargez-la avant de confirmer ; votre brouillon est conservé.');
+          const owned = await transaction.playerCharacter.count({ where: { playerId: context.playerId, characterId: { in: ids }, character: { isActive: true } } });
+          if (owned !== ids.length) throw new BusinessError('DAILY_COMBAT_CHARACTER_NOT_AVAILABLE', 'Un personnage sélectionné est inactif ou absent de votre Box.');
+          const ko = await transaction.playerDailyCombatKo.findMany({ where: { playerId: context.playerId, encounterId, characterId: { in: ids } }, select: { characterId: true } });
+          if (context.characterIds.some((id, index) => id !== null && ko.some(row => row.characterId === id) && currentIds[index] !== id)) throw new BusinessError('DAILY_COMBAT_CHARACTER_KO', 'Un nouveau personnage sélectionné est KO jusqu’à demain.');
+          await transaction.playerDailyCombatLoadoutSlot.deleteMany({ where: { playerId: context.playerId } });
+          if (ids.length) await transaction.playerDailyCombatLoadoutSlot.createMany({ data: context.characterIds.flatMap((characterId, index) => characterId ? [{ playerId: context.playerId, position: index + 1, characterId }] : []) });
+          await transaction.playerDailyCombatLoadout.update({ where: { playerId: context.playerId }, data: { nextAttemptMode: CombatAttemptMode.MANUAL } });
+          await transaction.businessOperation.create({ data: { playerId: context.playerId, operationType: 'daily-combat.composition', sourceChannel: SourceChannel.UI, idempotencyKey: key, status: OperationStatus.COMPLETED, completedAt: context.now, resultSummary: { request } } });
+          return readView(transaction, context.playerId, context.businessDate, encounterId);
+        });
+      } catch (error) { if (!isPrismaConcurrencyCollision(error) || attempt === MAX_ATTEMPTS) throw error; }
+    }
+    throw new Error('daily-combat.composition exhausted all retry attempts.');
   }
 
   public async setSlot(context: DailyCombatContext & { position: number; characterId: string }): Promise<DailyCombatView> {

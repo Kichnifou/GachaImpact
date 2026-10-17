@@ -1,5 +1,9 @@
 # 08 — Audit legacy Team
 
+## Sélecteur partagé avec Entraînement —17/10/2026
+
+CharacterSelector est extrait en primitive partagée sans changer l’apparence, les dimensions ou les mutations Équipe. Entraînement fournit son libellé, ses états KO/disponibilité et ses callbacks ; aucune mutation Team n’est utilisée. Brouillon/épinglage/filtres/positions/focus communs conservés. [Contrat](../architecture/combat-quick-composition-20261017.md).
+
 ## R1092 — commandes et gabarit Passifs
 
 Présentation seule : supprimer la réduction excessive des commandes dans la variante de carte ≤260 px, tout en gardant la variante large validée. Le bloc Passifs réserve le gabarit des quatre effets de la capture propriétaire par une région de taille issue des vrais libellés du référentiel DTO, invisible et inaccessible, distincte des effets actifs. 1–4 effets partagent le même cadre et ne déplacent plus les personnages ; aucun texte/effet fictif affiché, aucun changement de stacks, mutations, pending, clic fiche, drag ou modale. Preuves et état réel au Master.

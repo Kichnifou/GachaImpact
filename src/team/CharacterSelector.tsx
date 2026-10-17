@@ -1,0 +1,29 @@
+import { useEffect } from 'react'
+import type { PlayerTeamDto, TeamCharacterDto } from '../api/types'
+import CharacterCard from '../components/CharacterCard'
+import { useModalDialog } from '../components/useModalDialog'
+import { teamElementFilters, type TeamElementFilter } from './team-presentation'
+import '../teams/quick-composition.css'
+
+export function CharacterSelector({ team, characters, presentIds, search, elementFilter, selectedId, pending, onSearch, onElement, onSelect, onClose, onConfirm, multi, eyebrow, reloadLabel, getStatus, error }: { error?: string | null; eyebrow?: string; reloadLabel?: string; getStatus?: (id: string) => { label: string; disabled: boolean; tone?: 'danger' } | undefined; multi?: { draft: readonly (string | null)[]; catalog: readonly TeamCharacterDto[]; ambiguous: boolean; conflict: boolean; error: string | null; onReload: () => void }; team: Pick<PlayerTeamDto, 'position'>; characters: readonly TeamCharacterDto[]; presentIds: ReadonlySet<string>; search: string; elementFilter: TeamElementFilter; selectedId: string | null; pending: boolean; onSearch: (value: string) => void; onElement: (value: TeamElementFilter) => void; onSelect: (id: string) => void; onClose: () => void; onConfirm: () => void }) {
+  const close = () => { if (!pending && !multi?.ambiguous) onClose() }
+  const dialogRef = useModalDialog<HTMLElement>(close)
+  useEffect(() => { dialogRef.current?.querySelector<HTMLInputElement>('input[type="search"]')?.focus() }, [dialogRef])
+  const selected = characters.find(({ id }) => id === selectedId)
+  return <div className="modal-layer" role="presentation" onMouseDown={close}>
+    <section ref={dialogRef} tabIndex={-1} className={`floating-panel team-selector${multi ? ' team-selector-multi' : ''}`} role="dialog" aria-modal="true" aria-labelledby="team-selector-title" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="floating-panel-heading"><div><span className="eyebrow">{eyebrow ?? ('Team ' + team.position)}</span><h2 id="team-selector-title">{multi ? 'Composition rapide' : 'Choisir un personnage'}</h2></div><button type="button" className="icon-button" disabled={pending || multi?.ambiguous} onClick={close} aria-label="Fermer"><span className="icon-glyph">×</span></button></div>
+      <div className="team-selector-filters"><label className="search-field"><span aria-hidden="true">⌕</span><span className="sr-only">Rechercher</span><input type="search" value={search} disabled={pending || multi?.ambiguous} onChange={(event) => onSearch(event.target.value)} placeholder="Rechercher un personnage…" /></label><label><span>Élément</span><select value={elementFilter} disabled={pending || multi?.ambiguous} onChange={(event) => onElement(event.target.value as TeamElementFilter)}>{teamElementFilters.map((value) => <option value={value} key={value}>{value === 'all' ? 'Tous' : elementLabel(value)}</option>)}</select></label></div>
+      {multi && <div className="quick-composition-summary"><span>{multi.draft.filter(Boolean).length}/4 sélectionnés · ordre des emplacements</span><div>{multi.draft.map((id, index) => <button type="button" className="app-button app-button-secondary" key={index} disabled={!id || pending || multi.ambiguous} aria-label={id ? `Désélectionner ${multi.catalog.find(character => character.id === id)?.name ?? 'le personnage'} de la place ${index + 1}` : `Place ${index + 1} vide`} onClick={() => { if (id) onSelect(id) }}>{index + 1} · {multi.catalog.find(character => character.id === id)?.name ?? (id ? 'Indisponible' : 'Vide')} {id && '×'}</button>)}</div></div>}
+      <div className="selector-character-scroll">{characters.length > 0 ? <div className="selector-character-grid">{characters.map((character) => <CharacterCard character={character} compact selected={multi ? multi.draft.includes(character.id) : selectedId === character.id} disabled={pending || getStatus?.(character.id)?.disabled || (multi ? multi.ambiguous || (!multi.draft.includes(character.id) && multi.draft.filter(Boolean).length === 4) : presentIds.has(character.id))} footer={<>{multi?.draft.includes(character.id) ? <span className="quick-composition-position" aria-label={`Place ${multi.draft.indexOf(character.id) + 1}`}>{multi.draft.indexOf(character.id) + 1}</span> : undefined}{getStatus?.(character.id)?.label && <span className={'selector-character-status' + (getStatus?.(character.id)?.tone === 'danger' ? ' danger' : '')}>{getStatus(character.id)!.label}</span>}</>} onClick={() => onSelect(character.id)} key={character.id} />)}</div> : <p className="team-selector-empty">Aucun personnage possédé ne correspond à cette recherche.</p>}</div>
+      <div className="selector-footer"><div>{multi ? <><span>La sélection reste un brouillon jusqu’à confirmation.</span>{multi.error && <p role="status">{multi.error}</p>}{multi.conflict && <button type="button" className="app-button app-button-secondary" disabled={pending} onClick={multi.onReload}>{reloadLabel ?? 'Recharger la Team et conserver le brouillon'}</button>}</> : <span>Sélection : <strong>{selected?.name ?? 'Aucune'}</strong></span>}{!multi && error && <p role="alert">{error}</p>}</div><div className="quick-composition-footer-actions">{multi && <button type="button" className="app-button app-button-secondary" disabled={pending || multi.ambiguous} onClick={close}>Annuler</button>}<button type="button" className={multi ? "app-button app-button-primary" : "small-primary-button"} aria-busy={pending} disabled={pending || (multi ? multi.conflict : !selected)} onClick={onConfirm}>{pending ? 'Enregistrement…' : multi?.ambiguous ? 'Réessayer la confirmation' : 'Confirmer'}</button></div></div>
+    </section>
+  </div>
+}
+
+
+
+
+function elementLabel(element: Exclude<TeamElementFilter, 'all'>) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }
+
+

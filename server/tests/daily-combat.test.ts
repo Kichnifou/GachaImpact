@@ -25,7 +25,7 @@ describe('Daily Combat HTTP contract', () => {
 
   async function setup() {
     const store: DailyCombatStore = {
-      getView: vi.fn(async () => view), previewActiveTeam: vi.fn(async () => null), getElementMatrix: vi.fn(async () => []), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view),
+      replaceComposition: vi.fn(async () => view), getView: vi.fn(async () => view), previewActiveTeam: vi.fn(async () => null), getElementMatrix: vi.fn(async () => []), setSlot: vi.fn(async () => view), removeSlot: vi.fn(async () => view),
       copyActiveTeam: vi.fn(async () => view), autoSelect: vi.fn(async () => view), clearLoadout: vi.fn(async () => view),
       fight: vi.fn(async () => ({ operation: { id: randomUUID(), alreadyProcessed: false }, result: { won: true, mode: 'MANUAL' as const, chanceHalfPoints: 148 }, view: { ...view, status: 'COMPLETED' as const }, resources: { primogems: 800n, moras: 20_000n, particles_pyro: 0n, particles_hydro: 0n, particles_cryo: 0n, particles_electro: 0n, particles_anemo: 0n, particles_geo: 0n, particles_dendro: 0n } })),
     };
@@ -53,4 +53,14 @@ describe('Daily Combat HTTP contract', () => {
     expect(store.fight).toHaveBeenCalledWith(expect.objectContaining({ playerId, idempotencyKey }));
     expect((await app.inject({ method: 'POST', url: '/api/v1/me/combat/daily/fight', headers, payload: { idempotencyKey: randomUUID(), chance: 200 } })).statusCode).toBe(400);
   });
+  it('authenticates and strictly validates an atomic composition with its expected snapshot',async()=>{
+    const {app,store}=await setup(),headers={authorization:'Bearer token'},url='/api/v1/me/combat/daily/loadout';
+    const payload={characterIds:[null,randomUUID(),null,null],expectedCharacterIds:[null,null,null,null],expectedMode:'AUTO',encounterId:view.encounter.id,idempotencyKey:randomUUID()};
+    expect((await app.inject({method:'PUT',url,payload})).statusCode).toBe(401);
+    expect((await app.inject({method:'PUT',url,headers,payload})).statusCode).toBe(200);
+    expect(store.replaceComposition).toHaveBeenCalledWith(expect.objectContaining({...payload,playerId}));
+    for(const invalid of [{...payload,characterIds:[null]},{...payload,expectedMode:'BOSS'},{...payload,encounterId:'other'},{...payload,playerId:randomUUID()}]) expect((await app.inject({method:'PUT',url,headers,payload:invalid})).statusCode).toBe(400);
+    expect(store.replaceComposition).toHaveBeenCalledTimes(1);
+  });
+
 });

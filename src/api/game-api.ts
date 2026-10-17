@@ -1,3 +1,4 @@
+import type { DailyCombatCompositionInput } from './types'
 import type { SharedInvocationApi, SharedInvocationList, SharedInvocationState } from './shared-invocations-types'
 import { nextSharedPresenceRevision, establishedSharedInvocationTabId } from '../gacha/shared-invocation-tab'
 import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
@@ -361,6 +362,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     purchaseDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/purchase', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     switchDailyChallenge: (idempotencyKey: string) => request<DailyChallengeMutationDto>('/api/v1/me/daily-challenge/switch', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
     getDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily'),
+    replaceDailyCombatComposition: (input: DailyCombatCompositionInput) => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout', { method: 'PUT', body: JSON.stringify(input) }),
     setDailyCombatSlot: (position: number, characterId: string) => request<DailyCombatDto>(`/api/v1/me/combat/daily/loadout/${position}`, { method: 'PUT', body: JSON.stringify({ characterId }) }),
     removeDailyCombatSlot: (position: number) => request<DailyCombatDto>(`/api/v1/me/combat/daily/loadout/${position}`, { method: 'DELETE' }),
     copyActiveTeamToDailyCombat: () => request<DailyCombatDto>('/api/v1/me/combat/daily/loadout/copy-active', { method: 'POST' }),
