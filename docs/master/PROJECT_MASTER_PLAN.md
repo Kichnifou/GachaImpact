@@ -1,5 +1,17 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Maintenance post-V1 consolidée — Shop Événement (17/10/2026)
+
+Le propriétaire autorise la [mission consolidée et ses errata Shop/Arcade](../architecture/post-v1-maintenance-20261017.md). Bootstrap frais : local/main/review distants alignés `be84a11da06e9af6065bcfd487771789aefc9012`, arbre propre. Ce bloc supersède uniquement la prochaine action R1102 ci-dessous ; V1 reste terminée et les abandons/pending historiques restent clos.
+
+**Sous-lot UI Shop implémenté et qualifié localement :** succès rattaché à sa cible dans le résumé de la carte ; quantités exactes en BigInt, police commune à l'état Collection, vert discret, état durable d'obtention conservé. Erreurs accessibles également intégrées au slot pour éviter un bandeau empiétant sur les contrôles. Slot de hauteur constante, texte compact et retours à la ligne ; succès supprimé dès nouvelle opération/pending/retry, frontières joueur/édition et idempotence conservées. Aucun backend, récompense, taux ou migration modifié ; `event-general-shop.css` examiné inchangé.
+
+**Contrôles :** tests EventScreen/EventShopSection **79/79 PASS**, `verify:quick` **5/5 PASS**, build frontend PASS (avertissement de taille du bundle préexistant). GameShell synthétique compilé/CSS production, navigateur Edge local : **1920×1080, 1366×768, 390×844, 390×600**, géométrie grille/cartes/boutons identique avant/pending/succès/erreur ; montants longs, succès Moras/Collection et état durable vérifiés. Les premiers essais du harness ont corrigé ses fixtures et un débordement des cartes compactes ; ils ne sont pas comptés comme succès. Aucun accès mutatif DB ou QA sur vrais comptes. Suite full et PostgreSQL non exécutés : correctif frontend ciblé, aucune logique économique modifiée. Preuves locales sous `local-data/shop-feedback-qa/`, ignorées par Git ; recette propriétaire non acquise.
+
+**Livraison :** candidat à publier et contrôler sur GitHub, puis promotion automatique après gates et vérification séparée Cloudflare/Railway au SHA exact ; aucun déploiement présumé dans ce checkpoint. Le bilan de mission donne les refs effectivement vérifiées sans micro-commit de recopie du SHA.
+
+**Prochaine action de la mission consolidée après ce sous-lot :** reprendre les lots indépendants autorisés (qualification backend R1102, Concours/titres/fiche/Légendes, Stella, anniversaires, revanche Arcade). Aucun n'est implémenté ni qualifié par ce correctif Shop ; tests PostgreSQL/review indépendante obligatoires avant promotion des mécanismes sensibles. L'erratum Arcade supersède R1030 uniquement pour l'après-match décrit. Aucune nouvelle Rxxx pour ce correctif de présentation ; contrats économiques, décisions, architecture backend/schéma, roadmap V1, Guide/workflow et passation procédurale examinés inchangés. Le Master demeure l'unique handoff vivant.
+
 ## R1102 — maintenance des performances après lancement (16/10/2026)
 
 **Ouverture officielle confirmée par le propriétaire dans le mandat R1102.** V1 terminée/acceptée, anciens pending clos et abandons inchangés. Le présent bloc supersède uniquement la prochaine action d'annonce et le statut « sortie non constatée » du checkpoint historique ci-dessous. Domaine actif : maintenance corrective de ralentissements avec environ dix joueurs ; aucune fonctionnalité nouvelle, migration, infrastructure ou dépense.

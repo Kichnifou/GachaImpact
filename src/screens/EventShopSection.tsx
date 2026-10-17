@@ -9,12 +9,13 @@ import { formatResourceAmount } from '../utils/formatters'
 
 export type EventShopTarget = 'PRIMOGEMS' | 'MORAS' | 'COLLECTION'
 export type EventShopIntent = Readonly<{ target: EventShopTarget; quantity: number; key: string }>
+export type EventShopFeedback = Readonly<{ target: EventShopTarget; message: string }>
 type Props = Readonly<{
   value: EventDto
   intent: EventShopIntent | null
   pending: boolean
-  feedback: string
-  error: string
+  feedback: EventShopFeedback | null
+  error: EventShopFeedback | null
   canConvert: boolean
   canPurchaseCollection: boolean
   onTransact: (target: EventShopTarget, quantity: number) => void
@@ -31,6 +32,8 @@ export default function EventShopSection({ value, intent, pending, feedback, err
   const [quantities, setQuantities] = useState<Record<'PRIMOGEMS' | 'MORAS', string>>({ PRIMOGEMS: '1', MORAS: '1' })
   const balance = BigInt(value.shop.balance)
   const max = balance > BigInt(Number.MAX_SAFE_INTEGER) ? Number.MAX_SAFE_INTEGER : Number(balance)
+  const confirmation = (target: EventShopTarget) => !pending && !intent && !error && feedback?.target === target ? feedback.message : null
+  const failure = (target: EventShopTarget) => error?.target === target ? error.message : null
 
   return <section data-tutorial-anchor="event-shop" className="event-shop" aria-label="Boutique du Festival">
     <div className="panel event-shop-balance"><div><span className="eyebrow">Votre solde du Festival</span><h2>{formatResourceAmount(value.shop.balance)} {eventCurrencyLabel(value.shop.balance, value.festival.currency)}</h2></div><span aria-hidden="true">{value.festival.currency.emoji}</span></div>
@@ -45,12 +48,19 @@ export default function EventShopSection({ value, intent, pending, feedback, err
           <header className="event-shop-product-heading"><span className="event-shop-icon" aria-hidden="true">{icon}</span><h2>{title}</h2></header>
           <p>1 {value.festival.currency.unit} → {formatResourceAmount(value.shop.rates[rate])} {title}</p>
           <div className="event-shop-quantity"><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.max(1, Number(current[target]) - 1 || 1)) }))} disabled={pending || Boolean(intent)} aria-label={`Diminuer la quantité de ${title}`}>−</button><input aria-label={`Quantité de ${title} à échanger`} id={`event-shop-${target}`} type="number" min="1" step="1" inputMode="numeric" value={displayedQuantity} disabled={pending || Boolean(intent)} onChange={(event) => setQuantities((current) => ({ ...current, [target]: event.target.value }))} /><button type="button" onClick={() => setQuantities((current) => ({ ...current, [target]: String(Math.min(max, (Number(current[target]) || 0) + 1)) }))} disabled={pending || Boolean(intent) || max === 0} aria-label={`Augmenter la quantité de ${title}`}>+</button><button type="button" className="event-shop-max" onClick={() => setQuantities((current) => ({ ...current, [target]: String(max) }))} disabled={pending || Boolean(intent) || max === 0}>MAX</button></div>
-          <p className="event-shop-preview-total">Vous recevez <strong>{valid ? formatResourceAmount((BigInt(quantity) * BigInt(value.shop.rates[rate])).toString()) : '0'} {title}</strong></p>
+          <p className={`event-shop-preview-total${failure(target) ? ' event-shop-feedback' : confirmation(target) ? ' event-shop-feedback success' : ''}`} role={failure(target) ? 'alert' : 'status'} aria-live="polite">{failure(target) ?? confirmation(target) ?? <>Vous recevez <strong>{valid ? formatResourceAmount((BigInt(quantity) * BigInt(value.shop.rates[rate])).toString()) : '0'} {title}</strong></>}</p>
           <button type="button" className="small-primary-button" disabled={!value.shop.available || !canConvert || pending || (!valid && intent?.target !== target) || Boolean(intent && intent.target !== target)} onClick={() => onTransact(target, quantity)}>{pending && intent?.target === target ? 'Échange…' : intent?.target === target ? 'Réessayer' : 'Convertir'}</button>
         </article>
       })}
-      {<article hidden={shortDesktop && offer !== 'COLLECTION'} className="panel event-shop-card event-shop-collection"><header className="event-shop-product-heading"><span className="event-shop-icon" aria-hidden="true">✧</span><h2>{value.shop.collection.label}</h2></header><p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p><p className="event-shop-collection-state">{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</p><button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button></article>}
+      <article hidden={shortDesktop && offer !== 'COLLECTION'} className="panel event-shop-card event-shop-collection">
+        <header className="event-shop-product-heading"><span className="event-shop-icon" aria-hidden="true">✧</span><h2>{value.shop.collection.label}</h2></header>
+        <p>{formatResourceAmount(value.shop.collection.cost)} {eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)} · un exemplaire par édition</p>
+        <p className={`event-shop-collection-state${failure('COLLECTION') ? ' event-shop-feedback' : confirmation('COLLECTION') ? ' event-shop-feedback success' : ''}`} role={failure('COLLECTION') ? 'alert' : 'status'} aria-live="polite">
+          <span>{value.shop.collection.obtainedThisEdition ? `Obtenu — édition ${value.edition.year}` : 'À conserver dans votre Collection.'}</span>
+          {(failure('COLLECTION') ?? confirmation('COLLECTION')) && <span>{failure('COLLECTION') ?? confirmation('COLLECTION')}</span>}
+        </p>
+        <button type="button" className="small-primary-button" disabled={!value.shop.available || !canPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition || (balance < BigInt(value.shop.collection.cost) && intent?.target !== 'COLLECTION') || pending || Boolean(intent && intent.target !== 'COLLECTION')} onClick={() => onTransact('COLLECTION', 1)}>{value.shop.collection.obtainedThisEdition ? 'Déjà obtenu' : pending && intent?.target === 'COLLECTION' ? 'Achat…' : intent?.target === 'COLLECTION' ? 'Réessayer' : 'Acheter'}</button>
+      </article>
     </div>
-    <p className={`event-shop-feedback${feedback && !error ? ' success' : ''}`} role={error ? 'alert' : 'status'} aria-live="polite">{error || feedback}</p>
   </section>
 }

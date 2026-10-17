@@ -12,7 +12,7 @@ import AppButton from '../components/AppButton'
 import ScrollableScreenPanel from '../components/ScrollableScreenPanel'
 import PlayerQuickSearch from '../components/PlayerQuickSearch'
 import PlayerSelectionBrowser, { type PlayerBrowserQuery } from '../components/PlayerSelectionBrowser'
-import EventShopSection, { type EventShopIntent, type EventShopTarget } from './EventShopSection'
+import EventShopSection, { type EventShopFeedback, type EventShopIntent, type EventShopTarget } from './EventShopSection'
 import '../event/event-general-shop.css'
 import EventCalendar from './EventCalendar'
 import { useCalendarClaim } from '../event/use-calendar-claim'
@@ -130,8 +130,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
   const shopIntentRef = useRef<EventShopIntent | null>(null)
   const [shopPending, setShopPending] = useState(false)
   const shopPendingRef = useRef(false)
-  const [shopFeedback, setShopFeedback] = useState('')
-  const [shopError, setShopError] = useState('')
+  const [shopFeedback, setShopFeedback] = useState<EventShopFeedback | null>(null)
+  const [shopError, setShopError] = useState<EventShopFeedback | null>(null)
   const shopBoundaryRef = useRef({ sessionUserId, editionId: value.edition.id })
   const [pending, setPending] = useState(false)
   const pendingRef = useRef(false)
@@ -150,8 +150,8 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     // oxlint-disable-next-line react(set-state-in-effect) -- A different player or edition invalidates the previous Shop operation.
     setShopIntent(null)
     setShopPending(false)
-    setShopFeedback('')
-    setShopError('')
+    setShopFeedback(null)
+    setShopError(null)
   }, [sessionUserId, value.edition.id])
 
   useLayoutEffect(() => {
@@ -335,14 +335,14 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
     if (shopPendingRef.current || !value.shop.available) return
     const previous = shopIntentRef.current
     if (previous && previous.target !== target) return
-    setShopFeedback('')
-    setShopError('')
+    setShopFeedback(null)
+    setShopError(null)
     if (target === 'COLLECTION') {
       if (!onPurchaseCollection || !value.shop.collection.available || value.shop.collection.obtainedThisEdition) return
-      if (!previous && BigInt(value.shop.balance) < BigInt(value.shop.collection.cost)) { setShopError('Votre solde est insuffisant pour cet objet.'); return }
+      if (!previous && BigInt(value.shop.balance) < BigInt(value.shop.collection.cost)) { setShopError({ target, message: 'Votre solde est insuffisant pour cet objet.' }); return }
     } else {
       if (!onConvertShop) return
-      if (!previous && (!Number.isSafeInteger(quantity) || quantity <= 0 || BigInt(quantity) > BigInt(value.shop.balance))) { setShopError('Choisissez une quantité valide, dans la limite de votre solde.'); return }
+      if (!previous && (!Number.isSafeInteger(quantity) || quantity <= 0 || BigInt(quantity) > BigInt(value.shop.balance))) { setShopError({ target, message: 'Choisissez une quantité valide, dans la limite de votre solde.' }); return }
     }
     const intent = previous ?? { target, quantity, key: crypto.randomUUID() }
     const requestBoundary = { sessionUserId, editionId: value.edition.id }
@@ -356,14 +356,14 @@ export default function EventScreen({ sessionUserId, value, onLoad, onLoadRankin
       if (sameBoundary()) {
         shopIntentRef.current = null
         setShopIntent(null)
-        setShopFeedback(intent.target === 'COLLECTION'
-          ? `Objet obtenu : ${value.shop.collection.label}`
-          : `Échange effectué ! Vous obtenez ${formatResourceAmount((BigInt(intent.quantity) * BigInt(value.shop.rates[intent.target === 'PRIMOGEMS' ? 'primogems' : 'moras'])).toString())} ${intent.target === 'PRIMOGEMS' ? 'Primogemmes' : 'Moras'} contre ${intent.quantity} ${eventCurrencyLabel(intent.quantity, value.festival.currency)}.`)
+        setShopFeedback({ target: intent.target, message: intent.target === 'COLLECTION'
+          ? `1 objet obtenu contre ${formatResourceAmount(value.shop.collection.cost)} ${eventCurrencyLabel(value.shop.collection.cost, value.festival.currency)}.`
+          : `Obtenu : ${formatResourceAmount((BigInt(intent.quantity) * BigInt(value.shop.rates[intent.target === 'PRIMOGEMS' ? 'primogems' : 'moras'])).toString())} ${intent.target === 'PRIMOGEMS' ? 'Primogemmes' : 'Moras'} contre ${intent.quantity} ${eventCurrencyLabel(intent.quantity, value.festival.currency)}.` })
       }
     } catch (reason) {
       if (sameBoundary()) {
         if (!isAmbiguousMutationError(reason)) { shopIntentRef.current = null; setShopIntent(null) }
-        setShopError(apiErrorMessage(reason))
+        setShopError({ target: intent.target, message: apiErrorMessage(reason) })
       }
     } finally {
       if (sameBoundary()) { shopPendingRef.current = false; setShopPending(false) }

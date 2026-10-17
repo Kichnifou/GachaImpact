@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Maintenance post-V1 — retours du Shop Événement (17/10/2026)
+
+Dans Activités → Événement → Shop, succès et erreurs utilisent le slot de résumé de la carte concernée. Les conversions remplacent « Vous recevez » ; Collection conserve « Obtenu — édition YYYY » et ajoute sa confirmation dans le même slot. Hauteur réservée constante, même police pour ces résumés, vert discret, retours à la ligne sans troncature des quantités. Aucun bandeau supplémentaire sous la grille. Pending et retry ne doivent jamais montrer un succès antérieur ; les contrôles et clés économiques restent inchangés. [Mandat consolidé](../architecture/post-v1-maintenance-20261017.md).
+
 ## Entrée Twitch et indicateur — R1096
 
 Le bouton de diffusion active garde ses dimensions/styles existants, avec un petit disque rouge aria-hidden devant « Arrêter la diffusion ». Diffuser inactif, hover/focus/disabled et autorité conservés. Retouche indépendante de la liaison.

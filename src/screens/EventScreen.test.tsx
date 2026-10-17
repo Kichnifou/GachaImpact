@@ -266,10 +266,10 @@ describe('EventScreen presentation', () => {
   })
 
   it.each([
-    { target: 'PRIMOGEMS' as const, quantity: 1, expected: 'Échange effectué ! Vous obtenez 160 Primogemmes contre 1 Jeton de Récolte.' },
-    { target: 'PRIMOGEMS' as const, quantity: 2, expected: 'Échange effectué ! Vous obtenez 320 Primogemmes contre 2 Jetons de Récolte.' },
-    { target: 'MORAS' as const, quantity: 1, expected: 'Échange effectué ! Vous obtenez 20 000 Moras contre 1 Jeton de Récolte.' },
-    { target: 'MORAS' as const, quantity: 5, expected: 'Échange effectué ! Vous obtenez 100 000 Moras contre 5 Jetons de Récolte.' },
+    { target: 'PRIMOGEMS' as const, quantity: 1, expected: 'Obtenu : 160 Primogemmes contre 1 Jeton de Récolte.' },
+    { target: 'PRIMOGEMS' as const, quantity: 2, expected: 'Obtenu : 320 Primogemmes contre 2 Jetons de Récolte.' },
+    { target: 'MORAS' as const, quantity: 1, expected: 'Obtenu : 20 000 Moras contre 1 Jeton de Récolte.' },
+    { target: 'MORAS' as const, quantity: 5, expected: 'Obtenu : 100 000 Moras contre 5 Jetons de Récolte.' },
   ])('shows exact green conversion feedback for $quantity $target', async ({ target, quantity, expected }) => {
     const shopValue = { ...afterJoin, shop: { ...afterJoin.shop, available: true, balance: String(quantity) } }
     const mounted = mount({ value: shopValue, onConvertShop: vi.fn(async () => shopValue) })
@@ -280,6 +280,8 @@ describe('EventScreen presentation', () => {
     const feedback = mounted.container.querySelector('.event-shop-feedback')!
     expect(feedback.textContent).toBe(expected)
     expect(feedback.classList.contains('success')).toBe(true)
+    expect(card.contains(feedback)).toBe(true)
+    expect(mounted.container.querySelectorAll('.event-shop-card .success')).toHaveLength(1)
     expect(feedback.getAttribute('role')).toBe('status')
   })
 
@@ -291,7 +293,7 @@ describe('EventScreen presentation', () => {
     act(() => Array.from(mounted.container.querySelectorAll<HTMLButtonElement>('.event-tabs button')).find((button) => button.textContent === 'Shop')!.click())
     const convert = () => mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!
     await act(async () => { convert().click(); await Promise.resolve() })
-    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Échange effectué ! Vous obtenez 160 Primogemmes contre 1 Pièce d’Étoile.')
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Obtenu : 160 Primogemmes contre 1 Pièce d’Étoile.')
     await act(async () => { convert().click(); await Promise.resolve() })
     const feedback = mounted.container.querySelector('.event-shop-feedback')!
     expect(feedback.textContent).toBe('La demande n’a pas pu être traitée.')
@@ -334,7 +336,7 @@ describe('EventScreen presentation', () => {
     act(() => shopTab().click())
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
     await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-collection button')!.click(); await Promise.resolve() })
-    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('Objet obtenu : Gerbe de Récolte')
+    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toContain('1 objet obtenu contre 80 Jetons de Récolte.')
     expect(mounted.container.querySelector('.event-shop-feedback')?.classList.contains('success')).toBe(true)
   })
 
@@ -350,7 +352,7 @@ describe('EventScreen presentation', () => {
     act(() => mounted.root.render(<EventScreen {...mounted.props} sessionUserId="player-2" />))
     await act(async () => { complete(shopValue); await inFlight })
     expect(mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')?.textContent).toBe('Convertir')
-    expect(mounted.container.querySelector('.event-shop-feedback')?.textContent).toBe('')
+    expect(mounted.container.querySelector('.event-shop-feedback')).toBeNull()
     await act(async () => { mounted.container.querySelector<HTMLButtonElement>('.event-shop-card button.small-primary-button')!.click(); await Promise.resolve() })
     expect(onConvertShop).toHaveBeenCalledTimes(2)
     expect(onConvertShop.mock.calls[1][2]).not.toBe(onConvertShop.mock.calls[0][2])

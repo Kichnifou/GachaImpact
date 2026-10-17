@@ -21,7 +21,7 @@ afterEach(() => { for (const { root, container } of mounted.splice(0)) { act(() 
 function mount(value = view(true, '7'), onTransact = vi.fn()) {
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container); mounted.push({ root, container })
-  act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback="" error="" canConvert canPurchaseCollection onTransact={onTransact} />))
+  act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback={null} error={null} canConvert canPurchaseCollection onTransact={onTransact} />))
   return { container, root, onTransact }
 }
 function click(button: HTMLButtonElement) { act(() => button.click()) }
@@ -30,19 +30,38 @@ function buttons(container: HTMLElement) { return Array.from(container.querySele
 describe('Event Shop', () => {
   it('keeps Shop feedback honest when feedback appears and clears', () => {
     const value = view(true, '71'), { container, root, onTransact } = mount(value)
-    const render = (feedback: string, error: string) => act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback={feedback} error={error} canConvert canPurchaseCollection onTransact={onTransact} />))
+    const render = (feedback: string, error: string) => act(() => root.render(<EventShopSection value={value} intent={null} pending={false} feedback={feedback ? { target: 'PRIMOGEMS', message: feedback } : null} error={error ? { target: 'PRIMOGEMS', message: error } : null} canConvert canPurchaseCollection onTransact={onTransact} />))
     const feedback = () => container.querySelector('.event-shop-feedback')!
-    expect(feedback().textContent).toBe('')
+    expect(feedback()?.textContent).toBeUndefined()
     render('Échange réalisé : 160 Primogemmes.', '')
-    expect(feedback().textContent).toBe('Échange réalisé : 160 Primogemmes.')
+    expect(feedback()?.textContent).toBe('Échange réalisé : 160 Primogemmes.')
     expect(feedback().getAttribute('role')).toBe('status')
+    expect(container.querySelector('.event-shop-card .event-shop-preview-total.success')).toBe(feedback())
+    expect(container.querySelectorAll('.event-shop-card .success')).toHaveLength(1)
+    expect(container.querySelector(':scope > section > .event-shop-feedback')?.textContent).toBeUndefined()
     render('', 'Échange impossible pour le moment. Réessayez.')
     expect(feedback().getAttribute('role')).toBe('alert')
-    expect(feedback().textContent).toContain('Réessayez')
+    expect(feedback()?.textContent).toContain('Réessayez')
     render('', '')
-    expect(feedback().textContent).toBe('')
+    expect(feedback()?.textContent).toBeUndefined()
     expect(container.querySelector('.event-shop-balance h2')?.textContent).toContain('71')
     expect(onTransact).not.toHaveBeenCalled()
+  })
+
+  it('keeps Collection ownership alongside its confirmation and hides stale success while pending or retrying', () => {
+    const value = view(true, '80', true), { container, root, onTransact } = mount(value)
+    const render = (pending: boolean, retry: boolean) => act(() => root.render(<EventShopSection value={value} intent={retry ? { target: 'MORAS', quantity: 1, key: 'retry-key' } : null} pending={pending} feedback={{ target: 'COLLECTION', message: '1 objet obtenu contre 80 Jetons de Récolte.' }} error={null} canConvert canPurchaseCollection onTransact={onTransact} />))
+    render(false, false)
+    const card = container.querySelector('.event-shop-collection')!
+    expect(card.textContent).toContain('Obtenu — édition 2026')
+    expect(card.querySelector('[role="status"]')?.textContent).toContain('1 objet obtenu contre 80 Jetons de Récolte.')
+    expect(container.querySelectorAll('.success')).toHaveLength(1)
+    expect(container.querySelector('.event-shop > .event-shop-feedback')).toBeNull()
+    render(true, true)
+    expect(container.querySelector('.success')).toBeNull()
+    expect(card.textContent).toContain('Obtenu — édition 2026')
+    render(false, true)
+    expect(container.querySelector('.success')).toBeNull()
   })
 
   it('anchors the full Shop including conversion and Collection without transacting', () => {
