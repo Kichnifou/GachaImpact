@@ -25,5 +25,3 @@ export function CharacterSelector({ team, characters, presentIds, search, elemen
 
 
 function elementLabel(element: Exclude<TeamElementFilter, 'all'>) { return ({ pyro: 'Pyro', hydro: 'Hydro', cryo: 'Cryo', electro: 'Électro', anemo: 'Anémo', geo: 'Géo', dendro: 'Dendro' } as const)[element] }
-
-
