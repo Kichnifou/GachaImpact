@@ -59,7 +59,7 @@ describe('GameShell shared particle conversion overlay', () => {
 
   it('passes the same central Expedition snapshot and monotonic clock to Box and Activities', () => {
     expect(gameShellSource).toContain('expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow}')
-    expect(gameShellSource.match(/expeditionMonotonicNow=\{expeditionMonotonicNow\}/g)).toHaveLength(2)
+    expect(gameShellSource.match(/expeditionMonotonicNow=\{expeditionMonotonicNow\}/g)).toHaveLength(3)
   })
 
   it('keeps navigation preference callbacks stable across Expedition ticks and Contest renders', () => {

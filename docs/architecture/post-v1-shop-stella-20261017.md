@@ -12,6 +12,8 @@ PrismaShopStore réutilise son verrouPlayer et sa transaction SERIALIZABLE : Bus
 
 ## UI et qualification
 
+R1108 : description canonique inchangée, saut de ligne sémantique avant « Une Stella par achat, sans limite quotidienne. » dans le frontend uniquement. Aucun catalogue, prix, montant ou comportement d’achat modifié ; disposition Ticket1366×768 conservée avant/après reçu.
+
 Carte unitaire Renforcement, prix du catalogue, bouton existant, historique et confirmation d’objet dédiés ; aucun modal Ticket pour Stella. Le conteneur de scroll demeure shop-scroll-body ; le résultat Stella peut revenir à la ligne pour être entièrement lisible. Rendu GameShell/CSSproduction aux1920×1080,1366×768,390×844,390×600, avant/après achat synthétique local ; aucun joueur réel muté. Captures locales ignorées local-data/shop-feedback-qa/stella-*.png.
 
 PostgreSQL privé : migration intégrale086, sixscénarios achat/retry/concurrence/idempotence/stock/ancienreçu. SuitehistoriqueBoutique11scénarios dans un catalogue privé antérieur explicitement reconstruit, Ticket inchangé. UI45 et backendciblé313PASS. Premier testUI a omis le reçu dans recentPurchases de sa réponse simulée : fixture corrigée, pas de contournement métier. Voir [preuve](evidence/post-v1-shop-stella.json). Migration publique et review/déploiement ne sont pas déduits de ces tests.

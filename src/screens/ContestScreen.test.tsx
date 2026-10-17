@@ -80,18 +80,18 @@ describe('ContestScreen', () => {
     act(() => mounted.root.render(<ContestScreen {...mounted.props} availability={{ phase: 'ready', pending: false }} />))
     expect(yes.disabled).toBe(false)
   })
-  it('gates spectator support through the same presentation and exact deadline', async () => {
+  it('keeps spectator support permitted during presentation and checks the exact deadline', async () => {
     vi.useFakeTimers()
     const deadline = Date.now() + 60_000
     const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'SUPPORT', supportDeadlineAt: new Date(deadline).toISOString(), viewer: { ...lobby.viewer, participantSlot: null, spectator: true, selectedForSupport: true }, participants: [{ ...lobby.participants[0]!, basePoints: 2 }] }
     const value = { ...base, active: running, permissions: { ...permissions, canSupport: true } }
     const onSupport = vi.fn(async () => value)
     const mounted = mount(value, { onSupport })
-    const fresh = { ...value, active: { ...running, recentScoreChanges: [{ eventId: 'prior-turn', slot: 1, points: 3, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
+    const fresh = { ...value, active: { ...running, participants: running.participants.map(p => ({ ...p, score: p.score + 3 })), recentScoreChanges: [{ eventId: 'prior-turn', slot: 1, points: 3, kind: 'TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={fresh} />))
     const button = mounted.container.querySelector<HTMLButtonElement>('.contest-card-actions button')!
-    expect(button.disabled).toBe(true)
-    expect(mounted.container.textContent).not.toContain('À vous de soutenir')
+    expect(button.disabled).toBe(false)
+    expect(mounted.container.textContent).toContain('À vous de soutenir')
     await act(async () => { await vi.advanceTimersByTimeAsync(1200) })
     expect(button.disabled).toBe(false)
     expect(mounted.container.textContent).toContain('À vous de soutenir')
@@ -110,27 +110,23 @@ describe('ContestScreen', () => {
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={fresh} availability={{ phase: 'loading', pending: true }} />))
     expect(mounted.container.querySelector('fieldset')?.disabled).toBe(false)
   })
-  it('finishes prior score presentation before announcing and enabling the human turn', async () => {
+  it('keeps permitted human actions usable while the previous gain reaches its score', async () => {
     vi.useFakeTimers()
     const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', turnDeadlineAt: '2099-09-13T12:00:00Z', currentTurnOrder: 1, participants: [{ ...lobby.participants[0]!, basePoints: 2, activeTurn: true }] }
     const value = { ...base, active: running, permissions: { ...permissions, canPlay: true } }
     const mounted = mount(value, { onPlay: vi.fn(async () => value) })
-    const next = { ...value, active: { ...running, recentScoreChanges: [{ eventId: 'bot-prior', slot: 1, points: 2, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
+    const next = { ...value, active: { ...running, participants: running.participants.map(p => ({ ...p, score: 2 })), recentScoreChanges: [{ eventId: 'bot-prior', slot: 1, points: 2, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:01Z' }] } }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={next} />))
     expect(mounted.container.querySelector('.contest-score-change')).not.toBeNull()
-    expect(mounted.container.textContent).not.toContain('À votre tour !')
-    const button = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Action de base')!
-    expect(button.disabled).toBe(true)
-    const risk = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Prendre un risque')!
-    expect(risk.disabled).toBe(true)
-    act(() => risk.click())
-    act(() => button.click())
-    expect(mounted.props.onPlay).not.toHaveBeenCalled()
-    await act(async () => { await vi.advanceTimersByTimeAsync(1_200) })
-    expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
+    expect(mounted.container.querySelector('.contest-score strong')?.textContent).toBe('0')
     expect(mounted.container.textContent).toContain('À votre tour !')
+    const button = Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Action de base')!
     expect(button.disabled).toBe(false)
-    expect(risk.disabled).toBe(false)
+    expect(Array.from(mounted.container.querySelectorAll('button')).find(button => button.textContent === 'Prendre un risque')!.disabled).toBe(false)
+    await act(async () => { await vi.advanceTimersByTimeAsync(216) })
+    expect(mounted.container.querySelector('.contest-score strong')?.textContent).toBe('2')
+    await act(async () => { button.click(); await Promise.resolve() })
+    expect(mounted.props.onPlay).toHaveBeenCalledWith('BASIC', expect.any(String))
   })
   it('clears an old polling warning immediately when an external read or mutation publishes READY', async () => {
     const onRefresh = vi.fn(async (): Promise<ContestDto> => { throw new ApiError('CONTEST_TEMPORARILY_UNAVAILABLE', 'Unavailable', 503) })
@@ -743,7 +739,7 @@ describe('ContestScreen', () => {
     expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+3')
     expect(mounted.container.querySelectorAll('.contest-participant')[0]?.querySelector('.contest-score-change')).toBeNull()
 
-    const bot = { ...support, recentScoreChanges: [...support.recentScoreChanges, { eventId: 'bot-1', slot: 2, points: 1, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' }] }
+    const bot = { ...support, participants: support.participants.map(p => p.slot === 2 ? { ...p, score: 12 } : p), recentScoreChanges: [...support.recentScoreChanges, { eventId: 'bot-1', slot: 2, points: 1, kind: 'BOT_TURN_PLAYED' as const, createdAt: '2026-09-13T10:00:02Z' }] }
     act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: bot }} />))
     expect(mounted.container.querySelectorAll('.contest-participant')[1]?.querySelector('.contest-score-change')?.textContent).toBe('+3')
   })
@@ -756,7 +752,7 @@ describe('ContestScreen', () => {
     const running: ContestSnapshotDto = { ...lobby, status: 'RUNNING', phase: 'TURNS', startedAt: '2026-09-13T10:00:00Z', participants: [{ ...lobby.participants[0]!, basePoints: 2, turnOrder: 1 }], recentScoreChanges: [eventA] }
     const value = { ...base, active: running, permissions: { ...permissions } }
     const mounted = mount(value)
-    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB, eventC] } }} />))
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, participants: running.participants.map(p => ({ ...p, score: 2 })), recentScoreChanges: [eventA, eventB, eventC] } }} />))
     expect(mounted.container.querySelector('.contest-score-change')?.textContent).toBe('+0')
     expect(mounted.container.querySelector('.contest-score-change')?.getAttribute('data-event-id')).toBe('B')
     await act(async () => { vi.advanceTimersByTime(1_200); await Promise.resolve() })
@@ -783,8 +779,8 @@ describe('ContestScreen', () => {
     const playerSupport = mount({ ...base, active: { ...initial, phase: 'SUPPORT', recentScoreChanges: [eventA] }, permissions })
     const spectatorSupport = mount({ ...base, active: { ...spectatorInitial, phase: 'SUPPORT', recentScoreChanges: [eventA] }, permissions })
     act(() => {
-      playerSupport.root.render(<ContestScreen {...playerSupport.props} value={{ ...base, active: { ...initial, phase: 'SUPPORT', recentScoreChanges: [eventA, support] }, permissions }} />)
-      spectatorSupport.root.render(<ContestScreen {...spectatorSupport.props} value={{ ...base, active: { ...spectatorInitial, phase: 'SUPPORT', recentScoreChanges: [eventA, support] }, permissions }} />)
+      playerSupport.root.render(<ContestScreen {...playerSupport.props} value={{ ...base, active: { ...initial, phase: 'SUPPORT', participants: participants.map(p => p.slot === 3 ? { ...p, score: p.score + 2 } : p), recentScoreChanges: [eventA, support] }, permissions }} />)
+      spectatorSupport.root.render(<ContestScreen {...spectatorSupport.props} value={{ ...base, active: { ...spectatorInitial, phase: 'SUPPORT', participants: participants.map(p => p.slot === 3 ? { ...p, score: p.score + 2 } : p), recentScoreChanges: [eventA, support] }, permissions }} />)
     })
     for (const view of [playerSupport, spectatorSupport]) {
       const feedback = view.container.querySelectorAll('.contest-participant')[2]?.querySelector('.contest-score-change')
@@ -804,9 +800,9 @@ describe('ContestScreen', () => {
     act(() => document.dispatchEvent(new Event('visibilitychange')))
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
     act(() => document.dispatchEvent(new Event('visibilitychange')))
-    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB] } }} />))
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, participants: running.participants.map(p => ({ ...p, score: 2 })), recentScoreChanges: [eventA, eventB] } }} />))
     expect(mounted.container.querySelector('.contest-score-change')).toBeNull()
-    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, recentScoreChanges: [eventA, eventB, eventC] } }} />))
+    act(() => mounted.root.render(<ContestScreen {...mounted.props} value={{ ...value, active: { ...running, participants: running.participants.map(p => ({ ...p, score: 5 })), recentScoreChanges: [eventA, eventB, eventC] } }} />))
     expect(mounted.container.querySelector('.contest-score-change')?.getAttribute('data-event-id')).toBe('C')
   })
 

@@ -145,7 +145,7 @@ describe('Social screens', () => {
   it('uses the privacy-aware third-party route and renders no Mission detail when private', async () => {
     const value: Profile = { player, own: false, favor: { access: 'PRIVATE' }, presence: { access: 'PRIVATE' }, lastActivity: { access: 'PRIVATE' }, team: { access: 'PRIVATE' }, box: { access: 'PRIVATE' }, collection: { access: 'PRIVATE' }, statistics: { access: 'PRIVATE' } }
     const playerMissions = vi.fn(async () => ({ access: 'PRIVATE' as const }))
-    const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
+    const actions = { profile: vi.fn(async (id: string) => ({ ...value, player: { ...player, id } })), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
     const container = await mount(<ProfileScreen playerId={player.id} ownerPlayerId="another-owner" actions={actions} controller={controller} onDirectory={vi.fn()} onPrivacy={vi.fn()} />)
     await act(async () => { button(container, 'Missions').click(); await Promise.resolve(); await Promise.resolve() })
     expect(playerMissions).toHaveBeenCalledWith(player.id)
@@ -172,7 +172,7 @@ describe('Social screens', () => {
     const playerMissions = vi.fn((id: string) => id === 'old-target'
       ? new Promise<{ access: 'PRIVATE' }>(resolve => { resolveOld = resolve })
       : Promise.resolve({ access: 'ALLOWED' as const, data: missions }))
-    const actions = { profile: vi.fn(async () => value), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
+    const actions = { profile: vi.fn(async (id: string) => ({ ...value, player: { ...player, id } })), ownMissions: vi.fn(), playerMissions } as unknown as SocialActions
     const props = { ownerPlayerId: 'owner', actions, controller, onDirectory: vi.fn(), onPrivacy: vi.fn() }
     const container = await mount(<ProfileScreen playerId="old-target" {...props} />)
     await act(async () => { button(container, 'Missions').click(); await Promise.resolve() })

@@ -1,3 +1,4 @@
+import ContestTitleBadge from '../contest/ContestTitleBadge'
 import { useContestPresentation, contestActionAvailability, type ScoreFeedback } from '../contest/use-contest-presentation'
 import ContestConnectionStatus from '../contest/ContestConnectionStatus'
 import '../contest/contest-result-layout.css'
@@ -60,10 +61,11 @@ export default function ContestScreen(props: Props) {
   const refresh = props.onRefresh
   const authoritativeLegendId = props.value.active?.status === 'LOBBY' ? props.value.active.viewer.selectedCharacterId : null
   const selectedLegendId = authoritativeLegendId ?? (props.value.legends.some((legend) => legend.character.id === legendDraftId) ? legendDraftId : '')
-  const { feedback: scoreFeedback, awaitingProjection } = useContestPresentation(props.value.active, now, props.value)
 
   const pollingError = useContestRefresh(refresh, activeContestId, props.value)
   const syncError = props.availability?.phase === 'ready' ? null : pollingError
+  const presentationProjection = useMemo(() => ({}), [props.value, props.availability?.phase])
+  const { presentedScores, feedback: scoreFeedback, awaitingProjection } = useContestPresentation(props.value.active, now, presentationProjection, props.availability?.phase === 'unavailable' || Boolean(syncError))
   const unreliable = props.availability?.phase === 'unavailable' || Boolean(syncError) || awaitingProjection
 
 
@@ -119,7 +121,7 @@ export default function ContestScreen(props: Props) {
       <fieldset disabled={unreliable} className="contest-controls-boundary"><div data-tutorial-anchor={props.value.active?.status === "RUNNING" ? "contest-play" : "contest-lobby"} className="contest-body">
         {!props.value.active && !props.value.lastResult && <ContestEmpty value={props.value} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         {props.value.active?.status === 'LOBBY' && <ContestLobby {...props} contest={props.value.active} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} run={run} now={now} unreliable={unreliable} />}
-        {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} scoreFeedback={scoreFeedback} unreliable={unreliable} />}
+        {props.value.active?.status === 'RUNNING' && <ContestRunning {...props} contest={props.value.active} pending={pending} run={run} now={now} scoreFeedback={scoreFeedback} presentedScores={presentedScores} unreliable={unreliable} />}
         {!props.value.active && props.value.lastResult && <ContestResult contest={props.value.lastResult} legends={props.value.legends} theme={props.value.theme} canOpen={props.value.permissions.canOpen} selectedLegendId={selectedLegendId} onSelect={setSelectedLegendId} pending={pending} onOpen={() => void run(`open:${selectedLegendId}`, (key) => props.onOpen(selectedLegendId, key))} />}
         {error && <div className="contest-feedback-region"><p className="contest-feedback error" role="alert">{error}</p></div>}
       </div></fieldset>
@@ -172,12 +174,12 @@ function ContestLobby(props: Props & { contest: ContestSnapshotDto; selectedLege
   </div>
 }
 
-function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: string | null; run: Runner; now: number; scoreFeedback: ScoreFeedback | null; unreliable: boolean }) {
+function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: string | null; run: Runner; now: number; scoreFeedback: ScoreFeedback | null; presentedScores: Readonly<Record<number, number>>; unreliable: boolean }) {
   const { contest, value } = props
   type Confirmation = { kind: 'leave' | 'cancel' | 'remove-spectator'; playerId?: string; context: string }
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null)
   const deadline = contest.phase === 'SUPPORT' ? contest.supportDeadlineAt : contest.turnDeadlineAt
-  const actions = contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending) || Boolean(props.scoreFeedback), props.now)
+  const actions = contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending), props.now)
   const status = actions.canPlay
     ? 'À votre tour !'
     : actions.canSupport
@@ -192,7 +194,7 @@ function ContestRunning(props: Props & { contest: ContestSnapshotDto; pending: s
   const ask = (kind: Confirmation['kind'], playerId?: string) => setConfirmation({ kind, playerId, context: contestConfirmationContext(contest, value.permissions, kind, playerId) })
   return <div className="contest-active-layout running">
     <section className="panel contest-state-header contest-running-header"><div className="contest-running-round"><span className="eyebrow">Manche {contest.currentRound}</span><h2>{contest.phase === 'SUPPORT' ? 'Soutien du public' : 'Concours en cours'}</h2></div><p className="contest-running-status">{status}</p><div className="contest-running-phase"><span>{contest.phase === 'SUPPORT' ? 'Soutien' : `Tour ${contest.currentTurnOrder ?? '—'}`}</span><Countdown label="Temps restant" deadline={deadline} now={props.now} /></div></section>
-    <ParticipantGrid contest={contest} scoreFeedback={props.scoreFeedback} playSlot={value.permissions.canPlay ? contest.viewer.participantSlot : null} canSupport={value.permissions.canSupport} actionsBlocked={!actions.current} pending={props.pending} onPlay={(action) => { if (contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending) || Boolean(props.scoreFeedback), Date.now()).canPlay) void props.run(`play:${action}`, (key) => props.onPlay(action, key)) }} onSupport={(slot) => { if (contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending) || Boolean(props.scoreFeedback), Date.now()).canSupport) void props.run(`support:${slot}`, (key) => props.onSupport(slot, key)) }} />
+    <ParticipantGrid contest={contest} scoreFeedback={props.scoreFeedback} presentedScores={props.presentedScores} playSlot={value.permissions.canPlay ? contest.viewer.participantSlot : null} canSupport={value.permissions.canSupport} actionsBlocked={!actions.current} pending={props.pending} onPlay={(action) => { if (contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending), Date.now()).canPlay) void props.run(`play:${action}`, (key) => props.onPlay(action, key)) }} onSupport={(slot) => { if (contestActionAvailability(contest, value.permissions, props.unreliable || Boolean(props.pending), Date.now()).canSupport) void props.run(`support:${slot}`, (key) => props.onSupport(slot, key)) }} />
     <SpectatorStrip contest={contest} organizerCanRemove={contest.viewer.organizer} onRemove={(playerId) => ask('remove-spectator', playerId)} pending={props.pending} />
     <div className="contest-footer-actions">{value.permissions.canLeave && <PendingButton signature="leave" pending={props.pending} pendingLabel="Sortie…" onClick={() => contest.viewer.participantSlot ? ask('leave') : void props.run('leave', props.onLeave)}>Quitter le Concours</PendingButton>}{value.permissions.canCancel && <PendingButton signature="cancel" pending={props.pending} pendingLabel="Annulation…" variant="danger" onClick={() => ask('cancel')}>Annuler le Concours</PendingButton>}</div>
     {confirmation?.kind === 'leave' && <ContestConfirmation disabled={props.unreliable || Boolean(props.pending)} title="Quitter le Concours ?" message="Votre participation quotidienne a déjà été consommée au lancement. Si vous quittez maintenant, elle ne sera pas récupérée et vous ne pourrez plus participer à un Concours aujourd’hui. Êtes-vous sûr ?" confirmLabel="Quitter le Concours" danger onCancel={() => setConfirmation(null)} onConfirm={() => { if (!confirmationIsCurrent) { setConfirmation(null); return } setConfirmation(null); void props.run('leave', props.onLeave) }} />}
@@ -211,7 +213,7 @@ function PendingButton({ signature, pending, pendingLabel, disabled = false, var
   return <AppButton variant={variant} className={`${className ?? ''} contest-mutation-button`.trim()} disabled={disabled || Boolean(pending)} aria-busy={loading} aria-label={ariaLabel} onClick={onClick}>{loading ? pendingLabel : children}</AppButton>
 }
 
-function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending, scoreFeedback = null, playSlot = null, canSupport = false, actionsBlocked = false, onPlay, onSupport }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null; scoreFeedback?: ScoreFeedback | null; playSlot?: number | null; canSupport?: boolean; actionsBlocked?: boolean; onPlay?: (action: 'BASIC' | 'RISK') => void; onSupport?: (slot: number) => void }) {
+function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pending, scoreFeedback = null, presentedScores, playSlot = null, canSupport = false, actionsBlocked = false, onPlay, onSupport }: { contest: ContestSnapshotDto; organizerCanRemove?: boolean; onRemove?: (playerId: string) => void; pending?: string | null; scoreFeedback?: ScoreFeedback | null; presentedScores?: Readonly<Record<number, number>>; playSlot?: number | null; canSupport?: boolean; actionsBlocked?: boolean; onPlay?: (action: 'BASIC' | 'RISK') => void; onSupport?: (slot: number) => void }) {
   const bySlot = new Map(contest.participants.map((participant) => [participant.slot, participant]))
   const displayedSlots = contest.status === 'LOBBY' ? [1, 2, 3, 4] : contest.participants.map((participant) => participant.slot)
   return <div className="contest-participant-grid">{displayedSlots.map((slot) => {
@@ -222,7 +224,7 @@ function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pendin
     return <article className={`panel contest-participant${(scoreFeedback ? scoreFeedback.slot === item.slot : item.activeTurn && !actionsBlocked) ? ' active-turn' : ''}${item.finalRank === 1 ? ' winner' : ''}${item.titleRank >= 1 && item.titleRank <= 4 ? ` contest-title-rank-${item.titleRank}` : ''}${actionable ? ' contest-participant-actionable' : ''}`} key={item.slot}>
       <div className="contest-avatar"><CharacterAssetImage characterName={item.characterName ?? item.displayName} className="contest-avatar-image" assetPaths={item.kind === 'HUMAN' ? [item.avatar] : []} fallback={item.kind === 'BOT' ? <span>◆</span> : null} /></div>
       <span className="contest-slot">#{item.slot}{item.turnOrder ? ` · tour ${item.turnOrder}` : ''}</span><h3>{item.displayName}</h3><p>{item.characterName}</p>
-      {item.basePoints !== null && <div className="contest-score"><div className="contest-score-value"><strong>{item.score}</strong>{scoreFeedback?.slot === item.slot && <span key={scoreFeedback.eventId} style={{ animationDuration: `${scoreFeedback.durationMs}ms` }} className="contest-score-change" role="status" aria-label={`Gain de ${scoreFeedback.points} point${scoreFeedback.points === 1 ? '' : 's'}`} data-event-id={scoreFeedback.eventId}>+{scoreFeedback.points}</span>}</div><span>points · base +{item.basePoints}</span></div>}
+      {item.basePoints !== null && <div className="contest-score"><div className="contest-score-value"><strong>{presentedScores?.[item.slot] ?? item.score}</strong>{scoreFeedback?.slot === item.slot && <span key={scoreFeedback.eventId} style={{ animationDuration: `${scoreFeedback.durationMs}ms` }} className="contest-score-change" role="status" aria-label={`Gain de ${scoreFeedback.points} point${scoreFeedback.points === 1 ? '' : 's'}`} data-event-id={scoreFeedback.eventId}>+{scoreFeedback.points}</span>}</div><span>points · base +{item.basePoints}</span></div>}
       {!item.finalRank && item.title && <span className="contest-title">{item.title}</span>}{contest.status === 'LOBBY' && <span className={item.ready ? 'contest-ready-state ready' : 'contest-ready-state'}>{item.ready ? 'Prêt' : 'Pas prêt'}</span>}
       {item.replaced && <span className="contest-replaced">Remplacement IA</span>}
       {contest.status === 'RUNNING' && item.liveRank && <strong className="contest-live-rank" aria-label={`Classement en direct : ${rankLabel(item.liveRank)}`}>{rankLabel(item.liveRank)}</strong>}
@@ -314,7 +316,7 @@ function LegendsModal({ legends, theme, onClose }: { legends: readonly ContestLe
 }
 
 function LegendCard({ legend }: { legend: ContestLegendDto }) {
-  return <article><h3>{legend.character.name}</h3><div className="contest-five-stats"><span>Force <strong>{legend.stats.strength}/20</strong></span><span>Intelligence <strong>{legend.stats.intelligence}/20</strong></span><span>Beauté <strong>{legend.stats.beauty}/20</strong></span><span>Charisme <strong>{legend.stats.charisma}/20</strong></span><span>Popularité <strong>{legend.stats.popularity}/20</strong></span></div><p className="contest-legend-totals">{legend.totals.contests} participations · {legend.totals.wins} victoires</p><div className="contest-title-list">{(Object.entries(legend.themes) as [keyof ContestLegendDto['themes'], ContestLegendDto['themes'][keyof ContestLegendDto['themes']]][]).map(([key, value]) => <span key={key}><b>{legendThemeLabels[key]}</b>{value.title ?? 'Aucun titre'} · {value.participations} / {value.wins}</span>)}</div></article>
+  return <article><h3>{legend.character.name}</h3><div className="contest-five-stats"><span>Force <strong>{legend.stats.strength}/20</strong></span><span>Intelligence <strong>{legend.stats.intelligence}/20</strong></span><span>Beauté <strong>{legend.stats.beauty}/20</strong></span><span>Charisme <strong>{legend.stats.charisma}/20</strong></span><span>Popularité <strong>{legend.stats.popularity}/20</strong></span></div><p className="contest-legend-totals">{legend.totals.contests} participations · {legend.totals.wins} victoires</p><div className="contest-title-list">{(Object.entries(legend.themes) as [keyof ContestLegendDto['themes'], ContestLegendDto['themes'][keyof ContestLegendDto['themes']]][]).map(([key, value]) => <span key={key}><b>{legendThemeLabels[key]}</b>{value.title ? <ContestTitleBadge title={value.title} rank={value.titleRank} /> : <small>Aucun titre</small>}<small>{value.participations} / {value.wins}</small></span>)}</div></article>
 }
 
 function HistoryModal({ history, error, onPage, onLoadDetail, onClose }: { history: ContestHistoryDto | null; error: string | null; onPage: (page: number) => Promise<void>; onLoadDetail: (contestId: string) => Promise<ContestSnapshotDto>; onClose: () => void }) {

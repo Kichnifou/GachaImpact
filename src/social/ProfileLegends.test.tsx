@@ -3,7 +3,7 @@ import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 import { describe, expect, it } from 'vitest'
 import type { ContestLegendDto } from '../api/types'
-import ProfileLegends from './ProfileLegends'
+import ProfileLegends, { legendPageCapacity } from './ProfileLegends'
 
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 describe('Profile Legends privacy', () => {
@@ -25,4 +25,21 @@ describe('Profile Legends privacy', () => {
     expect(container.textContent).toContain('Aucune Légende C6')
     act(() => root.unmount())
   })
+})
+
+it('uses the available height and one readable mobile row per page',()=>{
+ expect(legendPageCapacity(1000,500,140)).toBe(3)
+ expect(legendPageCapacity(1000,320,140)).toBe(1)
+ expect(legendPageCapacity(390,1000,300)).toBe(1)
+})
+it('preserves a page across ordinary refresh and resets after a count change or privacy closure',()=>{
+ const container=document.createElement('div'),root=createRoot(container)
+ const characters=[{id:'one',name:'Premier'},{id:'two',name:'Deuxième'},{id:'three',name:'Troisième'}]
+ const render=(rows=characters)=>act(()=>root.render(<ProfileLegends value={{access:'ALLOWED',data:{characters:rows,legends:[]}}} box={{access:'PRIVATE'}}/>))
+ render();act(()=>container.querySelector<HTMLButtonElement>('[aria-label="Légendes suivantes"]')!.click())
+ expect(container.querySelector('.profile-legends-page')?.textContent).toContain('Deuxième')
+ render([...characters]);expect(container.querySelector('.profile-legends-page')?.textContent).toContain('Deuxième')
+ render(characters.slice(0,2));expect(container.querySelector('.profile-legends-page')?.textContent).toContain('Premier')
+ act(()=>root.render(<ProfileLegends value={{access:'PRIVATE'}} box={{access:'PRIVATE'}}/>));render()
+ expect(container.querySelector('.profile-legends-page')?.textContent).toContain('Premier');act(()=>root.unmount())
 })

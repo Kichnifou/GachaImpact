@@ -9,9 +9,9 @@ export function mergeSharedSession(previous: SharedSession | null, next: SharedS
     return previous && next && previous.id === next.id && previous.seq > next.seq ? previous : next;
 }
 export function useSharedInvocations(api: SharedInvocationApi | undefined, invocationVisible: boolean, onPersonalRefresh?: () => Promise<void>, ownerKey?: string, presentation = false) {
-    const availableCount = useSharedInvocationCount(api, invocationVisible && !presentation, ownerKey);
     const presentationRef = useRef(presentation); presentationRef.current = presentation;
     const [state, setState] = useState(empty), [error, setError] = useState(''), [pending, setPending] = useState(false),[personalReady,setPersonalReady]=useState(true);
+    const availableCount = useSharedInvocationCount(api, invocationVisible && !presentation, ownerKey, `${state.broadcasting?.id ?? ''}:${state.broadcasting?.status ?? ''}`);
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
     const personalFlight=useRef<{epoch:number;promise:Promise<void>}|null>(null);
     const mutationFlight=useRef<{promise:Promise<void>;resolve:()=>void}|null>(null);

@@ -1,12 +1,14 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
-## R1104 — compteur discret Voir (mandat du 17/10/2026)
+## R1104/R1108 — compteur discret Voir (mandats du 17/10/2026)
 
-Le bouton Voir porte une pastille 10px en haut à droite, sans modification de sa géométrie ni interception des clics/focus ; nom accessible incluant le nombre confirmé. Pas de compteur sur Arrêter. Zéro s'affiche seulement après confirmation ; initialisation/échec restent sans valeur inventée.
+R1108 : zéro confirmé conservé en état mais sans pastille ; seules les valeurs positives sont visibles. Cadence légère12–15s, une seule requête en vol, retour visible/changement local coalescé avec espacement minimal2s ; aucune lecture cachée, aucune liste/réconciliation ni nouvelle écriture. Une erreur masque le chiffre.
+
+Le bouton Voir porte une pastille 10px en haut à droite, sans modification de sa géométrie ni interception des clics/focus ; nom accessible incluant le nombre confirmé. Pas de compteur sur Arrêter. Zéro confirmé reste sans pastille ; initialisation/échec restent sans valeur inventée.
 
 `GET /api/v1/shared-invocations/available-count` authentifie un Player ACTIVE et retourne uniquement `{count}`. Lecture SQL agrégée sans verrou de diffusion, prune, mutation de bail ou hydratation de snapshot : mêmes filtres ACTIVE/PAUSED, bail non expiré, dernière interaction <45min, ordre et fenêtre de100 que la liste, `COUNT(DISTINCT owner_id)` pour éviter tout doublon/homonyme. La liste conserve sa réconciliation normale seulement pour sa propre modale.
 
-Le hook du compteur lit uniquement lorsque l'écran Invocation et le document sont visibles, hors présentation tutoriel. Intervalle30–35s, une requête en vol, reprise visible au plus une fois par30s ; timers/listeners nettoyés, résultat tardif d'un ancien propriétaire ignoré, erreur sans ancien nombre. Aucun changement des cadences, baux, sessions, droits ou contrôles de diffusion existants. [État réel et qualification](../master/PROJECT_MASTER_PLAN.md).
+Le hook du compteur lit uniquement lorsque l'écran Invocation et le document sont visibles, hors présentation tutoriel. Intervalle12–15s, une requête en vol, reprise visible/changement local coalescé au plus une fois par2s ; timers/listeners nettoyés, résultat tardif d'un ancien propriétaire ignoré, erreur sans ancien nombre. Aucun changement des cadences, baux, sessions, droits ou contrôles de diffusion existants. [État réel et qualification](../master/PROJECT_MASTER_PLAN.md).
 
 ## R1097 — preuve Team mutualisée
 

@@ -13,8 +13,8 @@ afterEach(() => { act(() => root.unmount()); vi.useRealTimers(); vi.unstubAllGlo
 const event = (id: number, slot = 1): ContestLatestScoreChangeDto => ({ eventId: `event-${id}`, slot, points: id, kind: 'BOT_TURN_PLAYED', createdAt: new Date(Date.UTC(2026, 0, 1, 0, 0, id)).toISOString() })
 const snapshot = (events: readonly ContestLatestScoreChangeDto[] = [], changes: Partial<ContestSnapshotDto> = {}) => ({ id: 'contest', status: 'RUNNING', phase: 'TURNS', turnDeadlineAt: '2099-01-01T00:00:00Z', recentScoreChanges: events, ...changes }) as ContestSnapshotDto
 function View({ value }: { value: ContestSnapshotDto | null }) {
-  const { feedback, awaitingProjection } = useContestPresentation(value, Date.now())
-  return <output data-waiting={awaitingProjection} data-id={feedback?.eventId} data-duration={feedback?.durationMs}>{feedback?.points}</output>
+  const { presentedScores, feedback, awaitingProjection } = useContestPresentation(value, Date.now())
+  return <output data-scores={JSON.stringify(presentedScores)} data-waiting={awaitingProjection} data-id={feedback?.eventId} data-duration={feedback?.durationMs}>{feedback?.points}</output>
 }
 const render = (value: ContestSnapshotDto | null) => act(() => root.render(<View value={value} />))
 const id = () => container.querySelector('output')?.dataset.id
@@ -86,4 +86,33 @@ it('shares permission, phase, transition and exact deadline gates for play and s
   expect(contestActionAvailability(snapshot([], { turnDeadlineAt: new Date(now).toISOString() }), permissions, false, now).canPlay).toBe(false)
   expect(contestActionAvailability(snapshot([], { phase: 'SUPPORT', supportDeadlineAt: '2099-01-01T00:00:00Z' }), permissions, false, now)).toEqual({ current: true, canPlay: false, canSupport: true })
   expect(contestActionAvailability(snapshot(), { canPlay: false, canSupport: false }, false, now).canPlay).toBe(false)
+})
+
+const scored = (scores: number[], events: readonly ContestLatestScoreChangeDto[] = []) => snapshot(events, { participants: scores.map((score, i) => ({ slot: i + 1, score })) as unknown as ContestSnapshotDto['participants'] })
+const scores = () => JSON.parse(container.querySelector('output')!.dataset.scores!)
+it('holds every future bot score until its own impact, then converges exactly once', async () => {
+  render(scored([10,20,30])); render(scored([11,22,33], [event(1,1),event(2,2),event(3,3)]))
+  expect(scores()).toEqual({1:10,2:20,3:30})
+  await advance(215); expect(scores()).toEqual({1:10,2:20,3:30})
+  await advance(1); expect(scores()).toEqual({1:11,2:20,3:30})
+  await advance(984); expect(scores()).toEqual({1:11,2:20,3:30}); await advance(216); expect(scores()).toEqual({1:11,2:22,3:30})
+  await advance(984); expect(scores()).toEqual({1:11,2:22,3:30}); await advance(216); expect(scores()).toEqual({1:11,2:22,3:33})
+  await advance(984); render(scored([11,22,33],[event(1,1),event(2,2),event(3,3)]))
+  expect(id()).toBeUndefined(); expect(scores()).toEqual({1:11,2:22,3:33})
+})
+it('keeps an impacted gain when another arrives on the same participant', async () => {
+  render(scored([5])); render(scored([6],[event(1)])); await advance(216)
+  render(scored([8],[event(1),event(2)])); expect(scores()).toEqual({1:6})
+  await advance(984); await advance(216); expect(scores()).toEqual({1:8})
+})
+it('converges to the authoritative score instead of inventing a missing delta', () => {
+  render(scored([5])); render(scored([6],[event(1)]));
+  render(scored([40],[event(1),event(2)])); expect(scores()).toEqual({1:40}); expect(id()).toBeUndefined()
+})
+it('converges immediately on hidden tabs and ignores history after returning', () => {
+  render(scored([5])); render(scored([6],[event(1)]));
+  Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'}); act(()=>document.dispatchEvent(new Event('visibilitychange')))
+  expect(scores()).toEqual({1:6}); expect(id()).toBeUndefined()
+  Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'}); act(()=>document.dispatchEvent(new Event('visibilitychange')))
+  render(scored([8],[event(1),event(2)])); expect(scores()).toEqual({1:8}); expect(id()).toBeUndefined()
 })

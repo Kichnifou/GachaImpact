@@ -1,5 +1,13 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1108 — complément UX en qualification (17/10/2026)
+
+Mandat explicite après clôture A–G, bootstrap `3bd16ae7ec0a77244c065e2d4eab8e2cd993befb`, quatre refs alignées/arbre initial propre. Les neuf ajustements sont implémentés localement ; aucune publication/promotion/livraison déduite. [Contrats et périmètre](../architecture/post-v1-maintenance-20261017.md#mandat-complémentaire-r1108--neuf-retours-ux-et-performances), [preuves expurgées](../architecture/evidence/post-v1-ux-20261017.json).
+
+Qualification GameShell/CSS production cinq formats2560×1440,1920×1080,1366×768,390×844,390×600 : pagination12Légendes toutes accessibles, chat ouvert/replié, aucun scroll interne Légendes desktop, aperçu1920 sans scroll ; calendrier/confirmation, fiches propres/tiers et pastille0masqué/1/3/erreur sans mouvement PASS. Boutique/Ticket avant/après cinq formats PASS. Full final8/8 PASS :1805frontend et2672backend non-DB ; première passe6/8 (fixture de comptage JSX et typage de fixture corrigés), aucun échec requalifié comme succès. Après durcissement Arcade :60/60 et quick5/5 PASS. Titres0/1/5 et compteurs longs aux cinq formats PASS, géométrie modale avant/après strictement égale aux cinq formats. Aucun test PostgreSQL relancé pour ce frontend seul. Prochaine action : publier review, revue indépendante du vrai SHA, correction éventuelle puis FF/main/déploiements/postflight sans nouveau GO.
+
+Enquête12:05–12:20Paris bornée : expirations P2028 sur le chemin verrou Player/readiness confirmées ; bloqueur initial et causalité OAuth non prouvés. Aucun déploiement dans la fenêtre, aucun correctif backend conjectural ni gain de latence revendiqué. Aucun DDL ou QA publique mutative. A–G demeure livré techniquement, sans réouverture.
+
 ## Mission consolidée livrée techniquement — 17/10/2026
 
 **Tous les sous-lots A à G et les compléments UI Shop Événement, Concours et Invocation sont livrés techniquement.** Chaque lot sensible a passé sa revue indépendante du vrai SHA GitHub, puis promotion stricte, déploiements exacts et postflight. Aucune recette humaine ni amélioration causale de latence non mesurée n’est déclarée. Les preuves détaillées ci-dessous restent distinctes des observations futures d’exploitation.

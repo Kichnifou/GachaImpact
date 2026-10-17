@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1108 — Retours UX post-V1 et enquête bornée (17/10/2026)
+
+**Validée par mandat explicite du propriétaire.** La livraison A–G précédente reste acquise. Ajustements ciblés : scores visibles au point d’impact du gain serveur, sans bloquer une action permise ; badges Bronze/Argent/Or/Platine communs ; titres sous les statistiques de la fiche ; Box Profil compacte et cliquable avec actions canoniques propres et lecture seule/confidentialité pour tiers ; Légendes en lignes paginées selon place ; pastille Voir positive uniquement, endpoint léger toutes les12–15s visibles ; description Stella en deux lignes ; anniversaire sous avatar/calendrier puis confirmation définitive ; sélection Arcade conservée jusqu’à exclusion autoritaire du filtre. Aucun changement économique, de backend ou migration. Enquête12:05–12:20Paris, sans charge publique artificielle ni modification aveugle des verrous/timeouts. État de qualification/livraison exclusivement au Master et preuve expurgée.
+
 ## R1107 — Arcade : revanche consentie et retour au solo (17/10/2026)
 
 **Validé explicitement par le mandat propriétaire consolidé et son erratum, lotG.** FINISHED PvP conserve le plateau et ouvre Rejouer/Jouer solo dans le bloc multijoueur, Prêt/Refuser désactivés. Un accord attend, deux accords créent le même PvP frais ; Solo ferme l’attente des deux et lance son solo. Présence d’écran serveur distincte, grâce5s, multi-onglets séquencés, aucune résurrection après expiration ; mêmes verrous/idempotence/exclusivité, scores/Records/0XP PvP et XP solo conservés. **Supersède uniquement la règle Rejouer→solo de R1030**, sans modifier invitations ordinaires ni acquis historiques. [Contrat](../architecture/post-v1-arcade-after-match-20261017.md), livraison réelle au Master.

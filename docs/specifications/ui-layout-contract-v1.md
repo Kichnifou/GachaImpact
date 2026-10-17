@@ -1,20 +1,24 @@
 # Contrat de layout UI V1
 
+## Retours UX R1108
+
+Scores au point d’impact de leur gain serveur sans attente imposée aux actions autorisées ; badges de rang communs. Titres sous les cinq statistiques de fiche, dimensions conservées ; Box Profil plus compacte avec fiche propre canonique et tiers en lecture seule autorisée. Légendes pleine largeur paginées selon place, sans scroll interne desktop normal. Anniversaire : petit lien sous avatar, vrai calendrier puis second dialogue définitif, date enregistrée discrète. Voir : pastille uniquement positive et cadence légère12–15s visibles. Description Stella en deux lignes sémantiques sans autre retouche Boutique. Filtre Arcade conserve un ami tant qu’une réponse autoritaire ne l’exclut pas. Ces règles supersèdent les présentations R1103/R1104/R1106 ci-dessous, dont les preuves antérieures restent historiques.
+
 ## Arcade après-match — R1107
 
 Rejouer/Jouer solo dans le bloc multijoueur sous Prêt/Refuser désactivés, aucun bouton de revanche en doublon sous le plateau. Session/adversaire/jeu/difficulté conservés pendant l’attente, statut compact ; un accord garde Jouer solo accessible. À fermeture, présentation initiale et sélection libérées. AppButton/thème/focus/pending conservés ; colonne desktop existante, bloc dans le flux mobile, scroll Arcade existant petitdesktop. Qualification GameShell/CSS compilés quatreviewports/troisjeux, attente et fermeture ; preuves et limites au [contrat](../architecture/post-v1-arcade-after-match-20261017.md).
 
 ## Anniversaire dans Aperçu — R1106
 
-Bloc compact dans le scroll existant du Profil Aperçu ; AppButton partagés, sélecteurs jour/mois, avertissement définitif et confirmation séparée. Pending désactive la soumission/annulation, erreur accessible et retry de la même date ; date enregistrée en lecture seule, aucun âge/année. Profil tiers privé ou non renseigné : aucun bloc ; public : date sans action. Quatre viewports GameShell compilé/CSS production vérifiés, conteneur profile-frame inchangé. [Contrat](../architecture/post-v1-birthdays-20261017.md).
+Lien/date sous avatar du Profil Aperçu ; AppButton partagés, calendrier mois/jours et avertissement définitif seulement dans la seconde confirmation. Pending désactive la soumission/annulation, erreur accessible et retry de la même date ; date enregistrée en lecture seule, aucun âge/année. Profil tiers privé ou non renseigné : aucun bloc ; public : date sans action. Quatre viewports GameShell compilé/CSS production vérifiés, conteneur profile-frame inchangé. [Contrat](../architecture/post-v1-birthdays-20261017.md).
 
 ## Compteur Invocation Voir — R1104
 
-Pastille bleue de10px dans le coin supérieur droit du bouton Voir, position absolue sans modification de taille/position, sans interception des clics ni du focus. Nom accessible avec nombre confirmé ; zéro/1/plusieurs testés en desktop/mobile, aucune valeur affichée en cas de chargement initial ou erreur, pas de pastille sur Arrêter. [Contrat partagé](../architecture/shared-invocations-v1.md). Ce compteur ne déclenche aucune réconciliation fréquente de la liste.
+Pastille bleue de10px dans le coin supérieur droit du bouton Voir, position absolue sans modification de taille/position, sans interception des clics ni du focus. Nom accessible avec nombre confirmé ; zéro masqué,1/plusieurs affichés en desktop/mobile, aucune valeur affichée en cas de chargement initial ou erreur, pas de pastille sur Arrêter. [Contrat partagé](../architecture/shared-invocations-v1.md). Ce compteur ne déclenche aucune réconciliation fréquente de la liste.
 
 ## Maintenance post-V1 — Concours et Légendes (17/10/2026)
 
-Les cartes de résultat Concours affichent la récompense avant une ligne de titre réservée à toutes les cartes ; même axe par rangée, titres compacts, aucune mutation des scores. La fiche d'un personnage présente ses titres réels dans un disclosure compact sans agrandir la modale à l'ouverture. Le Profil possède un onglet Légendes après Box, avec droits BOX/GENERAL_STATISTICS conservés ; `ScrollableScreenPanel` garde son scroll. [Contrat B/C/D](../architecture/post-v1-contest-legends-20261017.md) supersédant uniquement l'emplacement des Légendes de l'ancien R1090 et l'affichage du snapshot de titre dans le résultat terminé.
+Les cartes de résultat Concours affichent la récompense avant une ligne de titre réservée à toutes les cartes ; même axe par rangée, titres compacts, aucune mutation des scores. La fiche présente ses titres réels sous les statistiques correspondantes, sans agrandir la modale. Le Profil possède un onglet Légendes après Box, avec droits BOX/GENERAL_STATISTICS conservés ; Légendes utilise une pagination adaptée à la place utile. [Contrat B/C/D](../architecture/post-v1-contest-legends-20261017.md) supersédant uniquement l'emplacement des Légendes de l'ancien R1090 et l'affichage du snapshot de titre dans le résultat terminé.
 
 ## Maintenance post-V1 — retours du Shop Événement (17/10/2026)
 

@@ -26,8 +26,8 @@ describe('BoxCharacterDetailModal Expedition countdown', () => {
     expect(container.querySelector('[aria-label="Titres de Concours"]')).toBeNull()
     const stats = { strength: 16, intelligence: 8, beauty: 17, charisma: 5, popularity: 18, max: 20, titles: [{ theme: 'CHARISMA', rank: 2, title: 'Icône d’Argent' }, { theme: 'STRENGTH', rank: 3, title: 'Titan d’Or' }] }
     act(() => root.render(<BoxCharacterDetailModal {...shared} character={{ ...character, constellation: 6, c6CompetitionStats: stats }} />))
-    expect(container.querySelector('[aria-label="Titres de Concours"]')?.textContent).toContain('Icône d’Argent')
-    expect(container.querySelectorAll('.box-contest-titles span')).toHaveLength(2)
+    expect(container.querySelector('.box-detail-heading .contest-title-badge')).toBeNull(); expect(container.querySelector('.box-c6-competition-stats')?.textContent).toContain('Icône d’Argent')
+    expect(container.querySelectorAll('.box-c6-competition-stats .contest-title-badge')).toHaveLength(2)
     act(() => root.unmount())
   })
   it('already distinguishes pending claim from pending departure', () => {

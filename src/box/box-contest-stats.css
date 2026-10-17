@@ -1,0 +1,11 @@
+.box-detail-modal.has-contest-titles .box-detail-content { min-height:450px; }
+.box-detail-modal .box-c6-competition-stats { box-sizing:border-box; height:99px; padding:8px; gap:4px; grid-template-rows:12px minmax(0,1fr); }
+.box-detail-modal .box-c6-competition-stats dl { gap:4px; }
+.box-detail-modal .box-c6-competition-stats dl div { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:4px; }
+.box-detail-modal .box-c6-competition-stats dt { line-height:1.2; }
+.box-detail-modal .box-c6-competition-stats dd { margin:2px 0 0; line-height:1.2; }
+.box-detail-modal .box-c6-competition-stats .contest-title-badge { margin-top:2px; padding:1px 4px; font-size:9px; line-height:1.15; }
+.box-private-stats { margin:0 18px 18px; color:var(--muted); font-size:12px; }
+@media(max-width:760px) { .box-detail-modal .box-c6-competition-stats { height:211px; } }
+
+@media (max-width:760px) { .box-detail-modal.has-contest-titles .box-detail-content { min-height:753px; } }

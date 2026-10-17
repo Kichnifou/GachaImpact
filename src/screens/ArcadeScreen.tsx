@@ -54,7 +54,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const opponentChoices = opponent ? [opponent] : arcade.opponents
   const selectedOpponentId = opponent?.id ?? opponentId
   const invitationLocked = Boolean(invitation) || Boolean(active) || Boolean(afterMatchSession) || blocked
-  useEffect(() => { if (!invitation && !active && !afterMatchSession && !arcade.pending && opponentId && !arcade.opponents.some(row => row.id === opponentId)) setOpponentId('') }, [invitation, active, afterMatchSession, arcade.pending, arcade.opponents, opponentId])
+  useEffect(() => { if (!invitation && !active && !afterMatchSession && !arcade.pending && arcade.opponentsValidated && !arcade.opponentsRefreshing && opponentId && !arcade.opponents.some(row => row.id === opponentId)) setOpponentId('') }, [invitation, active, afterMatchSession, arcade.pending, arcade.opponents, arcade.opponentsValidated, arcade.opponentsRefreshing, opponentId])
   useEffect(() => { if (!afterMatchSession) setOpponentId('') }, [afterMatchSession?.id])
   return <div data-business-pending={arcade.pending || arcade.quitting || feedbackPending} className="screen-content long-screen-layout arcade-screen">
     <h1 className="sr-only">Arcade</h1>
@@ -66,8 +66,8 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
           <div><AppButton onClick={() => setHelp(true)} aria-haspopup="dialog">Règles & gains</AppButton><AppButton disabled={!arcade.value || feedbackPending} onClick={() => setRecordsOpen(true)}>Records →</AppButton></div></div>
         <section className="arcade-multiplayer" aria-label="Multijoueur Arcade">
           <label className="arcade-opponent-select">Jouer contre :<select aria-label="Jouer contre" value={selectedOpponentId} disabled={invitationLocked} onChange={event => setOpponentId(event.target.value)}><option value="">Choisir un joueur</option>{opponentChoices.map(row => <option key={row.id} value={row.id}>{row.displayName}</option>)}</select></label>
-          <label className="arcade-friends-only"><input type="checkbox" checked={arcade.friendsOnly} disabled={invitationLocked} onChange={event => { setOpponentId(''); arcade.setFriendsOnly(event.target.checked) }} />Amis seulement</label>
-          <div className="arcade-invite-actions"><AppButton disabled={blocked || active || Boolean(afterMatchSession) || !selectedOpponentId} onClick={() => {
+          <label className="arcade-friends-only"><input type="checkbox" checked={arcade.friendsOnly} disabled={invitationLocked} onChange={event => arcade.setFriendsOnly(event.target.checked)} />Amis seulement</label>
+          <div className="arcade-invite-actions"><AppButton disabled={blocked || active || Boolean(afterMatchSession) || !selectedOpponentId || !invitation && (!arcade.opponentsValidated || arcade.opponentsRefreshing)} onClick={() => {
             if (invitation) void arcade.actInvitation(invitation.id, invitation.direction === 'OUTGOING' ? 'CANCEL' : 'READY')
             else void arcade.invite({ opponentPlayerId: selectedOpponentId, game: selectedGame, difficulty: actualDifficulty }).then(() => setOpponentId(''))
           }}>{invitation?.direction === 'OUTGOING' ? 'Annuler' : 'Prêt'}</AppButton><AppButton disabled={blocked || Boolean(afterMatchSession) || invitation?.direction !== 'INCOMING'} onClick={() => { if (invitation) void arcade.actInvitation(invitation.id, 'REFUSE') }}>Refuser</AppButton></div>

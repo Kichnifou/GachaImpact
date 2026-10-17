@@ -16,7 +16,8 @@ export function mergeArcadeSession(sessions: ArcadeSession[], incoming: ArcadeSe
 export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation, playerId: string) => void) {
   const [value, setValue] = useState<ArcadeOverview | null>(null)
   const [opponents, setOpponents] = useState<ArcadeParticipant[]>([])
-  const [friendsOnly, setFriendsOnly] = useState(false)
+  const [friendsOnly, setFriendsOnlyState] = useState(false)
+  const [opponentsValidated, setOpponentsValidated] = useState(false)
   const [error, setError] = useState(''), [feedback, setFeedback] = useState('')
   const [opponentsRefreshing, setOpponentsRefreshing] = useState(false), [opponentsError, setOpponentsError] = useState('')
   const opponentsFlight = useRef<Promise<void> | null>(null), opponentsSequence = useRef(0), opponentsFailures = useRef(0)
@@ -36,11 +37,11 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
       try {
         const next = await getGameApiClient().getArcadeOpponents(filter)
         if (live.current && generation === owner.current && token === opponentsSequence.current && filter === friendsFilter.current && idle()) {
-          setOpponents(next.opponents); setOpponentsError(''); opponentsFailures.current = 0
+          setOpponents(next.opponents); setOpponentsValidated(true); setOpponentsError(''); opponentsFailures.current = 0
         }
       } catch (reason) {
         if (live.current && generation === owner.current && token === opponentsSequence.current && idle()) {
-          setOpponentsError(apiErrorMessage(reason)); opponentsFailures.current++
+          setOpponentsValidated(false); setOpponentsError(apiErrorMessage(reason)); opponentsFailures.current++
         }
       } finally { if (live.current && generation === owner.current) setOpponentsRefreshing(false) }
     })().finally(() => { if (opponentsFlight.current === request) opponentsFlight.current = null })
@@ -79,7 +80,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   useEffect(() => {
     live.current = true; owner.current++; snapshot.current = null; readFlight.current = null; opponentsFlight.current = null; inFlight.current = null
     failures.current = 0; opponentsFailures.current = 0; quitLock.current = false
-    setValue(null); setOpponents([]); setPending(false); setQuitting(false); setOpponentsError(''); setFeedback(''); setError('')
+    setValue(null); setOpponents([]); setOpponentsValidated(false); setPending(false); setQuitting(false); setOpponentsError(''); setFeedback(''); setError('')
     let timer: number | undefined, opponentTimer: number | undefined, stopped = false
     const schedule = () => {
       window.clearTimeout(timer)
@@ -106,12 +107,13 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
     return () => { stopped = true; live.current = false; sequence.current++; opponentsSequence.current++; owner.current++; window.clearTimeout(timer); window.clearTimeout(opponentTimer); window.removeEventListener('focus', focus); document.removeEventListener('visibilitychange', focus); window.removeEventListener('arcade:refresh', focus) }
   }, [load, readOpponents, playerId])
   useEffect(() => {
-    friendsFilter.current = friendsOnly; opponentsSequence.current++; setOpponents([])
+    friendsFilter.current = friendsOnly; opponentsSequence.current++; setOpponentsValidated(false)
     const waiting = opponentsFlight.current
     const generation = owner.current
     if (waiting) void waiting.then(() => { if (live.current && generation === owner.current) void readOpponents() })
     else void readOpponents()
   }, [friendsOnly, readOpponents])
+  const setFriendsOnly = (next: boolean) => { if (friendsFilter.current === next) return; friendsFilter.current = next; opponentsSequence.current++; setOpponentsValidated(false); setFriendsOnlyState(next) }
   const execute = useCallback((intent: Intent, fromQuit = false): Promise<boolean> => {
     if (inFlight.current || quitLock.current && !fromQuit) return Promise.resolve(false)
     const generation = owner.current
@@ -204,5 +206,5 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
       return await execute({ kind: 'ACTION', sessionId, input: { kind: 'QUIT', expectedVersion: current.version, idempotencyKey: crypto.randomUUID() } }, true)
     } finally { quitLock.current = false; if (live.current) setQuitting(false) }
   }
-  return { value, opponents, opponentsRefreshing, opponentsError, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, requestAfterMatch, invite, actInvitation, act, quit }
+  return { value, opponents, opponentsValidated, opponentsRefreshing, opponentsError, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, requestAfterMatch, invite, actInvitation, act, quit }
 }

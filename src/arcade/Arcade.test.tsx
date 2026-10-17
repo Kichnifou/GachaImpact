@@ -614,3 +614,28 @@ describe('Arcade after-match presence and UI', () => {
     await act(async()=>mounted.root.render(<ArcadeScreen playerId="player-b"/>));row={...row,afterMatch:{status:'CANCELLED',revision:2,requested:false,opponentRequested:false}};api.getArcade.mockResolvedValue(overview());await act(async()=>mounted.root.render(<ArcadeScreen key="idle" playerId="idle"/>));const idle=api.arcadeAfterMatchPresence.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(6000)});expect(api.arcadeAfterMatchPresence).toHaveBeenCalledTimes(idle);
   })
 })
+
+it.each([true,false])('preserves a selected eligible friend, clearing only an authoritative exclusion (%s)',async retained=>{
+  api.getArcadeOpponents.mockResolvedValue({opponents:[participantB]})
+  const {container}=await mount(<ArcadeScreen playerId="player-a"/>)
+  const select=container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!
+  await act(async()=>{select.value=participantB.id;select.dispatchEvent(new Event('change',{bubbles:true}))})
+  let resolve!:(value:{opponents:typeof participantB[]})=>void
+  api.getArcadeOpponents.mockReturnValueOnce(new Promise(done=>resolve=done))
+  await click(container.querySelector<HTMLInputElement>('.arcade-friends-only input')!)
+  expect(select.value).toBe(participantB.id);expect(button(container,'Prêt').disabled).toBe(true)
+  await act(async()=>{resolve({opponents:retained?[participantB]:[]});await Promise.resolve();await Promise.resolve()})
+  expect(select.value).toBe(retained?participantB.id:'');expect(button(container,'Prêt').disabled).toBe(!retained)
+  expect(api.inviteArcade).not.toHaveBeenCalled()
+})
+
+it('keeps selection but disables invitations after an ordinary opponent refresh fails',async()=>{
+ api.getArcadeOpponents.mockResolvedValue({opponents:[participantB]})
+ const {container}=await mount(<ArcadeScreen playerId="player-a"/>)
+ const select=container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!
+ await act(async()=>{select.value=participantB.id;select.dispatchEvent(new Event('change',{bubbles:true}))})
+ api.getArcadeOpponents.mockRejectedValueOnce(Error('offline'))
+ await act(async()=>{window.dispatchEvent(new Event('focus'));await Promise.resolve();await Promise.resolve()})
+ expect(select.value).toBe(participantB.id);expect(button(container,'Prêt').disabled).toBe(true);expect(button(container,'Commencer').disabled).toBe(false)
+ expect(api.inviteArcade).not.toHaveBeenCalled()
+})

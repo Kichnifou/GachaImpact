@@ -106,3 +106,14 @@ describe('ShopScreen', () => {
     expect(failure.container.querySelector('[role="alert"]')).not.toBeNull()
   })
 })
+
+it('splits only the canonical Stella description into two semantic lines',async()=>{
+ const description='Renforcez un personnage avec une Masterless Stella Fortuna. Une Stella par achat, sans limite quotidienne.'
+ const stella={...base.items[0],id:'stella',effectType:'masterless_stella' as const,visualKey:'stella',description}
+ const {container}=await mount(undefined,{...base,items:[stella,base.items[1]]})
+ const copy=container.querySelector('.shop-item.stella .shop-description')!
+ expect(copy.querySelectorAll('br')).toHaveLength(1)
+ expect(copy.childNodes[0].textContent).toBe(description.split('. ')[0]+'.')
+ expect(copy.childNodes[2].textContent).toBe('Une Stella par achat, sans limite quotidienne.')
+ expect(container.querySelector('.shop-item.ticket .shop-description br')).toBeNull()
+})

@@ -830,3 +830,9 @@ Ne pas attendre de nouveau GO générique lorsque les gates sont acquises.
 Mettre à jour le contrat Arcade et le Master selon le résultat réel.
 
 **Résultat attendu : après chaque partie PvP, les joueurs peuvent facilement prendre leur revanche ensemble ou repartir jouer seuls. Une revanche ne doit jamais rester bloquée si l'un des joueurs quitte l'écran plus de 5 secondes.**
+
+## Mandat complémentaire R1108 — neuf retours UX et performances
+
+Mandat propriétaire du17/10 après livraison technique A–G. Tous les neuf ajustements sont requis ensemble : score/animation sans blocage d’action, couleurs de titres communes, titres sous stats de fiche sans changement de dimensions, Box Profil compacte/cliquable avec confidentialité, Légendes compactes paginées, compteur Voir positif léger12–15s, seconde phrase Stella en nouvelle ligne, anniversaire sous avatar/calendrier puis confirmation finale, filtre amis Arcade conservant une sélection admissible. Qualification desktop2560/1920/1366 et mobile390×844/600, focus/clavier, cas privés/vides/longs et erreurs. Contrats spécialisés ci-dessus actualisés, état de livraison exclusivement au Master.
+
+Enquête bornée sur12:05–12:20Europe/Paris du17/10 : corréler logs HTTP/runtime et déploiements, sans fabriquer une cause via pg_stat_activity actuel ou statistiques cumulatives. Correctif backend seulement si cause simple prouvée/reproductible ; ni hausse aveugle de timeout ni changement de verrous/transport/économie. Aucun test de charge ou mutation publique de QA.

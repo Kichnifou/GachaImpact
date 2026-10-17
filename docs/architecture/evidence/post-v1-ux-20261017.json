@@ -1,0 +1,807 @@
+{
+  "scope": "R1108 — qualification locale, aucun déploiement déduit",
+  "bootstrap": "3bd16ae7ec0a77244c065e2d4eab8e2cd993befb",
+  "visual": [
+    {
+      "width": 2560,
+      "height": 1440,
+      "collapsed": false,
+      "overview": {
+        "client": 964,
+        "scroll": 964,
+        "width": 1108,
+        "sw": 1108
+      },
+      "legends": {
+        "client": 964,
+        "scroll": 964,
+        "width": 1108,
+        "sw": 1108
+      },
+      "seen": 12
+    },
+    {
+      "width": 2560,
+      "height": 1440,
+      "collapsed": true,
+      "overview": {
+        "client": 964,
+        "scroll": 964,
+        "width": 1108,
+        "sw": 1108
+      },
+      "legends": {
+        "client": 964,
+        "scroll": 964,
+        "width": 1142,
+        "sw": 1142
+      },
+      "seen": 12
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "collapsed": false,
+      "overview": {
+        "client": 604,
+        "scroll": 604,
+        "width": 1108,
+        "sw": 1108
+      },
+      "legends": {
+        "client": 604,
+        "scroll": 604,
+        "width": 1108,
+        "sw": 1108
+      },
+      "seen": 12
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "collapsed": true,
+      "overview": {
+        "client": 604,
+        "scroll": 604,
+        "width": 1108,
+        "sw": 1108
+      },
+      "legends": {
+        "client": 604,
+        "scroll": 604,
+        "width": 1114,
+        "sw": 1114
+      },
+      "seen": 12
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "collapsed": false,
+      "overview": {
+        "client": 292,
+        "scroll": 339,
+        "width": 638,
+        "sw": 638
+      },
+      "legends": {
+        "client": 292,
+        "scroll": 292,
+        "width": 638,
+        "sw": 638
+      },
+      "seen": 12
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "collapsed": true,
+      "overview": {
+        "client": 292,
+        "scroll": 339,
+        "width": 638,
+        "sw": 638
+      },
+      "legends": {
+        "client": 292,
+        "scroll": 292,
+        "width": 638,
+        "sw": 638
+      },
+      "seen": 12
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "collapsed": false,
+      "overview": {
+        "client": 365,
+        "scroll": 365,
+        "width": 346,
+        "sw": 346
+      },
+      "legends": {
+        "client": 325,
+        "scroll": 325,
+        "width": 346,
+        "sw": 346
+      },
+      "seen": 12
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "collapsed": true,
+      "overview": {
+        "client": 365,
+        "scroll": 365,
+        "width": 346,
+        "sw": 346
+      },
+      "legends": {
+        "client": 325,
+        "scroll": 325,
+        "width": 346,
+        "sw": 346
+      },
+      "seen": 12
+    },
+    {
+      "width": 390,
+      "height": 600,
+      "collapsed": false,
+      "overview": {
+        "client": 365,
+        "scroll": 365,
+        "width": 346,
+        "sw": 346
+      },
+      "legends": {
+        "client": 325,
+        "scroll": 325,
+        "width": 346,
+        "sw": 346
+      },
+      "seen": 12
+    },
+    {
+      "width": 390,
+      "height": 600,
+      "collapsed": true,
+      "overview": {
+        "client": 365,
+        "scroll": 365,
+        "width": 346,
+        "sw": 346
+      },
+      "legends": {
+        "client": 325,
+        "scroll": 325,
+        "width": 346,
+        "sw": 346
+      },
+      "seen": 12
+    }
+  ],
+  "modalBefore": [
+    {
+      "width": 2560,
+      "height": 1440,
+      "modal": {
+        "x": 900,
+        "y": 402,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 919,
+        "y": 920,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 901,
+        "y": 470,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "modal": {
+        "x": 580,
+        "y": 222,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 599,
+        "y": 740,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 581,
+        "y": 290,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "modal": {
+        "x": 303,
+        "y": 66,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 322,
+        "y": 584,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 304,
+        "y": 134,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "modal": {
+        "x": 20,
+        "y": 82,
+        "width": 350,
+        "height": 680
+      },
+      "stats": {
+        "x": 33,
+        "y": 903,
+        "width": 324,
+        "height": 211
+      },
+      "content": {
+        "x": 21,
+        "y": 150,
+        "width": 348,
+        "height": 753
+      }
+    },
+    {
+      "width": 390,
+      "height": 600,
+      "modal": {
+        "x": 20,
+        "y": 15,
+        "width": 350,
+        "height": 570
+      },
+      "stats": {
+        "x": 33,
+        "y": 836,
+        "width": 324,
+        "height": 211
+      },
+      "content": {
+        "x": 21,
+        "y": 83,
+        "width": 348,
+        "height": 753
+      }
+    }
+  ],
+  "modalAfter": [
+    {
+      "width": 2560,
+      "height": 1440,
+      "modal": {
+        "x": 900,
+        "y": 402,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 919,
+        "y": 920,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 901,
+        "y": 470,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "modal": {
+        "x": 580,
+        "y": 222,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 599,
+        "y": 740,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 581,
+        "y": 290,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "modal": {
+        "x": 303,
+        "y": 66,
+        "width": 760,
+        "height": 636
+      },
+      "stats": {
+        "x": 322,
+        "y": 584,
+        "width": 722,
+        "height": 99
+      },
+      "content": {
+        "x": 304,
+        "y": 134,
+        "width": 758,
+        "height": 450
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "modal": {
+        "x": 20,
+        "y": 82,
+        "width": 350,
+        "height": 680
+      },
+      "stats": {
+        "x": 33,
+        "y": 903,
+        "width": 324,
+        "height": 211
+      },
+      "content": {
+        "x": 21,
+        "y": 150,
+        "width": 348,
+        "height": 753
+      }
+    },
+    {
+      "width": 390,
+      "height": 600,
+      "modal": {
+        "x": 20,
+        "y": 15,
+        "width": 350,
+        "height": 570
+      },
+      "stats": {
+        "x": 33,
+        "y": 836,
+        "width": 324,
+        "height": 211
+      },
+      "content": {
+        "x": 21,
+        "y": 83,
+        "width": 348,
+        "height": 753
+      }
+    }
+  ],
+  "shop": [
+    {
+      "width": 2560,
+      "height": 1440,
+      "cards": [
+        {
+          "x": 701,
+          "y": 337,
+          "width": 544.5,
+          "height": 991
+        },
+        {
+          "x": 1255.5,
+          "y": 337,
+          "width": 544.5,
+          "height": 991
+        }
+      ],
+      "ticketGeometry": {
+        "odds": {
+          "x": 1280.5,
+          "y": 748.921875,
+          "right": 1775,
+          "bottom": 866.921875
+        },
+        "controls": {
+          "x": 1280.5,
+          "y": 1179,
+          "right": 1775,
+          "bottom": 1268
+        }
+      },
+      "unit": true,
+      "confirmed": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 1920,
+      "height": 1080,
+      "cards": [
+        {
+          "x": 381,
+          "y": 334.7564392089844,
+          "width": 544.5,
+          "height": 631
+        },
+        {
+          "x": 935.5,
+          "y": 334.7564392089844,
+          "width": 544.5,
+          "height": 631
+        }
+      ],
+      "ticketGeometry": {
+        "odds": {
+          "x": 958,
+          "y": 568.078125,
+          "right": 1457.5,
+          "bottom": 686.078125
+        },
+        "controls": {
+          "x": 958,
+          "y": 821.5,
+          "right": 1457.5,
+          "bottom": 910.5
+        }
+      },
+      "unit": true,
+      "confirmed": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "cards": [
+        {
+          "x": 339,
+          "y": 335.2257385253906,
+          "width": 629,
+          "height": 160
+        },
+        {
+          "x": 339,
+          "y": 501.2257385253906,
+          "width": 629,
+          "height": 159.99996948242188
+        }
+      ],
+      "ticketGeometry": {
+        "odds": {
+          "x": 564.765625,
+          "y": 504.375,
+          "right": 773.53125,
+          "bottom": 593.125
+        },
+        "controls": {
+          "x": 783.53125,
+          "y": 485.5,
+          "right": 961,
+          "bottom": 612
+        }
+      },
+      "unit": true,
+      "confirmed": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "cards": [
+        {
+          "x": 22,
+          "y": 691.2220458984375,
+          "width": 342,
+          "height": 349.53125
+        },
+        {
+          "x": 22,
+          "y": 1050.7532958984375,
+          "width": 342,
+          "height": 362.6875
+        }
+      ],
+      "ticketGeometry": {
+        "odds": {
+          "x": 38,
+          "y": 589.21875,
+          "right": 348,
+          "bottom": 703.21875
+        },
+        "controls": {
+          "x": 38,
+          "y": 703.21875,
+          "right": 348,
+          "bottom": 813.21875
+        }
+      },
+      "unit": true,
+      "confirmed": true,
+      "horizontalOverflow": false
+    },
+    {
+      "width": 390,
+      "height": 600,
+      "cards": [
+        {
+          "x": 22,
+          "y": 691.2199096679688,
+          "width": 342,
+          "height": 349.53131103515625
+        },
+        {
+          "x": 22,
+          "y": 1050.751220703125,
+          "width": 342,
+          "height": 362.6875
+        }
+      ],
+      "ticketGeometry": {
+        "odds": {
+          "x": 38,
+          "y": 467.21875,
+          "right": 348,
+          "bottom": 581.21875
+        },
+        "controls": {
+          "x": 38,
+          "y": 581.21875,
+          "right": 348,
+          "bottom": 691.21875
+        }
+      },
+      "unit": true,
+      "confirmed": true,
+      "horizontalOverflow": false
+    }
+  ],
+  "performance": {
+    "windowParis": "2026-10-17 12:05–12:20 Europe/Paris",
+    "total": 5199,
+    "routes": [
+      {
+        "route": "POST /api/v1/chat/updates",
+        "count": 764,
+        "serverErrors": 0,
+        "p50": 81,
+        "p95": 111,
+        "p99": 293,
+        "max": 519
+      },
+      {
+        "route": "GET /api/v1/me/direct-conversations/unread",
+        "count": 604,
+        "serverErrors": 0,
+        "p50": 57,
+        "p95": 74,
+        "p99": 260,
+        "max": 443
+      },
+      {
+        "route": "GET /api/v1/arcade",
+        "count": 337,
+        "serverErrors": 1,
+        "p50": 275,
+        "p95": 498,
+        "p99": 928,
+        "max": 7344
+      },
+      {
+        "route": "GET /api/v1/arcade/opponents",
+        "count": 252,
+        "serverErrors": 0,
+        "p50": 146,
+        "p95": 230,
+        "p99": 352,
+        "max": 2589
+      },
+      {
+        "route": "GET /api/v1/me/notifications",
+        "count": 162,
+        "serverErrors": 2,
+        "p50": 407,
+        "p95": 783,
+        "p99": 6552,
+        "max": 7817
+      },
+      {
+        "route": "POST /api/v1/me/presence/heartbeat",
+        "count": 77,
+        "serverErrors": 1,
+        "p50": 134,
+        "p95": 406,
+        "p99": 7567,
+        "max": 7567
+      },
+      {
+        "route": "GET /api/v1/contest",
+        "count": 42,
+        "serverErrors": 2,
+        "p50": 169,
+        "p95": 379,
+        "p99": 426,
+        "max": 426
+      },
+      {
+        "route": "GET /api/v1/me/twitch/resolution",
+        "count": 4,
+        "serverErrors": 0,
+        "p50": 5154,
+        "p95": 14169,
+        "p99": 14169,
+        "max": 14169
+      },
+      {
+        "route": "GET /api/v1/me/twitch/callback",
+        "count": 1,
+        "serverErrors": 0,
+        "p50": 9634,
+        "p95": 9634,
+        "p99": 9634,
+        "max": 9634
+      }
+    ],
+    "errors": [
+      {
+        "at": "2026-10-17T10:10:29.217361453Z",
+        "code": "P2028",
+        "meta": {
+          "modelName": "Player",
+          "operation": "query",
+          "timeout": 5000,
+          "timeTaken": 7549
+        },
+        "stack": [
+          "    at async getPlayerRecovery (file:///app/dist/src/application/player/player-recovery-readiness.js:36:20)",
+          "    at async isPlayerDomainReady (file:///app/dist/src/application/player/player-recovery-readiness.js:48:18)",
+          "    at async database.$transaction.isolationLevel (file:///app/dist/src/application/notification/event-lifecycle-notifications.js:35:74)",
+          "    at async EventLifecycleNotificationReconciler.reconcileNotificationsForPlayer (file:///app/dist/src/application/notification/event-lifecycle-notifications.js:34:17)"
+        ]
+      },
+      {
+        "at": "2026-10-17T10:10:29.222334987Z",
+        "code": "P2028",
+        "meta": {
+          "modelName": "Player",
+          "operation": "query",
+          "timeout": 5000,
+          "timeTaken": 7273
+        },
+        "stack": [
+          "    at async assertPlayerRecoveryActivated (file:///app/dist/src/application/player/player-mutation-guard.js:20:20)",
+          "    at async lockArcadePlayers (file:///app/dist/src/application/arcade/arcade-transaction.js:13:9)",
+          "    at async file:///app/dist/src/application/arcade/arcade-invitations.js:84:13",
+          "    at async ArcadeInvitations.reconcileNotificationsForPlayer (file:///app/dist/src/application/arcade/arcade-invitations.js:83:9)"
+        ]
+      },
+      {
+        "at": "2026-10-17T10:10:29.540440321Z",
+        "code": "P2028",
+        "meta": {
+          "modelName": "Player",
+          "operation": "query",
+          "timeout": 5000,
+          "timeTaken": 6343
+        },
+        "stack": [
+          "    at async getPlayerRecovery (file:///app/dist/src/application/player/player-recovery-readiness.js:36:20)",
+          "    at async isPlayerDomainReady (file:///app/dist/src/application/player/player-recovery-readiness.js:48:18)",
+          "    at async database.$transaction.isolationLevel (file:///app/dist/src/application/notification/event-message-notifications.js:40:66)",
+          "    at async EventMessageNotificationReconciler.reconcileNotificationsForPlayer (file:///app/dist/src/application/notification/event-message-notifications.js:39:9)"
+        ]
+      }
+    ],
+    "deploymentsInWindow": 0,
+    "metrics3Hour": [
+      {
+        "measurement": "CPU_USAGE",
+        "current": 0.012297233333333334,
+        "average": 0.019630969981583785,
+        "min": 0,
+        "max": 0.10732093333333334,
+        "sampleCount": 181
+      },
+      {
+        "measurement": "MEMORY_USAGE_GB",
+        "current": 0.193708032,
+        "average": 0.2487446827845305,
+        "min": 0,
+        "max": 0.565428224,
+        "sampleCount": 181
+      }
+    ],
+    "limitations": [
+      "Runtime filter error did not include structured level; recovered unfiltered ten-second windows",
+      "No historical lock-holder telemetry; no claim of root blocker",
+      "No pg_stat_activity or cumulative statement data used to reconstruct incident",
+      "HTTP OPTIONS included; request count is not authenticated player count"
+    ],
+    "conclusion": "P2028 sur le chemin verrou Player puis readiness ; attente/contention plausible mais non instrumentée. Détenteur et cause initiale non prouvés. Callback9634ms sans HTTP5xx, pas preuve de causalité OAuth. Aucun correctif backend conjectural.",
+    "laterRuntime": [
+      {
+        "at": "2026-10-17T10:14:37Z",
+        "code": "P2028",
+        "context": "presence commit",
+        "timeout": 5000,
+        "elapsed": 7497
+      },
+      {
+        "at": "2026-10-17T10:15:47Z",
+        "code": "CONTEST_TEMPORARILY_UNAVAILABLE",
+        "httpStatus": 503,
+        "rootCause": "non extraite"
+      }
+    ]
+  },
+  "tests": {
+    "full": {
+      "passed": 8,
+      "total": 8,
+      "frontend": 1805,
+      "backendNonDb": 2672
+    },
+    "firstFull": {
+      "passed": 6,
+      "total": 8,
+      "failures": [
+        "Fixture de comptage JSX Expedition passée de2à3 surfaces",
+        "Typage incomplet de fixture score"
+      ],
+      "resolved": true
+    },
+    "postgresql": "Non exécuté pour R1108 : frontend seul, aucun changement DB/backend ; preuves antérieures non recomptées.",
+    "visual": "GameShell/CSS production cinq viewports, dix variantes Légendes chat ouvert/replié, cinq Boutique/Ticket et cinq comparaisons modale.",
+    "afterHardening": {
+      "arcade": 60,
+      "quick": {
+        "passed": 5,
+        "total": 5
+      }
+    }
+  },
+  "limits": [
+    "Fixtures synthétiques locales, assets portraits externes bloqués ; aucune recette humaine authentifiée publique.",
+    "Métriques CPU/RAM sur trois heures, pas mesure isolée de l’incident.",
+    "Aucun DDL, migration ou mutation économique publique."
+  ],
+  "visualLongCases": {
+    "viewports": 5,
+    "titles": [
+      0,
+      1,
+      5
+    ],
+    "counters": "20 chiffres, retour à la ligne mesuré",
+    "passed": true,
+    "localCaptures": "local-data/shop-feedback-qa/ux-long-*.png"
+  }
+}
