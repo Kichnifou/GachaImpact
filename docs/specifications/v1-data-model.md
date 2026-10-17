@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## Arcade après-match — R1107
+
+ArcadeSession ajoute afterMatch JSONB nullable (status,revision,hostReady,guestReady,graceUntil,nextSessionId,tabs bornés avecplayerId/séquence/visible/échéance) et afterMatchExpiresAt nullable. Seuls FINISHED MULTIPLAYER peuvent porter cet état, lié à la source exacte ; aucune table/FK nouvelle. Les indexes par hôte/invité/échéance excluent les fenêtres closes ; verrous Player triés pour exclusivité croisée avec ACTIVE/PENDING. Données historiques NULL inchangées ; inventaire JSON d’effacement inclut cette colonne. [Contrat](../architecture/post-v1-arcade-after-match-20261017.md), application publique au Master.
+
 ## R1100 — effacement personnel reprenable
 
 AccountDeletion est un journal privé sans FK ni JSON : UUID d'ancrage et tableau borné des versions Player prouvées, identifiants Twitch temporaires vidés après effacement DB, subject brut retiré après Auth, hash de reprise retiré sept jours après clôture, bail/token et étapes fixes. AccountErasureMarker contient uniquement kind/digest HMAC/date (PLAYER, TWITCH, FRIENDSHIP_SOURCE). Les seules ancres Player partagées sont neutralisées ; progression courante et archives appartenant au compte sont retirées. LegacyFriendshipFact identifiant est supprimé après détachement de ses références ; compteurs/dates des pairs conservés. [Contrat et conservation](../architecture/r1100-account-deletion.md), état opérationnel au Master.
@@ -1069,7 +1073,7 @@ Ledger historique distinct du stock : chaque ligne rattache une quantité positi
 
 # Anniversaire Player post-V1 — R1106
 
-Migration087 candidate : birthdayDay/month (SMALLINT nullable), birthdayRegisteredAt serveur (TIMESTAMPTZ nullable), birthdayLastRewardYear (SMALLINT nullable), tous absents ensemble ou présents avec date réelle (29février valide). Aucun ajout de table, FK ou JSON ; index partiel des Players ACTIVE avec date enregistrée. PrivacySetting BIRTHDAY accepte PRIVATE/PUBLIC. BusinessOperation SYSTEM/birthday.grant:Player:année conserve la preuve annuelle unique ; deux ResourceMovement et Notification dédupliquée sont atomiques avec le curseur. Jour/mois ne figurent dans aucun reçu/payload économique. Erasure remet les quatre scalaires à NULL. [Contrat](../architecture/post-v1-birthdays-20261017.md), état physique réel au Master.
+Migration087 additive : birthdayDay/month (SMALLINT nullable), birthdayRegisteredAt serveur (TIMESTAMPTZ nullable), birthdayLastRewardYear (SMALLINT nullable), tous absents ensemble ou présents avec date réelle (29février valide). Aucun ajout de table, FK ou JSON ; index partiel des Players ACTIVE avec date enregistrée. PrivacySetting BIRTHDAY accepte PRIVATE/PUBLIC. BusinessOperation SYSTEM/birthday.grant:Player:année conserve la preuve annuelle unique ; deux ResourceMovement et Notification dédupliquée sont atomiques avec le curseur. Jour/mois ne figurent dans aucun reçu/payload économique. Erasure remet les quatre scalaires à NULL. [Contrat](../architecture/post-v1-birthdays-20261017.md), état physique réel au Master.
 
 # 15. Boutique
 

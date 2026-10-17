@@ -9,7 +9,7 @@ import type { ArcadeOverview, ArcadeSession, ArcadeMutation, ArcadeRanking, Arca
 import { activityTabs, parseNavigationHash, hashForScreen } from '../navigation/navigation'
 import { publishProgressionUpdate } from '../progression/publish-progression-update'
 import type { PlayerProgressionDto } from '../api/types'
-const api = vi.hoisted(() => ({ getArcade: vi.fn(), getArcadeOpponents: vi.fn().mockResolvedValue({ opponents: [] }), inviteArcade: vi.fn(), actArcadeInvitation: vi.fn(), startArcade: vi.fn(), actArcade: vi.fn(), getArcadeRecords: vi.fn() }))
+const api = vi.hoisted(() => ({ getArcade: vi.fn(), getArcadeOpponents: vi.fn().mockResolvedValue({ opponents: [] }), inviteArcade: vi.fn(), actArcadeInvitation: vi.fn(), arcadeAfterMatchPresence: vi.fn(), requestArcadeAfterMatch: vi.fn(), startArcade: vi.fn(), actArcade: vi.fn(), getArcadeRecords: vi.fn() }))
 vi.mock('../api/game-api', async importOriginal => ({ ...await importOriginal<object>(), getGameApiClient: () => api }))
 import ArcadeScreen from '../screens/ArcadeScreen'
 import ArcadeRecords from './ArcadeRecords'
@@ -40,7 +40,7 @@ function overview(sessions: ArcadeSession[] = []): ArcadeOverview {
     daily: (['MEMORY', 'CONNECT_FOUR', 'TIC_TAC_TOE'] as const).map(game => ({ game, used: false, xpAwarded: 0 })) }
 }
 function mutation(row: ArcadeSession): ArcadeMutation { return { ...overview(), session: row, operationId: 'operation', alreadyProcessed: false, award: null } }
-beforeEach(() => { vi.resetAllMocks(); api.getArcade.mockResolvedValue(overview()); api.getArcadeOpponents.mockResolvedValue({ opponents: [] }) })
+beforeEach(() => { vi.resetAllMocks(); api.arcadeAfterMatchPresence.mockResolvedValue({sessionId:'unused',afterMatch:null}); api.getArcade.mockResolvedValue(overview()); api.getArcadeOpponents.mockResolvedValue({ opponents: [] }) })
 afterEach(async () => { for (const { root, container } of roots.splice(0)) { await act(async () => root.unmount()); container.remove() } vi.useRealTimers(); vi.restoreAllMocks() })
 
 describe('Arcade interface and session lifecycle', () => {
@@ -463,31 +463,31 @@ describe('Multiplayer Arcade interface and polling', () => {
     await act(async()=>{await vi.advanceTimersByTimeAsync(5000);window.dispatchEvent(new Event('focus'))})
     expect(api.getArcade).toHaveBeenCalledTimes(calls)
   })
-  it.each((['MEMORY','CONNECT_FOUR','TIC_TAC_TOE'] as const).flatMap(game => (['PLAYER','AI'] as const).map(side => ({game,side}))))('replays finished $game for $side as solo with the same difficulty, independently of the old opponent', async ({game,side}) => {
+  it.each((['MEMORY','CONNECT_FOUR','TIC_TAC_TOE'] as const).flatMap(game => (['PLAYER','AI'] as const).map(side => ({game,side}))))('plays solo from finished $game for $side through the exact after-match source', async ({game,side}) => {
     vi.useFakeTimers()
-    const finished={...multiplayer(game,side),difficulty:'HARD' as const,status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
+    const finished={...multiplayer(game,side),difficulty:'HARD' as const,status:'FINISHED' as const,afterMatch:{status:'WAITING' as const,revision:1,requested:false,opponentRequested:false},result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
     const solo={...session(game),id:'new-solo',difficulty:finished.difficulty}; solo.board.turn='AI'
     api.getArcade.mockResolvedValue(overview([finished])); api.getArcadeOpponents.mockResolvedValue({opponents:[]})
-    api.startArcade.mockResolvedValue(mutation(solo)); api.actArcade.mockImplementation(() => new Promise(() => undefined))
+    api.arcadeAfterMatchPresence.mockImplementation(async(id)=>({sessionId:id,afterMatch:finished.afterMatch})); api.requestArcadeAfterMatch.mockResolvedValue(mutation(solo)); api.actArcade.mockImplementation(() => new Promise(() => undefined))
     const {container}=await mount(<ArcadeScreen playerId="player-a" />)
     await click(button(container,game==='MEMORY'?'Memory':game==='CONNECT_FOUR'?'Puissance 4':'Morpion'))
-    await click(button(container,'Rejouer'))
-    expect(api.startArcade).toHaveBeenCalledOnce(); expect(api.inviteArcade).not.toHaveBeenCalled()
-    expect(api.startArcade.mock.calls[0]![0]).toMatchObject({game,difficulty:'HARD',previousSessionId:finished.id,expectedVersion:0,idempotencyKey:expect.any(String)})
-    expect(api.startArcade.mock.calls[0]![0]).not.toHaveProperty('opponentPlayerId')
+    await click(button(container,'Jouer solo'))
+    expect(api.requestArcadeAfterMatch).toHaveBeenCalledOnce(); expect(api.startArcade).not.toHaveBeenCalled(); expect(api.inviteArcade).not.toHaveBeenCalled()
+    expect(api.requestArcadeAfterMatch.mock.calls[0]).toEqual([finished.id,expect.objectContaining({kind:'SOLO',tabKey:expect.any(String),sequence:expect.any(Number),idempotencyKey:expect.any(String)})])
+    expect(api.requestArcadeAfterMatch.mock.calls[0]![1]).not.toHaveProperty('opponentPlayerId')
     expect(container.querySelector('.arcade-versus')?.textContent).toContain('Adversaire')
     expect(container.querySelector('.arcade-banter')?.textContent).toContain('Prêt.')
     await act(async () => { await vi.advanceTimersByTimeAsync(750) })
     expect(api.actArcade).toHaveBeenCalledWith('new-solo',expect.objectContaining({kind:'ADVANCE'}))
   })
-  it('keeps the result and manual opponent selection separate from solo replay after PvP', async () => {
-    const finished={...multiplayer('MEMORY'),status:'FINISHED' as const,result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
+  it('returns expired PvP to normal controls without an old result or selected opponent', async () => {
+    const finished={...multiplayer('MEMORY'),status:'FINISHED' as const,afterMatch:{status:'CANCELLED' as const,revision:2,requested:false,opponentRequested:false},result:{outcome:'WIN' as const,performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'op'}}
     const another={id:'another-player',displayName:'Autre joueur'}
     api.getArcade.mockResolvedValue(overview([finished])); api.getArcadeOpponents.mockResolvedValue({opponents:[another]})
     const {container}=await mount(<ArcadeScreen playerId="player-a" />)
-    expect(container.querySelector('.arcade-result')?.textContent).toContain('+8 score · +0 XP')
+    expect(container.querySelector('.arcade-result')?.textContent).toBe('')
     const select=container.querySelector<HTMLSelectElement>('[aria-label="Jouer contre"]')!
-    expect(select.disabled).toBe(false); expect(select.value).toBe(''); expect(button(container,'Rejouer')).toBeTruthy()
+    expect(select.disabled).toBe(false); expect(select.value).toBe(''); expect(button(container,'Commencer')).toBeTruthy()
     await act(async () => { select.value=another.id; select.dispatchEvent(new Event('change',{bubbles:true})) })
     expect(api.inviteArcade).not.toHaveBeenCalled()
     api.inviteArcade.mockResolvedValue({invitation:{...challenge,game:'MEMORY',direction:'OUTGOING'},operationId:'new-invite',alreadyProcessed:false})
@@ -571,4 +571,46 @@ it('backs off failed overview reads, recovers the PvP cadence and refreshes imme
   await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await vi.advanceTimersByTimeAsync(3000) }); expect(api.getArcade).toHaveBeenCalledTimes(3)
   visibility.mockReturnValue('visible')
   await act(async () => document.dispatchEvent(new Event('visibilitychange'))); expect(api.getArcade).toHaveBeenCalledTimes(4)
+})
+
+
+describe('Arcade after-match presence and UI', () => {
+  const finished = (): ArcadeSession => ({...session('TIC_TAC_TOE','FINISHED'),mode:'MULTIPLAYER',viewerSide:'PLAYER',opponent:{id:'peer',displayName:'Adversaire'},participants:{PLAYER:{id:'player-a',displayName:'Vous'},AI:{id:'peer',displayName:'Adversaire'}},afterMatch:{status:'WAITING',revision:1,requested:false,opponentRequested:false},result:{outcome:'WIN',performancePoints:8,scoreAwarded:8,xpAwarded:0,businessDate:'2026-10-01',finishedAt:'2026-10-01T11:00:00Z',operationId:'finish'}})
+  it('keeps the finished board and both disabled invitation controls, then waits for consent without starting solo', async () => {
+    vi.useFakeTimers();let row=finished();api.getArcade.mockImplementation(async()=>overview([row]));api.arcadeAfterMatchPresence.mockImplementation(async()=>({sessionId:row.id,afterMatch:row.afterMatch}));
+    api.requestArcadeAfterMatch.mockImplementation(async()=>{row={...row,afterMatch:{...row.afterMatch!,revision:2,requested:true}};return mutation(row)})
+    const {container}=await mount(<ArcadeScreen playerId="player-a"/>);
+    expect(button(container,'Prêt').disabled).toBe(true);expect(button(container,'Refuser').disabled).toBe(true);expect(container.querySelector('.arcade-actions')?.textContent).not.toContain('Rejouer');
+    expect(container.querySelectorAll('.arcade-cell')).toHaveLength(9);await click(button(container,'Rejouer'));
+    expect(button(container,'Rejouer').disabled).toBe(true);expect(button(container,'Jouer solo').disabled).toBe(false);expect(container.textContent).toContain('En attente de l’autre joueur');
+    expect(api.startArcade).not.toHaveBeenCalled();expect(api.inviteArcade).not.toHaveBeenCalled();expect(api.requestArcadeAfterMatch).toHaveBeenCalledWith(row.id,expect.objectContaining({kind:'REPLAY'}));
+    const reads=api.getArcade.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(6100)});expect(api.getArcade.mock.calls.length).toBe(reads);expect(api.getArcadeOpponents).not.toHaveBeenCalled();expect(api.arcadeAfterMatchPresence.mock.calls.length).toBeGreaterThanOrEqual(3);
+  })
+  it('stops heartbeat while hidden, resumes a brief return, and restores normal UI on server cancellation', async () => {
+    vi.useFakeTimers();let row=finished(),visibility='visible';vi.spyOn(document,'visibilityState','get').mockImplementation(()=>visibility as DocumentVisibilityState);
+    api.getArcade.mockImplementation(async()=>overview([row]));api.arcadeAfterMatchPresence.mockImplementation(async()=>({sessionId:row.id,afterMatch:row.afterMatch}));
+    const {container}=await mount(<ArcadeScreen playerId="player-a"/>);visibility='hidden';await act(async()=>document.dispatchEvent(new Event('visibilitychange')));
+    expect(api.arcadeAfterMatchPresence.mock.calls.at(-1)?.[1].visible).toBe(false);const calls=api.arcadeAfterMatchPresence.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(4000)});expect(api.arcadeAfterMatchPresence).toHaveBeenCalledTimes(calls);
+    visibility='visible';await act(async()=>document.dispatchEvent(new Event('visibilitychange')));expect(api.arcadeAfterMatchPresence.mock.calls.at(-1)?.[1].visible).toBe(true);
+    row={...row,afterMatch:{status:'CANCELLED',revision:10,requested:false,opponentRequested:false}};await act(async()=>{await vi.advanceTimersByTimeAsync(2100)});
+    expect(container.querySelector('.arcade-after-match-actions')).toBeNull();expect(button(container,'Commencer').disabled).toBe(false);expect((container.querySelector('[aria-label="Jouer contre"]') as HTMLSelectElement).value).toBe('');
+  })
+  it('converges to the fresh shared board when the peer gives the second consent', async () => {
+    vi.useFakeTimers();let row=finished();api.getArcade.mockImplementation(async()=>overview([row]));let next:ArcadeSession|undefined;
+    api.arcadeAfterMatchPresence.mockImplementation(async()=>({sessionId:'TIC_TAC_TOE-session',afterMatch:next?{status:'STARTED',revision:4,requested:true,opponentRequested:true}:row.afterMatch,...(next?{nextSession:next}:{})}));
+    const {container}=await mount(<ArcadeScreen playerId="player-a"/>);
+    next={...row,id:'fresh-shared',createdAt:'2026-10-01T12:00:00Z',status:'ACTIVE',result:null,afterMatch:null,version:0};row=next;
+    await act(async()=>{await vi.advanceTimersByTimeAsync(2100)});expect(button(container,'Quitter').disabled).toBe(false);expect(container.querySelector('.arcade-after-match-actions')).toBeNull();expect(api.startArcade).not.toHaveBeenCalled();expect(api.requestArcadeAfterMatch).not.toHaveBeenCalled();
+  })
+  it('does not resurrect WAITING from an older same-board revision or immutable first-consent receipt', () => {
+    const old=finished(),closed={...old,afterMatch:{status:'CANCELLED' as const,revision:8,requested:false,opponentRequested:false}};
+    expect(mergeArcadeSession([closed],old)[0]?.afterMatch?.status).toBe('CANCELLED');
+  })
+  it('serializes heartbeats, ignores late completion after departure, and does not pulse an idle screen', async () => {
+    vi.useFakeTimers();let row=finished();api.getArcade.mockImplementation(async()=>overview([row]));let resolve!:(v:unknown)=>void;api.arcadeAfterMatchPresence.mockImplementationOnce(()=>new Promise(done=>{resolve=done}));
+    const mounted=await mount(<ArcadeScreen playerId="player-a"/>);await act(async()=>{await vi.advanceTimersByTimeAsync(6000)});expect(api.arcadeAfterMatchPresence).toHaveBeenCalledTimes(1);
+    await act(async()=>window.dispatchEvent(new Event('pagehide')));expect(api.arcadeAfterMatchPresence.mock.calls.at(-1)?.[1].visible).toBe(false);const calls=api.arcadeAfterMatchPresence.mock.calls.length;
+    await act(async()=>{resolve({sessionId:row.id,afterMatch:row.afterMatch});await vi.advanceTimersByTimeAsync(10000)});expect(api.arcadeAfterMatchPresence).toHaveBeenCalledTimes(calls);
+    await act(async()=>mounted.root.render(<ArcadeScreen playerId="player-b"/>));row={...row,afterMatch:{status:'CANCELLED',revision:2,requested:false,opponentRequested:false}};api.getArcade.mockResolvedValue(overview());await act(async()=>mounted.root.render(<ArcadeScreen key="idle" playerId="idle"/>));const idle=api.arcadeAfterMatchPresence.mock.calls.length;await act(async()=>{await vi.advanceTimersByTimeAsync(6000)});expect(api.arcadeAfterMatchPresence).toHaveBeenCalledTimes(idle);
+  })
 })

@@ -2951,6 +2951,8 @@ model BossReward {
 }
 
 model ArcadeSession {
+  afterMatch Json? @map("after_match") @db.JsonB
+  afterMatchExpiresAt DateTime? @map("after_match_expires_at") @db.Timestamptz(6)
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   playerId String @map("player_id") @db.Uuid
   mode String @default("SOLO") @db.Text

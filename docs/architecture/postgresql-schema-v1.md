@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1107 — migration additive088 Arcade après-match
+
+20261017160000_088_arcade_after_match ajoute deux colonnes à arcade_sessions : after_match JSONB nullable et after_match_expires_at TIMESTAMPTZ(6) nullable, CHECK mode/statut/objet/état fermé/échéance avec refus des états JSON incomplets, deux indexes partiels Player/échéance. Aucun changement des tables/FK/RLS/grants existants ; inventaire d’effacement JSON83→84. Les migrations existantes ne sont pas réécrites ; répétition privée via Prisma deploy/status distincte de l’application publique après review. [Contrat](post-v1-arcade-after-match-20261017.md), état exact au Master.
+
 ## R1100 — migration additive085 et périmètre d'effacement
 
 `20261016080000_085_account_deletion` ajoute account_deletions et account_erasure_markers, RLS/revokes navigateur, sans nouvelle FK/JSON. Périmètre1–25 UUID incluant l'ancre, baux/token et statuts contrôlés ; journal privé et marqueurs HMAC. Gardes ARCHIVED conservées, exception uniquement pour le job vivant et ses Players prouvés ; scrub d'une seule colonne JSON de tiers, retrait exact des deux liens de provenance d'amitié ou du grantor personnel, sans mutation économique des pairs. Guard SQL subject contre reprovisionnement ancien JWT. Inventaire307FK/83JSON exact, dérive inconnue refusée. Le contrat BusinessOperation classe désormais la FK EventMonthlyDraw déjà présente depuis069 comme CONSERVED (31 références, aucune FK créée ici). Qualification privée des85migrations distincte de leur application publique via predeploy Prisma ; preuve au Master.

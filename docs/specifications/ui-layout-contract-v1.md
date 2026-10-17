@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Arcade après-match — R1107
+
+Rejouer/Jouer solo dans le bloc multijoueur sous Prêt/Refuser désactivés, aucun bouton de revanche en doublon sous le plateau. Session/adversaire/jeu/difficulté conservés pendant l’attente, statut compact ; un accord garde Jouer solo accessible. À fermeture, présentation initiale et sélection libérées. AppButton/thème/focus/pending conservés ; colonne desktop existante, bloc dans le flux mobile, scroll Arcade existant petitdesktop. Qualification GameShell/CSS compilés quatreviewports/troisjeux, attente et fermeture ; preuves et limites au [contrat](../architecture/post-v1-arcade-after-match-20261017.md).
+
 ## Anniversaire dans Aperçu — R1106
 
 Bloc compact dans le scroll existant du Profil Aperçu ; AppButton partagés, sélecteurs jour/mois, avertissement définitif et confirmation séparée. Pending désactive la soumission/annulation, erreur accessible et retry de la même date ; date enregistrée en lecture seule, aucun âge/année. Profil tiers privé ou non renseigné : aucun bloc ; public : date sans action. Quatre viewports GameShell compilé/CSS production vérifiés, conteneur profile-frame inchangé. [Contrat](../architecture/post-v1-birthdays-20261017.md).

@@ -1,10 +1,17 @@
 {
   "scope": "post-V1 F / R1106",
-  "state": "qualified local candidate; independent review and delivery pending",
+  "state": "Delivered technically at 41cbaa6ed5de6d09b66a6be5a5494afb03c435d5; human acceptance pending",
   "migration": {
     "name": "20261017140000_087_player_birthdays",
     "privateRehearsal": true,
-    "publicApplied": false
+    "publicApplied": true,
+    "publicStatus": {
+      "sha": "41cbaa6ed5de6d09b66a6be5a5494afb03c435d5",
+      "migrations": 87,
+      "prismaDeploy": true,
+      "prismaStatus": "up to date",
+      "frozen": true
+    }
   },
   "tests": {
     "privateBirthdays": {
@@ -83,5 +90,73 @@
   },
   "privateBoundaries": "Random isolated schemas, reference catalog only, no public Player copied/mutated; cleaned",
   "publicEconomicQa": false,
-  "humanAcceptance": false
+  "humanAcceptance": false,
+  "delivery": {
+    "sha": "41cbaa6ed5de6d09b66a6be5a5494afb03c435d5",
+    "review": {
+      "verdict": "APPROVED",
+      "githubDiffs": 39,
+      "criticalBlobs": 12,
+      "privatePostgres": 9,
+      "frontend": 30,
+      "backend": 23
+    },
+    "railway": {
+      "id": "7e43fe43-4cd3-49e9-a71d-a2f54591c254",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "ecdea3f1-58a3-40a7-ae5e-034aee784c12",
+      "status": "SUCCESS"
+    },
+    "postflight": {
+      "sha": "41cbaa6ed5de6d09b66a6be5a5494afb03c435d5",
+      "at": "2026-10-17T08:43:12.936Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/ecdea3f1-58a3-40a7-ae5e-034aee784c12",
+      "sites": [
+        {
+          "origin": "https://ecdea3f1.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BXE1kqiC.js",
+              "sha256": "667172b50d2bc0e603aba0c20d146846af8c79f75f4cfd49fdfe9c23f596f997"
+            },
+            {
+              "asset": "/assets/index-DsRfT1fj.css",
+              "sha256": "491acdb3edfd1a588331a3316e641cc443e1ea9f24c281967c850177c6fb7349"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BXE1kqiC.js",
+              "sha256": "667172b50d2bc0e603aba0c20d146846af8c79f75f4cfd49fdfe9c23f596f997"
+            },
+            {
+              "asset": "/assets/index-DsRfT1fj.css",
+              "sha256": "491acdb3edfd1a588331a3316e641cc443e1ea9f24c281967c850177c6fb7349"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-BXE1kqiC.js",
+              "sha256": "667172b50d2bc0e603aba0c20d146846af8c79f75f4cfd49fdfe9c23f596f997"
+            },
+            {
+              "asset": "/assets/index-DsRfT1fj.css",
+              "sha256": "491acdb3edfd1a588331a3316e641cc443e1ea9f24c281967c850177c6fb7349"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "birthdayAnonymous": 401
+  }
 }

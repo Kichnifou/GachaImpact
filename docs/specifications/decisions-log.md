@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1107 — Arcade : revanche consentie et retour au solo (17/10/2026)
+
+**Validé explicitement par le mandat propriétaire consolidé et son erratum, lotG.** FINISHED PvP conserve le plateau et ouvre Rejouer/Jouer solo dans le bloc multijoueur, Prêt/Refuser désactivés. Un accord attend, deux accords créent le même PvP frais ; Solo ferme l’attente des deux et lance son solo. Présence d’écran serveur distincte, grâce5s, multi-onglets séquencés, aucune résurrection après expiration ; mêmes verrous/idempotence/exclusivité, scores/Records/0XP PvP et XP solo conservés. **Supersède uniquement la règle Rejouer→solo de R1030**, sans modifier invitations ordinaires ni acquis historiques. [Contrat](../architecture/post-v1-arcade-after-match-20261017.md), livraison réelle au Master.
+
 ## R1106 — Anniversaires des joueurs (17/10/2026)
 
 **Validé explicitement par le mandat propriétaire, lot F.** Jour et mois facultatifs, valides, définitifs après confirmation ; PRIVÉ par défaut même entre amis, PUBLIC/PRIVÉ réversible sans année ni âge. Attribution serveur annuelle automatique 50000Primos+200000Moras, une fois par année, indépendante des connexions ; rattrapage depuis l’enregistrement, aucune occurrence antérieure à celui-ci. 29février observé le28février les années non bissextiles. Transaction économique, preuve et notification personnelle uniques, comptes archivés/supprimés exclus et date effacée à la suppression. [Contrat](../architecture/post-v1-birthdays-20261017.md), état de livraison au Master.

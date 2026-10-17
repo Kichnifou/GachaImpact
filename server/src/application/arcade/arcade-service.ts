@@ -1,3 +1,5 @@
+import { ArcadeAfterMatch, persistAfterMatch, type ArcadeAfterMatchInput, type ArcadeAfterMatchPresenceInput } from './arcade-after-match.js';
+import { readAfterMatch, cancelAfterMatch, afterMatchExpired } from './arcade-after-match-state.js';
 import { randomBytes } from 'node:crypto';
 import { Prisma, type PrismaClient } from '../../../generated/prisma/client.js';
 import type { AuthenticatedIdentity } from '../../domain/identity/authenticated-identity.js';
@@ -24,9 +26,10 @@ export type ArcadeMutation = Awaited<ReturnType<typeof personalSummary>> & { ses
 const conflict = (message: string, code = 'ARCADE_CONFLICT') => new AppError(message, 409, code);
 
 export class ArcadeService {
+  readonly afterMatch: ArcadeAfterMatch;
   readonly invitations: ArcadeInvitations;
   constructor(private readonly database: PrismaClient, private readonly getPlayer: GetCurrentPlayer, private readonly clock: Clock,
-    private readonly xp = new PrismaPlayerXpService(), private readonly seed = () => randomBytes(4).readUInt32LE()) { this.invitations = new ArcadeInvitations(database, clock, seed); }
+    private readonly xp = new PrismaPlayerXpService(), private readonly seed = () => randomBytes(4).readUInt32LE()) { this.invitations = new ArcadeInvitations(database, clock, seed); this.afterMatch = new ArcadeAfterMatch(database, clock, seed); }
 
   async actor(identity: AuthenticatedIdentity) {
     const player = await this.getPlayer.execute(identity);
@@ -39,14 +42,14 @@ export class ArcadeService {
     return this.database.$transaction(async tx => {
       const summary = await personalSummary(tx, player.id, businessDateToDatabaseDate(getBusinessDate(this.clock.now())));
       const sessions = await Promise.all(arcadeGames.map(game => tx.arcadeSession.findFirst({ where: { ...participantWhere(player.id), game }, include: arcadeParticipants, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] })));
-      return { ...summary, sessions: sessions.filter(row => row !== null).map(row => projectSession(row, player.id)), invitation: await this.invitations.pending(tx, player.id), serverNow: this.clock.now().toISOString() };
+      return { ...summary, sessions: sessions.filter(row => row !== null).map(row => projectSession(row, player.id, this.clock.now())), invitation: await this.invitations.pending(tx, player.id), serverNow: this.clock.now().toISOString() };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
   async session(identity: AuthenticatedIdentity, id: string) {
     const player = await this.actor(identity);
     const row = await this.database.arcadeSession.findFirst({ where: { id, ...participantWhere(player.id) }, include: arcadeParticipants });
     if (!row) throw new AppError('Partie introuvable.', 404, 'ARCADE_NOT_FOUND');
-    return projectSession(row, player.id);
+    return projectSession(row, player.id, this.clock.now());
   }
   private async mutate(identity: AuthenticatedIdentity, idempotencyKey: string, intent: unknown,
     change: (tx: Prisma.TransactionClient, playerId: string, elementKey: ElementKey, operationId: string, now: Date) => Promise<{ session: ReturnType<typeof projectSession>; award: ArcadeMutation['award'] }>, lockIds: readonly string[] = []): Promise<ArcadeMutation> {
@@ -63,15 +66,25 @@ export class ArcadeService {
   async opponents(identity: AuthenticatedIdentity, friendsOnly: boolean) { return this.invitations.opponents((await this.actor(identity)).id, friendsOnly); }
   async invite(identity: AuthenticatedIdentity, input: ArcadeInviteInput) { return this.invitations.invite((await this.actor(identity)).id, input); }
   async actInvitation(identity: AuthenticatedIdentity, id: string, input: ArcadeInviteAction) { return this.invitations.act((await this.actor(identity)).id, id, input); }
-  start(identity: AuthenticatedIdentity, input: ArcadeStart) {
+  async afterMatchPresence(identity: AuthenticatedIdentity, id: string, input: ArcadeAfterMatchPresenceInput) { return this.afterMatch.presence((await this.actor(identity)).id, id, input) }
+  async requestAfterMatch(identity: AuthenticatedIdentity, id: string, input: ArcadeAfterMatchInput) { return this.afterMatch.request((await this.actor(identity)).id, id, input) }
+  async start(identity: AuthenticatedIdentity, input: ArcadeStart) {
+    const actor = await this.actor(identity);
+    const previous = input.previousSessionId ? await this.database.arcadeSession.findFirst({ where: { id: input.previousSessionId, ...participantWhere(actor.id) }, select: { playerId: true, opponentPlayerId: true } }) : null;
     const seed = this.seed();
     return this.mutate(identity, input.idempotencyKey, { action: 'START', game: input.game, difficulty: input.difficulty, expectedVersion: input.expectedVersion, previousSessionId: input.previousSessionId }, async (tx, playerId, _element, _operation, now) => {
       const latest = await tx.arcadeSession.findFirst({ where: { ...participantWhere(playerId), game: input.game }, orderBy: [{ createdAt: 'desc' }, { id: 'desc' }] });
-      if (await arcadeBusy(tx, playerId)) throw conflict('Une partie Arcade est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
+      if (latest?.status === 'ACTIVE') throw conflict('Une partie Arcade est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
       if ((latest?.id ?? null) !== input.previousSessionId || input.expectedVersion !== 0) throw conflict('Actualisez Arcade avant de commencer.', 'ARCADE_STALE_VERSION');
+      const after = readAfterMatch(latest?.afterMatch);
+      if (latest && after?.status === 'WAITING') {
+        if (!afterMatchExpired(latest, now) && input.difficulty !== latest.difficulty) throw conflict('Conservez la difficulté de cette partie pour jouer solo.', 'ARCADE_AFTER_MATCH_DIFFICULTY');
+        cancelAfterMatch(after); await persistAfterMatch(tx, latest, after);
+      }
+      if (await arcadeBusy(tx, playerId, undefined, undefined, now)) throw conflict('Une partie Arcade est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
       const row = await createArcadeSession(tx, playerId, input.game, input.difficulty, seed, now);
       return { session: projectSession(row), award: null };
-    });
+    }, previous ? [previous.playerId, ...(previous.opponentPlayerId ? [previous.opponentPlayerId] : [])] : []);
   }
   async act(identity: AuthenticatedIdentity, id: string, input: ArcadeAction) {
     const actor = await this.actor(identity);

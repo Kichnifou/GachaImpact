@@ -14,6 +14,8 @@ const params = z.object({ sessionId: z.uuid() }).strict();
 const opponents = z.object({ friendsOnly: z.enum(['true', 'false']).default('false').transform(value => value === 'true') }).strict();
 const invite = z.object({ opponentPlayerId: z.uuid(), game: z.enum(arcadeGames), difficulty: z.enum(arcadeDifficulties), friendsOnly: z.boolean(), idempotencyKey: z.uuid() }).strict();
 const invitationAction = z.object({ kind: z.enum(['READY', 'CANCEL', 'REFUSE']), idempotencyKey: z.uuid() }).strict();
+const afterMatchPresence = z.object({ tabKey: z.uuid(), sequence: z.number().int().positive().max(1_000_000_000), visible: z.boolean() }).strict();
+const afterMatchAction = z.object({ kind: z.enum(['REPLAY', 'SOLO']), tabKey: z.uuid(), sequence: z.number().int().positive().max(1_000_000_000), idempotencyKey: z.uuid() }).strict();
 const invitationParams = z.object({ invitationId: z.uuid() }).strict();
 const ranking = z.object({ kind: z.enum(['GLOBAL', 'SCORE']), game: z.enum([...arcadeGames, 'TOTAL']), difficulty: z.enum(arcadeDifficulties).default('MEDIUM'), page: z.coerce.number().int().min(1).max(100000).optional() }).strict()
   .refine(value => value.kind !== 'GLOBAL' || value.game !== 'TOTAL');
@@ -23,6 +25,11 @@ export const registerArcadeRoutes: FastifyPluginAsync<Options> = async (app, { a
   app.get('/api/v1/arcade/opponents', { preHandler: authenticate }, request => service.opponents(requireAuthenticatedIdentity(request), parse(opponents, request.query).friendsOnly));
   app.post('/api/v1/arcade/invitations', { preHandler: authenticate }, request => service.invite(requireAuthenticatedIdentity(request), parse(invite, request.body)));
   app.post('/api/v1/arcade/invitations/:invitationId/actions', { preHandler: authenticate }, request => service.actInvitation(requireAuthenticatedIdentity(request), parse(invitationParams, request.params).invitationId, parse(invitationAction, request.body)));
+  app.post('/api/v1/arcade/sessions/:sessionId/after-match/presence', { preHandler: authenticate }, async (request, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return service.afterMatchPresence(requireAuthenticatedIdentity(request), parse(params, request.params).sessionId, parse(afterMatchPresence, request.body));
+  });
+  app.post('/api/v1/arcade/sessions/:sessionId/after-match/actions', { preHandler: authenticate }, request => service.requestAfterMatch(requireAuthenticatedIdentity(request), parse(params, request.params).sessionId, parse(afterMatchAction, request.body)));
   app.get('/api/v1/arcade/sessions/:sessionId', { preHandler: authenticate }, request => service.session(requireAuthenticatedIdentity(request), parse(params, request.params).sessionId));
   app.get('/api/v1/arcade/records', { preHandler: authenticate }, async request => {
     const query = parse(ranking, request.query); const player = await service.actor(requireAuthenticatedIdentity(request)); return records.list(player.id, query);

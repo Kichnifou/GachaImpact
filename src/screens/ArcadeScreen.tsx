@@ -22,10 +22,11 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const [quitSession, setQuitSession] = useState<string | null>(null)
   const guidedGame = useTutorialView('activities-arcade', game, ['MEMORY', 'CONNECT_FOUR', 'TIC_TAC_TOE'])
   const activeSession = arcade.value?.sessions.find(row => row.status === 'ACTIVE')
+  const afterMatchSession = arcade.value?.sessions.find(row => row.afterMatch?.status === 'WAITING')
   const invitation = arcade.value?.invitation
-  const selectedGame = activeSession?.game ?? invitation?.game ?? guidedGame
-  const session = activeSession ?? (!invitation ? arcade.value?.sessions.find(row => row.game === selectedGame && !(row.mode === 'MULTIPLAYER' && row.status === 'ABANDONED')) : undefined)
-  const active = session?.status === 'ACTIVE', actualDifficulty = active ? session.difficulty : invitation?.difficulty ?? difficulty
+  const selectedGame = activeSession?.game ?? afterMatchSession?.game ?? invitation?.game ?? guidedGame
+  const session = activeSession ?? afterMatchSession ?? (!invitation ? arcade.value?.sessions.find(row => row.game === selectedGame && !(row.mode === 'MULTIPLAYER' && row.status !== 'ACTIVE')) : undefined)
+  const active = session?.status === 'ACTIVE', actualDifficulty = session && (active || afterMatchSession) ? session.difficulty : invitation?.difficulty ?? difficulty
   const multiplayer = session?.mode === 'MULTIPLAYER'
   const viewerSide = session?.viewerSide ?? 'PLAYER'
   const autoAdvance = active && (!multiplayer && session.board.turn === 'AI' || session.board.kind === 'MEMORY' && session.board.phase === 'REVEAL')
@@ -33,7 +34,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const advance = arcade.act, actionError = arcade.error
   const presentationActive = useLatestRef(presentation.active)
   useEffect(() => { if (feedbackPending) { setRecordsOpen(false); setHelp(false) } }, [feedbackPending])
-  const activeGame = activeSession?.game ?? invitation?.game, activeDifficulty = activeSession?.difficulty ?? invitation?.difficulty
+  const activeGame = activeSession?.game ?? afterMatchSession?.game ?? invitation?.game, activeDifficulty = activeSession?.difficulty ?? afterMatchSession?.difficulty ?? invitation?.difficulty
   useEffect(() => { if (activeGame && activeDifficulty) { setGame(activeGame); setDifficulty(activeDifficulty) } }, [activeGame, activeDifficulty])
   useEffect(() => {
     if (!session || !autoAdvance || blocked || actionError) return
@@ -49,15 +50,16 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
   const daily = arcade.value?.daily.find(row => row.game === selectedGame)
   const status = session?.result ? 'Résultat enregistré' : active ? session.board.kind === 'MEMORY' && session.board.phase === 'REVEAL' ? 'Mémorisez ces deux cartes' : autoAdvance || session.board.turn !== viewerSide ? 'L’adversaire joue' : 'À vous' : 'Choisissez votre jeu et commencez une partie'
   const pairTotal = actualDifficulty === 'EASY' ? 8 : actualDifficulty === 'MEDIUM' ? 12 : 18
-  const opponent = invitation ? invitation.direction === 'OUTGOING' ? invitation.guest : invitation.host : active && multiplayer ? session.opponent : null
+  const opponent = invitation ? invitation.direction === 'OUTGOING' ? invitation.guest : invitation.host : (active || afterMatchSession) && multiplayer ? session.opponent : null
   const opponentChoices = opponent ? [opponent] : arcade.opponents
   const selectedOpponentId = opponent?.id ?? opponentId
-  const invitationLocked = Boolean(invitation) || Boolean(active) || blocked
-  useEffect(() => { if (!invitation && !active && !arcade.pending && opponentId && !arcade.opponents.some(row => row.id === opponentId)) setOpponentId('') }, [invitation, active, arcade.pending, arcade.opponents, opponentId])
+  const invitationLocked = Boolean(invitation) || Boolean(active) || Boolean(afterMatchSession) || blocked
+  useEffect(() => { if (!invitation && !active && !afterMatchSession && !arcade.pending && opponentId && !arcade.opponents.some(row => row.id === opponentId)) setOpponentId('') }, [invitation, active, afterMatchSession, arcade.pending, arcade.opponents, opponentId])
+  useEffect(() => { if (!afterMatchSession) setOpponentId('') }, [afterMatchSession?.id])
   return <div data-business-pending={arcade.pending || arcade.quitting || feedbackPending} className="screen-content long-screen-layout arcade-screen">
     <h1 className="sr-only">Arcade</h1>
-    <div data-tutorial-anchor="arcade-controls" data-tutorial-state={!arcade.value && !arcade.error ? "loading" : undefined} data-tutorial-fallback={activeSession && presentation.step?.view && presentation.step.view !== activeSession.game ? "true" : undefined} className="arcade-controls"><nav aria-label="Jeux Arcade">{arcadeGames.map(key => <AppButton key={key} aria-pressed={selectedGame === key} disabled={Boolean(activeSession || invitation) || arcade.pending}
-      onClick={() => setGame(key)}>{arcadeLabels[key]}</AppButton>)}</nav><label>Difficulté<select value={actualDifficulty} disabled={active || Boolean(invitation) || arcade.pending} onChange={event => setDifficulty(event.target.value as ArcadeDifficulty)}>{arcadeDifficulties.map(key => <option key={key} value={key}>{difficultyLabels[key]}</option>)}</select></label></div>
+    <div data-tutorial-anchor="arcade-controls" data-tutorial-state={!arcade.value && !arcade.error ? "loading" : undefined} data-tutorial-fallback={activeSession && presentation.step?.view && presentation.step.view !== activeSession.game ? "true" : undefined} className="arcade-controls"><nav aria-label="Jeux Arcade">{arcadeGames.map(key => <AppButton key={key} aria-pressed={selectedGame === key} disabled={Boolean(activeSession || afterMatchSession || invitation) || arcade.pending}
+      onClick={() => setGame(key)}>{arcadeLabels[key]}</AppButton>)}</nav><label>Difficulté<select value={actualDifficulty} disabled={active || Boolean(afterMatchSession) || Boolean(invitation) || arcade.pending} onChange={event => setDifficulty(event.target.value as ArcadeDifficulty)}>{arcadeDifficulties.map(key => <option key={key} value={key}>{difficultyLabels[key]}</option>)}</select></label></div>
     <div className="arcade-body">
       <section className="arcade-arena panel" aria-label={arcadeLabels[selectedGame]}>
         <div className="arcade-top-actions"><div>{active && <AppButton onClick={() => setQuitSession(session.id)}>Quitter</AppButton>}</div>
@@ -65,10 +67,11 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
         <section className="arcade-multiplayer" aria-label="Multijoueur Arcade">
           <label className="arcade-opponent-select">Jouer contre :<select aria-label="Jouer contre" value={selectedOpponentId} disabled={invitationLocked} onChange={event => setOpponentId(event.target.value)}><option value="">Choisir un joueur</option>{opponentChoices.map(row => <option key={row.id} value={row.id}>{row.displayName}</option>)}</select></label>
           <label className="arcade-friends-only"><input type="checkbox" checked={arcade.friendsOnly} disabled={invitationLocked} onChange={event => { setOpponentId(''); arcade.setFriendsOnly(event.target.checked) }} />Amis seulement</label>
-          <div className="arcade-invite-actions"><AppButton disabled={blocked || active || !selectedOpponentId} onClick={() => {
+          <div className="arcade-invite-actions"><AppButton disabled={blocked || active || Boolean(afterMatchSession) || !selectedOpponentId} onClick={() => {
             if (invitation) void arcade.actInvitation(invitation.id, invitation.direction === 'OUTGOING' ? 'CANCEL' : 'READY')
             else void arcade.invite({ opponentPlayerId: selectedOpponentId, game: selectedGame, difficulty: actualDifficulty }).then(() => setOpponentId(''))
-          }}>{invitation?.direction === 'OUTGOING' ? 'Annuler' : 'Prêt'}</AppButton><AppButton disabled={blocked || invitation?.direction !== 'INCOMING'} onClick={() => { if (invitation) void arcade.actInvitation(invitation.id, 'REFUSE') }}>Refuser</AppButton></div>
+          }}>{invitation?.direction === 'OUTGOING' ? 'Annuler' : 'Prêt'}</AppButton><AppButton disabled={blocked || Boolean(afterMatchSession) || invitation?.direction !== 'INCOMING'} onClick={() => { if (invitation) void arcade.actInvitation(invitation.id, 'REFUSE') }}>Refuser</AppButton></div>
+          {afterMatchSession && <div className="arcade-after-match-actions"><AppButton variant="primary" disabled={blocked || Boolean(afterMatchSession.afterMatch?.requested)} onClick={() => void arcade.requestAfterMatch(afterMatchSession, 'REPLAY')}>Rejouer</AppButton><AppButton disabled={blocked} onClick={() => void arcade.requestAfterMatch(afterMatchSession, 'SOLO')}>Jouer solo</AppButton><small role="status">{afterMatchSession.afterMatch?.requested ? 'En attente de l’autre joueur…' : afterMatchSession.afterMatch?.opponentRequested ? 'Votre adversaire souhaite rejouer.' : 'Une nouvelle partie ensemble ?'}</small></div>}
         </section>
         <div className="arcade-versus"><div><span className="arcade-player-symbol" aria-hidden="true">●</span><strong aria-label={multiplayer && viewerSide === 'PLAYER' ? `${session.participants?.PLAYER.displayName}, vous` : undefined}>{multiplayer ? session.participants?.PLAYER.displayName : 'Vous'}</strong>{session?.board.kind === 'MEMORY' && <small>{session.board.playerPairs} paires</small>}</div>
           <span className="arcade-vs">VS</span><div><span className="arcade-automaton" aria-hidden="true">{multiplayer ? '◆' : <>◇<i>••</i></>}</span><strong aria-label={multiplayer && viewerSide === 'AI' ? `${session.participants?.AI.displayName}, vous` : undefined}>{multiplayer ? session.participants?.AI.displayName : 'Adversaire'}</strong>{session?.board.kind === 'MEMORY' && <small>{session.board.aiPairs} paires</small>}</div></div>
@@ -77,7 +80,7 @@ export default function ArcadeScreen({ playerId, onMutation, feedbackPending = f
         <aside className="arcade-banter" aria-hidden={multiplayer ? true : undefined}>{!multiplayer && <>« {session?.status !== 'ABANDONED' && session?.banter.text || 'Trois jeux, à votre rythme.'} »</>}</aside>
         <div className="arcade-status" aria-live="polite"><strong>{status}</strong>{session?.status !== 'ABANDONED' && session?.board.kind === 'MEMORY' && <span>{session.board.remainingPairs} paires restantes</span>}</div>
         <div className="arcade-result" aria-live="polite">{session?.result && <><strong>{outcomeLabels[session.result.outcome]} · {difficultyLabels[session.difficulty]}</strong><span>+{session.result.scoreAwarded} score · +{session.result.xpAwarded} XP</span></>}</div>
-        <div className="arcade-actions">{!active && <AppButton variant="primary" disabled={!arcade.value || blocked || Boolean(invitation)} onClick={() => { void arcade.start(selectedGame, multiplayer && session?.status === 'FINISHED' ? session.difficulty : difficulty) }}>{arcade.pending ? 'En cours…' : session ? 'Rejouer' : 'Commencer'}</AppButton>}
+        <div className="arcade-actions">{!active && !afterMatchSession && <AppButton variant="primary" disabled={!arcade.value || blocked || Boolean(invitation)} onClick={() => { void arcade.start(selectedGame, multiplayer && session?.status === 'FINISHED' ? session.difficulty : difficulty) }}>{arcade.pending ? 'En cours…' : session ? 'Rejouer' : 'Commencer'}</AppButton>}
           {arcade.error && <AppButton disabled={arcade.pending || arcade.quitting} onClick={() => void arcade.load()}>Actualiser</AppButton>}</div>
         <div className="arcade-error" role={arcade.error ? 'alert' : 'status'}>{arcade.error || arcade.feedback || (!active && !invitation ? arcade.opponentsError : '')}</div>
       </section>

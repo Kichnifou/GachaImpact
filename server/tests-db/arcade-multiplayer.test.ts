@@ -49,6 +49,9 @@ it('does not reserve an invitation or notify a staged recovery opponent', async 
 });
 const tick = () => { now = new Date(now.getTime() + 1000); };
 async function invite(a: Player, b: Player, game: ArcadeGame = 'TIC_TAC_TOE', difficulty: ArcadeDifficulty = 'MEDIUM') {
+  // These historical scenarios open an ordinary invitation after the finished window.
+  const windows = await db.arcadeSession.findMany({ where: { status:'FINISHED', afterMatchExpiresAt:{gte:now}, OR:[{playerId:{in:[a.id,b.id]}},{opponentPlayerId:{in:[a.id,b.id]}}] }, select:{afterMatchExpiresAt:true} });
+  if (windows.length) now = new Date(Math.max(+now, ...windows.map(row => +row.afterMatchExpiresAt!)) + 1);
   tick();
   return service.invite(a.identity, { opponentPlayerId: b.id, game, difficulty, friendsOnly: false, idempotencyKey: randomUUID() });
 }
@@ -329,6 +332,8 @@ describe('Arcade multiplayer — private migrated PostgreSQL', () => {
   },60000);
   it('new manual PvP invitations after a result reserve once and still require an available opponent',async()=>{
     const a=await player(),b=await player(),s=await ready(a,b),move=await nearFinish(s.id,'TIC_TAC_TOE');await act(a,s.id,'MOVE',move);
+    // Ordinary invitations are available after the new five-second result window closes.
+    now=new Date(+now+5001);
     const input={game:s.game,difficulty:s.difficulty,friendsOnly:false};
     const results=await Promise.allSettled([service.invite(a.identity,{...input,opponentPlayerId:b.id,idempotencyKey:randomUUID()}),service.invite(b.identity,{...input,opponentPlayerId:a.id,idempotencyKey:randomUUID()})]);
     expect(results.filter(row=>row.status==='fulfilled')).toHaveLength(1);

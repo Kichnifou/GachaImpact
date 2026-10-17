@@ -10,7 +10,11 @@ export type ArcadeMemoryCard = { position: number; status: 'HIDDEN' | 'BLOCKED' 
 export type ArcadeBoard = { kind: 'MEMORY'; turn: ArcadeSide; phase: 'PICK' | 'REVEAL'; playerPairs: number; aiPairs: number; remainingPairs: number; columns: number; totalPairs: number; cards: ArcadeMemoryCard[]; outcome: ArcadeOutcome | null }
   | { kind: 'CONNECT_FOUR' | 'TIC_TAC_TOE'; turn: ArcadeSide; cells: (ArcadeSide | null)[]; winningCells: number[]; lastMove: number | null; outcome: ArcadeOutcome | null }
 export type ArcadeParticipant = { id: string; displayName: string }
-export type ArcadeSession = { mode: 'SOLO' | 'MULTIPLAYER'; viewerSide: ArcadeSide; participants: { PLAYER: ArcadeParticipant; AI: ArcadeParticipant } | null; opponent: ArcadeParticipant | null; id: string; game: ArcadeGame; difficulty: ArcadeDifficulty; status: 'ACTIVE' | 'FINISHED' | 'ABANDONED'; version: number; rulesVersion: number; scoringVersion: number;
+export type ArcadeAfterMatch = { status: 'WAITING' | 'CANCELLED' | 'STARTED'; revision: number; requested: boolean; opponentRequested: boolean }
+export type ArcadeAfterMatchPresenceInput = { tabKey: string; sequence: number; visible: boolean }
+export type ArcadeAfterMatchInput = { kind: 'REPLAY' | 'SOLO'; tabKey: string; sequence: number; idempotencyKey: string }
+export type ArcadeAfterMatchPresence = { sessionId: string; afterMatch: ArcadeAfterMatch | null; nextSession?: ArcadeSession }
+export type ArcadeSession = { afterMatch?: ArcadeAfterMatch | null; mode: 'SOLO' | 'MULTIPLAYER'; viewerSide: ArcadeSide; participants: { PLAYER: ArcadeParticipant; AI: ArcadeParticipant } | null; opponent: ArcadeParticipant | null; id: string; game: ArcadeGame; difficulty: ArcadeDifficulty; status: 'ACTIVE' | 'FINISHED' | 'ABANDONED'; version: number; rulesVersion: number; scoringVersion: number;
   firstSide: ArcadeSide; createdAt: string; nextActionAt: string; board: ArcadeBoard; banter: { id: string; text: string };
   result: null | { outcome: ArcadeOutcome; performancePoints: number; scoreAwarded: number; xpAwarded: number; businessDate: string; finishedAt: string; operationId: string } }
 export type ArcadeRecord = { game: ArcadeGame; difficulty: ArcadeDifficulty; score: string; played: string; wins: string; draws: string; losses: string; best: { points: number; pairs: number | null; totalPairs: number | null; outcome: ArcadeOutcome } }

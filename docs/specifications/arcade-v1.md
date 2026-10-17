@@ -1,5 +1,9 @@
 # Arcade V1 — solo étape 23, multijoueur étape 28
 
+## Règle courante après FINISHED multijoueur — R1107
+
+Le mandat17/10 remplace le sens Rejouer→solo de R1030 décrit dans l’historique ci-dessous. [Contrat post-V1](../architecture/post-v1-arcade-after-match-20261017.md) : Rejouer exige les deux consentements, Jouer solo ferme l’attente commune ; présence spécifique5s multi-onglets, actions liées à la session, verrous/receipts et invariants économiques conservés. Les nouveaux endpoints after-match/actions et after-match/presence s’ajoutent au protocole ordinaire. Migration088 additive, historique sans fenêtre conservé. État de qualification/livraison au Master ; la recette historique R1034 ne vaut pas recette humaine R1107.
+
 ## Multijoueur Arcade — étape 28
 
 Étape 28 **VALIDÉE / CLÔTURÉE PAR LE PROPRIÉTAIRE** sous R1034 : lot 6d2ac46 et micro-correctif 8696c1a3 promus via 6d61a9b, déploiement Railway exact SUCCESS/Online Amsterdam, 60 migrations/060, Application ready et health 200 reçus. Recette finale publique acquise : reset Quotidiennes, refus silencieux/invitation seule notification, Rejouer PvP vers SOLO, nouvelle invitation humaine manuelle et rewards overflow explicites sans troncature. Les acquis trois jeux/trois difficultés/invitations/présence/start hors écran/sessions partagées/navigation/rejoin/score des deux/0 XP/Quitter/polling sont conservés. État et preuves au [Master](../master/PROJECT_MASTER_PLAN.md) ; observations rares acceptées en bêta/non bloquantes, sans tests inventés. Historique solo préservé sans attribuer rétroactivement le PvP à R970–R1006.

@@ -10,7 +10,7 @@ describe('Arcade strict authenticated protocol', () => {
   afterEach(async () => { await Promise.all(apps.splice(0).map(app => app.close())); });
   async function setup() {
     const identity = { subject: 'arcade-route-user' }, player = { id: crypto.randomUUID(), displayName: 'Route player', elementKey: 'hydro' as const, status: 'ACTIVE' as const };
-    const service = { actor: vi.fn(async () => player), opponents: vi.fn(async () => ({ opponents: [] })), invite: vi.fn(async () => ({})), actInvitation: vi.fn(async () => ({})), overview: vi.fn(async () => ({ sessions: [] })), session: vi.fn(async () => ({})), start: vi.fn(async () => ({})), act: vi.fn(async () => ({})) };
+    const service = { afterMatchPresence:vi.fn(async()=>({})), requestAfterMatch:vi.fn(async()=>({})), actor: vi.fn(async () => player), opponents: vi.fn(async () => ({ opponents: [] })), invite: vi.fn(async () => ({})), actInvitation: vi.fn(async () => ({})), overview: vi.fn(async () => ({ sessions: [] })), session: vi.fn(async () => ({})), start: vi.fn(async () => ({})), act: vi.fn(async () => ({})) };
     const records = { list: vi.fn(async () => ({ entries: [] })) };
     const app = await buildApp({ host: '127.0.0.1', port: 3001, supabase: {} }, {
       authIdentityVerifier: { verify: async () => identity },
@@ -20,6 +20,16 @@ describe('Arcade strict authenticated protocol', () => {
     apps.push(app); return { app, service, records, identity };
   }
   const headers = { authorization: 'Bearer test-token' };
+  it('authenticates and strictly binds after-match presence and consent to a source session', async () => {
+    const {app,service,identity}=await setup(),id=crypto.randomUUID(),base='/api/v1/arcade/sessions/'+id+'/after-match';
+    const presence={tabKey:crypto.randomUUID(),sequence:1,visible:true};
+    for(const endpoint of ['presence','actions']) expect((await app.inject({method:'POST',url:base+'/'+endpoint,payload:presence})).statusCode).toBe(401);
+    for(const extra of [{playerId:id},{opponentPlayerId:id},{game:'MEMORY'},{expiresAt:'2099-01-01'},{sequence:0},{tabKey:'bad'}]) expect((await app.inject({method:'POST',url:base+'/presence',headers,payload:{...presence,...extra}})).statusCode).toBe(400);
+    const response=await app.inject({method:'POST',url:base+'/presence',headers,payload:presence}); expect(response.statusCode).toBe(200);expect(response.headers['cache-control']).toBe('no-store');expect(service.afterMatchPresence).toHaveBeenCalledWith(identity,id,presence);
+    const action={kind:'REPLAY',tabKey:presence.tabKey,sequence:2,idempotencyKey:crypto.randomUUID()};
+    for(const extra of [{difficulty:'HARD'},{score:1},{visible:false},{kind:'READY'}]) expect((await app.inject({method:'POST',url:base+'/actions',headers,payload:{...action,...extra}})).statusCode).toBe(400);
+    expect(service.requestAfterMatch).not.toHaveBeenCalled();expect((await app.inject({method:'POST',url:base+'/actions',headers,payload:action})).statusCode).toBe(200);expect(service.requestAfterMatch).toHaveBeenCalledWith(identity,id,action);
+  });
   it('rejects the retired human replay field and accepts the normal invitation contract', async () => {
     const { app, service, identity } = await setup();
     const input = { opponentPlayerId:crypto.randomUUID(),game:'MEMORY',difficulty:'HARD',friendsOnly:false,idempotencyKey:crypto.randomUUID() };

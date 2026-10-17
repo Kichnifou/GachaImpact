@@ -1,0 +1,570 @@
+{
+  "scope": "post-V1 G / R1107",
+  "state": "Qualified local candidate; independent GitHub review and delivery pending",
+  "migration": {
+    "name": "20261017160000_088_arcade_after_match",
+    "publicApplied": false,
+    "privateRehearsal": true
+  },
+  "tests": {
+    "afterMatchPostgres": {
+      "pass": 19,
+      "total": 19,
+      "privateMigration88": true,
+      "guards": "Missing JSON status and terminal/expiry mismatch rejected; exact five-second boundary unit-tested"
+    },
+    "legacySolo": {
+      "initialPass": 11,
+      "initialFail": 1,
+      "reason": "Existing duplicate-start error precedence changed; implementation corrected to retain ARCADE_ACTIVE_EXISTS, assertion unchanged",
+      "final": {
+        "pass": 12,
+        "total": 12
+      }
+    },
+    "legacyMultiplayer": {
+      "initialPass": 24,
+      "initialFail": 2,
+      "reasons": [
+        "Existing opponent DTO leaked presentationName; corrected explicit id/displayName projection, original assertion kept",
+        "Historical new invitation attempted inside the new five-second result window; private scenario now explicitly advances beyond it"
+      ],
+      "final": {
+        "initialRun": {
+          "pass": 24,
+          "fail": 2,
+          "total": 26
+        },
+        "correctedTargetedRun": {
+          "pass": 2,
+          "excluded": 24
+        },
+        "remainingAssertions": "Original rights, invitation and economy assertions preserved; no timeout increase"
+      }
+    },
+    "frontend": {
+      "pass": 57,
+      "total": 57
+    },
+    "backendTargeted": {
+      "pass": 50,
+      "total": 50
+    },
+    "quick": {
+      "pass": 5,
+      "total": 5
+    },
+    "full": {
+      "pass": 8,
+      "total": 8,
+      "finalCodeRequalification": "PASS8/8 after null-source and opponent-projection fixes, frontend57 included"
+    },
+    "erasureWith88": {
+      "pass": 2,
+      "totalSelected": 2,
+      "excluded": 13,
+      "scope": "Actual FK/JSON classification and completed erasure/restart/peer birthday copy scrub"
+    }
+  },
+  "visual": {
+    "environment": "Local Windows Edge headless, Vite production build, complete GameShell with index.css/App.css, synthetic fixtures and external network blocked",
+    "games": [
+      "TIC_TAC_TOE",
+      "CONNECT_FOUR",
+      "MEMORY"
+    ],
+    "states": [
+      "WAITING",
+      "own consent / pending peer",
+      "CANCELLED / initial screen",
+      "Action error / disabled unsafe actions / refresh recovery"
+    ],
+    "measurements": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "game": "TIC_TAC_TOE",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 387,
+            "y": 563.234375,
+            "width": 190,
+            "height": 200.53125,
+            "clientHeight": 201,
+            "scrollHeight": 201
+          },
+          ".arcade-after-match-actions": {
+            "x": 387,
+            "y": 706.234375,
+            "width": 190,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 615,
+            "y": 393,
+            "width": 640,
+            "height": 541,
+            "clientHeight": 541,
+            "scrollHeight": 541
+          },
+          ".arcade-body": {
+            "x": 368,
+            "y": 289,
+            "width": 1134,
+            "height": 737,
+            "clientHeight": 737,
+            "scrollHeight": 737
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "game": "CONNECT_FOUR",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 387,
+            "y": 563.234375,
+            "width": 190,
+            "height": 200.53125,
+            "clientHeight": 201,
+            "scrollHeight": 201
+          },
+          ".arcade-after-match-actions": {
+            "x": 387,
+            "y": 706.234375,
+            "width": 190,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 615,
+            "y": 393,
+            "width": 640,
+            "height": 541,
+            "clientHeight": 541,
+            "scrollHeight": 541
+          },
+          ".arcade-body": {
+            "x": 368,
+            "y": 289,
+            "width": 1134,
+            "height": 737,
+            "clientHeight": 737,
+            "scrollHeight": 737
+          }
+        }
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "game": "MEMORY",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 387,
+            "y": 561.734375,
+            "width": 190,
+            "height": 200.53125,
+            "clientHeight": 201,
+            "scrollHeight": 201
+          },
+          ".arcade-after-match-actions": {
+            "x": 387,
+            "y": 704.734375,
+            "width": 190,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 615,
+            "y": 393,
+            "width": 640,
+            "height": 538,
+            "clientHeight": 538,
+            "scrollHeight": 538
+          },
+          ".arcade-body": {
+            "x": 368,
+            "y": 289,
+            "width": 1134,
+            "height": 737,
+            "clientHeight": 737,
+            "scrollHeight": 737
+          }
+        }
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "game": "TIC_TAC_TOE",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 341,
+            "y": 431.46875,
+            "width": 104.453125,
+            "height": 237.0625,
+            "clientHeight": 237,
+            "scrollHeight": 237
+          },
+          ".arcade-after-match-actions": {
+            "x": 341,
+            "y": 587.46875,
+            "width": 104.453125,
+            "height": 81.0625,
+            "clientHeight": 81,
+            "scrollHeight": 81
+          },
+          ".arcade-play-area": {
+            "x": 461.453125,
+            "y": 383,
+            "width": 393.078125,
+            "height": 334,
+            "clientHeight": 334,
+            "scrollHeight": 334
+          },
+          ".arcade-body": {
+            "x": 326,
+            "y": 289,
+            "width": 664,
+            "height": 425,
+            "clientHeight": 425,
+            "scrollHeight": 500
+          }
+        }
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "game": "CONNECT_FOUR",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 341,
+            "y": 356.46875,
+            "width": 104.453125,
+            "height": 237.0625,
+            "clientHeight": 237,
+            "scrollHeight": 237
+          },
+          ".arcade-after-match-actions": {
+            "x": 341,
+            "y": 512.46875,
+            "width": 104.453125,
+            "height": 81.0625,
+            "clientHeight": 81,
+            "scrollHeight": 81
+          },
+          ".arcade-play-area": {
+            "x": 461.453125,
+            "y": 308,
+            "width": 393.078125,
+            "height": 334,
+            "clientHeight": 334,
+            "scrollHeight": 334
+          },
+          ".arcade-body": {
+            "x": 326,
+            "y": 289,
+            "width": 664,
+            "height": 425,
+            "clientHeight": 425,
+            "scrollHeight": 500
+          }
+        }
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "game": "MEMORY",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 341,
+            "y": 355.96875,
+            "width": 104.453125,
+            "height": 237.0625,
+            "clientHeight": 237,
+            "scrollHeight": 237
+          },
+          ".arcade-after-match-actions": {
+            "x": 341,
+            "y": 511.96875,
+            "width": 104.453125,
+            "height": 81.0625,
+            "clientHeight": 81,
+            "scrollHeight": 81
+          },
+          ".arcade-play-area": {
+            "x": 461.453125,
+            "y": 309,
+            "width": 393.078125,
+            "height": 331,
+            "clientHeight": 331,
+            "scrollHeight": 331
+          },
+          ".arcade-body": {
+            "x": 326,
+            "y": 289,
+            "width": 664,
+            "height": 425,
+            "clientHeight": 425,
+            "scrollHeight": 500
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "game": "TIC_TAC_TOE",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": 698,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 808,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 873.53125,
+            "width": 354,
+            "height": 335.015625,
+            "clientHeight": 335,
+            "scrollHeight": 335
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": 594,
+            "width": 372,
+            "height": 702.546875,
+            "clientHeight": 703,
+            "scrollHeight": 703
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "game": "CONNECT_FOUR",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": -110,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 0,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 65.53125,
+            "width": 354,
+            "height": 339.625,
+            "clientHeight": 340,
+            "scrollHeight": 340
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": -214,
+            "width": 372,
+            "height": 707.15625,
+            "clientHeight": 707,
+            "scrollHeight": 707
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "game": "MEMORY",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": -110,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 0,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 65.53125,
+            "width": 354,
+            "height": 354.03125,
+            "clientHeight": 354,
+            "scrollHeight": 354
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": -214,
+            "width": 372,
+            "height": 724.5625,
+            "clientHeight": 725,
+            "scrollHeight": 725
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "game": "TIC_TAC_TOE",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": 172,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 282,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 347.53125,
+            "width": 354,
+            "height": 335.015625,
+            "clientHeight": 335,
+            "scrollHeight": 335
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": 68,
+            "width": 372,
+            "height": 702.546875,
+            "clientHeight": 703,
+            "scrollHeight": 703
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "game": "CONNECT_FOUR",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": 172,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 282,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 347.53125,
+            "width": 354,
+            "height": 339.625,
+            "clientHeight": 340,
+            "scrollHeight": 340
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": 68,
+            "width": 372,
+            "height": 707.15625,
+            "clientHeight": 707,
+            "scrollHeight": 707
+          }
+        }
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "game": "MEMORY",
+        "geometry": {
+          ".arcade-multiplayer": {
+            "x": 18,
+            "y": 172,
+            "width": 354,
+            "height": 167.53125,
+            "clientHeight": 168,
+            "scrollHeight": 168
+          },
+          ".arcade-after-match-actions": {
+            "x": 18,
+            "y": 282,
+            "width": 354,
+            "height": 57.53125,
+            "clientHeight": 58,
+            "scrollHeight": 58
+          },
+          ".arcade-play-area": {
+            "x": 18,
+            "y": 347.53125,
+            "width": 354,
+            "height": 354.03125,
+            "clientHeight": 354,
+            "scrollHeight": 354
+          },
+          ".arcade-body": {
+            "x": 9,
+            "y": 68,
+            "width": 372,
+            "height": 724.5625,
+            "clientHeight": 725,
+            "scrollHeight": 725
+          }
+        }
+      }
+    ],
+    "inspected": [
+      "arcade-TIC_TAC_TOE-1366x768.png",
+      "arcade-MEMORY-390x600.png",
+      "arcade-error-TIC_TAC_TOE-1366x768.png",
+      "arcade-cancelled-390x844.png"
+    ],
+    "assertions": [
+      "Prêt/Refuser disabled",
+      "Only one Replay/Solo block",
+      "No under-board Replay during WAITING",
+      "Solo clickable after own request",
+      "Normal initial screen after server cancellation",
+      "No horizontal document overflow"
+    ]
+  },
+  "privateBoundaries": "Random private isolated schemas, copied reference catalogs only, no public Players or gameplay/economic QA, sequential files with cleanup",
+  "publicEconomicQa": false,
+  "humanAcceptance": false
+}

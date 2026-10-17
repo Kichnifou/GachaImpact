@@ -1,3 +1,5 @@
+import { initialAfterMatch } from './arcade-after-match-state.js';
+import { arcadeJson } from './arcade-transaction.js';
 import type { ArcadeSession, Prisma } from '../../../generated/prisma/client.js';
 import { type ArcadeState, type ArcadeGame, type ArcadeDifficulty, ArcadeRandom } from '../../domain/arcade/types.js';
 import { performancePoints } from '../../domain/arcade/points.js';
@@ -19,7 +21,7 @@ export async function finalizeArcade(tx: Prisma.TransactionClient, session: Arca
     const opponentPoints = performancePoints(session.game as ArcadeGame, session.difficulty as ArcadeDifficulty, outcome, state.kind === 'MEMORY' ? state.aiPairs : 0, session.scoringVersion);
     await recordArcadeScore(tx, session, state, session.playerId, state.outcome, points, false);
     await recordArcadeScore(tx, session, state, session.opponentPlayerId, outcome, opponentPoints, true);
-    return { terminal: { status: 'FINISHED', outcome: state.outcome, performancePoints: points, xpAwarded: 0, businessDate, finishedAt: now, finishOperationId: operationId }, award: null };
+    return { terminal: { status: 'FINISHED', afterMatch: arcadeJson(initialAfterMatch(now)), afterMatchExpiresAt: new Date(+now + 5000), outcome: state.outcome, performancePoints: points, xpAwarded: 0, businessDate, finishedAt: now, finishOperationId: operationId }, award: null };
   }
   const grant = await tx.arcadeDailyGrant.findUnique({ where: { playerId_game_businessDate: { playerId: session.playerId, game: session.game, businessDate } } });
   const xpAwarded = grant ? 0 : points;

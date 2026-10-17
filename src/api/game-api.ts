@@ -2,7 +2,7 @@ import type { SharedInvocationApi, SharedInvocationList, SharedInvocationState }
 import { nextSharedPresenceRevision, establishedSharedInvocationTabId } from '../gacha/shared-invocation-tab'
 import type { TwitchLinkResolutionDto, TwitchLinkResultDto } from './types'
 import type { CatalogCandidate, CatalogOverview } from './catalog-types'
-import type { ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
+import type { ArcadeAfterMatchPresence, ArcadeAfterMatchPresenceInput, ArcadeAfterMatchInput, ArcadeInvite, ArcadeInviteAction, ArcadeInvitationMutation, ArcadeParticipant } from './arcade-types'
 import type { TutorialAutostartDto, TutorialPreferenceDto } from './types'
 import type { FavorDto, FavorPresenceDto } from './types'
 import type { ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeAction, ArcadeMutation, ArcadeRanking, ArcadeRankingQuery } from './arcade-types'
@@ -295,6 +295,8 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     inviteArcade: (input: ArcadeInvite) => request<ArcadeInvitationMutation>('/api/v1/arcade/invitations', { method: 'POST', body: JSON.stringify(input) }),
     actArcadeInvitation: (id: string, input: ArcadeInviteAction) => request<ArcadeInvitationMutation>(`/api/v1/arcade/invitations/${encodeURIComponent(id)}/actions`, { method: 'POST', body: JSON.stringify(input) }),
     getArcade: () => request<ArcadeOverview>('/api/v1/arcade'),
+    arcadeAfterMatchPresence: (id: string, input: ArcadeAfterMatchPresenceInput) => request<ArcadeAfterMatchPresence>(`/api/v1/arcade/sessions/${encodeURIComponent(id)}/after-match/presence`, { method: 'POST', keepalive: true, body: JSON.stringify(input) }),
+    requestArcadeAfterMatch: (id: string, input: ArcadeAfterMatchInput) => request<ArcadeMutation>(`/api/v1/arcade/sessions/${encodeURIComponent(id)}/after-match/actions`, { method: 'POST', body: JSON.stringify(input) }),
     getArcadeSession: (id: string) => request<ArcadeSession>(`/api/v1/arcade/sessions/${id}`),
     startArcade: (input: ArcadeStart) => request<ArcadeMutation>('/api/v1/arcade/sessions', { method: 'POST', body: JSON.stringify(input) }),
     actArcade: (id: string, input: ArcadeAction) => request<ArcadeMutation>(`/api/v1/arcade/sessions/${id}/actions`, { method: 'POST', body: JSON.stringify(input) }),

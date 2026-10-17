@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Arcade après-match — R1107
+
+ArcadeAfterMatch étend le propriétaire Arcade : fenêtre sur session terminée, présence d’écran par onglet séquencé, deux consentements ou fermeture Solo. Heartbeat2s seulement WAITING visible ; transactions Serializable/retries bornés/verrous Player triés existants, même factory et receipts de mutations. Busy et candidats excluent les fenêtres non expirées ; GET projette l’expiration et les mutations la revalident sous verrou. Pas de polling global ni notification/reconciliation supplémentaire. [Contrat](post-v1-arcade-after-match-20261017.md), migration088 et activation au Master.
+
 ## R1106 — anniversaires automatiques
 
 BirthdayService conserve seulement jour/mois, date serveur d’enregistrement et curseur annuel sur Player. Verrou de mutation Player et preuve unique SYSTEM annuelle sérialisent saisies et workers. Crédit via PrismaEconomyService, deux mouvements/reçu/notification/cursor atomiques ; Missions existantes conservées. Scheduler dédié dans le processus existant : startup, minuit Paris et reprise15min, une seule lecture paginée des candidats sans dépendance navigateur/Twitch/Chat. Aucun nouveau service ou cache partagé. [Contrat](post-v1-birthdays-20261017.md), migration087 et activation au Master.

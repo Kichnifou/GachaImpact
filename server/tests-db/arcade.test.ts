@@ -84,18 +84,18 @@ async function stateSnapshot(playerId: string) {
   };
 }
 describe('Arcade — fully migrated private PostgreSQL', () => {
-  it('deploys all 84 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
+  it('deploys all 88 migrations privately with active-session, terminal, RLS and browser-grant guards', async () => {
     expect(isolated.migrationStatus).toContain('up to date');
     const migrations = await isolated.admin.query('SELECT migration_name FROM _prisma_migrations WHERE finished_at IS NOT NULL ORDER BY migration_name');
-    expect(migrations.rows).toHaveLength(84);
-    expect(migrations.rows.at(-1).migration_name).toBe('20261015200000_084_retention_progress');
+    expect(migrations.rows).toHaveLength(88);
+    expect(migrations.rows.at(-1).migration_name).toBe('20261017160000_088_arcade_after_match');
     const guards = await isolated.admin.query("SELECT relname, relrowsecurity, has_table_privilege('anon', oid, 'SELECT') AS anon_read, has_table_privilege('authenticated', oid, 'SELECT') AS user_read FROM pg_class WHERE relnamespace = $1::regnamespace AND relname = ANY($2::text[])", [isolated.schema, ['arcade_sessions','arcade_receipts','arcade_daily_grants','arcade_stats']]);
     expect(guards.rows).toHaveLength(4); guards.rows.forEach(row => expect(row).toMatchObject({ relrowsecurity: true, anon_read: false, user_read: false }));
     const p = await player(), begun = await start(p);
     const row = await db.arcadeSession.findUniqueOrThrow({ where: { id: begun.session.id } });
     const { id: _id, ...copy } = row;
-    await expect(db.arcadeSession.create({ data: { ...copy, privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
-    await expect(db.arcadeSession.create({ data: { ...copy, game: 'MEMORY', privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
+    await expect(db.arcadeSession.create({ data: { ...copy, afterMatch: Prisma.DbNull, privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
+    await expect(db.arcadeSession.create({ data: { ...copy, afterMatch: Prisma.DbNull, game: 'MEMORY', privateState: copy.privateState as Prisma.InputJsonValue } })).rejects.toThrow();
     await expect(db.arcadeSession.update({ where: { id: row.id }, data: { status: 'FINISHED' } })).rejects.toThrow();
     await expect(db.arcadeSession.update({ where: { id: row.id }, data: { status: 'ABANDONED' } })).rejects.toThrow();
     await expect(db.arcadeSession.update({ where: { id: row.id }, data: { rulesVersion: 3 } })).rejects.toThrow();

@@ -26,9 +26,9 @@ export function projectInvitation(row: InvitationRow, viewer: string) {
 export type ArcadeInvitationMutation = { invitation: ReturnType<typeof projectInvitation>; operationId: string; alreadyProcessed: boolean; unavailable?: boolean; session?: ReturnType<typeof projectSession> | null };
 export const participantWhere = (id: string) => ({ OR: [{ playerId: id }, { opponentPlayerId: id }] });
 export const invitationParticipantWhere = (id: string) => ({ OR: [{ hostPlayerId: id }, { guestPlayerId: id }] });
-export async function arcadeBusy(tx: Prisma.TransactionClient, id: string, exceptInvitation?: string) {
+export async function arcadeBusy(tx: Prisma.TransactionClient, id: string, exceptInvitation?: string, exceptAfterMatch?: string, now = new Date()) {
   const [session, invitation] = await Promise.all([
-    tx.arcadeSession.findFirst({ where: { ...participantWhere(id), status: 'ACTIVE' }, select: { id: true } }),
+    tx.arcadeSession.findFirst({ where: { AND: [participantWhere(id), { OR: [{ status: 'ACTIVE' }, { status: 'FINISHED', afterMatchExpiresAt: { gte: now } }] }], ...(exceptAfterMatch ? { id: { not: exceptAfterMatch } } : {}) }, select: { id: true } }),
     tx.arcadeInvitation.findFirst({ where: { ...invitationParticipantWhere(id), status: 'PENDING', ...(exceptInvitation ? { id: { not: exceptInvitation } } : {}) }, select: { id: true } }),
   ]);
   return Boolean(session || invitation);
@@ -92,11 +92,11 @@ export class ArcadeInvitations {
       id: { not: playerId }, status: 'ACTIVE', elementKey: { in: [...elementKeys] },
       AND: [privacyAllowedWhere(playerId, 'PRESENCE'), ...(friendsOnly ? [activeFriendOf(playerId)] : [])],
       sessions: { some: { endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) }, lastActivityAt: { gt: new Date(now.getTime() - PRESENCE_AWAY_MS) } } },
-      arcadeSessions: { none: { status: 'ACTIVE' } }, arcadeOpponentSessions: { none: { status: 'ACTIVE' } },
+      arcadeSessions: { none: { OR: [{ status: 'ACTIVE' }, { status: 'FINISHED', afterMatchExpiresAt: { gte: now } }] } }, arcadeOpponentSessions: { none: { OR: [{ status: 'ACTIVE' }, { status: 'FINISHED', afterMatchExpiresAt: { gte: now } }] } },
       arcadeInvitationsSent: { none: { status: 'PENDING', expiresAt: { gt: now } } }, arcadeInvitationsReceived: { none: { status: 'PENDING', expiresAt: { gt: now } } },
     }, select: { id: true, displayName: true, presentationName: true }, orderBy: [{ displayName: 'asc' }, { id: 'asc' }], take: 100 });
     const visible = await this.presence.visibleFor(playerId, rows.map(row => row.id));
-    return { opponents: rows.filter(row => visible.get(row.id) === 'ONLINE').map(row => ({ ...row, displayName: presentedName(row) })) };
+    return { opponents: rows.filter(row => visible.get(row.id) === 'ONLINE').map(row => ({ id: row.id, displayName: presentedName(row) })) };
   }
   async invite(playerId: string, input: ArcadeInviteInput): Promise<ArcadeInvitationMutation> {
     await this.reconcileNotificationsForPlayer(playerId);
@@ -104,7 +104,7 @@ export class ArcadeInvitations {
     return arcadeTransaction<ArcadeInvitationMutation>(this.database, this.clock, playerId, [input.opponentPlayerId], input.idempotencyKey,
       { action: 'INVITE', opponentPlayerId: input.opponentPlayerId, game: input.game, difficulty: input.difficulty, friendsOnly: input.friendsOnly },
       async (tx, _element, operationId, now) => {
-        if (!await validArcadePair(tx, playerId, input.opponentPlayerId) || await arcadeBusy(tx, playerId) || await arcadeBusy(tx, input.opponentPlayerId)) throw arcadeConflict('Ce joueur est indisponible. Actualisez Arcade.', 'ARCADE_OPPONENT_UNAVAILABLE');
+        if (!await validArcadePair(tx, playerId, input.opponentPlayerId) || await arcadeBusy(tx, playerId, undefined, undefined, now) || await arcadeBusy(tx, input.opponentPlayerId, undefined, undefined, now)) throw arcadeConflict('Ce joueur est indisponible. Actualisez Arcade.', 'ARCADE_OPPONENT_UNAVAILABLE');
         const presence = await this.presence.visibleFor(playerId, [input.opponentPlayerId], tx);
         const friend = !input.friendsOnly || await tx.player.count({ where: { id: input.opponentPlayerId, ...activeFriendOf(playerId) } });
         if (presence.get(input.opponentPlayerId) !== 'ONLINE' || !friend) throw arcadeConflict('Ce joueur est indisponible. Choisissez un autre adversaire.', 'ARCADE_OPPONENT_UNAVAILABLE');
@@ -131,7 +131,7 @@ export class ArcadeInvitations {
         }
         let startedSession: ReturnType<typeof projectSession> | null = null;
         if (input.kind === 'READY') {
-          if (await arcadeBusy(tx, row.hostPlayerId, id) || await arcadeBusy(tx, row.guestPlayerId, id)) throw arcadeConflict('Une partie est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
+          if (await arcadeBusy(tx, row.hostPlayerId, id, undefined, now) || await arcadeBusy(tx, row.guestPlayerId, id, undefined, now)) throw arcadeConflict('Une partie est déjà en cours.', 'ARCADE_ACTIVE_EXISTS');
           const session = await createArcadeSession(tx, row.hostPlayerId, row.game as ArcadeGame, row.difficulty as ArcadeDifficulty, seed, now, row.guestPlayerId);
           startedSession = projectSession({ ...session, player: row.host, opponent: row.guest }, playerId);
           row = await tx.arcadeInvitation.update({ where: { id }, data: { status: 'STARTED', guestReady: true, resolvedAt: now, sessionId: session.id }, include: invitationIdentities });

@@ -1,15 +1,17 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+﻿import { useArcadeAfterMatch } from './use-arcade-after-match'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ApiError, getGameApiClient } from '../api/game-api'
 import { isAmbiguousMutationError } from '../api/mutation-errors'
 import { apiErrorMessage } from '../utils/formatters'
-import type { ArcadeAction, ArcadeGame, ArcadeMutation, ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeInvite, ArcadeInviteAction, ArcadeParticipant } from '../api/arcade-types'
+import type { ArcadeAfterMatchInput, ArcadeAfterMatchPresence, ArcadeAction, ArcadeGame, ArcadeMutation, ArcadeOverview, ArcadeSession, ArcadeStart, ArcadeInvite, ArcadeInviteAction, ArcadeParticipant } from '../api/arcade-types'
 
-type Intent = { kind: 'START'; input: ArcadeStart } | { kind: 'ACTION'; sessionId: string; input: ArcadeAction }
+type Intent = { kind: 'AFTER_MATCH'; sessionId: string; input: ArcadeAfterMatchInput } | { kind: 'START'; input: ArcadeStart } | { kind: 'ACTION'; sessionId: string; input: ArcadeAction }
   | { kind: 'INVITE'; input: ArcadeInvite } | { kind: 'INVITATION_ACTION'; invitationId: string; input: ArcadeInviteAction }
 export function mergeArcadeSession(sessions: ArcadeSession[], incoming: ArcadeSession) {
   const old = sessions.find(row => row.game === incoming.game)
   if (old && (old.id === incoming.id ? old.version > incoming.version : old.createdAt > incoming.createdAt || old.createdAt === incoming.createdAt && old.id > incoming.id)) return sessions
-  return [...sessions.filter(row => row.game !== incoming.game), incoming]
+  const next = old?.id === incoming.id && (old.afterMatch?.revision ?? 0) > (incoming.afterMatch?.revision ?? 0) ? { ...incoming, afterMatch: old.afterMatch } : incoming
+  return [...sessions.filter(row => row.game !== incoming.game), next]
 }
 export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation, playerId: string) => void) {
   const [value, setValue] = useState<ArcadeOverview | null>(null)
@@ -25,7 +27,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
   const snapshot = useRef(value), friendsFilter = useRef(friendsOnly), publishRef = useRef(onMutation)
   useEffect(() => { snapshot.current = value; friendsFilter.current = friendsOnly; publishRef.current = onMutation }, [value, friendsOnly, onMutation])
   const readOpponents = useCallback((): Promise<void> => {
-    const idle = () => snapshot.current && !snapshot.current.invitation && !snapshot.current.sessions.some(row => row.status === 'ACTIVE')
+    const idle = () => snapshot.current && !snapshot.current.invitation && !snapshot.current.sessions.some(row => row.status === 'ACTIVE' || row.afterMatch?.status === 'WAITING')
     if (!live.current || document.visibilityState === 'hidden' || !idle()) return Promise.resolve()
     if (opponentsFlight.current) return opponentsFlight.current
     const generation = owner.current, token = opponentsSequence.current, filter = friendsFilter.current
@@ -58,10 +60,11 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
         const api = getGameApiClient(), next = await api.getArcade()
         if (live.current && generation === owner.current && token === sequence.current) {
           failures.current = 0
-          snapshot.current = next; setValue(next); setError('')
+          const merged = { ...next, sessions: next.sessions.map(row => mergeArcadeSession(snapshot.current?.sessions.filter(old => old.game === row.game) ?? [], row)[0]) }
+          snapshot.current = merged; setValue(merged); setError('')
           if (next.invitation || next.sessions.some(row => row.status === 'ACTIVE')) setOpponents([])
 
-          return next
+          return merged
         }
       } catch (reason) {
         if (live.current && generation === owner.current && token === sequence.current) failures.current++
@@ -82,6 +85,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
       window.clearTimeout(timer)
       if (stopped || document.visibilityState === 'hidden') return
       const active = snapshot.current?.sessions.find(row => row.status === 'ACTIVE')
+      if (snapshot.current?.sessions.some(row => row.afterMatch?.status === 'WAITING')) return
       if (active && active.mode !== 'MULTIPLAYER') return
       const nominal = active ? 600 : snapshot.current?.invitation ? 900 : 2500
       timer = window.setTimeout(tick, Math.min(16000, nominal * 2 ** Math.min(failures.current, 5)))
@@ -131,7 +135,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
               void read(true).then(() => { if (live.current && generation === owner.current) void readOpponents() })
             }
           } else {
-            const next = intent.kind === 'START' ? await api.startArcade(intent.input) : await api.actArcade(intent.sessionId, intent.input)
+            const next = intent.kind === 'START' ? await api.startArcade(intent.input) : intent.kind === 'AFTER_MATCH' ? await api.requestArcadeAfterMatch(intent.sessionId, intent.input) : await api.actArcade(intent.sessionId, intent.input)
             // A durable receipt alone publishes XP, including after screen navigation.
             publishRef.current?.(next, playerId)
             if (live.current && generation === owner.current) setValue(previous => {
@@ -150,6 +154,7 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
             const latest = await read(true)
             if (latest) {
               const advanced = intent.kind === 'START' ? latest.sessions.some(row => row.game === intent.input.game && row.id !== intent.input.previousSessionId)
+                : intent.kind === 'AFTER_MATCH' ? latest.sessions.some(row => row.id !== intent.sessionId && row.status === 'ACTIVE' || row.id === intent.sessionId && (row.afterMatch?.requested || row.afterMatch?.status !== 'WAITING'))
                 : intent.kind === 'ACTION' ? latest.sessions.some(row => row.id === intent.sessionId && row.version > intent.input.expectedVersion)
                 : intent.kind === 'INVITATION_ACTION' ? latest.invitation?.id !== intent.invitationId
                 : Boolean(latest.invitation || latest.sessions.some(row => row.status === 'ACTIVE'))
@@ -169,6 +174,17 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
     inFlight.current = pendingRequest
     return pendingRequest
   }, [read, readOpponents, playerId])
+  const updateAfterMatch = useCallback((incoming: ArcadeAfterMatchPresence) => {
+    const current = snapshot.current, source = current?.sessions.find(row => row.id === incoming.sessionId)
+    if (!current || !source || (source.afterMatch?.revision ?? 0) > (incoming.afterMatch?.revision ?? 0)) return
+    let sessions = current.sessions.map(row => row.id === incoming.sessionId ? { ...row, afterMatch: incoming.afterMatch } : row)
+    if (incoming.nextSession) sessions = mergeArcadeSession(sessions, incoming.nextSession)
+    const next = { ...current, sessions }; snapshot.current = next; setValue(next); pollWake.current()
+    if (incoming.afterMatch?.status !== 'WAITING') void read(true).then(() => void readOpponents())
+  }, [read, readOpponents])
+  const afterMatchPresence = useArcadeAfterMatch(playerId, value?.sessions.find(row => row.afterMatch?.status === 'WAITING'), updateAfterMatch)
+  const requestAfterMatch = (session: ArcadeSession, kind: 'REPLAY' | 'SOLO') => execute({ kind: 'AFTER_MATCH', sessionId: session.id,
+    input: { kind, tabKey: afterMatchPresence.tabKey, sequence: afterMatchPresence.nextSequence(), idempotencyKey: crypto.randomUUID() } })
   const start = (game: ArcadeGame, difficulty: ArcadeStart['difficulty']) => execute({ kind: 'START', input: { game, difficulty, previousSessionId: value?.sessions.find(row => row.game === game)?.id ?? null, expectedVersion: 0, idempotencyKey: crypto.randomUUID() } })
   const invite = (input: Omit<ArcadeInvite, 'idempotencyKey' | 'friendsOnly'>) => execute({ kind: 'INVITE', input: { ...input, friendsOnly, idempotencyKey: crypto.randomUUID() } })
   const actInvitation = (invitationId: string, kind: ArcadeInviteAction['kind']) => execute({ kind: 'INVITATION_ACTION', invitationId, input: { kind, idempotencyKey: crypto.randomUUID() } })
@@ -188,5 +204,5 @@ export function useArcade(playerId: string, onMutation?: (value: ArcadeMutation,
       return await execute({ kind: 'ACTION', sessionId, input: { kind: 'QUIT', expectedVersion: current.version, idempotencyKey: crypto.randomUUID() } }, true)
     } finally { quitLock.current = false; if (live.current) setQuitting(false) }
   }
-  return { value, opponents, opponentsRefreshing, opponentsError, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, invite, actInvitation, act, quit }
+  return { value, opponents, opponentsRefreshing, opponentsError, friendsOnly, setFriendsOnly, feedback, pending, refreshing, quitting, error, load, start, requestAfterMatch, invite, actInvitation, act, quit }
 }
