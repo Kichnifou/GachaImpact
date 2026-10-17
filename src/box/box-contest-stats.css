@@ -8,4 +8,4 @@
 .box-private-stats { margin:0 18px 18px; color:var(--muted); font-size:12px; }
 @media(max-width:760px) { .box-detail-modal .box-c6-competition-stats { height:211px; } }
 
-@media (max-width:760px) { .box-detail-modal.has-contest-titles .box-detail-content { min-height:753px; } }
+@media (max-width:760px) { .box-detail-modal.has-contest-titles .box-detail-content { min-height:753px; grid-template-rows:260px auto; } }
