@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1110 — correction Profil Légendes seulement (17/10/2026)
+
+**Validée par mandat et erratum explicites.** Annulation complète du périmètre Profil → Box : aucun changement de grille, pagination, scrollbar, cartes, filtres ou interactions. Recomposer Légendes pour corriger le clipping réel, préserver statistiques/titres/couleurs/droits, adapter3/2/1 à la place réelle et paginer ses informations si une carte complète ne tient pas. Toute adaptation du conteneur Profil est limitée à cet onglet. GameShell/CSS production incluant1920×980 et Chat ouvert/replié, puis cycle complet sans nouveauGO. Aucun backend, économie, migration ou infrastructure. État réellement qualifié/livré au Master.
+
 ## R1109 — finitions visuelles et présence (17/10/2026)
 
 **Mandat propriétaire validé.** Restaurer les cadres statistiques antérieurs à R1108 avec badges dessous, et les cartes Légendes verticales R1103 en conservant la pagination adaptative et les droits. Fiabiliser le compteur connecté partagé Chat/panneau :12–15s en document visible, une lecture en vol, reprises pertinentes bornées, erreur sans faux zéro, aucun heartbeat accéléré ni nouveau transport. L’implémentation corrige aussi le cas explicitement demandé d’une connexion fraîche sans activité par baseline startedAt, sans enregistrer une fausse activité ;10min/2h/3min et confidentialité conservés. Aucun changement économique, schéma, migration ou infrastructure. Qualification et livraison réelles exclusivement au Master.

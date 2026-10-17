@@ -1,5 +1,15 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## R1110 — candidat Légendes seul qualifié (17/10/2026)
+
+Erratum prioritaire : section Profil → Box intégralement annulée, aucune retouche de grille/cartes/filtres/scrollbar/interactions. Bootstrap quatre refs alignées0/0 au SHA0bb3c4a3cf87943d38e397efa3bb9a327c866976, arbre propre. Défaut Légendes reproduit à1920×980 : carte506,64px dans une région460px, body504/scroll507. La sonde héritait du mode compact parent pendant sa mesure normale, avant retour normal ; seuil de chrome compact900px également insuffisant. Les cinq formats R1109 ne couvraient pas ce viewport.
+
+Nouvelle composition thématique réunie : statistique, titre coloré et compteurs, portrait/nom/C6/totaux conservés. Mesure identique sans densité héritée, capacité3/2/1 et pages de thèmes si même une carte complète ne tient pas ; footer séparé stable. Recalcul fonts/images/resize, droits/page/ancre préservés. Seuls ProfileLegends.tsx, son CSS et son test changent en code ; App.css, ProfileScreen, ScrollableScreenPanel et toute la Box inchangés.
+
+Full8/8 PASS :1815UI/2673backend non-DB ; ciblés11UI. Aucun PG nécessaire ou exécuté. GameShell/CSS production : septformats dont1920×980/900, Chat ouvert/replié,84relevés de matrice ; toutes pages1/3/11/12Légendes, zéro/privés, titres0/5longs et compteurs20chiffres, tous thèmes accessibles, aucun clipping/scroll interne. Police/portraits retardés, resize/ancre/focus PASS. Box30personnages : mêmes rectangles/styles/scroll aux14configurations, recherche/tri/C6/fiche/retour préservés ; règles CSSBox identiques. Captures desktop/mobile examinées, aucune recette humaine déclarée. [Preuves](../architecture/evidence/r1110-profile-legends.json).
+
+Contrats UI/Profil-Légendes, décision et Master actualisés ; Guide/AGENTS/workflow/passation/roadmap/navigation, backend/schéma/économie examinés inchangés. Mobile : flux de document préexistant pour atteindre le Profil, aucun scroll interne Légendes. Prochaine action : publicationreview, revue du vrai SHA, FFmain puis déploiements/postflight dans cette mission. Aucun nouveau tracker ou autre lot.
+
 ## R1109 — trois finitions livrées techniquement (17/10/2026)
 
 Mandat propriétaire : cadres Box de référence avec badges dessous et proportions inchangées ; cartes Légendes verticales/pagination3–2–1 selon place ; compteur Chat fiable et commun au panneau Joueurs. Bootstrap `eaff0f1d5b8c4f77623a9520658b75d966402ebf`, quatre refs alignées0/0/arbre initial propre. R1108 et A–G restent clos. Code livré : `f62ef939fa98879a0cecba3876df3a5ba1f6bb87`, approuvé par revue indépendante des vrais diffs/blobs GitHub puis promu par fast-forward strict ; quatre refs alignées0/0/arbre propre à la promotion. [Contrat UI/Box/Légendes](../architecture/post-v1-contest-legends-20261017.md), [Présence](../legacy/14-ami-social-audit.md#machine-de-présence), [preuves](../architecture/evidence/r1109-final-polish.json).

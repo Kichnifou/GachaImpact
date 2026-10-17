@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## R1110 — Profil Légendes exclusivement
+
+L’erratum exclut totalement Profil → Box : grille, filtres, cartes, scrollbar et interactions inchangés. Légendes réunit chaque thème (statistique, badge/titre et compteurs) en cellule lisible. Capacité3/2/1 selon mesures réelles indépendantes de modes de densité, footer séparé stable ; si une carte complète ne tient pas, pagination de ses thèmes sans perte d’information. Fonts/images/resize recalculent ; page/ancre/droits conservés, page partielle de même largeur. Adaptations du conteneur sous data-profile-view=Légendes exclusivement. Sept viewports dont1920×980, Chat ouvert/replié et comparaison Box inchangée dans les [preuves](../architecture/evidence/r1110-profile-legends.json). Flux mobile préexistant conservé, aucun scroll interne Légendes. Supersède la composition et le calcul Légendes R1109 seulement.
+
 ## Finitions R1109 — fiches et Légendes
 
 Les cadres C6 retrouvent la référence3bd16ae7 ; badges R1108 sous les cadres, en colonnes normales, sans modifier la hauteur des cadres. Modale et portrait de mêmes dimensions avant/après0/1/5titres aux cinqformats. Légendes retrouve les cartes verticales R1103 et garde une pagination3/2/1 selon mesures largeur/hauteur, footer et titres longs. À petite hauteur desktop, compacter uniquement le titre/commandes de cet onglet avant les cartes ; aucun scroll indésirable ou chevauchement sur les formats qualifiés, ni masquage d’un contenu réel. États vides/privés, couleurs et droits conservés. Cette présentation supersède seulement les deux dispositions correspondantes de R1108. Voir [contrat](../architecture/post-v1-contest-legends-20261017.md) et [preuves](../architecture/evidence/r1109-final-polish.json).
