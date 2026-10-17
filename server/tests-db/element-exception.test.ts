@@ -120,8 +120,8 @@ it('allows a slow private preimage past the ordinary 30s budget and still swaps 
   const r = await applyElementException(db, s, undefined, undefined, async tx => {
     // Mirror two captures: each statement stays below the fixture's 30s SQL
     // deadline while their total exceeds an ordinary interactive transaction.
-    await tx.$queryRaw`SELECT pg_sleep(16)`;
-    await tx.$queryRaw`SELECT pg_sleep(16)`;
+    await tx.$queryRaw`SELECT 1::int AS ready FROM pg_sleep(16)`;
+    await tx.$queryRaw`SELECT 1::int AS ready FROM pg_sleep(16)`;
   });
   expect(r.alreadyProcessed).toBe(false);
   expect(await balance(s.playerId, 'particles_cryo')).toBe(77n);
