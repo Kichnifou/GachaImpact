@@ -30,6 +30,17 @@ beforeAll(async()=>{await fixture.setup({prismaMigrations:true});adminId=(await 
 beforeEach(async()=>{active=true;unavailable=false;online=null;advance();await db.playerRoleAssignment.updateMany({where:{playerId:adminId},data:{revokedAt:null}});await db.twitchIdentity.update({where:{playerId:adminId},data:{login:'kichnifou'}});await db.twitchNativeAuthority.update({where:{id:'twitch-commands'},data:{desiredMode:'GLOBAL'}});const old=await db.giveawaySession.findFirst({where:{status:'OPEN'}});if(old)await core.close(adminId,'TWITCH',old.id);await db.twitchLiveChannel.deleteMany();await db.twitchLiveStream.deleteMany();live=manager();send.mockClear();draw.mockClear();streams.current.mockClear();});
 afterAll(()=>fixture.cleanup(),60_000);
 describe('R1112 private PostgreSQL lifecycle',()=>{
+ it('recovers committed previous-cycle results after crash and a new distinct live',async()=>{
+   const streamId=start();await live.tick();const previous=await session();await core.wish('12346',randomUUID());
+   // The economic commit and terminal stream marker survive; no outbound attempt has started.
+   await core.close(adminId,'TWITCH',previous.id,randomUUID());
+   await db.twitchLiveStream.update({where:{id:streamId},data:{endedAt:now}});
+   expect(await db.giveawayAnnouncement.count({where:{sessionId:previous.id,kind:{in:['RESULT','RANKING']},state:'PENDING'}})).toBe(2);
+   advance(120_000);start();await manager().tick();expect((await session()).id).not.toBe(previous.id);
+   expect(await db.giveawayAnnouncement.count({where:{sessionId:previous.id,kind:{in:['RESULT','RANKING']},state:'SENT',attempts:1}})).toBe(2);
+   const calls=send.mock.calls.length;advance();await manager().tick();expect(send).toHaveBeenCalledTimes(calls);
+   expect(await db.giveawayReward.count({where:{sessionId:previous.id,kind:'DRAW'}})).toBe(1);
+ });
  it('rolls back a crash after a real economic credit and recovers the same session',async()=>{
    start();await live.tick();const opened=await session();await core.wish('12346',randomUUID());
    const balance=()=>db.playerResourceBalance.findUniqueOrThrow({where:{playerId_resourceKey:{playerId:viewerId,resourceKey:'primogems'}}});

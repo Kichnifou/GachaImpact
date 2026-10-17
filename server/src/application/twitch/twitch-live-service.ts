@@ -51,6 +51,15 @@ export class TwitchLiveService {
     const job = this.reconcile(); this.running = job;
     try { await job; } finally { this.running = undefined; }
   }
+  private async resumeMilestones(broadcasterId: string) {
+    const kinds = ['OPEN', 'RESULT', 'RANKING'];
+    const streams = await this.db.twitchLiveStream.findMany({ where: { broadcasterId, sessionId: { not: null },
+      session: { announcements: { some: { kind: { in: kinds }, state: 'PENDING' },
+        none: { kind: { in: kinds }, state: { in: ['FAILED', 'AMBIGUOUS', 'RESERVED'] } } } } },
+      distinct: ['sessionId'], orderBy: { startedAt: 'asc' }, take: 20, select: { sessionId: true } });
+    // Closed cycles remain recoverable after currentStreamId advances. Uncertain sends remain administrative.
+    for (const stream of streams) if (stream.sessionId) await this.bridge.sendSessionMilestones(stream.sessionId);
+  }
   private async reconcile() {
     const identity = await this.context(); if (!identity) return;
     const broadcasterId = identity.twitchUserId, now = this.now(), token = randomUUID();
@@ -110,6 +119,7 @@ export class TwitchLiveService {
       }
       const updated = await this.db.twitchLiveStream.findUniqueOrThrow({ where: { id: stream.id } });
       if (updated.sessionId) await this.bridge.sendSessionMilestones(updated.sessionId);
+      await this.resumeMilestones(broadcasterId);
     } finally {
       await this.db.twitchLiveChannel.updateMany({ where: { broadcasterId, leaseToken: token }, data: { leaseToken: null, leaseUntil: null } });
     }
