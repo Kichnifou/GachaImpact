@@ -1,5 +1,5 @@
 {
-  "scope": "R1108 — qualification locale, aucun déploiement déduit",
+  "scope": "R1108 — code livré techniquement, recette humaine publique non acquise",
   "bootstrap": "3bd16ae7ec0a77244c065e2d4eab8e2cd993befb",
   "visual": [
     {
@@ -766,8 +766,9 @@
     "full": {
       "passed": 8,
       "total": 8,
-      "frontend": 1805,
-      "backendNonDb": 2672
+      "frontend": 1806,
+      "backendNonDb": 2672,
+      "sha": "4b95c3deb81922ee8cb61d54a6bc519278b66b8d"
     },
     "firstFull": {
       "passed": 6,
@@ -786,7 +787,14 @@
         "passed": 5,
         "total": 5
       }
-    }
+    },
+    "independent": {
+      "ui": 167,
+      "afterMobileCorrection": 4,
+      "verdict": "APPROVED",
+      "sha": "4b95c3deb81922ee8cb61d54a6bc519278b66b8d"
+    },
+    "finalBuild": "PASS après delta CSS"
   },
   "limits": [
     "Fixtures synthétiques locales, assets portraits externes bloqués ; aucune recette humaine authentifiée publique.",
@@ -1152,5 +1160,117 @@
     "exact": true,
     "initialMobileVariance": 14,
     "correction": "Rangée portrait260px puis texte auto ; aucun redimensionnement du portrait pour remplir le retrait du disclosure."
+  },
+  "scoreBrowserImpact": [
+    {
+      "at": 2.800000000745058,
+      "scores": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "event": "synthetic-2"
+    },
+    {
+      "at": 221.10000000149012,
+      "scores": [
+        0,
+        2,
+        0,
+        0
+      ],
+      "event": "synthetic-2"
+    },
+    {
+      "at": 1429.7000000011176,
+      "scores": [
+        0,
+        2,
+        3,
+        0
+      ],
+      "event": "synthetic-3"
+    },
+    {
+      "at": 2630.800000000745,
+      "scores": [
+        0,
+        2,
+        3,
+        4
+      ],
+      "event": "synthetic-4"
+    }
+  ],
+  "delivery": {
+    "codeSha": "4b95c3deb81922ee8cb61d54a6bc519278b66b8d",
+    "railway": {
+      "id": "6f6ea6d6-09c9-43b7-b618-04c4e4362211",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "11d75489-23c8-4f98-a3d4-5ad0983081bd",
+      "status": "SUCCESS"
+    },
+    "migration": {
+      "found": 88,
+      "pending": 0,
+      "new": 0
+    },
+    "postflight": {
+      "sha": "4b95c3deb81922ee8cb61d54a6bc519278b66b8d",
+      "guards": {
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T11:02:23.068Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/11d75489-23c8-4f98-a3d4-5ad0983081bd",
+      "sites": [
+        {
+          "origin": "https://11d75489.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CBR10dGv.css",
+              "sha256": "4900c10189595b4b3b528842d0149c2efb09295512cf295bc6a078e13ad4bd05"
+            },
+            {
+              "asset": "/assets/index-CtrgSiim.js",
+              "sha256": "d82fbcf4b310230cb1355d7c911502f87264f385fabbbe112e4ceb2eba74d914"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CBR10dGv.css",
+              "sha256": "4900c10189595b4b3b528842d0149c2efb09295512cf295bc6a078e13ad4bd05"
+            },
+            {
+              "asset": "/assets/index-CtrgSiim.js",
+              "sha256": "d82fbcf4b310230cb1355d7c911502f87264f385fabbbe112e4ceb2eba74d914"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-CBR10dGv.css",
+              "sha256": "4900c10189595b4b3b528842d0149c2efb09295512cf295bc6a078e13ad4bd05"
+            },
+            {
+              "asset": "/assets/index-CtrgSiim.js",
+              "sha256": "d82fbcf4b310230cb1355d7c911502f87264f385fabbbe112e4ceb2eba74d914"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    }
   }
 }
