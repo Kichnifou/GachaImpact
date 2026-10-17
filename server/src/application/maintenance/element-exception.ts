@@ -53,7 +53,11 @@ export async function applyElementException(db: PrismaClient, scope: ElementExce
         await tx.businessOperation.update({ where: { id: op.id }, data: { status: 'COMPLETED', completedAt: now, resultSummary: receipt } });
         await beforeCommit?.(tx);
         return { ...receipt, alreadyProcessed: false };
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30_000, maxWait: 30_000 });
+      // A recovered account may have thousands of immutable history rows in its
+      // encrypted preimage. Two captures exceeded the ordinary 30s command
+      // budget in production and rolled back. Bound this one-off maintenance
+      // separately; no API, runtime pool or gameplay transaction is changed.
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 120_000, maxWait: 30_000 });
     } catch (error) { if (attempt < 4 && isPrismaConcurrencyCollision(error)) continue; throw error; }
   }
 }

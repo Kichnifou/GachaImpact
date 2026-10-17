@@ -115,6 +115,20 @@ it('serializes duplicate executions and rejects reuse for another identity', asy
   expect(results.filter(r => !r.alreadyProcessed)).toHaveLength(1);
   await expect(applyElementException(db, await scope())).rejects.toThrow();
 });
+it('allows a slow private preimage past the ordinary 30s budget and still swaps only once', async () => {
+  const s = await scope();
+  const r = await applyElementException(db, s, undefined, undefined, async tx => {
+    // Mirror two captures: each statement stays below the fixture's 30s SQL
+    // deadline while their total exceeds an ordinary interactive transaction.
+    await tx.$queryRaw`SELECT pg_sleep(16)`;
+    await tx.$queryRaw`SELECT pg_sleep(16)`;
+  });
+  expect(r.alreadyProcessed).toBe(false);
+  expect(await balance(s.playerId, 'particles_cryo')).toBe(77n);
+  expect(await balance(s.playerId, 'particles_electro')).toBe(23n);
+  expect((await applyElementException(db, s)).alreadyProcessed).toBe(true);
+  expect(await balance(s.playerId, 'particles_electro')).toBe(23n);
+}, 60_000);
 it('blocks a concurrent accept until cancellation commits; stale conversion fails and fresh Electro conversion succeeds', async () => {
   const s = await scope(), peer = await player('pyro');
   const sent = await trades.create(s.playerId, peer, 3n, randomUUID());

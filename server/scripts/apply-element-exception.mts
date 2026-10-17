@@ -65,4 +65,11 @@ async function main() {
     console.log(JSON.stringify({ productionCommitted: true, sentClosed: result.sentClosed, receivedClosed: result.receivedClosed, elementKey: 'electro', exactSwapAudited: true, unrelatedStateIntact: true, alreadyProcessed: result.alreadyProcessed, privateEvidenceSaved: true }));
   } finally { await db.$disconnect(); }
 }
-main().catch(() => { console.error('ELEMENT_EXCEPTION_FAILED_CLOSED_OR_POSTFLIGHT_INCOMPLETE: inspect private receipts before retrying the identical scope/key.'); process.exitCode = 1; });
+main().catch(async (error: unknown) => {
+  try {
+    const file = await checkedIdentityFile(join(identityReportDirectory(), `element-exception-failure-${randomUUID()}.json`), true);
+    const detail = error instanceof Error ? { name: error.name, message: error.message, stack: error.stack, code: 'code' in error ? error.code : null } : { name: 'UnknownFailure' };
+    await writeFile(file, await encryptPrivateBackup(Buffer.from(JSON.stringify({ at: new Date().toISOString(), detail }))), { flag: 'wx', mode: 0o600 });
+  } catch { /* Never disclose private database errors if local evidence fails. */ }
+  console.error('ELEMENT_EXCEPTION_FAILED_CLOSED_OR_POSTFLIGHT_INCOMPLETE: inspect private receipts before retrying the identical scope/key.'); process.exitCode = 1;
+});
