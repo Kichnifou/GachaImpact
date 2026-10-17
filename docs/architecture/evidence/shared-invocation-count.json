@@ -1,0 +1,81 @@
+{
+  "scope": "R1104 available broadcaster badge only",
+  "unitFrontendPassed": 35,
+  "backendTargetedTogetherWithR1102Passed": 26,
+  "postgresqlPassed": 2,
+  "privatePrismaMigrationsRehearsed": 85,
+  "api": "Authenticated no-store aggregate with exact list eligibility, count distinct owner, no prune/lease mutation",
+  "visibility": "Invocation/document visible only, 30-35 second serialized reads, no frequent list reconciliation",
+  "visual": {
+    "productionCompiledGameShell": true,
+    "browser": "installed Edge",
+    "viewports": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "button": {
+          "x": 550.1875,
+          "y": 523.375,
+          "width": 131.1875,
+          "height": 32
+        },
+        "counts": [
+          0,
+          1,
+          3
+        ],
+        "unknownHidden": true
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "button": {
+          "x": 494.9375,
+          "y": 445.96875,
+          "width": 117.953125,
+          "height": 32
+        },
+        "counts": [
+          0,
+          1,
+          3
+        ],
+        "unknownHidden": true
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "button": {
+          "x": 169.1875,
+          "y": 705.4375,
+          "width": 131.1875,
+          "height": 44
+        },
+        "counts": [
+          0,
+          1,
+          3
+        ],
+        "unknownHidden": true
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "button": {
+          "x": 169.1875,
+          "y": 278.4375,
+          "width": 131.1875,
+          "height": 44
+        },
+        "counts": [
+          0,
+          1,
+          3
+        ],
+        "unknownHidden": true
+      }
+    ]
+  },
+  "realPlayerQaMutations": 0,
+  "ownerAcceptance": "NOT ACQUIRED"
+}

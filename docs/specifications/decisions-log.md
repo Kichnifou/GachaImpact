@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1104 — compteur du bouton Voir (17/10/2026)
+
+**Validé par le complément propriétaire à la mission consolidée.** Pastille discrète des diffuseurs distincts encore disponibles (ACTIVE ou PAUSED éligible), y compris zéro confirmé, sans valeur inventée pendant indisponibilité ni sur Arrêter. Lecture légère authentifiée seulement sur Invocation visible, sans polling agressif ni réconciliation fréquente de la liste. [Contrat partagé](../architecture/shared-invocations-v1.md), qualification/livraison au Master ; aucune modification économique ou des sessions/baux.
+
 ## R1103 — Maintenance Concours / titres / Légendes (17/10/2026)
 
 **Validé par le mandat propriétaire consolidé et son complément UI.** Le titre présenté à la fin d'un Concours reflète la promotion persistée de ce résultat, sans changer son snapshot de calcul ; récompense de classement au-dessus d'une ligne commune de titre. Les titres réels figurent dans la fiche d'un personnage ; les Légendes C6 quittent la Box du Profil pour un onglet dédié après Box, avec confidentialité existante conservée. [Contrat](../architecture/post-v1-contest-legends-20261017.md) ; avancement, tests/review/déploiements exclusivement au Master. Cette décision ne valide ni recette humaine ni livraison non encore vérifiée.

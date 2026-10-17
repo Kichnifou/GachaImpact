@@ -134,6 +134,21 @@ export class SharedInvocations {
             return { sessions: rows.map(r => ({ id: r.id, displayName: r.snapshot.displayName, avatarPath: r.snapshot.avatarPath, status: r.status })) };
         });
     }
+    /** Badge read: same eligibility/window as list, without lease cleanup or locks. */
+    async availableCount(identity: AuthenticatedIdentity) {
+        await this.owner(identity);
+        const now = this.now();
+        const rows = await this.db.$queryRaw<{ count: number }[]>`
+          SELECT COUNT(DISTINCT owner_id)::integer AS count FROM (
+            SELECT owner_id FROM shared_invocation_sessions
+            WHERE status IN ('ACTIVE','PAUSED') AND lease_until > ${now}
+              AND last_gesture_at > ${new Date(now.getTime() - sharedInactivityMs)}
+            ORDER BY updated_at DESC LIMIT 100
+          ) available`;
+        const count = rows[0]?.count;
+        if (typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) throw new Error('Available broadcaster count is invalid.');
+        return { count };
+    }
     async state(identity: AuthenticatedIdentity, tabId: string, cursor?: string) {
         const p = await this.owner(identity), now = this.now();
         type Version = Pick<Row, 'id' | 'owner_id' | 'seq' | 'pending_key'> & {

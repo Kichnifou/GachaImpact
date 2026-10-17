@@ -2,7 +2,7 @@
 
 ## R1102 — pression des consultations Chat
 
-Le frontend attend1 500–2 000ms après fin de lecture, avec jitter/backoff et coalescing/sérialisation par panneau/joueur. Les optimisations backend Chat/cadeaux expérimentées ont été retirées faute de qualification PostgreSQL complète ; backend, transactions, verrous, schéma et transport restent inchangés. [Diagnostic et limites](r1102-launch-performance.md), état réel au Master.
+Le frontend attend1 500–2 000ms après fin de lecture, avec jitter/backoff et coalescing/sérialisation par panneau/joueur. Les optimisations backend différées le16/10 sont reprises dans le mandat du17/10 : fenêtre Chat minimale puis hydratation des seules lignes livrées ; lecture groupée des notifications cadeaux et matérialisation annuelle groupée. Aucun nouveau cache, verrou, schéma, transport ou règle économique. [Diagnostic et limites](r1102-launch-performance.md), qualification/promotion réelles au Master. Le compteur Invocation R1104 utilise un GET agrégé authentifié indépendant de la liste réconciliatrice, à30–35s uniquement écran visible ; il ne change aucune cadence Chat/diffusion.
 
 ## R1101 — formats de preuve et suivi de suppression
 

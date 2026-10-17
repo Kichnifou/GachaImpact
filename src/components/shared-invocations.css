@@ -81,3 +81,5 @@
   .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .resource-result.reveal .pull-resource-content > strong { font-size: 18px; }
   .invocation-sequence-panel:has(.shared-invocation-presentation-controls) .resource-result.reveal .pull-resource-amount { font-size: 24px; }
 }
+.shared-invocation-buttons .shared-invocation-button { position: relative; }
+.shared-available-count { position: absolute; top: 2px; right: 3px; min-width: 14px; height: 14px; padding: 0 3px; display: grid; place-items: center; border: 1px solid #4a83ac; border-radius: 8px; background: #102c49; color: #8dd8ff; font-size: 10px; line-height: 1; pointer-events: none; }

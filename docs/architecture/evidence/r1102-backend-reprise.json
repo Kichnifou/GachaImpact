@@ -1,0 +1,81 @@
+{
+  "baselineCode": "ec0c92e8552ed4f4b704f2f851097cb42cf450eb",
+  "experimentalReference": "73e4fda15b9b3537cc546d6fb4439f4b44a2741a",
+  "scope": "Backend Chat and gift reconciliation; no frontend cadence or economic behavior changed",
+  "qualification": {
+    "chatHistorical": {
+      "passed": 51,
+      "failed": 0
+    },
+    "privatePressure": {
+      "passed": 2,
+      "clients": [
+        10,
+        30
+      ],
+      "unchangedRelationHydrations": 0,
+      "runs": [
+        {
+          "clients": 10,
+          "unchangedRelationHydrations": 0,
+          "p50": 433.3754,
+          "p95": 1593.1902,
+          "p99": 1593.1902
+        },
+        {
+          "clients": 30,
+          "unchangedRelationHydrations": 0,
+          "p50": 598.189,
+          "p95": 725.957,
+          "p99": 726.3708
+        }
+      ]
+    },
+    "giftCodeConcurrency": {
+      "passed": 6,
+      "failed": 0
+    },
+    "initialChatRun": {
+      "passed": 50,
+      "failed": 3,
+      "reason": "New pressure tests changed the generation of the historical suite's shared private schema; moved into their own isolated schema, no historical assertion relaxed"
+    },
+    "backendNonDbBeforeCounter": {
+      "passed": 2647,
+      "failed": 0
+    },
+    "combinedTargetedBackendPassed": 26,
+    "quick": "5/5 PASS",
+    "combinedFull": "8/8 PASS; VITEST_MAX_WORKERS=4",
+    "prismaMigrations": 85,
+    "prismaStatus": "up to date",
+    "privateFixtureCleanup": "Completed for all executed PostgreSQL files",
+    "realPlayerQaMutations": 0
+  },
+  "naturalBaseline": {
+    "start": "2026-10-17T07:31:22.000Z",
+    "end": "2026-10-17T07:41:22.000Z",
+    "deployment": "8f8cb043-c94f-4442-903a-9cf23591459a",
+    "httpLimit": 500,
+    "httpSampleCapped": true,
+    "all": {
+      "sampleCount": 501,
+      "sampled5xx": 0,
+      "p50": 65,
+      "p95": 282,
+      "p99": 484
+    },
+    "chatUpdates": {
+      "sampleCount": 11,
+      "sampled5xx": 0,
+      "p50": 182,
+      "p95": 381,
+      "p99": 381
+    },
+    "runtimeLogSampleCount": 501,
+    "runtimeTimeoutOrPrismaErrorsSampled": 0,
+    "limits": "Bounded natural traffic sample, not full request counts or a causal comparison; no synthetic public traffic"
+  },
+  "ownerAcceptance": "NOT ACQUIRED",
+  "deployment": "NOT PROMOTED for this code at documentation preparation"
+}

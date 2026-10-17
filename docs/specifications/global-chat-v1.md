@@ -1,5 +1,9 @@
 # Chat global V1 — contrat produit
 
+## Reprise backend R1102 — 17/10/2026
+
+La fenêtre canonique retenue est d'abord lue sans relations ; seules les lignes nouvelles ou tombstones nécessaires au client sont hydratées. Réponses, mentions, auteurs et visibilité/rétention restent projetés par le même contrat ; le parent expiré est masqué sur les lignes effectivement livrées. Aucun cache partagé entre joueurs, changement de génération/curseur/ordre, règle XP/commande/idempotence ou cadence frontend. Qualification et livraison de la reprise exclusivement au [Master](../master/PROJECT_MASTER_PLAN.md) ; les preuves du16/10 restent historiques.
+
 ## Cibles de mentions et pseudo — R1095
 
 Les projections courantes Auteur/Réponse/Mention utilisent le pseudo de présentation, sans réécrire contenu ni relations historiques. Les suggestions sélectionnées conservent leur UUID. À l’envoi, un token complet présent dans le texte et sélectionné doit encore désigner un Player ACTIVE, non bloqué, avec le même libellé normalisé : sinon `CHAT_MENTION_CHANGED`409 refuse explicitement l’envoi avant insertion/XP. L’intention refusée reste récupérable dans le compositeur ; sélectionner à nouveau la cible avec son nom courant. Ce refus prudent remplace le traitement antérieur de ces sélections comme simples hints : aucun label historique non vérifiable n’autorise une association forgée.

@@ -15,6 +15,10 @@ export async function registerSharedInvocationRoutes(app: FastifyInstance, optio
         return r.data;
     };
     app.get('/api/v1/shared-invocations', { preHandler: options.authenticate }, r => options.shared.list(requireAuthenticatedIdentity(r)));
+    app.get('/api/v1/shared-invocations/available-count', { preHandler: options.authenticate }, (r, reply) => {
+        reply.header('Cache-Control', 'no-store');
+        return options.shared.availableCount(requireAuthenticatedIdentity(r));
+    });
     app.get('/api/v1/shared-invocations/spectators', { preHandler: options.authenticate }, r => {
         const q=parse(z.object({page:z.coerce.number().int().min(1).max(1000).default(1)}).strict(),r.query);
         return options.shared.spectators(requireAuthenticatedIdentity(r),q.page);

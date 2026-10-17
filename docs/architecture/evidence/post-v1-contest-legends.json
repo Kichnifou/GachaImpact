@@ -167,5 +167,67 @@
   },
   "ownerAcceptance": "NOT ACQUIRED",
   "economicQaOnRealPlayers": 0,
-  "migrations": 0
+  "migrations": 0,
+  "code": "ec0c92e8552ed4f4b704f2f851097cb42cf450eb",
+  "independentReview": {
+    "verdict": "APPROVED",
+    "sha": "ec0c92e8552ed4f4b704f2f851097cb42cf450eb",
+    "githubDiffs": 24,
+    "githubCriticalBlobs": 11,
+    "nonDbPassed": 78,
+    "dbRerun": false
+  },
+  "railway": {
+    "id": "8f8cb043-c94f-4442-903a-9cf23591459a",
+    "status": "SUCCESS",
+    "sha": "ec0c92e8552ed4f4b704f2f851097cb42cf450eb"
+  },
+  "postflight": {
+    "sha": "ec0c92e8552ed4f4b704f2f851097cb42cf450eb",
+    "at": "2026-10-17T07:38:14.265Z",
+    "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/4aff1328-c197-46de-8328-4ba8f6951d55",
+    "sites": [
+      {
+        "origin": "https://4aff1328.gachaimpact.pages.dev",
+        "hashes": [
+          {
+            "asset": "/assets/index-BqroSt3r.js",
+            "sha256": "bc9e10820056aab80aba7a402c49fd524f7d06a274059c36735ab45e3a18a7b5"
+          },
+          {
+            "asset": "/assets/index-_ZP_XlkG.css",
+            "sha256": "a4b43e40b5e900ee54836e65308342b6465c37a17b4f5ce07948fb14c1265ef0"
+          }
+        ]
+      },
+      {
+        "origin": "https://gachaimpact.pages.dev",
+        "hashes": [
+          {
+            "asset": "/assets/index-BqroSt3r.js",
+            "sha256": "bc9e10820056aab80aba7a402c49fd524f7d06a274059c36735ab45e3a18a7b5"
+          },
+          {
+            "asset": "/assets/index-_ZP_XlkG.css",
+            "sha256": "a4b43e40b5e900ee54836e65308342b6465c37a17b4f5ce07948fb14c1265ef0"
+          }
+        ]
+      },
+      {
+        "origin": "https://gachaimpact.fr",
+        "hashes": [
+          {
+            "asset": "/assets/index-BqroSt3r.js",
+            "sha256": "bc9e10820056aab80aba7a402c49fd524f7d06a274059c36735ab45e3a18a7b5"
+          },
+          {
+            "asset": "/assets/index-_ZP_XlkG.css",
+            "sha256": "a4b43e40b5e900ee54836e65308342b6465c37a17b4f5ce07948fb14c1265ef0"
+          }
+        ]
+      }
+    ],
+    "health": 200,
+    "eventAnonymousGuard": 401
+  }
 }

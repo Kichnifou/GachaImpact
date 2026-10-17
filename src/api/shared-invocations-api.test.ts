@@ -1,6 +1,13 @@
 // @vitest-environment happy-dom
 import {expect,it,vi} from 'vitest'
 import {createGameApiClient} from './game-api'
+it('uses the authenticated lightweight count endpoint without requesting the reconciled list',async()=>{
+ const fetchImplementation=vi.fn<typeof fetch>(async()=>Response.json({count:3}));const api=createGameApiClient({baseUrl:'https://api.example',getAccessToken:async()=>'synthetic-fixture',fetchImplementation}).sharedInvocations
+ expect(await api.availableCount!()).toEqual({count:3})
+ expect(fetchImplementation).toHaveBeenCalledTimes(1)
+ expect(String(fetchImplementation.mock.calls[0]![0])).toBe('https://api.example/api/v1/shared-invocations/available-count')
+ expect(fetchImplementation.mock.calls[0]![1]?.method??'GET').toBe('GET')
+})
 it('sends monotone session-bound presence while polling remains a read without activity',async()=>{
  const fetchImplementation=vi.fn<typeof fetch>(async()=>new Response('{}'));const api=createGameApiClient({baseUrl:'https://api.example',getAccessToken:async()=>'synthetic-fixture',fetchImplementation}).sharedInvocations
  await api.control('tab','presence','invocation',undefined,'session');await api.control('tab','presence','other',undefined,'session');await api.state('tab','own:session:5')

@@ -67,6 +67,7 @@ export type SharedInvocationList = {
     }[];
 };
 export type SharedInvocationApi = {
+    availableCount?: () => Promise<{ count: number }>;
     spectators?: (page?:number) => Promise<SharedSpectators>;
     viewerPresence?: (tabId:string,sessionId:string,token:string,revision:number,visible:boolean) => Promise<{ok:boolean}>;
     list: () => Promise<SharedInvocationList>;

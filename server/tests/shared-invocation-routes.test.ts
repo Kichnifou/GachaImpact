@@ -18,6 +18,16 @@ async function setup() {
     return { app, service };
 }
 const tabId = '00000000-0000-4000-8000-000000000074', headers = { authorization: 'Bearer valid' };
+it('returns a non-cacheable count from the verified identity without enumerating sessions', async () => {
+    const service = { availableCount: vi.fn(async () => ({ count: 3 })) };
+    const app = Fastify({ logger: false }); apps.push(app);
+    registerAuthenticationContext(app); registerErrorHandler(app);
+    await registerSharedInvocationRoutes(app, { authenticate: createAuthenticationHook({ verify: async () => ({ subject: 'verified-player' }) }), shared: service as unknown as SharedInvocations });
+    const response = await app.inject({ headers, url: '/api/v1/shared-invocations/available-count' });
+    expect(response.statusCode).toBe(200); expect(response.json()).toEqual({ count: 3 });
+    expect(response.headers['cache-control']).toBe('no-store');
+    expect(service.availableCount).toHaveBeenCalledExactlyOnceWith({ subject: 'verified-player' });
+});
 it('protects viewer endpoints, rejects session enumeration and validates lease identities',async()=>{
  const {app}=await setup();
  expect((await app.inject({url:'/api/v1/shared-invocations/spectators'})).statusCode).toBe(401);
@@ -28,7 +38,7 @@ it('protects viewer endpoints, rejects session enumeration and validates lease i
 });
 it('rejects anonymous and invalid sessions on all shared endpoints', async () => {
     const { app, service } = await setup();
-    for (const route of ['', '/state'])
+    for (const route of ['', '/state', '/available-count'])
         expect((await app.inject({ url: '/api/v1/shared-invocations' + route })).statusCode).toBe(401);
     for (const route of ['start', 'watch', 'control', 'reaction'])
         expect((await app.inject({ method: 'POST', url: '/api/v1/shared-invocations/' + route, payload: { tabId } })).statusCode).toBe(401);

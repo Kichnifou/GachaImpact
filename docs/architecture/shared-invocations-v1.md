@@ -1,5 +1,13 @@
 # Invocations partagées standalone V1 — contrat du 11 octobre 2026
 
+## R1104 — compteur discret Voir (mandat du 17/10/2026)
+
+Le bouton Voir porte une pastille 10px en haut à droite, sans modification de sa géométrie ni interception des clics/focus ; nom accessible incluant le nombre confirmé. Pas de compteur sur Arrêter. Zéro s'affiche seulement après confirmation ; initialisation/échec restent sans valeur inventée.
+
+`GET /api/v1/shared-invocations/available-count` authentifie un Player ACTIVE et retourne uniquement `{count}`. Lecture SQL agrégée sans verrou de diffusion, prune, mutation de bail ou hydratation de snapshot : mêmes filtres ACTIVE/PAUSED, bail non expiré, dernière interaction <45min, ordre et fenêtre de100 que la liste, `COUNT(DISTINCT owner_id)` pour éviter tout doublon/homonyme. La liste conserve sa réconciliation normale seulement pour sa propre modale.
+
+Le hook du compteur lit uniquement lorsque l'écran Invocation et le document sont visibles, hors présentation tutoriel. Intervalle30–35s, une requête en vol, reprise visible au plus une fois par30s ; timers/listeners nettoyés, résultat tardif d'un ancien propriétaire ignoré, erreur sans ancien nombre. Aucun changement des cadences, baux, sessions, droits ou contrôles de diffusion existants. [État réel et qualification](../master/PROJECT_MASTER_PLAN.md).
+
 ## R1097 — preuve Team mutualisée
 
 Les nouvelles invocations multi-pull conservent une seule Team d'origine dans le résumé métier de l'opération, référencée par chaque résultat v2 ; x1 et anciennes opérations restent inline. Effets/états/bonus et DTO de présentation/replay inchangés, aucun recalcul depuis la Team actuelle. [Contrat de stockage](r1097-storage-optimization.md). Sessions, autorité d'onglet, bannières et spectateurs inchangés ; aucune purge activée.

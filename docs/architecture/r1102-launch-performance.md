@@ -1,5 +1,15 @@
 # R1102 — maintenance des performances après lancement
 
+## Reprise backend autorisée le 17/10/2026
+
+Le mandat consolidé reprend les deux optimisations backend différées, après comparaison des services actuels avec le parent de l'expérimentation73e4fda et inspection de son diff. Seuls les services Chat/cadeaux et leurs tests utiles sont repris : aucune réapplication aveugle du commit ni modification des cadences frontend acceptées.
+
+Chat : fenêtre canonique minimale sans relations, puis hydratation uniquement des messages nouveaux/tombstones livrés. Curseurs, générations, ordres, réponses/mentions, confidentialité et rétention restent autoritaires. Cadeaux : une lecture groupée des notifications par clés de déduplication et une matérialisation annuelle groupée, sous les verrous et règles existants. Aucun cache partagé, pool/timeout de production, prix ou récompense changé.
+
+Qualification privée de reprise : Chat historique51/51 (parent expiré inclus), pression10/30lecteurs2/2, cadeaux/concurrence6/6. La première exécution globale50PASS/3FAIL provenait des tests de pression qui incrémentaient la génération du même schéma que les scénarios historiques : ils possèdent désormais leur propre schéma privé ; aucune assertion historique ni timeout n'a été assoupli. Préparations et nettoyages ont réussi cette fois, sans infrastructure supplémentaire. Zéro hydratation de relations inchangées observée pour10et30lecteurs ; les durées privées sont des échantillons de test, pas une promesse de capacité publique.
+
+Une baseline passive bornée précède la livraison : fenêtre07:31:22–07:41:22UTC, dernier déploiementB/C/D, échantillon plafonné à500logs (501retournés), aucun5xx ni timeoutPrisma observé dans cet échantillon. Les compteurs incomplets, activités variables et statistiques SQL cumulatives empêchent une comparaison causale de latence/charge en production. Aucun benchmark de charge public ni achat/participation de QA. [Preuve de reprise](evidence/r1102-backend-reprise.json) ; statut de review/déploiement et observations après livraison exclusivement au Master.
+
 Mandat propriétaire du 16/10/2026 après ouverture officielle déclarée et ralentissements avec environ dix joueurs. Départ GitHub `bd3dcb0c2ec183210314cfad0863b6e646998e6a`, main/review distantes alignées, arbre local propre puis avance rapide de review. V1 reste acceptée et clôturée ; aucune ancienne tâche rouverte. Le [Master](../master/PROJECT_MASTER_PLAN.md) possède seul le statut de livraison ; ce document conserve le diagnostic et le contrat technique du correctif.
 
 ## Causes et limites de preuve

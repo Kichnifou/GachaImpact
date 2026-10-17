@@ -2,12 +2,14 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { SharedInvocationApi, SharedInvocationState, SharedSession } from '../api/shared-invocations-types';
 import { establishSharedInvocationTab, sharedInvocationTabId, nextSharedPresenceRevision } from './shared-invocation-tab';
 import { apiErrorMessage } from '../utils/formatters';
+import { useSharedInvocationCount } from './use-shared-invocation-count';
 const empty: SharedInvocationState = { broadcasting: null, watching: null };
 /** Ignore old snapshots (including cross-account results); equal seq is an unchanged snapshot. */
 export function mergeSharedSession(previous: SharedSession | null, next: SharedSession | null) {
     return previous && next && previous.id === next.id && previous.seq > next.seq ? previous : next;
 }
 export function useSharedInvocations(api: SharedInvocationApi | undefined, invocationVisible: boolean, onPersonalRefresh?: () => Promise<void>, ownerKey?: string, presentation = false) {
+    const availableCount = useSharedInvocationCount(api, invocationVisible && !presentation, ownerKey);
     const presentationRef = useRef(presentation); presentationRef.current = presentation;
     const [state, setState] = useState(empty), [error, setError] = useState(''), [pending, setPending] = useState(false),[personalReady,setPersonalReady]=useState(true);
     const current = useRef(state), screen = useRef(invocationVisible), generation = useRef(0), locked = useRef(false), refresh = useRef(onPersonalRefresh), revision = useRef(0);
@@ -222,7 +224,7 @@ export function useSharedInvocations(api: SharedInvocationApi | undefined, invoc
             }
         }
     }, [api, apply]);
-    return { state, error:personalError||error, personalError, pending, reactionCooling, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
+    return { state, availableCount, error:personalError||error, personalError, pending, reactionCooling, personalReady,refreshPersonal, enabled: !!api, api, mutate, apply,
         start: () => mutate((api, id) => api.start(id)), stop: () => mutate((api, id) => api.control(id, 'stop', screen.current ? 'invocation' : 'other')),
         watch: (id: string | null) => mutate((api, tab) => api.watch(tab, id)),
         advance: (action: 'advance' | 'skip' | 'close') => mutate(async (api, id) => {

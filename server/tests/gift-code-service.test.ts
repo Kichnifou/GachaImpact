@@ -30,16 +30,53 @@ describe('GiftCodeService administration', () => {
     const tx = {
       $queryRaw: vi.fn(async () => [{ id: 'player', status: 'ACTIVE', legacy_recovery: null }]),
       giftCodeEdition: { findMany: vi.fn(async () => [{ id: 'edition', giftCode: { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'moras', amount: 100n }], stellaAmount: 0n, eventPoints: 0, eventCurrency: 0n } }]) },
-      notification: { findUnique: vi.fn(async () => ({ id: 'notification', state, payload, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' })), update: vi.fn(), updateMany: vi.fn() },
+      notification: { findMany: vi.fn(async () => [{ id: 'notification', deduplicationKey: 'gift-code:player:edition', state, payload, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' }]), update: vi.fn(), updateMany: vi.fn() },
     };
     const db = { $transaction: (action: (value: typeof tx) => unknown) => action(tx) };
     const service = new GiftCodeService({} as never, db as never, { now: () => now });
     for (let i = 0; i < 5; i++) await service.reconcileNotificationsForPlayer('player', now, false);
     expect(tx.notification.update).toHaveBeenCalledTimes(state === 'RESOLVED' ? 5 : 0);
-    tx.notification.findUnique.mockResolvedValue({ id: 'notification', state, payload: { ...payload, title: 'Ancien titre' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' });
+    tx.notification.findMany.mockResolvedValue([{ id: 'notification', deduplicationKey: 'gift-code:player:edition', state, payload: { ...payload, title: 'Ancien titre' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'edition' }]);
     await service.reconcileNotificationsForPlayer('player', now, false);
     expect(tx.notification.update).toHaveBeenCalledTimes(state === 'RESOLVED' ? 6 : 1);
     expect(tx.notification.updateMany).toHaveBeenCalledTimes(6);
+  });
+  it('reconciles mixed editions from one notification read while preserving archived and read states', async () => {
+    const giftCode = { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'moras', amount: 100n }], stellaAmount: 0n, eventPoints: 0, eventCurrency: 0n };
+    const payload = { title: 'Cadeau', token: 'CODE', rewards: [{ resourceKey: 'moras', amount: '100' }] };
+    const tx = {
+      $queryRaw: vi.fn(async () => [{ id: 'player', status: 'ACTIVE', legacy_recovery: null }]),
+      giftCodeEdition: { findMany: vi.fn(async () => ['missing', 'read', 'archived'].map(id => ({ id, giftCode }))) },
+      notification: {
+        findMany: vi.fn(async () => [
+          { id: 'read-notice', deduplicationKey: 'gift-code:player:read', state: 'READ', payload: { ...payload, title: 'Ancien titre' }, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'read' },
+          { id: 'archived-notice', deduplicationKey: 'gift-code:player:archived', state: 'ARCHIVED', payload, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'archived' },
+        ]), create: vi.fn(), update: vi.fn(), updateMany: vi.fn(),
+      },
+    };
+    const service = new GiftCodeService({} as never, { $transaction: (action: (value: typeof tx) => unknown) => action(tx) } as never, { now: () => now });
+
+    await service.reconcileNotificationsForPlayer('player', now, false);
+
+    expect(tx.notification.findMany).toHaveBeenCalledTimes(1);
+    expect(tx.notification.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deduplicationKey: { in: ['gift-code:player:missing', 'gift-code:player:read', 'gift-code:player:archived'] } } }));
+    expect(tx.notification.create).toHaveBeenCalledTimes(1);
+    expect(tx.notification.create).toHaveBeenCalledWith({ data: expect.objectContaining({ playerId: 'player', deduplicationKey: 'gift-code:player:missing' }) });
+    expect(tx.notification.update).toHaveBeenCalledTimes(1);
+    expect(tx.notification.update).toHaveBeenCalledWith({ where: { id: 'read-notice' }, data: { payload, actionKey: 'OPEN_GIFT_CODE', actionTargetId: 'read' } });
+    expect(tx.notification.updateMany).toHaveBeenCalledWith({ where: { playerId: 'player', domainKey: 'gift-codes', state: { in: ['UNREAD', 'READ'] }, actionTargetId: { notIn: ['missing', 'read', 'archived'] } }, data: { state: 'RESOLVED', resolvedAt: now } });
+  });
+  it('materializes all current annual editions together with the same Paris month boundaries', async () => {
+    const database = {
+      giftCode: { findMany: vi.fn(async () => [{ id: 'annual-a' }, { id: 'annual-b' }]) },
+      giftCodeEdition: { createMany: vi.fn(), findFirst: vi.fn(async () => ({ id: 'edition' })) },
+    };
+    const service = new GiftCodeService({} as never, database as never, { now: () => now });
+
+    expect(await service.festivalAvailability('player', 9, now)).toEqual({ available: true });
+
+    expect(database.giftCodeEdition.createMany).toHaveBeenCalledTimes(1);
+    expect(database.giftCodeEdition.createMany).toHaveBeenCalledWith({ data: ['annual-a', 'annual-b'].map(giftCodeId => ({ giftCodeId, editionKey: '2026', year: 2026, startsAt: new Date('2026-08-31T22:00:00.000Z'), endsAt: new Date('2026-09-30T22:00:00.000Z') })), skipDuplicates: true });
   });
   it.each([
     { total: 0, page: 1, expected: 0, pages: 1 },

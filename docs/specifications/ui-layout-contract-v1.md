@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Compteur Invocation Voir — R1104
+
+Pastille bleue de10px dans le coin supérieur droit du bouton Voir, position absolue sans modification de taille/position, sans interception des clics ni du focus. Nom accessible avec nombre confirmé ; zéro/1/plusieurs testés en desktop/mobile, aucune valeur affichée en cas de chargement initial ou erreur, pas de pastille sur Arrêter. [Contrat partagé](../architecture/shared-invocations-v1.md). Ce compteur ne déclenche aucune réconciliation fréquente de la liste.
+
 ## Maintenance post-V1 — Concours et Légendes (17/10/2026)
 
 Les cartes de résultat Concours affichent la récompense avant une ligne de titre réservée à toutes les cartes ; même axe par rangée, titres compacts, aucune mutation des scores. La fiche d'un personnage présente ses titres réels dans un disclosure compact sans agrandir la modale à l'ouverture. Le Profil possède un onglet Légendes après Box, avec droits BOX/GENERAL_STATISTICS conservés ; `ScrollableScreenPanel` garde son scroll. [Contrat B/C/D](../architecture/post-v1-contest-legends-20261017.md) supersédant uniquement l'emplacement des Légendes de l'ancien R1090 et l'affichage du snapshot de titre dans le résultat terminé.
