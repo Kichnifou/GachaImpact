@@ -1,0 +1,182 @@
+{
+    "scope":  "Event Shop frontend feedback only; consolidated mandate and Arcade erratum recorded, other lots not implemented",
+    "baseline":  "be84a11da06e9af6065bcfd487771789aefc9012",
+    "code":  "e40a8c5b7d8a234539de822d138cc6506fe3db01",
+    "tests":  {
+                  "eventScreenAndShop":  {
+                                             "passed":  79,
+                                             "failed":  0
+                                         },
+                  "quick":  {
+                                "passed":  5,
+                                "failed":  0
+                            },
+                  "frontendBuild":  "PASS; pre-existing bundle-size warning",
+                  "full":  "NOT RUN - targeted frontend correction",
+                  "postgresql":  "NOT RUN - no backend, database or economic behavior changed"
+              },
+    "visual":  {
+                   "fixture":  "Synthetic local GameShell, Vite production build, production CSS, installed Edge headless",
+                   "viewports":  [
+                                     {
+                                         "width":  1920,
+                                         "height":  1080,
+                                         "stableGridCardsAndButtons":  true,
+                                         "states":  [
+                                                        "before",
+                                                        "pending",
+                                                        "success",
+                                                        "error",
+                                                        "long amounts",
+                                                        "Moras success",
+                                                        "Collection success"
+                                                    ],
+                                         "summary":  {
+                                                         "height":  65,
+                                                         "scroll":  65,
+                                                         "font":  "12px",
+                                                         "text":  "Obtenu : 160 Primogemmes contre 1 Bonbon Maudit."
+                                                     },
+                                         "long":  {
+                                                      "height":  65,
+                                                      "scroll":  65,
+                                                      "text":  "Obtenu : 1â€¯441â€¯151â€¯880â€¯758â€¯400 Primogemmes contre 9007199254740 Bonbons Maudits."
+                                                  }
+                                     },
+                                     {
+                                         "width":  1366,
+                                         "height":  768,
+                                         "stableGridCardsAndButtons":  true,
+                                         "states":  [
+                                                        "before",
+                                                        "pending",
+                                                        "success",
+                                                        "error",
+                                                        "long amounts",
+                                                        "Moras success",
+                                                        "Collection success"
+                                                    ],
+                                         "summary":  {
+                                                         "height":  59,
+                                                         "scroll":  59,
+                                                         "font":  "11px",
+                                                         "text":  "Obtenu : 160 Primogemmes contre 1 Bonbon Maudit."
+                                                     },
+                                         "long":  {
+                                                      "height":  59,
+                                                      "scroll":  59,
+                                                      "text":  "Obtenu : 1â€¯441â€¯151â€¯880â€¯758â€¯400 Primogemmes contre 9007199254740 Bonbons Maudits."
+                                                  }
+                                     },
+                                     {
+                                         "width":  390,
+                                         "height":  844,
+                                         "stableGridCardsAndButtons":  true,
+                                         "states":  [
+                                                        "before",
+                                                        "pending",
+                                                        "success",
+                                                        "error",
+                                                        "long amounts",
+                                                        "Moras success",
+                                                        "Collection success"
+                                                    ],
+                                         "summary":  {
+                                                         "height":  65,
+                                                         "scroll":  65,
+                                                         "font":  "12px",
+                                                         "text":  "Obtenu : 160 Primogemmes contre 1 Bonbon Maudit."
+                                                     },
+                                         "long":  {
+                                                      "height":  65,
+                                                      "scroll":  65,
+                                                      "text":  "Obtenu : 1â€¯441â€¯151â€¯880â€¯758â€¯400 Primogemmes contre 9007199254740 Bonbons Maudits."
+                                                  }
+                                     },
+                                     {
+                                         "width":  390,
+                                         "height":  600,
+                                         "stableGridCardsAndButtons":  true,
+                                         "states":  [
+                                                        "before",
+                                                        "pending",
+                                                        "success",
+                                                        "error",
+                                                        "long amounts",
+                                                        "Moras success",
+                                                        "Collection success"
+                                                    ],
+                                         "summary":  {
+                                                         "height":  65,
+                                                         "scroll":  65,
+                                                         "font":  "12px",
+                                                         "text":  "Obtenu : 160 Primogemmes contre 1 Bonbon Maudit."
+                                                     },
+                                         "long":  {
+                                                      "height":  65,
+                                                      "scroll":  65,
+                                                      "text":  "Obtenu : 1â€¯441â€¯151â€¯880â€¯758â€¯400 Primogemmes contre 9007199254740 Bonbons Maudits."
+                                                  }
+                                     }
+                                 ],
+                   "realPlayerMutations":  0,
+                   "ownerAcceptance":  "NOT ACQUIRED"
+               },
+    "review":  {
+                   "source":  "Exact published GitHub commit and diff inspected by implementing agent",
+                   "independent":  "Not performed; presentation-only change, no sensitive mechanism changed"
+               },
+    "postflight":  {
+                       "sha":  "e40a8c5b7d8a234539de822d138cc6506fe3db01",
+                       "at":  "2026-10-17T06:54:03.005Z",
+                       "cloudflare":  "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/34e19672-8b5d-47e3-8069-42ebd4f34e8b",
+                       "sites":  [
+                                     {
+                                         "origin":  "https://34e19672.gachaimpact.pages.dev",
+                                         "hashes":  [
+                                                        {
+                                                            "asset":  "/assets/index-X3uqwP89.css",
+                                                            "sha256":  "fc898f8cf5b0dad7b835410208abd065327965939fbbf29145863b1aad5dfcd7"
+                                                        },
+                                                        {
+                                                            "asset":  "/assets/index-hP_9QwNT.js",
+                                                            "sha256":  "bfc4418fba191888e2f0b7acdda5331f2c991f1b6bfe510ec8dbcc1b8fcc9886"
+                                                        }
+                                                    ]
+                                     },
+                                     {
+                                         "origin":  "https://gachaimpact.pages.dev",
+                                         "hashes":  [
+                                                        {
+                                                            "asset":  "/assets/index-X3uqwP89.css",
+                                                            "sha256":  "fc898f8cf5b0dad7b835410208abd065327965939fbbf29145863b1aad5dfcd7"
+                                                        },
+                                                        {
+                                                            "asset":  "/assets/index-hP_9QwNT.js",
+                                                            "sha256":  "bfc4418fba191888e2f0b7acdda5331f2c991f1b6bfe510ec8dbcc1b8fcc9886"
+                                                        }
+                                                    ]
+                                     },
+                                     {
+                                         "origin":  "https://gachaimpact.fr",
+                                         "hashes":  [
+                                                        {
+                                                            "asset":  "/assets/index-X3uqwP89.css",
+                                                            "sha256":  "fc898f8cf5b0dad7b835410208abd065327965939fbbf29145863b1aad5dfcd7"
+                                                        },
+                                                        {
+                                                            "asset":  "/assets/index-hP_9QwNT.js",
+                                                            "sha256":  "bfc4418fba191888e2f0b7acdda5331f2c991f1b6bfe510ec8dbcc1b8fcc9886"
+                                                        }
+                                                    ]
+                                     }
+                                 ],
+                       "health":  200,
+                       "eventAnonymousGuard":  401
+                   },
+    "railway":  {
+                    "id":  "62973320-421b-45e9-baba-6853e2ef16f3",
+                    "sha":  "e40a8c5b7d8a234539de822d138cc6506fe3db01",
+                    "status":  "SUCCESS"
+                }
+}
