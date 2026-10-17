@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Listes de joueurs — texte compact du17/10/2026
+
+Nom14px (13px sur petit écran), niveau/élément11px, interlignes explicites. Dans Joueurs connectés, le statut se place sous les métadonnées pour laisser la largeur au pseudo ; marge interne18px. Sur mobile étroit, l'action de relation passe sous l'identité et reste accessible. Même hiérarchie dans les listes Social. Aucun texte tronqué par ellipse ni taille d'avatar changée ; le défilement appartient toujours à la liste existante, sans couper les actions. Pseudos longs et pastille vérifiés ensemble dans le GameShell/CSS compilés, sans modifier présence, relations ou backend.
+
 ## Compléments Légendes, fiches Chat et avatars — 17/10/2026
 
 Le mandat ultérieur déplace les totaux de chaque Légende dans le dernier emplacement à droite : participations puis victoires sur deux lignes. Le libellé « C6 · Légende » et son ancienne réserve invisible d'en-tête disparaissent ; portrait56px conservé. La composition interne utilise2/3/6colonnes selon la largeur de carte, cinq thèmes toujours simultanés, totaux en bas à droite quand une seule rangée est nécessaire. La sonde ancienne de dimensions est retirée dans cette dernière disposition : seules les données visibles déterminent les minima. Aucun titre ou compteur réel ne peut être masqué. Cadres communs du Profil, Box, tailles de police et couleurs des titres restent conservés ; capacité3/2/1 adaptée à l'espace utile, mobile dans le flux existant.

@@ -1,0 +1,16 @@
+{
+  "scope": "Player list typography only; Exploration excluded",
+  "tests": {"social": 67, "build": "PASS", "typecheck": "PASS", "lint": "PASS with existing warnings"},
+  "independentCompiledReview": {
+    "viewports": [[730,900],[1366,768],[1920,1080],[390,844],[390,600]],
+    "surfaces": ["Social", "Connected players dialog"],
+    "syntheticNameLengths": [19,30],
+    "observations": 20,
+    "nameAndPresenceDotOnSingleLine": true,
+    "clippingOrOverlap": false,
+    "actionsAndMetadataVisible": true,
+    "dialogCopyWidthPx": {"desktop":250,"mobile":240},
+    "scrollStress": {"rows":42,"viewport":[390,600],"dialogTop":16,"dialogBottom":584,"listHeight":350,"footerTop":531,"footerBottom":565,"lastRowReachable":true}
+  },
+  "limitations": ["Independent review of published SHA and deployments recorded separately after publication", "No backend or gameplay changes"]
+}

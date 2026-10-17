@@ -2,6 +2,10 @@
 
 ## Finitions UI puis Exploration — mission propriétaire du17/10/2026 en cours
 
+**Listes de joueurs — complément qualifié :** police du nom14px/13px mobile et ligne niveau/élément11px. Statut sous l'identité dans Joueurs connectés, espacement interne adapté, actions sous la ligne sur mobile étroit pour garder les pseudos lisibles. Aucun changement de présence/relations/backend.67tests Social, build/typecheck et lint PASS (avertissements préexistants conservés). Contrôle compilé indépendant20cas, cinqformats×deuxsurfaces×pseudos19/30caractères : nom/pastille sur une ligne, aucune coupe/chevauchement, métadonnées/actions visibles. Stress42rangées à390×600 : panneau borné16–584px, liste défilante350px et dernière rangée/footer accessibles. Revue finale du vrai SHA publié puis promotion/déploiements suivent ; livraison indépendante de B.
+
+**Compléments Légendes/Chat/avatars livrés35cdef478ad20f8af6f761df016f5b926519bfb5 :** revue indépendante des dix vrais blobs GitHub APPROVED, promotion main FF stricte. Railway5c971ac2-1e8c-440d-8cd0-146f6f78a8a5 et Cloudflare d9201746-3bce-45ac-ab24-545ebbe1690d SUCCESS au SHA exact. Postflight20:38:29UTC : preview et deux domaines avec assets identiques, health200/huitgardes401. Aucun commit Exploration inclus.
+
 **Notifications livrées :** bouton le plus à droite après Déconnexion ; ordre Menu/Modération/Configuration/Déconnexion/Notifications. Correctif isolé 98faee535c863d30fdf869f6a1cc528ea72ec16a :28tests/typecheck et revue indépendante compilée6formats×2rôles×Liveon/off PASS. Railway 7614d3e5-7529-4047-8e56-01dcc9fd4ec3 et Cloudflare 790ea592-2b44-4a35-b16f-bc330be4749b SUCCESS ; postflight19:45:56UTC assets conformes, health200/huitgardes401.
 
 **A livré techniquement :** finitions internes Légendes, calendrier annuel Paris, Configuration dans l'en-tête, seule explication de l'étape42/115 Boss modifiée, Catalogue connecté à la Box autoritaire avec désaturation des non-possédés et tri Possédé réversible. Base initiale quatre refs alignées/arbre propre à93cab54c3f948264aeefa81ef933364747075f34. La recette humaine reste distincte de la qualification technique.

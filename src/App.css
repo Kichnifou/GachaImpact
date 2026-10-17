@@ -8885,8 +8885,22 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .social-player-list { display: grid; gap: 10px; align-content: start; min-height: 200px; padding: 4px; }
 .social-player-identity.app-button { display: flex; width: 100%; text-align: left; gap: 12px; align-items: center; justify-content: flex-start; min-height: 62px; }
 .social-player-identity > span:nth-child(2) { min-width: 0; flex: 1; }
-.social-player-identity strong { display: block; overflow-wrap: anywhere; }
+.social-player-identity strong { display: block; overflow-wrap: anywhere; font-size: 14px; line-height: 1.2; }
 .social-player-identity small { display: block; color: var(--muted); }
+.social-player-identity > span:nth-child(2) > small { font-size: 11px; line-height: 1.35; }
+.players-panel .social-player-identity.app-button { display:grid; grid-template-columns:38px minmax(0,1fr); gap:2px 8px; padding:8px; }
+.players-panel .social-player-identity > .mini-avatar { grid-column:1; grid-row:1/3; }
+.players-panel .social-player-identity > span:nth-child(2) { grid-column:2; grid-row:1; }
+.players-panel .social-player-identity .social-presence-label { grid-column:2; grid-row:2; min-width:0; text-align:left; }
+@media (max-width: 550px) {
+  .players-panel .online-player-row, .social-screen .social-row { grid-template-columns: minmax(0,1fr); }
+  .players-panel .online-player-action, .social-screen .social-row-actions { width:auto; min-width:100px; justify-self:end; }
+  .social-screen .social-player-identity.app-button { display:grid; grid-template-columns:38px minmax(0,1fr); gap:2px 8px; padding:8px; }
+  .social-screen .social-player-identity > .mini-avatar { grid-column:1; grid-row:1/3; }
+  .social-screen .social-player-identity > span:nth-child(2) { grid-column:2; grid-row:1; }
+  .social-screen .social-player-identity .social-presence-label { grid-column:2; grid-row:2; min-width:0; text-align:left; }
+  .social-player-identity strong { font-size:13px; }
+}
 .social-player-identity .social-presence-label { flex: 0 0 78px; min-width: 78px; text-align: right; }
 .social-pagination, .profile-navigation { display: flex; gap: 12px; align-items: center; justify-content: space-between; padding: 8px 0; }
 .privacy-settings { display: grid; gap: 0; }
@@ -9012,7 +9026,7 @@ button.inventory-stella-card { width: 100%; font: inherit; }
 .presence-away { background: #edcb69; }
 .presence-offline { background: #8c96a6; }
 .profile-activity-section { border-top: 1px solid var(--border); padding: 24px 12px; }
-.players-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 14px; padding: 24px; max-height: calc(100dvh - 32px); }
+.players-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 14px; padding: 18px; max-height: calc(100dvh - 32px); }
 .players-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .players-footer .social-feedback { flex: 1; margin: 0; }
 .player-quick-search { position: relative; }
