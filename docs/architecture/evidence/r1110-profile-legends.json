@@ -1,5 +1,5 @@
 {
-  "scope": "R1110 candidat qualifié ; erratum : Profil → Légendes exclusivement, Box strictement inchangé",
+  "scope": "R1110 livré techniquement — Profil Légendes seul ; Profil Box strictement inchangé",
   "bootstrap": "0bb3c4a3cf87943d38e397efa3bb9a327c866976",
   "cause": {
     "viewport": [
@@ -3681,6 +3681,7 @@
     "lateAndResize": {
       "partialPage": 2,
       "refreshFocusStable": true,
+      "keyboardPagination": true,
       "resizeAnchorStable": true,
       "delayedFontAndPortrait": true,
       "desktop": [
@@ -3709,7 +3710,87 @@
   "limitations": [
     "Captures et clients synthétiques locaux, pas recette humaine ; vidéo originale non fournie comme fichier, viewport1920×980 reproduit.",
     "Flux de document mobile préexistant pour atteindre le Profil conservé ; aucun scroll interne Légendes. Footer fixe dans sa région et thèmes paginés si nécessaire.",
-    "Aucune mutation publique, nouvelle requête, migration, économie ou infrastructure.",
-    "Revue du SHA publié, promotion et déploiements/postflight non acquis au candidat."
-  ]
+    "Aucune mutation publique, nouvelle requête, migration, économie ou infrastructure."
+  ],
+  "delivery": {
+    "codeSha": "ca5736c735e480f044ad9a6d22bb8440eecce41e",
+    "independentReview": {
+      "verdict": "APPROVED",
+      "actualGithubDiffsAndBlobs": true,
+      "uiTests": 31,
+      "browserHarnessRebuiltAndPassed": true,
+      "geometryRecords": 70,
+      "boxIdenticalComparisons": 14,
+      "noPublicMutation": true
+    },
+    "promotion": "Fast-forward strict ; quatre refs alignées0/0, arbre propre",
+    "railway": {
+      "id": "489502ac-a8c3-439f-bd4d-d96359bca4ce",
+      "status": "SUCCESS",
+      "sha": "ca5736c735e480f044ad9a6d22bb8440eecce41e",
+      "migrationsFound": 88,
+      "pending": 0
+    },
+    "cloudflare": {
+      "id": "86353008-17b1-4ec2-9ab5-5f46266f4663",
+      "status": "SUCCESS",
+      "sha": "ca5736c735e480f044ad9a6d22bb8440eecce41e"
+    },
+    "postflight": {
+      "sha": "ca5736c735e480f044ad9a6d22bb8440eecce41e",
+      "guards": {
+        "presence": 401,
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T14:05:13.869Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/86353008-17b1-4ec2-9ab5-5f46266f4663",
+      "sites": [
+        {
+          "origin": "https://86353008.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BYnXn5yi.css",
+              "sha256": "ad28f42ea260c54722b9b3da064505236cffa4ee53a06f6c45fd3893a659167b"
+            },
+            {
+              "asset": "/assets/index-De30RUNA.js",
+              "sha256": "6215ddf68522d52ec54b2922e6148197ba41fb03b8d53d5149159746ea340fb6"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BYnXn5yi.css",
+              "sha256": "ad28f42ea260c54722b9b3da064505236cffa4ee53a06f6c45fd3893a659167b"
+            },
+            {
+              "asset": "/assets/index-De30RUNA.js",
+              "sha256": "6215ddf68522d52ec54b2922e6148197ba41fb03b8d53d5149159746ea340fb6"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-BYnXn5yi.css",
+              "sha256": "ad28f42ea260c54722b9b3da064505236cffa4ee53a06f6c45fd3893a659167b"
+            },
+            {
+              "asset": "/assets/index-De30RUNA.js",
+              "sha256": "6215ddf68522d52ec54b2922e6148197ba41fb03b8d53d5149159746ea340fb6"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "documentationCheckpoint": "Review puis promotion et contrôle des déploiements finaux séparés ; pas d’auto-référence au propre SHA du checkpoint."
+  }
 }

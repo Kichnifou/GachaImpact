@@ -1,6 +1,6 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
-## R1110 — candidat Légendes seul qualifié (17/10/2026)
+## R1110 — correction Légendes seule livrée techniquement (17/10/2026)
 
 Erratum prioritaire : section Profil → Box intégralement annulée, aucune retouche de grille/cartes/filtres/scrollbar/interactions. Bootstrap quatre refs alignées0/0 au SHA0bb3c4a3cf87943d38e397efa3bb9a327c866976, arbre propre. Défaut Légendes reproduit à1920×980 : carte506,64px dans une région460px, body504/scroll507. La sonde héritait du mode compact parent pendant sa mesure normale, avant retour normal ; seuil de chrome compact900px également insuffisant. Les cinq formats R1109 ne couvraient pas ce viewport.
 
@@ -8,7 +8,7 @@ Nouvelle composition thématique réunie : statistique, titre coloré et compteu
 
 Full8/8 PASS :1815UI/2673backend non-DB ; ciblés11UI. Aucun PG nécessaire ou exécuté. GameShell/CSS production : septformats dont1920×980/900, Chat ouvert/replié,84relevés de matrice ; toutes pages1/3/11/12Légendes, zéro/privés, titres0/5longs et compteurs20chiffres, tous thèmes accessibles, aucun clipping/scroll interne. Police/portraits retardés, resize/ancre/focus PASS. Box30personnages : mêmes rectangles/styles/scroll aux14configurations, recherche/tri/C6/fiche/retour préservés ; règles CSSBox identiques. Captures desktop/mobile examinées, aucune recette humaine déclarée. [Preuves](../architecture/evidence/r1110-profile-legends.json).
 
-Contrats UI/Profil-Légendes, décision et Master actualisés ; Guide/AGENTS/workflow/passation/roadmap/navigation, backend/schéma/économie examinés inchangés. Mobile : flux de document préexistant pour atteindre le Profil, aucun scroll interne Légendes. Prochaine action : publicationreview, revue du vrai SHA, FFmain puis déploiements/postflight dans cette mission. Aucun nouveau tracker ou autre lot.
+Contrats UI/Profil-Légendes, décision et Master actualisés ; Guide/AGENTS/workflow/passation/roadmap/navigation, backend/schéma/économie examinés inchangés. Mobile : flux de document préexistant pour atteindre le Profil, aucun scroll interne Légendes. Code livré `ca5736c735e480f044ad9a6d22bb8440eecce41e` : revue indépendante APPROVED des vrais8diffs/4blobs GitHub,31UI PASS et harness recompilé/rejoué PASS (police/portraits retardés, clavier Légendes/thèmes, refresh/focus/resize/ancre),70géométries et14comparaisonsBox confirmées. Promotion FF stricte, quatre refs alignées0/0/arbre propre. Railway `489502ac-a8c3-439f-bd4d-d96359bca4ce` et Cloudflare `86353008-17b1-4ec2-9ab5-5f46266f4663` SUCCESS exacts ;88migrations sans attente. Postflight17/10 à14:05:13UTC : preview/deuxdomainesJS-CSS identiques, health200, gardes anonymes Event/présence/count/birthday/après-match401. Le checkpoint documentaire suit séparément review, FF et déploiements/postflight finaux, sans auto-référence à son hash. Prochaine action produit : recette propriétaire courte de Profil → Légendes au viewport réel1920×980 ; recette humaine non acquise. Aucun autre lot automatique ni nouveau tracker.
 
 ## R1109 — trois finitions livrées techniquement (17/10/2026)
 
