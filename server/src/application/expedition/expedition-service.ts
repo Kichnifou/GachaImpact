@@ -4,7 +4,7 @@ import { commandNow } from '../player/player-command-execution.js';
 import type { PlayerExecutionActor } from '../player/player-execution-actor.js';
 import { NotificationState, OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { EXPEDITION_DURATION_MS, selectExpeditionReward, type ExpeditionReward } from '../../domain/expedition/expedition.js';
-import { isElementKey, resourceKeys } from '../../domain/economy/resources.js';
+import { isElementKey, isResourceKey, resourceKeys } from '../../domain/economy/resources.js';
 import { businessDateToDatabaseDate, databaseDateToBusinessDate, getBusinessDate, type Clock } from '../../domain/time/business-date.js';
 import type { RandomSource } from '../../domain/wheel/wheel.js';
 import { BusinessError } from '../errors.js';
@@ -86,7 +86,6 @@ export class ExpeditionService {
 
   public async claim(identity: PlayerExecutionActor, idempotencyKey: string, sourceChannel: SourceChannel = SourceChannel.UI): Promise<ExpeditionClaimResult> {
     const player = await this.getPlayer.execute(identity); if (!player.elementKey || !isElementKey(player.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
-    const playerElementKey = player.elementKey;
     const now = commandNow(this.clock); const businessDate = getBusinessDate(now); const operationKey = `expedition.claim:${player.id}:${idempotencyKey}`; let retainedRoll: number | null = null;
     const committed = await this.withRetry(async () => this.database.$transaction(async (transaction) => {
       await lockPlayerMutation(transaction, player.id);
@@ -94,8 +93,15 @@ export class ExpeditionService {
       if (existing) {
         const summary = objectSummary(existing.resultSummary); const roll = Number(summary.roll);
         if (existing.playerId !== player.id || existing.operationType !== 'expedition.claim' || existing.status !== OperationStatus.COMPLETED || !Number.isInteger(roll)) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Cette tentative ne correspond plus à la récupération attendue.');
-        return { id: existing.id, alreadyProcessed: true, reward: selectExpeditionReward(roll, playerElementKey), characterId: String(summary.characterId), completedAt: new Date(String(summary.completedAt)), commandSnapshot: summary.commandSnapshot as unknown as ExpeditionCommandSnapshot | undefined };
+        const kind = summary.rewardKind, resourceKey = summary.resourceKey, amount = summary.amount;
+        if (roll < 1 || roll > 10 || (kind !== 'primogems' && kind !== 'particles' && kind !== 'moras') || typeof resourceKey !== 'string' || !isResourceKey(resourceKey) ||
+          (kind === 'particles' ? !resourceKey.startsWith('particles_') : kind !== resourceKey) || typeof amount !== 'string' || !/^[1-9][0-9]*$/.test(amount)) throw new BusinessError('EXPEDITION_IDEMPOTENCY_CONFLICT', 'Le reçu de cette expédition est incomplet.');
+        const reward: ExpeditionReward = { roll, kind, resourceKey, amount: BigInt(amount) };
+        return { id: existing.id, alreadyProcessed: true, reward, characterId: String(summary.characterId), completedAt: new Date(String(summary.completedAt)), commandSnapshot: summary.commandSnapshot as unknown as ExpeditionCommandSnapshot | undefined };
       }
+      const currentPlayer = await transaction.player.findUniqueOrThrow({ where: { id: player.id }, select: { elementKey: true } });
+      if (!currentPlayer.elementKey || !isElementKey(currentPlayer.elementKey)) throw new BusinessError('PLAYER_ELEMENT_REQUIRED', 'Un élément permanent est requis.');
+      const playerElementKey = currentPlayer.elementKey;
       await assertCommandTargets(transaction, player.id, 'expedition');
       await reconcileLocked(transaction, player.id, now);
       const state = await transaction.playerExpedition.findUnique({ where: { playerId: player.id }, include: { character: true } });

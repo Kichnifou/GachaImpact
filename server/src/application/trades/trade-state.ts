@@ -1,5 +1,14 @@
 import type { Prisma } from '../../../generated/prisma/client.js';
 
+/** Caller holds particles:trades and the affected Player locks. No economic leg:
+ * a terminal state releases the reservation while preserving the request/history. */
+export async function closePendingTrade(tx: Prisma.TransactionClient, requestId: string, state: 'CANCELLED' | 'REFUSED', now: Date) {
+  const request = await tx.tradeRequest.findUniqueOrThrow({ where: { id: requestId } });
+  if (request.state !== 'PENDING') throw new Error('TRADE_NOT_PENDING');
+  await tx.tradeRequest.update({ where: { id: requestId }, data: { state, resolvedAt: now, updatedAt: now } });
+  await refreshTradeNotification(tx, request.recipientPlayerId, now);
+}
+
 export async function particleStock(tx: Prisma.TransactionClient, playerId: string, resourceKey: string, now?: Date) {
   const balance = await tx.playerResourceBalance.findUnique({ where: { playerId_resourceKey: { playerId, resourceKey } } });
   const reserved = (await tx.tradeRequest.aggregate({ where: { senderPlayerId: playerId, senderResourceKey: resourceKey, state: 'PENDING', ...(now ? { expiresAt: { gt: now } } : {}) }, _sum: { currentAmount: true } }))._sum.currentAmount ?? 0n;

@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Intervention exceptionnelle d'élément — complément prioritaire du17/10/2026
+
+**Autorisé explicitement :** clôturer les demandes de particules PENDING envoyées et reçues du seul compte ciblé, puis appliquer atomiquement Cryo→Electro et l'inversion de ses deux stocks, sans statistiques historiques ni autres ressources modifiées. L'ancienne attente d'expiration est supersédée. Tests PostgreSQL privés et revue indépendante du vrai SHA avant application réelle, déjà autorisée sans nouveau GO. Aucun changement général d'élément pour les joueurs. Un garde-fou sous verrou empêche une conversion en vol d'utiliser l'ancien élément ; sa publication isolée précède l'opération. Exploration demeure review-only, sans migration publique. [Contrat](../architecture/exceptional-element-maintenance-20261017.md), état réel au Master.
+
 ## Finitions UI / Exploration — mandat du17/10/2026
 
 **Validé explicitement par le propriétaire :** livrer d'abord A (Légendes internes, calendrier Paris, Configuration en icône, complément étape42 Boss), revue indépendante puis main/déploiements/postflight. Ensuite implémenter B Exploration et le publier uniquement sur review avec recette jouable isolée. Nouveau GO humain indispensable pour main et toute migration/déploiement Exploration public. Cette exception supersède le cycle automatique de promotion pour B uniquement. Aucun test économique en production, infrastructure payante ou autre lot rouvert. État réel au Master.

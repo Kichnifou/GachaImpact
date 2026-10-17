@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## Maintenance exceptionnelle d'élément — 17/10/2026
+
+Une procédure locale hors API réutilise les verrous TradeService/Player et le moteur économique pour une intervention unique auditée, sans migration. La conversion revalide l'élément après son verrou Player ; une récupération d'Expédition relit cet élément et rejoue ensuite la ressource historique persistée. Aucun service de changement d'élément accessible aux joueurs. [Contrat](exceptional-element-maintenance-20261017.md), qualification et application réelle au Master ; Exploration reste exclu de ce lot public.
+
 ## R1112 — observation serveur du live officiel
 
 `TwitchLiveService` partage une preuve Helix entre indicateur authentifié et automatisation Giveaway. EventSub signé déclenche seulement une réconciliation ; boucle 30 secondes, bail PostgreSQL 120 secondes, espacement minimal des signaux 15 secondes. L'état durable est revalidé sous le verrou Giveaway dans `open()`/`close()` ; aucune logique économique parallèle. La fin exige 45 secondes et une nouvelle observation saine. Les annonces existantes et l'autorité GLOBAL sont conservées. [Contrat](twitch-live-giveaway-r1112.md), état appliqué au Master.

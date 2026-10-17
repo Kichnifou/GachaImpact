@@ -147,6 +147,10 @@ export class PrismaDailyChallengeStore implements DailyChallengeStore, DailyChal
             const saved = readMutationSnapshot(existing.resultSummary);
             return { operation: { id: existing.id, alreadyProcessed: true }, ...(saved ?? { view: await readView(transaction, input.playerId, input.businessDate), resources: await readBalances(transaction, input.playerId) }) };
           }
+          // The personal element can be changed by an exceptional maintenance.
+          // Revalidate the pre-lock service snapshot before any new mutation.
+          const lockedPlayer = await transaction.player.findUniqueOrThrow({ where: { id: input.playerId }, select: { elementKey: true } });
+          if (lockedPlayer.elementKey !== input.playerElementKey) throw new BusinessError('PLAYER_ELEMENT_CHANGED', 'Votre élément a changé. Actualisez votre profil avant de réessayer.');
           const operation = await transaction.businessOperation.create({ data: {
             playerId: input.playerId, operationType, sourceChannel, idempotencyKey: operationKey,
             resultSummary: { ...request },

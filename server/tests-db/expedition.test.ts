@@ -56,6 +56,23 @@ it('replays standalone departure and claim snapshots after completion and later 
   expect(claim.commandSnapshot?.balanceAfter).toBeDefined(); expect(randomCalls).toBe(1);
 }, 20_000);
 
+it('uses the locked personal element for a new claim and preserves the historical reward on replay after another element change', async () => {
+  now = new Date('2099-10-01T10:00:00Z'); nextRoll = 2;
+  const { id, character, service } = await fixtureWithDedicatedCharacter();
+  await service.start(identity, character.id, randomUUID());
+  now = new Date(now.getTime() + 20 * 3600_000 + 1);
+  // The identity resolver still returns its original Hydro snapshot.
+  await database.player.update({ where: { id }, data: { elementKey: 'electro' } });
+  const key = randomUUID(), result = await service.claim(identity, key);
+  expect(result.reward).toMatchObject({ kind: 'particles', resourceKey: 'particles_electro', amount: 800n });
+  expect((await database.playerResourceBalance.findUniqueOrThrow({ where: { playerId_resourceKey: { playerId: id, resourceKey: 'particles_hydro' } } })).amount).toBe(0n);
+  await database.player.update({ where: { id }, data: { elementKey: 'cryo' } });
+  const replay = await service.claim(identity, key);
+  expect(replay.operation.alreadyProcessed).toBe(true);
+  expect(replay.reward).toEqual(result.reward);
+  expect(await database.resourceMovement.count({ where: { operationId: result.operation.id, causeKey: 'expedition.claim' } })).toBe(1);
+}, 30_000);
+
 describe('Expedition persistence', () => {
   it('enables RLS and revokes browser roles on both private tables', async () => {
     const tables = ['notifications', 'player_expeditions'];

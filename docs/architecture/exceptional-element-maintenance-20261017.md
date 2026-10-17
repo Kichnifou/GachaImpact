@@ -1,0 +1,25 @@
+# Intervention administrative exceptionnelle d'élément — 17/10/2026
+
+Mandat propriétaire : un unique compte Twitch canonique, Cryo vers Electro, inversion exacte des stocks Cryo/Electro sans changer les statistiques historiques. Le complément prioritaire autorise expressément la clôture des demandes PENDING envoyées et reçues impliquant ce compte, même avec un autre joueur. Il supersède l'attente de leur expiration naturelle. Aucun échange entre deux autres joueurs ni échange accepté/exécuté ne peut être modifié.
+
+## Procédure bornée
+
+`server/scripts/apply-element-exception.mts` n'est enregistré dans aucune API ni commande joueur. Depuis `server/`, il exige `--scope <fichier privé> --sha <SHA GitHub revu> --apply`, un arbre propre et HEAD égal au SHA publié sur review. Le scope privé fixe Player canonique, identifiant Twitch officiel, login et opérateur ; aucune valeur réelle n'est versionnée. La CLI résout à nouveau le compte via Helix officiel et valide le schéma public avant toute mutation. Les preuves sont ignorées par Git et chiffrées localement par le mécanisme DPAPI existant.
+
+Une transaction Serializable avec retry borné prend d'abord le verrou advisory `particles:trades` de TradeService, puis les Player triés, puis les deux stocks dans l'ordre des clés. Elle revérifie unicité Twitch/Player, état ACTIVE, récupération activée sans restriction, Cryo courant, Electro actif, opérateur ADMIN officiel et absence d'opération économique PENDING. Les erreurs annulent l'ensemble.
+
+Chaque demande PENDING du compte devient CANCELLED si envoyée, REFUSED si reçue, avec horodatage et rafraîchissement de l'agrégat de notifications par le même helper que TradeService. Les lignes et historiques restent conservés. La réservation dépend de PENDING : aucune ressource ne bouge lors de sa clôture. Aucun traitement d'expiration global n'est appelé par cette intervention.
+
+Le moteur économique central inverse les deux stocks, exige zéro demande/réservation restante et produit exactement deux ResourceMovement ADMIN, y compris avec stocks nuls ou égaux. Aucun compteur earned/spent, mission, récompense ou historique n'est recalculé. Le Player passe à Electro ; un AdminAuditEntry contient les préimages et clôtures, le BusinessOperation terminé conserve le reçu. La clé globale fixe `admin.element-exception.20261017` lie définitivement ce mandat à une seule identité. Une relance identique retourne ce reçu sans seconde inversion ; réutilisation sur un autre compte refusée.
+
+Dans la transaction, la CLI capture les données ciblées et celles des partenaires via `targetedBackupTables`, le graphe de sauvegarde personnel existant (ressources, statistiques, Box, progressions, identités et historiques économiques notamment). Elle compare avant/après les champs de ce graphe hors modifications explicitement permises et nouveaux reçus, sans arrondir les int8. Ce n'est pas un snapshot global de toute la base : échanges et notifications sont vérifiés par les tests dédiés et les transitions bornées aux IDs du compte. Les empreintes privées sont conservées. Après commit, elle relit élément, opération, audit et les deux mouvements exacts. Les totaux courants peuvent ensuite évoluer normalement pendant le jeu ; les mouvements validés constituent la preuve exacte de l'inversion.
+
+## Conversion et dépendances
+
+La conversion reçoit un snapshot d'élément avant d'attendre le verrou Player. Une intervention exceptionnelle peut le rendre périmé. `PrismaDailyChallengeStore` vérifie maintenant l'élément courant sous ce verrou avant toute nouvelle mutation ; un reçu déjà terminé reste rejouable. Une ancienne demande en vol est refusée, une demande fraîche utilise Electro. Ce garde-fou doit être déployé avant l'application réelle : ce déploiement backend est nécessaire, contrairement à une simple opération de données sans concurrence.
+
+Une nouvelle récupération d'Expédition relit elle aussi l'élément sous verrou. La relance d'une ancienne récupération restitue sa ressource historique persistée dans le reçu, même après le changement d'élément. Les échanges relisent leur paire d'éléments sous verrou ; les récompenses et lectures ordinaires utilisent le champ canonique `Player.elementKey`. DailyReward, Wheel, activité Twitch/Chat, Giveaway/Boss, Cadeau Suprême et Arcade ont été examinés pour leur verrou/retry et leur lecture d'élément. Le choix initial reste définitif pour les joueurs : aucun bouton, endpoint ou commande de changement n'est ajouté. Le lot Exploration reste exclu de cette maintenance, de main et de toute migration publique.
+
+## Qualification et état
+
+Les tests privés dédiés couvrent stocks différents/nuls/égaux, relance, demandes envoyées/reçues, notifications, conservation des partenaires et demandes étrangères expirées/acceptées, identité/état/récupération/opérateur, rollback après toutes les écritures, concurrence de deux exécutions, acceptation concurrente et conversion périmée/fraîche. Les résultats réellement acquis, SHA revu, déploiements et application de production sont portés uniquement par le Master. Aucune recette de production n'est attestée par ce contrat.

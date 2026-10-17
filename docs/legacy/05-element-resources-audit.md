@@ -1,5 +1,7 @@
 # 05 — Audit legacy : Élément / ressources / conversion / échanges
 
+**Exception administrative du17/10/2026 :** mandat ponctuel sur un seul compte, annulation/refus des demandes PENDING concernées et inversion Cryo/Electro auditée sans statistiques, sous les verrous existants. Aucun assouplissement du choix définitif joueur. La conversion revérifie l'élément canonique sous verrou avant une nouvelle mutation. [Contrat de maintenance](../architecture/exceptional-element-maintenance-20261017.md) ; état d'application au Master.
+
 **Amendement Chat R1038 — étape 29 :** Échanges : les actions Chat accepter/refuser sans pseudo ou all/@all/tout/tous concernent les reçues ; annuler concerne toutes les envoyées initiales. Les IDs du lot sont figés, traités par ancienneté/ID, indépendamment des nouvelles demandes ; réservations unilatérales et réductions dynamiques R5–R27 inchangées. Alias conv/echange/ech, matching exact et reçus avec identités/ressources réelles. La syntaxe Refuser tout auparavant future est maintenant raccordée. [Contrats courants](../commands/command-reference.md) et [couverture](../commands/step-29-command-coverage.md). Les décisions et constats historiques ci-dessous sont conservés ; tests, publication et recette restent au Master.
 
 Statut : CLÔTURÉ — R1 À R53 VALIDÉS

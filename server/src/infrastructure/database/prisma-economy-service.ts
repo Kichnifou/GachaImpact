@@ -23,6 +23,23 @@ export type DebitResourceInput = CreditResourceInput;
 export type InternalMorasWalletTransferInput = Omit<CreditResourceInput, 'playerElementKey' | 'resourceKey' | 'amount'> & Readonly<{ delta: bigint }>;
 
 export class PrismaEconomyService {
+  /** Maintenance only, caller holds particles:trades then sorted Player locks.
+   * All target pending requests must have been closed in this transaction. No
+   * global expiry/reconciliation: unrelated trades must remain byte-for-byte. */
+  public async swapUnreservedCryoElectroWithoutStats(tx: Prisma.TransactionClient, playerId: string, operationId: string) {
+    if (await tx.tradeRequest.count({ where: { state: 'PENDING', OR: [{ senderPlayerId: playerId }, { recipientPlayerId: playerId }] } })) throw new Error('ELEMENT_SWAP_PENDING_TRADES');
+    const cryo = await this.lockBalance(tx, playerId, 'particles_cryo');
+    const electro = await this.lockBalance(tx, playerId, 'particles_electro');
+    if (cryo < 0n || electro < 0n) throw new Error('ELEMENT_SWAP_INVALID_BALANCE');
+    for (const [resourceKey, before, after] of [['particles_cryo', cryo, electro], ['particles_electro', electro, cryo]] as const) {
+      const stock = await particleStock(tx, playerId, resourceKey);
+      if (stock.reserved !== 0n) throw new Error('ELEMENT_SWAP_RESERVED');
+      await tx.playerResourceBalance.update({ where: { playerId_resourceKey: { playerId, resourceKey } }, data: { amount: after } });
+      await tx.resourceMovement.create({ data: { playerId, resourceKey, delta: after - before, balanceBefore: before, balanceAfter: after,
+        causeKey: 'admin.element-exception', domainKey: 'administration', operationId, sourceChannel: 'ADMIN' } });
+    }
+    return { cryo: cryo.toString(), electro: electro.toString() };
+  }
   private readonly permanentMissions: PermanentMissionService;
 
   private readonly now: () => Date;

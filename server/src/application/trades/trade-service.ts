@@ -13,7 +13,7 @@ import { isPrismaConcurrencyCollision } from '../../infrastructure/database/pris
 import { PlayerActivityRecorder } from '../player/player-activity-recorder.js';
 import { unblockedRecipient } from '../social/contact-permission.js';
 import { normalizePlayerSearch } from '../social/social-service.js';
-import { expireTrades, particleStock, reconcileParticleTrades, refreshTradeNotification } from './trade-state.js';
+import { closePendingTrade, expireTrades, particleStock, reconcileParticleTrades, refreshTradeNotification } from './trade-state.js';
 import { appearanceSelect, avatarAssetPath } from '../appearance/appearance-service.js';
 
 export type TradeSource = Extract<SourceChannel, 'UI' | 'INTERNAL_CHAT' | 'TWITCH'>;
@@ -139,8 +139,8 @@ export class TradeService {
           payload: { requestId, accepterPlayerId: pair.recipient.id, accepterDisplayName: pair.recipient.displayName,
             amount: request.currentAmount.toString(), senderResourceKey: request.senderResourceKey, recipientResourceKey: request.recipientResourceKey },
         } });
-      } else await tx.tradeRequest.update({ where: { id: requestId }, data: { state, resolvedAt: now, updatedAt: now } });
-      await refreshTradeNotification(tx, request.recipientPlayerId, now);
+      } else await closePendingTrade(tx, requestId, action === 'refuse' ? 'REFUSED' : 'CANCELLED', now);
+      if (action === 'accept') await refreshTradeNotification(tx, request.recipientPlayerId, now);
       await this.record(tx, playerId, source);
       return this.complete(tx, operation.row.id, requestId, { requestId, state, amount: request.currentAmount.toString(), sender: request.sender, recipient: request.recipient, senderResourceKey: request.senderResourceKey, recipientResourceKey: request.recipientResourceKey });
     });
