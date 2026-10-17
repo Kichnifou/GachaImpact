@@ -9,6 +9,14 @@ import GameHeader from './GameHeader'
 const appCss = readFileSync(`${process.cwd()}/src/App.css`, 'utf8')
 
 const roots: Root[] = []
+it('keeps Notifications as the rightmost header action after Configuration and signout', () => {
+  const html = renderToStaticMarkup(<GameHeader displayName="Test" onNavigateHome={() => {}} onOpenSidebar={() => {}} onSignOut={async () => {}} showModeration onOpenModeration={() => {}} onOpenMenu={() => {}} onOpenConfiguration={() => {}} />)
+  const container = document.createElement('div'); container.innerHTML = html
+  const actions = container.querySelector('.header-actions')!
+  expect(actions.lastElementChild?.classList.contains('notification-anchor')).toBe(true)
+  expect(actions.lastElementChild?.previousElementSibling?.classList.contains('sign-out-button')).toBe(true)
+  expect(actions.lastElementChild?.previousElementSibling?.previousElementSibling?.classList.contains('configuration-header-button')).toBe(true)
+})
 it('opens a defeated Boss and persistently removes its notification from the list', async () => {
   const notification = { id: 'boss-notification', domainKey: 'monthly-boss', typeKey: 'MONTHLY_BOSS_DEFEATED', payload: { title: 'Boss vaincu', rewards: [{ resourceKey: 'primogems', amount: '16000' }] }, state: 'UNREAD' as const, actionKey: 'OPEN_MONTHLY_BOSS', actionTargetId: 'boss', createdAt: '2026-10-13T08:40:00Z', readAt: null }
   const onOpenNotification = vi.fn(), archive = vi.fn(async () => ({ unreadCount: 0, notifications: [] }))

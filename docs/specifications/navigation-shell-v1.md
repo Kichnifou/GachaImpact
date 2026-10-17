@@ -2,7 +2,7 @@
 
 ## Finitions UI du17/10/2026 — Configuration dans l'en-tête
 
-La navigation principale du lot A affiche exactement Accueil, Invocation, Personnages, Activités, Sac, Boutique. Configuration reste une destination canonique du Menu, des préférences et de `#configuration` ; seul son grand bouton est retiré. Un bouton ⚙ accessible « Configuration » se trouve entre Notifications et Déconnexion, ouvre les mêmes sous-onglets et participe à l'historique habituel. Menu/Modération et notifications restent fonctionnels. Exploration ne sera ajoutée qu'au lot B, après Activités, sans promotion main automatique.
+La navigation principale du lot A affiche exactement Accueil, Invocation, Personnages, Activités, Sac, Boutique. Configuration reste une destination canonique du Menu, des préférences et de `#configuration` ; seul son grand bouton est retiré. Dernière précision propriétaire : l'ordre droit est Menu, Modération si autorisée, ⚙ Configuration, Déconnexion, Notifications. Notifications est toujours le contrôle le plus à droite. Configuration ouvre les mêmes sous-onglets et participe à l'historique habituel. Menu/Modération et notifications restent fonctionnels. Exploration ne sera ajoutée qu'au lot B, après Activités, sans promotion main automatique.
 
 ## R1112 — lien du live officiel
 

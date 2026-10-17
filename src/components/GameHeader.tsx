@@ -109,6 +109,8 @@ function GameHeader({ navigationHistory, displayName, elementKey = null, avatarA
       <TwitchLiveLink sessionKey={pollSessionKey}/>
       <button type="button" data-tutorial-anchor="menu-entry" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
+      <AppButton variant="icon" className="configuration-header-button" title="Configuration" aria-label="Configuration" aria-current={configurationActive ? 'page' : undefined} onClick={onOpenConfiguration}><span aria-hidden="true">⚙</span></AppButton>
+      <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>
       <div data-tutorial-anchor="notifications-entry" className="notification-anchor" ref={notificationAnchorRef}>
         <button type="button" className={`header-icon-button${isNotificationsOpen ? ' active' : ''}`} onClick={() => { setIsNotificationsOpen(value => !value); refreshNowRef.current() }} aria-label="Afficher les notifications" aria-expanded={isNotificationsOpen}><span aria-hidden="true">♢</span>{notifications.unreadCount > 0 && <span className="header-count">{notifications.unreadCount}</span>}</button>
         {isNotificationsOpen && <section data-tutorial-anchor="notifications-panel" className="floating-panel notifications-panel" aria-label="Notifications">
@@ -118,8 +120,6 @@ function GameHeader({ navigationHistory, displayName, elementKey = null, avatarA
           {notifications.notifications.some(item => item.state === 'READ') && <div className="floating-panel-footer"><button type="button" onClick={() => void onArchiveReadNotifications()}>Archiver les notifications lues</button></div>}
         </section>}
       </div>
-      <AppButton variant="icon" className="configuration-header-button" title="Configuration" aria-label="Configuration" aria-current={configurationActive ? 'page' : undefined} onClick={onOpenConfiguration}><span aria-hidden="true">⚙</span></AppButton>
-      <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>
     </div>
   </header>
 }
