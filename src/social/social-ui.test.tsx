@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import ConfigurationScreen from '../screens/ConfigurationScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import OnlinePlayersPanel from '../components/OnlinePlayersPanel'
+import PlayerIdentity from './PlayerIdentity'
 import { defaultNavigationPreference } from '../navigation/navigation'
 import type { GeneralStatistics, Profile, SocialActions } from './types'
 import type { PermanentMissionDto, PermanentMissionProjectionDto } from '../api/types'
@@ -34,6 +35,15 @@ const missions: PermanentMissionProjectionDto = {
 }
 
 describe('Social screens', () => {
+  it('shows the elemental icon beside the full name, level alone below, and keeps profile and presence accessible', async () => {
+    const open=vi.fn(),container=await mount(<PlayerIdentity player={{...player,presence:{access:'ALLOWED',data:'AWAY'}}} onOpen={open} status="Absent"/>);
+    expect(container.querySelector('.social-player-name')?.textContent).toBe(player.displayName);
+    expect(container.querySelector('.social-player-element')?.getAttribute('aria-label')).toBe('Pyro');
+    expect(container.querySelector('.social-player-element img')?.getAttribute('src')).toBe('/assets/genshin/elements/pyro.png');
+    expect(container.querySelector('.social-player-identity > span:nth-child(2) > small')?.textContent).toBe('Niveau 3');
+    expect(container.querySelector('.social-presence-label')?.textContent).toBe('Absent');
+    await act(async()=>container.querySelector('button')!.click());expect(open).toHaveBeenCalledOnce();
+  })
   it('groups general statistics and renders exact large values, zero, unavailable values and the five-star rate', async () => {
     const keys: (keyof GeneralStatistics)[] = ['totalXp', 'totalMessages', 'countedMessages', 'totalPulls', 'totalFiveStars', 'totalFourStars', 'fiftyFiftyWon', 'fiftyFiftyLost', 'capturesTriggered', 'fiveStarRate', 'totalPrimosEarned', 'totalPrimosSpent', 'totalMorasEarned', 'totalMorasSpent', 'totalMainElementParticlesEarned', 'totalFights', 'combatWins', 'totalLosses', 'totalManualWins', 'expeditionsCompleted', 'totalFriendHeartsSent', 'totalSpins', 'totalJackpots']
     const statistics = Object.fromEntries(keys.map(key => [key, '0'])) as GeneralStatistics

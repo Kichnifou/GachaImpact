@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## Listes de joueurs — précision du17/10/2026
+
+Mandat explicite : réduire nom/niveau pour garder les pseudos longs lisibles ; dernière précision, conserver le statut à droite centré verticalement et remplacer le nom de l'élément sous le pseudo par une petite icône après celui-ci. Niveau seul sur la seconde ligne. Autorisé jusqu'à main après qualification, sans commits Exploration. Le statut sous les métadonnées de la première correction est supersédé ; aucun changement métier.
+
 ## Compléments UI — Légendes, fiches Chat, avatars (17/10/2026)
 
 **Autorisation explicite :** déplacer les totaux de Légende à droite dans l'emplacement libre, participations puis victoires sur deux lignes, supprimer « C6 · Légende » ; faire tenir quatre fiches de personnages sur une ligne dans le Chat droit ; compléter les fonds d'avatar pour les éléments manquants. Autorisé jusqu'à main après qualification, séparément d'Exploration qui reste review-only. Les cinq thèmes, titres, tailles de police et cadre commun Profil/Box sont préservés. Le dernier mandat supersède le seul placement interne antérieur des totaux et du libellé. État réel au Master, [contrat UI](ui-layout-contract-v1.md).

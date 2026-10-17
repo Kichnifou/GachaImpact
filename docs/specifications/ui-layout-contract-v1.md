@@ -2,7 +2,7 @@
 
 ## Listes de joueurs — texte compact du17/10/2026
 
-Nom14px (13px sur petit écran), niveau/élément11px, interlignes explicites. Dans Joueurs connectés, le statut se place sous les métadonnées pour laisser la largeur au pseudo ; marge interne18px. Sur mobile étroit, l'action de relation passe sous l'identité et reste accessible. Même hiérarchie dans les listes Social. Aucun texte tronqué par ellipse ni taille d'avatar changée ; le défilement appartient toujours à la liste existante, sans couper les actions. Pseudos longs et pastille vérifiés ensemble dans le GameShell/CSS compilés, sans modifier présence, relations ou backend.
+Nom14px (13px sur petit écran), niveau11px, interlignes explicites. Le complément propriétaire ultérieur remet le statut à droite, centré verticalement ; il remplace le libellé textuel de l'élément par son icône14px après le pseudo, avec nom accessible. La ligne inférieure affiche seulement le niveau. Marge interne de la modale18px. Sur mobile étroit, l'action de relation passe sous l'identité et reste accessible. Même hiérarchie dans les listes Social. Aucun texte tronqué par ellipse ni taille d'avatar changée ; le défilement appartient toujours à la liste existante, sans couper les actions. Pseudos19caractères/icône/pastille tiennent sur une ligne ; noms30caractères complets autorisés sur deux lignes si nécessaire. Qualification dans le GameShell/CSS compilés, sans modifier présence, relations ou backend.
 
 ## Compléments Légendes, fiches Chat et avatars — 17/10/2026
 
