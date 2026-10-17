@@ -10,7 +10,7 @@ const subscriptionSchema = z.object({
 const pageSchema = z.object({ data: z.array(subscriptionSchema), pagination: z.object({ cursor: z.string().min(1).optional() }) });
 const createdSchema = z.object({ data: z.array(subscriptionSchema).length(1) });
 export type TwitchEventSubSubscription = z.infer<typeof subscriptionSchema>;
-export type PilotEventSubType = 'channel.chat.message' | 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message' | 'channel.channel_points_custom_reward_redemption.add';
+export type PilotEventSubType = 'stream.online' | 'stream.offline' | 'channel.chat.message' | 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message' | 'channel.channel_points_custom_reward_redemption.add';
 export type PilotGiftSupremeSubscriptionRequest = Readonly<{
   type: 'channel.channel_points_custom_reward_redemption.add'; version: '1';
   condition: { broadcaster_user_id: string; reward_id: string };
@@ -22,7 +22,7 @@ export type PilotChatSubscriptionRequest = Readonly<{
   transport: { method: 'webhook'; callback: string; secret: string };
 }>;
 export type PilotFavorSubscriptionRequest = Readonly<{
-  type: 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message'; version: '1';
+  type: 'stream.online' | 'stream.offline' | 'channel.subscribe' | 'channel.subscription.gift' | 'channel.subscription.message'; version: '1';
   condition: { broadcaster_user_id: string };
   transport: { method: 'webhook'; callback: string; secret: string };
 }>;
@@ -65,6 +65,8 @@ export class TwitchEventSubClient {
     throw new TwitchEventSubApiError(401);
   }
 
+  async listStreamSubscriptions(type: 'stream.online' | 'stream.offline', signal?: AbortSignal) { return this.listSubscriptions(type, signal); }
+  async createStreamSubscription(body: PilotFavorSubscriptionRequest) { const parsed = createdSchema.safeParse(await this.call('POST', undefined, body)); if (!parsed.success) throw invalid(); return parsed.data.data[0]!; }
   private async listSubscriptions(type: PilotEventSubType, signal?: AbortSignal): Promise<TwitchEventSubSubscription[]> {
     const subscriptions: TwitchEventSubSubscription[] = [];
     const seen = new Set<string>();

@@ -395,6 +395,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getExpedition: () => request<ExpeditionDto>('/api/v1/me/expedition'),
     startExpedition: (characterId: string, idempotencyKey: string) => request<ExpeditionStartDto>('/api/v1/me/expedition/start', { method: 'POST', body: JSON.stringify({ characterId, idempotencyKey }) }),
     claimExpedition: (idempotencyKey: string) => request<ExpeditionClaimDto>('/api/v1/me/expedition/claim', { method: 'POST', body: JSON.stringify({ idempotencyKey }) }),
+    getTwitchLive: () => request<{ live: boolean; validForMs: number }>('/api/v1/twitch/live'),
     getNotifications: () => request<NotificationsDto>('/api/v1/me/notifications'),
     getGiftCodes: () => request<PlayerGiftCodesDto>('/api/v1/me/gift-codes'),
     getEvent: () => request<EventDto>('/api/v1/me/event'),

@@ -1,3 +1,4 @@
+import TwitchLiveLink from './TwitchLiveLink'
 import { useTutorialPanel } from '../tutorial/tutorial-presentation'
 import { useEffect, useRef, useState } from 'react'
 import type { NotificationDto, NotificationsDto } from '../api/types'
@@ -102,6 +103,7 @@ function GameHeader({ navigationHistory, displayName, elementKey = null, avatarA
     {navigationHistory&&<div className="destination-history-controls"><button type="button" aria-label="Précédent" disabled={!navigationHistory.back} onClick={navigationHistory.onBack}>‹</button><button type="button" aria-label="Suivant" disabled={!navigationHistory.forward} onClick={navigationHistory.onForward}>›</button></div>}
     <div className="header-actions">
       <button type="button" className="mobile-player-button" onClick={onOpenSidebar}><PlayerAvatar displayName={displayName} elementKey={elementKey} avatarAssetPath={avatarAssetPath} className="mobile-player-art" /><strong>{displayName}</strong></button>
+      <TwitchLiveLink sessionKey={pollSessionKey}/>
       <button type="button" data-tutorial-anchor="menu-entry" className="menu-header-button" data-menu-trigger onClick={onOpenMenu}>Menu</button>
       {showModeration && <button type="button" className="moderation-header-button" onClick={onOpenModeration}>Modération</button>}
       <button type="button" className="sign-out-button" onClick={() => void onSignOut()}>Déconnexion</button>

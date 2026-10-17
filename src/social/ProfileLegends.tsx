@@ -20,14 +20,14 @@ export function legendPageCapacity(width:number, height:number, cardHeights:read
 type LegendData = Extract<NonNullable<Profile['legends']>, { access: 'ALLOWED' }>['data']
 const themes = Object.entries(stats) as [keyof typeof stats, string][]
 
-function LegendCard({ character, data, box, firstTheme = 0, themeCount = 5 }: { character: LegendData['characters'][number]; data: LegendData; box: Profile['box']; firstTheme?: number; themeCount?: number }) {
+function LegendCard({ character, data, box }: { character: LegendData['characters'][number]; data: LegendData; box: Profile['box'] }) {
   const legend = data.legends.find(item => item.character.id === character.id)
   const portrait = box.access === 'ALLOWED' ? box.data.find(item => item.id === character.id)?.iconPath : null
   return <article className="panel profile-legend">
     <header><CharacterPortraitFrame characterName={character.name} element={legend?.character.elementKey ?? 'unknown'} assetPaths={[portrait ?? null]} frameClassName="profile-legend-portrait" imageClassName="profile-legend-image"/><div><h2>{character.name}</h2><span>C6 · Légende</span></div></header>
     {legend ? <>
       <p className="profile-legend-totals">{legend.totals.contests} participations · {legend.totals.wins} victoires</p>
-      <dl className="profile-legend-themes">{themes.slice(firstTheme, firstTheme + themeCount).map(([key, label]) => {
+      <dl className="profile-legend-themes">{themes.map(([key, label]) => {
         const theme = legend.themes[contestStatThemes[key]]
         return <div key={key} data-legend-theme={key}>
           <dt>{label}</dt><dd className="profile-legend-score">{legend.stats[key]} / 20</dd>
@@ -41,10 +41,8 @@ function LegendCard({ character, data, box, firstTheme = 0, themeCount = 5 }: { 
 
 function LegendPages({ data, box }: { data: LegendData; box: Profile['box'] }) {
   const viewport = useRef<HTMLElement>(null), probe = useRef<HTMLDivElement>(null), footer = useRef<HTMLElement>(null), page = useRef<HTMLDivElement>(null)
-  const [layout, setLayout] = useState({ capacity: 1, themeCount: 5 }), [anchor, setAnchor] = useState(0), [themeAnchor, setThemeAnchor] = useState(0)
-  const { capacity, themeCount } = layout
+  const [capacity, setCapacity] = useState(1), [anchor, setAnchor] = useState(0)
   const pages = Math.max(1, Math.ceil(data.characters.length / capacity)), current = Math.min(Math.floor(anchor / capacity), pages - 1)
-  const themePages = Math.ceil(5 / themeCount), themePage = Math.min(Math.floor(themeAnchor / themeCount), themePages - 1)
   useLayoutEffect(() => {
     const node = viewport.current, measurement = probe.current
     if (!node || !measurement) return
@@ -52,26 +50,12 @@ function LegendPages({ data, box }: { data: LegendData; box: Profile['box'] }) {
     const measure = () => {
       if (!active || !node.clientWidth || !node.clientHeight) return
       const navHeight = footer.current?.querySelector('nav')?.getBoundingClientRect().height ?? 36
-      const heightAt = (columns: number, count = 5) => {
+      const heights = [1, 2, 3].map(columns => {
         measurement.style.width = Math.max(1, (node.clientWidth - (columns - 1) * 12) / columns) + 'px'
-        let height = 1
-        for (let first = 0; first < 5; first += count) {
-          for (const card of Array.from(measurement.children)) {
-            card.querySelectorAll<HTMLElement>('[data-legend-theme]').forEach((row, index) => { row.style.display = index >= first && index < first + count ? '' : 'none' })
-            height = Math.max(height, card.getBoundingClientRect().height)
-          }
-        }
-        return height
-      }
-      const heights = [1, 2, 3].map(columns => heightAt(columns))
-      const capacity = legendPageCapacity(node.clientWidth, node.clientHeight, heights, navHeight)
-      let themeCount = 5
-      if (heights[capacity - 1] > node.clientHeight - navHeight - 10) {
-        // A short viewport gets actual pages of information, never a clipped card.
-        for (themeCount = 4; themeCount > 1; themeCount--) if (heightAt(1, themeCount) <= node.clientHeight - navHeight * 2 - 16) break
-      }
-      measurement.querySelectorAll<HTMLElement>('[data-legend-theme]').forEach(row => { row.style.display = '' })
-      setLayout(previous => previous.capacity === capacity && previous.themeCount === themeCount ? previous : { capacity, themeCount })
+        // Every measurement includes all five themes, titles and counters.
+        return Math.max(1, ...Array.from(measurement.children, card => card.getBoundingClientRect().height))
+      })
+      setCapacity(legendPageCapacity(node.clientWidth, node.clientHeight, heights, navHeight))
     }
     measure()
     const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
@@ -85,10 +69,9 @@ function LegendPages({ data, box }: { data: LegendData; box: Profile['box'] }) {
     return () => { active = false; observer?.disconnect(); window.removeEventListener('resize', measure); node.removeEventListener('load', measure, true); document.fonts?.removeEventListener('loadingdone', measure) }
   }, [data, box, current])
   return <section ref={viewport} className="profile-legends-paged" aria-label="Légendes C6">
-    <div ref={page} className="profile-legends-page" style={{ gridTemplateColumns: 'repeat(' + capacity + ',minmax(0,1fr))' }}>{data.characters.slice(current * capacity, (current + 1) * capacity).map(character => <LegendCard key={character.id} character={character} data={data} box={box} firstTheme={themePage * themeCount} themeCount={themeCount}/>)}</div>
+    <div ref={page} className="profile-legends-page" style={{ gridTemplateColumns: 'repeat(' + capacity + ',minmax(0,1fr))' }}>{data.characters.slice(current * capacity, (current + 1) * capacity).map(character => <LegendCard key={character.id} character={character} data={data} box={box}/>)}</div>
     <footer ref={footer} className="profile-legends-pagination">
-      <nav aria-label="Pages des Légendes"><AppButton variant="icon" aria-label="Légendes précédentes" disabled={current === 0} onClick={() => { setAnchor((current - 1) * capacity); setThemeAnchor(0) }}>‹</AppButton><span role="status">{current + 1} / {pages}</span><AppButton variant="icon" aria-label="Légendes suivantes" disabled={current === pages - 1} onClick={() => { setAnchor((current + 1) * capacity); setThemeAnchor(0) }}>›</AppButton></nav>
-      {themeCount < 5 && <nav aria-label="Informations de la Légende"><AppButton variant="icon" aria-label="Thèmes précédents" disabled={themePage === 0} onClick={() => setThemeAnchor((themePage - 1) * themeCount)}>‹</AppButton><span role="status">Thèmes {themePage * themeCount + 1}–{Math.min(5, (themePage + 1) * themeCount)} / 5</span><AppButton variant="icon" aria-label="Thèmes suivants" disabled={themePage === themePages - 1} onClick={() => setThemeAnchor((themePage + 1) * themeCount)}>›</AppButton></nav>}
+      <nav aria-label="Pages des Légendes"><AppButton variant="icon" aria-label="Légendes précédentes" disabled={current === 0} onClick={() => { setAnchor((current - 1) * capacity) }}>‹</AppButton><span role="status">{current + 1} / {pages}</span><AppButton variant="icon" aria-label="Légendes suivantes" disabled={current === pages - 1} onClick={() => { setAnchor((current + 1) * capacity) }}>›</AppButton></nav>
     </footer>
     <div ref={probe} className="profile-legends-measure" aria-hidden="true" inert>{data.characters.map(character => <LegendCard key={character.id} character={character} data={data} box={box}/>)}</div>
   </section>

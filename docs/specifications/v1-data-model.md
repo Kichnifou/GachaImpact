@@ -1,5 +1,9 @@
 # GachaImpact — Modèle de données V1 consolidé
 
+## R1112 — suivi technique du live officiel
+
+TwitchLiveChannel porte la projection confirmée et le bail de réconciliation serveur. TwitchLiveStream porte l'identité durable de diffusion, son ouverture consommée et sa relation à GiveawaySession, atomique avec la création de session. Les reprises brèves peuvent conserver la même session ; une fermeture manuelle n'efface pas cette preuve. Aucune donnée de viewer ni règle économique nouvelle. [Contrat](../architecture/twitch-live-giveaway-r1112.md), état appliqué au Master.
+
 ## Arcade après-match — R1107
 
 ArcadeSession ajoute afterMatch JSONB nullable (status,revision,hostReady,guestReady,graceUntil,nextSessionId,tabs bornés avecplayerId/séquence/visible/échéance) et afterMatchExpiresAt nullable. Seuls FINISHED MULTIPLAYER peuvent porter cet état, lié à la source exacte ; aucune table/FK nouvelle. Les indexes par hôte/invité/échéance excluent les fenêtres closes ; verrous Player triés pour exclusivité croisée avec ACTIVE/PENDING. Données historiques NULL inchangées ; inventaire JSON d’effacement inclut cette colonne. [Contrat](../architecture/post-v1-arcade-after-match-20261017.md), application publique au Master.

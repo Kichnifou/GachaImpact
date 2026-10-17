@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## R1112 — cinq thèmes visibles et automatisation Live/Giveaway (17/10/2026)
+
+**Mandats propriétaire explicites.** Toute pagination des thèmes est supprimée : les cinq informations thématiques complètes doivent être visibles simultanément sur chaque carte Légende. Seuls les personnages sont paginés en capacité 3/2/1 ; le cadre Profil restauré R1111 et toute la Box sont conservés.
+
+Le live officiel Kichnifou confirmé côté serveur ajoute le lien rouge à gauche de Menu et ouvre automatiquement le Giveaway existant. Fin confirmée après une sécurité de 30–60 secondes (réalisation : 45 secondes) : même fermeture, tirage, récompenses et annonces que `!giveaway close`. Fermeture manuelle définitive pour ce live ; aucune réouverture, adoption/remplacement de session, double distribution ni resend incertain. Réconciliation partagée EventSub/Helix, persistance additive de suivi seulement, aucun nouveau service payant ni migration de joueurs/économie. Tests PostgreSQL privés et review indépendante du vrai SHA obligatoires. [Contrat](../architecture/twitch-live-giveaway-r1112.md), état réel au Master.
+
 ## R1111 et complément Combat — mandats du17/10/2026
 
 **Validés explicitement.** R1111 retire toute adaptation du header/navigation propre à Profil Légendes ; utiliser le body restant sans changer Box. Précision mobile acceptée explicitement : flux existant, titre/boutons/onglets/haut/largeur identiques, hauteur totale selon contenu ; desktop panneau entier identique.

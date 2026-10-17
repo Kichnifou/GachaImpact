@@ -3,24 +3,24 @@
 .profile-legends-page { display:grid; gap:12px; align-items:stretch; align-content:stretch; grid-template-rows:minmax(0,1fr); min-height:0; }
 /* The probe uses exactly the visible card styles; no ancestor density can change it. */
 .profile-legends-measure { position:fixed; top:0; left:0; max-height:0; overflow:clip; visibility:hidden; pointer-events:none; }
-.profile-legend.panel { min-width:0; padding:10px; }
+.profile-legend.panel { min-width:0; padding:8px; container-type:inline-size; }
 .profile-legend:has(.profile-legend-themes) { display:grid; grid-template-rows:auto auto minmax(min-content,1fr); }
-.profile-legend header { display:flex; gap:12px; align-items:center; }
+.profile-legend header { display:flex; gap:8px; align-items:center; }
 .profile-legend header > div { min-width:0; }
-.profile-legend header h2 { margin:0 0 4px; font-size:20px; line-height:1.2; overflow-wrap:anywhere; }
+.profile-legend header h2 { margin:0 0 2px; font-size:18px; line-height:1.2; overflow-wrap:anywhere; }
 .profile-legend header span { color:var(--muted); font-size:12px; }
 .profile-legend-portrait { flex:none; width:40px; height:40px; border-radius:10px; overflow:hidden; }
 .profile-legend-portrait img { width:100%; height:100%; object-fit:cover; }
-.profile-legend > p { font-size:12px; line-height:1.4; margin:8px 0; overflow-wrap:anywhere; }
+.profile-legend > p { font-size:12px; line-height:1.4; margin:5px 0; overflow-wrap:anywhere; }
 .profile-legend-themes { margin:0; display:grid; grid-auto-rows:minmax(min-content,1fr); gap:4px; }
-.profile-legend-themes > div { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.9fr); align-items:start; gap:3px 8px; padding:4px 6px; background:#091326; border:1px solid #21314b; border-radius:8px; }
-.profile-legend-themes dt { color:#c8d7e9; font-size:12px; line-height:1.4; overflow-wrap:anywhere; }
+.profile-legend-themes > div { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:1px 6px; padding:3px 5px; background:#091326; border:1px solid #21314b; border-radius:8px; }
+.profile-legend-themes dt { color:#c8d7e9; font-size:12px; line-height:1.2; overflow-wrap:anywhere; }
 .profile-legend-themes dd { min-width:0; margin:0; }
 .profile-legend-score { text-align:right; color:#69d3ff; font-size:14px; line-height:1.2; font-weight:700; }
-.profile-legend-title { grid-column:1; }
+.profile-legend-title { grid-column:1 / -1; grid-row:2; }
 .profile-legend-title .contest-title-badge { font-size:11px; }
 .profile-legend-no-title { color:#92a4bc; font-size:11px; line-height:1.3; }
-.profile-legend-wins { grid-column:2; text-align:right; color:#aebbd0; font-size:11px; line-height:1.4; overflow-wrap:anywhere; }
+.profile-legend-wins { grid-column:1 / -1; text-align:right; color:#aebbd0; font-size:11px; line-height:1.4; overflow-wrap:anywhere; }
 .profile-legends-pagination { display:grid; gap:6px; }
 .profile-legends-pagination nav { display:flex; justify-content:flex-end; align-items:center; gap:10px; min-height:36px; }
 .profile-legends-pagination .app-button { width:32px; min-height:32px; padding:2px; }
@@ -29,5 +29,14 @@
 .profile-box-grid .character-card-copy { min-height:0; padding-bottom:3px; }
 .profile-box-grid .profile-character-meta { margin:0; padding:0 10px 8px; font-size:12px; line-height:1.3; }
 @media(max-width:1120px) {
-  .profile-legends-paged { flex:none; height:min(600px,calc(100dvh - 180px)); }
+  .profile-legends-paged { flex:none; height:auto; min-height:min(600px,calc(100dvh - 180px)); }
+}
+
+/* A wider complete card becomes a compact statistics grid. The header stays untouched. */
+@container (min-width:450px) {
+  .profile-legend-themes { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .profile-legend-themes > div { align-content:start; }
+}
+@container (min-width:550px) {
+  .profile-legend-themes { grid-template-columns:repeat(5,minmax(0,1fr)); }
 }

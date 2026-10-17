@@ -73,6 +73,7 @@ export class TwitchEventSubSubscriptionManager {
   }
 
   private list(type: PilotEventSubType, signal?: AbortSignal) {
+    if (type === 'stream.online' || type === 'stream.offline') return this.client.listStreamSubscriptions(type, signal);
     if (type === 'channel.channel_points_custom_reward_redemption.add') return this.client.listGiftSupremeSubscriptions(signal);
     return type === 'channel.chat.message' ? this.client.listChatSubscriptions(signal)
       : type === 'channel.subscribe' ? this.client.listFavorSubscriptions(signal)
@@ -112,7 +113,8 @@ export class TwitchEventSubSubscriptionManager {
     if (existing) return existing;
     try {
       const transport = { method: 'webhook' as const, callback, secret: this.config.twitchEventSub!.secret! };
-      const created = type === 'channel.channel_points_custom_reward_redemption.add' ? await this.client.createGiftSupremeSubscription({ type, version: '1',
+      const created = type === 'stream.online' || type === 'stream.offline' ? await this.client.createStreamSubscription({ type, version: '1', condition: { broadcaster_user_id: userId }, transport })
+        : type === 'channel.channel_points_custom_reward_redemption.add' ? await this.client.createGiftSupremeSubscription({ type, version: '1',
         condition: { broadcaster_user_id: userId, reward_id: rewardId! }, transport })
         : type === 'channel.chat.message' ? await this.client.createChatSubscription({ type, version: '1',
         condition: { broadcaster_user_id: userId, user_id: userId }, transport })
@@ -141,6 +143,10 @@ export class TwitchEventSubSubscriptionManager {
     this.pending.set(key, job);
     try { return await job; }
     finally { this.pending.delete(key); }
+  }
+  async ensureLiveSubscriptions(playerId: string, expectedUserId: string) {
+    if (this.config.twitch?.pilotLogin !== 'kichnifou') throw unavailable();
+    for (const type of ['stream.online', 'stream.offline'] as const) await this.ensure(playerId, type, expectedUserId, 'kichnifou');
   }
   async ensurePilotChatSubscription(playerId: string, expectedUserId?: string) { return this.ensure(playerId, 'channel.chat.message', expectedUserId); }
   async ensurePilotChatSubscriptionWithHooks(playerId: string, hooks: {

@@ -1,5 +1,7 @@
 # 21 — Audit Giveaway / Wish
 
+> **R1112, 17/10/2026 :** le live officiel confirmé ouvre automatiquement le Giveaway via `GiveawayService.open()`, puis sa fin confirmée après 45 secondes le ferme via le même `close()` que `!giveaway close`. Ouverture sous l'administrateur opérateur GLOBAL lié, une session par cycle de live, aucune adoption/remplacement d'une session préexistante. Une fermeture manuelle reste définitive pour ce live. Récompenses, Wish, comptage, annonces et récupération FAILED/AMBIGUOUS inchangés. [Contrat et garanties](../architecture/twitch-live-giveaway-r1112.md), qualification/déploiement réels au Master.
+
 > Domaine 18 de l'audit GachaImpact.  
 > Statut : **CLÔTURÉ — décisions produit R702 à R713 validées ; clôture technique finalisée**.  
 > Ce document est la source spécialisée validée du domaine Giveaway / Wish.  

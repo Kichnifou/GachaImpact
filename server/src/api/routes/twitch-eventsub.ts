@@ -1,3 +1,4 @@
+import type { TwitchLiveService } from '../../application/twitch/twitch-live-service.js';
 import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
@@ -66,6 +67,7 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
   giftSupreme?: TwitchGiftSupremeRuntime;
   giveaway?: TwitchGiveawayConsumer;
   commandPilot?: TwitchCommandPilot;
+  live?: TwitchLiveService;
 }) {
   // Fastify's ordinary JSON parser loses the exact bytes Twitch signed. This parser is scoped to this route plugin.
   app.addContentTypeParser('application/json', { parseAs: 'buffer' }, (_request, body, done) => done(null, body));
@@ -101,8 +103,15 @@ export async function registerTwitchEventSubRoutes(app: FastifyInstance, options
     const notification = envelope.safeParse(body);
     if (!notification.success) return reply.code(400).send();
     if (notification.data.subscription.version !== '1'
-      || !['channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message', ...(options.giftSupreme ? [GIFT_SUPREME_EVENT_TYPE] : [])].includes(notification.data.subscription.type)) return reply.code(422).send();
+      || ![...(options.live ? ['stream.online', 'stream.offline'] : []), 'channel.chat.message', 'channel.subscribe', 'channel.subscription.gift', 'channel.subscription.message', ...(options.giftSupreme ? [GIFT_SUPREME_EVENT_TYPE] : [])].includes(notification.data.subscription.type)) return reply.code(422).send();
     try {
+      if (notification.data.subscription.type === 'stream.online' || notification.data.subscription.type === 'stream.offline') {
+        const parsed = z.object({ subscription: z.object({ status: z.literal('enabled'), condition: z.object({ broadcaster_user_id: twitchId }).strict() }), event: z.object({ broadcaster_user_id: twitchId }) }).safeParse(body);
+        if (!parsed.success || parsed.data.subscription.condition.broadcaster_user_id !== parsed.data.event.broadcaster_user_id) return reply.code(400).send();
+        // Hints only: delayed or duplicate events must fetch current Helix truth.
+        await options.live!.signal(parsed.data.event.broadcaster_user_id);
+        return reply.code(204).send();
+      }
       const sender=z.object({event:z.object({chatter_user_id:z.string().optional(),user_id:z.string().nullish()})}).safeParse(body);
       const senderId=sender.success?sender.data.event.chatter_user_id??sender.data.event.user_id:null;
       if(senderId&&await options.observer.isErasedDelivery?.(senderId,timestamp))return reply.code(204).send();

@@ -1,3 +1,4 @@
+import type { TwitchLiveService } from './application/twitch/twitch-live-service.js';
 import type { TwitchFavorChatPresenceConsumer } from './application/twitch/twitch-favor-chat-presence-consumer.js';
 import type { SocialService } from './application/social/social-service.js';
 import type { TradeService } from './application/trades/trade-service.js';
@@ -127,6 +128,7 @@ export type AppDependencies = Readonly<{
   twitchGiveawayConsumer?: TwitchGiveawayConsumer;
   twitchCommandPilot?: TwitchCommandPilot;
   giveawayService?: GiveawayService;
+  twitchLive?: TwitchLiveService;
   snapshotPilot?: SnapshotPilotService;
   tradePlayer?: GetCurrentPlayer;
   currentPlayerFavor?: CurrentPlayerFavorService;
@@ -229,7 +231,7 @@ export async function buildApp(
       await app.register(registerTwitchEventSubRoutes, { secret: config.twitchEventSub.secret, observer: dependencies.twitchEventObserver,
         favorSubscriptions: dependencies.twitchFavorSubscriptions, favorGifts: dependencies.twitchFavorGifts, favorResubs: dependencies.twitchFavorResubs, favorChatPresence: dependencies.twitchFavorChatPresence,
         giftSupreme: config.twitchGiftSupreme?.enabled && config.twitchGiftSupreme.credentialKey ? dependencies.twitchGiftSupreme : undefined,
-        giveaway: dependencies.twitchGiveawayConsumer, commandPilot: dependencies.twitchCommandPilot });
+        live: dependencies.twitchLive, giveaway: dependencies.twitchGiveawayConsumer, commandPilot: dependencies.twitchCommandPilot });
     }
     registerAuthenticationContext(app);
     await app.register(registerCurrentPlayerRoutes, {
@@ -316,6 +318,10 @@ export async function buildApp(
     if (dependencies.getCurrentPlayerInventory) {
       await app.register(registerInventoryRoutes, { authenticate, getCurrentPlayerInventory: dependencies.getCurrentPlayerInventory, getCurrentPlayerInventoryItemDetail: dependencies.getCurrentPlayerInventoryItemDetail, convertPersonalParticles: dependencies.convertPersonalParticles });
     }
+    if (dependencies.twitchLive) app.get('/api/v1/twitch/live', { preHandler: authenticate }, async (_request, reply) => {
+      reply.header('cache-control', 'no-store');
+      return dependencies.twitchLive!.projection().catch(() => ({ live: false, validForMs: 0 }));
+    });
     if (dependencies.moderationTools) {
       await app.register(registerModerationRoutes, { authenticate, moderationTools: dependencies.moderationTools });
       if (dependencies.administrationServices) await app.register(registerAdministrationRoutes, { authenticate, services: dependencies.administrationServices });

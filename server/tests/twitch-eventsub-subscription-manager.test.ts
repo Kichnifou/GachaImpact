@@ -24,6 +24,19 @@ function setup(settings = config) {
 }
 
 describe('EventSub pilot subscription manager', () => {
+  it('ensures official stream online/offline webhooks without additional OAuth scopes', async () => {
+    const { manager, network } = setup();
+    const created = (type: string) => ({ ...subscription, id: type, type, condition: { broadcaster_user_id: '12345' } });
+    network.mockResolvedValueOnce(page([])).mockResolvedValueOnce(response({ data: [created('stream.online')] }, 202))
+      .mockResolvedValueOnce(page([])).mockResolvedValueOnce(response({ data: [created('stream.offline')] }, 202));
+    await manager.ensureLiveSubscriptions(playerId, '12345');
+    expect(network).toHaveBeenCalledTimes(4);
+    for (const index of [1, 3]) {
+      const body = JSON.parse(String(network.mock.calls[index]![1]!.body));
+      expect(body.condition).toEqual({ broadcaster_user_id: '12345' });
+      expect(body.transport).toEqual({ method: 'webhook', callback, secret: config.twitchEventSub!.secret });
+    }
+  });
   it('is inert until explicitly called and creates exactly the pilot webhook once, including concurrent ensures', async () => {
     const { manager, network, tokenNetwork, db } = setup();
     expect(network).not.toHaveBeenCalled(); expect(tokenNetwork).not.toHaveBeenCalled();

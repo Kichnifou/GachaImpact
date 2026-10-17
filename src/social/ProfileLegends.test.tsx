@@ -47,7 +47,7 @@ it('preserves a page across ordinary refresh and resets after a count change or 
  expect(container.querySelector('.profile-legends-page')?.textContent).toContain('Premier');act(()=>root.unmount())
 })
 
-it('pages all five themes when a full card cannot fit, then restores full cards after resize', () => {
+it('always renders five themes and changes only character capacity on resize', () => {
   let availableHeight = 400
   const width = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
   const height = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(() => availableHeight)
@@ -61,14 +61,11 @@ it('pages all five themes when a full card cannot fit, then restores full cards 
   try {
     act(() => root.render(<ProfileLegends value={{access:'ALLOWED',data:{characters:[character],legends:[legend]}}} box={{access:'PRIVATE'}}/>))
     const visible = () => container.querySelector('.profile-legends-page')!
-    const seen = new Set<string>()
-    for (let page = 0; page < 3; page++) {
-      visible().querySelectorAll('[data-legend-theme]').forEach(row => seen.add(row.getAttribute('data-legend-theme')!))
-      const next = container.querySelector<HTMLButtonElement>('[aria-label="Thèmes suivants"]')!
-      if (!next.disabled) act(() => next.click())
-    }
-    expect(seen.size).toBe(5)
-    expect(container.querySelector<HTMLButtonElement>('[aria-label="Thèmes suivants"]')!.disabled).toBe(true)
+    expect(visible().querySelectorAll('[data-legend-theme]')).toHaveLength(5)
+    expect(container.querySelector('[aria-label="Informations de la L?gende"]')).toBeNull()
+    expect(container.textContent).not.toContain('Thèmes ')
+    expect(container.querySelector('.profile-legends-page')?.getAttribute('style')).toContain('repeat(1')
+    expect(container.querySelectorAll('[data-legend-theme][style]')).toHaveLength(0)
     availableHeight = 700
     act(() => window.dispatchEvent(new Event('resize')))
     expect(visible().querySelectorAll('[data-legend-theme]')).toHaveLength(5)

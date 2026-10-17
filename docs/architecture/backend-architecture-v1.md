@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1112 — observation serveur du live officiel
+
+`TwitchLiveService` partage une preuve Helix entre indicateur authentifié et automatisation Giveaway. EventSub signé déclenche seulement une réconciliation ; boucle 30 secondes, bail PostgreSQL 120 secondes, espacement minimal des signaux 15 secondes. L'état durable est revalidé sous le verrou Giveaway dans `open()`/`close()` ; aucune logique économique parallèle. La fin exige 45 secondes et une nouvelle observation saine. Les annonces existantes et l'autorité GLOBAL sont conservées. [Contrat](twitch-live-giveaway-r1112.md), état appliqué au Master.
+
 ## Arcade après-match — R1107
 
 ArcadeAfterMatch étend le propriétaire Arcade : fenêtre sur session terminée, présence d’écran par onglet séquencé, deux consentements ou fermeture Solo. Heartbeat2s seulement WAITING visible ; transactions Serializable/retries bornés/verrous Player triés existants, même factory et receipts de mutations. Busy et candidats excluent les fenêtres non expirées ; GET projette l’expiration et les mutations la revalident sous verrou. Pas de polling global ni notification/reconciliation supplémentaire. [Contrat](post-v1-arcade-after-match-20261017.md), migration088 et activation au Master.

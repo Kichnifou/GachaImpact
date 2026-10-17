@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## R1112 — lien du live officiel
+
+L'en-tête des joueurs connectés affiche « 🔴 Kichni est en Live ! » immédiatement à gauche de Menu uniquement avec une preuve serveur fraîche. Lien Twitch Kichnifou, nouvel onglet protégé ; aucune place réservée hors ligne et aucun déplacement des contrôles existants. Présentation compacte à deux lignes sur mobile. [Contrat serveur](../architecture/twitch-live-giveaway-r1112.md). Le cadre Profil/Box invariant R1111 est conservé ; aucune pagination thématique en Légendes.
+
 ## Sélection Combat Entraînement — complément du17/10/2026
 
 Changer/Ajouter ouvre CharacterSelector commun à Équipe avec confirmation explicite, filtre/recherche. Composition rapide ouvre sa variante multiple épinglée, applique uniquement la formation Entraînement atomiquement en MANUAL ; annulation sans mutation, conflit avec refresh explicite conservant le brouillon, ambiguïté avec même clé. Boss/Teams restent indépendants. Aucun nouveau polling ou destination. R1111 impose aussi le cadre Profil invariant entre Box et Légendes ; précision mobile de hauteur liée au contenu au contrat UI.

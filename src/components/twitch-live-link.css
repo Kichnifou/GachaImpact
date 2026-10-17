@@ -1,0 +1,5 @@
+.twitch-live-link.app-button { box-sizing:border-box; flex:none; display:flex; align-items:center; gap:6px; min-height:32px; padding:5px 9px; color:#fff1f2; background:#871c30; border:1px solid #db5268; border-radius:8px; font-size:12px; font-weight:700; line-height:1.25; text-decoration:none; }
+.twitch-live-link.app-button:hover { color:#fff; background:#a9283e; border-color:#ff8092; }
+.twitch-live-link.app-button:focus-visible { outline:2px solid #ffe1a1; outline-offset:3px; }
+.twitch-live-dot { flex:none; width:7px; height:7px; border-radius:50%; background:#ff556e; box-shadow:0 0 7px #ff556e; }
+@media(max-width:760px) { .twitch-live-link.app-button { width:94px; min-height:38px; gap:4px; padding:3px 5px; font-size:10px; } }

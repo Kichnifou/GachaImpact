@@ -1,3 +1,4 @@
+import { assertAutomaticLive, type AutomaticLiveContext } from '../twitch/twitch-live-context.js';
 import { archivedPlayerName } from '../player/presentation-name.js';
 import { randomInt } from 'node:crypto';
 import { Prisma, type PrismaClient, type SourceChannel } from '../../../generated/prisma/client.js';
@@ -51,20 +52,28 @@ export class GiveawayService {
     await assertPlayerDomainReady(tx, actorPlayerId, 'GIVEAWAY');
   }
 
-  async open(actorPlayerId: string, source: SourceChannel, commandId?: string) {
+  async open(actorPlayerId: string, source: SourceChannel, commandId?: string, live?: AutomaticLiveContext) {
     await this.bridge.assertActive();
     return this.transaction(async tx => {
       await currentLock(tx);
       await lockPlayerMutation(tx, actorPlayerId);
       await this.authorize(tx, actorPlayerId);
+      const stream = live ? await assertAutomaticLive(tx, actorPlayerId, live, 'OPEN', this.now()) : null;
+      if (stream?.consumed) return { sessionId: stream.sessionId, duplicate: true };
       const previous = await this.command(tx, commandId, 'OPEN');
       if (previous) return { sessionId: previous.sessionId, duplicate: true };
       const credential = await tx.twitchGiveawayCredential.findFirst({ where: { enabled: true } });
       if (!credential) throw unavailable();
-      if (await tx.giveawaySession.findFirst({ where: { status: 'OPEN' }, select: { id: true } }))
+      if (await tx.giveawaySession.findFirst({ where: { status: 'OPEN' }, select: { id: true } })) {
+        if (live) {
+          await tx.twitchLiveStream.update({ where: { id: live.streamId }, data: { consumed: true } });
+          return { sessionId: null, duplicate: true };
+        }
         throw new AppError('Un Giveaway est déjà ouvert.', 409, 'GIVEAWAY_ALREADY_OPEN');
+      }
       const now = this.now();
       const session = await tx.giveawaySession.create({ data: { status: 'OPEN', origin: 'NATIVE', openedByPlayerId: actorPlayerId, openedAt: now, rewardStatus: 'PENDING' } });
+      if (live) await tx.twitchLiveStream.update({ where: { id: live.streamId }, data: { consumed: true, sessionId: session.id } });
       await tx.giveawayAnnouncement.create({ data: { sessionId: session.id, kind: 'OPEN', text: '🎁 Un cadeau venu de Célestia est apparu ! Utilisez !wish pour tenter votre chance de remporter 1 600 primos à la fin du live.' } });
       if (commandId) await tx.giveawayCommandReceipt.create({ data: { commandId, action: 'OPEN', sessionId: session.id, outcome: 'OPENED' } });
       return { sessionId: session.id, duplicate: false, source };
@@ -179,12 +188,18 @@ export class GiveawayService {
     });
   }
 
-  async close(actorPlayerId: string, source: SourceChannel, requestedSessionId?: string, commandId?: string) {
+  async close(actorPlayerId: string, source: SourceChannel, requestedSessionId?: string, commandId?: string, live?: AutomaticLiveContext) {
     return this.transaction(async tx => {
       await currentLock(tx);
       await this.authorize(tx, actorPlayerId);
+      if (live) {
+        const stream = await assertAutomaticLive(tx, actorPlayerId, live, 'CLOSE', this.now());
+        if (!requestedSessionId || stream.sessionId !== requestedSessionId) throw noOpen();
+      }
       const previous = await this.command(tx, commandId, 'CLOSE');
       if (previous) return { sessionId: previous.sessionId, duplicate: true };
+      const requested = requestedSessionId ? await tx.giveawaySession.findUnique({ where: { id: requestedSessionId } }) : null;
+      if (requested?.origin === 'NATIVE' && requested.status === 'CLOSED') return { sessionId: requested.id, duplicate: true };
       const open = await tx.giveawaySession.findFirst({ where: { status: 'OPEN' }, select: { id: true } });
       if (!open) {
         const closed = requestedSessionId ? await tx.giveawaySession.findUnique({ where: { id: requestedSessionId } }) : null;

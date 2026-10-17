@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## R1112 — cinq thèmes simultanés dans Profil → Légendes
+
+La pagination des thèmes R1110/R1111 est supprimée sans exception. Chaque carte autorisée affiche Force, Intelligence, Beauté, Charisme et Popularité, leurs valeurs /20, titres colorés et compteurs. Seuls les personnages sont paginés, capacité 3/2/1 calculée sur des cartes complètes. La grille interne exploite la largeur (cinq blocs ou 3+2, lignes sur carte étroite) ; aucun thème retiré de la sonde, aucun contenu masqué. Header, commandes, onglets, Box et autres vues restent inchangés. Le mobile conserve le flux du document validé R1111 ; aucun scroll interne supplémentaire. Les mentions de sous-pages thématiques ci-dessous sont historiques et supersédées.
+
 ## R1111 — cadre Profil invariant et complément Combat
 
 Supersède les adaptations du haut R1110 : aucune règle propre à Légendes ne peut modifier header/h1, commandes Joueurs/Confidentialité, onglets ou boutons communs. Box→Légendes répété garde coordonnées/styles/dimensions communes (≤1px). Desktop : panneau extérieur aussi identique ; mobile : précision propriétaire, flux préexistant, haut/largeur identiques et hauteur totale liée au contenu. Seul le body Légendes est paginé3/2/1 et en thèmes si nécessaire, sans clipping ni scroll interne desktop. Profil Box et autres onglets strictement inchangés.

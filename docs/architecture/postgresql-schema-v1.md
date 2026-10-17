@@ -1,5 +1,9 @@
 # GachaImpact — Schéma PostgreSQL physique V1
 
+## R1112 — migration additive089
+
+`twitch_live_channels` conserve la preuve LIVE/OFFLINE/UNKNOWN, le stream courant, les dates de confirmation et le bail/token serveur par broadcaster officiel. `twitch_live_streams` conserve l'identifiant Twitch durable, la date de début, la consommation de l'ouverture, la session associée et la fin. FK restrictive vers GiveawaySession, indexes broadcaster/date et session ; aucun FK Player, JSON privé ou transfert économique. RLS et révocation PUBLIC/anon/authenticated sur les deux tables. Application par Prisma predeploy après les gates ; répétition privée et application publique restent distinctes au Master. [Contrat](twitch-live-giveaway-r1112.md).
+
 ## R1107 — migration additive088 Arcade après-match
 
 20261017160000_088_arcade_after_match ajoute deux colonnes à arcade_sessions : after_match JSONB nullable et after_match_expires_at TIMESTAMPTZ(6) nullable, CHECK mode/statut/objet/état fermé/échéance avec refus des états JSON incomplets, deux indexes partiels Player/échéance. Aucun changement des tables/FK/RLS/grants existants ; inventaire d’effacement JSON83→84. Les migrations existantes ne sont pas réécrites ; répétition privée via Prisma deploy/status distincte de l’application publique après review. [Contrat](post-v1-arcade-after-match-20261017.md), état exact au Master.

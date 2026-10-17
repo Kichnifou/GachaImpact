@@ -612,6 +612,8 @@ L'aide player-facing peut n'afficher que les syntaxes canoniques principales afi
 
 ## `!giveaway`
 
+R1112 ajoute l'ouverture automatique au début confirmé du live officiel et la fermeture après fin confirmée (45 secondes), via les mêmes services que ces commandes. `!giveaway close` reste disponible et définitif pour ce live ; aucun changement Wish, permissions manuelles, classement, probabilités ou récompenses. L'automatisation exige l'administrateur opérateur GLOBAL lié et une session associée durablement au stream ; une session préexistante n'est pas adoptée. [Contrat](../architecture/twitch-live-giveaway-r1112.md).
+
 - **Statut :** implémentation native présente selon R946–R952, avec contrat d’autorité [NATIVE/GLOBAL R1064](../architecture/twitch-global-r1064.md). Les anciennes restrictions de pilote sont historiques ; flags opérationnels et recettes réelles restent au Master. La présence du code ne prouve pas une activation de tous les consumers.
 - **But :** administrer ou consulter le Giveaway Twitch courant
 - **Canal joueur :** Twitch

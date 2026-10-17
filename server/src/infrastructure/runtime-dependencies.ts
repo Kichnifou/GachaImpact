@@ -1,3 +1,5 @@
+import { TwitchLiveService } from '../application/twitch/twitch-live-service.js';
+import { TwitchStreamClient } from './twitch/twitch-stream-client.js';
 import { TwitchMessageActivity } from '../application/twitch/twitch-message-activity.js';
 import { ArcadeInvitations } from '../application/arcade/arcade-invitations.js';
 import { TwitchCommandPilot } from '../application/twitch/twitch-command-pilot.js';
@@ -146,6 +148,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const retentionScheduler = new RetentionScheduler(new RetentionEngine(database, config.retentionMode ?? 'DISABLED', clock,undefined,undefined,config.retentionExecuteDomains??[]), clock);
   const giveawayService = new GiveawayService(database, twitchGiveawayManager, () => clock.now());
   twitchGiveawayManager.attachCore(giveawayService);
+  const twitchLive = twitchAppTokens ? new TwitchLiveService(database, config, new TwitchStreamClient(config.twitch!.clientId!, twitchAppTokens), giveawayService, twitchGiveawayManager, twitchSubscriptions, () => clock.now()) : undefined;
   const twitchGiveawayConsumer = new TwitchGiveawayConsumer(database, giveawayService, twitchGiveawayManager);
   const twitchGiftSupreme = twitchGiftSupremeManager?.available ? new TwitchGiftSupremeRuntime(database, clock, twitchGiftSupremeManager) : undefined;
   const twitchPilot = new TwitchPilotService(database, getCurrentPlayer, config, undefined, twitchSubscriptions, twitchGiftSupremeManager, twitchGiftSupreme, twitchGiveawayManager);
@@ -196,6 +199,7 @@ export function createRuntimeDependencies(config: AppConfig) {
     twitchGiveawayManager,
     twitchGiveawayConsumer,
     giveawayService,
+    twitchLive,
     snapshotPilot: new SnapshotPilotService(database, twitchPilot, config.twitch?.clientSecret ?? ''),
     globalChatService,
     directMessageService,
@@ -292,8 +296,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); birthdayScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); accountDeletion?.start(); },
-    close: async () => { await accountDeletion?.stop(); scheduler.stop(); await birthdayScheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { twitchLive?.start(); await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); birthdayScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); accountDeletion?.start(); },
+    close: async () => { await twitchLive?.stop(); await accountDeletion?.stop(); scheduler.stop(); await birthdayScheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,
