@@ -16,9 +16,16 @@
       "tutorial42": "PASS full text visible at390x600,14px/21px, bubble366x277",
       "catalogue": "PASS 16 compiled GameShell scenarios: four viewports with known/pending/error/empty ownership; votes/filter/sort/re-entry and no Box polling"
     },
-    "publishedShaReview": "pending",
-    "mainPromotion": "pending",
-    "deploymentsAndPostflight": "pending"
+    "publishedShaReview": { "sha":"d47a0445aca041c0fb6f22faa0abecbe723bfa2b", "status":"APPROVED", "githubPaths":34, "criticalGithubBlobs":18, "independentTests":"PASS65/65" },
+    "mainPromotion": "Strict fast-forward; four refs aligned0/0 and clean at d47a0445",
+    "deploymentsAndPostflight": {
+      "railway":"5636520c-f59a-4a01-8cf7-f5b62d6a4fc0 SUCCESS at d47a0445",
+      "cloudflare":"409593b1-c108-40d8-8275-53ceeb14d0ff SUCCESS at d47a0445",
+      "at":"2026-10-17T19:31:58.076Z",
+      "assets":"Preview, pages.dev and gachaimpact.fr JS/CSS hashes identical",
+      "health":200,
+      "anonymousGuards":"401 on Event, Combat composition, social presence, Twitch Live, shared count, birthday and after-match presence/actions"
+    }
   },
   "limits": [
     "No public economic test, migration or backend gameplay change in Lot A",
