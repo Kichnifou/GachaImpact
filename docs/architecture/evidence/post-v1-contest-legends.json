@@ -1,0 +1,171 @@
+{
+  "baseline": "03fdd7c79a9ec9dfc97b7a67c821a45b16ad85f4",
+  "scope": "B/C/D plus reward alignment; no other lot claimed complete",
+  "postgresql": {
+    "contest": {
+      "passed": 26,
+      "failed": 0
+    },
+    "box": {
+      "passed": 2,
+      "failed": 0
+    },
+    "socialPrivacy": {
+      "passed": 1,
+      "excluded": 9,
+      "failed": 0
+    },
+    "isolation": "unique private schemas created and cleaned; no business fixtures in public"
+  },
+  "nonDb": {
+    "uiTargetedPassed": 82,
+    "initialFull": "7/8; Arcade HARD deterministic-budget test timed out under concurrent load",
+    "arcadeIsolatedPassed": 31,
+    "finalFull": "8/8 with VITEST_MAX_WORKERS=4; no test timeout or assertion changed"
+  },
+  "visual": {
+    "productionCompiledGameShell": true,
+    "browser": "installed Edge, synthetic local fixtures",
+    "viewports": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "modal": {
+          "x": 580,
+          "y": 222,
+          "width": 760,
+          "height": 636
+        },
+        "disclosureStable": true,
+        "profilePrivacy": true,
+        "rewardRanks": [
+          {
+            "top": 786.5,
+            "left": 473.15625,
+            "height": 15
+          },
+          {
+            "top": 786.5,
+            "left": 761.671875,
+            "height": 15
+          },
+          {
+            "top": 786.5,
+            "left": 1041.671875,
+            "height": 15
+          },
+          {
+            "top": 786.5,
+            "left": 1321.671875,
+            "height": 15
+          }
+        ]
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "modal": {
+          "x": 303,
+          "y": 66,
+          "width": 760,
+          "height": 636
+        },
+        "disclosureStable": true,
+        "profilePrivacy": true,
+        "rewardRanks": [
+          {
+            "top": 685.5,
+            "left": 372.40625,
+            "height": 15
+          },
+          {
+            "top": 685.5,
+            "left": 543.421875,
+            "height": 15
+          },
+          {
+            "top": 685.5,
+            "left": 705.921875,
+            "height": 15
+          },
+          {
+            "top": 685.5,
+            "left": 868.421875,
+            "height": 15
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "modal": {
+          "x": 20,
+          "y": 82,
+          "width": 350,
+          "height": 680
+        },
+        "disclosureStable": true,
+        "profilePrivacy": true,
+        "rewardRanks": [
+          {
+            "top": -400.5,
+            "left": 153.15625,
+            "height": 15
+          },
+          {
+            "top": -133,
+            "left": 161.671875,
+            "height": 15
+          },
+          {
+            "top": 134.5,
+            "left": 161.671875,
+            "height": 15
+          },
+          {
+            "top": 402,
+            "left": 161.671875,
+            "height": 15
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "modal": {
+          "x": 20,
+          "y": 15,
+          "width": 350,
+          "height": 570
+        },
+        "disclosureStable": true,
+        "profilePrivacy": true,
+        "rewardRanks": [
+          {
+            "top": -783.5,
+            "left": 153.15625,
+            "height": 15
+          },
+          {
+            "top": -516,
+            "left": 161.671875,
+            "height": 15
+          },
+          {
+            "top": -248.5,
+            "left": 161.671875,
+            "height": 15
+          },
+          {
+            "top": 19,
+            "left": 161.671875,
+            "height": 15
+          }
+        ]
+      }
+    ]
+  },
+  "ownerAcceptance": "NOT ACQUIRED",
+  "economicQaOnRealPlayers": 0,
+  "migrations": 0
+}

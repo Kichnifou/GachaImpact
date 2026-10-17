@@ -1,5 +1,15 @@
 # GachaImpact — Cahier de suivi maître / Mega récap projet
 
+## Mission consolidée en exécution — reprise du 17/10/2026
+
+Le propriétaire confirme la réalisation continue de **tous les sous-lots A à G**, sans arrêt après une livraison partielle ni nouveau GO générique. Reprise contrôlée au SHA `03fdd7c79a9ec9dfc97b7a67c821a45b16ad85f4`, quatre refs alignées 0/0, arbre propre ; Shop déjà livré conservé. [Mandat complet](../architecture/post-v1-maintenance-20261017.md).
+
+**B/C/D et alignement des récompenses : implémentés, qualifiés localement, candidat à publier/reviewer avant promotion.** [Contrat et limites](../architecture/post-v1-contest-legends-20261017.md), décision R1103. Promotions finales prises dans les événements persistés du Concours sans modifier le snapshot ; titres groupés dans la projection Box privée et disclosure compact ; onglet Légendes distinct/permissions inchangées ; footer récompense puis ligne de titre réservée. PostgreSQL privé : Concours26/26, Box2/2, Social ciblé1/1 (9 exclus). UI82/82, full8/8 après timeout initial Arcade HARD et relance locale bornée à4workers ; Arcade isolée31/31. GameShell compilé aux quatre viewports, données synthétiques uniquement. Aucune migration ni action publique de QA. Review indépendante, promotion, déploiements et recette humaine NON acquis à ce checkpoint.
+
+**Prochaine action immédiate :** publier ce candidat sur review, review indépendante du vrai SHA, corriger les findings, puis promotion/déploiements/postflight et poursuite immédiate de A/E/F/G. Aucune clôture de la mission après B/C/D. Complément Invocation « Voir » ajouté au mandat : compteur de diffuseurs distincts éligibles ACTIVE/PAUSED, zéro confirmé seulement, lecture légère visible à fréquence raisonnable sans réconciliation répétée ; inspection engagée, code pas encore modifié. A/E/F/G restent à implémenter/qualifier ; aucun blocage définitif démontré. Les tests PostgreSQL sensibles et reviews restent obligatoires. V1 reste clôturée ; le Master garde l'unique reprise globale.
+
+Revue documentaire B/C/D : contrats UI/navigation et journal de décisions actualisés ; audits historiques Concours/Box/Social, roadmap V1, modèle physique/backend, Guide/workflow/passation procédurale examinés inchangés, aucune nouvelle migration ni architecture structurante.
+
 ## Maintenance post-V1 consolidée — Shop Événement (17/10/2026)
 
 Le propriétaire autorise la [mission consolidée et ses errata Shop/Arcade](../architecture/post-v1-maintenance-20261017.md). Bootstrap frais : local/main/review distants alignés `be84a11da06e9af6065bcfd487771789aefc9012`, arbre propre. Ce bloc supersède uniquement la prochaine action R1102 ci-dessous ; V1 reste terminée et les abandons/pending historiques restent clos.

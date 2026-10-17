@@ -17,6 +17,20 @@ Ajouter ce correctif frontend au lot UI indépendant. Examiner `src/screens/Even
 
 Le mandat initial et l'erratum Arcade sont conservés ci-dessous dans leur intégralité.
 
+## Complément UI propriétaire du 17/10/2026 — mission toujours continue
+
+Ne pas interrompre les sous-lots engagés ; ajouter ces ajustements avant livraison si possible, sinon en correctif complémentaire dans la même mission. Continuer A à G après ces correctifs.
+
+### Concours : récompenses alignées
+
+Dans les quatre cartes de résultat, afficher d'abord « 1er · 800 Primos », puis le titre de Concours compact/discret. Les récompenses partagent exactement le même axe horizontal ; réserver la ligne de titre même en son absence si nécessaire. Garder le nouveau titre immédiatement après promotion. Ne pas modifier scores, classements, récompenses ni inutilement les dimensions des cartes. Examiner ContestScreen et ses styles ; tests ciblés et rendu desktop/mobile, titres absents/multiples.
+
+### Invocation : compteur du bouton Voir
+
+Petite pastille bleue sobre en haut à droite de « Voir », chiffre 10–11px, sans déplacer/agrandir le bouton ni gêner clic/focus/texte. Libellé accessible donnant le nombre disponible. Aucun compteur nécessaire sur « Arrêter » pendant le visionnage.
+
+Compter les **diffuseurs distincts** disponibles dans « Invocations en direct », avec exactement les mêmes critères, y compris PAUSED encore accessible. Mise à jour sans ouvrir la modale, zéro uniquement après confirmation serveur ; aucune valeur inventée pendant chargement/erreur. Rechercher la réutilisation des données existantes ou une lecture légère authentifiée, à fréquence raisonnable et seulement écran visible. Ne pas poller agressivement ni rappeler fréquemment la liste qui effectue aussi réconciliation/nettoyage. Préserver sessions, baux, droits et comportements existants. Examiner SharedInvocationControls, use-shared-invocations, types API et service backend partagé. Tests et rendu desktop/mobile pour 0/1/plusieurs diffuseurs, déduplication, pause, indisponibilité et cycle visible/masqué. Contrats et Master reflètent seulement la livraison réelle.
+
 ## 1. Mission
 
 Le propriétaire confirme que la correction frontend R1102 a amélioré la fluidité de GachaImpact après sa sortie officielle du 16 octobre 2026.

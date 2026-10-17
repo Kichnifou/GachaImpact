@@ -279,6 +279,11 @@ describe('Contest persistence', () => {
       expect(finished.lastResult?.historyEvents).toContainEqual(expect.objectContaining({ kind: 'TITLE_PROMOTED', toRank: transition.toRank, title: transition.title }));
       expect(await database.contestEvent.count({ where: { contestId, type: 'TITLE_PROMOTED' } })).toBe(1);
       expect((await player.service.getHistoryDetail(contestId)).promotions).toEqual(finished.lastResult?.promotions);
+      expect(finished.lastResult?.participants.find(item => item.slot === human.slot)).toMatchObject({ titleRank: transition.toRank, title: transition.title });
+      expect((await player.service.getCurrent(identity)).lastResult?.participants.find(item => item.slot === human.slot)).toMatchObject({ titleRank: transition.toRank, title: transition.title });
+      await database.c6CompetitionProgress.update({ where: { playerId_characterId: { playerId: player.id, characterId: player.character.id } }, data: { strengthTitleFloor: 4 } });
+      expect((await player.service.getHistoryDetail(contestId)).participants.find(item => item.slot === human.slot)).toMatchObject({ titleRank: transition.toRank, title: transition.title });
+      expect((await database.contestParticipant.findUniqueOrThrow({ where: { contestId_slot: { contestId, slot: human.slot } } })).titleRankSnapshot).toBe(transition.floor);
     }
   }, 60_000);
 

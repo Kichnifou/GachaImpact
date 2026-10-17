@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1103 — Maintenance Concours / titres / Légendes (17/10/2026)
+
+**Validé par le mandat propriétaire consolidé et son complément UI.** Le titre présenté à la fin d'un Concours reflète la promotion persistée de ce résultat, sans changer son snapshot de calcul ; récompense de classement au-dessus d'une ligne commune de titre. Les titres réels figurent dans la fiche d'un personnage ; les Légendes C6 quittent la Box du Profil pour un onglet dédié après Box, avec confidentialité existante conservée. [Contrat](../architecture/post-v1-contest-legends-20261017.md) ; avancement, tests/review/déploiements exclusivement au Master. Cette décision ne valide ni recette humaine ni livraison non encore vérifiée.
+
 ## Décision finale V1 — clôture produit et sortie officielle (16/10/2026)
 
 **DÉCISION EXPLICITE DU PROPRIÉTAIRE :** GachaImpact **V1 est terminée, acceptée et prête pour sa publication officielle ce vendredi 16 octobre 2026 au soir**, après livraison qualifiée R1101. Les tâches et statuts « pending », « EN COURS » et gates de développement pré-release encore inscrits dans des passages historiques sont **clos et supersédés** pour le périmètre V1. La communication et la mise à disposition officielles sont effectuées par le propriétaire, et ne sont pas présumées déjà faites à l'heure de cette décision.

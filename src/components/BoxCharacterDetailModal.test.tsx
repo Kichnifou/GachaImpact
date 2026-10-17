@@ -20,6 +20,16 @@ afterEach(() => {
 })
 
 describe('BoxCharacterDetailModal Expedition countdown', () => {
+  it('shows only earned contest titles and refreshes them from a new character projection', () => {
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
+    act(() => root.render(<BoxCharacterDetailModal {...shared} />))
+    expect(container.querySelector('[aria-label="Titres de Concours"]')).toBeNull()
+    const stats = { strength: 16, intelligence: 8, beauty: 17, charisma: 5, popularity: 18, max: 20, titles: [{ theme: 'CHARISMA', rank: 2, title: 'Icône d’Argent' }, { theme: 'STRENGTH', rank: 3, title: 'Titan d’Or' }] }
+    act(() => root.render(<BoxCharacterDetailModal {...shared} character={{ ...character, constellation: 6, c6CompetitionStats: stats }} />))
+    expect(container.querySelector('[aria-label="Titres de Concours"]')?.textContent).toContain('Icône d’Argent')
+    expect(container.querySelectorAll('.box-contest-titles span')).toHaveLength(2)
+    act(() => root.unmount())
+  })
   it('already distinguishes pending claim from pending departure', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     const ready: ExpeditionDto = { ...idle, operationalStatus: 'READY', activeCharacter: character, canStartToday: false }

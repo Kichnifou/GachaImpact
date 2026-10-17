@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Profil Légendes — maintenance post-V1 du 17/10/2026
+
+Onglet `Légendes` après `Box`, destination Profil persistée et navigation précédente/suivante habituelles. Les Légendes ne figurent plus sous Box. Ancres et filtres Box conservés, droits de liste BOX et détails GENERAL_STATISTICS inchangés. [Contrat](../architecture/post-v1-contest-legends-20261017.md).
+
 ## R1101 — suppression différée et suivi hors jeu
 
 Section finale Compte, bouton danger et modale SUPPRIMER/réauthentification R1100 ; action non ouvrable pendant le Tutoriel. Le bouton de suivi PENDING était déjà disponible. R1101 conserve désormais le suivi au-dessus du GameShell et des écrans Auth, pour résister à un401/reload/perte de réponse ; lectures de jeu suspendues, intention locale non secrète, JWT en mémoire uniquement. Vérifier la clôture utilise le même POST authentifié ; un JWT expiré reste refusé et l'état non confirmé demeure compréhensible/fermable, sans annulation serveur. Déconnexion/nettoyage uniquement aprèsCOMPLETED, réponse tardive d'un autre compte sans effet. [Contrat R1100](../architecture/r1100-account-deletion.md), [qualification et limites R1101](../architecture/r1101-v1-closure.md).

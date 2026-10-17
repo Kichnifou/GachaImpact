@@ -433,6 +433,20 @@ describe('ContestScreen', () => {
     expect(container.querySelector('[aria-label="Historique des Concours"]')?.textContent).toContain('#1 Kichnifou')
   })
 
+  it('puts the rank reward before a reserved title row in every finished result card', () => {
+    const result: ContestSnapshotDto = { ...lobby, status: 'FINISHED', phase: 'FINISHED', winnerSlot: 1, participants: [1, 2, 3, 4].map(slot => ({ ...lobby.participants[0], slot, playerId: `player-${slot}`, basePoints: 2, score: 51 - slot, finalRank: slot, rewardPrimogems: slot === 1 ? '800' : '0', titleRank: slot === 1 ? 2 : 0, title: slot === 1 ? 'Icône d’Argent' : null })) }
+    const { container } = mount({ ...base, lastResult: result, permissions: { ...permissions, canOpen: false } })
+    const footers = [...container.querySelectorAll('.contest-result-footer')]
+    expect(footers).toHaveLength(4)
+    for (const footer of footers) {
+      expect(footer.children[0].classList.contains('contest-rank')).toBe(true)
+      expect(footer.children[1].classList.contains('contest-title')).toBe(true)
+    }
+    expect(footers[0].textContent).toContain('1er · 800 Primos')
+    expect(footers[0].textContent).toContain('Icône d’Argent')
+    expect(container.querySelectorAll('.contest-title-empty')).toHaveLength(3)
+  })
+
   it('renders the interpreted public detail for humans, bots, replacement, support, rewards and promotion', async () => {
     const detail: ContestSnapshotDto = {
       ...lobby, status: 'FINISHED', phase: 'FINISHED', currentRound: 5, winnerSlot: 1, startedAt: '2026-09-13T10:00:00Z', finishedAt: '2026-09-13T10:07:30Z',

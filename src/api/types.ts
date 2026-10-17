@@ -360,7 +360,7 @@ export type BoxCharacterDto = Omit<GachaCharacterDto, 'classKey'> & Readonly<{
   copies: number
   firstObtainedAt: string
   favorite: boolean
-  c6CompetitionStats: Readonly<Record<'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity', number> & { max: number }> | null
+  c6CompetitionStats: Readonly<Record<'strength' | 'intelligence' | 'beauty' | 'charisma' | 'popularity', number> & { max: number; titles?: readonly Readonly<{ theme: string; rank: number; title: string }>[] }> | null
 }>
 
 export type PlayerBoxDto = Readonly<{

@@ -4,7 +4,7 @@ import type { RankingCategory } from '../api/types'
 export type DestinationTabs={
   dailies:'overview'|'wheel'|'challenge'; combat:'training'|'boss';
   event:'registration'|'games'|'shop'|'ranking'; eventGame:0|1|2;
-  profile:'Aperçu'|'Team active'|'Box'|'Collection'|'Statistiques'|'Missions'|'Personnalisation'; appearance:'AVATAR'|'TITLE'|'BADGE';
+  profile:'Aperçu'|'Team active'|'Box'|'Légendes'|'Collection'|'Statistiques'|'Missions'|'Personnalisation'; appearance:'AVATAR'|'TITLE'|'BADGE';
   configuration:'menu'|'privacy'|'account'; social:'friends'|'requests'|'players';
   moderation:'system'|'characters'|'codes'|'banners'|'events'|'community'|'giveaway'|'audit';
   adminCharacters:'catalog'|'possessions'|'pipeline'; community:'chat'|'dm';

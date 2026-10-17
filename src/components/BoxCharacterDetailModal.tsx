@@ -6,6 +6,7 @@ import { getElementAssetPath } from '../utils/gameAssets'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 import ExpeditionCountdown from './ExpeditionCountdown'
 import GameAssetIcon from './GameAssetIcon'
+import '../social/profile-legends.css'
 import { createExpeditionClientSnapshot, type ExpeditionClientSnapshot } from '../expedition/expedition-client-snapshot'
 
 const c6Stats = ['strength', 'intelligence', 'beauty', 'charisma', 'popularity'] as const
@@ -79,6 +80,7 @@ function BoxCharacterDetailModal({ character, combatState, expedition = idleExpe
               <strong className="box-detail-constellation">C{character.constellation}</strong>
               {stellaFeedback?.visual?.type === 'constellation' && stellaFeedback.visual.characterId === character.id && <span className="box-stella-plus-one" key={stellaFeedback.visual.operationId} aria-label="Constellation augmentée de 1">+1</span>}
             </div>
+            {Boolean(c6CompetitionStats?.titles?.length) && <details className="box-contest-titles" aria-label="Titres de Concours"><summary>{c6CompetitionStats!.titles![0].title}{c6CompetitionStats!.titles!.length > 1 ? ` · +${c6CompetitionStats!.titles!.length - 1}` : ''}</summary><div>{c6CompetitionStats!.titles!.map(title => <span key={title.theme} data-rank={title.rank}>{title.title}</span>)}</div></details>}
             {combatState && <button type="button" className="box-combat-link" onClick={() => setShowCombatDetails(true)}>Statistiques →</button>}
           </div>
           <dl>

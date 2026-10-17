@@ -932,10 +932,15 @@ function presentContest(contest: ContestRecord | ContestHistoryRecord, viewerPla
     viewer: { participantSlot: viewerParticipant?.slot ?? null, selectedCharacterId: viewerParticipant?.characterId ?? null, spectator: Boolean(viewerSpectator), organizer: contest.organizerPlayerId === viewerPlayerId, selectedForSupport: contest.selectedSpectatorPlayerId === viewerPlayerId },
     participants: presentedParticipants.map((item) => {
       const identity = presentParticipantIdentity(item);
+      // Promotions belong to this finished contest; never use later live progression.
+      const promotion = history && contest.status === ContestStatus.FINISHED
+        ? promotions.find(value => value.slot === item.slot && value.playerId === item.playerId)
+        : undefined;
+      const titleRank = promotion?.toRank ?? item.titleRankSnapshot;
       return {
       slot: item.slot, kind: item.kind, playerId: item.playerId, displayName: identity.displayName,
       characterName: identity.characterName, avatar: identity.avatar, basePoints: item.basePointsSnapshot,
-      titleRank: item.titleRankSnapshot, title: contestTitle(contest.theme as ContestThemeKey, item.titleRankSnapshot),
+      titleRank, title: contestTitle(contest.theme as ContestThemeKey, titleRank),
       score: item.score, turnOrder: item.turnOrder, ready: item.ready,
       activeTurn: contest.phase === ContestPhase.TURNS && item.turnOrder === contest.currentTurnOrder,
       replaced: Boolean(item.replacedAt), replacementReason: history ? item.replacementReason : undefined,

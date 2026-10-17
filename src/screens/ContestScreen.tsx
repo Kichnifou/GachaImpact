@@ -1,5 +1,6 @@
 import { useContestPresentation, contestActionAvailability, type ScoreFeedback } from '../contest/use-contest-presentation'
 import ContestConnectionStatus from '../contest/ContestConnectionStatus'
+import '../contest/contest-result-layout.css'
 import { useContestRefresh } from '../contest/use-contest-refresh'
 import type { ContestAvailability } from '../contest/contest-request-coordinator'
 import { useTutorialPresentation, useTutorialPanel } from '../tutorial/tutorial-presentation'
@@ -222,10 +223,10 @@ function ParticipantGrid({ contest, organizerCanRemove = false, onRemove, pendin
       <div className="contest-avatar"><CharacterAssetImage characterName={item.characterName ?? item.displayName} className="contest-avatar-image" assetPaths={item.kind === 'HUMAN' ? [item.avatar] : []} fallback={item.kind === 'BOT' ? <span>◆</span> : null} /></div>
       <span className="contest-slot">#{item.slot}{item.turnOrder ? ` · tour ${item.turnOrder}` : ''}</span><h3>{item.displayName}</h3><p>{item.characterName}</p>
       {item.basePoints !== null && <div className="contest-score"><div className="contest-score-value"><strong>{item.score}</strong>{scoreFeedback?.slot === item.slot && <span key={scoreFeedback.eventId} style={{ animationDuration: `${scoreFeedback.durationMs}ms` }} className="contest-score-change" role="status" aria-label={`Gain de ${scoreFeedback.points} point${scoreFeedback.points === 1 ? '' : 's'}`} data-event-id={scoreFeedback.eventId}>+{scoreFeedback.points}</span>}</div><span>points · base +{item.basePoints}</span></div>}
-      {item.title && <span className="contest-title">{item.title}</span>}{contest.status === 'LOBBY' && <span className={item.ready ? 'contest-ready-state ready' : 'contest-ready-state'}>{item.ready ? 'Prêt' : 'Pas prêt'}</span>}
+      {!item.finalRank && item.title && <span className="contest-title">{item.title}</span>}{contest.status === 'LOBBY' && <span className={item.ready ? 'contest-ready-state ready' : 'contest-ready-state'}>{item.ready ? 'Prêt' : 'Pas prêt'}</span>}
       {item.replaced && <span className="contest-replaced">Remplacement IA</span>}
       {contest.status === 'RUNNING' && item.liveRank && <strong className="contest-live-rank" aria-label={`Classement en direct : ${rankLabel(item.liveRank)}`}>{rankLabel(item.liveRank)}</strong>}
-      {item.finalRank && <strong className="contest-rank">{item.finalRank}<sup>e</sup> · {formatResourceAmount(item.rewardPrimogems ?? '0')} Primos</strong>}
+      {item.finalRank && <div className="contest-result-footer"><strong className="contest-rank">{rankLabel(item.finalRank)} · {formatResourceAmount(item.rewardPrimogems ?? '0')} Primos</strong><span className={`contest-title${item.title ? '' : ' contest-title-empty'}`} aria-hidden={item.title ? undefined : true}>{item.title}</span></div>}
       {organizerCanRemove && item.playerId && item.playerId !== contest.organizerPlayerId && <PendingButton signature={`remove:${item.playerId}`} pending={pending ?? null} pendingLabel="Retrait…" variant="danger" className="contest-remove" onClick={() => onRemove?.(item.playerId!)}>Retirer</PendingButton>}
       {actionable && <div className="contest-card-actions" aria-label={`Actions pour ${item.displayName}`}>{canPlayHere ? <><PendingButton disabled={actionsBlocked} signature="play:BASIC" pending={pending ?? null} pendingLabel="Action en cours…" variant="primary" onClick={() => onPlay?.('BASIC')}>Action de base</PendingButton><PendingButton disabled={actionsBlocked} signature="play:RISK" pending={pending ?? null} pendingLabel="Action en cours…" variant="danger" onClick={() => onPlay?.('RISK')}>Prendre un risque</PendingButton></> : <PendingButton disabled={actionsBlocked} signature={`support:${item.slot}`} pending={pending ?? null} pendingLabel="Soutien…" variant="primary" onClick={() => onSupport?.(item.slot)}>Soutenir</PendingButton>}</div>}
     </article>

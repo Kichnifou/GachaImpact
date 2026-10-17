@@ -1,4 +1,5 @@
 import PresentationNameEditor from '../components/PresentationNameEditor'
+import ProfileLegends from '../social/ProfileLegends'
 import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -48,7 +49,7 @@ function LastActivity({ value }: { value: Access<string | null> }) {
   const relative = minutes < 1 ? 'À l’instant' : minutes < 60 ? `Il y a ${minutes} min` : minutes < 1440 ? `Il y a ${Math.floor(minutes / 60)} h` : `Il y a ${Math.floor(minutes / 1440)} j`
   return <details className="profile-last-activity"><summary title={date.toLocaleString('fr-FR')}>Dernière activité : {relative}</summary><time dateTime={value.data}>{date.toLocaleString('fr-FR')}</time></details>
 }
-const tabs = ['Aperçu', 'Team active', 'Box', 'Collection', 'Statistiques', 'Missions', 'Personnalisation'] as const
+const tabs = ['Aperçu', 'Team active', 'Box', 'Légendes', 'Collection', 'Statistiques', 'Missions', 'Personnalisation'] as const
 export default function ProfileScreen({ playerId, ownerPlayerId, actions, controller, onDirectory, onRankings = () => undefined, onPrivacy, onMessage, onTrade, onAppearanceChanged = async () => undefined, initialTab = 'Aperçu', refreshToken = 0, appearanceIntent, onAppearanceIntentConsumed }: { appearanceIntent?: AppearanceOpenIntent | null; onAppearanceIntentConsumed?: (token: string) => void; refreshToken?: number; playerId: string; ownerPlayerId: string; actions: SocialActions; controller: FriendshipController; onDirectory: () => void; onRankings?: () => void; onPrivacy: () => void; onMessage?: (player: DirectMessagePlayerDto) => void; onTrade?: (player: { id: string; displayName: string }) => void; onAppearanceChanged?: () => Promise<void>; initialTab?: typeof tabs[number] }) {
   const [value, setValue] = useState<Profile | null>(null), [error, setError] = useState(''), [normalTab, setTab] = useDestinationTab('profile',initialTab)
   const presentation = useTutorialPresentation()
@@ -110,16 +111,9 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
         {tab === 'Box' && <Section value={value.box}>{characters => {
           const filtered = filterBoxCharacters(characters, boxFilters).sort((a, b) => compareBoxCharacters(a, b, boxFilters)).map(c => ({ ...c, classKey: null }))
           return <><div className="character-grid">{filtered.map(c => <CharacterCard key={c.id} character={c} footer={<p className="profile-character-meta">C{c.constellation} · {c.copies} copies</p>} />)}</div>{!filtered.length && <p>{characters.length ? 'Aucun personnage ne correspond aux filtres.' : 'Aucun personnage possédé.'}</p>}
-            {value.legends && <Section value={value.legends}>{data => data.characters.length > 0 && <section aria-label="Légendes C6"><h2>Légendes C6</h2>{data.characters.map(character => {
-              const legend = data.legends.find(item => item.character.id === character.id)
-              return <details key={character.id}><summary>{character.name}</summary>{legend ? <>
-                <p>Force {legend.stats.strength} · Intelligence {legend.stats.intelligence} · Beauté {legend.stats.beauty} · Charisme {legend.stats.charisma} · Popularité {legend.stats.popularity}</p>
-                <p>Concours {legend.totals.contests} · Victoires {legend.totals.wins}</p>
-                {Object.entries(legend.themes).map(([key, theme]) => <p key={key}>{theme.title ?? 'Sans titre'} · {theme.wins}/{theme.participations} victoires</p>)}
-              </> : <p>Les statistiques de ces Légendes sont privées.</p>}</details>
-            })}</section>}</Section>}
           </>
         }}</Section>}
+        {tab === 'Légendes' && <ProfileLegends value={value.legends} box={value.box} />}
         {tab === 'Collection' && <Section value={value.collection}>{items => <><div className="inventory-grid profile-collection-grid">{items.map(item => <InventoryObjectCard key={item.id} item={item} />)}</div>{!items.length && <p>Collection encore vide.</p>}</>}</Section>}
         {tab === 'Statistiques' && <Section value={value.statistics}>{stats => <Statistics stats={stats} />}</Section>}
         {tab === 'Missions' && (currentMissionsError

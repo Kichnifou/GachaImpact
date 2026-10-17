@@ -1,3 +1,4 @@
+import { contestThemes, contestThemePresentation, contestTitle } from '../../domain/contest/contest.js';
 import { commandSettingMutation } from './command-setting-mutation.js';
 import { OperationStatus, Prisma, SourceChannel, type PrismaClient } from '../../../generated/prisma/client.js';
 import { BusinessError } from '../../application/errors.js';
@@ -60,7 +61,7 @@ export class PrismaBoxStore implements BoxStore {
 
   public async listVisiblePossessions(playerId: string): Promise<readonly BoxCharacter[]> {
     const rows = await this.database.playerCharacter.findMany({ where: { playerId, character: { isActive: true } }, select: boxSelection });
-    const progress = await this.database.c6CompetitionProgress.findMany({ where: { playerId, characterId: { in: rows.filter((row) => row.character.rarity === 5 && row.constellation === 6).map((row) => row.characterId) } }, select: { characterId: true, strength: true, intelligence: true, beauty: true, charisma: true, popularity: true } });
+    const progress = await this.database.c6CompetitionProgress.findMany({ where: { playerId, characterId: { in: rows.filter((row) => row.character.rarity === 5 && row.constellation === 6).map((row) => row.characterId) } }, select: { characterId: true, strength: true, intelligence: true, beauty: true, charisma: true, popularity: true, strengthTitleFloor: true, intelligenceTitleFloor: true, beautyTitleFloor: true, charismaTitleFloor: true, popularityTitleFloor: true } });
     const byCharacter = new Map(progress.map((value) => [value.characterId, c6Stats(value)]));
     return rows.map((row) => {
       const stats = byCharacter.get(row.characterId) ?? null;
@@ -233,7 +234,7 @@ export class PrismaBoxStore implements BoxStore {
     const row = await client.playerCharacter.findUnique({ where: { playerId_characterId: { playerId, characterId } }, select: boxSelection });
     if (!row) return null;
     const needsC6CompetitionProgress = row.character.rarity === 5 && row.constellation === 6;
-    const progress = needsC6CompetitionProgress ? await client.c6CompetitionProgress.findUnique({ where: { playerId_characterId: { playerId, characterId } }, select: { strength: true, intelligence: true, beauty: true, charisma: true, popularity: true } }) : null;
+    const progress = needsC6CompetitionProgress ? await client.c6CompetitionProgress.findUnique({ where: { playerId_characterId: { playerId, characterId } }, select: { strength: true, intelligence: true, beauty: true, charisma: true, popularity: true, strengthTitleFloor: true, intelligenceTitleFloor: true, beautyTitleFloor: true, charismaTitleFloor: true, popularityTitleFloor: true } }) : null;
     if (needsC6CompetitionProgress && !progress) throw new Error(`C6 competition progression missing for possession ${playerId}/${characterId}.`);
     return toBoxCharacter(row, progress ? c6Stats(progress) : null);
   }
@@ -263,8 +264,8 @@ function isC6Stats(value: Prisma.JsonValue | undefined): value is C6Stats {
     && c6StatKeys.every((key) => typeof value[key] === 'number' && Number.isInteger(value[key])));
 }
 
-function c6Stats(value: { strength: number; intelligence: number; beauty: number; charisma: number; popularity: number }): C6CompetitionStats {
-  return { strength: value.strength, intelligence: value.intelligence, beauty: value.beauty, charisma: value.charisma, popularity: value.popularity, max: C6_COMPETITION_STAT_MAX }
+function c6Stats(value: Pick<Prisma.C6CompetitionProgressGetPayload<object>, "strength" | "intelligence" | "beauty" | "charisma" | "popularity" | "strengthTitleFloor" | "intelligenceTitleFloor" | "beautyTitleFloor" | "charismaTitleFloor" | "popularityTitleFloor">): C6CompetitionStats {
+  return { strength: value.strength, intelligence: value.intelligence, beauty: value.beauty, charisma: value.charisma, popularity: value.popularity, max: C6_COMPETITION_STAT_MAX, titles: contestThemes.flatMap(theme => { const rank = value[`${contestThemePresentation[theme].statKey}TitleFloor`]; const title = contestTitle(theme, rank); return title ? [{ theme, rank, title }] : []; }) }
 }
 function toBoxCharacter(row: BoxRow, c6CompetitionStats: C6CompetitionStats | null): BoxCharacter {
   if (row.character.rarity !== 4 && row.character.rarity !== 5) throw new Error(`Invalid stored rarity for ${row.character.id}.`);

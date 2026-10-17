@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Maintenance post-V1 — Concours et Légendes (17/10/2026)
+
+Les cartes de résultat Concours affichent la récompense avant une ligne de titre réservée à toutes les cartes ; même axe par rangée, titres compacts, aucune mutation des scores. La fiche d'un personnage présente ses titres réels dans un disclosure compact sans agrandir la modale à l'ouverture. Le Profil possède un onglet Légendes après Box, avec droits BOX/GENERAL_STATISTICS conservés ; `ScrollableScreenPanel` garde son scroll. [Contrat B/C/D](../architecture/post-v1-contest-legends-20261017.md) supersédant uniquement l'emplacement des Légendes de l'ancien R1090 et l'affichage du snapshot de titre dans le résultat terminé.
+
 ## Maintenance post-V1 — retours du Shop Événement (17/10/2026)
 
 Dans Activités → Événement → Shop, succès et erreurs utilisent le slot de résumé de la carte concernée. Les conversions remplacent « Vous recevez » ; Collection conserve « Obtenu — édition YYYY » et ajoute sa confirmation dans le même slot. Hauteur réservée constante, même police pour ces résumés, vert discret, retours à la ligne sans troncature des quantités. Aucun bandeau supplémentaire sous la grille. Pending et retry ne doivent jamais montrer un succès antérieur ; les contrôles et clés économiques restent inchangés. [Mandat consolidé](../architecture/post-v1-maintenance-20261017.md).

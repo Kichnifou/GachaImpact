@@ -2,7 +2,7 @@ import { DestinationHistory,normalizeDestination,type Destination,type Destinati
 import { hashForScreen,parseNavigationHash } from './navigation'
 const values:{[K in keyof DestinationTabs]:readonly DestinationTabs[K][]}={
   dailies:['overview','wheel','challenge'],combat:['training','boss'],event:['registration','games','shop','ranking'],eventGame:[0,1,2],
-  profile:['Aperçu','Team active','Box','Collection','Statistiques','Missions','Personnalisation'],appearance:['AVATAR','TITLE','BADGE'],
+  profile:['Aperçu','Team active','Box','Légendes','Collection','Statistiques','Missions','Personnalisation'],appearance:['AVATAR','TITLE','BADGE'],
   configuration:['menu','privacy','account'],social:['friends','requests','players'],moderation:['system','characters','codes','banners','events','community','giveaway','audit'],
   adminCharacters:['catalog','possessions','pipeline'],community:['chat','dm'],inventory:['all','resources','objects','collection'],history:['invocations','banners','event','bank','shop','activity'],
   trades:['create','received','sent','history'],missions:['B','A','S','Z'],profileMissions:['B','A','S','Z'],rankings:['PROGRESSION','GACHA','RESSOURCES','COLLECTION','ACTIVITE'],

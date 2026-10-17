@@ -1,0 +1,19 @@
+.profile-legends-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr)); gap: 12px; align-items: start; }
+.profile-legend { min-width: 0; padding: 14px; }
+.profile-legend header { display: flex; gap: 12px; align-items: center; }
+.profile-legend header h2 { margin: 0 0 4px; overflow-wrap: anywhere; }
+.profile-legend-portrait { flex: none; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; }
+.profile-legend-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.profile-legend-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.profile-legend-stats div { min-width: 0; padding: 6px; background: #091326; border-radius: 8px; }
+.profile-legend-stats dt, .profile-legend-titles small { color: #aebbd0; font-size: 11px; }
+.profile-legend-stats dd { margin: 4px 0 0; color: #69d3ff; font-weight: 700; }
+.profile-legend-titles { padding: 0; margin: 0; list-style: none; }
+.profile-legend-titles li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 8px; padding: 7px 0; border-top: 1px solid #21314b; }
+.profile-legend-titles strong { color: #e9cb87; overflow-wrap: anywhere; font-size: 12px; }
+.profile-legend-titles small { grid-column: 1 / -1; }
+.box-contest-titles { position: relative; max-width: 100%; font-size: 11px; }
+.box-contest-titles summary { padding: 3px 7px; border: 1px solid #77623e; border-radius: 6px; color: #e9cb87; background: #0b1528; cursor: pointer; overflow-wrap: anywhere; }
+.box-contest-titles summary:hover, .box-contest-titles summary:focus-visible { border-color: #e9cb87; outline: 2px solid #69d3ff; outline-offset: 2px; }
+.box-contest-titles > div { position: absolute; z-index: 8; top: calc(100% + 5px); left: 0; width: max-content; max-width: min(300px, 75vw); display: flex; gap: 5px; flex-wrap: wrap; padding: 8px; border: 1px solid #77623e; border-radius: 8px; background: #0b1528; box-shadow: 0 8px 24px #0009; }
+.box-contest-titles span { padding: 2px 6px; border: 1px solid #77623e; border-radius: 6px; color: #e9cb87; font-size: 11px; line-height: 1.25; }
