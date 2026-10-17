@@ -780,7 +780,7 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
           onToggleExpanded={communityLayout.available && !tutorialState.active ? () => communityLayout.setExpanded(!communityLayout.expanded) : undefined}
           isCollapsed={revealCommunity ? false : isChatCollapsed}
           onToggle={() => setIsChatCollapsed((current) => !current)}
-          onOpenPlayers={() => setIsPlayersOpen(true)}
+          onOpenPlayers={() => { setIsPlayersOpen(true); presence.refresh() }}
           onOpenProfile={openProfile}
           onRefreshScopes={refreshChatScopes}
           directMessageIntent={directMessageIntent}

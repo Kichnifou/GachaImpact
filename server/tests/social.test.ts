@@ -30,3 +30,12 @@ describe('Social policies', () => {
     expect(Object.values(privacyDefaults).filter(v => v === 'FRIENDS')).toHaveLength(7);
   });
 });
+
+it('counts a confirmed fresh connection without inventing user activity',()=>{
+ const fresh={startedAt:new Date(+now-1000),lastActivityAt:null,lastHeartbeatAt:now,endedAt:null}
+ expect(derivePresence([fresh],now)).toBe('ONLINE')
+ expect(derivePresence([{...fresh,startedAt:new Date(+now-PRESENCE_AWAY_MS)}],now)).toBe('AWAY')
+ expect(derivePresence([{...fresh,startedAt:new Date(+now-PRESENCE_INACTIVE_MS)}],now)).toBe('OFFLINE')
+ expect(derivePresence([{...fresh,lastHeartbeatAt:new Date(+now-PRESENCE_CONNECTION_TIMEOUT_MS)}],now)).toBe('OFFLINE')
+ expect(derivePresence([{...fresh,endedAt:now}],now)).toBe('OFFLINE')
+})

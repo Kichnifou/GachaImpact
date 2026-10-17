@@ -18,8 +18,8 @@ it('opens only authorized Profile data, never requests private Box data or expos
     render(profile)
     expect(container.querySelector('.box-c6-competition-stats')?.textContent).toContain('Icône d’Argent')
     expect(container.querySelector('.box-stella-zone, .box-expedition-zone, .box-detail-favorite-star')).toBeNull()
-    const stats = [...container.querySelectorAll('.box-c6-competition-stats dl > div')]
-    expect(stats[3].textContent).toContain('Icône d’Argent');expect(stats[0].querySelector('.contest-title-badge')).toBeNull()
+    const stats = [...container.querySelectorAll('.box-c6-stat-column')]
+    expect(stats[3].textContent).toContain('Icône d’Argent');expect(stats[3].querySelector('.box-c6-stat-frame .contest-title-badge')).toBeNull();expect(stats[0].querySelector('.contest-title-badge')).toBeNull()
     render({...profile,statistics:{access:'PRIVATE'}})
     expect(container.querySelector('.box-c6-competition-stats')).toBeNull()
     expect(container.textContent).toContain('statistiques de ce personnage sont privées')

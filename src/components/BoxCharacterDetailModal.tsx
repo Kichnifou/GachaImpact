@@ -102,13 +102,13 @@ function BoxCharacterDetailModal({ readOnly = false, statisticsPrivate = false, 
       </div>
       {character.rarity === 5 && character.constellation === 6 && c6CompetitionStats && <section className="box-c6-competition-stats" aria-label="Statistiques concours">
         <span className="eyebrow">Statistiques concours</span>
-        <dl>{c6Stats.map((stat) => {
+        <div className="box-c6-stat-grid">{c6Stats.map((stat) => {
           const label = c6StatLabel(stat)
           const value = c6CompetitionStats[stat]
           const showIncrease = stellaFeedback?.visual?.type === 'stat' && stellaFeedback.visual.characterId === character.id && stellaFeedback.visual.stat === stat
           const title = c6CompetitionStats.titles?.find(item => item.theme === contestStatThemes[stat])
-          return <div key={label}><dt>{label}</dt><dd>{value} / {c6CompetitionStats.max}</dd>{title && <ContestTitleBadge title={title.title} rank={title.rank} />}{showIncrease && <span className="box-stella-plus-one stat" key={stellaFeedback.visual.operationId} aria-label={`${label} augmentée de 1`}>+1</span>}</div>
-        })}</dl>
+          return <div className="box-c6-stat-column" key={label}><dl className="box-c6-stat-frame"><dt>{label}</dt><dd>{value} / {c6CompetitionStats.max}</dd>{showIncrease && <span className="box-stella-plus-one stat" key={stellaFeedback.visual.operationId} aria-label={`${label} augmentée de 1`}>+1</span>}</dl>{title && <ContestTitleBadge title={title.title} rank={title.rank} />}</div>
+        })}</div>
       </section>}
       {readOnly && statisticsPrivate && <p className="profile-private box-private-stats">Les statistiques de ce personnage sont privées.</p>}
       {confirmingStella && <BoxAuxiliaryDialog layerClass="box-stella-confirm-layer" panelClass="box-stella-confirm panel" role="alertdialog" label="Confirmer l’utilisation d’une Stella" onClose={() => setConfirmingStella(false)}>

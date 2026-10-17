@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1109 — finitions visuelles et présence (17/10/2026)
+
+**Mandat propriétaire validé.** Restaurer les cadres statistiques antérieurs à R1108 avec badges dessous, et les cartes Légendes verticales R1103 en conservant la pagination adaptative et les droits. Fiabiliser le compteur connecté partagé Chat/panneau :12–15s en document visible, une lecture en vol, reprises pertinentes bornées, erreur sans faux zéro, aucun heartbeat accéléré ni nouveau transport. L’implémentation corrige aussi le cas explicitement demandé d’une connexion fraîche sans activité par baseline startedAt, sans enregistrer une fausse activité ;10min/2h/3min et confidentialité conservés. Aucun changement économique, schéma, migration ou infrastructure. Qualification et livraison réelles exclusivement au Master.
+
 ## R1108 — Retours UX post-V1 et enquête bornée (17/10/2026)
 
 **Validée par mandat explicite du propriétaire.** La livraison A–G précédente reste acquise. Ajustements ciblés : scores visibles au point d’impact du gain serveur, sans bloquer une action permise ; badges Bronze/Argent/Or/Platine communs ; titres sous les statistiques de la fiche ; Box Profil compacte et cliquable avec actions canoniques propres et lecture seule/confidentialité pour tiers ; Légendes en lignes paginées selon place ; pastille Voir positive uniquement, endpoint léger toutes les12–15s visibles ; description Stella en deux lignes ; anniversaire sous avatar/calendrier puis confirmation définitive ; sélection Arcade conservée jusqu’à exclusion autoritaire du filtre. Aucun changement économique, de backend ou migration. Enquête12:05–12:20Paris, sans charge publique artificielle ni modification aveugle des verrous/timeouts. État de qualification/livraison exclusivement au Master et preuve expurgée.

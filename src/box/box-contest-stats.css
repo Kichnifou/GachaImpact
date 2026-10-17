@@ -1,11 +1,13 @@
 .box-detail-modal.has-contest-titles .box-detail-content { min-height:450px; }
-.box-detail-modal .box-c6-competition-stats { box-sizing:border-box; height:99px; padding:8px; gap:4px; grid-template-rows:12px minmax(0,1fr); }
-.box-detail-modal .box-c6-competition-stats dl { gap:4px; }
-.box-detail-modal .box-c6-competition-stats dl div { display:flex; flex-direction:column; justify-content:center; align-items:flex-start; padding:4px; }
-.box-detail-modal .box-c6-competition-stats dt { line-height:1.2; }
-.box-detail-modal .box-c6-competition-stats dd { margin:2px 0 0; line-height:1.2; }
-.box-detail-modal .box-c6-competition-stats .contest-title-badge { margin-top:2px; padding:1px 4px; font-size:9px; line-height:1.15; }
+.box-detail-modal .box-c6-competition-stats { height:115px; margin-bottom:2px; align-content:start; padding:14px 14px 0; }
+.box-c6-stat-grid { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:8px; }
+.box-c6-stat-column { min-width:0; display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+.box-detail-modal .box-c6-stat-frame { box-sizing:border-box; display:block; position:relative; width:100%; margin:0; padding:8px; border:1px solid rgba(111,155,216,.16); border-radius:8px; background:rgba(8,18,37,.55); }
+.box-c6-stat-column > .contest-title-badge { padding:0 4px; font-size:9px; line-height:1.15; }
 .box-private-stats { margin:0 18px 18px; color:var(--muted); font-size:12px; }
-@media(max-width:760px) { .box-detail-modal .box-c6-competition-stats { height:211px; } }
-
-@media (max-width:760px) { .box-detail-modal.has-contest-titles .box-detail-content { min-height:753px; grid-template-rows:260px auto; } }
+@media(max-width:760px) {
+  .box-detail-modal .box-c6-competition-stats { height:auto; min-height:227px; }
+  .box-c6-stat-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .box-c6-stat-column:last-child { grid-column:1 / -1; }
+  .box-detail-modal.has-contest-titles .box-detail-content { min-height:753px; grid-template-rows:260px auto; }
+}

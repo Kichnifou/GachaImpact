@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Finitions R1109 — fiches et Légendes
+
+Les cadres C6 retrouvent la référence3bd16ae7 ; badges R1108 sous les cadres, en colonnes normales, sans modifier la hauteur des cadres. Modale et portrait de mêmes dimensions avant/après0/1/5titres aux cinqformats. Légendes retrouve les cartes verticales R1103 et garde une pagination3/2/1 selon mesures largeur/hauteur, footer et titres longs. À petite hauteur desktop, compacter uniquement le titre/commandes de cet onglet avant les cartes ; aucun scroll indésirable ou chevauchement sur les formats qualifiés, ni masquage d’un contenu réel. États vides/privés, couleurs et droits conservés. Cette présentation supersède seulement les deux dispositions correspondantes de R1108. Voir [contrat](../architecture/post-v1-contest-legends-20261017.md) et [preuves](../architecture/evidence/r1109-final-polish.json).
+
 ## Retours UX R1108
 
 Scores au point d’impact de leur gain serveur sans attente imposée aux actions autorisées ; badges de rang communs. Titres sous les cinq statistiques de fiche, dimensions conservées ; Box Profil plus compacte avec fiche propre canonique et tiers en lecture seule autorisée. Légendes pleine largeur paginées selon place, sans scroll interne desktop normal. Anniversaire : petit lien sous avatar, vrai calendrier puis second dialogue définitif, date enregistrée discrète. Voir : pastille uniquement positive et cadence légère12–15s visibles. Description Stella en deux lignes sémantiques sans autre retouche Boutique. Filtre Arcade conserve un ami tant qu’une réponse autoritaire ne l’exclut pas. Ces règles supersèdent les présentations R1103/R1104/R1106 ci-dessous, dont les preuves antérieures restent historiques.

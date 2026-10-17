@@ -9,11 +9,13 @@ export const PRESENCE_AWAY_MS = 10 * 60_000;
 export const PRESENCE_INACTIVE_MS = 2 * 60 * 60_000;
 export const PRESENCE_CONNECTION_TIMEOUT_MS = 3 * 60_000;
 export type PresenceStatus = 'ONLINE' | 'AWAY' | 'OFFLINE';
-type Session = { endedAt: Date | null; lastHeartbeatAt: Date; lastActivityAt: Date | null };
+type Session = { startedAt?: Date; endedAt: Date | null; lastHeartbeatAt: Date; lastActivityAt: Date | null };
 export function derivePresence(sessions: readonly Session[], now: Date): PresenceStatus {
-  const recent = sessions.filter(s => !s.endedAt && now.getTime() - s.lastHeartbeatAt.getTime() < PRESENCE_CONNECTION_TIMEOUT_MS && s.lastActivityAt && now.getTime() - s.lastActivityAt.getTime() < PRESENCE_INACTIVE_MS);
+  // A confirmed connection is the initial baseline, never a fabricated user activity.
+  const activityAt = (session: Session) => session.lastActivityAt ?? session.startedAt
+  const recent = sessions.filter(s => !s.endedAt && now.getTime() - s.lastHeartbeatAt.getTime() < PRESENCE_CONNECTION_TIMEOUT_MS && activityAt(s) && now.getTime() - activityAt(s)!.getTime() < PRESENCE_INACTIVE_MS);
   if (!recent.length) return 'OFFLINE';
-  return recent.some(s => now.getTime() - s.lastActivityAt!.getTime() < PRESENCE_AWAY_MS) ? 'ONLINE' : 'AWAY';
+  return recent.some(s => now.getTime() - activityAt(s)!.getTime() < PRESENCE_AWAY_MS) ? 'ONLINE' : 'AWAY';
 }
 
 export class PresenceService {
@@ -23,7 +25,7 @@ export class PresenceService {
     if (!ids.length) return new Map<string, PresenceStatus>();
     const owners = await db.player.findMany({ where: { id: { in: [...ids] }, status: 'ACTIVE', ...privacyAllowedWhere(viewer, 'PRESENCE') }, select: { id: true } });
     const now = this.clock.now();
-    const sessions = await db.playerSession.findMany({ where: { playerId: { in: owners.map(p => p.id) }, endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) } }, select: { playerId: true, endedAt: true, lastHeartbeatAt: true, lastActivityAt: true } });
+    const sessions = await db.playerSession.findMany({ where: { playerId: { in: owners.map(p => p.id) }, endedAt: null, lastHeartbeatAt: { gt: new Date(now.getTime() - PRESENCE_CONNECTION_TIMEOUT_MS) } }, select: { playerId: true, startedAt: true, endedAt: true, lastHeartbeatAt: true, lastActivityAt: true } });
     const grouped = new Map<string, typeof sessions>();
     for (const session of sessions) { const list = grouped.get(session.playerId) ?? []; list.push(session); grouped.set(session.playerId, list); }
     return new Map(owners.map(p => [p.id, derivePresence(grouped.get(p.id) ?? [], now)]));

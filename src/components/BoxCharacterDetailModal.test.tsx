@@ -20,6 +20,18 @@ afterEach(() => {
 })
 
 describe('BoxCharacterDetailModal Expedition countdown', () => {
+  it.each([0,1,5])('keeps five original stat frames and places %i badges outside, preserving Stella feedback', count => {
+    const container=document.createElement('div');document.body.append(container);const root=createRoot(container)
+    const titles=['STRENGTH','INTELLIGENCE','BEAUTY','CHARISMA','POPULARITY'].slice(0,count).map(theme=>({theme,rank:4,title:'Éclat de Platine'}))
+    act(()=>root.render(<BoxCharacterDetailModal {...shared} character={{...character,constellation:6,c6CompetitionStats:{strength:16,intelligence:8,beauty:17,charisma:5,popularity:18,max:20,titles}}} stellaFeedback={{message:'Force +1',visual:{type:'stat',stat:'strength',characterId:character.id,operationId:'stella-op'}}}/>))
+    expect(container.querySelectorAll('.box-c6-stat-frame')).toHaveLength(5)
+    expect(container.querySelectorAll('.box-c6-stat-column > .contest-title-badge')).toHaveLength(count)
+    expect(container.querySelector('.box-c6-stat-frame .contest-title-badge')).toBeNull()
+    expect(container.querySelector('.box-c6-stat-frame .box-stella-plus-one')?.textContent).toBe('+1')
+    const columns=[...container.querySelectorAll('.box-c6-stat-column')]
+    columns.forEach((column,index)=>expect(Boolean(column.querySelector(':scope > .contest-title-badge'))).toBe(index<count))
+    act(()=>root.unmount())
+  })
   it('shows only earned contest titles and refreshes them from a new character projection', () => {
     const container = document.createElement('div'); document.body.append(container); const root = createRoot(container)
     act(() => root.render(<BoxCharacterDetailModal {...shared} />))

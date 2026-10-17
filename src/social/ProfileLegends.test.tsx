@@ -28,9 +28,12 @@ describe('Profile Legends privacy', () => {
 })
 
 it('uses the available height and one readable mobile row per page',()=>{
- expect(legendPageCapacity(1000,500,140)).toBe(3)
- expect(legendPageCapacity(1000,320,140)).toBe(1)
- expect(legendPageCapacity(390,1000,300)).toBe(1)
+ expect(legendPageCapacity(1000,500,[140,140,140])).toBe(3)
+ expect(legendPageCapacity(1000,320,[300,300,300])).toBe(1)
+ expect(legendPageCapacity(390,1000,[300,300,300])).toBe(1)
+ expect(legendPageCapacity(1108,604,[480,500,520],36)).toBe(3)
+ expect(legendPageCapacity(638,408,[359,359,450],36)).toBe(2)
+ expect(legendPageCapacity(638,408,[359,376,450],36)).toBe(1)
 })
 it('preserves a page across ordinary refresh and resets after a count change or privacy closure',()=>{
  const container=document.createElement('div'),root=createRoot(container)

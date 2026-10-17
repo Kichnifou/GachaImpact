@@ -1239,6 +1239,8 @@ Une présence non autorisée :
 
 ## Machine de présence
 
+Précision R1109 (17/10/2026) : une session fraîche confirmée sans interaction utilise son startedAt serveur comme baseline de présence tant que lastActivityAt est NULL. Elle peut donc être ONLINE puis AWAY selon les mêmes seuils, sans écrire ni inventer de dernière activité. Heartbeat et end, verrous, timeout3min, inactivité2h, déduplication et permissions restent inchangés. Le snapshot Social connected est partagé tel quel par le Chat et le panneau Joueurs ; lecture12–15s seulement visible, single-flight, reprise focus/visible/online/ouverture bornée2s. Une erreur rend le nombre inconnu, jamais zéro fabriqué ; les réponses d’un ancien compte ou antérieures à l’établissement local sont ignorées. Heartbeats techniques45s et interactions coalescées15s préexistantes non accélérés. Une fermeture brutale peut donc rester visible jusqu’au timeout3min puis à la prochaine lecture.
+
 - En ligne pendant les dix premières minutes depuis la dernière interaction réelle ;
 - Absent après dix minutes ;
 - Hors ligne si toutes les sessions sont fermées ;
