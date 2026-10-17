@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { getTutorialStep, tutorialStepsForCatalog, tutorialHistoricalSteps, tutorialStepIds, tutorialSteps } from './tutorial-catalog'
 
 describe('player tutorial catalog contract', () => {
+  it('keeps Boss mensuel at step 42 with its identity, anchor and approved participation explanation', () => {
+    expect(tutorialSteps[41]).toMatchObject({ id:'boss-identity', title:'Boss mensuel', anchor:'boss-identity', text:"Le Boss affiche ses PV et sa résistance. Une attaque infligeant des dégâts suffit pour participer. S'il est vaincu, chaque participant reçoit automatiquement la même récompense, même hors ligne. Le coup final n'offre aucun bonus." })
+  })
   it('keeps Codes disponibles at step 80 and changes only its requested copy', () => {
     expect(tutorialSteps[79]).toMatchObject({ id: 'codes-available', title: 'Codes disponibles', anchor: 'codes-list', text: "Échangez les codes actifs contre des récompenses. Il existe des codes mensuel, et d'autres qui peuvent être donnés en compensations ou comme cadeau." })
     expect(new Set(tutorialSteps.map(step => step.chapter)).size).toBe(24)

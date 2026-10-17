@@ -95,7 +95,7 @@ const chatCacheScopesByScreen: Partial<Record<ScreenId, readonly ChatRefreshScop
   inventory: ['inventory', 'box'],
   bank: ['bank'],
   shop: ['shop'],
-  'characters-catalog': ['bannerVotes'],
+  'characters-catalog': ['bannerVotes', 'box'],
   trades: ['trades'],
   codes: ['giftCodes'],
 }
@@ -668,7 +668,7 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
       case 'characters-box':
         return <BoxScreen initialBox={boxCache.read(player.id)} refreshToken={chatOwnerRevision} dailyCombat={dailyCombat} expedition={expedition} expeditionMonotonicNow={expeditionMonotonicNow} openCharacterIntent={boxOpenIntent} onOpenCharacterIntentConsumed={(token) => setBoxOpenIntent((current) => current?.token === token ? null : current)} onLoadExpedition={onLoadExpedition} onStartExpedition={onStartExpedition} onClaimExpedition={onClaimExpedition} onNotificationsChanged={onLoadNotifications} onLoadBox={loadBox} onSetFavorite={setBoxFavorite} onSetSortPreference={setBoxSortPreference} onUseStella={useStella} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} />
       case 'characters-catalog':
-        return <CharactersScreen key={player.id} characters={characters} preparations={preparations} voteCache={voteCache} refreshToken={chatOwnerRevision} {...bannerVoteActions} />
+        return <CharactersScreen key={player.id} initialBox={boxCache.read(player.id)} onLoadBox={loadBox} characters={characters} preparations={preparations} voteCache={voteCache} refreshToken={chatOwnerRevision} {...bannerVoteActions} />
       case 'characters-team':
         return <TeamScreen key={player.id} teams={teams} dailyCombat={dailyCombat} initialBox={boxCache.read(player.id)} refreshToken={chatOwnerRevision} stellaRetryCharacterId={stellaIntents.getIntent(player.id)?.characterId ?? null} onLoad={onLoadTeams} onActivate={onActivateTeam} onRename={onRenameTeam} onCreateNext={onCreateNextTeam} onDelete={onDeleteTeam} onReorderTeams={onReorderTeams} onSetSlot={onSetTeamSlot} onReorderSlots={onReorderTeamSlots} onRemoveSlot={onRemoveTeamSlot} onClear={onClearTeam} onReplaceComposition={onReplaceTeamComposition} onLoadBox={loadBox} onSetBoxFavorite={setBoxFavorite} onUseStella={useStella} />
       case 'inventory':
@@ -720,6 +720,8 @@ return <ActivitiesScreen dailyItems={dailyItems} dailyClaim={dailyClaim} dailies
         showModeration={permissions.capabilities.moderationAccess}
         onOpenModeration={() => navigate('moderation')}
         onOpenMenu={() => setIsMenuOpen(true)}
+        onOpenConfiguration={() => navigateMain('configuration')}
+        configurationActive={activeScreen === 'configuration'}
         onSignOut={signOutAndClearCaches}
         notifications={notifications}
         pollSessionKey={player.id}

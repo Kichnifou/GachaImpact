@@ -1,5 +1,9 @@
 # Roadmap de préparation et de développement GachaImpact
 
+## Extension explicitement autorisée du17/10/2026
+
+Après les maintenances post-V1, nouvelle mission bornée : A finitions UI jusqu'à main/déploiements/postflight, puis B Exploration entièrement fonctionnelle jusqu'à review qualifiée avec recette isolée. B attend obligatoirement un nouveau GO humain avant main ou infrastructure publique. La correction administrative exceptionnelle jointe reste indépendante et se suspend seule sur incompatibilité de compte ; le Master porte son état réel. Aucun autre chantier V1 n'est rouvert.
+
 ## Décision de clôture propriétaire — 15/10/2026
 
 Le gameplay V1, l'économie, la progression, Twitch GLOBAL, les fonctionnalités standalone, la finition mobile générale et le point rouge R1096 sont **considérés terminés par le propriétaire**. Les projets `.exe`/PWA, thèmes supplémentaires et « Objectifs personnels » sont abandonnés. Les mentions antérieures de ces étapes dans la trajectoire macro ci-dessous sont historiques, pas des demandes d'implémentation.

@@ -1,5 +1,9 @@
 # Maintenance post-V1 — Concours, fiche personnage et Légendes
 
+## Finitions internes du17/10/2026
+
+Dimensions extérieures, cinq thèmes ensemble et pagination des personnages conservés. Portrait56px dans le budget vertical antérieur de l'en-tête et des totaux ; nom/C6/totaux à sa droite. Libellé de thème12,5px gras, /20 en haut à droite, titre centré par grille dans l'espace disponible, victoires seules en bas à droite (`0 victoire`, `1 victoire`, `2 victoires`). Le nombre de participations reste seulement dans les totaux de la Légende. Données, calculs, droits et Box inchangés.
+
 Mandat [consolidé](post-v1-maintenance-20261017.md), sous-lots B/C/D et complément propriétaire du 17/10 sur l'alignement des récompenses. Décision R1103 ; l'état de livraison appartient au Master.
 
 ## Résultat et titres historiques

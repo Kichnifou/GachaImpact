@@ -3,9 +3,9 @@ import type { ReactNode } from 'react'
 import type { Character } from '../types'
 import CharacterPortraitFrame from './CharacterPortraitFrame'
 
-type CharacterCardProps = { character: GachaCharacterDto | Character; compact?: boolean; selected?: boolean; disabled?: boolean; onClick?: () => void; footer?: ReactNode }
+type CharacterCardProps = { character: GachaCharacterDto | Character; owned?: boolean; compact?: boolean; selected?: boolean; disabled?: boolean; onClick?: () => void; footer?: ReactNode }
 
-function CharacterCard({ character, compact = false, selected = false, disabled = false, onClick, footer }: CharacterCardProps) {
+function CharacterCard({ character, owned, compact = false, selected = false, disabled = false, onClick, footer }: CharacterCardProps) {
   const catalogCharacter = 'externalKey' in character ? character : null
   const legacyCharacter = catalogCharacter ? null : character as Character
   const elementKey = catalogCharacter?.elementKey ?? legacyCharacter!.tone
@@ -29,7 +29,7 @@ function CharacterCard({ character, compact = false, selected = false, disabled 
     {footer}
     {selected && <span className="selected-mark">✓</span>}
   </>
-  const className = `character-card ${elementKey}${compact ? ' compact' : ''}${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`
+  const className = `character-card ${elementKey}${owned === false ? ' catalog-unowned' : ''}${compact ? ' compact' : ''}${selected ? ' selected' : ''}${disabled ? ' disabled' : ''}`
   return onClick ? <button type="button" className={className} disabled={disabled} onClick={onClick}>{content}</button> : <article className={className}>{content}</article>
 }
 export default CharacterCard

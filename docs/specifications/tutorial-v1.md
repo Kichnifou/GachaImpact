@@ -1,5 +1,9 @@
 # Tutoriel interactif V1 — source canonique
 
+## Complément propriétaire du17/10/2026 — étape42
+
+L'étape `boss-identity`, titre « Boss mensuel », garde ordre/ancre/vue et reçoit uniquement cette explication : « Le Boss affiche ses PV et sa résistance. Une attaque infligeant des dégâts suffit pour participer. S'il est vaincu, chaque participant reçoit automatiquement la même récompense, même hors ligne. Le coup final n'offre aucun bonus. » Aucun changement de gameplay, récompense, backend ni des autres étapes dans ce complément.
+
 ## Texte ciblé après validation R1094 — R1095
 
 R1094 validée par le propriétaire. L’étape80, codes-available, conserve titre/ancre/position/protections ; seule sa description est remplacée par la copie exacte de sa matrice active ci-dessous.115 étapes/24 chapitres/21 écrans, catalogues historiques, aliases, reprises/autostart et première image R1094 conservés. Aucune recette propriétaire R1095 présumée.

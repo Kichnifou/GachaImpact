@@ -21,6 +21,12 @@ describe('Profile Legends privacy', () => {
     render({ access: 'ALLOWED', data: { characters: [character], legends: [legend] } })
     expect(container.textContent).toContain('Icône d’Argent')
     expect(container.textContent).toContain('7 participations · 3 victoires')
+    expect(container.querySelector('.profile-legends-page header .profile-legend-totals')?.textContent).toBe('7 participations · 3 victoires')
+    for (const count of ['0','1','2']) {
+      const next = { ...legend, themes:Object.fromEntries(Object.entries(legend.themes).map(([key, theme]) => [key,{ ...theme,wins:count }])) } as ContestLegendDto
+      render({ access:'ALLOWED',data:{ characters:[character],legends:[next] } })
+      expect(Array.from(container.querySelectorAll('.profile-legends-page .profile-legend-wins'), row => row.textContent)).toEqual(Array(5).fill(`${count} ${count === '2' ? 'victoires' : 'victoire'}`))
+    }
     render({ access: 'ALLOWED', data: { characters: [], legends: [] } })
     expect(container.textContent).toContain('Aucune Légende C6')
     act(() => root.unmount())

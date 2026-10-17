@@ -265,7 +265,7 @@ describe('Particle trades UI', () => {
   })
   it('registers a Menu destination and notification deep-link without adding a main tile', () => {
     expect(parseNavigationHash('#trades')).toBe('trades'); expect(hashForScreen('trades')).toBe('trades')
-    expect(mainNavigation).toHaveLength(7); expect(navigationDestinations.find(d => d.id === 'trades')?.screen).toBe('trades')
+    expect(mainNavigation).toHaveLength(6); expect(navigationDestinations.find(d => d.id === 'trades')?.screen).toBe('trades')
     const presentation = resolveNotificationPresentation({ id: 'n', domainKey: 'trades', typeKey: 'TRADES_PENDING', payload: { count: 3 }, actionKey: 'OPEN_TRADES', actionTargetId: null, state: 'UNREAD', createdAt: '', readAt: null })
     expect(presentation.destination).toBe('trades'); expect(presentation.message).toContain('3')
   })

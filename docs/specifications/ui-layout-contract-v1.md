@@ -1,5 +1,11 @@
 # Contrat de layout UI V1
 
+## Finitions internes et accès Configuration du17/10/2026
+
+Les dimensions validées des cartes/cases Légendes sont conservées ; seule la hiérarchie interne change (portrait agrandi, totaux à droite, titre centré, victoires seules). Aucun changement du cadre commun Profil Box↔Légendes ni de la Box. La navigation principale contient six tuiles équilibrées ; Configuration est un bouton icône entre Notifications et Déconnexion. Les contrôles doivent tenir sur390px y compris avec le lien Live. Le texte complet du Boss mensuel, étape42/115, doit rester lisible dans la bulle du tutoriel sur petit écran.
+
+Catalogue : désaturation du portrait/fond uniquement lorsque la Box autoritaire confirme la non-possession ; mêmes dimensions et informations/votes lisibles. Inconnu neutre. Tri Possédé réversible par groupes alphabétiques, Nom par défaut. Aucun changement des fiches En préparation ni de Personnages→Box.
+
 ## R1112 — cinq thèmes simultanés dans Profil → Légendes
 
 La pagination des thèmes R1110/R1111 est supprimée sans exception. Chaque carte autorisée affiche Force, Intelligence, Beauté, Charisme et Popularité, leurs valeurs /20, titres colorés et compteurs. Seuls les personnages sont paginés, capacité 3/2/1 calculée sur des cartes complètes. La grille interne exploite la largeur (cinq blocs ou 3+2, lignes sur carte étroite) ; aucun thème retiré de la sonde, aucun contenu masqué. Header, commandes, onglets, Box et autres vues restent inchangés. Le mobile conserve le flux du document validé R1111 ; aucun scroll interne supplémentaire. Les mentions de sous-pages thématiques ci-dessous sont historiques et supersédées.

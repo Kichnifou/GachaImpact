@@ -1,0 +1,5 @@
+.game-navigation[data-count="6"] { grid-template-columns:repeat(6,minmax(0,1fr)); }
+@media(max-width:760px) {
+  .game-navigation[data-count="6"] { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .game-navigation[data-count="6"] .navigation-tile { grid-column:auto; }
+}

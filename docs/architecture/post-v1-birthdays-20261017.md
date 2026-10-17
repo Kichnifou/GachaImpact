@@ -1,5 +1,9 @@
 # Anniversaires post-V1 — R1106
 
+## Calendrier civil — finitions du17/10/2026
+
+La grille utilise l'année courante en Europe/Paris, indiquée dans le dialogue et recalculée au changement d'année, au retour de visibilité/focus et à la frontière civile. Les géométries décembre2026, janvier2027 et février2027/2028 sont testées. En année non bissextile, le29février reste sélectionnable par une option explicite hors grille ; aucune fausse case datée. Le serveur reçoit toujours uniquement jour/mois après une confirmation définitive séparée ; ni année de naissance ni âge ne sont collectés.
+
 Mandat propriétaire du17/10/2026, lotF. État réel de review/promotion/migration/déploiement exclusivement au Master.
 
 ## Enregistrement et confidentialité

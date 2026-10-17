@@ -1,5 +1,9 @@
 # Navigation et shell V1
 
+## Finitions UI du17/10/2026 — Configuration dans l'en-tête
+
+La navigation principale du lot A affiche exactement Accueil, Invocation, Personnages, Activités, Sac, Boutique. Configuration reste une destination canonique du Menu, des préférences et de `#configuration` ; seul son grand bouton est retiré. Un bouton ⚙ accessible « Configuration » se trouve entre Notifications et Déconnexion, ouvre les mêmes sous-onglets et participe à l'historique habituel. Menu/Modération et notifications restent fonctionnels. Exploration ne sera ajoutée qu'au lot B, après Activités, sans promotion main automatique.
+
 ## R1112 — lien du live officiel
 
 L'en-tête des joueurs connectés affiche « 🔴 Kichni est en Live ! » immédiatement à gauche de Menu uniquement avec une preuve serveur fraîche. Lien Twitch Kichnifou, nouvel onglet protégé ; aucune place réservée hors ligne et aucun déplacement des contrôles existants. Présentation compacte à deux lignes sur mobile. [Contrat serveur](../architecture/twitch-live-giveaway-r1112.md). Le cadre Profil/Box invariant R1111 est conservé ; aucune pagination thématique en Légendes.

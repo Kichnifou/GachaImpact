@@ -1,5 +1,11 @@
 # Journal des décisions validées
 
+## Finitions UI / Exploration — mandat du17/10/2026
+
+**Validé explicitement par le propriétaire :** livrer d'abord A (Légendes internes, calendrier Paris, Configuration en icône, complément étape42 Boss), revue indépendante puis main/déploiements/postflight. Ensuite implémenter B Exploration et le publier uniquement sur review avec recette jouable isolée. Nouveau GO humain indispensable pour main et toute migration/déploiement Exploration public. Cette exception supersède le cycle automatique de promotion pour B uniquement. Aucun test économique en production, infrastructure payante ou autre lot rouvert. État réel au Master.
+
+Complément A explicite : griser discrètement les seuls portraits/fonds des personnages non possédés dans Catalogue, sans désactiver consultation/votes, et ajouter le tri Possédé réversible avec ordre alphabétique stable. Source exclusive : Box autoritaire mise en cache, inconnu neutre, aucun polling supplémentaire. Nom reste le défaut, préparations et dimensions inchangées.
+
 ## R1112 — cinq thèmes visibles et automatisation Live/Giveaway (17/10/2026)
 
 **Mandats propriétaire explicites.** Toute pagination des thèmes est supprimée : les cinq informations thématiques complètes doivent être visibles simultanément sur chaque carte Légende. Seuls les personnages sont paginés en capacité 3/2/1 ; le cadre Profil restauré R1111 et toute la Box sont conservés.

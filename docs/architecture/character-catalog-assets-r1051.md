@@ -1,5 +1,11 @@
 # Catalogue Character et assets — R1051
 
+## Possession et tri — complément propriétaire du17/10/2026
+
+Le Catalogue connecté utilise exclusivement la Box autoritaire du Player courant : lecture immédiate de BoxMemoryCache, une revalidation à l'entrée via onLoadBox, réutilisation d'une actualisation partagée déjà effectuée. Aucun polling Box ajouté. Les événements Chat touchant la Box actualisent aussi le Catalogue ; revenir après une Invocation revalide la possession. Un état inconnu ou une erreur sans snapshot ne grise aucun personnage et conserve un tri alphabétique neutre ; la récupération est réessayable. Les états chargés connus restent consultables.
+
+Seuls le portrait et son fond sont légèrement désaturés pour un personnage non possédé. Dimensions, nom, étoiles, badge élémentaire et vote conservent leur présentation/interactivité. Les fiches En préparation restent inchangées. Le critère « Possédé » est un tri, jamais un filtre : possédés d'abord à sa sélection, puis inversion des groupes par la flèche ; ordre alphabétique stable à l'intérieur des deux groupes dans les deux sens. Recherche, élément et rareté se combinent normalement. Nom croissant reste le défaut ; aucun changement Box, Invocation, backend ou économie.
+
 ## Lecture des états datés — audit du13/10/2026
 
 Les anciens états « publicationOFF/suiviOFF à la clôture » et « implémentation future » ci-dessous décrivent les lots initiaux. La mise en service du11/10 et la politique progressive livrée R1066–R1077 les supersèdent, sans réouvrir les120 historiques protégés. Mitya/Valeriy ne sont pas présumés convergés/publiés : seul le Master porte la dernière observation réelle. Les gates sources/identité/rareté/élément/fenêtre demeurent obligatoires ; aucun nouveau Character ni collecte forcée dans R1080.

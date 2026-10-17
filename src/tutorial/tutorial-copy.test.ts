@@ -44,7 +44,7 @@ const ownerCopy = [
   {"id":"combat-formation","title":"Formation Combat","text":"La formation Combat est distincte de votre équipe active. Une sélection manuelle ou automatique est disponible."},
   {"id":"combat-preview","title":"Chance de victoire","text":"Vos chances de victoire dépendent de votre formation. Le détail explique le calcul pour déterminer vos chances."},
   {"id":"combat-action","title":"Tentative quotidienne","text":"Combattre utilise une tentative, vous octroie des récompenses en cas de victoire ou met vos personnages vaincus au statut K.O."},
-  {"id":"boss-identity","title":"Boss mensuel","text":"Le Boss mensuel affiche son identité, le mois, ses PV et sa résistance. Un Boss vaincu octroie des récompenses."},
+  {"id":"boss-identity","title":"Boss mensuel","text":"Le Boss affiche ses PV et sa résistance. Une attaque infligeant des dégâts suffit pour participer. S'il est vaincu, chaque participant reçoit automatiquement la même récompense, même hors ligne. Le coup final n'offre aucun bonus."},
   {"id":"boss-formation","title":"Formation et attaque","text":"Sélectionnez votre formation pour vous préparer au combat et déterminer les dégâts prévus."},
   {"id":"boss-action","title":"Dégâts prévus et attaque","text":"Attaquer inflige des dégâts au boss. Chaque joueur peut lui infliger des dégâts à son tour quotidiennement."},
   {"id":"boss-bilan","title":"Contribution au Boss","text":"Bilan présente votre contribution, les participants et les records réellement disponibles. Un Boss vaincu conserve son bilan et ses récompenses enregistrées."},

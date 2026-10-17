@@ -1,0 +1,9 @@
+.configuration-header-button.app-button { flex:none; width:36px; min-height:32px; padding:0; font-size:20px; }
+.configuration-header-button[aria-current="page"] { border-color:#80caff; background:#25486b; }
+@media(max-width:760px) {
+  .game-header .header-actions { gap:3px; }
+  .game-header .menu-header-button { width:40px; padding:0; }
+  .game-header .moderation-header-button { width:28px; padding:0; }
+  .game-header .sign-out-button, .game-header .header-icon-button, .game-header .configuration-header-button { width:30px; min-width:30px; padding:0; }
+  .game-header .twitch-live-link.app-button { width:78px; }
+}

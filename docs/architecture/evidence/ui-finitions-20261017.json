@@ -1,0 +1,29 @@
+{
+  "scope": "Lot A only: Legends, Paris birthday calendar, Configuration header, tutorial step42, Catalogue ownership",
+  "baseline": "93cab54c3f948264aeefa81ef933364747075f34",
+  "qualification": {
+    "verifyFull": "PASS 8/8",
+    "frontendTests": 1834,
+    "backendNonDatabaseTests": 2688,
+    "catalogueTargetedTests": "PASS 27/27 including six ownership scenarios",
+    "independentPrepublication": {
+      "immutableSourceBlobs": 330,
+      "legendGeometryConfigurations": 28,
+      "outerGeometryAndCapacity": "PASS within1px of immutable baseline",
+      "visibleTitleCenters": "PASS 140/140 within1px of actual free area",
+      "header": "PASS six viewports, normal and moderation roles, Live on/off, controls stable and usable",
+      "birthday": "PASS December2026, January2027, February2027/2028, open-calendar Paris rollover, special29 and confirmation",
+      "tutorial42": "PASS full text visible at390x600,14px/21px, bubble366x277",
+      "catalogue": "PASS 16 compiled GameShell scenarios: four viewports with known/pending/error/empty ownership; votes/filter/sort/re-entry and no Box polling"
+    },
+    "publishedShaReview": "pending",
+    "mainPromotion": "pending",
+    "deploymentsAndPostflight": "pending"
+  },
+  "limits": [
+    "No public economic test, migration or backend gameplay change in Lot A",
+    "Human visual acceptance remains separate from automated qualification",
+    "Exploration remains review-only until a new explicit human owner GO",
+    "Independent account correction suspended before mutation because a pending nonexpired trade affects the resources; detailed evidence stays private"
+  ]
+}

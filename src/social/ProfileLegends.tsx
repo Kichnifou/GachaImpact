@@ -19,20 +19,25 @@ export function legendPageCapacity(width:number, height:number, cardHeights:read
 
 type LegendData = Extract<NonNullable<Profile['legends']>, { access: 'ALLOWED' }>['data']
 const themes = Object.entries(stats) as [keyof typeof stats, string][]
+const victories = (count: string) => `${count} ${BigInt(count) <= 1n ? 'victoire' : 'victoires'}`
 
 function LegendCard({ character, data, box }: { character: LegendData['characters'][number]; data: LegendData; box: Profile['box'] }) {
   const legend = data.legends.find(item => item.character.id === character.id)
   const portrait = box.access === 'ALLOWED' ? box.data.find(item => item.id === character.id)?.iconPath : null
   return <article className="panel profile-legend">
-    <header><CharacterPortraitFrame characterName={character.name} element={legend?.character.elementKey ?? 'unknown'} assetPaths={[portrait ?? null]} frameClassName="profile-legend-portrait" imageClassName="profile-legend-image"/><div><h2>{character.name}</h2><span>C6 · Légende</span></div></header>
+    <header><CharacterPortraitFrame characterName={character.name} element={legend?.character.elementKey ?? 'unknown'} assetPaths={[portrait ?? null]} frameClassName="profile-legend-portrait" imageClassName="profile-legend-image"/><div><h2>{character.name}</h2><span>C6 · Légende</span>{legend && <p className="profile-legend-totals">{legend.totals.contests} participations · {victories(legend.totals.wins)}</p>}</div>{legend && <p className="profile-legend-header-reserve" aria-hidden="true">{legend.totals.contests} participations · {legend.totals.wins} victoires</p>}</header>
     {legend ? <>
-      <p className="profile-legend-totals">{legend.totals.contests} participations · {legend.totals.wins} victoires</p>
       <dl className="profile-legend-themes">{themes.map(([key, label]) => {
         const theme = legend.themes[contestStatThemes[key]]
         return <div key={key} data-legend-theme={key}>
           <dt>{label}</dt><dd className="profile-legend-score">{legend.stats[key]} / 20</dd>
           <dd className="profile-legend-title">{theme.title && theme.titleRank > 0 ? <ContestTitleBadge title={theme.title} rank={theme.titleRank}/> : <span className="profile-legend-no-title">Sans titre</span>}</dd>
-          <dd className="profile-legend-wins">{theme.wins} / {theme.participations} victoires</dd>
+          <dd className="profile-legend-wins">{victories(theme.wins)}</dd>
+          <dd className="profile-legend-size-reserve" aria-hidden="true"><dl>
+            <dt>{label}</dt><dd className="profile-legend-score">{legend.stats[key]} / 20</dd>
+            <dd className="profile-legend-title">{theme.title && theme.titleRank > 0 ? <ContestTitleBadge title={theme.title} rank={theme.titleRank}/> : <span className="profile-legend-no-title">Sans titre</span>}</dd>
+            <dd className="profile-legend-legacy-wins">{theme.wins} / {theme.participations} victoires</dd>
+          </dl></dd>
         </div>
       })}</dl>
     </> : <p>Les statistiques de cette Légende sont privées.</p>}

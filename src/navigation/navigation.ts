@@ -4,7 +4,7 @@ export const ADMIN_OPENING_INTENT_EVENT='gacha:admin-opening-intent'
 
 export type MainNavigationId = 'home' | 'invocation' | 'characters' | 'activities' | 'inventory' | 'shop' | 'configuration'
 export type NavigationDestination = Readonly<{ id: NavigationMenuDestinationId; label: string; icon: string; screen: ScreenId | null; available: boolean; action?: 'tutorial' | 'help' }>
-export const mainNavigation = [{ id: 'home', label: 'Accueil', icon: '⌂' }, { id: 'invocation', label: 'Invocation', icon: '✦' }, { id: 'characters', label: 'Personnages', icon: '♙' }, { id: 'activities', label: 'Activités', icon: '◫' }, { id: 'inventory', label: 'Sac', icon: '◇' }, { id: 'shop', label: 'Boutique', icon: '♢' }, { id: 'configuration', label: 'Configuration', icon: '⚙' }] as const
+export const mainNavigation = [{ id: 'home', label: 'Accueil', icon: '⌂' }, { id: 'invocation', label: 'Invocation', icon: '✦' }, { id: 'characters', label: 'Personnages', icon: '♙' }, { id: 'activities', label: 'Activités', icon: '◫' }, { id: 'inventory', label: 'Sac', icon: '◇' }, { id: 'shop', label: 'Boutique', icon: '♢' }] as const
 export const characterTabs = [{ screen: 'characters-box', label: 'Box' }, { screen: 'characters-team', label: 'Équipe' }, { screen: 'characters-catalog', label: 'Catalogue' }] as const
 export const activityTabs = [{ screen: 'activities-dailies', label: 'Quotidiennes' }, { screen: 'activities-missions', label: 'Missions' }, { screen: 'activities-combat', label: 'Combat' }, { screen: 'activities-event', label: 'Événement' }, { screen: 'activities-arcade', label: 'Arcade' }, { screen: 'activities-contest', label: 'Concours' }] as const
 export const navigationDestinations: readonly NavigationDestination[] = [

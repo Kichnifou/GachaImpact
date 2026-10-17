@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { activityTabs, characterTabs, hashForScreen, mainNavigation, navigationDestinations, parseNavigationHash } from './navigation'
 
 describe('navigation shell registry', () => {
-  it('keeps exactly seven ordered main destinations and grouped secondary tabs', () => {
-    expect(mainNavigation.map(({ label }) => label)).toEqual(['Accueil', 'Invocation', 'Personnages', 'Activités', 'Sac', 'Boutique', 'Configuration'])
+  it('keeps exactly six ordered main destinations and grouped secondary tabs', () => {
+    expect(mainNavigation.map(({ label }) => label)).toEqual(['Accueil', 'Invocation', 'Personnages', 'Activités', 'Sac', 'Boutique'])
     expect(characterTabs.map(({ label }) => label)).toEqual(['Box', 'Équipe', 'Catalogue'])
     expect(activityTabs.map(({ label }) => label)).toEqual(['Quotidiennes', 'Missions', 'Combat', 'Événement', 'Arcade', 'Concours'])
   })
@@ -16,7 +16,7 @@ describe('navigation shell registry', () => {
     expect(hashForScreen('activities-event')).toBe('activities/event')
     expect(navigationDestinations.find(({ id }) => id === 'tutorial')).toMatchObject({ available: true, screen: null, action: 'tutorial' })
   })
-  it('adds Rankings to the global menu without changing the seven main tiles', () => {
+  it('adds Rankings to the global menu without changing the six main tiles', () => {
     expect(navigationDestinations.map(({ id }) => id)).toEqual(['home', 'profile', 'invocation', 'box', 'team', 'catalog', 'dailies', 'missions', 'combat', 'event', 'arcade', 'contest', 'inventory', 'shop', 'bank', 'codes', 'friends', 'trades', 'rankings', 'history', 'tutorial', 'help', 'configuration'])
     expect(new Set(navigationDestinations.map(({ id }) => id)).size).toBe(23)
   })

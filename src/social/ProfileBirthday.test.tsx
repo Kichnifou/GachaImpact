@@ -2,12 +2,12 @@
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import ProfileBirthday from './ProfileBirthday'
+import ProfileBirthday, { birthdayCalendarGeometry, parisCalendarYear } from './ProfileBirthday'
 import PrivacySettingsPanel from '../screens/PrivacySettingsPanel'
 import type { Access, Birthday, SocialActions } from './types'
 ;(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 const roots: Root[] = []
-afterEach(() => { roots.splice(0).forEach(r => act(() => r.unmount())); document.body.replaceChildren() })
+afterEach(() => { roots.splice(0).forEach(r => act(() => r.unmount())); document.body.replaceChildren(); vi.useRealTimers() })
 async function mount(value: Access<Birthday | null> = { access: 'ALLOWED', data: null }, own = true, onSave = vi.fn(async (day: number, month: number) => ({ day, month }))) {
   const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root)
   const onReload = vi.fn(async () => undefined)
@@ -16,6 +16,25 @@ async function mount(value: Access<Birthday | null> = { access: 'ALLOWED', data:
   return { container, click, onSave, onReload }
 }
 describe('Profile birthday', () => {
+  it.each([[2026,12,31,1], [2027,1,31,4], [2027,2,28,0], [2028,2,29,1]])('uses real civil geometry for %s/%s', (year, month, max, offset) => {
+    expect(birthdayCalendarGeometry(year, month)).toEqual({ max, offset })
+  })
+  it('updates an already-open calendar at Paris New Year and keeps February 29 outside a nonleap grid', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-12-31T22:59:59.000Z'))
+    expect(parisCalendarYear()).toBe(2026)
+    const h = await mount(); await h.click('Définir mon anniversaire')
+    expect(h.container.textContent).toContain('Calendrier 2026')
+    await act(async () => { await vi.advanceTimersByTimeAsync(1000) })
+    expect(h.container.textContent).toContain('Calendrier 2027')
+    const select = h.container.querySelector<HTMLSelectElement>('select')!
+    await act(async () => { select.value = '2'; select.dispatchEvent(new Event('change', { bubbles:true })) })
+    const grid = h.container.querySelector('[role="grid"]')!
+    expect(grid.querySelectorAll('[role="gridcell"]')).toHaveLength(28)
+    expect(grid.querySelector('[data-day="29"]')).toBeNull()
+    const special = h.container.querySelector<HTMLButtonElement>('.birthday-leap-option [data-day="29"]')!
+    await act(async () => special.click()); await h.click('Confirmer'); await h.click('Confirmer définitivement')
+    expect(h.onSave).toHaveBeenCalledExactlyOnceWith(29,2)
+  })
   it('requires a separate definitive confirmation before submitting only day/month', async () => {
     const h = await mount(); await h.click('Définir mon anniversaire')
     expect(h.container.textContent).not.toContain('définitive'); expect(h.container.querySelector('[role=alertdialog]')).toBeNull()

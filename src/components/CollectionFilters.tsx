@@ -4,7 +4,7 @@ import GameAssetIcon from './GameAssetIcon'
 import CollectionFilterChips from './CollectionFilterChips'
 
 export type CharacterRarityFilter = 'all' | 4 | 5
-export type CharacterSortKey = 'name' | 'rarity' | 'element' | 'votes' | 'releaseDate'
+export type CharacterSortKey = 'name' | 'rarity' | 'element' | 'votes' | 'releaseDate' | 'owned'
 export type CharacterSortDirection = 'asc' | 'desc'
 
 type CollectionFiltersProps = {
@@ -12,6 +12,7 @@ type CollectionFiltersProps = {
   tutorialAnchor?: string
   allowVotes?: boolean
   allowReleaseDate?: boolean
+  allowOwned?: boolean
   placeholder: string
   query: string
   rarity: CharacterRarityFilter
@@ -50,9 +51,9 @@ function CollectionFilters(props: CollectionFiltersProps) {
     </div>
     </>}
     <label className="sort-select"><span>Trier</span><select value={sortKey} onChange={(event) => onSortKeyChange(event.target.value as CharacterSortKey)} aria-label="Critère de tri">
-      <option value="name">Nom</option><option value="rarity">Rareté</option><option value="element">Élément</option>{props.allowVotes && <option value="votes">Votes</option>}{props.allowReleaseDate && <option value="releaseDate">Date de sortie</option>}
+      <option value="name">Nom</option><option value="rarity">Rareté</option><option value="element">Élément</option>{props.allowVotes && <option value="votes">Votes</option>}{props.allowReleaseDate && <option value="releaseDate">Date de sortie</option>}{props.allowOwned && <option value="owned">Possédé</option>}
     </select></label>
-    <button type="button" className="sort-direction-button" onClick={onDirectionChange} aria-label={sortKey === 'releaseDate' ? direction === 'asc' ? 'Plus ancien en premier' : 'Plus récent en premier' : `Tri ${direction === 'asc' ? 'croissant' : 'décroissant'}`}>{direction === 'asc' ? '↑' : '↓'}</button>
+    <button type="button" className="sort-direction-button" onClick={onDirectionChange} aria-label={sortKey === 'owned' ? direction === 'asc' ? 'Possédés en premier' : 'Non possédés en premier' : sortKey === 'releaseDate' ? direction === 'asc' ? 'Plus ancien en premier' : 'Plus récent en premier' : `Tri ${direction === 'asc' ? 'croissant' : 'décroissant'}`}>{direction === 'asc' ? '↑' : '↓'}</button>
   </div>
 }
 

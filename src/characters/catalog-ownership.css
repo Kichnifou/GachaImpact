@@ -1,0 +1,2 @@
+.catalog-screen .catalog-unowned .character-portrait { filter:grayscale(.85) saturate(.3); background:linear-gradient(145deg,#29323e,#121c2c); }
+.catalog-ownership-status { color:var(--muted); font-size:12px; }

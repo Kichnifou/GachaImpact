@@ -22,3 +22,6 @@
 .profile-identity .profile-avatar-group { grid-column:1; grid-row:1 / 6; width:128px; display:grid; gap:4px; align-content:start; }
 .profile-avatar-group > .mini-avatar { width:128px; height:128px; }
 @media(max-width:550px) { .birthday-dialog.panel { padding:14px; gap:10px; } .birthday-dialog footer .app-button { font-size:12px; } .profile-identity .profile-avatar-group { width:80px; } .profile-avatar-group > .mini-avatar { width:80px; height:80px; } }
+.birthday-leap-option { display:flex; align-items:center; gap:10px; }
+.birthday-leap-option small { flex:1; color:var(--muted); }
+.birthday-leap-option [aria-pressed="true"] { border-color:#80caff; background:#25486b; }
