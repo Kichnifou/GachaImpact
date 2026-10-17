@@ -8,6 +8,8 @@ import { isPrismaConcurrencyCollision } from './prisma-concurrency.js';
 import { PrismaEconomyService } from './prisma-economy-service.js';
 import { PrismaGachaRewardService } from './prisma-gacha-reward-service.js';
 
+import { creditMasterlessStellaFortuna } from './prisma-box-store.js';
+
 const RECENT_PURCHASE_LIMIT = 5;
 const SHOP_HISTORY_PAGE_SIZE = 10;
 const MAX_ATTEMPTS = 4;
@@ -90,7 +92,7 @@ export class PrismaShopStore implements ShopStore {
           }, include: purchaseInclude });
           const view = await readView(transaction, input.playerId);
           const walletMorasAfter = view.resources.moras;
-          const rewardResourceBalanceAfter = effect.type !== 'ticket_pity5' && effect.type !== 'resource_bundle' ? view.resources[effect.resourceKey] : undefined;
+          const rewardResourceBalanceAfter = effect.type !== 'ticket_pity5' && effect.type !== 'resource_bundle' && effect.type !== 'masterless_stella' ? view.resources[effect.resourceKey] : undefined;
           await transaction.businessOperation.update({ where: { id: operation.id }, data: {
             status: OperationStatus.COMPLETED,
             completedAt: input.occurredAt,
@@ -108,6 +110,13 @@ export class PrismaShopStore implements ShopStore {
 
   private async applyEffect(transaction: Prisma.TransactionClient, input: ShopPurchaseInput, item: ShopCatalogItem, operationId: string): Promise<ShopEffectSnapshot> {
     const sourceChannel = input.sourceChannel ?? SourceChannel.UI;
+    if (item.effectType === 'masterless_stella') {
+      // This item is unconditionally unitary, independent of catalog quantity metadata.
+      if (input.quantity !== 1n) throw new BusinessError('SHOP_QUANTITY_INVALID', 'Cet article s’achète uniquement à l’unité.');
+      await creditMasterlessStellaFortuna(transaction, { playerId: input.playerId, amount: 1n, operationId,
+        sourceKey: 'shop.masterless-stella-fortuna', provenance: { shopItemId: item.id, sourceChannel }, now: input.occurredAt });
+      return { type: 'masterless_stella', amount: 1n };
+    }
     if (item.effectType === 'resource_bundle') {
       if (!item.rewardPerUnit) throw new BusinessError('SHOP_CATALOG_INVALID', 'La récompense de cet article Boutique est invalide.');
       const amount = item.rewardPerUnit.amount * input.quantity;
@@ -197,18 +206,19 @@ async function readView(database: PrismaClient | Prisma.TransactionClient, playe
 }
 
 async function readPlayerSnapshot(database: PrismaClient | Prisma.TransactionClient, playerId: string): Promise<ShopPlayerSnapshot> {
-  const [balances, gachaState] = await Promise.all([
+  const [balances, gachaState, stella] = await Promise.all([
     database.playerResourceBalance.findMany({ where: { playerId }, select: { resourceKey: true, amount: true } }),
     database.playerGachaState.findUnique({ where: { playerId }, select: {
       pity5: true, pity4: true, guaranteedFeatured5: true, captureProgress: true, fiftyFiftyLostStreak: true,
       selectedBannerCharacterId: true, totalPulls: true, totalFiveStars: true, totalFourStars: true,
       fiftyFiftyWon: true, fiftyFiftyLost: true, capturesTriggered: true,
     } }),
+    database.playerItem.findFirst({ where: { playerId, item: { externalKey: 'masterless-stella-fortuna', isActive: true } }, select: { quantity: true } }),
   ]);
   if (!gachaState) throw new BusinessError('GACHA_BANNER_UNAVAILABLE', 'L’état Gacha du joueur est indisponible.');
   const values = new Map(balances.map(({ resourceKey, amount }) => [resourceKey, amount]));
   if (!resourceKeys.every((key) => values.has(key))) throw new BusinessError('RESOURCE_STATE_INCOMPLETE', 'L’état des ressources du joueur est incomplet.');
-  return { resources: Object.fromEntries(resourceKeys.map((key) => [key, values.get(key)!])) as Record<ResourceKey, bigint>, gachaState };
+  return { stellaQuantity: stella?.quantity ?? 0n, resources: Object.fromEntries(resourceKeys.map((key) => [key, values.get(key)!])) as Record<ResourceKey, bigint>, gachaState };
 }
 
 function toCatalogItem(row: Prisma.ShopItemDefinitionGetPayload<{ include: typeof itemInclude }>): ShopCatalogItem {
@@ -224,7 +234,7 @@ function toCatalogItem(row: Prisma.ShopItemDefinitionGetPayload<{ include: typeo
   } else if (row.effectType === 'random_ticket') {
     ticketRewards = parseTicketRewards(config, row.externalKey);
   }
-  if (row.effectType !== 'daily_mission' && row.effectType !== 'resource_bundle' && row.effectType !== 'random_ticket') throw new BusinessError('SHOP_CATALOG_INVALID', `Le type d’effet de ${row.externalKey} est inconnu.`);
+  if (row.effectType !== 'daily_mission' && row.effectType !== 'resource_bundle' && row.effectType !== 'random_ticket' && row.effectType !== 'masterless_stella') throw new BusinessError('SHOP_CATALOG_INVALID', `Le type d’effet de ${row.externalKey} est inconnu.`);
   return {
     id: row.id, externalKey: row.externalKey, displayName: row.displayName, description: row.description,
     visualKey: row.visualKey, priceResourceKey: row.priceResourceKey, priceAmount: row.priceAmount,
@@ -264,6 +274,7 @@ function effectToJson(effect: ShopEffectSnapshot): Prisma.InputJsonObject {
 function jsonToEffect(value: Prisma.JsonValue): ShopEffectSnapshot {
   const effect = jsonObject(value);
   if (!effect || typeof effect.type !== 'string') throw new BusinessError('SHOP_CATALOG_INVALID', 'Un résultat d’achat Boutique est invalide.');
+  if (effect.type === 'masterless_stella' && isBigIntString(effect.amount)) return { type: effect.type, amount: BigInt(effect.amount) };
   if (effect.type === 'resource_bundle' && isResourceValue(effect.resourceKey) && isBigIntString(effect.amount)) return { type: effect.type, resourceKey: effect.resourceKey, amount: BigInt(effect.amount) };
   if (effect.type === 'ticket_resource' && hasTicketBase(effect) && isResourceValue(effect.resourceKey) && isBigIntString(effect.amount)) return { type: effect.type, rewardId: effect.rewardId, label: effect.label, resourceKey: effect.resourceKey, amount: BigInt(effect.amount) };
   if ((effect.type === 'ticket_main_element_particles' || effect.type === 'ticket_other_element_particles') && hasTicketBase(effect) && isElementValue(effect.elementKey) && isResourceValue(effect.resourceKey) && isBigIntString(effect.amount)) return { type: effect.type, rewardId: effect.rewardId, label: effect.label, elementKey: effect.elementKey, resourceKey: effect.resourceKey, amount: BigInt(effect.amount) };

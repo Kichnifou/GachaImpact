@@ -59,7 +59,7 @@ function ShopItemCard({ item, walletMoras, quantity, pending, anyPending, onQuan
   const reward = item.rewardPerUnit ? BigInt(item.rewardPerUnit.amount) * parsedQuantity : null
   const canAfford = parsedQuantity > 0n && total <= BigInt(walletMoras)
   return <article className={`shop-item panel ${item.visualKey}${item.available ? '' : ' unavailable'}`}>
-    <div className="shop-item-heading"><span className="shop-item-symbol" aria-hidden="true">{item.visualKey === 'mission' ? '▤' : item.visualKey === 'ticket' ? '✦' : '◆'}</span><div><span className="shop-tag">{item.effectType === 'random_ticket' ? 'Récompense immédiate' : item.effectType === 'daily_mission' ? 'Quotidien' : 'Ressources'}</span><h2>{item.displayName}</h2></div></div>
+    <div className="shop-item-heading"><span className="shop-item-symbol" aria-hidden="true">{item.visualKey === 'mission' ? '▤' : item.visualKey === 'ticket' ? '✦' : '◆'}</span><div><span className="shop-tag">{item.effectType === 'random_ticket' ? 'Récompense immédiate' : item.effectType === 'daily_mission' ? 'Quotidien' : item.effectType === 'masterless_stella' ? 'Renforcement' : 'Ressources'}</span><h2>{item.displayName}</h2></div></div>
     <p className="shop-description">{item.description}</p>
     <div className="shop-card-options">
       {item.ticketRewards.length > 0 && <ul data-tutorial-anchor="shop-tickets" className="shop-ticket-odds">{item.ticketRewards.map((rewardOption) => <li key={rewardOption.id}><span>{rewardOption.label}</span><strong>{formatProbability(rewardOption.probabilityBasisPoints)}</strong></li>)}</ul>}
@@ -74,7 +74,7 @@ function ShopItemCard({ item, walletMoras, quantity, pending, anyPending, onQuan
 }
 
 function RecentPurchase({ purchase, onOpenHistory }: { purchase: ShopPurchaseRecordDto | null; onOpenHistory: () => void }) {
-  return <section className="panel shop-history"><header><div><span className="eyebrow">Activité</span><h2>Dernière transaction</h2></div><button type="button" onClick={onOpenHistory}>Voir l’historique</button></header>{!purchase ? <p className="shop-history-empty">Votre première transaction apparaîtra ici.</p> : <dl className="shop-last-purchase"><div><dt>Article</dt><dd>{purchase.displayName}</dd></div><div><dt>Quantité</dt><dd>{purchase.quantity}</dd></div><div><dt>Date</dt><dd>{formatPurchaseDate(purchase.purchasedAt)}</dd></div><div><dt>Résultat</dt><dd>{effectLabel(purchase.effect)}</dd></div><div><dt>Coût</dt><dd>−{formatResourceAmount(purchase.totalPrice)} Moras</dd></div></dl>}</section>
+  return <section className="panel shop-history"><header><div><span className="eyebrow">Activité</span><h2>Dernière transaction</h2></div><button type="button" onClick={onOpenHistory}>Voir l’historique</button></header>{!purchase ? <p className="shop-history-empty">Votre première transaction apparaîtra ici.</p> : <dl className={`shop-last-purchase${purchase.effect.type === 'masterless_stella' ? ' stella-purchase' : ''}`}><div><dt>Article</dt><dd>{purchase.displayName}</dd></div><div><dt>Quantité</dt><dd>{purchase.quantity}</dd></div><div><dt>Date</dt><dd>{formatPurchaseDate(purchase.purchasedAt)}</dd></div><div><dt>Résultat</dt><dd>{effectLabel(purchase.effect)}</dd></div><div><dt>Coût</dt><dd>−{formatResourceAmount(purchase.totalPrice)} Moras</dd></div></dl>}</section>
 }
 
 export function ShopHistoryModal({ onClose, onLoad, refreshToken = 0 }: { onClose: () => void; onLoad: (page: number) => Promise<ShopHistoryDto>; refreshToken?: number }) {
@@ -108,6 +108,7 @@ function TicketResultModal({ effect, onClose }: { effect: ShopEffectDto; onClose
 }
 
 function effectLabel(effect: ShopEffectDto): string {
+  if (effect.type === 'masterless_stella') return `+${formatResourceAmount(effect.amount)} Masterless Stella Fortuna`
   if (effect.type === 'resource_bundle') return `+${formatResourceAmount(effect.amount)} Primos`
   if (effect.type === 'ticket_pity5') return `+${effect.grantedAmount} Pity 5★${effect.grantedAmount < effect.requestedAmount ? ' · plafond 90 atteint' : ''}`
   if (effect.type === 'ticket_other_element_particles') return `+${formatResourceAmount(effect.amount)} particules ${elementLabel(effect.elementKey)}`

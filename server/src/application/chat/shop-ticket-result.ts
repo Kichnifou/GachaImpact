@@ -5,6 +5,7 @@ import { chatElementEmojis, chatElementNames } from './chat-list-result.js';
 
 export function shopTicketResult(player: string, result: ShopPurchaseResult): readonly string[] {
   const effect = result.purchase.effect;
+  if (effect.type === 'masterless_stella') throw new Error('Stella is not a Ticket reward.');
   const reaction = effect.type === 'ticket_pity5' ? '✨'
     : effect.type === 'ticket_main_element_particles' ? '🔥'
     : effect.type === 'ticket_other_element_particles' ? '🔮'

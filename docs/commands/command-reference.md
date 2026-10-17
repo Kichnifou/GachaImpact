@@ -101,7 +101,7 @@ Ces présentations remplacent les formulations R1038 concernées, sans changer l
 | Expédition | Tentative de départ RUNNING : vrai personnage et remainingSeconds via durationText ; READY : aide !expedition retour. Nom READY exact conserve le claim. Rejeu confirmé conserve branche/ID. |
 | Passifs | Alias exact !passif, Help canonique !passifs [element]. |
 | Team | !team et !team N : ✅ Team Joueur : emoji Nom (Cn) - ... \| 🧩 Passifs actifs : textes compacts séparés par virgules, ou Aucun passif actif. Paramètres modernes exclusivement ; formatter partagé avec les compositions après mutations. |
-| Shop | Racine 🛒 Shop : 📜 Mission [💰 coût] \| 💠 quantité Primos [💰 coût] \| 🎟️ Ticket [💰 coût] \| Achat : !shop article. Projection DailyChallenge.purchaseCost et catalogue Shop/rewardPerUnit ; aucun prix/bundle dupliqué. Pages explicites cinq entrées et actions mission/switch/primos/ticket conservées. |
+| Shop | Racine 🛒 Shop : 📜 Mission [💰 coût] \| ✦ Stella Fortuna [💰 coût] \| 🎟️ Ticket [💰 coût] \| Achat : !shop article. Projection DailyChallenge.purchaseCost et catalogue Shop ; aucun prix dupliqué. Pages explicites cinq entrées, actions mission/switch/stella/ticket ; primos uniquement pour replay déjà confirmé R1105. |
 | Sac | ✅ Joueur, sac : 💠 montant primos (floor(primos/160) voeux) \| 💰 montant moras \| emoji stock. Sept particules même nulles, personnel d’abord puis Pyro/Hydro/Cryo/Electro/Anemo/Geo/Dendro sans doublon ; aucun objet spécial Chat, UI Sac inchangée, Collection via Coffre. Lecture seule. |
 | Liste | Help !liste <pyro\|hydro\|cryo\|electro\|anemo\|geo\|dendro\|online> [page] ; element/elements/élément/éléments = helper des sept commandes, sans recherche/mutation. Filtres/pages modernes conservés. |
 | Concours | Avant révélation publique, toute invocation avec ou sans arguments répond exactement 🏆 Concours : prochainement disponible. Aucun état projeté ni appel ContestService. |
@@ -922,12 +922,11 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - **Syntaxes principales :**
   - `!shop`
   - `!shop <page>`
-  - `!shop primos <quantité>`
-  - `!shop primos max`
+  - `!shop stella`
   - `!shop ticket`
   - `!shop mission`
   - `!shop switch`
-- **Primos :** 50 000 Moras → 160 Primogemmes par lot ; quantité multiple autorisée
+- **Stella R1105 :** une Masterless Stella Fortuna pour 50 000 000 Moras ; unitaire, répétable sans quota quotidien supplémentaire. !shop primos quantité/MAX refuse les nouvelles opérations et explique !shop stella ; replay exact des anciennes opérations confirmées conservé.
 - **Ticket :** 150 000 Moras legacy actuel ; achat/tirage immédiat ; unitaire ; probabilités visibles
 - **Ticket pity :** +10 pity 5★ via moteur Gacha, plafond 90
 - **Mission :** `!shop mission` partage l'action de l'écran Missions ; coût 10 000 Moras ; mission aléatoire inconnue avant achat ; récompense 800 Primogemmes ; progression à partir de l'attribution
@@ -941,7 +940,9 @@ Extension R1057 déployée : le claim commun peut créditer Stella, points Event
 - **Stats :** dépenses Moras réelles → `totalMorasSpent`; gains réels suivent leurs compteurs Earned
 - **Réponses Twitch :** une seule ligne
 
-**Amendement Chat R1038 :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
+**Amendement R1105 :** Stella remplace Primos dans la vente et dans l’aide, sans modifier Ticket ni Défi. Effet objet dédié, prix/stock/reçu autoritatifs et refresh Box/Sac.
+
+**Amendement Chat R1038 (Primos supersédé par R1105) :** Cinq entrées visibles par page, y compris indisponibles. mission/switch raccordés à DailyChallenge avec coût payé et état réel ; primos quantité/MAX et ticket depuis Shop, y compris ticket plafonné. Quantité MAX/item ID figés, coût/gain/solde du reçu stables.
 
 <a id="correction-ticket-décidée-le-10102026--cible-à-implémenter-défaut-encore-ouvert"></a>
 ### Présentation Ticket post-recette du 10/10/2026 — contrat courant

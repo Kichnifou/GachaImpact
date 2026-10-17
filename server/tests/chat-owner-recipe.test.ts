@@ -82,8 +82,8 @@ describe('Final owner recipe, step 29', () => {
   it('reads Shop prices and bundle size from the owners without purchasing', async () => {
     const h = harness();
     h.services.getDailyChallenge.execute.mockResolvedValue({ purchaseCost: 12345n } as never);
-    h.services.getCurrentPlayerShop.execute.mockResolvedValue({ items: [{ externalKey: 'primogem-bundle', rewardPerUnit: { amount: 321n }, priceAmount: 56789n, available: true }, { externalKey: 'reward-ticket', priceAmount: 234567n, available: true }] } as never);
-    expect(await h.send('!shop')).toBe('🛒 Shop : 📜 Mission [💰 12 345] | 💠 321 Primos [💰 56 789] | 🎟️ Ticket [💰 234 567] | Achat : !shop article');
+    h.services.getCurrentPlayerShop.execute.mockResolvedValue({ items: [{ externalKey: 'masterless-stella-fortuna', priceAmount: 50000000n, available: true }, { externalKey: 'reward-ticket', priceAmount: 234567n, available: true }] } as never);
+    expect(await h.send('!shop')).toBe('🛒 Shop : 📜 Mission [💰 12 345] | ✦ Stella Fortuna [💰 50 000 000] | 🎟️ Ticket [💰 234 567] | Achat : !shop article');
     expect(h.services.purchaseShopItemChat.execute).not.toHaveBeenCalled();
   });
   it.each(['element', 'elements', 'élément', 'éléments'])('returns a nonmutating Liste helper for %s and explicit Help', async word => {

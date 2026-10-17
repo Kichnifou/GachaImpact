@@ -456,7 +456,14 @@ function GameShell({ sharedInvocationApi, tutorialApi = defaultTutorialApi, dail
     if (scopes.some(scope => chatCacheScopesByScreen[activeScreenRef.current]?.includes(scope))) setChatOwnerRevision(value => value + 1)
     if (results.some(result => result.status === 'rejected')) throw new Error('Une projection n’a pas pu être rechargée.')
   }, [bannerVoteActions, friendship, loadBank, loadBox, loadInventory, loadShop, onLoadGiftCodes, onRefreshChatScopes, onTradeSnapshot, tradeActions, voteCache])
-  const purchaseShop = useCallback((itemId: string, quantity: string) => shopIntents.execute(player.id, itemId, quantity, async (idempotencyKey) => shopCache.writeConfirmed(player.id, await onPurchaseShop(itemId, quantity, idempotencyKey))), [onPurchaseShop, player.id, shopCache, shopIntents])
+  const purchaseShop = useCallback((itemId: string, quantity: string) => shopIntents.execute(player.id, itemId, quantity, async (idempotencyKey) => {
+    const result = await onPurchaseShop(itemId, quantity, idempotencyKey)
+    if (result.stellaQuantity !== undefined) {
+      boxCache.setStellaQuantity(player.id, result.stellaQuantity)
+      inventoryCache.setStellaQuantity(player.id, result.stellaQuantity)
+    }
+    return shopCache.writeConfirmed(player.id, result)
+  }), [onPurchaseShop, player.id, shopCache, shopIntents, boxCache, inventoryCache])
   const moderateResource = useCallback((targetPlayerId: string, input: ModerationResourceInput) => moderationIntents.execute(
     targetPlayerId,
     { type: 'resource', payload: input },

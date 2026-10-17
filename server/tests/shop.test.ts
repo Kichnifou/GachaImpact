@@ -34,6 +34,16 @@ describe('Shop domain and HTTP contract', () => {
     apps.push(app); return { app, store };
   }
 
+  it('serializes a Stella object receipt and current stock losslessly without a resourceKey', async () => {
+    const { app, store } = await setup();
+    const original = await store.purchase({ playerId, playerElementKey: 'hydro', itemId: itemIds[1]!, quantity: 1n, idempotencyKey: crypto.randomUUID(), occurredAt: new Date() });
+    store.purchase.mockResolvedValue({ ...original, stellaQuantity: 9007199254740993n, purchase: { ...original.purchase, effect: { type: 'masterless_stella', amount: 1n } } } as never);
+    const response = await app.inject({ method: 'POST', url: '/api/v1/me/shop/' + itemIds[1] + '/purchase', headers: { authorization: 'Bearer token' }, payload: { quantity: '1', idempotencyKey: crypto.randomUUID() } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().stellaQuantity).toBe('9007199254740993');
+    expect(response.json().purchase.effect).toEqual({ type: 'masterless_stella', amount: '1' });
+  });
+
   it('caps five-star pity without changing the source value', () => { expect(applyFiveStarPityBonus(84, 10)).toBe(90); expect(applyFiveStarPityBonus(0, 10)).toBe(10); expect(() => applyFiveStarPityBonus(90, 0)).toThrow(); });
   it('protects and serializes the ordered visible catalog, unavailable reason, probabilities and bigint values', async () => {
     const { app } = await setup(); expect((await app.inject({ url: '/api/v1/me/shop' })).statusCode).toBe(401);

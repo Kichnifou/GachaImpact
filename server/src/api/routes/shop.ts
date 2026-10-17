@@ -37,6 +37,7 @@ function shopHistoryDto(view: ShopHistoryPage) {
 function shopDto(view: ShopView) {
   return {
     resources: toPlayerResourcesDto(view.resources),
+    ...(view.stellaQuantity !== undefined ? { stellaQuantity: view.stellaQuantity.toString() } : {}),
     gachaState: gachaStateDto(view.gachaState),
     items: view.items.map((item) => ({
       ...item,

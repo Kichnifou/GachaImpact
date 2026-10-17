@@ -39,3 +39,5 @@
   .shop-screen .shop-last-purchase { margin-top: 5px; }
   .shop-screen .shop-last-purchase dd { font-size: 12px; white-space: normal; overflow: visible; }
 }
+
+.shop-screen .stella-purchase dd { white-space: normal; overflow-wrap: anywhere; overflow: visible; }

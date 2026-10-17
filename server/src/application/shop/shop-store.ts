@@ -21,7 +21,7 @@ export type ShopCatalogItem = Readonly<{
   visualKey: string;
   priceResourceKey: ResourceKey;
   priceAmount: bigint;
-  effectType: 'daily_mission' | 'resource_bundle' | 'random_ticket';
+  effectType: 'daily_mission' | 'resource_bundle' | 'random_ticket' | 'masterless_stella';
   displayOrder: number;
   available: boolean;
   unavailableReason: string | null;
@@ -31,6 +31,7 @@ export type ShopCatalogItem = Readonly<{
 }>;
 
 export type ShopEffectSnapshot =
+  | Readonly<{ type: 'masterless_stella'; amount: bigint }>
   | Readonly<{ type: 'resource_bundle'; resourceKey: ResourceKey; amount: bigint }>
   | Readonly<{ type: 'ticket_resource'; rewardId: string; label: string; resourceKey: ResourceKey; amount: bigint }>
   | Readonly<{ type: 'ticket_main_element_particles'; rewardId: string; label: string; elementKey: ElementKey; resourceKey: ResourceKey; amount: bigint }>
@@ -51,6 +52,7 @@ export type ShopPurchase = Readonly<{
 }>;
 
 export type ShopPlayerSnapshot = Readonly<{
+  stellaQuantity?: bigint;
   resources: Readonly<Record<ResourceKey, bigint>>;
   gachaState: Readonly<{
     pity5: number; pity4: number; guaranteedFeatured5: boolean; captureProgress: number;

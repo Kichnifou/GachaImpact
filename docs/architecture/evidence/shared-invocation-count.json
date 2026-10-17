@@ -77,5 +77,76 @@
     ]
   },
   "realPlayerQaMutations": 0,
-  "ownerAcceptance": "NOT ACQUIRED"
+  "ownerAcceptance": "NOT ACQUIRED",
+  "delivery": {
+    "sha": "35c31d08cea3b7a08fb664fda1f4b665fabc037c",
+    "review": {
+      "verdict": "APPROVED",
+      "agent": "review_bcd",
+      "githubDiffs": 29,
+      "criticalBlobs": 8,
+      "independentTests": {
+        "frontend": 40,
+        "backend": 31,
+        "postgresRerun": false
+      }
+    },
+    "railway": {
+      "id": "95c357fa-749b-407f-85fd-7f4db13f8203",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "9fd16aa2-c941-45df-a3a7-86a53bf2c9e2",
+      "status": "SUCCESS"
+    },
+    "postflight": {
+      "sha": "35c31d08cea3b7a08fb664fda1f4b665fabc037c",
+      "at": "2026-10-17T08:07:12.376Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/9fd16aa2-c941-45df-a3a7-86a53bf2c9e2",
+      "sites": [
+        {
+          "origin": "https://9fd16aa2.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BRTrkfDT.js",
+              "sha256": "94f49bc3e5a4bedeb3f6263d9345ed07f55714d987ff3375c46c2eb78d0037c7"
+            },
+            {
+              "asset": "/assets/index-CqCSshZv.css",
+              "sha256": "72cc842c45f59fd42b4b81658d5b4b689bace8b914043a80c17fce3ca8ed7438"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-BRTrkfDT.js",
+              "sha256": "94f49bc3e5a4bedeb3f6263d9345ed07f55714d987ff3375c46c2eb78d0037c7"
+            },
+            {
+              "asset": "/assets/index-CqCSshZv.css",
+              "sha256": "72cc842c45f59fd42b4b81658d5b4b689bace8b914043a80c17fce3ca8ed7438"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-BRTrkfDT.js",
+              "sha256": "94f49bc3e5a4bedeb3f6263d9345ed07f55714d987ff3375c46c2eb78d0037c7"
+            },
+            {
+              "asset": "/assets/index-CqCSshZv.css",
+              "sha256": "72cc842c45f59fd42b4b81658d5b4b689bace8b914043a80c17fce3ca8ed7438"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401,
+      "countAnonymousGuard": 401
+    }
+  }
 }

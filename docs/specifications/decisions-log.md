@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1105 — Boutique : Masterless Stella Fortuna (17/10/2026)
+
+**Validé explicitement par le mandat propriétaire consolidé, lot E.** Retrait du lot160Primos/50000Moras de toute nouvelle vente ; remplacement par une Stella existante à50000000Moras, achat unitaire répétable sans nouvelle limite quotidienne. Crédit d'objet et débit atomiques/idempotents via le propriétaire Boutique unique ; nouvelle définition stable, ancien article et reçus conservés pour exact replay. Commande commune !shop stella, anciennes commandes nouvelles refusées naturellement. [Contrat](../architecture/post-v1-shop-stella-20261017.md), état réel au Master.
+
 ## R1104 — compteur du bouton Voir (17/10/2026)
 
 **Validé par le complément propriétaire à la mission consolidée.** Pastille discrète des diffuseurs distincts encore disponibles (ACTIVE ou PAUSED éligible), y compris zéro confirmé, sans valeur inventée pendant indisponibilité ni sur Arrêter. Lecture légère authentifiée seulement sur Invocation visible, sans polling agressif ni réconciliation fréquente de la liste. [Contrat partagé](../architecture/shared-invocations-v1.md), qualification/livraison au Master ; aucune modification économique ou des sessions/baux.

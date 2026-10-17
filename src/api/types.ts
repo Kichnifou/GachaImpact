@@ -215,7 +215,7 @@ export type ShopItemDto = Readonly<{
   visualKey: string
   priceResourceKey: string
   priceAmount: string
-  effectType: 'daily_mission' | 'resource_bundle' | 'random_ticket'
+  effectType: 'daily_mission' | 'resource_bundle' | 'random_ticket' | 'masterless_stella'
   displayOrder: number
   available: boolean
   unavailableReason: string | null
@@ -225,6 +225,7 @@ export type ShopItemDto = Readonly<{
 }>
 
 export type ShopEffectDto =
+  | Readonly<{ type: 'masterless_stella'; amount: string }>
   | Readonly<{ type: 'resource_bundle'; resourceKey: string; amount: string }>
   | Readonly<{ type: 'ticket_resource'; rewardId: string; label: string; resourceKey: string; amount: string }>
   | Readonly<{ type: 'ticket_main_element_particles' | 'ticket_other_element_particles'; rewardId: string; label: string; elementKey: ElementKey; resourceKey: string; amount: string }>
@@ -244,6 +245,7 @@ export type ShopPurchaseRecordDto = Readonly<{
 }>
 
 export type PlayerShopDto = Readonly<{
+  stellaQuantity?: string
   resources: PlayerResourcesDto
   gachaState: PlayerGachaStateDto
   items: readonly ShopItemDto[]

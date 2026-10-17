@@ -174,6 +174,7 @@ describe('Chat command adapters', () => {
     const { chat, services, send } = harness();
     expect(await send('!pull 1')).toBe('Moi obtient : 1 personnage(s).');
     expect(services.performGachaPullChat.execute).toHaveBeenCalledWith(actor, 1, commandId);
+    chat.hasConfirmedCommandMutation.mockResolvedValueOnce(true);
     expect(await send('!shop primos max')).toContain('Boutique');
     expect(chat.rememberCommandQuantity).toHaveBeenCalledWith(commandId, 2n);
     expect(services.purchaseShopItemChat.execute).toHaveBeenCalledWith(actor, 'primos', 2n, commandId);

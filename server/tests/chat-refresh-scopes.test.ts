@@ -11,6 +11,7 @@ describe('Chat scopes from confirmed server operations', () => {
     expect(scopesForOperation('wheel.spin')).toEqual(['wheel', 'resources']);
     expect(scopesForOperation('friendship.add')).toEqual(['social', 'resources', 'notifications']);
     expect(scopesForOperation('event.game-c.send')).toContain('event');
+    expect(scopesForOperation('shop.purchase')).toEqual(['shop', 'resources', 'inventory', 'box', 'gacha']);
     expect(scopesForOperation('box.stella.use')).toEqual(['box', 'inventory', 'resources', 'teams', 'dailyCombat', 'monthlyBoss', 'contest']);
   });
   it('does not request owner reads for queries or unknown operations', () => {

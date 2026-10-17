@@ -350,14 +350,15 @@ export class PlayerCommandResolver {
             ], '🎯 Mission (suite) :');
             return `✅ ${player}, ${action === 'mission' ? 'mission' : 'nouvelle mission'} : ${challengeText}${challenge ? ` | Récompense 💠${chatNumber(challenge.rewardPrimogems)}` : ''}${result.spentMoras !== undefined ? ` | ${action === 'switch' ? 'Switch' : 'Achat'} : -💰${chatNumber(result.spentMoras)}` : ''} | Reste 💰${chatNumber(result.resources.moras)}${result.view.nextSwitchCost !== null ? ` | 🔄 Changer : !shop switch (💰${chatNumber(result.view.nextSwitchCost)})` : ''}`;
           }
-          if (action === 'primos' || action === 'ticket') {
+          if (action === 'primos' || action === 'ticket' || action === 'stella') {
             const max = normalizePlayerSearch(args[1] ?? '') === 'max';
-            if (action === 'ticket' && args.length !== 1 || action === 'primos' && (args.length !== 2 || !max && !/^[1-9]\d*$/u.test(args[1]!))) return syntax(definition.syntax);
+            if ((action === 'ticket' || action === 'stella') && args.length !== 1 || action === 'primos' && (args.length !== 2 || !max && !/^[1-9]\d*$/u.test(args[1]!))) return syntax(definition.syntax);
+            if (action === 'primos' && !await this.chat.hasConfirmedCommandMutation(commandMessageId)) return commandText('Le lot de Primogemmes n’est plus proposé. Utilisez !shop stella pour acheter une Masterless Stella Fortuna à 50 000 000 Moras.');
             const view = await this.services.getCurrentPlayerShop.execute(identity);
-            const item = view.items.find(entry => entry.externalKey === (action === 'primos' ? 'primogem-bundle' : 'reward-ticket'));
+            const item = view.items.find(entry => entry.externalKey === (action === 'primos' ? 'primogem-bundle' : action === 'stella' ? 'masterless-stella-fortuna' : 'reward-ticket'));
             const itemId = await this.chat.rememberCommandText(commandMessageId, 'targetId', item?.id ?? '');
             if (!itemId || !item?.available && !await this.chat.hasConfirmedCommandMutation(commandMessageId)) return commandText('Cet article Boutique est actuellement indisponible.');
-            const quantity = action === 'ticket' ? 1n : max
+            const quantity = action === 'ticket' || action === 'stella' ? 1n : max
               ? await this.chat.rememberCommandQuantity(commandMessageId, item ? view.resources.moras / item.priceAmount : 0n) : BigInt(args[1]!);
             if (quantity < 1n) return commandText('Vous ne possédez pas assez de Moras dans votre portefeuille.');
             const ticketPlayer = action === 'ticket' ? await this.chat.rememberCommandText(commandMessageId, 'eventContext',
@@ -365,7 +366,7 @@ export class PlayerCommandResolver {
             const result = await this.services.purchaseShopItemChat.execute(identity, itemId, quantity, commandMessageId);
             if (ticketPlayer !== null) return shopTicketResult(ticketPlayer, result);
             const effect = result.purchase.effect;
-            const reward = effect.type === 'ticket_pity5' ? `+${effect.grantedAmount} pity 5★ (${effect.pity5After}/90)`
+            const reward = effect.type === 'masterless_stella' ? `+${chatNumber(effect.amount)} Masterless Stella Fortuna` : effect.type === 'ticket_pity5' ? `+${effect.grantedAmount} pity 5★ (${effect.pity5After}/90)`
               : effect.type === 'ticket_resource' && effect.resourceKey === 'moras' ? `💰 Remboursement de ${chatNumber(effect.amount)} Moras` : resourceText(effect.resourceKey, effect.amount);
             return `🛒 Boutique : ${chatNumber(result.purchase.quantity)} × ${result.purchase.displayName} acheté pour ${resourceText('moras', result.purchase.totalPrice)} · ${reward}${result.walletMorasAfter !== undefined ? ' · reste ' + resourceText('moras', result.walletMorasAfter) : ''}.`;
           }

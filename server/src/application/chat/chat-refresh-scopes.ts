@@ -14,7 +14,7 @@ export function scopesForOperation(type: string): ChatRefreshScope[] {
   if (type.startsWith('bank.')) return ['bank', 'resources'];
   if (type === 'particles.convert') return ['resources', 'inventory', 'dailyChallenge'];
   if (type.startsWith('daily-challenge.')) return ['dailyChallenge', 'resources', 'shop'];
-  if (type === 'shop.purchase') return ['shop', 'resources', 'inventory', 'gacha'];
+  if (type === 'shop.purchase') return ['shop', 'resources', 'inventory', 'box', 'gacha'];
   if (type === 'box.stella.use') return ['box', 'inventory', 'resources', 'teams', 'dailyCombat', 'monthlyBoss', 'contest'];
   if (type.startsWith('friendship.')) return ['social', 'resources', 'notifications'];
   if (type.startsWith('trades.')) return ['trades', 'resources', 'inventory', 'notifications'];

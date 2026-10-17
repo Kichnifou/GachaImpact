@@ -24,6 +24,23 @@ async function mount(onPurchase = vi.fn<(...args: [string, string]) => Promise<S
 async function mountHistory(onLoad: (page: number) => Promise<ShopHistoryDto>) { const container = document.createElement('div'); document.body.append(container); const root = createRoot(container); roots.push(root); const onClose = vi.fn(); await act(async () => { root.render(<ShopHistoryModal onLoad={onLoad} onClose={onClose} />); await Promise.resolve(); await Promise.resolve() }); return { container, onClose, root } }
 
 describe('ShopScreen', () => {
+  it('buys a unit Stella repeatedly and renders its result without a ticket dialog or resource alias', async () => {
+    const stella = { ...base.items[0], id: 'stella', externalKey: 'masterless-stella-fortuna', displayName: 'Masterless Stella Fortuna', visualKey: 'stella', effectType: 'masterless_stella' as const, quantityMode: 'unit' as const, priceAmount: '50000000', rewardPerUnit: null }
+    const shop = { ...base, items: [stella, base.items[1]], resources: { ...base.resources, moras: '150000000' } }
+    const result = { ...shop, stellaQuantity: '1', purchase: { id: 'p', itemId: 'stella', externalKey: stella.externalKey, displayName: stella.displayName, quantity: '1', unitPrice: '50000000', totalPrice: '50000000', effect: { type: 'masterless_stella' as const, amount: '1' }, operationId: 'o', purchasedAt: '2026-10-17T08:00:00Z' }, operation: { id: 'o', alreadyProcessed: false } }
+    const purchase = vi.fn(async () => ({ ...result, recentPurchases: [result.purchase] }))
+    const { container } = await mount(purchase, shop)
+    const card = container.querySelector('.shop-item.stella')!
+    expect(card.querySelector('input')).toBeNull()
+    expect(card.textContent?.replace(/\s/g, ' ')).toContain('50 000 000 Moras')
+    expect(card.textContent).toContain('Renforcement')
+    for (let i = 0; i < 2; i++) await act(async () => { card.querySelector<HTMLButtonElement>('.shop-buy-button')!.click(); await Promise.resolve(); await Promise.resolve() })
+    expect(purchase.mock.calls).toEqual([['stella', '1'], ['stella', '1']])
+    expect(container.querySelector('[role="dialog"]')).toBeNull()
+    expect(container.querySelector('.shop-last-purchase')?.textContent).toContain('+1 Masterless Stella Fortuna')
+    expect(container.querySelector('.shop-feedback-slot')?.textContent).toContain('+1 Masterless Stella Fortuna')
+  })
+
   it('keeps the Ticket price and purchase behavior without the redundant unit label', async () => {
     const rich = { ...base, resources: { ...base.resources, moras: '200000' } }
     const result = {

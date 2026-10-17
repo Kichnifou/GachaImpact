@@ -11,7 +11,13 @@ const config = loadConfig();
 if (!config.databaseUrl) throw new Error('DATABASE_URL is required for Shop database tests.');
 const isolated = isolatedBatchDatabase();
 const database = isolated.database;
-beforeAll(() => isolated.setup({ seedPublicCatalog: true }), 60_000);
+// Historical Shop owner scenarios use a private pre-replacement catalogue only.
+// Current catalogue/access/migration guarantees are exercised by shop-stella.integration.
+beforeAll(async () => {
+  await isolated.setup({ seedPublicCatalog: true, prismaMigrations: true });
+  await database.shopItemDefinition.update({ where: { externalKey: 'primogem-bundle' }, data: { isVisible: true, isEnabled: true } });
+  await database.shopItemDefinition.update({ where: { externalKey: 'masterless-stella-fortuna' }, data: { isVisible: false } });
+}, 180_000);
 afterAll(() => isolated.cleanup(), 60_000);
 const players = new Set<string>();
 const temporaryItems = new Set<string>();
@@ -170,7 +176,7 @@ describe('Shop persistence', () => {
     for (let branch = 0; branch < 5; branch += 1) {
       const playerId = await createPlayer(150_000n, branch === 3 ? 84 : 12); const random = { nextInt: vi.fn((maximum: number) => maximum === 5 ? branch : 2) }; const store = new PrismaShopStore(database, random); const key = randomUUID();
       const before = await database.playerGachaState.findUniqueOrThrow({ where: { playerId } }); const result = await store.purchase(input(playerId, ticketId, 1n, key)); const calls = random.nextInt.mock.calls.length;
-      if (result.purchase.effect.type !== 'ticket_pity5' && result.purchase.effect.type !== 'resource_bundle') {
+      if (result.purchase.effect.type !== 'ticket_pity5' && result.purchase.effect.type !== 'resource_bundle' && result.purchase.effect.type !== 'masterless_stella') {
         const resourceKey = result.purchase.effect.resourceKey;
         expect(result.rewardResourceBalanceAfter).toBe(result.resources[resourceKey]);
         // A later unrelated balance must never replace the historical purchase total.

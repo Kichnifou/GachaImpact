@@ -1,5 +1,9 @@
 # 10 — Audit legacy Sac / Coffre / Shop
 
+## Amendement post-V1 R1105 — catalogue Stella
+
+Le mandat du17/10/2026 remplace l’offre160Primos/50000Moras par une **Masterless Stella Fortuna à50000000Moras**, unitaire répétable sans quota quotidien. Le reste de cet audit conserve sa chronologie ; les anciennes syntaxes Primos ne constituent plus une offre nouvelle. Débit/crédit objet/acquisition/reçu dans la transaction Boutique existante ; effet dédié masterless_stella, catalogue086 avec nouvelID, ancien article inchangé sauf masquage/désactivation. Replay des anciens reçus exacts avant les contrôles de visibilité. !shop stella commun Chat/Twitch ; nouveaux !shop primos refusés. [Contrat et limites](../architecture/post-v1-shop-stella-20261017.md), livraison exclusivement au Master.
+
 ## Cadre commun aux catégories Sac — R1090
 
 Le conteneur inventory-scroll-body existant reçoit bordure douce, fond et coins arrondis, sous onglets et titre/recherche fixes. Les quatre catégories partagent ce cadre ; Tout conserve seul le scroll pour ses 22 entrées. Ressources neuf, Objets et Collection douze tiennent sans scroll ni pagination. Réorganisation locale des cartes Ressources sous 820 px de hauteur, monnaie en deux colonnes et particules en quatre sous 650 px, espaces Collection réduits pour conserver le bord inférieur du cadre. Montants, actions Banque/Boutique/Échanger/Convertir, recherche et fiches restent inchangés ; aucun nouveau wrapper scrollable. La vérification inclut les dernières cartes et descendants, pas seulement un parent sans scrollbar. Preuves/retraits au Master.

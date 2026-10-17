@@ -46,8 +46,9 @@ describe('Complete remaining command families', () => {
     h.services.purchaseShopItemChat.execute.mockResolvedValue({ purchase: { quantity: 1n, displayName: 'Ticket', totalPrice: 150000n, effect: { type: 'ticket_pity5', grantedAmount: 1, requestedAmount: 10, pity5After: 90 } }, walletMorasAfter: 13n } as never);
     const text = await h.send('!shop ticket'); expect(text).toContain('+1 pity 5★ (90/90)'); expect(text).not.toContain('+10'); expect(text).toContain('Reste 💰 13 Moras');
   });
-  it.each(['max', 'MAX', 'Max'])('accepts Shop primos %s and retains its quantity if the catalogue disappears before publication', async token => {
+  it.each(['max', 'MAX', 'Max'])('replays confirmed historical Shop primos %s and retains its quantity if the catalogue disappears before publication', async token => {
     const h = harness(); remember(h);
+    h.chat.hasConfirmedCommandMutation.mockResolvedValue(true);
     let quantity: bigint | undefined;
     h.chat.rememberCommandQuantity.mockImplementation(async (_id, value) => quantity ??= value);
     await h.send(`!shop primos ${token}`);

@@ -1069,6 +1069,8 @@ Ledger historique distinct du stock : chaque ligne rattache une quantité positi
 
 # 15. Boutique
 
+**Amendement post-V1 R1105 :** migration086 candidate étend seulement le CHECK effect_type par masterless_stella, conserve l’ancien primogem-bundle masqué/désactivé et crée79000000-0000-4000-8000-000000000004 à50000000Moras. Effet snapshot {type:masterless_stella,amount:string}, crédit réel PlayerItem/ItemAcquisition avec BusinessOperation commune. Aucune nouvelle monnaie/table/colonne ; types PrismaString existants. ShopView expose stellaQuantity actuel, y compris au replay ; reçus et walletMorasAfter historiques ne changent pas. [Contrat](../architecture/post-v1-shop-stella-20261017.md), activation au Master. Les paragraphes010/011 ci-dessous sont historiques.
+
 ## 15.1 `ShopItemDefinition`
 
 Catalogue serveur dynamique :

@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1105 — achat de Stella
+
+Le propriétaire Boutique conserve son verrou Player, transaction SERIALIZABLE et retry borné. Un effet masterless_stella crédite PlayerItem et ItemAcquisition via creditMasterlessStellaFortuna dans la même transaction que le débit50M et le reçu ; nouveauID catalogue086, ancien masqué/désactivé conservé pour replay. Aucun ResourceKey artificiel ni changement Ticket/Défi. [Contrat](post-v1-shop-stella-20261017.md), qualification/activation au Master.
+
 ## R1102 — pression des consultations Chat
 
 Le frontend attend1 500–2 000ms après fin de lecture, avec jitter/backoff et coalescing/sérialisation par panneau/joueur. Les optimisations backend différées le16/10 sont reprises dans le mandat du17/10 : fenêtre Chat minimale puis hydratation des seules lignes livrées ; lecture groupée des notifications cadeaux et matérialisation annuelle groupée. Aucun nouveau cache, verrou, schéma, transport ou règle économique. [Diagnostic et limites](r1102-launch-performance.md), qualification/promotion réelles au Master. Le compteur Invocation R1104 utilise un GET agrégé authentifié indépendant de la liste réconciliatrice, à30–35s uniquement écran visible ; il ne change aucune cadence Chat/diffusion.

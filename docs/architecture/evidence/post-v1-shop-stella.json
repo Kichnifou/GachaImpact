@@ -1,0 +1,119 @@
+{
+  "scope": "post-V1 lot E / R1105",
+  "state": "qualified candidate; independent review and public migration/deployment pending",
+  "tests": {
+    "privatePostgres": {
+      "currentMigrationAndStella": 6,
+      "historicalShopAndTicket": 11,
+      "schemas": "random private isolatedBatchDatabase; no public Player copied or mutated; cleaned"
+    },
+    "frontendTargeted": 45,
+    "backendTargeted": 313,
+    "additionalApiAndRefreshScopes": 9,
+    "full": {
+      "pass": 8,
+      "total": 8,
+      "log": "gachaimpact-verify-full-jfJLgB"
+    },
+    "initialUiFailure": "Synthetic response omitted recentPurchases; fixture corrected, same assertion passed"
+  },
+  "visuals": {
+    "productionCSS": true,
+    "gameShell": true,
+    "browser": "installed Edge headless",
+    "cases": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "cards": [
+          {
+            "x": 381,
+            "y": 337,
+            "width": 544.5,
+            "height": 631
+          },
+          {
+            "x": 935.5,
+            "y": 337,
+            "width": 544.5,
+            "height": 631
+          }
+        ],
+        "unit": true,
+        "confirmed": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "cards": [
+          {
+            "x": 339,
+            "y": 333.93609619140625,
+            "width": 309.5,
+            "height": 319
+          },
+          {
+            "x": 658.5,
+            "y": 333.93609619140625,
+            "width": 309.5,
+            "height": 319
+          }
+        ],
+        "unit": true,
+        "confirmed": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "cards": [
+          {
+            "x": 22,
+            "y": 689.6856079101562,
+            "width": 342,
+            "height": 330.6875
+          },
+          {
+            "x": 22,
+            "y": 1030.373046875,
+            "width": 342,
+            "height": 362.6875
+          }
+        ],
+        "unit": true,
+        "confirmed": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "cards": [
+          {
+            "x": 22,
+            "y": 689.5159301757812,
+            "width": 342,
+            "height": 330.6875
+          },
+          {
+            "x": 22,
+            "y": 1030.203369140625,
+            "width": 342,
+            "height": 362.6876220703125
+          }
+        ],
+        "unit": true,
+        "confirmed": true,
+        "horizontalOverflow": false
+      }
+    ],
+    "inspection": "Desktop1366 and mobile390x600 before/after inspected; result text wraps fully"
+  },
+  "migration": {
+    "name": "20261017120000_086_shop_masterless_stella",
+    "privateRehearsal": true,
+    "publicStatus": "not applied at candidate preparation"
+  },
+  "economicQaPublic": false,
+  "humanAcceptance": false
+}

@@ -34,7 +34,7 @@ const bankFilters: readonly { id: BankFilter; label: string }[] = [
 const date = (value: string) => new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Paris' }).format(new Date(value))
 const shortDate = (value: string) => new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date(value))
 const number = (value: number) => new Intl.NumberFormat('fr-FR').format(value)
-const effectLabel = (effect: ShopEffectDto) => effect.type === 'resource_bundle' ? `+${formatResourceAmount(effect.amount)} Primos`
+const effectLabel = (effect: ShopEffectDto) => effect.type === 'masterless_stella' ? `+${formatResourceAmount(effect.amount)} Masterless Stella Fortuna` : effect.type === 'resource_bundle' ? `+${formatResourceAmount(effect.amount)} Primos`
   : effect.type === 'ticket_pity5' ? `+${effect.grantedAmount} Pity 5★`
     : effect.type === 'ticket_other_element_particles' || effect.type === 'ticket_main_element_particles' ? `+${formatResourceAmount(effect.amount)} particules ${effect.elementKey}` : effect.label
 
