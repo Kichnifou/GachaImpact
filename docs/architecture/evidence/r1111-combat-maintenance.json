@@ -1,5 +1,5 @@
 {
-  "scope": "Candidat R1111 et complément Combat Entraînement, avant review/promotion",
+  "scope": "R1111 et complément Combat Entraînement livrés techniquement ; recette humaine non acquise",
   "bootstrap": "9401fea038d2c5a9cf685a045d002602f758ea83",
   "profile": {
     "cause": "Retrait intégral du bloc R1110 @media(max-height:1000px) modifiant header/h1, commandes et onglets ; aucune modification Box ou autre onglet.",
@@ -7259,12 +7259,106 @@
     "Assertions anciennes CombatPicker remplacées par celles du sélecteur partagé avec confirmation explicite.",
     "Footer mobile comparé en coordonnées document afin de distinguer scrollIntoView du déplacement de layout.",
     "Commandes existantes au hover desktop et hasTouch mobile testées sans clic forcé.",
-    "ScrollHeight seul insuffisant : chevauchement découvert visuellement, corrigé puis assertions des sections et descendants ennemis ajoutées."
+    "ScrollHeight seul insuffisant : chevauchement découvert visuellement, corrigé puis assertions des sections et descendants ennemis ajoutées.",
+    "Après publication, normalisation séparée de deux lignes vides EOF du sélecteur ; aucun changement fonctionnel après full8/8, diff global --check PASS."
   ],
   "artifacts": "GameShell complet et CSS Vite compilés UTF-8, trafic externe bloqué ; local-data/shop-feedback-qa/r1111-*.png et combat-*.png",
   "limitations": [
     "Fixtures synthétiques locales ; recette humaine non acquise.",
-    "Aucune mutation publique, migration ou infrastructure nouvelle.",
-    "Revue du vrai SHA, promotion, déploiements et postflight encore à acquérir."
-  ]
+    "Aucune mutation publique, migration ou infrastructure nouvelle."
+  ],
+  "independentReview": {
+    "verdict": "APPROVED",
+    "sha": "a7b9f6e81291d1a64eff2988548feed8afa31be0",
+    "githubCommits": 3,
+    "githubPaths": 30,
+    "criticalBlobs": 16,
+    "uiTests": 79,
+    "httpTests": 3,
+    "privatePostgresql": 6,
+    "privateSchemaCleaned": true,
+    "profileComparisons": 28,
+    "combatViewports": 4,
+    "compiledHarnessesRerun": true,
+    "noBlockingFindings": true,
+    "noPublicMutation": true
+  },
+  "delivery": {
+    "codeSha": "a7b9f6e81291d1a64eff2988548feed8afa31be0",
+    "strictFastForward": true,
+    "refsAlignedAtCodePromotion": true,
+    "divergence": [
+      0,
+      0
+    ],
+    "railway": {
+      "id": "a5348bc6-86c2-41a2-883f-276b951aaf60",
+      "status": "SUCCESS",
+      "sha": "a7b9f6e81291d1a64eff2988548feed8afa31be0",
+      "migrationsFound": 88,
+      "pendingMigrations": 0
+    },
+    "cloudflare": {
+      "id": "6938ba21-131a-40f6-a400-9b0b1704d5a7",
+      "status": "SUCCESS",
+      "sha": "a7b9f6e81291d1a64eff2988548feed8afa31be0"
+    },
+    "postflight": {
+      "sha": "a7b9f6e81291d1a64eff2988548feed8afa31be0",
+      "guards": {
+        "combatComposition": 401,
+        "presence": 401,
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T14:55:48.254Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/6938ba21-131a-40f6-a400-9b0b1704d5a7",
+      "sites": [
+        {
+          "origin": "https://6938ba21.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-DQin1cfY.css",
+              "sha256": "b0b4bdda262bb8a5f21db1f30a5517da51353d84b4160ebef95facc43111b055"
+            },
+            {
+              "asset": "/assets/index-p8s_YV1E.js",
+              "sha256": "97a5f6c9da06a2361faae7fd183869cf1a8187ddca39fe4c9d6b16d70e8b3761"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-DQin1cfY.css",
+              "sha256": "b0b4bdda262bb8a5f21db1f30a5517da51353d84b4160ebef95facc43111b055"
+            },
+            {
+              "asset": "/assets/index-p8s_YV1E.js",
+              "sha256": "97a5f6c9da06a2361faae7fd183869cf1a8187ddca39fe4c9d6b16d70e8b3761"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-DQin1cfY.css",
+              "sha256": "b0b4bdda262bb8a5f21db1f30a5517da51353d84b4160ebef95facc43111b055"
+            },
+            {
+              "asset": "/assets/index-p8s_YV1E.js",
+              "sha256": "97a5f6c9da06a2361faae7fd183869cf1a8187ddca39fe4c9d6b16d70e8b3761"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "documentationCheckpoint": "Suit séparément review, revue, fast-forward et contrôle des déploiements/postflight finaux ; aucun auto-commit de son propre hash."
+  }
 }
