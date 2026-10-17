@@ -1,5 +1,5 @@
 {
-  "scope": "R1109 — qualification du candidat local ; aucun déploiement déduit",
+  "scope": "R1109 — trois finitions livrées techniquement ; recette humaine non acquise",
   "bootstrap": "eaff0f1d5b8c4f77623a9520658b75d966402ebf",
   "tests": {
     "full": {
@@ -3192,5 +3192,85 @@
     "Mobile : flux de document existant pour accéder à toute la carte ; aucune scrollbar interne aux cartes.",
     "Fermeture brutale : délai serveur3min préservé, puis prochaine lecture.",
     "Recette humaine propriétaire non acquise."
-  ]
+  ],
+  "delivery": {
+    "codeSha": "f62ef939fa98879a0cecba3876df3a5ba1f6bb87",
+    "independentReview": {
+      "verdict": "APPROVED",
+      "actualGithubDiffsAndBlobs": true,
+      "ui": 46,
+      "backendSocial": 4,
+      "privatePostgresql": 6,
+      "privateSchemaCleaned": true
+    },
+    "promotion": "Fast-forward strict ; quatre refs alignées0/0 et arbre propre à la promotion",
+    "railway": {
+      "id": "ace759e1-31ef-4ca9-8328-7cbe2d4f88c6",
+      "status": "SUCCESS",
+      "sha": "f62ef939fa98879a0cecba3876df3a5ba1f6bb87",
+      "migrationsFound": 88,
+      "pending": 0
+    },
+    "cloudflare": {
+      "id": "416401af-bf72-4b5e-bfc2-9b587535a393",
+      "status": "SUCCESS",
+      "sha": "f62ef939fa98879a0cecba3876df3a5ba1f6bb87"
+    },
+    "postflight": {
+      "sha": "f62ef939fa98879a0cecba3876df3a5ba1f6bb87",
+      "guards": {
+        "presence": 401,
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T12:12:01.042Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/416401af-bf72-4b5e-bfc2-9b587535a393",
+      "sites": [
+        {
+          "origin": "https://416401af.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CwI9AVYb.js",
+              "sha256": "780681265870276fd49c0ed2e79884dfb6c426dcc75e06ca3d4530a42f752305"
+            },
+            {
+              "asset": "/assets/index-D_TwF-Td.css",
+              "sha256": "86e022219b5e88c494f4b7e7b1bfd387e5c3daaf37e300259513996bd86509d5"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CwI9AVYb.js",
+              "sha256": "780681265870276fd49c0ed2e79884dfb6c426dcc75e06ca3d4530a42f752305"
+            },
+            {
+              "asset": "/assets/index-D_TwF-Td.css",
+              "sha256": "86e022219b5e88c494f4b7e7b1bfd387e5c3daaf37e300259513996bd86509d5"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-CwI9AVYb.js",
+              "sha256": "780681265870276fd49c0ed2e79884dfb6c426dcc75e06ca3d4530a42f752305"
+            },
+            {
+              "asset": "/assets/index-D_TwF-Td.css",
+              "sha256": "86e022219b5e88c494f4b7e7b1bfd387e5c3daaf37e300259513996bd86509d5"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "documentationCheckpoint": "Suit la même gate review puis FF/main et déploiements/postflight ; SHA final vérifié séparément sans auto-référence."
+  }
 }
