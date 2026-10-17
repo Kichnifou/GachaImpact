@@ -1,5 +1,5 @@
 {
-  "scope": "R1112 candidate; no production economic test or human acceptance claimed",
+  "scope": "R1112 technically delivered; next real live remains human observation",
   "base": "dacc902ab7037c9233be34a00b000872d060441a",
   "qualifiedAt": "2026-10-17T17:20:18.138Z",
   "full": {
@@ -1891,6 +1891,145 @@
     "visualProfile": 28,
     "visualHeader": 6,
     "fix": "Bounded PENDING recovery across old official cycles; no automatic FAILED/AMBIGUOUS/RESERVED retry",
-    "deltaReview": "pending published correction SHA"
+    "deltaReview": {
+      "sha": "893fb6112453fec5cb210ef694344850c9a16682",
+      "verdict": "APPROVED",
+      "githubDeltaBlobs": 5,
+      "privatePgRegression": {
+        "passed": 1,
+        "deliberatelySkipped": 19,
+        "cleaned": true
+      }
+    }
+  },
+  "delivery": {
+    "codeSha": "893fb6112453fec5cb210ef694344850c9a16682",
+    "railway": {
+      "id": "de94c94c-2d6b-4891-9ec9-052cc2b238ec",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "62d8a092-9f67-48e5-95f2-3a43d86ae3b7",
+      "status": "SUCCESS"
+    },
+    "postflight": {
+      "sha": "893fb6112453fec5cb210ef694344850c9a16682",
+      "guards": {
+        "combatComposition": 401,
+        "presence": 401,
+        "twitchLive": 401,
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T17:32:31.927Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/62d8a092-9f67-48e5-95f2-3a43d86ae3b7",
+      "sites": [
+        {
+          "origin": "https://62d8a092.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-COs-oxkB.css",
+              "sha256": "93908b874a3861ce6cd6ae21a84e776bbf746aae02ecc84039144bedf774375e"
+            },
+            {
+              "asset": "/assets/index-CthiJUv3.js",
+              "sha256": "11523d93e1662f81342da7d16dd5f62eb83c9653b8b62efcc9b90711246699d8"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-COs-oxkB.css",
+              "sha256": "93908b874a3861ce6cd6ae21a84e776bbf746aae02ecc84039144bedf774375e"
+            },
+            {
+              "asset": "/assets/index-CthiJUv3.js",
+              "sha256": "11523d93e1662f81342da7d16dd5f62eb83c9653b8b62efcc9b90711246699d8"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-COs-oxkB.css",
+              "sha256": "93908b874a3861ce6cd6ae21a84e776bbf746aae02ecc84039144bedf774375e"
+            },
+            {
+              "asset": "/assets/index-CthiJUv3.js",
+              "sha256": "11523d93e1662f81342da7d16dd5f62eb83c9653b8b62efcc9b90711246699d8"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "runtime": {
+      "checkedAt": "2026-10-17T17:34:28.728Z",
+      "migrations": {
+        "total": 90,
+        "unfinished": 0,
+        "live_applied": true,
+        "repositoryCount": 89,
+        "exactNamesMatch": true,
+        "applied": 89
+      },
+      "identity": {
+        "desired_mode": "GLOBAL",
+        "acknowledged": true,
+        "enabled": true,
+        "official": true,
+        "admin": true
+      },
+      "channel": {
+        "status": "OFFLINE",
+        "checked_at": "2026-10-17T17:34:13.637Z",
+        "fresh": true,
+        "has_stream": false,
+        "offline_since": "2026-10-17T17:32:12.550Z"
+      },
+      "privacy": [
+        {
+          "table": "twitch_live_channels",
+          "rls": true,
+          "anon_select": false,
+          "authenticated_select": false
+        },
+        {
+          "table": "twitch_live_streams",
+          "rls": true,
+          "anon_select": false,
+          "authenticated_select": false
+        }
+      ],
+      "pending": {
+        "pending": 0
+      },
+      "readOnly": true,
+      "remote": {
+        "verified": true,
+        "existingChatTransport": true,
+        "state": "OFFLINE",
+        "subscriptions": {
+          "stream.online": {
+            "count": 1,
+            "enabled": true,
+            "callbackMatches": true
+          },
+          "stream.offline": {
+            "count": 1,
+            "enabled": true,
+            "callbackMatches": true
+          }
+        }
+      }
+    },
+    "prismaStatus": "Database schema is up to date; 89 repository migrations; no unfinished migration",
+    "productionEconomicQa": false
   }
 }
