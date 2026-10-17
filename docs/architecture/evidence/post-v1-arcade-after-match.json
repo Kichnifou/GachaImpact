@@ -1,10 +1,49 @@
 {
   "scope": "post-V1 G / R1107",
-  "state": "Qualified local candidate; independent GitHub review and delivery pending",
+  "state": "Delivered technically; human acceptance not acquired",
   "migration": {
     "name": "20261017160000_088_arcade_after_match",
-    "publicApplied": false,
-    "privateRehearsal": true
+    "publicApplied": true,
+    "privateRehearsal": true,
+    "prisma": {
+      "sha": "73e2f5791f9bae7926663ad8f0f90bb488835a51",
+      "migrations": 88,
+      "prismaDeploy": true,
+      "prismaStatus": "up to date",
+      "frozen": true
+    },
+    "physicalReadOnly": {
+      "sha": "73e2f5791f9bae7926663ad8f0f90bb488835a51",
+      "at": "2026-10-17T09:19:14.685Z",
+      "readOnly": true,
+      "registry": {
+        "active": 88,
+        "unfinished": 0,
+        "rolled_back": 1
+      },
+      "columns": [
+        {
+          "column_name": "after_match",
+          "data_type": "jsonb",
+          "is_nullable": "YES"
+        },
+        {
+          "column_name": "after_match_expires_at",
+          "data_type": "timestamp with time zone",
+          "is_nullable": "YES"
+        }
+      ],
+      "constraint": "arcade_sessions_after_match_check with COALESCE",
+      "indices": [
+        "arcade_sessions_after_match_guest_idx",
+        "arcade_sessions_after_match_host_idx"
+      ],
+      "permissions": {
+        "relrowsecurity": true,
+        "anon_read": false,
+        "user_read": false
+      }
+    }
   },
   "tests": {
     "afterMatchPostgres": {
@@ -566,5 +605,86 @@
   },
   "privateBoundaries": "Random private isolated schemas, copied reference catalogs only, no public Players or gameplay/economic QA, sequential files with cleanup",
   "publicEconomicQa": false,
-  "humanAcceptance": false
+  "humanAcceptance": false,
+  "review": {
+    "sha": "73e2f5791f9bae7926663ad8f0f90bb488835a51",
+    "verdict": "APPROVED",
+    "githubDiffs": 32,
+    "criticalBlobs": 12,
+    "independentTests": {
+      "postgres": 19,
+      "frontend": 57,
+      "backend": 11
+    },
+    "capturesInspected": true,
+    "publicHumanAcceptance": false
+  },
+  "delivery": {
+    "sha": "73e2f5791f9bae7926663ad8f0f90bb488835a51",
+    "railway": {
+      "id": "f6cf2feb-8a9f-45e0-9111-e9f3ab07240a",
+      "status": "SUCCESS",
+      "commit": "73e2f5791f9bae7926663ad8f0f90bb488835a51"
+    },
+    "cloudflare": {
+      "id": "a13ec595-4256-4e46-86ca-209cda2075b1",
+      "status": "SUCCESS",
+      "commit": "73e2f5791f9bae7926663ad8f0f90bb488835a51"
+    },
+    "postflight": {
+      "sha": "73e2f5791f9bae7926663ad8f0f90bb488835a51",
+      "guards": {
+        "count": 401,
+        "birthday": 401,
+        "afterMatchPresence": 401,
+        "afterMatchActions": 401
+      },
+      "at": "2026-10-17T09:21:10.975Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/a13ec595-4256-4e46-86ca-209cda2075b1",
+      "sites": [
+        {
+          "origin": "https://a13ec595.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CIaNFKXX.css",
+              "sha256": "7a90b440bf1077763aa19c77eda6840d81269a53c355f347dca184a705d91641"
+            },
+            {
+              "asset": "/assets/index-DSCOuYDy.js",
+              "sha256": "cfb5ba4a33eaf33a9489b86eb3923d98d91303dd1a81565d1efe859bd9aa1ff9"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-CIaNFKXX.css",
+              "sha256": "7a90b440bf1077763aa19c77eda6840d81269a53c355f347dca184a705d91641"
+            },
+            {
+              "asset": "/assets/index-DSCOuYDy.js",
+              "sha256": "cfb5ba4a33eaf33a9489b86eb3923d98d91303dd1a81565d1efe859bd9aa1ff9"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-CIaNFKXX.css",
+              "sha256": "7a90b440bf1077763aa19c77eda6840d81269a53c355f347dca184a705d91641"
+            },
+            {
+              "asset": "/assets/index-DSCOuYDy.js",
+              "sha256": "cfb5ba4a33eaf33a9489b86eb3923d98d91303dd1a81565d1efe859bd9aa1ff9"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "promotion": "Strict fast-forward, main/review/local/remote aligned0/0 at code checkpoint"
+  }
 }

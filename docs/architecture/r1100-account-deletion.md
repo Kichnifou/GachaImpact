@@ -1,5 +1,9 @@
 # R1100 — suppression effective du compte
 
+## Extension de schéma post-V1 — R1107
+
+La migration 088 ajoute arcade_sessions.after_match au registre JSON classifié, soit 84 colonnes contre 83 au checkpoint R1100 historique. Aucun nouvel acteur, identifiant externe, secret ou contenu personnel n’est produit ; seuls les IDs opaques et la présence séquencée du contexte Arcade sont internes. Les FK, la fermeture des lignes possédées et le scrub générique restent sous le propriétaire d’effacement existant. Classification physique et cycle réel d’effacement/reprise qualifiés en PostgreSQL privé avec les 88 migrations : 2/2 PASS, 13 cas non sélectionnés ; pas d’effacement public de QA. [Contrat Arcade](post-v1-arcade-after-match-20261017.md), état livré au Master.
+
 **Continuité R1101 :** le suivi différé est désormais porté hors GameShell, avec intention locale non secrète avant dispatch et retry sur le même POST avec JWT capturé encore valide. Le bouton PENDING était disponible ; le défaut corrigé concernait le démontage après401/reload/perte de réponse. Après expiration, clôture non confirmée et worker poursuivi si accepté ; aucune nouvelle authentification de suivi, endpoint anonyme ou exception JWT. [Contrat et preuves R1101](r1101-v1-closure.md). Le périmètre d'effacement et la politique de sauvegardes restent inchangés ; les constats datés ci-dessous restent historiques.
 
 Continuité du 16/10/2026, bootstrap `201e81fdf4a9884a17c15fff0f75799d5f9aca1b` : ancien repli désactivé, quatre références alignées et arbre propre. Le [Master](../master/PROJECT_MASTER_PLAN.md) conserve le premier état historique et distingue qualification, publication, activation et recette humaine. Aucun compte public pour la QA.
