@@ -1,5 +1,9 @@
 # Contrat de layout UI V1
 
+## Anniversaire dans Aperçu — R1106
+
+Bloc compact dans le scroll existant du Profil Aperçu ; AppButton partagés, sélecteurs jour/mois, avertissement définitif et confirmation séparée. Pending désactive la soumission/annulation, erreur accessible et retry de la même date ; date enregistrée en lecture seule, aucun âge/année. Profil tiers privé ou non renseigné : aucun bloc ; public : date sans action. Quatre viewports GameShell compilé/CSS production vérifiés, conteneur profile-frame inchangé. [Contrat](../architecture/post-v1-birthdays-20261017.md).
+
 ## Compteur Invocation Voir — R1104
 
 Pastille bleue de10px dans le coin supérieur droit du bouton Voir, position absolue sans modification de taille/position, sans interception des clics ni du focus. Nom accessible avec nombre confirmé ; zéro/1/plusieurs testés en desktop/mobile, aucune valeur affichée en cas de chargement initial ou erreur, pas de pastille sur Arrêter. [Contrat partagé](../architecture/shared-invocations-v1.md). Ce compteur ne déclenche aucune réconciliation fréquente de la liste.

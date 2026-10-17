@@ -1,9 +1,10 @@
+import { AppError } from '../../api/errors.js';
 import { Prisma, type PrismaClient, type PrivacyLevel } from '../../../generated/prisma/client.js';
 
 /** R518 + R519. Missing rows use this versioned policy; overrides are never reset. */
-export const PRIVACY_POLICY_VERSION = 3;
+export const PRIVACY_POLICY_VERSION = 4;
 export const privacyDefaults = {
-  FAVOR: 'PUBLIC', ACTIVE_TEAM: 'PUBLIC', BOX: 'PUBLIC', COLLECTION: 'PUBLIC', GENERAL_STATISTICS: 'PUBLIC',
+  BIRTHDAY: 'PRIVATE', FAVOR: 'PUBLIC', ACTIVE_TEAM: 'PUBLIC', BOX: 'PUBLIC', COLLECTION: 'PUBLIC', GENERAL_STATISTICS: 'PUBLIC',
   MISSIONS: 'PUBLIC', LAST_ACTIVITY: 'PUBLIC', PITY_GUARANTEE: 'PUBLIC', PRIVATE_MESSAGES: 'PUBLIC', PRESENCE: 'PUBLIC',
   FRIEND_LIST: 'FRIENDS', CURRENCY_BALANCES: 'PUBLIC', BANK: 'PUBLIC', INVENTORY: 'FRIENDS',
   SAVED_TEAMS: 'FRIENDS', ACTIVE_EXPEDITION: 'FRIENDS', DAILY_COMBAT: 'FRIENDS', BOSS_STATE: 'FRIENDS', DETAILED_HISTORY: 'FRIENDS',
@@ -19,7 +20,7 @@ export function unblockedWith(viewer: string): Prisma.PlayerWhereInput {
 }
 export function privacyAllowedWhere(viewer: string, category: PrivacyCategory): Prisma.PlayerWhereInput {
   const fallback: PrivacyLevel = privacyDefaults[category];
-  const defaultAccess: Prisma.PlayerWhereInput[] = [{ AND: [
+  const defaultAccess: Prisma.PlayerWhereInput[] = fallback === 'PRIVATE' ? [] : [{ AND: [
     { privacySettings: { none: { categoryKey: category } } }, ...(fallback === 'FRIENDS' ? [activeFriendOf(viewer)] : []),
   ] }];
   const visibility: Prisma.PlayerWhereInput = { OR: [
@@ -39,6 +40,7 @@ export class PrivacyService {
     return { version: PRIVACY_POLICY_VERSION, settings: privacyCategories.map(categoryKey => ({ categoryKey, level: overrides.get(categoryKey) ?? privacyDefaults[categoryKey] })) };
   }
   async save(playerId: string, categoryKey: PrivacyCategory, level: PrivacyLevel) {
+    if (categoryKey === 'BIRTHDAY' && level === 'FRIENDS') throw new AppError('Choisissez Public ou Privé pour votre anniversaire.', 400, 'BIRTHDAY_PRIVACY_INVALID');
     await this.database.privacySetting.upsert({ where: { playerId_categoryKey: { playerId, categoryKey } }, create: { playerId, categoryKey, level }, update: { level } });
     return this.settings(playerId);
   }

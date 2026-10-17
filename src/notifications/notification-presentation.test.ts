@@ -9,6 +9,10 @@ const pending: NotificationDto = {
 }
 
 describe('Event message notification presentation', () => {
+  it('presents a credited birthday gift without a claim or navigation', () => {
+    const message = '🎂 Joyeux anniversaire ! GachaImpact t’offre 50 000 Primogemmes et 200 000 Moras pour fêter cette journée !'
+    expect(resolveNotificationPresentation({ ...pending, domainKey: 'birthday', typeKey: 'BIRTHDAY_REWARD', payload: { title: 'Joyeux anniversaire !', message }, actionKey: null, actionTargetId: null })).toEqual({ title: 'Joyeux anniversaire !', message, destination: null })
+  })
   it.each(['EVENT_MONTHLY_DRAW_WON', 'EVENT_MONTHLY_DRAW_ADMIN', 'EVENT_MONTHLY_DRAW_RESULT'])('presents the confirmed %s result without a claim or inferred navigation', typeKey => {
     const message = 'Festival des Ombres : +1 Masterless Stella Fortuna, attribution confirmée.'
     const result = resolveNotificationPresentation({ ...pending, typeKey, payload: { title: 'Festival des Ombres', message }, actionKey: 'OPEN_EVENT_MESSAGES' })

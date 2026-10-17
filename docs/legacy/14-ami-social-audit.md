@@ -1,5 +1,9 @@
 # Audit legacy — Ami / Social
 
+## Anniversaires post-V1 — R1106
+
+Catégorie BIRTHDAY ajoutée à la politique de confidentialité version4, privée par défaut même entre amis ; niveauxPUBLIC/PRIVATE uniquement, sans modifier les overrides existants. Profil tiers : serveur retourne PRIVATE ou seulement jour/mois autorisés ; aucune année/âge dans annuaire, Chat, recherche, classement ou logs. Propre Aperçu : saisie facultative avec confirmation explicite et avertissement définitif, puis lecture seule. Récompense annuelle indépendante de la visibilité et des connexions. [Contrat](../architecture/post-v1-birthdays-20261017.md), livraison réelle au Master.
+
 ## Point 31B — preuves conservées, raccordement public non exécuté
 
 Le 09/10, code communautaire corrigé approuvé puis déployé avec Prisma 64 au SHA 15a16a192b0f2a5a3ceb93b8090e7b4429c35041 ; aucune restauration sociale ni purge publique, onze faits B DEFERRED inchangés. La rétention décrite ci-dessous reste autorisée seulement en répétition privée, même si son code est publié. [Promotion et limites](../architecture/community-complements-20261008.md#promotion-code-20261009).

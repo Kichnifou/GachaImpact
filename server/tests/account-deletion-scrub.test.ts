@@ -4,6 +4,13 @@ import {compactDetail} from '../src/application/retention/lossless-detail-storag
 import {encodeIntentReads} from '../src/application/twitch/twitch-intent-storage.js';
 const context:ErasureContext={playerId:'target',externalIds:new Set(['123','auth-uuid']),names:new Set(['alice']),authoredMessageIds:new Set(['authored'])};
 describe('account erasure historical copies',()=>{
+ it('removes birthday dates in frozen own/peer profile copies without touching other birthdays or economic year/amount',()=>{
+   const birthday={access:'ALLOWED',data:{day:29,month:2}};
+   const value={profiles:[{player:{id:'target',displayName:'Alice'},birthday},{player:{id:'peer',displayName:'Alice'},birthday}],year:2026,amount:'50000'};
+   expect(scrubAccountDetail(value,context)).toMatchObject({profiles:[{birthday:{access:'PRIVATE'}},{birthday}],year:2026,amount:'50000'});
+   expect(scrubAccountDetail({player:{id:'peer',displayName:'Bob'},birthday},context,true)).toMatchObject({birthday});
+   expect(scrubAccountDetail({id:'target',displayName:'Alice',birthdayDay:29,birthdayMonth:2,birthdayRegisteredAt:'date',birthdayLastRewardYear:2026},context)).toMatchObject({birthdayDay:null,birthdayMonth:null,birthdayRegisteredAt:null,birthdayLastRewardYear:null});
+ });
  it('removes authored text without relying on names and preserves peer-authored content',()=>{
    expect(scrubAccountDetail([{authorPlayerId:'target',content:'private without identity'},{authorPlayerId:'peer',content:'Peer-owned text'}],context))
      .toEqual([{authorPlayerId:'target',content:null},{authorPlayerId:'peer',content:'Peer-owned text'}]);

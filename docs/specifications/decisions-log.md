@@ -1,5 +1,9 @@
 # Journal des décisions validées
 
+## R1106 — Anniversaires des joueurs (17/10/2026)
+
+**Validé explicitement par le mandat propriétaire, lot F.** Jour et mois facultatifs, valides, définitifs après confirmation ; PRIVÉ par défaut même entre amis, PUBLIC/PRIVÉ réversible sans année ni âge. Attribution serveur annuelle automatique 50000Primos+200000Moras, une fois par année, indépendante des connexions ; rattrapage depuis l’enregistrement, aucune occurrence antérieure à celui-ci. 29février observé le28février les années non bissextiles. Transaction économique, preuve et notification personnelle uniques, comptes archivés/supprimés exclus et date effacée à la suppression. [Contrat](../architecture/post-v1-birthdays-20261017.md), état de livraison au Master.
+
 ## R1105 — Boutique : Masterless Stella Fortuna (17/10/2026)
 
 **Validé explicitement par le mandat propriétaire consolidé, lot E.** Retrait du lot160Primos/50000Moras de toute nouvelle vente ; remplacement par une Stella existante à50000000Moras, achat unitaire répétable sans nouvelle limite quotidienne. Crédit d'objet et débit atomiques/idempotents via le propriétaire Boutique unique ; nouvelle définition stable, ancien article et reçus conservés pour exact replay. Commande commune !shop stella, anciennes commandes nouvelles refusées naturellement. [Contrat](../architecture/post-v1-shop-stella-20261017.md), état réel au Master.

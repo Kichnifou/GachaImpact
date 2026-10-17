@@ -31,6 +31,8 @@ const proof=(subject:string)=>({confirmation:'SUPPRIMER' as const,reauthenticati
 describe('R1100 synthetic erasure in private PostgreSQL',()=>{
  it('returns202 then confirms worker completion after restart with a valid JWT even when Auth is already gone; expiry and peer access stay refused',async()=>{
    const target=await player(),peer=await player(),s=service(true),issuer='https://synthetic.invalid/auth/v1';
+   await db.player.update({where:{id:target.player.id},data:{birthdayDay:29,birthdayMonth:2,birthdayRegisteredAt:new Date(),birthdayLastRewardYear:2025}});
+   const birthdayCopy=await db.businessOperation.create({data:{playerId:peer.player.id,operationType:'fixture.profile-copy',sourceChannel:'UI',status:'COMPLETED',resultSummary:{profile:{player:{id:target.player.id,displayName:target.player.displayName},birthday:{access:'ALLOWED',data:{day:29,month:2}}},amount:'50000'}}});
    const {publicKey,privateKey}=await generateKeyPair('RS256');const jwk=await exportJWK(publicKey);
    const verifier=new SupabaseAuthAdapter(new SupabaseJwtVerifier(issuer,createLocalJWKSet({keys:[{...jwk,alg:'RS256',kid:'private-test'}]})));
    const token=(subject:string,expired=false)=>new SignJWT({}).setProtectedHeader({alg:'RS256',kid:'private-test'}).setIssuer(issuer).setSubject(subject)
@@ -44,6 +46,8 @@ describe('R1100 synthetic erasure in private PostgreSQL',()=>{
      expect((await post(jwt)).statusCode).toBe(202);
      expect(await db.playerProgression.count({where:{playerId:target.player.id}})).toBe(0);
      const job=await db.accountDeletion.findUniqueOrThrow({where:{playerId:target.player.id}});
+     expect(await db.player.findUniqueOrThrow({where:{id:target.player.id}})).toMatchObject({birthdayDay:null,birthdayMonth:null,birthdayRegisteredAt:null,birthdayLastRewardYear:null});
+     expect((await db.businessOperation.findUniqueOrThrow({where:{id:birthdayCopy.id}})).resultSummary).toMatchObject({profile:{birthday:{access:'PRIVATE'}},amount:'50000'});
      expect(job.status).toBe('DATABASE_ERASED');expect((await post(jwt)).json()).toEqual({status:'PENDING'});expect(s.admin.verifyFresh).toHaveBeenCalledTimes(1);
      const adminCalls=s.admin.deleteUser.mock.calls.length;
      expect((await post(await token(target.subject,true))).statusCode).toBe(401);expect(s.admin.deleteUser).toHaveBeenCalledTimes(adminCalls);

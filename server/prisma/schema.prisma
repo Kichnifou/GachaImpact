@@ -380,6 +380,10 @@ model ResourceDefinition {
 }
 
 model Player {
+  birthdayDay Int? @map("birthday_day") @db.SmallInt
+  birthdayMonth Int? @map("birthday_month") @db.SmallInt
+  birthdayRegisteredAt DateTime? @map("birthday_registered_at") @db.Timestamptz(6)
+  birthdayLastRewardYear Int? @map("birthday_last_reward_year") @db.SmallInt
   sharedInvocationSession SharedInvocationSession?
   sharedInvocationMember SharedInvocationMember?
   arcadeSessions ArcadeSession[] @relation("ArcadeHost")

@@ -1067,6 +1067,10 @@ Ledger historique distinct du stock : chaque ligne rattache une quantité positi
 
 ---
 
+# Anniversaire Player post-V1 — R1106
+
+Migration087 candidate : birthdayDay/month (SMALLINT nullable), birthdayRegisteredAt serveur (TIMESTAMPTZ nullable), birthdayLastRewardYear (SMALLINT nullable), tous absents ensemble ou présents avec date réelle (29février valide). Aucun ajout de table, FK ou JSON ; index partiel des Players ACTIVE avec date enregistrée. PrivacySetting BIRTHDAY accepte PRIVATE/PUBLIC. BusinessOperation SYSTEM/birthday.grant:Player:année conserve la preuve annuelle unique ; deux ResourceMovement et Notification dédupliquée sont atomiques avec le curseur. Jour/mois ne figurent dans aucun reçu/payload économique. Erasure remet les quatre scalaires à NULL. [Contrat](../architecture/post-v1-birthdays-20261017.md), état physique réel au Master.
+
 # 15. Boutique
 
 **Amendement post-V1 R1105 :** migration086 candidate étend seulement le CHECK effect_type par masterless_stella, conserve l’ancien primogem-bundle masqué/désactivé et crée79000000-0000-4000-8000-000000000004 à50000000Moras. Effet snapshot {type:masterless_stella,amount:string}, crédit réel PlayerItem/ItemAcquisition avec BusinessOperation commune. Aucune nouvelle monnaie/table/colonne ; types PrismaString existants. ShopView expose stellaQuantity actuel, y compris au replay ; reçus et walletMorasAfter historiques ne changent pas. [Contrat](../architecture/post-v1-shop-stella-20261017.md), activation au Master. Les paragraphes010/011 ci-dessous sont historiques.

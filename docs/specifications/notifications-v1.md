@@ -1,5 +1,9 @@
 # Notifications V1 — contrat transverse
 
+## Anniversaire — R1106
+
+BIRTHDAY_REWARD, domaine birthday : notification personnelle créée dans la même transaction que les deux crédits annuels, clé birthday.grant:Player:année. Message chaleureux indiquant50000Primogemmes et200000Moras déjà crédités, sans claim ni navigation. Pas de jour/mois/âge dans le payload, pas d’annonce Chat. Lecture/archivage existants ; aucun rejeu ne recrée ni réactive une notice archivée. Les Missions déclenchées par le gain réel de Moras conservent leurs propres reçus/notifications. [Contrat](../architecture/post-v1-birthdays-20261017.md).
+
 ## Ouverture des cosmétiques — R1095
 
 CHARACTER_AVATARS_UNLOCKED ouvre le catalogue Avatar ; COSMETIC_UNLOCKED suit son type TITLE/AVATAR et l’action OPEN_PROFILE_PERSONALIZATION validés par le registre. Le shell rétablit le Player propriétaire, l’onglet Personnalisation et la catégorie puis transmet une intention éphémère d’ouverture. Lecture/archive de notification, consultation de cosmétique et équipement restent trois actions distinctes. Fermeture volontaire et chargement tardif ne réactivent pas le token consommé ; une activation volontaire suivante peut rouvrir.

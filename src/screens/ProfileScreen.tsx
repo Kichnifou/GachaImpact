@@ -4,6 +4,7 @@ import { useDestinationTab } from '../navigation/destination-context'
 import { useTutorialPresentation, useTutorialView } from '../tutorial/tutorial-presentation'
 import { useEffect, useState, type ReactNode } from 'react'
 import '../social/statistics-layout.css'
+import ProfileBirthday from '../social/ProfileBirthday'
 import '../social/profile-missions-layout.css'
 import '../social/profile-collection-layout.css'
 import '../missions/mission-pages.css'
@@ -105,7 +106,7 @@ export default function ProfileScreen({ playerId, ownerPlayerId, actions, contro
           setValue(current => current?.player.id === result.id ? { ...current, player: { ...current.player, displayName: result.displayName, presentationNameRevision: result.revision } } : current)
           setNameRevision(revision => revision + 1)
           await onAppearanceChanged()
-        }} />}</div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} /></div>}
+        }} />}</div>{value.player.title && <p className="profile-equipped-title">{value.player.title}</p>}<p className="profile-presence">{value.presence.access === 'ALLOWED' ? <><span className={`presence-dot presence-${value.presence.data.toLowerCase()}`} aria-hidden="true" />{presenceLabels[value.presence.data]}</> : 'Présence privée'}</p><p>Niveau {value.player.level}</p>{socialActions}<div className="social-feedback" role="status">{controller.feedbackScope === feedbackScope ? controller.feedback : ''}</div></div></div><div className="profile-activity-section"><LastActivity value={value.lastActivity} /></div><ProfileFavorCard favor={value.favor} own={value.own} />{value.birthday && <ProfileBirthday key={playerId} value={value.birthday} own={value.own && playerId === ownerPlayerId} onReload={async () => { setValue(await actions.profile(playerId)) }} onSave={actions.registerBirthday && value.own && playerId === ownerPlayerId ? async (day, month) => { const date = await actions.registerBirthday!(day, month); setValue(current => current?.player.id === playerId && current.own ? { ...current, birthday: { access: 'ALLOWED', data: date } } : current); return date } : undefined} />}</div>}
         {tab === 'Personnalisation' && value.own && <AppearancePanel openIntent={appearanceIntent} onIntentConsumed={onAppearanceIntentConsumed} refreshToken={refreshToken} actions={actions} displayName={value.player.displayName} elementKey={value.player.elementKey} onChanged={refreshAppearance} />}
         {tab === 'Team active' && team}
         {tab === 'Box' && <Section value={value.box}>{characters => {

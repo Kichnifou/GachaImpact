@@ -215,6 +215,7 @@ export function createGameApiClient(dependencies: ApiClientDependencies) {
     getRanking: (metric: string, page: number) => request<RankingPageDto>('/api/v1/rankings?' + new URLSearchParams({ metric, page: String(page) })),
     getPermissions: () => request<ModerationPermissionsDto>('/api/v1/me/permissions'),
     social: {
+      registerBirthday: (day: number, month: number) => request<{ day: number; month: number }>('/api/v1/me/birthday', { method: 'POST', body: JSON.stringify({ day, month, confirmation: true }) }),
       renamePresentation: (name: string, expectedRevision: number) => request<{ id: string; displayName: string; revision: number }>('/api/v1/me/presentation-name', { method: 'PATCH', body: JSON.stringify({ name, expectedRevision }) }),
       friends: () => request<FriendsSnapshot>('/api/v1/me/friends'),
       friendAction: (targetPlayerId, action, idempotencyKey, requestId) => request<{ state: string }>('/api/v1/me/friends/actions', { method: 'POST', body: JSON.stringify({ targetPlayerId, action, idempotencyKey, requestId }) }),

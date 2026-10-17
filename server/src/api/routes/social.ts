@@ -38,6 +38,10 @@ export async function registerSocialRoutes(app: FastifyInstance, options: { auth
     const body = parse(z.object({ targetPlayerId: z.union([z.uuid(), z.literal('all')]), idempotencyKey: z.uuid() }).strict(), request.body);
     return service.friendship.sendHearts((await service.actor(requireAuthenticatedIdentity(request))).id, body.targetPlayerId, body.idempotencyKey);
   });
+  app.post('/api/v1/me/birthday', config, async request => {
+    const body = parse(z.object({ day: z.number().int(), month: z.number().int(), confirmation: z.literal(true) }).strict(), request.body);
+    return service.birthdays.register(requireAuthenticatedIdentity(request), body.day, body.month);
+  });
   app.get('/api/v1/me/privacy', config, async request => service.privacy.settings((await service.actor(requireAuthenticatedIdentity(request))).id));
   app.patch('/api/v1/me/privacy', config, async request => {
     const body = parse(privacySchema, request.body);

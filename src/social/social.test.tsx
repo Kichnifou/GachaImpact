@@ -129,7 +129,7 @@ describe('Social UI', () => {
     await act(async () => { select.value = 'PUBLIC'; select.dispatchEvent(new Event('change', { bubbles: true })) })
     expect(container.querySelector('[role="alert"]')).not.toBeNull()
     expect(select.value).toBe('PRIVATE')
-    expect(Object.keys(privacyLabels)).toHaveLength(19)
+    expect(Object.keys(privacyLabels)).toHaveLength(20)
   })
   it('renders the real connected count and accessible profile/directory links without friendship mocks', async () => {
     const api = actions(), onProfile = vi.fn(), onDirectory = vi.fn(), onClose = vi.fn()

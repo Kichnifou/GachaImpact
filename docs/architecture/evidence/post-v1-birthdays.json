@@ -1,0 +1,87 @@
+{
+  "scope": "post-V1 F / R1106",
+  "state": "qualified local candidate; independent review and delivery pending",
+  "migration": {
+    "name": "20261017140000_087_player_birthdays",
+    "privateRehearsal": true,
+    "publicApplied": false
+  },
+  "tests": {
+    "privateBirthdays": {
+      "pass": 9,
+      "total": 9,
+      "initial": {
+        "pass": 6,
+        "fail": 3,
+        "reason": "Wallet assertions omitted authorized separate permanent-Mission rewards; birthday ledger/receipt amounts now checked exactly and Mission provenance checked separately"
+      }
+    },
+    "privateErasure": {
+      "pass": 1,
+      "excluded": 14,
+      "finalProfileCopyRequalification": "PASS1/1,14excluded; peer receipt date removed and amount retained"
+    },
+    "frontend": 50,
+    "backendTargeted": 23,
+    "quick": {
+      "pass": 5,
+      "total": 5
+    },
+    "full": {
+      "pass": 8,
+      "total": 8,
+      "logs": "gachaimpact-verify-full-yHuzuT",
+      "initialFailure": "One frontend fixture asserted19categories; Birthday makes20. Corrected, no test skipped."
+    }
+  },
+  "visuals": {
+    "productionCSS": true,
+    "gameShell": true,
+    "browser": "installed Edge headless",
+    "cases": [
+      {
+        "width": 1920,
+        "height": 1080,
+        "pending": true,
+        "readOnly": true,
+        "privateHidden": true,
+        "publicReadOnly": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 1366,
+        "height": 768,
+        "pending": true,
+        "readOnly": true,
+        "privateHidden": true,
+        "publicReadOnly": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "pending": true,
+        "readOnly": true,
+        "privateHidden": true,
+        "publicReadOnly": true,
+        "horizontalOverflow": false
+      },
+      {
+        "width": 390,
+        "height": 600,
+        "pending": true,
+        "readOnly": true,
+        "privateHidden": true,
+        "publicReadOnly": true,
+        "horizontalOverflow": false
+      }
+    ],
+    "inspected": [
+      "birthday-pending-1366x768.png",
+      "birthday-after-390x600.png"
+    ]
+  },
+  "privateBoundaries": "Random isolated schemas, reference catalog only, no public Player copied/mutated; cleaned",
+  "publicEconomicQa": false,
+  "humanAcceptance": false
+}

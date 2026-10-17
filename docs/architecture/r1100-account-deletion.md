@@ -12,6 +12,10 @@ L'accès Auth Admin avec `SUPABASE_STORAGE_SECRET_KEY` a été établi par la CL
 
 Références officielles : [clés serveur](https://supabase.com/docs/guides/getting-started/api-keys), [suppression physique Auth](https://supabase.com/docs/reference/javascript/auth-admin-deleteuser), [utilisateurs et Storage](https://supabase.com/docs/guides/auth/managing-user-data), [sessions](https://supabase.com/docs/guides/auth/sessions). Supprimer Auth ne suffit pas à invalider immédiatement les JWT.
 
+## Anniversaires post-V1 — R1106
+
+Les quatre scalaires Birthday du Player sont remis à NULL dans erasePlayerData, y compris dans les anciennes sources archivées du périmètre prouvé. Aucune FK/colonneJSON supplémentaire ; inventaires fermés existants inchangés. Le verrou Player empêche toute attribution concurrente après acceptation ARCHIVED. Preuves économiques gardées selon la politique existante, sans jour/mois d’anniversaire ; notifications personnelles supprimées avec le compte. Les marqueurs anti-restauration et barrières Auth ne changent pas. Test privé ciblé de suppression effective avec date présente, puis champs absents ; résultat réel au Master.
+
 ## Parcours et acceptation
 
 Même section Compte, modale, styles danger et unique `POST /api/v1/me/account/deletion`. Corps strict : `confirmation: SUPPRIMER` et preuve de réauthentification ; aucun ID cible accepté. Client Supabase isolé sans persistance pour le mot de passe courant. Le serveur vérifie signature/issuer/expiration, subject identique à la session, AMR password signé récent de cinq minutes et utilisateur Auth vivant. `iat`, refresh et métadonnées utilisateur ne constituent pas cette preuve.
@@ -66,3 +70,5 @@ Couverture : vierge/progression/Box/Team, MP/citations/signalements, tiers/tiers
 Résultats exacts, reviews GitHub et déploiements au Master/preuves ; les tests locaux ne prouvent aucune activation. Déploiement en deux temps : nouveau guard sur toutes les répliques, ancienne version retirée, puis clé privée `ACCOUNT_DELETION_MARKER_KEY`. Retour au backend antérieur après activation interdit sans conservation des barrières. Durées et moteurs de maintenance R1099 inchangés.
 
 Activation réelle et contrôles non destructifs du16/10 consignés au [checkpoint de continuité](evidence/r1100-continuity-qualification.json). Deux échecs historiques de replay après remplacement d'un compte actif sont documentés séparément : writer canaryv3 contre détection historiquev2, déjà présents au bootstrap et hors effacement R1100. Les chiffres ciblés réussis ne représentent pas une suite PostgreSQL entièrement verte. Aucune suppression publique ni recette humaine inventée. STOP R1100.
+
+Les copies de profil conservées dans les snapshots de commandes sont également traitées : account-deletion-scrub retire birthday par ID du Player présenté, y compris dans un reçu appartenant à un autre Player, sans toucher à sa propre date ni aux montants/années économiques. Les quatre scalaires Birthday sérialisés d’un Player supprimé sont neutralisés.

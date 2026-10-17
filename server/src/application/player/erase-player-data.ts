@@ -138,6 +138,7 @@ export async function erasePlayerData(tx: Tx, playerId: string, subject: string,
     }
   }
   await tx.player.update({ where:{id:playerId},data:{displayName:'Compte supprimé',presentationName:null,presentationNameRevision:0,
+    birthdayDay:null,birthdayMonth:null,birthdayRegisteredAt:null,birthdayLastRewardYear:null,
     legacyUsername:null,legacyRecovery:Prisma.DbNull,migrationRunId:null,elementKey:null,equippedAvatarCosmeticId:null,equippedTitleCosmeticId:null,equippedBadgeCosmeticId:null} });
   await tx.$executeRaw`UPDATE business_operations SET player_id=NULL WHERE player_id=${playerId}::uuid`;
   const after = await captureTargetedPlayerRows(tx,[playerId],deletionOwnedTables);

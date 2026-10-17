@@ -1,5 +1,9 @@
 # GachaImpact — Architecture backend V1
 
+## R1106 — anniversaires automatiques
+
+BirthdayService conserve seulement jour/mois, date serveur d’enregistrement et curseur annuel sur Player. Verrou de mutation Player et preuve unique SYSTEM annuelle sérialisent saisies et workers. Crédit via PrismaEconomyService, deux mouvements/reçu/notification/cursor atomiques ; Missions existantes conservées. Scheduler dédié dans le processus existant : startup, minuit Paris et reprise15min, une seule lecture paginée des candidats sans dépendance navigateur/Twitch/Chat. Aucun nouveau service ou cache partagé. [Contrat](post-v1-birthdays-20261017.md), migration087 et activation au Master.
+
 ## R1105 — achat de Stella
 
 Le propriétaire Boutique conserve son verrou Player, transaction SERIALIZABLE et retry borné. Un effet masterless_stella crédite PlayerItem et ItemAcquisition via creditMasterlessStellaFortuna dans la même transaction que le débit50M et le reçu ; nouveauID catalogue086, ancien masqué/désactivé conservé pour replay. Aucun ResourceKey artificiel ni changement Ticket/Défi. [Contrat](post-v1-shop-stella-20261017.md), qualification/activation au Master.

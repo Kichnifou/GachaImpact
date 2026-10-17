@@ -19,7 +19,9 @@ export type FriendsSnapshot = {
 export type HeartResult = { sent: number; alreadySent: number; unavailable: number; activeFriends: number; senderReward: string; recipientReward: string; status: 'SENT' | 'NO_FRIENDS' | 'ALL_SENT' | 'UNAVAILABLE'; level?: number; tier?: string; message?: string }
 export type ConnectedPlayers = { players: (SocialIdentity & { status: 'ONLINE' | 'AWAY' })[]; total: number }
 export type ProfileFavor = { active: boolean; daysRemaining: number; maxDays: number; dailyPrimogems?: string; claimedToday?: boolean; claimStatus?: 'AVAILABLE' | 'CLAIMED' | 'UNAVAILABLE' }
+export type Birthday = { day: number; month: number }
 export type Profile = {
+  birthday?: Access<Birthday | null>
   favor: Access<ProfileFavor>
   player: SocialIdentity; own: boolean; presence: Access<PresenceStatus>; lastActivity: Access<string | null>
   team: Access<PlayerTeamDto | null>; box: Access<Omit<BoxCharacterDto, 'favorite' | 'c6CompetitionStats'>[]>; collection: Access<InventoryItemDto[]>
@@ -33,7 +35,7 @@ export type GeneralStatistics = {
   totalFights: string | null; combatWins: string | null; totalLosses: string | null; totalManualWins: string | null; expeditionsCompleted: string | null; totalFriendHeartsSent: string | null; totalSpins: string | null; totalJackpots: string | null
 }
 export const privacyLabels = {
-  FAVOR: 'Faveur de l’Astre', ACTIVE_TEAM: 'Team active', BOX: 'Box', COLLECTION: 'Collection', GENERAL_STATISTICS: 'Statistiques générales',
+  BIRTHDAY: 'Anniversaire', FAVOR: 'Faveur de l’Astre', ACTIVE_TEAM: 'Team active', BOX: 'Box', COLLECTION: 'Collection', GENERAL_STATISTICS: 'Statistiques générales',
   MISSIONS: 'Missions', LAST_ACTIVITY: 'Dernière activité', PITY_GUARANTEE: 'Pity / garantie', PRIVATE_MESSAGES: 'Autorisation MP', PRESENCE: 'Présence',
   FRIEND_LIST: 'Liste d’amis', CURRENCY_BALANCES: 'Soldes de monnaies', BANK: 'Banque', INVENTORY: 'Sac', SAVED_TEAMS: 'Saved Teams',
   ACTIVE_EXPEDITION: 'Expédition active', DAILY_COMBAT: 'Combat quotidien', BOSS_STATE: 'Slots / KO / Boss', DETAILED_HISTORY: 'Historiques détaillés',
@@ -42,6 +44,7 @@ export type PrivacyCategory = keyof typeof privacyLabels
 export type PrivacyLevel = 'PUBLIC' | 'FRIENDS' | 'PRIVATE'
 export type PrivacySettings = { version: number; settings: { categoryKey: PrivacyCategory; level: PrivacyLevel }[] }
 export type SocialActions = {
+  registerBirthday?: (day: number, month: number) => Promise<Birthday>
   renamePresentation?: (name: string, expectedRevision: number) => Promise<{ id: string; displayName: string; revision: number }>
   friends: () => Promise<FriendsSnapshot>
   friendAction: (targetPlayerId: string, action: FriendAction, idempotencyKey: string, requestId?: string) => Promise<{ state: string }>

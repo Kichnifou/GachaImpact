@@ -29,7 +29,13 @@ export function scrubAccountDetail(value: Prisma.JsonValue | null, context: Eras
       ?legacySenders.some(([,item])=>typeof item==='string'&&legacyNames.has(item.toLowerCase())):own
       || Object.entries(value).some(([key, item]) => typeof item === 'string' && /^(id|messageId|message_id)$/i.test(key) && context.authoredMessageIds.has(item));
     const result: Record<string, Prisma.JsonValue | null> = {};
+    const profilePlayer = value.player && typeof value.player === 'object' && !Array.isArray(value.player) ? value.player : null;
+    const birthdayOwner = typeof profilePlayer?.id === 'string' ? profilePlayer.id === context.playerId : target;
     for (const [key, item] of Object.entries(value)) {
+      // Public/own profiles can be frozen in another player's command reads.
+      // Erase the date by its profile owner, never by a matching name or amount.
+      if (key === 'birthday' && birthdayOwner) { result[key] = { access: 'PRIVATE' }; continue; }
+      if (target && /^birthday(?:Day|Month|RegisteredAt|LastRewardYear)$/.test(key)) { result[key] = null; continue; }
       if((['participants','messageCounts'].includes(property)||property==='source'&&legacyKind==='EVENT_MESSAGES')&&legacyNames.has(key.toLowerCase()))continue;
       if(typeof item==='string'&&legacyIdentityKey.test(key)&&legacyNames.has(item.toLowerCase())){result[key]='Compte supprimé';continue;}
       if(typeof item==='string'&&externalIdentityKey.test(key)&&context.externalIds.has(item)){result[key]=null;continue;}

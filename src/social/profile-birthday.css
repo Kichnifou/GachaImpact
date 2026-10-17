@@ -1,0 +1,7 @@
+.profile-birthday { min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 12px; display: grid; gap: 10px; }
+.profile-birthday p { margin: 5px 0; color: var(--muted); }
+.profile-birthday small { color: var(--muted); }
+.profile-birthday-editor { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.profile-birthday-editor > p, .profile-birthday-editor > [role=alert] { flex-basis: 100%; }
+.profile-birthday-editor label { display: grid; gap: 4px; color: var(--muted); }
+.profile-birthday-editor select { min-height: 36px; padding: 6px; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 8px; }

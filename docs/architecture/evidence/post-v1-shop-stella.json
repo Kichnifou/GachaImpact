@@ -1,6 +1,6 @@
 {
   "scope": "post-V1 lot E / R1105",
-  "state": "qualified candidate; independent review and public migration/deployment pending",
+  "state": "technically delivered; human acceptance not claimed",
   "tests": {
     "privatePostgres": {
       "currentMigrationAndStella": 6,
@@ -168,7 +168,7 @@
   "migration": {
     "name": "20261017120000_086_shop_masterless_stella",
     "privateRehearsal": true,
-    "publicStatus": "not applied at candidate preparation"
+    "publicStatus": "Prisma deploy/status complete from approved SHA"
   },
   "economicQaPublic": false,
   "humanAcceptance": false,
@@ -182,6 +182,87 @@
       "backend": 251
     },
     "correction": "Reuse existing compact desktop layout when useful panel width>=500px and height<=460px; keep full text/overflow visible",
-    "correctionReview": "pending"
+    "correctionReview": "APPROVED 88939543"
+  },
+  "delivery": {
+    "sha": "88939543d7b660dbcb4ef0fe8735623b954f5a32",
+    "review": "APPROVED independently after CSS correction",
+    "railway": {
+      "id": "fc4187ea-4444-498d-b315-474e5ba9bffc",
+      "status": "SUCCESS"
+    },
+    "cloudflare": {
+      "id": "c1c91848-59db-4958-b820-a933b943b403",
+      "status": "SUCCESS"
+    },
+    "postflight": {
+      "sha": "88939543d7b660dbcb4ef0fe8735623b954f5a32",
+      "at": "2026-10-17T08:23:40.520Z",
+      "cloudflare": "https://dash.cloudflare.com/?to=/e0b1622c664b4332a0d7d63baa3a792d/pages/view/gachaimpact/c1c91848-59db-4958-b820-a933b943b403",
+      "sites": [
+        {
+          "origin": "https://c1c91848.gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-FYCL83Yc.js",
+              "sha256": "670da683a10302c1e0d47f95541972d14aba5347cac884acd08c8b4d76472b46"
+            },
+            {
+              "asset": "/assets/index-nwrGXf25.css",
+              "sha256": "229440b65e95469a8d80e2dcb2dbd32d52a53b2b05a213fd446f82f0247de519"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.pages.dev",
+          "hashes": [
+            {
+              "asset": "/assets/index-FYCL83Yc.js",
+              "sha256": "670da683a10302c1e0d47f95541972d14aba5347cac884acd08c8b4d76472b46"
+            },
+            {
+              "asset": "/assets/index-nwrGXf25.css",
+              "sha256": "229440b65e95469a8d80e2dcb2dbd32d52a53b2b05a213fd446f82f0247de519"
+            }
+          ]
+        },
+        {
+          "origin": "https://gachaimpact.fr",
+          "hashes": [
+            {
+              "asset": "/assets/index-FYCL83Yc.js",
+              "sha256": "670da683a10302c1e0d47f95541972d14aba5347cac884acd08c8b4d76472b46"
+            },
+            {
+              "asset": "/assets/index-nwrGXf25.css",
+              "sha256": "229440b65e95469a8d80e2dcb2dbd32d52a53b2b05a213fd446f82f0247de519"
+            }
+          ]
+        }
+      ],
+      "health": 200,
+      "eventAnonymousGuard": 401
+    },
+    "migration": {
+      "approvedFrozenSHA": true,
+      "applied": 86,
+      "unfinished": 0,
+      "development087": 0,
+      "status": "up to date",
+      "catalog": {
+        "stella": {
+          "price": "50000000",
+          "visible": true,
+          "enabled": true
+        },
+        "oldPrimos": {
+          "name": "Lot de Primogemmes",
+          "price": "50000",
+          "effectType": "resource_bundle",
+          "visible": false,
+          "enabled": false
+        }
+      }
+    }
   }
 }

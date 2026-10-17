@@ -50,6 +50,8 @@ import { GetCurrentPlayerBox, SetBoxCharacterFavorite, SetBoxSortPreference, Use
 import { PrismaBoxStore } from './database/prisma-box-store.js';
 import { ActivatePlayerTeam, ClearPlayerTeam, CreateNextPlayerTeam, DeleteExtraPlayerTeam, GetCurrentPlayerTeams, RemovePlayerTeamSlot, RenamePlayerTeam, ReorderPlayerTeams, ReorderPlayerTeamSlots, ReplacePlayerTeamComposition, SetPlayerTeamSlot } from '../application/team/team-services.js';
 import { PrismaTeamStore } from './database/prisma-team-store.js';
+import { BirthdayService } from '../application/birthday/birthday-service.js';
+import { BirthdayScheduler } from '../application/birthday/birthday-scheduler.js';
 import { BankInterestScheduler } from '../application/banking/bank-interest-scheduler.js';
 import { BankInterestProcessor, GetCurrentPlayerBank, GetPlayerBankHistory, TransferPlayerBank } from '../application/banking/banking-services.js';
 import { PrismaBankingStore } from './database/prisma-banking-store.js';
@@ -164,6 +166,7 @@ export function createRuntimeDependencies(config: AppConfig) {
   const bankingStore = new PrismaBankingStore(database);
   const inventoryStore = new PrismaInventoryStore(database);
   const shopStore = new PrismaShopStore(database, random);
+  const birthdayScheduler = new BirthdayScheduler(new BirthdayService(getCurrentPlayer, database, clock), clock);
   const bankInterestScheduler = new BankInterestScheduler(new BankInterestProcessor(bankingStore, clock), clock);
   const expeditionService = new ExpeditionService(getCurrentPlayer, database, clock, random);
   const monthlyBossService = new MonthlyBossService(getCurrentPlayer, database, clock, random);
@@ -289,8 +292,8 @@ export function createRuntimeDependencies(config: AppConfig) {
     historyService: new HistoryService(database, () => clock.now()),
     expeditionService,
     notificationService: new NotificationService(getCurrentPlayer, database, clock, expeditionService, giftCodeService, new EventMessageNotificationReconciler(database), new EventLifecycleNotificationReconciler(database, eventService), new ArcadeInvitations(database, clock)),
-    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); accountDeletion?.start(); },
-    close: async () => { await accountDeletion?.stop(); scheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
+    start: async () => { await tradeScheduler.start(); await scheduler.start(); await bankInterestScheduler.start(); await monthlyBossScheduler.start(); await giftCodeScheduler.start(); await eventMonthlyDrawScheduler.start(); birthdayScheduler.start(); contestScheduler.start(); catalogScheduler.start(); retentionScheduler.start(); accountDeletion?.start(); },
+    close: async () => { await accountDeletion?.stop(); scheduler.stop(); await birthdayScheduler.stop(); bankInterestScheduler.stop(); monthlyBossScheduler.stop(); giftCodeScheduler.stop(); await retentionScheduler.stop(); await catalogScheduler.stop(); await eventMonthlyDrawScheduler.stop(); await tradeScheduler.stop(); await contestScheduler.stop(); await database.$disconnect(); },
   };
   return {
     ...dependencies,
